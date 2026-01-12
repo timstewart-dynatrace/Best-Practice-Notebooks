@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 200">
+  <defs>
+    <linearGradient id="step1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="step2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="step3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="step4Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="orderShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="orderArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="200" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="350" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">Recommended Onboarding Order</text>
+
+  <!-- Step 1: First Steps -->
+  <rect x="30" y="55" width="130" height="70" rx="10" fill="url(#step1Grad)" filter="url(#orderShadow)"/>
+  <text x="95" y="82" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">1. First Steps</text>
+  <text x="95" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Account Access)</text>
+  <text x="95" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">ONBRD-01</text>
+
+  <!-- Arrow 1->2 -->
+  <path d="M165,90 L195,90" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#orderArrow)"/>
+
+  <!-- Step 2: IAM Setup -->
+  <rect x="200" y="55" width="130" height="70" rx="10" fill="url(#step2Grad)" filter="url(#orderShadow)"/>
+  <text x="265" y="82" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">2. IAM Setup</text>
+  <text x="265" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Security First)</text>
+  <text x="265" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">ONBRD-02</text>
+
+  <!-- Arrow 2->3 -->
+  <path d="M335,90 L365,90" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#orderArrow)"/>
+
+  <!-- Step 3: Deploy OneAgent -->
+  <rect x="370" y="55" width="130" height="70" rx="10" fill="url(#step3Grad)" filter="url(#orderShadow)"/>
+  <text x="435" y="82" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">3. Deploy</text>
+  <text x="435" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(OneAgent)</text>
+  <text x="435" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">ONBRD-03</text>
+
+  <!-- Arrow 3->4 -->
+  <path d="M505,90 L535,90" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#orderArrow)"/>
+
+  <!-- Step 4: Invite Team -->
+  <rect x="540" y="55" width="130" height="70" rx="10" fill="url(#step4Grad)" filter="url(#orderShadow)"/>
+  <text x="605" y="82" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">4. Invite Team</text>
+  <text x="605" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(With Proper Access)</text>
+  <text x="605" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">via IdP</text>
+
+  <!-- Key insight callout -->
+  <rect x="170" y="145" width="360" height="40" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="350" y="163" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle" font-weight="bold">Key Insight: Configure IAM before deploying agents</text>
+  <text x="350" y="177" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">This ensures all users authenticate properly from day one</text>
+</svg>

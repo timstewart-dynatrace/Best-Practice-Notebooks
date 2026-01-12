@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 500">
+  <defs>
+    <linearGradient id="navHeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="navItemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+    <filter id="navShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="750" height="500" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="375" y="32" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">Dynatrace Navigation Structure</text>
+
+  <!-- Main Browser Container -->
+  <rect x="40" y="55" width="500" height="350" rx="10" fill="#fff" stroke="#cbd5e1" stroke-width="2" filter="url(#navShadow)"/>
+
+  <!-- Header Bar -->
+  <rect x="40" y="55" width="500" height="50" rx="10" fill="url(#navHeaderGrad)"/>
+  <rect x="40" y="90" width="500" height="15" fill="url(#navHeaderGrad)"/>
+
+  <!-- Search Bar in Header -->
+  <rect x="180" y="68" width="200" height="30" rx="15" fill="rgba(255,255,255,0.25)"/>
+  <text x="210" y="88" font-family="Arial, sans-serif" font-size="13" fill="rgba(255,255,255,0.9)">⌘K  Search...</text>
+
+  <!-- Left Sidebar -->
+  <rect x="40" y="105" width="140" height="300" fill="#f1f5f9"/>
+
+  <!-- Sidebar Header -->
+  <text x="60" y="130" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#64748b">APPS</text>
+
+  <!-- Sidebar Items -->
+  <rect x="50" y="145" width="120" height="32" rx="6" fill="url(#navItemGrad)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="166" font-family="Arial, sans-serif" font-size="13" fill="#333">Dashboards</text>
+
+  <rect x="50" y="185" width="120" height="32" rx="6" fill="url(#navItemGrad)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="206" font-family="Arial, sans-serif" font-size="13" fill="#333">Notebooks</text>
+
+  <rect x="50" y="225" width="120" height="32" rx="6" fill="#1496ff"/>
+  <text x="65" y="246" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#fff">Problems</text>
+
+  <rect x="50" y="265" width="120" height="32" rx="6" fill="url(#navItemGrad)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="286" font-family="Arial, sans-serif" font-size="13" fill="#333">Logs</text>
+
+  <rect x="50" y="305" width="120" height="32" rx="6" fill="url(#navItemGrad)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="326" font-family="Arial, sans-serif" font-size="13" fill="#333">Hosts</text>
+
+  <rect x="50" y="345" width="120" height="32" rx="6" fill="url(#navItemGrad)" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="366" font-family="Arial, sans-serif" font-size="13" fill="#333">Services</text>
+
+  <!-- Main Content Area -->
+  <rect x="190" y="115" width="340" height="280" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="360" y="260" font-family="Arial, sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle">Main Content Area</text>
+
+  <!-- ANNOTATIONS - Right Side Panel -->
+  <rect x="560" y="55" width="175" height="350" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="647" y="80" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">Key Areas</text>
+
+  <!-- Annotation 1: Search -->
+  <rect x="575" y="100" width="145" height="70" rx="6" fill="#dbeafe"/>
+  <circle cx="595" cy="120" r="10" fill="#1496ff"/>
+  <text x="595" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">1</text>
+  <text x="615" y="125" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1496ff">Quick Search</text>
+  <text x="585" y="145" font-family="Arial, sans-serif" font-size="11" fill="#334155">Press ⌘K or Ctrl+K</text>
+  <text x="585" y="160" font-family="Arial, sans-serif" font-size="11" fill="#334155">to find anything</text>
+
+  <!-- Annotation 2: Apps Menu -->
+  <rect x="575" y="180" width="145" height="70" rx="6" fill="#dcfce7"/>
+  <circle cx="595" cy="200" r="10" fill="#10b981"/>
+  <text x="595" y="205" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">2</text>
+  <text x="615" y="205" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#10b981">Apps Menu</text>
+  <text x="585" y="225" font-family="Arial, sans-serif" font-size="11" fill="#334155">Left sidebar shows</text>
+  <text x="585" y="240" font-family="Arial, sans-serif" font-size="11" fill="#334155">all available apps</text>
+
+  <!-- Annotation 3: Active App -->
+  <rect x="575" y="260" width="145" height="70" rx="6" fill="#ede9fe"/>
+  <circle cx="595" cy="280" r="10" fill="#8b5cf6"/>
+  <text x="595" y="285" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">3</text>
+  <text x="615" y="285" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#8b5cf6">Active App</text>
+  <text x="585" y="305" font-family="Arial, sans-serif" font-size="11" fill="#334155">Highlighted item</text>
+  <text x="585" y="320" font-family="Arial, sans-serif" font-size="11" fill="#334155">shows current view</text>
+
+  <!-- Annotation 4: Content -->
+  <rect x="575" y="340" width="145" height="55" rx="6" fill="#fef3c7"/>
+  <circle cx="595" cy="360" r="10" fill="#f59e0b"/>
+  <text x="595" y="365" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">4</text>
+  <text x="615" y="365" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#d97706">Content</text>
+  <text x="585" y="385" font-family="Arial, sans-serif" font-size="11" fill="#334155">Main workspace</text>
+
+  <!-- Connecting Lines (simple, non-crossing) -->
+  <!-- Line to Search -->
+  <line x1="380" y1="83" x2="540" y2="83" stroke="#1496ff" stroke-width="2"/>
+  <line x1="540" y1="83" x2="540" y2="135" stroke="#1496ff" stroke-width="2"/>
+  <line x1="540" y1="135" x2="575" y2="135" stroke="#1496ff" stroke-width="2"/>
+  <circle cx="380" cy="83" r="4" fill="#1496ff"/>
+
+  <!-- Line to Apps Menu -->
+  <line x1="110" y1="130" x2="110" y2="425" stroke="#10b981" stroke-width="2"/>
+  <line x1="110" y1="425" x2="575" y2="425" stroke="#10b981" stroke-width="2"/>
+  <line x1="575" y1="425" x2="575" y2="215" stroke="#10b981" stroke-width="2"/>
+  <circle cx="110" cy="130" r="4" fill="#10b981"/>
+
+  <!-- Line to Active App -->
+  <line x1="170" y1="241" x2="555" y2="241" stroke="#8b5cf6" stroke-width="2"/>
+  <line x1="555" y1="241" x2="555" y2="295" stroke="#8b5cf6" stroke-width="2"/>
+  <line x1="555" y1="295" x2="575" y2="295" stroke="#8b5cf6" stroke-width="2"/>
+  <circle cx="170" cy="241" r="4" fill="#8b5cf6"/>
+
+  <!-- Line to Content -->
+  <line x1="360" y1="395" x2="360" y2="440" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="360" y1="440" x2="565" y2="440" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="565" y1="440" x2="565" y2="367" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="565" y1="367" x2="575" y2="367" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="360" cy="395" r="4" fill="#f59e0b"/>
+
+  <!-- Footer Tip -->
+  <text x="375" y="480" font-family="Arial, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">💡 Tip: Pin frequently used apps to the sidebar for quick access</text>
+</svg>

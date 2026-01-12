@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="numGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="netGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="timeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dplShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">DPL Pattern Matchers Quick Reference</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Dynatrace Pattern Language for Log Parsing</text>
+
+  <!-- Text Matchers Section -->
+  <rect x="30" y="65" width="365" height="140" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="30" y="65" width="365" height="30" rx="10" fill="url(#textGrad)"/>
+  <text x="212" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Text Matchers</text>
+
+  <text x="50" y="115" font-family="monospace" font-size="11" font-weight="bold" fill="#2563eb">LD</text>
+  <text x="100" y="115" font-family="Arial, sans-serif" font-size="10" fill="#333">Line data (greedy)</text>
+  <text x="50" y="135" font-family="monospace" font-size="11" font-weight="bold" fill="#2563eb">WORD</text>
+  <text x="100" y="135" font-family="Arial, sans-serif" font-size="10" fill="#333">Single word</text>
+  <text x="50" y="155" font-family="monospace" font-size="11" font-weight="bold" fill="#2563eb">DATA</text>
+  <text x="100" y="155" font-family="Arial, sans-serif" font-size="10" fill="#333">Any text (non-greedy)</text>
+  <text x="50" y="175" font-family="monospace" font-size="11" font-weight="bold" fill="#2563eb">NSPACE</text>
+  <text x="100" y="175" font-family="Arial, sans-serif" font-size="10" fill="#333">Non-whitespace</text>
+  <text x="50" y="195" font-family="monospace" font-size="11" font-weight="bold" fill="#2563eb">SPACE</text>
+  <text x="100" y="195" font-family="Arial, sans-serif" font-size="10" fill="#333">Whitespace characters</text>
+
+  <text x="220" y="115" font-family="monospace" font-size="10" fill="#64748b">"error in module"</text>
+  <text x="220" y="135" font-family="monospace" font-size="10" fill="#64748b">"ERROR"</text>
+  <text x="220" y="155" font-family="monospace" font-size="10" fill="#64748b">"any content"</text>
+  <text x="220" y="175" font-family="monospace" font-size="10" fill="#64748b">"user@host.com"</text>
+  <text x="220" y="195" font-family="monospace" font-size="10" fill="#64748b">"   " (tabs/spaces)</text>
+
+  <!-- Number Matchers Section -->
+  <rect x="405" y="65" width="365" height="140" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="405" y="65" width="365" height="30" rx="10" fill="url(#numGrad)"/>
+  <text x="587" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Number Matchers</text>
+
+  <text x="425" y="115" font-family="monospace" font-size="11" font-weight="bold" fill="#059669">INT</text>
+  <text x="475" y="115" font-family="Arial, sans-serif" font-size="10" fill="#333">Integer</text>
+  <text x="425" y="135" font-family="monospace" font-size="11" font-weight="bold" fill="#059669">LONG</text>
+  <text x="475" y="135" font-family="Arial, sans-serif" font-size="10" fill="#333">Long integer</text>
+  <text x="425" y="155" font-family="monospace" font-size="11" font-weight="bold" fill="#059669">DOUBLE</text>
+  <text x="475" y="155" font-family="Arial, sans-serif" font-size="10" fill="#333">Decimal number</text>
+  <text x="425" y="175" font-family="monospace" font-size="11" font-weight="bold" fill="#059669">BOOLEAN</text>
+  <text x="495" y="175" font-family="Arial, sans-serif" font-size="10" fill="#333">true/false</text>
+  <text x="425" y="195" font-family="monospace" font-size="11" font-weight="bold" fill="#059669">HEX</text>
+  <text x="475" y="195" font-family="Arial, sans-serif" font-size="10" fill="#333">Hexadecimal</text>
+
+  <text x="595" y="115" font-family="monospace" font-size="10" fill="#64748b">-1, 42, 1000</text>
+  <text x="595" y="135" font-family="monospace" font-size="10" fill="#64748b">9223372036854775807</text>
+  <text x="595" y="155" font-family="monospace" font-size="10" fill="#64748b">3.14, -0.5</text>
+  <text x="595" y="175" font-family="monospace" font-size="10" fill="#64748b">true, false</text>
+  <text x="595" y="195" font-family="monospace" font-size="10" fill="#64748b">0x1F, DEADBEEF</text>
+
+  <!-- Network/Identity Matchers Section -->
+  <rect x="30" y="215" width="365" height="140" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="30" y="215" width="365" height="30" rx="10" fill="url(#netGrad)"/>
+  <text x="212" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Network / Identity</text>
+
+  <text x="50" y="265" font-family="monospace" font-size="11" font-weight="bold" fill="#d97706">IPADDR</text>
+  <text x="110" y="265" font-family="Arial, sans-serif" font-size="10" fill="#333">IPv4/IPv6 address</text>
+  <text x="50" y="285" font-family="monospace" font-size="11" font-weight="bold" fill="#d97706">IPV4</text>
+  <text x="110" y="285" font-family="Arial, sans-serif" font-size="10" fill="#333">IPv4 only</text>
+  <text x="50" y="305" font-family="monospace" font-size="11" font-weight="bold" fill="#d97706">IPV6</text>
+  <text x="110" y="305" font-family="Arial, sans-serif" font-size="10" fill="#333">IPv6 only</text>
+  <text x="50" y="325" font-family="monospace" font-size="11" font-weight="bold" fill="#d97706">HTTPURI</text>
+  <text x="115" y="325" font-family="Arial, sans-serif" font-size="10" fill="#333">HTTP URL path</text>
+  <text x="50" y="345" font-family="monospace" font-size="11" font-weight="bold" fill="#d97706">UUID</text>
+  <text x="110" y="345" font-family="Arial, sans-serif" font-size="10" fill="#333">UUID format</text>
+
+  <text x="220" y="265" font-family="monospace" font-size="10" fill="#64748b">10.0.0.1, ::1</text>
+  <text x="220" y="285" font-family="monospace" font-size="10" fill="#64748b">192.168.1.100</text>
+  <text x="220" y="305" font-family="monospace" font-size="10" fill="#64748b">2001:db8::1</text>
+  <text x="220" y="325" font-family="monospace" font-size="10" fill="#64748b">/api/v1/users</text>
+  <text x="220" y="345" font-family="monospace" font-size="10" fill="#64748b">a1b2c3d4-...</text>
+
+  <!-- Time/Date Matchers Section -->
+  <rect x="405" y="215" width="365" height="140" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="405" y="215" width="365" height="30" rx="10" fill="url(#timeGrad)"/>
+  <text x="587" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Time / Date</text>
+
+  <text x="425" y="265" font-family="monospace" font-size="11" font-weight="bold" fill="#7c3aed">TIMESTAMP</text>
+  <text x="510" y="265" font-family="Arial, sans-serif" font-size="10" fill="#333">ISO timestamp</text>
+  <text x="425" y="285" font-family="monospace" font-size="11" font-weight="bold" fill="#7c3aed">DATE</text>
+  <text x="480" y="285" font-family="Arial, sans-serif" font-size="10" fill="#333">Date (YYYY-MM-DD)</text>
+  <text x="425" y="305" font-family="monospace" font-size="11" font-weight="bold" fill="#7c3aed">TIME</text>
+  <text x="480" y="305" font-family="Arial, sans-serif" font-size="10" fill="#333">Time (HH:MM:SS)</text>
+  <text x="425" y="325" font-family="monospace" font-size="11" font-weight="bold" fill="#7c3aed">EPOCH</text>
+  <text x="480" y="325" font-family="Arial, sans-serif" font-size="10" fill="#333">Unix timestamp</text>
+  <text x="425" y="345" font-family="monospace" font-size="11" font-weight="bold" fill="#7c3aed">DURATION</text>
+  <text x="500" y="345" font-family="Arial, sans-serif" font-size="10" fill="#333">Time duration</text>
+
+  <text x="620" y="265" font-family="monospace" font-size="10" fill="#64748b">2024-01-15T...</text>
+  <text x="620" y="285" font-family="monospace" font-size="10" fill="#64748b">2024-01-15</text>
+  <text x="620" y="305" font-family="monospace" font-size="10" fill="#64748b">14:30:00</text>
+  <text x="620" y="325" font-family="monospace" font-size="10" fill="#64748b">1705329600</text>
+  <text x="620" y="345" font-family="monospace" font-size="10" fill="#64748b">2h30m, 1d</text>
+
+  <!-- Syntax tip -->
+  <rect x="30" y="360" width="740" height="12" rx="4" fill="#e0f2fe"/>
+  <text x="400" y="370" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">Syntax: MATCHER:fieldname (e.g., INT:status_code) or MATCHER (no capture)</text>
+</svg>

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="frontendGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="backendGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="queueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <filter id="topoShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="topoArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Service Topology from Span Data</text>
+
+  <!-- Layer Labels (left side) -->
+  <rect x="20" y="65" width="90" height="24" rx="4" fill="#6366f1"/>
+  <text x="65" y="82" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">FRONTEND</text>
+
+  <rect x="20" y="155" width="90" height="24" rx="4" fill="#1496ff"/>
+  <text x="65" y="172" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">BACKEND</text>
+
+  <rect x="20" y="275" width="90" height="24" rx="4" fill="#22c55e"/>
+  <text x="65" y="292" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">DATA</text>
+
+  <!-- Frontend Layer -->
+  <rect x="130" y="55" width="120" height="50" rx="8" fill="url(#frontendGrad)" filter="url(#topoShadow)"/>
+  <text x="190" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Web App</text>
+
+  <rect x="270" y="55" width="120" height="50" rx="8" fill="url(#frontendGrad)" filter="url(#topoShadow)"/>
+  <text x="330" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Mobile API</text>
+
+  <!-- Backend Layer -->
+  <rect x="130" y="145" width="110" height="50" rx="8" fill="url(#backendGrad)" filter="url(#topoShadow)"/>
+  <text x="185" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">API Gateway</text>
+
+  <rect x="260" y="145" width="110" height="50" rx="8" fill="url(#backendGrad)" filter="url(#topoShadow)"/>
+  <text x="315" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">User Service</text>
+
+  <rect x="390" y="145" width="110" height="50" rx="8" fill="url(#backendGrad)" filter="url(#topoShadow)"/>
+  <text x="445" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Order Service</text>
+
+  <rect x="520" y="145" width="110" height="50" rx="8" fill="url(#backendGrad)" filter="url(#topoShadow)"/>
+  <text x="575" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Payment Svc</text>
+
+  <!-- Data Layer -->
+  <rect x="260" y="265" width="100" height="45" rx="8" fill="url(#dataGrad)" filter="url(#topoShadow)"/>
+  <text x="310" y="293" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">PostgreSQL</text>
+
+  <rect x="380" y="265" width="100" height="45" rx="8" fill="url(#dataGrad)" filter="url(#topoShadow)"/>
+  <text x="430" y="293" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">MongoDB</text>
+
+  <rect x="500" y="265" width="100" height="45" rx="8" fill="url(#dataGrad)" filter="url(#topoShadow)"/>
+  <text x="550" y="293" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Redis</text>
+
+  <!-- Queue -->
+  <rect x="650" y="145" width="110" height="50" rx="8" fill="url(#queueGrad)" filter="url(#topoShadow)"/>
+  <text x="705" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Kafka</text>
+
+  <!-- Arrows - Frontend to API Gateway -->
+  <path d="M190,105 L190,140" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+  <path d="M330,105 L230,140" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+
+  <!-- Arrows - API Gateway to Services (curved to avoid overlap) -->
+  <path d="M240,170 Q250,170 255,170" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+  <path d="M240,175 Q320,210 385,175" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+
+  <!-- Arrows - Service to Service -->
+  <path d="M370,170 L385,170" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+  <path d="M500,170 L515,170" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+
+  <!-- Arrows - Services to Data -->
+  <path d="M315,195 L312,260" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+  <path d="M445,195 L432,260" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+  <path d="M575,195 L552,260" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+
+  <!-- Arrow to Kafka -->
+  <path d="M630,170 L645,170" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#topoArrow)"/>
+
+  <!-- Legend box -->
+  <rect x="620" y="265" width="160" height="95" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="700" y="287" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Discovered via DQL</text>
+  <text x="635" y="307" font-family="monospace" font-size="10" fill="#666">fetch spans</text>
+  <text x="635" y="321" font-family="monospace" font-size="10" fill="#666">| filter span.kind</text>
+  <text x="645" y="335" font-family="monospace" font-size="10" fill="#666">  == "client"</text>
+  <text x="635" y="349" font-family="monospace" font-size="10" fill="#666">| summarize by:{...}</text>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="uiShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Window frame -->
+  <rect x="30" y="20" width="640" height="340" rx="8" fill="white" stroke="#e2e8f0" stroke-width="2" filter="url(#uiShadow)"/>
+
+  <!-- Header bar -->
+  <rect x="30" y="20" width="640" height="45" rx="8" fill="url(#headerGrad)"/>
+  <rect x="30" y="57" width="640" height="8" fill="url(#headerGrad)"/>
+  <text x="50" y="48" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">OpenPipeline Configuration</text>
+
+  <!-- Help button -->
+  <rect x="620" y="32" width="35" height="20" rx="4" fill="rgba(255,255,255,0.2)"/>
+  <text x="637" y="46" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">? Help</text>
+
+  <!-- Scope dropdown -->
+  <text x="50" y="95" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Configuration scope:</text>
+  <rect x="175" y="80" width="120" height="28" rx="4" fill="white" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="190" y="99" font-family="Arial, sans-serif" font-size="12" fill="#334155">Logs</text>
+  <text x="280" y="99" font-family="Arial, sans-serif" font-size="10" fill="#64748b">▼</text>
+
+  <!-- Arrow pointing to dropdown -->
+  <path d="M305,94 L340,94" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#uiArrow)"/>
+  <text x="350" y="98" font-family="Arial, sans-serif" font-size="10" fill="#3b82f6" font-style="italic">SELECT DATA TYPE</text>
+
+  <!-- Tabs -->
+  <rect x="50" y="120" width="600" height="35" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="52" y="122" width="120" height="31" rx="3" fill="#3b82f6"/>
+  <text x="112" y="143" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Pipelines</text>
+  <text x="232" y="143" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">Dynamic routing</text>
+  <text x="372" y="143" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">Ingest sources</text>
+
+  <!-- Add Pipeline button -->
+  <rect x="50" y="170" width="110" height="32" rx="6" fill="#10b981"/>
+  <text x="105" y="191" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">+ Pipeline</text>
+
+  <!-- Arrow pointing to button -->
+  <path d="M170,186 L210,186" stroke="#10b981" stroke-width="2" fill="none"/>
+  <text x="220" y="190" font-family="Arial, sans-serif" font-size="10" fill="#10b981" font-style="italic">CREATE NEW PIPELINE</text>
+
+  <!-- Pipeline list -->
+  <g transform="translate(50, 220)">
+    <!-- Pipeline 1: default -->
+    <rect width="600" height="40" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="15" y="25" font-family="Arial, sans-serif" font-size="18" fill="#f59e0b">📁</text>
+    <text x="45" y="26" font-family="Arial, sans-serif" font-size="12" fill="#334155">default</text>
+    <text x="575" y="26" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">⋮</text>
+
+    <!-- Pipeline 2 -->
+    <rect y="45" width="600" height="40" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="15" y="70" font-family="Arial, sans-serif" font-size="18" fill="#3b82f6">📁</text>
+    <text x="45" y="71" font-family="Arial, sans-serif" font-size="12" fill="#334155">kubernetes-logs</text>
+    <text x="575" y="71" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">⋮</text>
+
+    <!-- Pipeline 3: custom -->
+    <rect y="90" width="600" height="40" rx="4" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+    <text x="15" y="115" font-family="Arial, sans-serif" font-size="18" fill="#3b82f6">📁</text>
+    <text x="45" y="116" font-family="Arial, sans-serif" font-size="12" fill="#1e40af" font-weight="bold">my-custom-pipeline</text>
+    <text x="575" y="116" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">⋮</text>
+  </g>
+</svg>

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250">
+  <defs>
+    <linearGradient id="dnsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="connectGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sslGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="requestGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#84cc16;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#65a30d;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="responseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="domGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="loadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="navShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="250" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Navigation Timing Breakdown</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Browser monitor performance phases (W3C Navigation Timing API)</text>
+
+  <!-- Timeline base -->
+  <line x1="50" y1="130" x2="750" y2="130" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- Timeline segments - proportional widths -->
+  <!-- DNS: 50-110 (60px, ~15ms) -->
+  <rect x="50" y="90" width="60" height="40" rx="4" fill="url(#dnsGrad)" filter="url(#navShadow)"/>
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">DNS</text>
+  <text x="80" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">15ms</text>
+
+  <!-- Connect: 110-180 (70px, ~25ms) -->
+  <rect x="112" y="90" width="70" height="40" rx="4" fill="url(#connectGrad)" filter="url(#navShadow)"/>
+  <text x="147" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Connect</text>
+  <text x="147" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">25ms</text>
+
+  <!-- SSL: 180-270 (90px, ~45ms) -->
+  <rect x="184" y="90" width="90" height="40" rx="4" fill="url(#sslGrad)" filter="url(#navShadow)"/>
+  <text x="229" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">SSL/TLS</text>
+  <text x="229" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">45ms</text>
+
+  <!-- Request: 270-340 (70px, ~30ms) -->
+  <rect x="276" y="90" width="70" height="40" rx="4" fill="url(#requestGrad)" filter="url(#navShadow)"/>
+  <text x="311" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Request</text>
+  <text x="311" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">30ms</text>
+
+  <!-- Response: 340-450 (110px, ~85ms) -->
+  <rect x="348" y="90" width="110" height="40" rx="4" fill="url(#responseGrad)" filter="url(#navShadow)"/>
+  <text x="403" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Response</text>
+  <text x="403" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">85ms</text>
+
+  <!-- DOM: 450-600 (150px, ~150ms) -->
+  <rect x="460" y="90" width="150" height="40" rx="4" fill="url(#domGrad)" filter="url(#navShadow)"/>
+  <text x="535" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">DOM Processing</text>
+  <text x="535" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">150ms</text>
+
+  <!-- Load: 600-740 (140px, ~120ms) -->
+  <rect x="612" y="90" width="130" height="40" rx="4" fill="url(#loadGrad)" filter="url(#navShadow)"/>
+  <text x="677" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Load Event</text>
+  <text x="677" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">120ms</text>
+
+  <!-- Time markers -->
+  <text x="50" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b">0ms</text>
+  <text x="400" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">250ms</text>
+  <text x="742" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="end">470ms</text>
+
+  <!-- Legend -->
+  <rect x="50" y="175" width="700" height="60" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Key DQL Fields for Analysis</text>
+  <text x="120" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">dns_time</text>
+  <text x="230" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">connect_time</text>
+  <text x="340" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">ssl_time</text>
+  <text x="450" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">ttfb</text>
+  <text x="560" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">dom_interactive</text>
+  <text x="680" y="220" font-family="monospace" font-size="10" fill="#64748b" text-anchor="middle">load_event_end</text>
+</svg>

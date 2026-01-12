@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280">
+  <defs>
+    <linearGradient id="fetchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="filterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="transformGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="outputGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="pipelineShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="pipeArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="280" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">DQL Pipeline Model for Spans</text>
+
+  <!-- Fetch stage -->
+  <rect x="40" y="60" width="140" height="80" rx="8" fill="url(#fetchGrad)" filter="url(#pipelineShadow)"/>
+  <text x="110" y="95" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">fetch spans</text>
+  <text x="110" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Get from Grail</text>
+
+  <!-- Arrow 1 -->
+  <line x1="180" y1="100" x2="215" y2="100" stroke="#94a3b8" stroke-width="3" marker-end="url(#pipeArrow)"/>
+  <text x="197" y="90" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">|</text>
+
+  <!-- Filter stage -->
+  <rect x="220" y="60" width="140" height="80" rx="8" fill="url(#filterGrad)" filter="url(#pipelineShadow)"/>
+  <text x="290" y="95" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">filter</text>
+  <text x="290" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Reduce data early</text>
+
+  <!-- Arrow 2 -->
+  <line x1="360" y1="100" x2="395" y2="100" stroke="#94a3b8" stroke-width="3" marker-end="url(#pipeArrow)"/>
+  <text x="377" y="90" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">|</text>
+
+  <!-- Transform stage -->
+  <rect x="400" y="60" width="140" height="80" rx="8" fill="url(#transformGrad)" filter="url(#pipelineShadow)"/>
+  <text x="470" y="90" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">fields / summarize</text>
+  <text x="470" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Transform or</text>
+  <text x="470" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">aggregate</text>
+
+  <!-- Arrow 3 -->
+  <line x1="540" y1="100" x2="575" y2="100" stroke="#94a3b8" stroke-width="3" marker-end="url(#pipeArrow)"/>
+  <text x="557" y="90" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">|</text>
+
+  <!-- Output stage -->
+  <rect x="580" y="60" width="140" height="80" rx="8" fill="url(#outputGrad)" filter="url(#pipelineShadow)"/>
+  <text x="650" y="95" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">sort / limit</text>
+  <text x="650" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Order results</text>
+
+  <!-- Example Query -->
+  <rect x="40" y="160" width="720" height="90" rx="8" fill="#1e293b"/>
+  <text x="60" y="185" font-family="monospace" font-size="12" fill="#22c55e">fetch</text>
+  <text x="100" y="185" font-family="monospace" font-size="12" fill="#f8fafc">spans</text>
+
+  <text x="60" y="205" font-family="monospace" font-size="12" fill="#94a3b8">|</text>
+  <text x="75" y="205" font-family="monospace" font-size="12" fill="#f97316">filter</text>
+  <text x="120" y="205" font-family="monospace" font-size="12" fill="#f8fafc">span.kind == </text>
+  <text x="220" y="205" font-family="monospace" font-size="12" fill="#fbbf24">"server"</text>
+
+  <text x="290" y="205" font-family="monospace" font-size="12" fill="#94a3b8">|</text>
+  <text x="305" y="205" font-family="monospace" font-size="12" fill="#f97316">filter</text>
+  <text x="350" y="205" font-family="monospace" font-size="12" fill="#f8fafc">duration > </text>
+  <text x="430" y="205" font-family="monospace" font-size="12" fill="#60a5fa">100ms</text>
+
+  <text x="60" y="225" font-family="monospace" font-size="12" fill="#94a3b8">|</text>
+  <text x="75" y="225" font-family="monospace" font-size="12" fill="#1496ff">summarize</text>
+  <text x="150" y="225" font-family="monospace" font-size="12" fill="#f8fafc">count(), </text>
+  <text x="220" y="225" font-family="monospace" font-size="12" fill="#1496ff">by:</text>
+  <text x="242" y="225" font-family="monospace" font-size="12" fill="#f8fafc">{service.name}</text>
+
+  <text x="360" y="225" font-family="monospace" font-size="12" fill="#94a3b8">|</text>
+  <text x="375" y="225" font-family="monospace" font-size="12" fill="#22c55e">sort</text>
+  <text x="410" y="225" font-family="monospace" font-size="12" fill="#f8fafc">count </text>
+  <text x="460" y="225" font-family="monospace" font-size="12" fill="#22c55e">desc</text>
+
+  <text x="500" y="225" font-family="monospace" font-size="12" fill="#94a3b8">|</text>
+  <text x="515" y="225" font-family="monospace" font-size="12" fill="#22c55e">limit</text>
+  <text x="555" y="225" font-family="monospace" font-size="12" fill="#60a5fa">10</text>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 260">
+  <defs>
+    <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="idpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="authShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="authArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="260" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">SAML Authentication Flow</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Enterprise SSO integration with identity provider</text>
+
+  <!-- User Box -->
+  <rect x="50" y="90" width="140" height="100" rx="10" fill="#fff" stroke="#10b981" stroke-width="2" filter="url(#authShadow)"/>
+  <rect x="50" y="90" width="140" height="30" rx="10" fill="url(#userGrad)"/>
+  <rect x="50" y="110" width="140" height="10" fill="url(#userGrad)"/>
+  <text x="120" y="112" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">User</text>
+  <text x="120" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Requests access</text>
+  <text x="120" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">to Dynatrace</text>
+
+  <!-- Dynatrace Box (SP) -->
+  <rect x="280" y="90" width="180" height="100" rx="10" fill="#fff" stroke="#1496ff" stroke-width="2" filter="url(#authShadow)"/>
+  <rect x="280" y="90" width="180" height="30" rx="10" fill="url(#dtGrad)"/>
+  <rect x="280" y="110" width="180" height="10" fill="url(#dtGrad)"/>
+  <text x="370" y="112" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Dynatrace (SP)</text>
+  <text x="370" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Service Provider</text>
+  <text x="370" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Validates SAML assertion</text>
+
+  <!-- IdP Box -->
+  <rect x="550" y="90" width="180" height="100" rx="10" fill="#fff" stroke="#8b5cf6" stroke-width="2" filter="url(#authShadow)"/>
+  <rect x="550" y="90" width="180" height="30" rx="10" fill="url(#idpGrad)"/>
+  <rect x="550" y="110" width="180" height="10" fill="url(#idpGrad)"/>
+  <text x="640" y="112" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Identity Provider</text>
+  <text x="640" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Okta, Azure AD, etc.</text>
+  <text x="640" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Authenticates + MFA</text>
+
+  <!-- Arrows -->
+  <!-- User to Dynatrace -->
+  <path d="M190,125 L270,125" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#authArrow)"/>
+  <text x="230" y="118" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">1. Login</text>
+
+  <!-- Dynatrace to IdP -->
+  <path d="M460,125 L540,125" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#authArrow)"/>
+  <text x="500" y="118" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">2. Redirect</text>
+
+  <!-- IdP to Dynatrace (bottom arc) -->
+  <path d="M640,195 Q640,230 370,230 Q280,230 280,195" stroke="#64748b" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+  <polygon points="280,195 275,205 285,205" fill="#64748b"/>
+  <text x="460" y="245" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">3. SAML Assertion (encrypted)</text>
+
+  <!-- Success indicator -->
+  <circle cx="120" cy="220" r="12" fill="#10b981"/>
+  <text x="120" y="225" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">✓</text>
+  <text x="180" y="225" font-family="Arial, sans-serif" font-size="10" fill="#10b981">4. Access Granted</text>
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="code401" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="code403" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="code404" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#eab308;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ca8a04;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="code429" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="code500" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="codeShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">HTTP Status Codes for Security Analysis</text>
+
+  <!-- 401 Unauthorized -->
+  <rect x="30" y="50" width="145" height="100" rx="8" fill="url(#code401)" filter="url(#codeShadow)"/>
+  <text x="102" y="80" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">401</text>
+  <text x="102" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Unauthorized</text>
+  <text x="102" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Failed authentication</text>
+  <text x="102" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Invalid credentials</text>
+
+  <!-- 403 Forbidden -->
+  <rect x="185" y="50" width="145" height="100" rx="8" fill="url(#code403)" filter="url(#codeShadow)"/>
+  <text x="257" y="80" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">403</text>
+  <text x="257" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Forbidden</text>
+  <text x="257" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Access control violation</text>
+  <text x="257" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Insufficient permissions</text>
+
+  <!-- 404 Not Found -->
+  <rect x="340" y="50" width="145" height="100" rx="8" fill="url(#code404)" filter="url(#codeShadow)"/>
+  <text x="412" y="80" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">404</text>
+  <text x="412" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Not Found</text>
+  <text x="412" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Endpoint probing</text>
+  <text x="412" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(if spiking)</text>
+
+  <!-- 429 Rate Limited -->
+  <rect x="495" y="50" width="145" height="100" rx="8" fill="url(#code429)" filter="url(#codeShadow)"/>
+  <text x="567" y="80" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">429</text>
+  <text x="567" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Too Many Requests</text>
+  <text x="567" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Rate limiting triggered</text>
+  <text x="567" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Possible abuse</text>
+
+  <!-- 500 Server Error -->
+  <rect x="650" y="50" width="120" height="100" rx="8" fill="url(#code500)" filter="url(#codeShadow)"/>
+  <text x="710" y="80" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">5xx</text>
+  <text x="710" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Server Error</text>
+  <text x="710" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Exploit attempts</text>
+  <text x="710" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">System failures</text>
+
+  <!-- Alert Patterns Section -->
+  <rect x="30" y="165" width="360" height="120" rx="6" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+  <text x="210" y="188" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#991b1b" text-anchor="middle">Security Alert Patterns</text>
+
+  <text x="50" y="210" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Spike in 401s → Brute force / credential stuffing</text>
+  <text x="50" y="228" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Spike in 403s → Privilege escalation attempts</text>
+  <text x="50" y="246" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Spike in 404s → Directory/endpoint enumeration</text>
+  <text x="50" y="264" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Spike in 429s → DoS or aggressive scraping</text>
+
+  <!-- DQL Query Section -->
+  <rect x="410" y="165" width="360" height="120" rx="6" fill="#1e293b"/>
+  <text x="590" y="188" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#94a3b8" text-anchor="middle">Query Security Status Codes</text>
+  <text x="425" y="210" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="463" y="210" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+  <text x="425" y="228" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="480" y="228" font-family="monospace" font-size="10" fill="#f8fafc">in(http.response.status_code,</text>
+  <text x="445" y="246" font-family="monospace" font-size="10" fill="#fbbf24">{401, 403, 429, 500})</text>
+  <text x="425" y="264" font-family="monospace" font-size="10" fill="#1496ff">| summarize</text>
+  <text x="505" y="264" font-family="monospace" font-size="10" fill="#f8fafc">count(), by:{status_code}</text>
+</svg>

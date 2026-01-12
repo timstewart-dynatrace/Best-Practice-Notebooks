@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="browserGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Distributed Tracing Flow</text>
+
+  <!-- Browser -->
+  <rect x="30" y="70" width="100" height="60" rx="8" fill="url(#browserGrad)" filter="url(#shadow)"/>
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Browser</text>
+
+  <!-- Frontend -->
+  <rect x="180" y="70" width="100" height="60" rx="8" fill="url(#serviceGrad)" filter="url(#shadow)"/>
+  <text x="230" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Frontend</text>
+
+  <!-- Cart Service -->
+  <rect x="330" y="70" width="100" height="60" rx="8" fill="url(#serviceGrad)" filter="url(#shadow)"/>
+  <text x="380" y="98" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Cart</text>
+  <text x="380" y="113" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Service</text>
+
+  <!-- Database -->
+  <rect x="480" y="70" width="100" height="60" rx="8" fill="url(#dbGrad)" filter="url(#shadow)"/>
+  <text x="530" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Database</text>
+
+  <!-- Payment Service -->
+  <rect x="180" y="180" width="100" height="60" rx="8" fill="url(#serviceGrad)" filter="url(#shadow)"/>
+  <text x="230" y="205" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Payment</text>
+  <text x="230" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Service</text>
+
+  <!-- Inventory Service -->
+  <rect x="330" y="180" width="100" height="60" rx="8" fill="url(#serviceGrad)" filter="url(#shadow)"/>
+  <text x="380" y="205" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Inventory</text>
+  <text x="380" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Service</text>
+
+  <!-- Arrows -->
+  <line x1="130" y1="100" x2="175" y2="100" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="280" y1="100" x2="325" y2="100" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="430" y1="100" x2="475" y2="100" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="230" y1="130" x2="230" y2="175" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="380" y1="130" x2="380" y2="175" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Trace ID label -->
+  <rect x="600" y="60" width="170" height="100" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="685" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Trace Context</text>
+  <text x="685" y="110" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">trace.id: abc123</text>
+  <text x="685" y="130" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Propagated through</text>
+  <text x="685" y="148" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">all services</text>
+
+  <!-- Legend -->
+  <rect x="30" y="270" width="740" height="40" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="50" y="295" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Each service creates a SPAN with timing, status, and context. All spans share the same trace.id to form a complete TRACE.</text>
+</svg>

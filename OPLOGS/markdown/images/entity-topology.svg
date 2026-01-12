@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <defs>
+    <linearGradient id="k8sGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="svcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="hostGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="logGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="topoShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="topoArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="360" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Entity Topology Context for Logs</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Logs automatically linked to entities via dt.entity.* fields</text>
+
+  <!-- Kubernetes Hierarchy -->
+  <rect x="30" y="70" width="380" height="195" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="220" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Kubernetes Entity Hierarchy</text>
+
+  <!-- Cluster -->
+  <rect x="50" y="110" width="340" height="145" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="70" y="130" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">KUBERNETES_CLUSTER</text>
+  <text x="70" y="145" font-family="monospace" font-size="10" fill="#3b82f6">dt.entity.kubernetes_cluster</text>
+
+  <!-- Namespace -->
+  <rect x="70" y="155" width="300" height="90" rx="6" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
+  <text x="90" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857">CLOUD_APPLICATION_NAMESPACE</text>
+  <text x="90" y="190" font-family="monospace" font-size="10" fill="#059669">dt.entity.cloud_application_namespace</text>
+
+  <!-- Pod -->
+  <rect x="90" y="200" width="130" height="35" rx="4" fill="url(#k8sGrad)" filter="url(#topoShadow)"/>
+  <text x="155" y="215" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">POD</text>
+  <text x="155" y="228" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">dt.entity.pod</text>
+
+  <!-- Container -->
+  <rect x="230" y="200" width="130" height="35" rx="4" fill="url(#k8sGrad)" filter="url(#topoShadow)"/>
+  <text x="295" y="215" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">CONTAINER</text>
+  <text x="295" y="228" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">dt.entity.container</text>
+
+  <!-- Service/Host Entities -->
+  <rect x="430" y="70" width="340" height="195" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="600" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Service & Host Entities</text>
+
+  <rect x="450" y="110" width="145" height="65" rx="6" fill="url(#svcGrad)" filter="url(#topoShadow)"/>
+  <text x="522" y="135" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">SERVICE</text>
+  <text x="522" y="155" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">dt.entity.service</text>
+  <text x="522" y="168" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Detected services</text>
+
+  <rect x="605" y="110" width="145" height="65" rx="6" fill="url(#hostGrad)" filter="url(#topoShadow)"/>
+  <text x="677" y="135" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">HOST</text>
+  <text x="677" y="155" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">dt.entity.host</text>
+  <text x="677" y="168" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Physical/VM hosts</text>
+
+  <rect x="450" y="185" width="145" height="65" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="522" y="210" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">PROCESS_GROUP</text>
+  <text x="522" y="228" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">dt.entity.process_group</text>
+  <text x="522" y="243" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Running processes</text>
+
+  <rect x="605" y="185" width="145" height="65" rx="6" fill="#fce7f3" stroke="#ec4899" stroke-width="1"/>
+  <text x="677" y="210" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#9d174d" text-anchor="middle">APPLICATION</text>
+  <text x="677" y="228" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">dt.entity.application</text>
+  <text x="677" y="243" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">RUM applications</text>
+
+  <!-- Log Record -->
+  <rect x="30" y="280" width="740" height="65" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="30" y="280" width="740" height="25" rx="10" fill="url(#logGrad)"/>
+  <text x="400" y="298" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Log Record with Entity Context</text>
+
+  <text x="50" y="325" font-family="monospace" font-size="10" fill="#333">fetch logs | fields timestamp, content, dt.entity.host, dt.entity.service, dt.entity.kubernetes_cluster, dt.entity.pod</text>
+
+  <!-- Arrows showing relationship -->
+  <path d="M155,235 Q155,270 250,275" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="4,2" marker-end="url(#topoArrow)"/>
+  <path d="M522,175 Q522,250 400,275" stroke="#10b981" stroke-width="2" fill="none" stroke-dasharray="4,2" marker-end="url(#topoArrow)"/>
+  <path d="M677,175 Q677,250 550,275" stroke="#f59e0b" stroke-width="2" fill="none" stroke-dasharray="4,2" marker-end="url(#topoArrow)"/>
+</svg>

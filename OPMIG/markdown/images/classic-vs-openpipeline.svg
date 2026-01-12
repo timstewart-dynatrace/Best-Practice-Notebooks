@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="classicGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="modernGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="cvsShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="cvsArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Classic vs OpenPipeline Processing</text>
+
+  <!-- Classic Section -->
+  <rect x="30" y="55" width="740" height="95" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="30" y="55" width="740" height="28" rx="8" fill="url(#classicGrad)"/>
+  <text x="400" y="75" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">CLASSIC INGESTION (Post-Storage Processing)</text>
+
+  <!-- Classic flow -->
+  <rect x="60" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
+  <text x="110" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Ingest</text>
+
+  <path d="M160,117 L200,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="210" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
+  <text x="260" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Store</text>
+
+  <path d="M310,117 L350,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="360" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
+  <text x="410" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Query</text>
+
+  <text x="510" y="122" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="start">(Parse at query time)</text>
+
+  <!-- Limitation icons -->
+  <text x="640" y="105" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No pre-processing</text>
+  <text x="640" y="120" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No masking</text>
+  <text x="640" y="135" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No cost control</text>
+
+  <!-- OpenPipeline Section -->
+  <rect x="30" y="165" width="740" height="120" rx="8" fill="#fff" stroke="#22c55e" stroke-width="2"/>
+  <rect x="30" y="165" width="740" height="28" rx="8" fill="url(#modernGrad)"/>
+  <text x="400" y="185" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">OPENPIPELINE (Pre-Storage Processing)</text>
+
+  <!-- OpenPipeline flow -->
+  <rect x="50" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="90" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Ingest</text>
+
+  <path d="M130,227 L150,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="160" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="200" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Route</text>
+
+  <path d="M240,227 L260,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="270" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="310" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Process</text>
+
+  <path d="M350,227 L370,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="380" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="420" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Extract</text>
+
+  <path d="M460,227 L480,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+
+  <rect x="490" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="530" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Store</text>
+
+  <!-- Benefit icons -->
+  <text x="590" y="215" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Pre-storage masking</text>
+  <text x="590" y="230" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Drop before storage</text>
+  <text x="590" y="245" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Extract metrics</text>
+  <text x="590" y="260" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Bucket routing</text>
+
+  <!-- Sub-labels for Process -->
+  <text x="310" y="255" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Mask, Parse</text>
+  <text x="310" y="265" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Transform, Drop</text>
+</svg>

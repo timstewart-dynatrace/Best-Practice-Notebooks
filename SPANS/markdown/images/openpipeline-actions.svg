@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="transformGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sampleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="actShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">OpenPipeline Processing Actions</text>
+
+  <!-- DROP Section -->
+  <rect x="30" y="50" width="175" height="130" rx="8" fill="url(#dropGrad)" filter="url(#actShadow)"/>
+  <text x="117" y="75" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">DROP / FILTER</text>
+  <text x="117" y="95" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Remove unwanted spans</text>
+
+  <rect x="40" y="105" width="155" height="65" rx="4" fill="rgba(0,0,0,0.2)"/>
+  <text x="50" y="122" font-family="monospace" font-size="10" fill="white">condition:</text>
+  <text x="50" y="136" font-family="monospace" font-size="10" fill="#fbbf24">  span.name == "/health"</text>
+  <text x="50" y="150" font-family="monospace" font-size="10" fill="white">action:</text>
+  <text x="50" y="164" font-family="monospace" font-size="10" fill="#22c55e">  drop</text>
+
+  <!-- TRANSFORM Section -->
+  <rect x="220" y="50" width="175" height="130" rx="8" fill="url(#transformGrad)" filter="url(#actShadow)"/>
+  <text x="307" y="75" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">TRANSFORM</text>
+  <text x="307" y="95" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Enrich & modify fields</text>
+
+  <rect x="230" y="105" width="155" height="65" rx="4" fill="rgba(0,0,0,0.2)"/>
+  <text x="240" y="122" font-family="monospace" font-size="10" fill="white">transform:</text>
+  <text x="240" y="136" font-family="monospace" font-size="10" fill="white">  fields:</text>
+  <text x="240" y="150" font-family="monospace" font-size="10" fill="#fbbf24">    duration_ms:</text>
+  <text x="240" y="164" font-family="monospace" font-size="10" fill="#22c55e">      duration / 1000000</text>
+
+  <!-- ROUTE Section -->
+  <rect x="410" y="50" width="175" height="130" rx="8" fill="url(#routeGrad)" filter="url(#actShadow)"/>
+  <text x="497" y="75" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">ROUTE</text>
+  <text x="497" y="95" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Send to specific bucket</text>
+
+  <rect x="420" y="105" width="155" height="65" rx="4" fill="rgba(0,0,0,0.2)"/>
+  <text x="430" y="122" font-family="monospace" font-size="10" fill="white">condition:</text>
+  <text x="430" y="136" font-family="monospace" font-size="10" fill="#fbbf24">  env == "production"</text>
+  <text x="430" y="150" font-family="monospace" font-size="10" fill="white">route:</text>
+  <text x="430" y="164" font-family="monospace" font-size="10" fill="#22c55e">  bucket: spans_prod</text>
+
+  <!-- SAMPLE Section -->
+  <rect x="600" y="50" width="175" height="130" rx="8" fill="url(#sampleGrad)" filter="url(#actShadow)"/>
+  <text x="687" y="75" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">SAMPLE</text>
+  <text x="687" y="95" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Keep percentage</text>
+
+  <rect x="610" y="105" width="155" height="65" rx="4" fill="rgba(0,0,0,0.2)"/>
+  <text x="620" y="122" font-family="monospace" font-size="10" fill="white">condition:</text>
+  <text x="620" y="136" font-family="monospace" font-size="10" fill="#fbbf24">  span.status_code == "ok"</text>
+  <text x="620" y="150" font-family="monospace" font-size="10" fill="white">sample:</text>
+  <text x="620" y="164" font-family="monospace" font-size="10" fill="#22c55e">  rate: 0.1  # Keep 10%</text>
+
+  <!-- Common Drop Candidates -->
+  <rect x="30" y="195" width="360" height="130" rx="6" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+  <text x="210" y="218" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#991b1b" text-anchor="middle">Common Drop Candidates</text>
+
+  <text x="50" y="242" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Health checks: /health, /ready, /alive, /ping</text>
+  <text x="50" y="260" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Metrics endpoints: /metrics, /prometheus</text>
+  <text x="50" y="278" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Static assets: *.js, *.css, *.png, *.ico</text>
+  <text x="50" y="296" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">High-volume, low-error-rate internal calls</text>
+  <text x="50" y="314" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Debug/trace spans in production</text>
+
+  <!-- Always Keep -->
+  <rect x="410" y="195" width="360" height="130" rx="6" fill="#dcfce7" stroke="#86efac" stroke-width="1"/>
+  <text x="590" y="218" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#166534" text-anchor="middle">Always Keep (Never Drop)</text>
+
+  <text x="430" y="242" font-family="Arial, sans-serif" font-size="10" fill="#166534">Error spans: span.status_code == "error"</text>
+  <text x="430" y="260" font-family="Arial, sans-serif" font-size="10" fill="#166534">Slow spans: duration > threshold</text>
+  <text x="430" y="278" font-family="Arial, sans-serif" font-size="10" fill="#166534">Security events: 401, 403, 429 responses</text>
+  <text x="430" y="296" font-family="Arial, sans-serif" font-size="10" fill="#166534">Business-critical operations</text>
+  <text x="430" y="314" font-family="Arial, sans-serif" font-size="10" fill="#166534">Root spans (entry points)</text>
+</svg>

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320">
+  <defs>
+    <linearGradient id="nullHeaderGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="nullWrongGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="nullRightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="nullShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="320" fill="#0f172a" rx="10"/>
+
+  <!-- Header -->
+  <rect x="30" y="20" width="540" height="45" rx="8" fill="url(#nullHeaderGrad)" filter="url(#nullShadow)"/>
+  <text x="50" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#fff">NULL Handling in DQL</text>
+  <text x="540" y="48" font-family="system-ui, sans-serif" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="end">Critical Knowledge</text>
+
+  <!-- Wrong section -->
+  <rect x="30" y="80" width="260" height="120" rx="8" fill="#1e293b" stroke="#ef4444" stroke-width="2"/>
+  <rect x="30" y="80" width="260" height="30" rx="8" fill="url(#nullWrongGrad)"/>
+  <rect x="30" y="100" width="260" height="10" fill="url(#nullWrongGrad)"/>
+  <text x="160" y="100" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Common Mistakes</text>
+
+  <text x="50" y="135" font-family="monospace" font-size="11" fill="#fca5a5">field == null</text>
+  <text x="200" y="135" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Returns NULL</text>
+
+  <text x="50" y="160" font-family="monospace" font-size="11" fill="#fca5a5">field != null</text>
+  <text x="200" y="160" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Returns NULL</text>
+
+  <text x="50" y="185" font-family="system-ui, sans-serif" font-size="10" fill="#f87171">These do NOT return true/false!</text>
+
+  <!-- Right section -->
+  <rect x="310" y="80" width="260" height="120" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+  <rect x="310" y="80" width="260" height="30" rx="8" fill="url(#nullRightGrad)"/>
+  <rect x="310" y="100" width="260" height="10" fill="url(#nullRightGrad)"/>
+  <text x="440" y="100" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Correct Approach</text>
+
+  <text x="330" y="135" font-family="monospace" font-size="11" fill="#6ee7b7">isNull(field)</text>
+  <text x="470" y="135" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Returns true if null</text>
+
+  <text x="330" y="160" font-family="monospace" font-size="11" fill="#6ee7b7">isNotNull(field)</text>
+  <text x="470" y="160" font-family="system-ui, sans-serif" font-size="11" fill="#94a3b8">Returns true if NOT null</text>
+
+  <text x="330" y="185" font-family="system-ui, sans-serif" font-size="10" fill="#34d399">Use these for boolean logic!</text>
+
+  <!-- Example section -->
+  <rect x="30" y="215" width="540" height="90" rx="8" fill="#1e293b" filter="url(#nullShadow)"/>
+  <text x="50" y="240" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#f1f5f9">Example Usage:</text>
+
+  <text x="50" y="265" font-family="monospace" font-size="11" fill="#94a3b8">// Find spans with errors</text>
+  <text x="50" y="285" font-family="monospace" font-size="11" fill="#a5b4fc">fetch spans | filter isNotNull(span.status_message)</text>
+</svg>

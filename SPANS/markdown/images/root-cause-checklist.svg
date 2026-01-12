@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 550 320">
+  <defs>
+    <linearGradient id="rcaHeaderGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="rcaItemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="rcaShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="550" height="320" fill="#0f172a" rx="10"/>
+
+  <!-- Header -->
+  <rect x="30" y="20" width="490" height="45" rx="8" fill="url(#rcaHeaderGrad)" filter="url(#rcaShadow)"/>
+  <text x="50" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#fff">Root Cause Identification Checklist</text>
+  <text x="490" y="48" font-family="system-ui, sans-serif" font-size="14" fill="rgba(255,255,255,0.8)" text-anchor="end">RCA</text>
+
+  <!-- Checklist items -->
+  <!-- Item 1 -->
+  <rect x="30" y="80" width="490" height="38" rx="6" fill="#1e293b"/>
+  <rect x="45" y="90" width="18" height="18" rx="4" fill="none" stroke="#10b981" stroke-width="2"/>
+  <text x="75" y="104" font-family="system-ui, sans-serif" font-size="12" fill="#f1f5f9">Find the FIRST error in the trace timeline</text>
+  <text x="490" y="104" font-family="monospace" font-size="10" fill="#6ee7b7" text-anchor="end">min(start_time)</text>
+
+  <!-- Item 2 -->
+  <rect x="30" y="125" width="490" height="38" rx="6" fill="#1e293b"/>
+  <rect x="45" y="135" width="18" height="18" rx="4" fill="none" stroke="#10b981" stroke-width="2"/>
+  <text x="75" y="149" font-family="system-ui, sans-serif" font-size="12" fill="#f1f5f9">Check if error propagated from a downstream service</text>
+  <text x="490" y="149" font-family="monospace" font-size="10" fill="#6ee7b7" text-anchor="end">span.kind=="client"</text>
+
+  <!-- Item 3 -->
+  <rect x="30" y="170" width="490" height="38" rx="6" fill="#1e293b"/>
+  <rect x="45" y="180" width="18" height="18" rx="4" fill="none" stroke="#10b981" stroke-width="2"/>
+  <text x="75" y="194" font-family="system-ui, sans-serif" font-size="12" fill="#f1f5f9">Identify the SLOWEST span contributing to latency</text>
+  <text x="490" y="194" font-family="monospace" font-size="10" fill="#6ee7b7" text-anchor="end">max(duration)</text>
+
+  <!-- Item 4 -->
+  <rect x="30" y="215" width="490" height="38" rx="6" fill="#1e293b"/>
+  <rect x="45" y="225" width="18" height="18" rx="4" fill="none" stroke="#10b981" stroke-width="2"/>
+  <text x="75" y="239" font-family="system-ui, sans-serif" font-size="12" fill="#f1f5f9">Look for database queries or external calls</text>
+  <text x="490" y="239" font-family="monospace" font-size="10" fill="#6ee7b7" text-anchor="end">isNotNull(db.system)</text>
+
+  <!-- Item 5 -->
+  <rect x="30" y="260" width="490" height="38" rx="6" fill="#1e293b"/>
+  <rect x="45" y="270" width="18" height="18" rx="4" fill="none" stroke="#10b981" stroke-width="2"/>
+  <text x="75" y="284" font-family="system-ui, sans-serif" font-size="12" fill="#f1f5f9">Check for retry patterns (repeated similar spans)</text>
+  <text x="490" y="284" font-family="monospace" font-size="10" fill="#6ee7b7" text-anchor="end">count() by: span.name</text>
+</svg>

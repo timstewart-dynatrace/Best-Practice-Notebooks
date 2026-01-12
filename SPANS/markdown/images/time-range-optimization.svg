@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="lowCostGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="medCostGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="highCostGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="trShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Time Range Optimization</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">Shorter time ranges = lower DDU cost | Use the minimum range needed</text>
+
+  <!-- Cost Scale Visualization -->
+  <rect x="50" y="70" width="700" height="100" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#trShadow)"/>
+
+  <!-- Time range bars - progressive width shows relative cost -->
+  <rect x="70" y="90" width="50" height="30" rx="4" fill="url(#lowCostGrad)"/>
+  <text x="95" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">5m</text>
+  <text x="95" y="140" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="middle">$</text>
+
+  <rect x="140" y="90" width="80" height="30" rx="4" fill="url(#lowCostGrad)"/>
+  <text x="180" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">1h</text>
+  <text x="180" y="140" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="middle">$$</text>
+
+  <rect x="240" y="90" width="130" height="30" rx="4" fill="url(#medCostGrad)"/>
+  <text x="305" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">24h</text>
+  <text x="305" y="140" font-family="Arial, sans-serif" font-size="10" fill="#f59e0b" text-anchor="middle">$$$</text>
+
+  <rect x="390" y="90" width="180" height="30" rx="4" fill="url(#highCostGrad)"/>
+  <text x="480" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">7d</text>
+  <text x="480" y="140" font-family="Arial, sans-serif" font-size="10" fill="#ef4444" text-anchor="middle">$$$$</text>
+
+  <rect x="590" y="90" width="140" height="30" rx="4" fill="url(#highCostGrad)"/>
+  <text x="660" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">30d</text>
+  <text x="660" y="140" font-family="Arial, sans-serif" font-size="10" fill="#ef4444" text-anchor="middle">$$$$$</text>
+
+  <!-- Arrow showing progression -->
+  <path d="M70,155 L730,155" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="400" y="168" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Increasing DDU Cost →</text>
+
+  <!-- Use Case Guide -->
+  <rect x="50" y="185" width="340" height="120" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#trShadow)"/>
+  <text x="220" y="208" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Recommended Time Ranges</text>
+
+  <rect x="65" y="220" width="12" height="12" rx="2" fill="url(#lowCostGrad)"/>
+  <text x="85" y="230" font-family="Arial, sans-serif" font-size="10" fill="#333">Real-time debugging: 5-15m</text>
+
+  <rect x="65" y="242" width="12" height="12" rx="2" fill="url(#lowCostGrad)"/>
+  <text x="85" y="252" font-family="Arial, sans-serif" font-size="10" fill="#333">Recent investigation: 1-6h</text>
+
+  <rect x="65" y="264" width="12" height="12" rx="2" fill="url(#medCostGrad)"/>
+  <text x="85" y="274" font-family="Arial, sans-serif" font-size="10" fill="#333">Daily patterns: 24h</text>
+
+  <rect x="65" y="286" width="12" height="12" rx="2" fill="url(#highCostGrad)"/>
+  <text x="85" y="296" font-family="Arial, sans-serif" font-size="10" fill="#333">Weekly/historical: 7d+ (use aggregations!)</text>
+
+  <!-- DQL Pattern Box -->
+  <rect x="410" y="185" width="340" height="120" rx="8" fill="#1e293b" filter="url(#trShadow)"/>
+  <text x="580" y="208" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#94a3b8" text-anchor="middle">Explicit Time Filter Pattern</text>
+
+  <text x="425" y="235" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="460" y="235" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+  <text x="425" y="255" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="485" y="255" font-family="monospace" font-size="10" fill="#fbbf24">start_time >= now() - 1h</text>
+  <text x="425" y="275" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="485" y="275" font-family="monospace" font-size="10" fill="#f8fafc">span.kind == "server"</text>
+  <text x="425" y="295" font-family="monospace" font-size="10" fill="#1496ff">| summarize</text>
+  <text x="505" y="295" font-family="monospace" font-size="10" fill="#f8fafc">{count()}, by:{...}</text>
+</svg>

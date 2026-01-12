@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 320">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dangerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="warnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pipelineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="secShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="secArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="750" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="375" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Span Security: Protecting Sensitive Data</text>
+
+  <!-- PII Risks Section -->
+  <rect x="40" y="50" width="200" height="180" rx="8" fill="#fff" stroke="#fecaca" stroke-width="2" filter="url(#secShadow)"/>
+  <rect x="40" y="50" width="200" height="35" rx="8" fill="url(#dangerGrad)"/>
+  <rect x="40" y="75" width="200" height="10" fill="url(#dangerGrad)"/>
+  <text x="140" y="75" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">PII in Spans</text>
+
+  <text x="55" y="105" font-family="Arial, sans-serif" font-size="11" fill="#333">Common Exposure Points:</text>
+  <text x="55" y="125" font-family="Arial, sans-serif" font-size="10" fill="#666">- http.url with query params</text>
+  <text x="55" y="142" font-family="Arial, sans-serif" font-size="10" fill="#666">- db.statement with values</text>
+  <text x="55" y="159" font-family="Arial, sans-serif" font-size="10" fill="#666">- span.name with user IDs</text>
+  <text x="55" y="176" font-family="Arial, sans-serif" font-size="10" fill="#666">- Custom attributes</text>
+  <text x="55" y="196" font-family="Arial, sans-serif" font-size="10" fill="#666">- Error messages</text>
+  <text x="55" y="216" font-family="Arial, sans-serif" font-size="10" fill="#ef4444" font-weight="bold">Audit regularly!</text>
+
+  <!-- OpenPipeline Solution -->
+  <rect x="280" y="50" width="200" height="180" rx="8" fill="#fff" stroke="#c4b5fd" stroke-width="2" filter="url(#secShadow)"/>
+  <rect x="280" y="50" width="200" height="35" rx="8" fill="url(#pipelineGrad)"/>
+  <rect x="280" y="75" width="200" height="10" fill="url(#pipelineGrad)"/>
+  <text x="380" y="75" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">OpenPipeline</text>
+
+  <text x="295" y="105" font-family="Arial, sans-serif" font-size="11" fill="#333">Data Processing:</text>
+  <text x="295" y="125" font-family="Arial, sans-serif" font-size="10" fill="#666">- Mask sensitive fields</text>
+  <text x="295" y="142" font-family="Arial, sans-serif" font-size="10" fill="#666">- Drop specific attributes</text>
+  <text x="295" y="159" font-family="Arial, sans-serif" font-size="10" fill="#666">- Redact patterns (SSN, CC)</text>
+  <text x="295" y="176" font-family="Arial, sans-serif" font-size="10" fill="#666">- Hash identifiers</text>
+  <text x="295" y="196" font-family="Arial, sans-serif" font-size="10" fill="#666">- Route to secure buckets</text>
+  <text x="295" y="216" font-family="Arial, sans-serif" font-size="10" fill="#8b5cf6" font-weight="bold">Configure before ingestion</text>
+
+  <!-- Access Control -->
+  <rect x="520" y="50" width="200" height="180" rx="8" fill="#fff" stroke="#bbf7d0" stroke-width="2" filter="url(#secShadow)"/>
+  <rect x="520" y="50" width="200" height="35" rx="8" fill="url(#shieldGrad)"/>
+  <rect x="520" y="75" width="200" height="10" fill="url(#shieldGrad)"/>
+  <text x="620" y="75" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Access Control</text>
+
+  <text x="535" y="105" font-family="Arial, sans-serif" font-size="11" fill="#333">Protection Layers:</text>
+  <text x="535" y="125" font-family="Arial, sans-serif" font-size="10" fill="#666">- Bucket-level permissions</text>
+  <text x="535" y="142" font-family="Arial, sans-serif" font-size="10" fill="#666">- Field-level restrictions</text>
+  <text x="535" y="159" font-family="Arial, sans-serif" font-size="10" fill="#666">- Data segments</text>
+  <text x="535" y="176" font-family="Arial, sans-serif" font-size="10" fill="#666">- IAM policies</text>
+  <text x="535" y="196" font-family="Arial, sans-serif" font-size="10" fill="#666">- Audit logging</text>
+  <text x="535" y="216" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" font-weight="bold">Least privilege principle</text>
+
+  <!-- Arrows -->
+  <line x1="240" y1="140" x2="275" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#secArrow)"/>
+  <line x1="480" y1="140" x2="515" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#secArrow)"/>
+
+  <!-- Bottom audit query example -->
+  <rect x="40" y="250" width="680" height="55" rx="6" fill="#1e293b"/>
+  <text x="55" y="272" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#94a3b8">PII Audit Query:</text>
+  <text x="170" y="272" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="205" y="272" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+  <text x="250" y="272" font-family="monospace" font-size="10" fill="#94a3b8">|</text>
+  <text x="260" y="272" font-family="monospace" font-size="10" fill="#f97316">filter</text>
+  <text x="302" y="272" font-family="monospace" font-size="10" fill="#f8fafc">matchesPhrase(http.url,</text>
+  <text x="455" y="272" font-family="monospace" font-size="10" fill="#fbbf24">"*email=*"</text>
+  <text x="520" y="272" font-family="monospace" font-size="10" fill="#f8fafc">)</text>
+  <text x="55" y="292" font-family="monospace" font-size="10" fill="#94a3b8">                                   or matchesPhrase(http.url, "*password=*") or matchesPhrase(http.url, "*token=*")</text>
+</svg>

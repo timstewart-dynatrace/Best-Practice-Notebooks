@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 280">
+  <defs>
+    <linearGradient id="allProbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="checkoutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="paymentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="slackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="routeShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="routeArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="280" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="250" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">Alert Routing Example</text>
+  <text x="250" y="46" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Condition-Based Routing to Teams</text>
+
+  <!-- All Problems Box -->
+  <rect x="175" y="60" width="150" height="45" rx="8" fill="url(#allProbGrad)" filter="url(#routeShadow)"/>
+  <text x="250" y="88" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">All Problems</text>
+
+  <!-- Vertical line down -->
+  <path d="M250,105 L250,125" stroke="#64748b" stroke-width="2" fill="none"/>
+
+  <!-- Split point -->
+  <circle cx="250" cy="130" r="5" fill="#64748b"/>
+
+  <!-- Left branch -->
+  <path d="M250,130 L130,130 L130,155" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#routeArrow)"/>
+
+  <!-- Right branch -->
+  <path d="M250,130 L370,130 L370,155" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#routeArrow)"/>
+
+  <!-- Contains "checkout" filter -->
+  <rect x="55" y="160" width="150" height="40" rx="6" fill="url(#checkoutGrad)" filter="url(#routeShadow)"/>
+  <text x="130" y="178" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Contains</text>
+  <text x="130" y="192" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">"checkout"</text>
+
+  <!-- Contains "payment" filter -->
+  <rect x="295" y="160" width="150" height="40" rx="6" fill="url(#paymentGrad)" filter="url(#routeShadow)"/>
+  <text x="370" y="178" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Contains</text>
+  <text x="370" y="192" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">"payment"</text>
+
+  <!-- Arrow down from checkout filter -->
+  <path d="M130,200 L130,220" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#routeArrow)"/>
+
+  <!-- Arrow down from payment filter -->
+  <path d="M370,200 L370,220" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#routeArrow)"/>
+
+  <!-- Slack channels -->
+  <rect x="55" y="225" width="150" height="40" rx="6" fill="url(#slackGrad)" filter="url(#routeShadow)"/>
+  <text x="130" y="243" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Slack</text>
+  <text x="130" y="257" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">#alerts-checkout</text>
+
+  <rect x="295" y="225" width="150" height="40" rx="6" fill="url(#slackGrad)" filter="url(#routeShadow)"/>
+  <text x="370" y="243" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Slack</text>
+  <text x="370" y="257" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">#alerts-payments</text>
+</svg>

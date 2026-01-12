@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="grailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bucketDefault" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bucketLogs" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bucketSec" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pipeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="bucketShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="bucketArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Grail Buckets &amp; OpenPipeline Architecture</text>
+
+  <!-- Ingestion -->
+  <rect x="40" y="60" width="100" height="70" rx="8" fill="url(#grailGrad)" filter="url(#bucketShadow)"/>
+  <text x="90" y="92" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Span</text>
+  <text x="90" y="108" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Ingestion</text>
+
+  <!-- Arrow to Pipeline -->
+  <line x1="140" y1="95" x2="175" y2="95" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+
+  <!-- OpenPipeline -->
+  <rect x="180" y="50" width="150" height="90" rx="8" fill="url(#pipeGrad)" filter="url(#bucketShadow)"/>
+  <text x="255" y="80" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">OpenPipeline</text>
+  <text x="255" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">- Filter &amp; transform</text>
+  <text x="255" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">- Route to buckets</text>
+  <text x="255" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">- Enrich &amp; mask</text>
+
+  <!-- Arrows to Buckets -->
+  <line x1="330" y1="75" x2="390" y2="65" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+  <line x1="330" y1="95" x2="390" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+  <line x1="330" y1="115" x2="390" y2="215" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+
+  <!-- Default Bucket -->
+  <rect x="395" y="40" width="160" height="60" rx="8" fill="url(#bucketDefault)" filter="url(#bucketShadow)"/>
+  <text x="475" y="65" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">default_spans</text>
+  <text x="475" y="83" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">35 day retention</text>
+
+  <!-- Custom Bucket 1 -->
+  <rect x="395" y="115" width="160" height="60" rx="8" fill="url(#bucketLogs)" filter="url(#bucketShadow)"/>
+  <text x="475" y="140" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">production_traces</text>
+  <text x="475" y="158" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">90 day retention</text>
+
+  <!-- Secure Bucket -->
+  <rect x="395" y="190" width="160" height="60" rx="8" fill="url(#bucketSec)" filter="url(#bucketShadow)"/>
+  <text x="475" y="215" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">sensitive_spans</text>
+  <text x="475" y="233" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Restricted access</text>
+
+  <!-- Query arrows -->
+  <line x1="555" y1="70" x2="590" y2="95" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+  <line x1="555" y1="145" x2="590" y2="115" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+  <line x1="555" y1="220" x2="590" y2="130" stroke="#64748b" stroke-width="2" marker-end="url(#bucketArrow)"/>
+
+  <!-- DQL Query box -->
+  <rect x="595" y="55" width="170" height="130" rx="8" fill="#1e293b"/>
+  <text x="680" y="80" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#94a3b8" text-anchor="middle">Query by Bucket</text>
+
+  <text x="610" y="105" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="648" y="105" font-family="monospace" font-size="10" fill="#f8fafc">spans,</text>
+
+  <text x="610" y="123" font-family="monospace" font-size="10" fill="#1496ff">  from:</text>
+  <text x="660" y="123" font-family="monospace" font-size="10" fill="#fbbf24">"production"</text>
+
+  <text x="610" y="145" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">// Or query all:</text>
+  <text x="610" y="163" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="648" y="163" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+
+  <!-- Legend/Info -->
+  <rect x="40" y="265" width="725" height="60" rx="6" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="60" y="287" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#0369a1">Bucket Benefits:</text>
+  <text x="170" y="287" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">Different retention periods | Access control per bucket | Cost optimization | Compliance separation</text>
+  <text x="60" y="310" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#0369a1">Discovery:</text>
+  <text x="130" y="310" font-family="monospace" font-size="10" fill="#0369a1">fetch spans | summarize count(), by:{dt.system.bucket}</text>
+</svg>

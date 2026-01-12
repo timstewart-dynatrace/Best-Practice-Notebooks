@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="grailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataTypeGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataTypeGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataTypeGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataTypeGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataTypeGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="grailShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Dynatrace Data Model</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Unified data lakehouse (Grail) storing all observability data</text>
+
+  <!-- Grail Container -->
+  <rect x="40" y="65" width="720" height="240" rx="12" fill="#fff" stroke="#1496ff" stroke-width="2" filter="url(#grailShadow)"/>
+  <rect x="40" y="65" width="720" height="35" rx="12" fill="url(#grailGrad)"/>
+  <rect x="40" y="92" width="720" height="8" fill="url(#grailGrad)"/>
+  <text x="400" y="90" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">GRAIL (Unified Data Lakehouse)</text>
+
+  <!-- Row 1: Core Data Types -->
+  <rect x="60" y="115" width="160" height="55" rx="8" fill="url(#dataTypeGrad1)" filter="url(#grailShadow)"/>
+  <text x="140" y="140" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Entities</text>
+  <text x="140" y="158" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Hosts, Services, Processes</text>
+
+  <rect x="235" y="115" width="160" height="55" rx="8" fill="url(#dataTypeGrad2)" filter="url(#grailShadow)"/>
+  <text x="315" y="140" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Metrics</text>
+  <text x="315" y="158" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">CPU, Memory, Custom</text>
+
+  <rect x="410" y="115" width="160" height="55" rx="8" fill="url(#dataTypeGrad3)" filter="url(#grailShadow)"/>
+  <text x="490" y="140" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Logs</text>
+  <text x="490" y="158" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Application, System</text>
+
+  <rect x="585" y="115" width="160" height="55" rx="8" fill="url(#dataTypeGrad4)" filter="url(#grailShadow)"/>
+  <text x="665" y="140" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Spans (Traces)</text>
+  <text x="665" y="158" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Distributed Tracing</text>
+
+  <!-- Row 2: Event Data Types -->
+  <rect x="60" y="185" width="160" height="55" rx="8" fill="url(#dataTypeGrad5)" filter="url(#grailShadow)"/>
+  <text x="140" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Events</text>
+  <text x="140" y="228" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Deployments, Changes</text>
+
+  <rect x="235" y="185" width="160" height="55" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+  <text x="315" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626" text-anchor="middle">Problems</text>
+  <text x="315" y="228" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">DAVIS AI Detected</text>
+
+  <rect x="410" y="185" width="160" height="55" rx="8" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+  <text x="490" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669" text-anchor="middle">Bizevents</text>
+  <text x="490" y="228" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Business Transactions</text>
+
+  <rect x="585" y="185" width="160" height="55" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="665" y="210" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#d97706" text-anchor="middle">Security</text>
+  <text x="665" y="228" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Vulnerabilities, Attacks</text>
+
+  <!-- DQL Query Access -->
+  <rect x="60" y="255" width="685" height="35" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+  <text x="400" y="278" font-family="Arial, sans-serif" font-size="12" fill="#1e40af" text-anchor="middle">Query all data types using DQL (Dynatrace Query Language)</text>
+</svg>

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="tier1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tier2Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tier3Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tier4Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+    <filter id="btShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="btArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Tiered Bucket Retention Strategy</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Optimize costs with retention based on data value</text>
+
+  <!-- Incoming Logs -->
+  <rect x="30" y="75" width="120" height="200" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="90" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Incoming Logs</text>
+  <text x="90" y="120" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">100% Volume</text>
+
+  <rect x="45" y="135" width="90" height="20" rx="3" fill="#fecaca"/>
+  <text x="90" y="149" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">ERROR (~5%)</text>
+
+  <rect x="45" y="160" width="90" height="20" rx="3" fill="#fef3c7"/>
+  <text x="90" y="174" font-family="Arial, sans-serif" font-size="10" fill="#d97706" text-anchor="middle">WARN (~10%)</text>
+
+  <rect x="45" y="185" width="90" height="20" rx="3" fill="#dbeafe"/>
+  <text x="90" y="199" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" text-anchor="middle">INFO (~50%)</text>
+
+  <rect x="45" y="210" width="90" height="20" rx="3" fill="#d1fae5"/>
+  <text x="90" y="224" font-family="Arial, sans-serif" font-size="10" fill="#16a34a" text-anchor="middle">DEBUG (~35%)</text>
+
+  <!-- Arrows to tiers -->
+  <path d="M150,145 L200,95" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#btArrow)"/>
+  <path d="M150,170 L200,155" stroke="#d97706" stroke-width="2" fill="none" marker-end="url(#btArrow)"/>
+  <path d="M150,195 L200,215" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#btArrow)"/>
+  <path d="M150,220 L200,270" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#btArrow)"/>
+
+  <!-- Tier 1: Critical -->
+  <rect x="210" y="70" width="300" height="50" rx="8" fill="url(#tier1Grad)" filter="url(#btShadow)"/>
+  <text x="360" y="92" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Tier 1: error_logs (90 days)</text>
+  <text x="360" y="108" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Compliance + Root Cause Analysis</text>
+
+  <!-- Tier 2: Standard -->
+  <rect x="210" y="130" width="300" height="50" rx="8" fill="url(#tier2Grad)" filter="url(#btShadow)"/>
+  <text x="360" y="152" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Tier 2: default_logs (35 days)</text>
+  <text x="360" y="168" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Standard Operations</text>
+
+  <!-- Tier 3: Dev -->
+  <rect x="210" y="190" width="300" height="50" rx="8" fill="url(#tier3Grad)" filter="url(#btShadow)"/>
+  <text x="360" y="212" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Tier 3: dev_logs (7 days)</text>
+  <text x="360" y="228" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Development + Staging</text>
+
+  <!-- Tier 4: Drop -->
+  <rect x="210" y="250" width="300" height="50" rx="8" fill="url(#dropGrad)" filter="url(#btShadow)"/>
+  <text x="360" y="272" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">DROP (0 days)</text>
+  <text x="360" y="288" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">DEBUG, TRACE, Health Checks</text>
+
+  <!-- Cost Impact -->
+  <rect x="540" y="70" width="230" height="230" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="655" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Cost Impact</text>
+
+  <rect x="555" y="110" width="200" height="40" rx="4" fill="#fecaca"/>
+  <text x="655" y="130" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#dc2626" text-anchor="middle">5% volume × 90 days</text>
+  <text x="655" y="143" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Higher cost but critical data</text>
+
+  <rect x="555" y="155" width="200" height="40" rx="4" fill="#fef3c7"/>
+  <text x="655" y="175" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">60% volume × 35 days</text>
+  <text x="655" y="188" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Standard retention</text>
+
+  <rect x="555" y="200" width="200" height="40" rx="4" fill="#d1fae5"/>
+  <text x="655" y="220" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">35% volume × 0 days</text>
+  <text x="655" y="233" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">ZERO storage cost!</text>
+
+  <!-- Result -->
+  <rect x="555" y="250" width="200" height="38" rx="4" fill="#ede9fe"/>
+  <text x="655" y="270" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#6d28d9" text-anchor="middle">Total Savings: ~35-40%</text>
+  <text x="655" y="283" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">vs. all-in default bucket</text>
+</svg>

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="rootGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="spanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="treeShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Trace Tree (Checkout Flow)</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">trace.id: abc123</text>
+
+  <!-- Timeline header -->
+  <text x="680" y="72" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="end">Duration</text>
+
+  <!-- Root Span -->
+  <rect x="50" y="80" width="580" height="30" rx="5" fill="url(#rootGrad)" filter="url(#treeShadow)"/>
+  <text x="65" y="100" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">[Frontend] POST /checkout</text>
+  <text x="700" y="100" font-family="Arial, sans-serif" font-size="12" fill="#6366f1" text-anchor="end">450ms</text>
+
+  <!-- Cart Service -->
+  <line x1="70" y1="110" x2="70" y2="130" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="70" y1="130" x2="90" y2="130" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="90" y="120" width="220" height="26" rx="4" fill="url(#spanGrad)" filter="url(#treeShadow)"/>
+  <text x="105" y="138" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">[Cart Service] GetCart</text>
+  <text x="700" y="138" font-family="Arial, sans-serif" font-size="11" fill="#1496ff" text-anchor="end">45ms</text>
+
+  <!-- Redis -->
+  <line x1="110" y1="146" x2="110" y2="162" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="110" y1="162" x2="130" y2="162" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="130" y="153" width="150" height="22" rx="4" fill="url(#leafGrad)" filter="url(#treeShadow)"/>
+  <text x="145" y="168" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">[Redis] GET cart:user123</text>
+  <text x="700" y="168" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="end">5ms</text>
+
+  <!-- Payment Service -->
+  <line x1="70" y1="110" x2="70" y2="195" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="70" y1="195" x2="90" y2="195" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="90" y="185" width="350" height="26" rx="4" fill="url(#spanGrad)" filter="url(#treeShadow)"/>
+  <text x="105" y="203" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">[Payment Service] ProcessPayment</text>
+  <text x="700" y="203" font-family="Arial, sans-serif" font-size="11" fill="#1496ff" text-anchor="end">280ms</text>
+
+  <!-- Fraud Check -->
+  <line x1="110" y1="211" x2="110" y2="227" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="110" y1="227" x2="130" y2="227" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="130" y="218" width="180" height="22" rx="4" fill="url(#leafGrad)" filter="url(#treeShadow)"/>
+  <text x="145" y="233" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">[Fraud Check] ValidateCard</text>
+  <text x="700" y="233" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="end">120ms</text>
+
+  <!-- Payment Gateway -->
+  <line x1="110" y1="240" x2="110" y2="258" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="110" y1="258" x2="130" y2="258" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="130" y="249" width="200" height="22" rx="4" fill="url(#leafGrad)" filter="url(#treeShadow)"/>
+  <text x="145" y="264" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">[Payment Gateway] Charge</text>
+  <text x="700" y="264" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="end">150ms</text>
+
+  <!-- Inventory -->
+  <line x1="70" y1="195" x2="70" y2="295" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="70" y1="295" x2="90" y2="295" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="90" y="285" width="180" height="26" rx="4" fill="url(#spanGrad)" filter="url(#treeShadow)"/>
+  <text x="105" y="303" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">[Inventory] ReserveItems</text>
+  <text x="700" y="303" font-family="Arial, sans-serif" font-size="11" fill="#1496ff" text-anchor="end">35ms</text>
+
+  <!-- PostgreSQL -->
+  <line x1="110" y1="311" x2="110" y2="327" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="110" y1="327" x2="130" y2="327" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="130" y="318" width="130" height="22" rx="4" fill="url(#leafGrad)" filter="url(#treeShadow)"/>
+  <text x="145" y="333" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">[PostgreSQL] UPDATE</text>
+  <text x="700" y="333" font-family="Arial, sans-serif" font-size="10" fill="#22c55e" text-anchor="end">12ms</text>
+
+  <!-- Legend -->
+  <rect x="50" y="352" width="700" height="22" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="60" y="357" width="12" height="12" rx="2" fill="url(#rootGrad)"/>
+  <text x="78" y="367" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Root Span</text>
+  <rect x="150" y="357" width="12" height="12" rx="2" fill="url(#spanGrad)"/>
+  <text x="168" y="367" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Service Span</text>
+  <rect x="260" y="357" width="12" height="12" rx="2" fill="url(#leafGrad)"/>
+  <text x="278" y="367" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Database/External</text>
+  <text x="420" y="367" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Parent-child linked via span.parent_id</text>
+</svg>

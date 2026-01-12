@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 400">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="cardShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="400" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="350" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Span Anatomy</text>
+
+  <!-- Main Card -->
+  <rect x="40" y="50" width="620" height="330" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Header -->
+  <rect x="40" y="50" width="620" height="45" rx="10" fill="url(#headerGrad)"/>
+  <rect x="40" y="75" width="620" height="20" fill="url(#headerGrad)"/>
+  <text x="350" y="80" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">SPAN</text>
+
+  <!-- Identity Section -->
+  <text x="60" y="120" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1496ff">Identity</text>
+  <line x1="60" y1="128" x2="300" y2="128" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="70" y="150" font-family="Arial, sans-serif" font-size="12" fill="#333">trace.id</text>
+  <text x="180" y="150" font-family="Arial, sans-serif" font-size="11" fill="#666">Links span to parent trace</text>
+
+  <text x="70" y="172" font-family="Arial, sans-serif" font-size="12" fill="#333">span.id</text>
+  <text x="180" y="172" font-family="Arial, sans-serif" font-size="11" fill="#666">Unique span identifier</text>
+
+  <text x="70" y="194" font-family="Arial, sans-serif" font-size="12" fill="#333">span.parent_id</text>
+  <text x="180" y="194" font-family="Arial, sans-serif" font-size="11" fill="#666">Parent span (null for root)</text>
+
+  <!-- Operation Section -->
+  <text x="380" y="120" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#22c55e">Operation</text>
+  <line x1="380" y1="128" x2="640" y2="128" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="390" y="150" font-family="Arial, sans-serif" font-size="12" fill="#333">span.name</text>
+  <text x="500" y="150" font-family="Arial, sans-serif" font-size="11" fill="#666">"POST /checkout"</text>
+
+  <text x="390" y="172" font-family="Arial, sans-serif" font-size="12" fill="#333">span.kind</text>
+  <text x="500" y="172" font-family="Arial, sans-serif" font-size="11" fill="#666">server, client, internal</text>
+
+  <text x="390" y="194" font-family="Arial, sans-serif" font-size="12" fill="#333">service.name</text>
+  <text x="500" y="194" font-family="Arial, sans-serif" font-size="11" fill="#666">Service that created span</text>
+
+  <!-- Timing Section -->
+  <text x="60" y="230" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#f97316">Timing</text>
+  <line x1="60" y1="238" x2="300" y2="238" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="70" y="260" font-family="Arial, sans-serif" font-size="12" fill="#333">start_time</text>
+  <text x="180" y="260" font-family="Arial, sans-serif" font-size="11" fill="#666">When operation started</text>
+
+  <text x="70" y="282" font-family="Arial, sans-serif" font-size="12" fill="#333">end_time</text>
+  <text x="180" y="282" font-family="Arial, sans-serif" font-size="11" fill="#666">When operation ended</text>
+
+  <text x="70" y="304" font-family="Arial, sans-serif" font-size="12" fill="#333">duration</text>
+  <text x="180" y="304" font-family="Arial, sans-serif" font-size="11" fill="#666">In nanoseconds</text>
+
+  <!-- Status Section -->
+  <text x="380" y="230" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ef4444">Status</text>
+  <line x1="380" y1="238" x2="640" y2="238" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="390" y="260" font-family="Arial, sans-serif" font-size="12" fill="#333">span.status_code</text>
+  <text x="520" y="260" font-family="Arial, sans-serif" font-size="11" fill="#666">ok, error, unset</text>
+
+  <text x="390" y="282" font-family="Arial, sans-serif" font-size="12" fill="#333">span.status_message</text>
+  <text x="520" y="282" font-family="Arial, sans-serif" font-size="11" fill="#666">Error details</text>
+
+  <!-- Attributes Section -->
+  <text x="380" y="318" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#8b5cf6">Attributes</text>
+  <line x1="380" y1="326" x2="640" y2="326" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="390" y="348" font-family="Arial, sans-serif" font-size="12" fill="#333">http.*, db.*, rpc.*</text>
+  <text x="520" y="348" font-family="Arial, sans-serif" font-size="11" fill="#666">Context attributes</text>
+
+  <!-- Duration visual -->
+  <rect x="70" y="320" width="200" height="25" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="170" y="337" font-family="Arial, sans-serif" font-size="11" fill="#92400e" text-anchor="middle">duration = end_time - start_time</text>
+</svg>

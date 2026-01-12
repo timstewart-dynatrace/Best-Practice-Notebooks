@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="teamAGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="teamBGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="platformGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="complianceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bucketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="acShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="acArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Bucket-Based Access Control</text>
+
+  <!-- Teams Column -->
+  <text x="100" y="58" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#64748b" text-anchor="middle">TEAMS / ROLES</text>
+
+  <!-- Team A -->
+  <rect x="30" y="70" width="140" height="45" rx="8" fill="url(#teamAGrad)" filter="url(#acShadow)"/>
+  <text x="100" y="90" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Team A</text>
+  <text x="100" y="105" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Frontend Engineers</text>
+
+  <!-- Team B -->
+  <rect x="30" y="125" width="140" height="45" rx="8" fill="url(#teamBGrad)" filter="url(#acShadow)"/>
+  <text x="100" y="145" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Team B</text>
+  <text x="100" y="160" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Backend Engineers</text>
+
+  <!-- Platform Team -->
+  <rect x="30" y="180" width="140" height="45" rx="8" fill="url(#platformGrad)" filter="url(#acShadow)"/>
+  <text x="100" y="200" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Platform Team</text>
+  <text x="100" y="215" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">SRE / DevOps</text>
+
+  <!-- Compliance -->
+  <rect x="30" y="235" width="140" height="45" rx="8" fill="url(#complianceGrad)" filter="url(#acShadow)"/>
+  <text x="100" y="255" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Compliance</text>
+  <text x="100" y="270" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Auditors</text>
+
+  <!-- Arrows -->
+  <path d="M170,92 L250,92" stroke="#6366f1" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+  <path d="M170,147 L250,147" stroke="#1496ff" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+  <path d="M170,202 L250,120" stroke="#22c55e" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+  <path d="M170,202 L250,175" stroke="#22c55e" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+  <path d="M170,202 L250,230" stroke="#22c55e" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+  <path d="M170,257 L470,257" stroke="#f97316" stroke-width="2" fill="none" marker-end="url(#acArrow)"/>
+
+  <!-- Buckets Column -->
+  <text x="330" y="58" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#64748b" text-anchor="middle">BUCKETS</text>
+
+  <!-- Team A Bucket -->
+  <rect x="255" y="75" width="150" height="40" rx="6" fill="url(#bucketGrad)" filter="url(#acShadow)"/>
+  <text x="330" y="100" font-family="monospace" font-size="10" fill="white" text-anchor="middle">spans_frontend</text>
+
+  <!-- Team B Bucket -->
+  <rect x="255" y="130" width="150" height="40" rx="6" fill="url(#bucketGrad)" filter="url(#acShadow)"/>
+  <text x="330" y="155" font-family="monospace" font-size="10" fill="white" text-anchor="middle">spans_backend</text>
+
+  <!-- Default Bucket -->
+  <rect x="255" y="185" width="150" height="40" rx="6" fill="url(#bucketGrad)" filter="url(#acShadow)"/>
+  <text x="330" y="210" font-family="monospace" font-size="10" fill="white" text-anchor="middle">default_spans</text>
+
+  <!-- Audit Bucket -->
+  <rect x="475" y="240" width="150" height="40" rx="6" fill="url(#bucketGrad)" filter="url(#acShadow)"/>
+  <text x="550" y="258" font-family="monospace" font-size="10" fill="white" text-anchor="middle">audit_spans</text>
+  <text x="550" y="272" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">1 year retention</text>
+
+  <!-- Retention Labels -->
+  <text x="420" y="95" font-family="Arial, sans-serif" font-size="10" fill="#64748b">35 days</text>
+  <text x="420" y="150" font-family="Arial, sans-serif" font-size="10" fill="#64748b">35 days</text>
+  <text x="420" y="205" font-family="Arial, sans-serif" font-size="10" fill="#64748b">35 days</text>
+
+  <!-- Benefits Section -->
+  <rect x="480" y="70" width="290" height="155" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="625" y="92" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Access Control Benefits</text>
+
+  <text x="500" y="115" font-family="Arial, sans-serif" font-size="10" fill="#333">Team Isolation</text>
+  <text x="500" y="128" font-family="Arial, sans-serif" font-size="10" fill="#666">Each team queries only their data</text>
+
+  <text x="500" y="148" font-family="Arial, sans-serif" font-size="10" fill="#333">Cost Allocation</text>
+  <text x="500" y="161" font-family="Arial, sans-serif" font-size="10" fill="#666">Track DDU usage per team/bucket</text>
+
+  <text x="500" y="181" font-family="Arial, sans-serif" font-size="10" fill="#333">Compliance</text>
+  <text x="500" y="194" font-family="Arial, sans-serif" font-size="10" fill="#666">Different retention per bucket</text>
+
+  <text x="500" y="214" font-family="Arial, sans-serif" font-size="10" fill="#333">Performance</text>
+  <text x="500" y="227" font-family="Arial, sans-serif" font-size="10" fill="#666">Faster queries on smaller datasets</text>
+</svg>

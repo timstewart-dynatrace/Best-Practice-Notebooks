@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="fetchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="filterGradDQL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fieldsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="summarizeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sortGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dqlShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="dqlArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">DQL Query Pipeline Model</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Data flows left to right through sequential commands</text>
+
+  <!-- Pipeline Stages -->
+  <rect x="30" y="75" width="100" height="80" rx="10" fill="url(#fetchGrad)" filter="url(#dqlShadow)"/>
+  <text x="80" y="105" font-family="monospace" font-size="12" font-weight="bold" fill="white" text-anchor="middle">fetch</text>
+  <text x="80" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">logs</text>
+  <text x="80" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">All records</text>
+
+  <path d="M130,115 L155,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#dqlArrow)"/>
+
+  <rect x="165" y="75" width="120" height="80" rx="10" fill="url(#filterGradDQL)" filter="url(#dqlShadow)"/>
+  <text x="225" y="105" font-family="monospace" font-size="12" font-weight="bold" fill="white" text-anchor="middle">| filter</text>
+  <text x="225" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">loglevel == "ERROR"</text>
+  <text x="225" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Reduce rows</text>
+
+  <path d="M285,115 L310,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#dqlArrow)"/>
+
+  <rect x="320" y="75" width="120" height="80" rx="10" fill="url(#fieldsGrad)" filter="url(#dqlShadow)"/>
+  <text x="380" y="105" font-family="monospace" font-size="12" font-weight="bold" fill="white" text-anchor="middle">| fields</text>
+  <text x="380" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">timestamp, content</text>
+  <text x="380" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Select columns</text>
+
+  <path d="M440,115 L465,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#dqlArrow)"/>
+
+  <rect x="475" y="75" width="130" height="80" rx="10" fill="url(#summarizeGrad)" filter="url(#dqlShadow)"/>
+  <text x="540" y="105" font-family="monospace" font-size="12" font-weight="bold" fill="white" text-anchor="middle">| summarize</text>
+  <text x="540" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">count(), by:{svc}</text>
+  <text x="540" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Aggregate</text>
+
+  <path d="M605,115 L630,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#dqlArrow)"/>
+
+  <rect x="640" y="75" width="130" height="80" rx="10" fill="url(#sortGrad)" filter="url(#dqlShadow)"/>
+  <text x="705" y="105" font-family="monospace" font-size="12" font-weight="bold" fill="white" text-anchor="middle">| sort | limit</text>
+  <text x="705" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">count desc</text>
+  <text x="705" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Order + limit</text>
+
+  <!-- Data Flow Visualization -->
+  <rect x="30" y="175" width="740" height="110" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="200" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Data Transformation at Each Stage</text>
+
+  <!-- Stage details -->
+  <rect x="50" y="215" width="120" height="55" rx="6" fill="#dbeafe"/>
+  <text x="110" y="235" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">1M records</text>
+  <text x="110" y="255" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">All fields</text>
+
+  <text x="185" y="242" font-family="Arial, sans-serif" font-size="12" fill="#64748b">→</text>
+
+  <rect x="200" y="215" width="120" height="55" rx="6" fill="#fef2f2"/>
+  <text x="260" y="235" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#dc2626" text-anchor="middle">50K records</text>
+  <text x="260" y="255" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">Errors only</text>
+
+  <text x="335" y="242" font-family="Arial, sans-serif" font-size="12" fill="#64748b">→</text>
+
+  <rect x="350" y="215" width="120" height="55" rx="6" fill="#d1fae5"/>
+  <text x="410" y="235" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">50K records</text>
+  <text x="410" y="255" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">2 columns</text>
+
+  <text x="485" y="242" font-family="Arial, sans-serif" font-size="12" fill="#64748b">→</text>
+
+  <rect x="500" y="215" width="120" height="55" rx="6" fill="#ede9fe"/>
+  <text x="560" y="235" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#6d28d9" text-anchor="middle">100 records</text>
+  <text x="560" y="255" font-family="Arial, sans-serif" font-size="10" fill="#4c1d95" text-anchor="middle">Per service</text>
+
+  <text x="635" y="242" font-family="Arial, sans-serif" font-size="12" fill="#64748b">→</text>
+
+  <rect x="650" y="215" width="105" height="55" rx="6" fill="#fef3c7"/>
+  <text x="702" y="235" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">10 records</text>
+  <text x="702" y="255" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Top 10</text>
+</svg>

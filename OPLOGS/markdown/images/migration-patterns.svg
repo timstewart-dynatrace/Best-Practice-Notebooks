@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="patternParseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="patternDropGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="patternRouteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="patternShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="patternArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Common Migration Patterns</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Three essential OpenPipeline processor patterns</text>
+
+  <!-- Pattern 1: Parse -->
+  <rect x="30" y="70" width="230" height="210" rx="10" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="30" y="70" width="230" height="35" rx="10" fill="url(#patternParseGrad)"/>
+  <text x="145" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Parse Log Levels</text>
+
+  <rect x="50" y="115" width="190" height="35" rx="6" fill="#e2e8f0"/>
+  <text x="145" y="138" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">Raw Log Input</text>
+
+  <path d="M145,150 L145,165" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="50" y="175" width="190" height="50" rx="6" fill="url(#patternParseGrad)" filter="url(#patternShadow)"/>
+  <text x="145" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">DPL Processor</text>
+  <text x="145" y="215" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">WORD:loglevel ' ' LD</text>
+
+  <path d="M145,225 L145,240" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="50" y="250" width="190" height="25" rx="6" fill="#d1fae5"/>
+  <text x="145" y="267" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">loglevel field extracted</text>
+
+  <!-- Pattern 2: Drop -->
+  <rect x="285" y="70" width="230" height="210" rx="10" fill="#fff" stroke="#ef4444" stroke-width="2"/>
+  <rect x="285" y="70" width="230" height="35" rx="10" fill="url(#patternDropGrad)"/>
+  <text x="400" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Drop Debug Logs</text>
+
+  <rect x="305" y="115" width="85" height="35" rx="6" fill="#e2e8f0"/>
+  <text x="347" y="138" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">All Logs</text>
+
+  <rect x="410" y="115" width="85" height="35" rx="6" fill="#d1fae5"/>
+  <text x="452" y="138" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Keep</text>
+
+  <path d="M347,150 L400,190" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+  <path d="M452,150 L400,190" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="305" y="175" width="190" height="50" rx="6" fill="url(#patternDropGrad)" filter="url(#patternShadow)"/>
+  <text x="400" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Drop Processor</text>
+  <text x="400" y="215" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">loglevel == "DEBUG"</text>
+
+  <path d="M400,225 L400,240" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="305" y="250" width="190" height="25" rx="6" fill="#fef2f2"/>
+  <text x="400" y="267" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">35% logs dropped → savings!</text>
+
+  <!-- Pattern 3: Route -->
+  <rect x="540" y="70" width="230" height="210" rx="10" fill="#fff" stroke="#10b981" stroke-width="2"/>
+  <rect x="540" y="70" width="230" height="35" rx="10" fill="url(#patternRouteGrad)"/>
+  <text x="655" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Route to Bucket</text>
+
+  <rect x="560" y="115" width="190" height="35" rx="6" fill="#e2e8f0"/>
+  <text x="655" y="138" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">Error Logs</text>
+
+  <path d="M655,150 L655,165" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="560" y="175" width="190" height="50" rx="6" fill="url(#patternRouteGrad)" filter="url(#patternShadow)"/>
+  <text x="655" y="195" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Bucket Router</text>
+  <text x="655" y="215" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">→ error_logs bucket</text>
+
+  <path d="M600,225 L560,250" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+  <path d="M710,225 L750,250" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#patternArrow)"/>
+
+  <rect x="560" y="250" width="85" height="25" rx="6" fill="#d1fae5"/>
+  <text x="602" y="267" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">error_logs</text>
+
+  <rect x="665" y="250" width="85" height="25" rx="6" fill="#dbeafe"/>
+  <text x="707" y="267" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">default</text>
+</svg>

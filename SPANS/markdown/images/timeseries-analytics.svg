@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 320">
+  <defs>
+    <linearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#1496ff;stop-opacity:0.05" />
+    </linearGradient>
+    <filter id="chartShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="750" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="375" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Time-Series Analytics with makeTimeseries</text>
+
+  <!-- Chart Area -->
+  <rect x="60" y="50" width="450" height="200" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#chartShadow)"/>
+
+  <!-- Y-axis labels -->
+  <text x="50" y="70" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="end">500</text>
+  <text x="50" y="120" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="end">300</text>
+  <text x="50" y="170" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="end">100</text>
+  <text x="50" y="240" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="end">0</text>
+
+  <!-- Y-axis title -->
+  <text x="25" y="150" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle" transform="rotate(-90, 25, 150)">Requests/min</text>
+
+  <!-- Grid lines -->
+  <line x1="60" y1="70" x2="510" y2="70" stroke="#f1f5f9" stroke-width="1"/>
+  <line x1="60" y1="120" x2="510" y2="120" stroke="#f1f5f9" stroke-width="1"/>
+  <line x1="60" y1="170" x2="510" y2="170" stroke="#f1f5f9" stroke-width="1"/>
+
+  <!-- Area fill -->
+  <path d="M70,200 L120,180 L170,150 L220,120 L270,100 L320,85 L370,90 L420,110 L470,130 L500,140 L500,240 L70,240 Z" fill="url(#chartGrad)"/>
+
+  <!-- Line chart -->
+  <polyline points="70,200 120,180 170,150 220,120 270,100 320,85 370,90 420,110 470,130 500,140"
+            fill="none" stroke="#1496ff" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Data points -->
+  <circle cx="70" cy="200" r="5" fill="#1496ff"/>
+  <circle cx="120" cy="180" r="5" fill="#1496ff"/>
+  <circle cx="170" cy="150" r="5" fill="#1496ff"/>
+  <circle cx="220" cy="120" r="5" fill="#1496ff"/>
+  <circle cx="270" cy="100" r="5" fill="#1496ff"/>
+  <circle cx="320" cy="85" r="5" fill="#ef4444"/>
+  <circle cx="370" cy="90" r="5" fill="#1496ff"/>
+  <circle cx="420" cy="110" r="5" fill="#1496ff"/>
+  <circle cx="470" cy="130" r="5" fill="#1496ff"/>
+  <circle cx="500" cy="140" r="5" fill="#1496ff"/>
+
+  <!-- Peak annotation -->
+  <line x1="320" y1="85" x2="320" y2="55" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="320" y="50" font-family="Arial, sans-serif" font-size="10" fill="#ef4444" text-anchor="middle">Peak: 450/min</text>
+
+  <!-- X-axis labels -->
+  <text x="70" y="260" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">00:00</text>
+  <text x="170" y="260" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">04:00</text>
+  <text x="270" y="260" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">08:00</text>
+  <text x="370" y="260" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">12:00</text>
+  <text x="470" y="260" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">16:00</text>
+
+  <!-- DQL Query box -->
+  <rect x="530" y="50" width="200" height="200" rx="6" fill="#1e293b"/>
+  <text x="545" y="75" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#94a3b8">makeTimeseries Query</text>
+
+  <text x="545" y="100" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="580" y="100" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+
+  <text x="545" y="118" font-family="monospace" font-size="10" fill="#94a3b8">|</text>
+  <text x="555" y="118" font-family="monospace" font-size="10" fill="#f97316">filter</text>
+  <text x="600" y="118" font-family="monospace" font-size="10" fill="#f8fafc">span.kind ==</text>
+  <text x="555" y="133" font-family="monospace" font-size="10" fill="#fbbf24">"server"</text>
+
+  <text x="545" y="155" font-family="monospace" font-size="10" fill="#94a3b8">|</text>
+  <text x="555" y="155" font-family="monospace" font-size="10" fill="#1496ff">makeTimeseries</text>
+
+  <text x="560" y="173" font-family="monospace" font-size="10" fill="#f8fafc">requests = count(),</text>
+  <text x="560" y="188" font-family="monospace" font-size="10" fill="#1496ff">interval:</text>
+  <text x="615" y="188" font-family="monospace" font-size="10" fill="#60a5fa">5m</text>
+
+  <text x="545" y="210" font-family="monospace" font-size="10" fill="#94a3b8">// Also supports:</text>
+  <text x="545" y="225" font-family="monospace" font-size="10" fill="#94a3b8">// avg(), sum(),</text>
+  <text x="545" y="240" font-family="monospace" font-size="10" fill="#94a3b8">// percentile()</text>
+
+  <!-- Legend -->
+  <rect x="60" y="275" width="670" height="35" rx="6" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <circle cx="80" cy="292" r="6" fill="#1496ff"/>
+  <text x="95" y="297" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">Request count per interval</text>
+  <circle cx="280" cy="292" r="6" fill="#ef4444"/>
+  <text x="295" y="297" font-family="Arial, sans-serif" font-size="11" fill="#b91c1c">Anomaly/Peak detected</text>
+  <text x="500" y="297" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">Perfect for dashboards &amp; alerting</text>
+</svg>

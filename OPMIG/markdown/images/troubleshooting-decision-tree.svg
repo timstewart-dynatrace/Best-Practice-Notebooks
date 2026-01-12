@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="startGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="questionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fixGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dtShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="dtArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="noArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dc2626"/>
+    </marker>
+    <marker id="yesArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Troubleshooting Decision Tree: Logs Not Appearing</text>
+
+  <!-- Start -->
+  <rect x="340" y="50" width="120" height="40" rx="20" fill="url(#startGrad)" filter="url(#dtShadow)"/>
+  <text x="400" y="75" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Logs Missing?</text>
+
+  <path d="M400,90 L400,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#dtArrow)"/>
+
+  <!-- Question 1: Ingestion -->
+  <rect x="305" y="120" width="190" height="45" rx="4" fill="url(#questionGrad)" filter="url(#dtShadow)"/>
+  <text x="400" y="142" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">1. Are logs being ingested?</text>
+  <text x="400" y="158" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">fetch logs | summarize count()</text>
+
+  <!-- No branch to fix -->
+  <path d="M305,142 L220,142" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#noArrow)"/>
+  <text x="262" y="135" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">No</text>
+
+  <rect x="50" y="120" width="160" height="45" rx="4" fill="#fecaca" stroke="#dc2626" stroke-width="1"/>
+  <text x="130" y="138" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#dc2626" text-anchor="middle">Check Ingestion</text>
+  <text x="130" y="152" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">OneAgent, API token, endpoint</text>
+
+  <!-- Yes to next -->
+  <path d="M400,165 L400,195" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#yesArrow)"/>
+  <text x="410" y="182" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">Yes</text>
+
+  <!-- Question 2: Drop -->
+  <rect x="305" y="200" width="190" height="45" rx="4" fill="url(#questionGrad)" filter="url(#dtShadow)"/>
+  <text x="400" y="222" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">2. Being dropped?</text>
+  <text x="400" y="238" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Check drop processor conditions</text>
+
+  <!-- Yes branch to fix -->
+  <path d="M305,222 L220,222" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#noArrow)"/>
+  <text x="262" y="215" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">Yes</text>
+
+  <rect x="50" y="200" width="160" height="45" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="130" y="218" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Adjust Drop Rules</text>
+  <text x="130" y="232" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Make conditions more specific</text>
+
+  <!-- No to next -->
+  <path d="M400,245 L400,275" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#yesArrow)"/>
+  <text x="410" y="262" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">No</text>
+
+  <!-- Question 3: Routing -->
+  <rect x="305" y="280" width="190" height="45" rx="4" fill="url(#questionGrad)" filter="url(#dtShadow)"/>
+  <text x="400" y="302" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">3. Routed to right pipeline?</text>
+  <text x="400" y="318" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Check dt.openpipeline.pipelines</text>
+
+  <!-- No branch to fix -->
+  <path d="M305,302 L220,302" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#noArrow)"/>
+  <text x="262" y="295" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">No</text>
+
+  <rect x="50" y="280" width="160" height="45" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="130" y="298" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Fix Route Conditions</text>
+  <text x="130" y="312" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Update matching condition</text>
+
+  <!-- Yes to next question -->
+  <path d="M495,302 L550,302" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#yesArrow)"/>
+  <text x="522" y="295" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">Yes</text>
+
+  <!-- Question 4: Bucket -->
+  <rect x="560" y="280" width="190" height="45" rx="4" fill="url(#questionGrad)" filter="url(#dtShadow)"/>
+  <text x="655" y="302" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">4. In correct bucket?</text>
+  <text x="655" y="318" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Check dt.system.bucket</text>
+
+  <!-- No branch to fix -->
+  <path d="M655,325 L655,350" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#noArrow)"/>
+  <text x="665" y="340" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">No</text>
+
+  <rect x="560" y="350" width="190" height="25" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="655" y="367" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Fix pipeline storage settings</text>
+
+  <!-- Yes to success -->
+  <path d="M750,302 L770,302 L770,230 L755,230" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#yesArrow)"/>
+  <text x="760" y="260" font-family="Arial, sans-serif" font-size="10" fill="#16a34a" transform="rotate(-90, 760, 260)">Yes</text>
+
+  <!-- Success -->
+  <rect x="610" y="200" width="140" height="45" rx="4" fill="url(#fixGrad)" filter="url(#dtShadow)"/>
+  <text x="680" y="222" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">✅ Success!</text>
+  <text x="680" y="238" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Logs visible in queries</text>
+
+  <!-- Additional paths from fixes to ingestion/success -->
+  <path d="M130,165 L130,190" stroke="#16a34a" stroke-width="1" stroke-dasharray="4,2" fill="none"/>
+  <text x="140" y="178" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">fixed?</text>
+</svg>

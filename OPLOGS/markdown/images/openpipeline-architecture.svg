@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="sourceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="maskGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="filterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="processGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="extractGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    <filter id="opShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="opArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">OpenPipeline Log Processing Architecture</text>
+
+  <!-- Data Sources Row -->
+  <text x="100" y="60" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Data Sources</text>
+
+  <rect x="30" y="70" width="60" height="40" rx="6" fill="url(#sourceGrad)" filter="url(#opShadow)"/>
+  <text x="60" y="95" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">OneAgent</text>
+
+  <rect x="100" y="70" width="60" height="40" rx="6" fill="url(#sourceGrad)" filter="url(#opShadow)"/>
+  <text x="130" y="95" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Log API</text>
+
+  <rect x="30" y="115" width="60" height="40" rx="6" fill="url(#sourceGrad)" filter="url(#opShadow)"/>
+  <text x="60" y="140" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">OTLP</text>
+
+  <rect x="100" y="115" width="60" height="40" rx="6" fill="url(#sourceGrad)" filter="url(#opShadow)"/>
+  <text x="130" y="140" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Generic</text>
+
+  <!-- Arrow from sources -->
+  <path d="M165,112 L195,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <!-- Processing Stages -->
+  <rect x="205" y="75" width="75" height="75" rx="8" fill="url(#routeGrad)" filter="url(#opShadow)"/>
+  <text x="242" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">ROUTE</text>
+  <text x="242" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Pipeline</text>
+  <text x="242" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Selection</text>
+
+  <path d="M280,112 L300,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <rect x="310" y="75" width="75" height="75" rx="8" fill="url(#maskGrad)" filter="url(#opShadow)"/>
+  <text x="347" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">MASK</text>
+  <text x="347" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">PII/PHI</text>
+  <text x="347" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Redaction</text>
+
+  <path d="M385,112 L405,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <rect x="415" y="75" width="75" height="75" rx="8" fill="url(#filterGrad)" filter="url(#opShadow)"/>
+  <text x="452" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">FILTER</text>
+  <text x="452" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Drop</text>
+  <text x="452" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Unwanted</text>
+
+  <path d="M490,112 L510,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <rect x="520" y="75" width="75" height="75" rx="8" fill="url(#processGrad)" filter="url(#opShadow)"/>
+  <text x="557" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">PROCESS</text>
+  <text x="557" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Parse</text>
+  <text x="557" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Transform</text>
+
+  <path d="M595,112 L615,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <rect x="625" y="75" width="75" height="75" rx="8" fill="url(#extractGrad)" filter="url(#opShadow)"/>
+  <text x="662" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">EXTRACT</text>
+  <text x="662" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Metrics</text>
+  <text x="662" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Events</text>
+
+  <path d="M700,112 L720,112" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <rect x="730" y="75" width="50" height="75" rx="8" fill="url(#storeGrad)" filter="url(#opShadow)"/>
+  <text x="755" y="105" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">STORE</text>
+  <text x="755" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Grail</text>
+
+  <!-- Key Features Section -->
+  <rect x="30" y="170" width="740" height="155" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="195" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Key Capabilities</text>
+
+  <!-- Feature boxes -->
+  <rect x="50" y="210" width="155" height="100" rx="6" fill="#fef2f2"/>
+  <text x="127" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#dc2626" text-anchor="middle">Security First</text>
+  <text x="127" y="255" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">Masking runs BEFORE</text>
+  <text x="127" y="270" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">any other processing</text>
+  <text x="127" y="295" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">PII never stored</text>
+
+  <rect x="225" y="210" width="155" height="100" rx="6" fill="#fef3c7"/>
+  <text x="302" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Cost Control</text>
+  <text x="302" y="255" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Drop unwanted logs</text>
+  <text x="302" y="270" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">BEFORE storage</text>
+  <text x="302" y="295" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Save 30-70% DDUs</text>
+
+  <rect x="400" y="210" width="155" height="100" rx="6" fill="#d1fae5"/>
+  <text x="477" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Value Creation</text>
+  <text x="477" y="255" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Extract metrics</text>
+  <text x="477" y="270" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Generate events</text>
+  <text x="477" y="295" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Business analytics</text>
+
+  <rect x="575" y="210" width="175" height="100" rx="6" fill="#dbeafe"/>
+  <text x="662" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e40af" text-anchor="middle">Bucket Governance</text>
+  <text x="662" y="255" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">Route to buckets</text>
+  <text x="662" y="270" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">Tiered retention</text>
+  <text x="662" y="295" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">Team-based access</text>
+</svg>

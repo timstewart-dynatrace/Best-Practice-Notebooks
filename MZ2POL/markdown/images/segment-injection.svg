@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="queryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="segGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="effectiveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="resultGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <filter id="segShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="segArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Segment Query-Time Injection</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">Segments inject DQL filters at query execution (not precalculated like MZs)</text>
+
+  <!-- User Query Box -->
+  <rect x="30" y="70" width="170" height="80" rx="8" fill="url(#queryGrad)" filter="url(#segShadow)"/>
+  <text x="115" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">User Query</text>
+  <text x="115" y="118" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">fetch logs</text>
+  <text x="115" y="133" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">| limit 100</text>
+
+  <!-- Plus sign -->
+  <text x="215" y="115" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#64748b">+</text>
+
+  <!-- Active Segment Box -->
+  <rect x="240" y="70" width="170" height="80" rx="8" fill="url(#segGrad)" filter="url(#segShadow)"/>
+  <text x="325" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Active Segment</text>
+  <text x="325" y="115" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">filter matchesValue(</text>
+  <text x="325" y="128" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">tags, "env:production")</text>
+  <text x="325" y="143" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">"Production Environment"</text>
+
+  <!-- Equals sign -->
+  <text x="425" y="115" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#64748b">=</text>
+
+  <!-- Effective Query Box -->
+  <rect x="450" y="70" width="200" height="80" rx="8" fill="url(#effectiveGrad)" filter="url(#segShadow)"/>
+  <text x="550" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Effective Query</text>
+  <text x="550" y="115" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">fetch logs</text>
+  <text x="550" y="128" font-family="monospace" font-size="10" fill="#fbbf24" text-anchor="middle">| filter matchesValue(...)</text>
+  <text x="550" y="141" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">| limit 100</text>
+
+  <!-- Arrow to Grail -->
+  <path d="M650,110 L690,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#segArrow)"/>
+
+  <!-- Grail Box -->
+  <rect x="700" y="80" width="80" height="60" rx="8" fill="url(#resultGrad)" filter="url(#segShadow)"/>
+  <text x="740" y="105" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Grail</text>
+  <text x="740" y="120" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Filtered</text>
+  <text x="740" y="132" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Results</text>
+
+  <!-- Key Benefits Section -->
+  <rect x="30" y="170" width="740" height="115" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="195" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Segment vs. Management Zone Filtering</text>
+
+  <!-- Comparison boxes -->
+  <rect x="50" y="210" width="340" height="60" rx="6" fill="#fecaca"/>
+  <text x="220" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#dc2626" text-anchor="middle">Management Zones (Legacy)</text>
+  <text x="220" y="250" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">Precalculated • Performance bottleneck • No Grail • Single dimension</text>
+
+  <rect x="410" y="210" width="340" height="60" rx="6" fill="#d1fae5"/>
+  <text x="580" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#059669" text-anchor="middle">Segments (Modern)</text>
+  <text x="580" y="250" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Query-time • Highly scalable • Full Grail • Multi-dimensional + Variables</text>
+</svg>

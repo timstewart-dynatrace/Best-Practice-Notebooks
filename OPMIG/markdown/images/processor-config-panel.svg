@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="pcHeaderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="pcShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="400" fill="#f8f9fa" rx="10"/>
+
+  <!-- Modal window -->
+  <rect x="30" y="20" width="540" height="360" rx="8" fill="white" stroke="#e2e8f0" stroke-width="2" filter="url(#pcShadow)"/>
+
+  <!-- Header -->
+  <rect x="30" y="20" width="540" height="40" rx="8" fill="url(#pcHeaderGrad)"/>
+  <rect x="30" y="52" width="540" height="8" fill="url(#pcHeaderGrad)"/>
+  <text x="50" y="46" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Add processor: DQL</text>
+
+  <!-- Name field -->
+  <text x="50" y="90" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Name:</text>
+  <rect x="50" y="95" width="500" height="28" rx="4" fill="white" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="60" y="114" font-family="monospace" font-size="11" fill="#334155">Parse nginx access log</text>
+
+  <!-- Matching condition -->
+  <text x="50" y="145" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Matching condition:</text>
+  <rect x="50" y="150" width="500" height="28" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="60" y="169" font-family="monospace" font-size="10" fill="#3b82f6">log.source == "nginx"</text>
+
+  <!-- Processor definition -->
+  <text x="50" y="200" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Processor definition:</text>
+  <rect x="50" y="205" width="500" height="50" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="60" y="225" font-family="monospace" font-size="10" fill="#0f766e">parse content, "IPADDR:client_ip SPACE '-' SPACE</text>
+  <text x="60" y="240" font-family="monospace" font-size="10" fill="#0f766e">LD:user SPACE '[' LD:timestamp ']' ..."</text>
+
+  <!-- Sample data -->
+  <text x="50" y="280" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Sample data:</text>
+  <rect x="50" y="285" width="500" height="45" rx="4" fill="#fffbeb" stroke="#fcd34d" stroke-width="1"/>
+  <text x="60" y="305" font-family="monospace" font-size="10" fill="#92400e">{"content": "192.168.1.1 - - [10/Dec/2024:10:30:45</text>
+  <text x="60" y="320" font-family="monospace" font-size="10" fill="#92400e">+0000] \"GET /api/users HTTP/1.1\" 200 1234"}</text>
+
+  <!-- Buttons -->
+  <rect x="50" y="345" width="120" height="28" rx="4" fill="#10b981"/>
+  <text x="110" y="364" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Run sample data</text>
+
+  <rect x="390" y="345" width="70" height="28" rx="4" fill="white" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="425" y="364" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">Cancel</text>
+
+  <rect x="470" y="345" width="80" height="28" rx="4" fill="#3b82f6"/>
+  <text x="510" y="364" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Save</text>
+</svg>

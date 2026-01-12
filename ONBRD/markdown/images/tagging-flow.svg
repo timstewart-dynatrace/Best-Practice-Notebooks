@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220">
+  <defs>
+    <linearGradient id="infraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="tagShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="tagArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="220" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="350" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">Modern Tagging Flow</text>
+  <text x="350" y="46" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">"Enrich at Source" Philosophy</text>
+
+  <!-- Infrastructure Box -->
+  <rect x="40" y="70" width="160" height="80" rx="10" fill="url(#infraGrad)" filter="url(#tagShadow)"/>
+  <text x="120" y="100" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Infrastructure</text>
+  <text x="120" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Cloud/K8s)</text>
+
+  <!-- Arrow 1 -->
+  <path d="M205,110 L255,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tagArrow)"/>
+
+  <!-- OneAgent Box -->
+  <rect x="260" y="70" width="160" height="80" rx="10" fill="url(#agentGrad)" filter="url(#tagShadow)"/>
+  <text x="340" y="100" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">OneAgent</text>
+  <text x="340" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">+ Host Properties</text>
+
+  <!-- Arrow 2 -->
+  <path d="M425,110 L475,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tagArrow)"/>
+
+  <!-- Dynatrace/Grail Box -->
+  <rect x="480" y="70" width="160" height="80" rx="10" fill="url(#grailGrad)" filter="url(#tagShadow)"/>
+  <text x="560" y="100" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Dynatrace</text>
+  <text x="560" y="118" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Grail)</text>
+
+  <!-- Labels below boxes -->
+  <text x="120" y="170" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Cloud tags</text>
+  <text x="120" y="183" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">K8s labels</text>
+
+  <text x="340" y="170" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Host properties</text>
+  <text x="340" y="183" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">passed through</text>
+
+  <text x="560" y="170" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Queryable</text>
+  <text x="560" y="183" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">attributes</text>
+
+  <!-- Benefit callout -->
+  <rect x="150" y="195" width="400" height="20" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="350" y="209" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Same tags available on metrics, logs, spans, and entities</text>
+</svg>

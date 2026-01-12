@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 340">
+  <defs>
+    <linearGradient id="appLayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="svcLayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pgLayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="hostLayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="k8sLayerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+    <filter id="hierShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="hierArrow" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="250" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Entity Hierarchy</text>
+  <text x="250" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">How entities relate to each other</text>
+
+  <!-- Applications Layer -->
+  <rect x="130" y="65" width="240" height="45" rx="8" fill="url(#appLayerGrad)" filter="url(#hierShadow)"/>
+  <text x="250" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Applications</text>
+  <text x="250" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Frontend)</text>
+
+  <!-- Arrow -->
+  <path d="M250,115 L250,130" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#hierArrow)"/>
+  <text x="270" y="127" font-family="Arial, sans-serif" font-size="10" fill="#64748b">calls</text>
+
+  <!-- Services Layer -->
+  <rect x="130" y="140" width="240" height="45" rx="8" fill="url(#svcLayerGrad)" filter="url(#hierShadow)"/>
+  <text x="250" y="160" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Services</text>
+  <text x="250" y="175" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Backend)</text>
+
+  <!-- Arrow -->
+  <path d="M250,190 L250,205" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#hierArrow)"/>
+  <text x="280" y="202" font-family="Arial, sans-serif" font-size="10" fill="#64748b">runs on</text>
+
+  <!-- Process Groups Layer -->
+  <rect x="130" y="215" width="240" height="40" rx="8" fill="url(#pgLayerGrad)" filter="url(#hierShadow)"/>
+  <text x="250" y="240" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Process Groups</text>
+
+  <!-- Arrow -->
+  <path d="M250,260 L250,275" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#hierArrow)"/>
+  <text x="280" y="272" font-family="Arial, sans-serif" font-size="10" fill="#64748b">runs on</text>
+
+  <!-- Hosts Layer -->
+  <rect x="130" y="285" width="240" height="40" rx="8" fill="url(#hostLayerGrad)" filter="url(#hierShadow)"/>
+  <text x="250" y="310" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Hosts</text>
+
+  <!-- Optional K8s indicator -->
+  <line x1="250" y1="325" x2="250" y2="335" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="250" y="345" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">(optional: Kubernetes Clusters)</text>
+
+  <!-- Side Legend -->
+  <rect x="400" y="90" width="85" height="160" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="442" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#333" text-anchor="middle">DQL Names</text>
+
+  <rect x="408" y="120" width="10" height="10" rx="2" fill="#8b5cf6"/>
+  <text x="423" y="128" font-family="Arial, sans-serif" font-size="10" fill="#64748b">application</text>
+
+  <rect x="408" y="140" width="10" height="10" rx="2" fill="#3b82f6"/>
+  <text x="423" y="148" font-family="Arial, sans-serif" font-size="10" fill="#64748b">service</text>
+
+  <rect x="408" y="160" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="423" y="168" font-family="Arial, sans-serif" font-size="10" fill="#64748b">process_group</text>
+
+  <rect x="408" y="180" width="10" height="10" rx="2" fill="#f59e0b"/>
+  <text x="423" y="188" font-family="Arial, sans-serif" font-size="10" fill="#64748b">host</text>
+
+  <rect x="408" y="200" width="10" height="10" rx="2" fill="#64748b"/>
+  <text x="423" y="208" font-family="Arial, sans-serif" font-size="10" fill="#64748b">k8s_cluster</text>
+</svg>

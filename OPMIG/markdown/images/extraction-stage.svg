@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="metricGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="eventGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bizGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="exShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="exArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Extraction Stage</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Generate derived signals from logs before storage</text>
+
+  <!-- Input -->
+  <rect x="30" y="90" width="140" height="120" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#exShadow)"/>
+  <text x="100" y="120" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Processed Log</text>
+  <text x="100" y="145" font-family="monospace" font-size="10" fill="#666" text-anchor="middle">loglevel: ERROR</text>
+  <text x="100" y="158" font-family="monospace" font-size="10" fill="#666" text-anchor="middle">duration_ms: 150</text>
+  <text x="100" y="171" font-family="monospace" font-size="10" fill="#666" text-anchor="middle">order_id: 12345</text>
+  <text x="100" y="184" font-family="monospace" font-size="10" fill="#666" text-anchor="middle">amount: 99.99</text>
+  <text x="100" y="197" font-family="monospace" font-size="10" fill="#666" text-anchor="middle">service.name: pay</text>
+
+  <!-- Arrows to extractions -->
+  <path d="M170,120 L230,90" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+  <path d="M170,150 L230,150" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+  <path d="M170,180 L230,210" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+
+  <!-- Metric Extraction -->
+  <rect x="240" y="65" width="230" height="55" rx="8" fill="url(#metricGrad)" filter="url(#exShadow)"/>
+  <text x="355" y="88" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Metric Extraction</text>
+  <text x="355" y="105" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">log.api.duration_ms = 150</text>
+  <text x="355" y="115" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">dims: service.name, loglevel</text>
+
+  <!-- Event Extraction -->
+  <rect x="240" y="130" width="230" height="55" rx="8" fill="url(#eventGrad)" filter="url(#exShadow)"/>
+  <text x="355" y="153" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Event Extraction</text>
+  <text x="355" y="170" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">payment.error: Order 12345 failed</text>
+  <text x="355" y="180" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">type: ERROR → Davis AI</text>
+
+  <!-- Business Event Extraction -->
+  <rect x="240" y="195" width="230" height="55" rx="8" fill="url(#bizGrad)" filter="url(#exShadow)"/>
+  <text x="355" y="218" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Business Event Extraction</text>
+  <text x="355" y="235" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">order.processed: $99.99</text>
+  <text x="355" y="245" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">→ Grail bizevents table</text>
+
+  <!-- Arrows to outputs -->
+  <path d="M470,90 L520,90" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+  <path d="M470,157 L520,157" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+  <path d="M470,222 L520,222" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#exArrow)"/>
+
+  <!-- Outputs -->
+  <rect x="530" y="65" width="240" height="55" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="650" y="85" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Metrics (10 year retention)</text>
+  <text x="650" y="100" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">SLI dashboards, alerts</text>
+  <text x="650" y="112" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Low cardinality required</text>
+
+  <rect x="530" y="130" width="240" height="55" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="650" y="150" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Events (Davis AI)</text>
+  <text x="650" y="165" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Root cause analysis</text>
+  <text x="650" y="177" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Automatic problem detection</text>
+
+  <rect x="530" y="195" width="240" height="55" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="650" y="215" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Business Events (Grail)</text>
+  <text x="650" y="230" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Revenue tracking, funnels</text>
+  <text x="650" y="242" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Custom analytics</text>
+
+  <!-- Tip -->
+  <rect x="30" y="260" width="740" height="30" rx="4" fill="#e0f2fe"/>
+  <text x="400" y="280" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">Pro Tip: Extract metrics from high-volume logs, then DROP the logs to save 99%+ on storage</text>
+</svg>

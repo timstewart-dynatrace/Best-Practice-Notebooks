@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 340">
+  <defs>
+    <linearGradient id="polGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="segGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="nameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="entGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+    <filter id="orgShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="250" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">Organization Hierarchy (Modern Platform)</text>
+
+  <!-- Layer 1: Policies & Permissions -->
+  <rect x="40" y="50" width="420" height="48" rx="8" fill="url(#polGrad)" filter="url(#orgShadow)"/>
+  <text x="250" y="72" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Policies &amp; Permissions</text>
+  <text x="250" y="88" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Access control via IAM)</text>
+
+  <!-- Layer 2: Segments -->
+  <rect x="40" y="105" width="420" height="48" rx="8" fill="url(#segGrad)" filter="url(#orgShadow)"/>
+  <text x="250" y="127" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Segments</text>
+  <text x="250" y="143" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(DQL-based data filtering)</text>
+
+  <!-- Layer 3: Tags -->
+  <rect x="40" y="160" width="420" height="48" rx="8" fill="url(#tagGrad)" filter="url(#orgShadow)"/>
+  <text x="250" y="182" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Tags (Host Properties + Cloud Tags)</text>
+  <text x="250" y="198" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Flexible grouping, set at source)</text>
+
+  <!-- Layer 4: Naming Conventions -->
+  <rect x="40" y="215" width="420" height="48" rx="8" fill="url(#nameGrad)" filter="url(#orgShadow)"/>
+  <text x="250" y="237" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Naming Conventions</text>
+  <text x="250" y="253" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Consistency, discoverability)</text>
+
+  <!-- Layer 5: Entities -->
+  <rect x="40" y="270" width="420" height="48" rx="8" fill="url(#entGrad)" filter="url(#orgShadow)"/>
+  <text x="250" y="292" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Entities</text>
+  <text x="250" y="308" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Hosts, services, processes)</text>
+
+  <!-- Arrow indicator on left -->
+  <text x="22" y="182" font-family="Arial, sans-serif" font-size="18" fill="#64748b">▲</text>
+  <text x="18" y="200" font-family="Arial, sans-serif" font-size="10" fill="#64748b" writing-mode="tb">Access</text>
+</svg>

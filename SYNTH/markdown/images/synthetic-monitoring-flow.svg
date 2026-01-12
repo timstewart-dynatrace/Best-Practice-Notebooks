@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="dtEngineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="resultsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="publicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="privateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    <filter id="synthShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="synthArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Synthetic Monitoring Flow</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Proactive monitoring from user perspective</text>
+
+  <!-- Dynatrace Synthetic Engine -->
+  <rect x="30" y="75" width="180" height="100" rx="10" fill="url(#dtEngineGrad)" filter="url(#synthShadow)"/>
+  <text x="120" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Dynatrace</text>
+  <text x="120" y="128" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Synthetic Engine</text>
+  <text x="120" y="155" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Scheduled execution</text>
+  <text x="120" y="168" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">from global locations</text>
+
+  <!-- Arrow 1 -->
+  <path d="M210,125 L280,125" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#synthArrow)"/>
+  <text x="245" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Runs tests</text>
+
+  <!-- Your Application -->
+  <rect x="290" y="75" width="180" height="100" rx="10" fill="url(#appGrad)" filter="url(#synthShadow)"/>
+  <text x="380" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Your Application</text>
+  <text x="380" y="128" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">/ API</text>
+  <text x="380" y="155" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Websites, APIs</text>
+  <text x="380" y="168" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Internal services</text>
+
+  <!-- Arrow 2 -->
+  <path d="M470,125 L540,125" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#synthArrow)"/>
+  <text x="505" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Collects</text>
+
+  <!-- Results & Metrics -->
+  <rect x="550" y="75" width="220" height="100" rx="10" fill="url(#resultsGrad)" filter="url(#synthShadow)"/>
+  <text x="660" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Results &amp; Metrics</text>
+  <text x="660" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Availability, Response time</text>
+  <text x="660" y="145" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Errors, Screenshots</text>
+  <text x="660" y="162" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Performance breakdown</text>
+
+  <!-- Execution Locations Section -->
+  <rect x="30" y="195" width="740" height="90" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="220" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Execution Locations</text>
+
+  <rect x="50" y="235" width="320" height="40" rx="6" fill="url(#publicGrad)" filter="url(#synthShadow)"/>
+  <text x="210" y="252" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Public Locations</text>
+  <text x="210" y="268" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">AWS, Azure, GCP - 60+ global locations</text>
+
+  <rect x="390" y="235" width="360" height="40" rx="6" fill="url(#privateGrad)" filter="url(#synthShadow)"/>
+  <text x="570" y="252" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Private Locations</text>
+  <text x="570" y="268" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Your infrastructure - Internal apps, staging, VPNs</text>
+</svg>

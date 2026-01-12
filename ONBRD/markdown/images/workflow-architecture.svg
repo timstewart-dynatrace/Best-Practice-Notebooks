@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280">
+  <defs>
+    <linearGradient id="triggerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="condGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="actionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="workflowShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="workflowArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="280" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Workflow Architecture</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Event-driven automation for alerting and remediation</text>
+
+  <!-- Main Flow -->
+  <!-- Trigger -->
+  <rect x="60" y="80" width="180" height="80" rx="10" fill="url(#triggerGrad)" filter="url(#workflowShadow)"/>
+  <text x="150" y="112" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Trigger</text>
+  <text x="150" y="135" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Davis Event)</text>
+
+  <!-- Arrow -->
+  <path d="M245,120 L290,120" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#workflowArrow)"/>
+
+  <!-- Conditions -->
+  <rect x="295" y="80" width="180" height="80" rx="10" fill="url(#condGrad)" filter="url(#workflowShadow)"/>
+  <text x="385" y="112" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Conditions</text>
+  <text x="385" y="135" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Filtering)</text>
+
+  <!-- Arrow -->
+  <path d="M480,120 L525,120" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#workflowArrow)"/>
+
+  <!-- Actions -->
+  <rect x="530" y="80" width="180" height="80" rx="10" fill="url(#actionGrad)" filter="url(#workflowShadow)"/>
+  <text x="620" y="112" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Actions</text>
+  <text x="620" y="135" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">(Notify/Run)</text>
+
+  <!-- Trigger Events -->
+  <text x="150" y="185" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Problem opened</text>
+  <text x="150" y="200" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Problem updated</text>
+  <text x="150" y="215" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Problem closed</text>
+
+  <!-- Action Types Box -->
+  <rect x="530" y="175" width="180" height="85" rx="8" fill="#fff" stroke="#10b981" stroke-width="1"/>
+
+  <circle cx="550" cy="195" r="5" fill="#3b82f6"/>
+  <text x="562" y="199" font-family="Arial, sans-serif" font-size="10" fill="#333">Slack</text>
+
+  <circle cx="550" cy="215" r="5" fill="#ef4444"/>
+  <text x="562" y="219" font-family="Arial, sans-serif" font-size="10" fill="#333">Email</text>
+
+  <circle cx="550" cy="235" r="5" fill="#10b981"/>
+  <text x="562" y="239" font-family="Arial, sans-serif" font-size="10" fill="#333">PagerDuty</text>
+
+  <circle cx="640" cy="195" r="5" fill="#8b5cf6"/>
+  <text x="652" y="199" font-family="Arial, sans-serif" font-size="10" fill="#333">Jira</text>
+
+  <circle cx="640" cy="215" r="5" fill="#f59e0b"/>
+  <text x="652" y="219" font-family="Arial, sans-serif" font-size="10" fill="#333">Webhook</text>
+
+  <circle cx="640" cy="235" r="5" fill="#64748b"/>
+  <text x="652" y="239" font-family="Arial, sans-serif" font-size="10" fill="#333">+ More</text>
+</svg>

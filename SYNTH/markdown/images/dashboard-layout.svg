@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <defs>
+    <linearGradient id="tileGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tileGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tileGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tileGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dashShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="360" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Synthetic Monitoring Dashboard Layout</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Recommended tile organization for operational visibility</text>
+
+  <!-- Dashboard container -->
+  <rect x="30" y="65" width="740" height="280" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- Row 1: KPI Tiles -->
+  <text x="50" y="90" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">KEY METRICS</text>
+
+  <!-- Availability -->
+  <rect x="50" y="100" width="160" height="70" rx="8" fill="url(#tileGrad1)" filter="url(#dashShadow)"/>
+  <text x="130" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Overall Availability</text>
+  <text x="130" y="155" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">99.8%</text>
+
+  <!-- Active Monitors -->
+  <rect x="225" y="100" width="160" height="70" rx="8" fill="url(#tileGrad2)" filter="url(#dashShadow)"/>
+  <text x="305" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Active Monitors</text>
+  <text x="305" y="155" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">47</text>
+
+  <!-- Failed Monitors -->
+  <rect x="400" y="100" width="160" height="70" rx="8" fill="url(#tileGrad3)" filter="url(#dashShadow)"/>
+  <text x="480" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Failed Monitors</text>
+  <text x="480" y="155" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">2</text>
+
+  <!-- SLO Status -->
+  <rect x="575" y="100" width="180" height="70" rx="8" fill="url(#tileGrad4)" filter="url(#dashShadow)"/>
+  <text x="665" y="125" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">SLO Target Met</text>
+  <text x="665" y="155" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">85%</text>
+
+  <!-- Row 2: Charts -->
+  <text x="50" y="195" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">TRENDS</text>
+
+  <!-- Availability Trend -->
+  <rect x="50" y="205" width="345" height="65" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="65" y="225" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Availability Trend (7 days)</text>
+  <!-- Sparkline simulation -->
+  <polyline points="70,255 120,250 170,252 220,248 270,251 320,245 370,250" stroke="#10b981" stroke-width="2" fill="none"/>
+  <line x1="70" y1="260" x2="370" y2="260" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Response Time Distribution -->
+  <rect x="410" y="205" width="345" height="65" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="425" y="225" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Response Time by Monitor Type</text>
+  <!-- Bar chart simulation -->
+  <rect x="440" y="240" width="60" height="25" rx="2" fill="#3b82f6"/>
+  <rect x="510" y="248" width="60" height="17" rx="2" fill="#10b981"/>
+  <rect x="580" y="252" width="60" height="13" rx="2" fill="#f59e0b"/>
+  <rect x="650" y="245" width="60" height="20" rx="2" fill="#8b5cf6"/>
+
+  <!-- Row 3: Table -->
+  <text x="50" y="290" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">RECENT FAILURES</text>
+
+  <rect x="50" y="300" width="705" height="35" rx="4" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+  <text x="65" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Monitor</text>
+  <text x="200" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Location</text>
+  <text x="320" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Error</text>
+  <text x="500" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Time</text>
+  <text x="620" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Duration</text>
+  <text x="700" y="318" font-family="Arial, sans-serif" font-size="10" fill="#333">Status</text>
+
+  <text x="65" y="328" font-family="Arial, sans-serif" font-size="10" fill="#64748b">checkout-flow</text>
+  <text x="200" y="328" font-family="Arial, sans-serif" font-size="10" fill="#64748b">US-East</text>
+  <text x="320" y="328" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Timeout after 60s</text>
+  <text x="500" y="328" font-family="Arial, sans-serif" font-size="10" fill="#64748b">10:45 AM</text>
+  <text x="620" y="328" font-family="Arial, sans-serif" font-size="10" fill="#64748b">5 min</text>
+  <rect x="695" y="315" width="50" height="16" rx="4" fill="#ef4444"/>
+  <text x="720" y="327" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">OPEN</text>
+</svg>

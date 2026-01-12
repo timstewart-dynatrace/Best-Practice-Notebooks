@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 280">
+  <defs>
+    <linearGradient id="rawLogGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="maskingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="safeLogGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="maskShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="maskArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="280" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Data Masking Pipeline</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Sensitive data is redacted BEFORE any other processing or storage</text>
+
+  <!-- Raw Input -->
+  <rect x="30" y="70" width="200" height="130" rx="10" fill="#fff" stroke="#ef4444" stroke-width="2"/>
+  <rect x="30" y="70" width="200" height="30" rx="10" fill="url(#rawLogGrad)"/>
+  <text x="130" y="92" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Raw Log Input</text>
+
+  <text x="50" y="120" font-family="monospace" font-size="10" fill="#7f1d1d">email: user@test.com</text>
+  <text x="50" y="138" font-family="monospace" font-size="10" fill="#7f1d1d">card: 4111111111111111</text>
+  <text x="50" y="156" font-family="monospace" font-size="10" fill="#7f1d1d">ssn: 123-45-6789</text>
+  <text x="50" y="174" font-family="monospace" font-size="10" fill="#7f1d1d">ip: 192.168.1.100</text>
+  <text x="50" y="192" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">Contains PII!</text>
+
+  <!-- Arrow 1 -->
+  <path d="M230,135 L260,135" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#maskArrow)"/>
+
+  <!-- Masking Processor -->
+  <rect x="270" y="70" width="260" height="130" rx="10" fill="#fff" stroke="#8b5cf6" stroke-width="2"/>
+  <rect x="270" y="70" width="260" height="30" rx="10" fill="url(#maskingGrad)"/>
+  <text x="400" y="92" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Masking Processor (First Stage)</text>
+
+  <text x="290" y="120" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#6d28d9">Pattern Matching:</text>
+  <text x="290" y="138" font-family="monospace" font-size="10" fill="#64748b">EMAIL → [EMAIL_REDACTED]</text>
+  <text x="290" y="156" font-family="monospace" font-size="10" fill="#64748b">LUHN → [CC_MASKED]</text>
+  <text x="290" y="174" font-family="monospace" font-size="10" fill="#64748b">SSN → XXX-XX-XXXX</text>
+  <text x="290" y="192" font-family="monospace" font-size="10" fill="#64748b">IPADDR → [IP_HIDDEN]</text>
+
+  <!-- Arrow 2 -->
+  <path d="M530,135 L560,135" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#maskArrow)"/>
+
+  <!-- Safe Output -->
+  <rect x="570" y="70" width="200" height="130" rx="10" fill="#fff" stroke="#10b981" stroke-width="2"/>
+  <rect x="570" y="70" width="200" height="30" rx="10" fill="url(#safeLogGrad)"/>
+  <text x="670" y="92" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Safe for Storage</text>
+
+  <text x="590" y="120" font-family="monospace" font-size="10" fill="#047857">email: [EMAIL_REDACTED]</text>
+  <text x="590" y="138" font-family="monospace" font-size="10" fill="#047857">card: [CC_MASKED]</text>
+  <text x="590" y="156" font-family="monospace" font-size="10" fill="#047857">ssn: XXX-XX-XXXX</text>
+  <text x="590" y="174" font-family="monospace" font-size="10" fill="#047857">ip: [IP_HIDDEN]</text>
+  <text x="590" y="192" font-family="Arial, sans-serif" font-size="10" fill="#059669" font-weight="bold">PII Protected</text>
+
+  <!-- Benefits Section -->
+  <rect x="30" y="215" width="740" height="50" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="240" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Key Benefits</text>
+
+  <rect x="50" y="247" width="145" height="12" rx="2" fill="#d1fae5"/>
+  <text x="122" y="257" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">GDPR Compliant</text>
+
+  <rect x="210" y="247" width="145" height="12" rx="2" fill="#dbeafe"/>
+  <text x="282" y="257" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">HIPAA Ready</text>
+
+  <rect x="370" y="247" width="145" height="12" rx="2" fill="#fef3c7"/>
+  <text x="442" y="257" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">PCI-DSS Safe</text>
+
+  <rect x="530" y="247" width="220" height="12" rx="2" fill="#ede9fe"/>
+  <text x="640" y="257" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">Never Stored Unmasked</text>
+</svg>

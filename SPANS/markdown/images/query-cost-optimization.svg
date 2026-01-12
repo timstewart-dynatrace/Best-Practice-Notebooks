@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="costHigh" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="costMed" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="costLow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="indexGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <filter id="costShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="costArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">DQL Query Cost Optimization</text>
+
+  <!-- DDU Cost Factors Column -->
+  <text x="130" y="58" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748b" text-anchor="middle">DDU Cost Factors</text>
+
+  <rect x="30" y="70" width="200" height="40" rx="6" fill="url(#costHigh)" filter="url(#costShadow)"/>
+  <text x="130" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">📊 Data Scanned</text>
+
+  <rect x="30" y="118" width="200" height="40" rx="6" fill="url(#costHigh)" filter="url(#costShadow)"/>
+  <text x="130" y="143" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">⏱️ Time Range</text>
+
+  <rect x="30" y="166" width="200" height="40" rx="6" fill="url(#costMed)" filter="url(#costShadow)"/>
+  <text x="130" y="191" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">📋 Fields Retrieved</text>
+
+  <rect x="30" y="214" width="200" height="40" rx="6" fill="url(#costMed)" filter="url(#costShadow)"/>
+  <text x="130" y="239" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">🔄 Query Complexity</text>
+
+  <!-- Arrows -->
+  <line x1="235" y1="140" x2="270" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#costArrow)"/>
+
+  <!-- Optimization Strategies Column -->
+  <text x="400" y="58" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748b" text-anchor="middle">Optimization Strategies</text>
+
+  <rect x="275" y="70" width="250" height="38" rx="6" fill="url(#costLow)" filter="url(#costShadow)"/>
+  <text x="400" y="85" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">1. Filter Early</text>
+  <text x="400" y="100" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Reduce data before processing</text>
+
+  <rect x="275" y="114" width="250" height="38" rx="6" fill="url(#costLow)" filter="url(#costShadow)"/>
+  <text x="400" y="129" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">2. Use Indexed Fields</text>
+  <text x="400" y="144" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">dt.entity.service, span.kind, trace.id</text>
+
+  <rect x="275" y="158" width="250" height="38" rx="6" fill="url(#costLow)" filter="url(#costShadow)"/>
+  <text x="400" y="173" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">3. Narrow Time Range</text>
+  <text x="400" y="188" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Use smallest range needed</text>
+
+  <rect x="275" y="202" width="250" height="38" rx="6" fill="url(#costLow)" filter="url(#costShadow)"/>
+  <text x="400" y="217" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">4. Select Only Needed Fields</text>
+  <text x="400" y="232" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Use fields command</text>
+
+  <rect x="275" y="246" width="250" height="38" rx="6" fill="url(#costLow)" filter="url(#costShadow)"/>
+  <text x="400" y="261" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">5. Target Specific Buckets</text>
+  <text x="400" y="276" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">fetch spans, bucket:{"prod"}</text>
+
+  <!-- Arrow to Result -->
+  <line x1="530" y1="175" x2="565" y2="175" stroke="#64748b" stroke-width="2" marker-end="url(#costArrow)"/>
+
+  <!-- Result Column -->
+  <text x="680" y="58" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748b" text-anchor="middle">Indexed Fields</text>
+
+  <rect x="570" y="70" width="220" height="180" rx="8" fill="url(#indexGrad)" filter="url(#costShadow)"/>
+
+  <text x="680" y="95" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• trace.id</text>
+  <text x="680" y="115" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• span.id</text>
+  <text x="680" y="135" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• dt.entity.service</text>
+  <text x="680" y="155" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• span.name</text>
+  <text x="680" y="175" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• span.kind</text>
+  <text x="680" y="195" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• span.status_code</text>
+  <text x="680" y="215" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">• start_time</text>
+
+  <text x="680" y="240" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Filter on these first!</text>
+
+  <!-- Legend/Impact -->
+  <rect x="30" y="290" width="760" height="40" rx="6" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="50" y="315" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#0369a1">Cost Impact:</text>
+  <rect x="135" y="303" width="14" height="14" rx="3" fill="url(#costHigh)"/>
+  <text x="155" y="315" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">High Cost</text>
+  <rect x="235" y="303" width="14" height="14" rx="3" fill="url(#costMed)"/>
+  <text x="255" y="315" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">Medium</text>
+  <rect x="320" y="303" width="14" height="14" rx="3" fill="url(#costLow)"/>
+  <text x="340" y="315" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">Optimized</text>
+  <text x="480" y="315" font-family="Arial, sans-serif" font-size="11" fill="#0369a1">💡 Filter on indexed fields first → then non-indexed → then process</text>
+</svg>

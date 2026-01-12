@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="ingestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="processGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="extractGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="opShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+    <marker id="opArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">OpenPipeline Architecture</text>
+
+  <!-- Stage 1: Ingest -->
+  <rect x="30" y="60" width="120" height="100" rx="8" fill="url(#ingestGrad)" filter="url(#opShadow)"/>
+  <text x="90" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">INGEST</text>
+  <text x="90" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">OneAgent</text>
+  <text x="90" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Log API</text>
+  <text x="90" y="138" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">OTLP</text>
+  <text x="90" y="152" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Generic API</text>
+
+  <!-- Arrow 1 -->
+  <path d="M150,110 L175,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <!-- Stage 2: Routing -->
+  <rect x="185" y="60" width="120" height="100" rx="8" fill="url(#routeGrad)" filter="url(#opShadow)"/>
+  <text x="245" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">ROUTING</text>
+  <text x="245" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Pipeline</text>
+  <text x="245" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Selection</text>
+  <text x="245" y="138" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Matching</text>
+  <text x="245" y="152" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Conditions</text>
+
+  <!-- Arrow 2 -->
+  <path d="M305,110 L330,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <!-- Stage 3: Processing -->
+  <rect x="340" y="60" width="120" height="100" rx="8" fill="url(#processGrad)" filter="url(#opShadow)"/>
+  <text x="400" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">PROCESS</text>
+  <text x="400" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Masking</text>
+  <text x="400" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Parsing</text>
+  <text x="400" y="138" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Transform</text>
+  <text x="400" y="152" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Drop</text>
+
+  <!-- Arrow 3 -->
+  <path d="M460,110 L485,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <!-- Stage 4: Extract -->
+  <rect x="495" y="60" width="120" height="100" rx="8" fill="url(#extractGrad)" filter="url(#opShadow)"/>
+  <text x="555" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">EXTRACT</text>
+  <text x="555" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Metrics</text>
+  <text x="555" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Events</text>
+  <text x="555" y="138" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Bizevents</text>
+  <text x="555" y="152" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Attributes</text>
+
+  <!-- Arrow 4 -->
+  <path d="M615,110 L640,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#opArrow)"/>
+
+  <!-- Stage 5: Store -->
+  <rect x="650" y="60" width="120" height="100" rx="8" fill="url(#storeGrad)" filter="url(#opShadow)"/>
+  <text x="710" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">STORE</text>
+  <text x="710" y="110" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Grail</text>
+  <text x="710" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Buckets</text>
+  <text x="710" y="138" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Retention</text>
+  <text x="710" y="152" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Routing</text>
+
+  <!-- Key Features Section -->
+  <rect x="30" y="180" width="740" height="125" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="205" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Key Principles</text>
+
+  <!-- Feature boxes -->
+  <rect x="50" y="220" width="160" height="70" rx="6" fill="#dbeafe"/>
+  <text x="130" y="245" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Pre-Storage</text>
+  <text x="130" y="262" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">All processing before</text>
+  <text x="130" y="276" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">data is persisted</text>
+
+  <rect x="230" y="220" width="160" height="70" rx="6" fill="#fef3c7"/>
+  <text x="310" y="245" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Multi-Pipeline</text>
+  <text x="310" y="262" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Up to 5 pipelines per</text>
+  <text x="310" y="276" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">record simultaneously</text>
+
+  <rect x="410" y="220" width="160" height="70" rx="6" fill="#d1fae5"/>
+  <text x="490" y="245" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Security First</text>
+  <text x="490" y="262" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Masking before any</text>
+  <text x="490" y="276" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">other processing</text>
+
+  <rect x="590" y="220" width="160" height="70" rx="6" fill="#fce7f3"/>
+  <text x="670" y="245" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#9d174d" text-anchor="middle">Entity Detection</text>
+  <text x="670" y="262" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">dt.entity.* added after</text>
+  <text x="670" y="276" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">Processing stage</text>
+</svg>

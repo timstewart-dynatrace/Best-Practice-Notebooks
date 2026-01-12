@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
+  <defs>
+    <linearGradient id="fetchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="filterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fieldsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sortGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <filter id="pipelineShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="pipeArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="200" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">DQL Pipeline Model</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Data flows through commands connected by the pipe (|) operator</text>
+
+  <!-- Pipeline Stages -->
+  <!-- Fetch -->
+  <rect x="40" y="75" width="140" height="70" rx="10" fill="url(#fetchGrad)" filter="url(#pipelineShadow)"/>
+  <text x="110" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">fetch</text>
+  <text x="110" y="125" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">logs</text>
+
+  <!-- Arrow -->
+  <path d="M185,110 L215,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#pipeArrow)"/>
+
+  <!-- Filter -->
+  <rect x="220" y="75" width="140" height="70" rx="10" fill="url(#filterGrad)" filter="url(#pipelineShadow)"/>
+  <text x="290" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">filter</text>
+  <text x="290" y="125" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">status</text>
+
+  <!-- Arrow -->
+  <path d="M365,110 L395,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#pipeArrow)"/>
+
+  <!-- Fields -->
+  <rect x="400" y="75" width="140" height="70" rx="10" fill="url(#fieldsGrad)" filter="url(#pipelineShadow)"/>
+  <text x="470" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">fields</text>
+  <text x="470" y="125" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">select</text>
+
+  <!-- Arrow -->
+  <path d="M545,110 L575,110" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#pipeArrow)"/>
+
+  <!-- Sort -->
+  <rect x="580" y="75" width="140" height="70" rx="10" fill="url(#sortGrad)" filter="url(#pipelineShadow)"/>
+  <text x="650" y="105" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">sort</text>
+  <text x="650" y="125" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">order</text>
+
+  <!-- Flow Indicators -->
+  <text x="110" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">All logs</text>
+  <text x="290" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Only errors</text>
+  <text x="470" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Just fields</text>
+  <text x="470" y="178" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">we need</text>
+  <text x="650" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Ordered</text>
+  <text x="650" y="178" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">output</text>
+
+  <!-- Arrow indicators below boxes -->
+  <path d="M110,145 L110,155" stroke="#64748b" stroke-width="1" fill="none"/>
+  <path d="M290,145 L290,155" stroke="#64748b" stroke-width="1" fill="none"/>
+  <path d="M470,145 L470,155" stroke="#64748b" stroke-width="1" fill="none"/>
+  <path d="M650,145 L650,155" stroke="#64748b" stroke-width="1" fill="none"/>
+</svg>

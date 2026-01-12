@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <defs>
+    <linearGradient id="mzGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="newModelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="mapShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="mapArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="360" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">MZ Pattern to New Model Mapping</text>
+
+  <!-- Headers -->
+  <rect x="30" y="50" width="300" height="30" rx="6" fill="url(#mzGrad)"/>
+  <text x="180" y="70" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Management Zone Pattern</text>
+
+  <rect x="470" y="50" width="300" height="30" rx="6" fill="url(#newModelGrad)"/>
+  <text x="620" y="70" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">New Model Solution</text>
+
+  <!-- Pattern 1: Team-Based -->
+  <rect x="30" y="95" width="300" height="45" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="180" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Team-Based MZs</text>
+  <text x="180" y="130" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">"Team-Frontend", "Team-Backend"</text>
+
+  <path d="M330,117 L470,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#mapArrow)"/>
+
+  <rect x="470" y="95" width="300" height="45" rx="6" fill="#d1fae5" stroke="#22c55e" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="620" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Security Context + Policies + Boundaries</text>
+  <text x="620" y="130" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">dt.security_context = "team-frontend"</text>
+
+  <!-- Pattern 2: Environment -->
+  <rect x="30" y="155" width="300" height="45" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="180" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Environment MZs</text>
+  <text x="180" y="190" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">"Production", "Staging", "Development"</text>
+
+  <path d="M330,177 L470,177" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#mapArrow)"/>
+
+  <rect x="470" y="155" width="300" height="45" rx="6" fill="#d1fae5" stroke="#22c55e" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="620" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Boundaries with Environment Conditions</text>
+  <text x="620" y="190" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">security_context startsWith "prod-"</text>
+
+  <!-- Pattern 3: Regional -->
+  <rect x="30" y="215" width="300" height="45" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="180" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Regional/Geographic MZs</text>
+  <text x="180" y="250" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">"NA-East", "EU-West", "APAC"</text>
+
+  <path d="M330,237 L470,237" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#mapArrow)"/>
+
+  <rect x="470" y="215" width="300" height="45" rx="6" fill="#d1fae5" stroke="#22c55e" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="620" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Segments with Region Filters</text>
+  <text x="620" y="250" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">matchesValue(tags, "region:us-east-1")</text>
+
+  <!-- Pattern 4: Application -->
+  <rect x="30" y="275" width="300" height="45" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="180" y="295" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Application-Based MZs</text>
+  <text x="180" y="310" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">"Payment-System", "User-Portal"</text>
+
+  <path d="M330,297 L470,297" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#mapArrow)"/>
+
+  <rect x="470" y="275" width="300" height="45" rx="6" fill="#d1fae5" stroke="#22c55e" stroke-width="1" filter="url(#mapShadow)"/>
+  <text x="620" y="295" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Segments with Service Filters</text>
+  <text x="620" y="310" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">matchesPhrase(service.name, "payment")</text>
+
+  <!-- Key insight -->
+  <rect x="30" y="330" width="740" height="22" rx="4" fill="#e0f2fe"/>
+  <text x="400" y="345" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">Key: Team/Environment → Boundaries for access control | Region/Application → Segments for data filtering</text>
+</svg>

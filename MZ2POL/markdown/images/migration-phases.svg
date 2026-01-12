@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="phase1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase4Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase5Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phase6Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="phaseShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">MZ to Policy Migration Phases</text>
+
+  <!-- Phase boxes - Row 1 -->
+  <rect x="30" y="55" width="115" height="100" rx="8" fill="url(#phase1Grad)" filter="url(#phaseShadow)"/>
+  <text x="87" y="78" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 1</text>
+  <text x="87" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Assessment</text>
+  <text x="87" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Inventory MZs</text>
+  <text x="87" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Document usage</text>
+  <text x="87" y="141" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Identify patterns</text>
+
+  <!-- Arrow 1-2 -->
+  <path d="M145,105 L160,105" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="160,100 170,105 160,110" fill="#64748b"/>
+
+  <rect x="170" y="55" width="115" height="100" rx="8" fill="url(#phase2Grad)" filter="url(#phaseShadow)"/>
+  <text x="227" y="78" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 2</text>
+  <text x="227" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Foundation</text>
+  <text x="227" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Create groups</text>
+  <text x="227" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Security context</text>
+  <text x="227" y="141" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Design policies</text>
+
+  <!-- Arrow 2-3 -->
+  <path d="M285,105 L300,105" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="300,100 310,105 300,110" fill="#64748b"/>
+
+  <rect x="310" y="55" width="115" height="100" rx="8" fill="url(#phase3Grad)" filter="url(#phaseShadow)"/>
+  <text x="367" y="78" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 3</text>
+  <text x="367" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Configuration</text>
+  <text x="367" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Create policies</text>
+  <text x="367" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Create boundaries</text>
+  <text x="367" y="141" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Create segments</text>
+
+  <!-- Arrow 3-4 -->
+  <path d="M425,105 L440,105" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="440,100 450,105 440,110" fill="#64748b"/>
+
+  <rect x="450" y="55" width="115" height="100" rx="8" fill="url(#phase4Grad)" filter="url(#phaseShadow)"/>
+  <text x="507" y="78" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 4</text>
+  <text x="507" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Parallel Run</text>
+  <text x="507" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Both systems active</text>
+  <text x="507" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Test user access</text>
+  <text x="507" y="141" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Validate data</text>
+
+  <!-- Arrow 4-5 -->
+  <path d="M565,105 L580,105" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="580,100 590,105 580,110" fill="#64748b"/>
+
+  <rect x="590" y="55" width="115" height="100" rx="8" fill="url(#phase5Grad)" filter="url(#phaseShadow)"/>
+  <text x="647" y="78" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 5</text>
+  <text x="647" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Cutover</text>
+  <text x="647" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Remove MZ access</text>
+  <text x="647" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Update alerts</text>
+  <text x="647" y="141" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Monitor issues</text>
+
+  <!-- Arrow 5-6 -->
+  <path d="M705,105 L720,105" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="720,100 730,105 720,110" fill="#64748b"/>
+
+  <!-- Phase 6 - smaller, final -->
+  <rect x="730" y="70" width="50" height="70" rx="8" fill="url(#phase6Grad)" filter="url(#phaseShadow)"/>
+  <text x="755" y="95" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">PHASE 6</text>
+  <text x="755" y="110" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Cleanup</text>
+  <text x="755" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Remove MZs</text>
+
+  <!-- Key Activities Section -->
+  <rect x="30" y="175" width="740" height="130" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="197" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Key Activities by Phase</text>
+
+  <!-- Phase details grid -->
+  <rect x="45" y="210" width="160" height="80" rx="4" fill="#f3e8ff"/>
+  <text x="125" y="228" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#7c3aed" text-anchor="middle">Assessment (1-2)</text>
+  <text x="55" y="248" font-family="Arial, sans-serif" font-size="10" fill="#333">• Run SDK MZ analyzer</text>
+  <text x="55" y="263" font-family="Arial, sans-serif" font-size="10" fill="#333">• Map MZ → new model</text>
+  <text x="55" y="278" font-family="Arial, sans-serif" font-size="10" fill="#333">• Prioritize migration</text>
+
+  <rect x="220" y="210" width="160" height="80" rx="4" fill="#dbeafe"/>
+  <text x="300" y="228" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#2563eb" text-anchor="middle">Configuration (3)</text>
+  <text x="230" y="248" font-family="Arial, sans-serif" font-size="10" fill="#333">• 3-domain boundaries</text>
+  <text x="230" y="263" font-family="Arial, sans-serif" font-size="10" fill="#333">• DQL-based segments</text>
+  <text x="230" y="278" font-family="Arial, sans-serif" font-size="10" fill="#333">• Policy bindings</text>
+
+  <rect x="395" y="210" width="160" height="80" rx="4" fill="#d1fae5"/>
+  <text x="475" y="228" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#059669" text-anchor="middle">Parallel Run (4)</text>
+  <text x="405" y="248" font-family="Arial, sans-serif" font-size="10" fill="#333">• 2-4 week duration</text>
+  <text x="405" y="263" font-family="Arial, sans-serif" font-size="10" fill="#333">• Compare MZ vs new</text>
+  <text x="405" y="278" font-family="Arial, sans-serif" font-size="10" fill="#333">• Document issues</text>
+
+  <rect x="570" y="210" width="160" height="80" rx="4" fill="#fef3c7"/>
+  <text x="650" y="228" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#d97706" text-anchor="middle">Cutover (5-6)</text>
+  <text x="580" y="248" font-family="Arial, sans-serif" font-size="10" fill="#333">• Rollback plan ready</text>
+  <text x="580" y="263" font-family="Arial, sans-serif" font-size="10" fill="#333">• User communication</text>
+  <text x="580" y="278" font-family="Arial, sans-serif" font-size="10" fill="#333">• Archive MZ configs</text>
+</svg>

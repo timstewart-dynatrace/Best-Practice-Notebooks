@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeAGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeBGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="routeCGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="defaultGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+    <filter id="drShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="drArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Dynamic Routing Flow</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Records can match multiple routes (max 5 pipelines)</text>
+
+  <!-- Incoming Data -->
+  <rect x="30" y="80" width="100" height="50" rx="8" fill="url(#dataGrad)" filter="url(#drShadow)"/>
+  <text x="80" y="110" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Incoming</text>
+  <text x="80" y="124" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Record</text>
+
+  <!-- Arrow to evaluation -->
+  <path d="M130,105 L160,105" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#drArrow)"/>
+
+  <!-- Route Evaluation Box -->
+  <rect x="170" y="60" width="400" height="220" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="370" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">ROUTE EVALUATION</text>
+
+  <!-- Route 1 -->
+  <rect x="190" y="100" width="160" height="35" rx="6" fill="#d1fae5" stroke="#22c55e" stroke-width="1"/>
+  <text x="270" y="115" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Route 1: k8s.namespace</text>
+  <text x="270" y="128" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">== "production"</text>
+
+  <text x="365" y="120" font-family="Arial, sans-serif" font-size="11" fill="#16a34a">Yes →</text>
+
+  <rect x="400" y="100" width="150" height="35" rx="6" fill="url(#routeAGrad)" filter="url(#drShadow)"/>
+  <text x="475" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">prod-logs pipeline</text>
+
+  <!-- Route 2 -->
+  <rect x="190" y="145" width="160" height="35" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="270" y="160" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Route 2: log.source</text>
+  <text x="270" y="173" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">== "nginx"</text>
+
+  <text x="365" y="165" font-family="Arial, sans-serif" font-size="11" fill="#d97706">Yes →</text>
+
+  <rect x="400" y="145" width="150" height="35" rx="6" fill="url(#routeBGrad)" filter="url(#drShadow)"/>
+  <text x="475" y="167" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">nginx-logs pipeline</text>
+
+  <!-- Route 3 -->
+  <rect x="190" y="190" width="160" height="35" rx="6" fill="#fce7f3" stroke="#ec4899" stroke-width="1"/>
+  <text x="270" y="205" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#9d174d" text-anchor="middle">Route 3: contains</text>
+  <text x="270" y="218" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">(content, "payment")</text>
+
+  <text x="365" y="210" font-family="Arial, sans-serif" font-size="11" fill="#db2777">Yes →</text>
+
+  <rect x="400" y="190" width="150" height="35" rx="6" fill="url(#routeCGrad)" filter="url(#drShadow)"/>
+  <text x="475" y="212" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">payment-logs pipeline</text>
+
+  <!-- Default -->
+  <rect x="190" y="235" width="160" height="30" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1"/>
+  <text x="270" y="255" font-family="Arial, sans-serif" font-size="10" fill="#475569" text-anchor="middle">(no match)</text>
+
+  <text x="365" y="252" font-family="Arial, sans-serif" font-size="11" fill="#64748b">→</text>
+
+  <rect x="400" y="235" width="150" height="30" rx="6" fill="url(#defaultGrad)" filter="url(#drShadow)"/>
+  <text x="475" y="255" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">default pipeline</text>
+
+  <!-- Key Points -->
+  <rect x="590" y="80" width="180" height="200" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="680" y="105" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Key Concepts</text>
+
+  <text x="610" y="130" font-family="Arial, sans-serif" font-size="10" fill="#333">• Order matters</text>
+  <text x="610" y="148" font-family="Arial, sans-serif" font-size="10" fill="#333">• Multi-match allowed</text>
+  <text x="610" y="166" font-family="Arial, sans-serif" font-size="10" fill="#333">• Max 5 pipelines</text>
+  <text x="610" y="184" font-family="Arial, sans-serif" font-size="10" fill="#333">• Default catches rest</text>
+
+  <rect x="610" y="200" width="140" height="60" rx="4" fill="#e0f2fe"/>
+  <text x="680" y="220" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#0369a1" text-anchor="middle">Pro Tip</text>
+  <text x="680" y="238" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">Place specific routes</text>
+  <text x="680" y="250" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">before general ones</text>
+
+  <!-- Result Note -->
+  <rect x="30" y="295" width="740" height="30" rx="4" fill="#fef3c7"/>
+  <text x="400" y="315" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Note: A record is stored ONCE in the first matching pipeline's bucket, even if processed by multiple pipelines</text>
+</svg>

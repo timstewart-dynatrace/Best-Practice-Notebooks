@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 340">
+  <defs>
+    <linearGradient id="progressGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="340" fill="#0f172a" rx="8"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="500" height="45" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="37" width="500" height="8" fill="url(#headerBg)"/>
+  <text x="20" y="28" fill="#f1f5f9" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600">ICMP Monitor Execution</text>
+
+  <!-- Ping Results Section -->
+  <text x="20" y="70" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500">PING RESULTS</text>
+
+  <!-- Ping 1 -->
+  <text x="20" y="100" fill="#e2e8f0" font-family="monospace" font-size="12">Ping 1:</text>
+  <rect x="75" y="88" width="140" height="16" fill="#1e293b" rx="3"/>
+  <rect x="75" y="88" width="105" height="16" fill="url(#progressGreen)" rx="3"/>
+  <text x="230" y="100" fill="#94a3b8" font-family="monospace" font-size="12">45ms</text>
+  <circle cx="280" cy="94" r="8" fill="#10b981"/>
+  <text x="276" y="98" fill="white" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">✓</text>
+
+  <!-- Ping 2 -->
+  <text x="20" y="130" fill="#e2e8f0" font-family="monospace" font-size="12">Ping 2:</text>
+  <rect x="75" y="118" width="140" height="16" fill="#1e293b" rx="3"/>
+  <rect x="75" y="118" width="115" height="16" fill="url(#progressGreen)" rx="3"/>
+  <text x="230" y="130" fill="#94a3b8" font-family="monospace" font-size="12">52ms</text>
+  <circle cx="280" cy="124" r="8" fill="#10b981"/>
+  <text x="276" y="128" fill="white" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">✓</text>
+
+  <!-- Ping 3 -->
+  <text x="20" y="160" fill="#e2e8f0" font-family="monospace" font-size="12">Ping 3:</text>
+  <rect x="75" y="148" width="140" height="16" fill="#1e293b" rx="3"/>
+  <rect x="75" y="148" width="108" height="16" fill="url(#progressGreen)" rx="3"/>
+  <text x="230" y="160" fill="#94a3b8" font-family="monospace" font-size="12">48ms</text>
+  <circle cx="280" cy="154" r="8" fill="#10b981"/>
+  <text x="276" y="158" fill="white" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">✓</text>
+
+  <!-- Divider -->
+  <line x1="20" y1="185" x2="480" y2="185" stroke="#334155" stroke-width="1"/>
+
+  <!-- Results Section -->
+  <text x="20" y="210" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500">RESULTS SUMMARY</text>
+
+  <!-- Results Tree -->
+  <g font-family="monospace" font-size="12">
+    <!-- Availability -->
+    <text x="30" y="235" fill="#64748b">├──</text>
+    <text x="65" y="235" fill="#94a3b8">Availability:</text>
+    <text x="165" y="235" fill="#10b981" font-weight="600">100%</text>
+
+    <!-- Avg Latency -->
+    <text x="30" y="255" fill="#64748b">├──</text>
+    <text x="65" y="255" fill="#94a3b8">Avg Latency:</text>
+    <text x="165" y="255" fill="#38bdf8">48.3ms</text>
+
+    <!-- Min Latency -->
+    <text x="30" y="275" fill="#64748b">├──</text>
+    <text x="65" y="275" fill="#94a3b8">Min Latency:</text>
+    <text x="165" y="275" fill="#e2e8f0">45ms</text>
+
+    <!-- Max Latency -->
+    <text x="30" y="295" fill="#64748b">├──</text>
+    <text x="65" y="295" fill="#94a3b8">Max Latency:</text>
+    <text x="165" y="295" fill="#e2e8f0">52ms</text>
+
+    <!-- Jitter -->
+    <text x="30" y="315" fill="#64748b">├──</text>
+    <text x="65" y="315" fill="#94a3b8">Jitter:</text>
+    <text x="165" y="315" fill="#e2e8f0">3.5ms</text>
+
+    <!-- Packet Loss -->
+    <text x="30" y="335" fill="#64748b">└──</text>
+    <text x="65" y="335" fill="#94a3b8">Packet Loss:</text>
+    <text x="165" y="335" fill="#10b981" font-weight="600">0%</text>
+  </g>
+
+  <!-- Status indicator -->
+  <rect x="380" y="65" width="100" height="28" fill="#10b981" fill-opacity="0.15" rx="14" stroke="#10b981" stroke-width="1"/>
+  <circle cx="400" cy="79" r="5" fill="#10b981"/>
+  <text x="415" y="83" fill="#10b981" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Healthy</text>
+</svg>

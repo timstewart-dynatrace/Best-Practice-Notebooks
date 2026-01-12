@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dashShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">Dashboard Patterns</text>
+
+  <!-- ==================== EXECUTIVE SUMMARY ==================== -->
+  <rect x="30" y="50" width="360" height="200" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#dashShadow)"/>
+  <rect x="30" y="50" width="360" height="28" rx="8" fill="url(#headerGrad)"/>
+  <rect x="30" y="70" width="360" height="8" fill="url(#headerGrad)"/>
+  <text x="210" y="70" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">EXECUTIVE SUMMARY</text>
+
+  <!-- KPI Row -->
+  <rect x="40" y="85" width="80" height="45" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="80" y="103" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Uptime</text>
+  <text x="80" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e40af" text-anchor="middle">99.9%</text>
+
+  <rect x="130" y="85" width="80" height="45" rx="4" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+  <text x="170" y="103" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Errors</text>
+  <text x="170" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#dc2626" text-anchor="middle">12</text>
+
+  <rect x="220" y="85" width="80" height="45" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="260" y="103" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Avg Resp</text>
+  <text x="260" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#047857" text-anchor="middle">145ms</text>
+
+  <rect x="310" y="85" width="70" height="45" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="345" y="103" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Problems</text>
+  <text x="345" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">2</text>
+
+  <!-- Charts Row -->
+  <rect x="40" y="138" width="170" height="55" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="125" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Response Time (24h)</text>
+  <path d="M50,178 L70,175 L90,180 L110,172 L130,168 L150,175 L170,170 L190,165 L200,168" stroke="#3b82f6" stroke-width="2" fill="none"/>
+
+  <rect x="220" y="138" width="160" height="55" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="300" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Problem List</text>
+  <text x="230" y="170" font-family="Arial, sans-serif" font-size="10" fill="#ef4444">- DB Slowdown</text>
+  <text x="230" y="183" font-family="Arial, sans-serif" font-size="10" fill="#f59e0b">- High Memory</text>
+
+  <!-- Service Health -->
+  <rect x="40" y="200" width="340" height="40" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="60" y="218" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Service Health:</text>
+  <circle cx="145" cy="220" r="6" fill="#10b981"/>
+  <text x="157" y="224" font-family="Arial, sans-serif" font-size="10" fill="#333">API</text>
+  <circle cx="195" cy="220" r="6" fill="#10b981"/>
+  <text x="207" y="224" font-family="Arial, sans-serif" font-size="10" fill="#333">Web</text>
+  <circle cx="250" cy="220" r="6" fill="#f59e0b"/>
+  <text x="262" y="224" font-family="Arial, sans-serif" font-size="10" fill="#333">Payment</text>
+  <circle cx="320" cy="220" r="6" fill="#10b981"/>
+  <text x="332" y="224" font-family="Arial, sans-serif" font-size="10" fill="#333">DB</text>
+
+  <!-- ==================== SERVICE DASHBOARD ==================== -->
+  <rect x="410" y="50" width="360" height="200" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#dashShadow)"/>
+  <rect x="410" y="50" width="360" height="28" rx="8" fill="url(#headerGrad)"/>
+  <rect x="410" y="70" width="360" height="8" fill="url(#headerGrad)"/>
+  <text x="590" y="70" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">SERVICE DASHBOARD</text>
+
+  <!-- KPI Row -->
+  <rect x="420" y="85" width="80" height="45" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="460" y="103" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Requests</text>
+  <text x="460" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e40af" text-anchor="middle">1.2M</text>
+
+  <rect x="510" y="85" width="80" height="45" rx="4" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+  <text x="550" y="103" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Error Rate</text>
+  <text x="550" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#dc2626" text-anchor="middle">0.3%</text>
+
+  <rect x="600" y="85" width="80" height="45" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="640" y="103" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">P95 Resp</text>
+  <text x="640" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#047857" text-anchor="middle">89ms</text>
+
+  <rect x="690" y="85" width="70" height="45" rx="4" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="725" y="103" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">Apdex</text>
+  <text x="725" y="120" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6d28d9" text-anchor="middle">0.95</text>
+
+  <!-- Timeline -->
+  <rect x="420" y="138" width="340" height="45" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="590" y="155" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Request Rate &amp; Errors (Timeline)</text>
+  <path d="M430,170 L470,168 L510,172 L550,165 L590,168 L630,170 L670,165 L710,162 L750,168" stroke="#3b82f6" stroke-width="2" fill="none"/>
+  <path d="M430,175 L470,176 L510,174 L550,177 L590,175 L630,176 L670,175 L710,178 L750,176" stroke="#ef4444" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
+
+  <!-- Bottom Row -->
+  <rect x="420" y="190" width="160" height="50" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="500" y="207" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Top Endpoints</text>
+  <text x="430" y="222" font-family="Arial, sans-serif" font-size="10" fill="#333">POST /checkout 45%</text>
+  <text x="430" y="234" font-family="Arial, sans-serif" font-size="10" fill="#333">GET /cart 32%</text>
+
+  <rect x="590" y="190" width="170" height="50" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="675" y="207" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Dependencies</text>
+  <text x="600" y="222" font-family="Arial, sans-serif" font-size="10" fill="#333">Payment API: 99.9%</text>
+  <text x="600" y="234" font-family="Arial, sans-serif" font-size="10" fill="#333">Database: 100%</text>
+
+  <!-- ==================== INFRASTRUCTURE DASHBOARD ==================== -->
+  <rect x="30" y="270" width="740" height="210" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#dashShadow)"/>
+  <rect x="30" y="270" width="740" height="28" rx="8" fill="url(#headerGrad)"/>
+  <rect x="30" y="290" width="740" height="8" fill="url(#headerGrad)"/>
+  <text x="400" y="290" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">INFRASTRUCTURE HEALTH</text>
+
+  <!-- KPI Row -->
+  <rect x="45" y="305" width="100" height="45" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="95" y="323" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Hosts</text>
+  <text x="95" y="340" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e40af" text-anchor="middle">47</text>
+
+  <rect x="155" y="305" width="100" height="45" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="205" y="323" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Avg CPU</text>
+  <text x="205" y="340" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#047857" text-anchor="middle">34%</text>
+
+  <rect x="265" y="305" width="100" height="45" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="315" y="323" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Avg Memory</text>
+  <text x="315" y="340" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#92400e" text-anchor="middle">62%</text>
+
+  <rect x="375" y="305" width="100" height="45" rx="4" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+  <text x="425" y="323" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" text-anchor="middle">Disk Alerts</text>
+  <text x="425" y="340" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#dc2626" text-anchor="middle">2</text>
+
+  <!-- Honeycomb visualization placeholders -->
+  <rect x="45" y="358" width="220" height="70" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="155" y="378" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Host CPU Usage (Honeycomb)</text>
+  <!-- Honeycomb hexagons -->
+  <polygon points="80,405 95,395 110,405 110,420 95,430 80,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+  <polygon points="110,405 125,395 140,405 140,420 125,430 110,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+  <polygon points="140,405 155,395 170,405 170,420 155,430 140,420" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+  <polygon points="170,405 185,395 200,405 200,420 185,430 170,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+  <polygon points="200,405 215,395 230,405 230,420 215,430 200,420" fill="#ef4444" stroke="#fff" stroke-width="1"/>
+
+  <rect x="275" y="358" width="220" height="70" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="385" y="378" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Memory Usage (Honeycomb)</text>
+  <!-- Memory hexagons -->
+  <polygon points="310,405 325,395 340,405 340,420 325,430 310,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+  <polygon points="340,405 355,395 370,405 370,420 355,430 340,420" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+  <polygon points="370,405 385,395 400,405 400,420 385,430 370,420" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+  <polygon points="400,405 415,395 430,405 430,420 415,430 400,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+  <polygon points="430,405 445,395 460,405 460,420 445,430 430,420" fill="#10b981" stroke="#fff" stroke-width="1"/>
+
+  <!-- Top CPU Consumers -->
+  <rect x="505" y="305" width="255" height="123" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="632" y="325" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Top CPU Consumers</text>
+
+  <!-- Bar chart -->
+  <rect x="520" y="340" width="156" height="15" rx="2" fill="#ef4444"/>
+  <text x="525" y="351" font-family="Arial, sans-serif" font-size="10" fill="white">prod-db-01: 78%</text>
+
+  <rect x="520" y="360" width="130" height="15" rx="2" fill="#f59e0b"/>
+  <text x="525" y="371" font-family="Arial, sans-serif" font-size="10" fill="white">prod-web-03: 65%</text>
+
+  <rect x="520" y="380" width="108" height="15" rx="2" fill="#fbbf24"/>
+  <text x="525" y="391" font-family="Arial, sans-serif" font-size="10" fill="#333">prod-api-02: 54%</text>
+
+  <rect x="520" y="400" width="80" height="15" rx="2" fill="#10b981"/>
+  <text x="525" y="411" font-family="Arial, sans-serif" font-size="10" fill="white">prod-web-01: 40%</text>
+</svg>

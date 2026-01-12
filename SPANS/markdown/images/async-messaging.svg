@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="producerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="queueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="consumerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="traceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0.3" />
+    </linearGradient>
+    <filter id="msgShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="msgArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="msgArrowOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Async Messaging Flow (Producer/Consumer Spans)</text>
+
+  <!-- Trace context background -->
+  <rect x="30" y="60" width="740" height="90" rx="8" fill="url(#traceGrad)" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="5,5"/>
+  <text x="400" y="80" font-family="Arial, sans-serif" font-size="11" fill="#7c3aed" text-anchor="middle">trace.id: abc123 (context propagated through message headers)</text>
+
+  <!-- Producer Service -->
+  <rect x="50" y="95" width="150" height="45" rx="8" fill="url(#producerGrad)" filter="url(#msgShadow)"/>
+  <text x="125" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Payment Service</text>
+  <text x="125" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">PRODUCER span</text>
+
+  <!-- Arrow to Queue -->
+  <path d="M200,117 L280,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#msgArrow)"/>
+  <text x="240" y="108" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">publish</text>
+
+  <!-- Message Queue -->
+  <rect x="285" y="85" width="180" height="65" rx="8" fill="url(#queueGrad)" filter="url(#msgShadow)"/>
+  <text x="375" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Kafka Topic</text>
+  <text x="375" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">order-completed</text>
+  <text x="375" y="143" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">messaging.destination.name</text>
+
+  <!-- Arrow from Queue to Consumer -->
+  <path d="M465,117 L545,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#msgArrow)"/>
+  <text x="505" y="108" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">receive</text>
+
+  <!-- Consumer Service -->
+  <rect x="550" y="95" width="150" height="45" rx="8" fill="url(#consumerGrad)" filter="url(#msgShadow)"/>
+  <text x="625" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Email Service</text>
+  <text x="625" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">CONSUMER span</text>
+
+  <!-- Second Consumer (fan-out pattern) -->
+  <path d="M465,125 L545,180" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#msgArrow)"/>
+  <rect x="550" y="165" width="150" height="45" rx="8" fill="url(#consumerGrad)" filter="url(#msgShadow)"/>
+  <text x="625" y="185" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Analytics Service</text>
+  <text x="625" y="200" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">CONSUMER span</text>
+
+  <!-- Key Fields Section -->
+  <rect x="50" y="230" width="330" height="75" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="215" y="250" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Key Messaging Fields</text>
+  <text x="65" y="270" font-family="monospace" font-size="10" fill="#666">span.kind: "producer" | "consumer"</text>
+  <text x="65" y="285" font-family="monospace" font-size="10" fill="#666">messaging.system: "kafka"</text>
+  <text x="65" y="300" font-family="monospace" font-size="10" fill="#666">messaging.destination.name: "order-completed"</text>
+
+  <!-- DQL Query Section -->
+  <rect x="400" y="230" width="370" height="75" rx="6" fill="#1e293b"/>
+  <text x="585" y="250" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#94a3b8" text-anchor="middle">Query Async Flows</text>
+  <text x="415" y="270" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="455" y="270" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+  <text x="415" y="285" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="475" y="285" font-family="monospace" font-size="10" fill="#f8fafc">in(span.kind, {"producer", "consumer"})</text>
+  <text x="415" y="300" font-family="monospace" font-size="10" fill="#1496ff">| summarize</text>
+  <text x="495" y="300" font-family="monospace" font-size="10" fill="#f8fafc">count(), by:{messaging.destination.name}</text>
+</svg>

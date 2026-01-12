@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 300">
+  <defs>
+    <linearGradient id="serverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="internalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="producerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="consumerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="kindShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="750" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="375" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Span Kinds</text>
+
+  <!-- Service A Box -->
+  <rect x="40" y="55" width="280" height="160" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#kindShadow)"/>
+  <text x="180" y="78" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">Service A</text>
+
+  <!-- Client Span -->
+  <rect x="60" y="95" width="100" height="45" rx="6" fill="url(#clientGrad)"/>
+  <text x="110" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">CLIENT</text>
+  <text x="110" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Outbound</text>
+
+  <!-- Internal Span -->
+  <rect x="180" y="95" width="100" height="45" rx="6" fill="url(#internalGrad)"/>
+  <text x="230" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">INTERNAL</text>
+  <text x="230" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Business Logic</text>
+
+  <!-- Producer Span -->
+  <rect x="60" y="155" width="100" height="45" rx="6" fill="url(#producerGrad)"/>
+  <text x="110" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">PRODUCER</text>
+  <text x="110" y="190" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Send Message</text>
+
+  <!-- Service B Box -->
+  <rect x="430" y="55" width="280" height="160" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2" filter="url(#kindShadow)"/>
+  <text x="570" y="78" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">Service B</text>
+
+  <!-- Server Span -->
+  <rect x="450" y="95" width="100" height="45" rx="6" fill="url(#serverGrad)"/>
+  <text x="500" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">SERVER</text>
+  <text x="500" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Inbound</text>
+
+  <!-- Consumer Span -->
+  <rect x="450" y="155" width="100" height="45" rx="6" fill="url(#consumerGrad)"/>
+  <text x="500" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">CONSUMER</text>
+  <text x="500" y="190" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Receive Message</text>
+
+  <!-- Arrows -->
+  <line x1="160" y1="117" x2="445" y2="117" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="330" y="108" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">HTTP Request</text>
+
+  <line x1="160" y1="177" x2="445" y2="177" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="330" y="168" font-family="Arial, sans-serif" font-size="11" fill="#64748b" text-anchor="middle">Kafka/Queue</text>
+
+  <!-- Legend -->
+  <rect x="40" y="235" width="670" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="70" cy="260" r="8" fill="url(#serverGrad)"/>
+  <text x="85" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Server</text>
+  <circle cx="150" cy="260" r="8" fill="url(#clientGrad)"/>
+  <text x="165" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Client</text>
+  <circle cx="230" cy="260" r="8" fill="url(#internalGrad)"/>
+  <text x="245" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Internal</text>
+  <circle cx="320" cy="260" r="8" fill="url(#producerGrad)"/>
+  <text x="335" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Producer</text>
+  <circle cx="420" cy="260" r="8" fill="url(#consumerGrad)"/>
+  <text x="435" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Consumer</text>
+  <text x="550" y="264" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Both share same trace.id</text>
+</svg>

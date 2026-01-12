@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="issueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fixGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="tsShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="tsArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Access Control Troubleshooting Flow</text>
+
+  <!-- Issue 1: Can't See Data -->
+  <rect x="30" y="55" width="230" height="145" rx="8" fill="#fff" stroke="#ef4444" stroke-width="2" filter="url(#tsShadow)"/>
+  <rect x="30" y="55" width="230" height="30" rx="8" fill="url(#issueGrad)"/>
+  <text x="145" y="75" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Can't See Any Data</text>
+
+  <text x="45" y="100" font-family="Arial, sans-serif" font-size="10" fill="#333">Check:</text>
+  <text x="45" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b">1. Group membership</text>
+  <text x="45" y="130" font-family="Arial, sans-serif" font-size="10" fill="#64748b">2. Policy binding exists</text>
+  <text x="45" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b">3. Data policy included</text>
+  <text x="45" y="160" font-family="Arial, sans-serif" font-size="10" fill="#64748b">4. Boundary not too restrictive</text>
+  <text x="45" y="175" font-family="Arial, sans-serif" font-size="10" fill="#64748b">5. Segment selection</text>
+
+  <rect x="45" y="182" width="200" height="12" rx="2" fill="#d1fae5"/>
+  <text x="145" y="192" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Fix: Add missing policy/boundary</text>
+
+  <!-- Issue 2: Sees Too Much -->
+  <rect x="285" y="55" width="230" height="145" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2" filter="url(#tsShadow)"/>
+  <rect x="285" y="55" width="230" height="30" rx="8" fill="#f59e0b"/>
+  <text x="400" y="75" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Sees Too Much Data</text>
+
+  <text x="300" y="100" font-family="Arial, sans-serif" font-size="10" fill="#333">Check:</text>
+  <text x="300" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b">1. Multiple group memberships</text>
+  <text x="300" y="130" font-family="Arial, sans-serif" font-size="10" fill="#64748b">2. Boundary conditions</text>
+  <text x="300" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b">3. Security context on entities</text>
+  <text x="300" y="160" font-family="Arial, sans-serif" font-size="10" fill="#64748b">4. All 3 domains in boundary</text>
+  <text x="300" y="175" font-family="Arial, sans-serif" font-size="10" fill="#64748b">5. Policy conditions</text>
+
+  <rect x="300" y="182" width="200" height="12" rx="2" fill="#fef3c7"/>
+  <text x="400" y="192" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Fix: Tighten boundary conditions</text>
+
+  <!-- Issue 3: Classic Works, New Doesn't -->
+  <rect x="540" y="55" width="230" height="145" rx="8" fill="#fff" stroke="#8b5cf6" stroke-width="2" filter="url(#tsShadow)"/>
+  <rect x="540" y="55" width="230" height="30" rx="8" fill="#8b5cf6"/>
+  <text x="655" y="75" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Classic OK, New Apps Fail</text>
+
+  <text x="555" y="100" font-family="Arial, sans-serif" font-size="10" fill="#333">Check:</text>
+  <text x="555" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b">1. Only environment domain used</text>
+  <text x="555" y="130" font-family="Arial, sans-serif" font-size="10" fill="#64748b">2. Missing storage domain</text>
+  <text x="555" y="145" font-family="Arial, sans-serif" font-size="10" fill="#64748b">3. Segment not selected</text>
+  <text x="555" y="160" font-family="Arial, sans-serif" font-size="10" fill="#64748b">4. Security context missing</text>
+  <text x="555" y="175" font-family="Arial, sans-serif" font-size="10" fill="#64748b">5. Grail data not indexed</text>
+
+  <rect x="555" y="182" width="200" height="12" rx="2" fill="#ede9fe"/>
+  <text x="655" y="192" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9" text-anchor="middle">Fix: Add storage/settings domains</text>
+
+  <!-- Debugging Steps Section -->
+  <rect x="30" y="215" width="740" height="150" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="238" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Systematic Debugging Steps</text>
+
+  <!-- Step boxes -->
+  <rect x="50" y="255" width="120" height="50" rx="6" fill="url(#checkGrad)" filter="url(#tsShadow)"/>
+  <text x="110" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">1. Verify Group</text>
+  <text x="110" y="292" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Is user in group?</text>
+
+  <path d="M170,280 L190,280" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tsArrow)"/>
+
+  <rect x="200" y="255" width="120" height="50" rx="6" fill="url(#checkGrad)" filter="url(#tsShadow)"/>
+  <text x="260" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">2. Check Policy</text>
+  <text x="260" y="292" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Policy bound?</text>
+
+  <path d="M320,280 L340,280" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tsArrow)"/>
+
+  <rect x="350" y="255" width="120" height="50" rx="6" fill="url(#checkGrad)" filter="url(#tsShadow)"/>
+  <text x="410" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">3. Review Boundary</text>
+  <text x="410" y="292" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">All 3 domains?</text>
+
+  <path d="M470,280 L490,280" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tsArrow)"/>
+
+  <rect x="500" y="255" width="120" height="50" rx="6" fill="url(#checkGrad)" filter="url(#tsShadow)"/>
+  <text x="560" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">4. Test as Admin</text>
+  <text x="560" y="292" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Data exists?</text>
+
+  <path d="M620,280 L640,280" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#tsArrow)"/>
+
+  <rect x="650" y="255" width="110" height="50" rx="6" fill="url(#fixGrad)" filter="url(#tsShadow)"/>
+  <text x="705" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">5. Apply Fix</text>
+  <text x="705" y="292" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Test again</text>
+
+  <!-- Pro tip -->
+  <rect x="50" y="320" width="700" height="30" rx="4" fill="#e0f2fe"/>
+  <text x="400" y="340" font-family="Arial, sans-serif" font-size="10" fill="#0369a1" text-anchor="middle">Pro Tip: Always test with a test user account, not admin. Admin may have broader access that masks issues.</text>
+</svg>

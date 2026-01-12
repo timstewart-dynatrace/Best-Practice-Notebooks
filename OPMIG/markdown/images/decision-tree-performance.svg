@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 700">
+  <defs>
+    <linearGradient id="pProblemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pStepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pSolutionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pCategoryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pWarningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="pShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="pArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="850" height="700" fill="#0f172a" rx="10"/>
+
+  <!-- Title -->
+  <text x="425" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="bold" fill="#f1f5f9" text-anchor="middle">Decision Tree 4: Performance Problems</text>
+
+  <!-- Problem Box -->
+  <rect x="225" y="55" width="400" height="50" rx="8" fill="url(#pProblemGrad)" filter="url(#pShadow)"/>
+  <text x="425" y="78" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">Slow processing, delayed logs, or high costs</text>
+  <text x="425" y="95" font-family="system-ui, sans-serif" font-size="11" fill="rgba(255,255,255,0.8)" text-anchor="middle">Query latency &gt; 5 min • Pipeline time &gt; 100ms • Timeouts</text>
+
+  <!-- Arrow to Step 1 -->
+  <line x1="425" y1="105" x2="425" y2="130" stroke="#64748b" stroke-width="2" marker-end="url(#pArrow)"/>
+
+  <!-- Step 1: Identify Bottleneck -->
+  <rect x="225" y="135" width="400" height="50" rx="8" fill="url(#pStepGrad)" filter="url(#pShadow)"/>
+  <circle cx="255" cy="160" r="15" fill="rgba(255,255,255,0.2)"/>
+  <text x="255" y="166" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">1</text>
+  <text x="450" y="155" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">Identify the bottleneck</text>
+  <text x="450" y="173" font-family="system-ui, sans-serif" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">Which pipeline is slowest? What's causing delays?</text>
+
+  <!-- Warning about NULL fields -->
+  <rect x="640" y="135" width="190" height="50" rx="6" fill="url(#pWarningGrad)" opacity="0.9"/>
+  <text x="735" y="155" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">⚠️ NOTE</text>
+  <text x="735" y="172" font-family="system-ui, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">processing_time_ms = NULL</text>
+
+  <!-- Arrow to Step 2 -->
+  <line x1="425" y1="185" x2="425" y2="210" stroke="#64748b" stroke-width="2" marker-end="url(#pArrow)"/>
+
+  <!-- Step 2: Optimize Processing -->
+  <rect x="225" y="215" width="400" height="40" rx="8" fill="url(#pStepGrad)" filter="url(#pShadow)"/>
+  <circle cx="255" cy="235" r="15" fill="rgba(255,255,255,0.2)"/>
+  <text x="255" y="241" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">2</text>
+  <text x="450" y="240" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">Optimize based on issue type</text>
+
+  <!-- Three branches from Step 2 -->
+  <line x1="300" y1="255" x2="300" y2="285" stroke="#64748b" stroke-width="2"/>
+  <line x1="425" y1="255" x2="425" y2="285" stroke="#64748b" stroke-width="2"/>
+  <line x1="550" y1="255" x2="550" y2="285" stroke="#64748b" stroke-width="2"/>
+
+  <!-- Category 1: High Volume Issues -->
+  <rect x="40" y="290" width="260" height="185" rx="8" fill="url(#pCategoryGrad)" filter="url(#pShadow)"/>
+  <text x="170" y="315" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">High Volume Issues</text>
+
+  <rect x="55" y="330" width="230" height="130" rx="6" fill="rgba(255,255,255,0.1)"/>
+  <text x="70" y="350" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#a5f3fc">Solutions:</text>
+  <text x="70" y="370" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Drop DEBUG/health checks early</text>
+  <text x="70" y="387" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Reduce parsing complexity</text>
+  <text x="70" y="404" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Avoid expensive replaceAll</text>
+  <text x="70" y="421" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Use sampling for high-volume</text>
+  <text x="70" y="448" font-family="system-ui, sans-serif" font-size="10" fill="#86efac">Expected: 60-90% reduction</text>
+
+  <!-- Connect to High Volume -->
+  <line x1="300" y1="285" x2="170" y2="285" stroke="#64748b" stroke-width="2"/>
+  <line x1="170" y1="285" x2="170" y2="290" stroke="#64748b" stroke-width="2" marker-end="url(#pArrow)"/>
+
+  <!-- Category 2: Cardinality Explosion -->
+  <rect x="315" y="290" width="260" height="185" rx="8" fill="url(#pCategoryGrad)" filter="url(#pShadow)"/>
+  <text x="445" y="315" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">Cardinality Explosion</text>
+
+  <rect x="330" y="330" width="230" height="130" rx="6" fill="rgba(255,255,255,0.1)"/>
+  <text x="345" y="350" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#fcd34d">Symptoms:</text>
+  <text x="345" y="367" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Millions of time series</text>
+  <text x="345" y="384" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• High DDU costs</text>
+  <text x="345" y="405" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#a5f3fc">Solutions:</text>
+  <text x="345" y="422" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Bucket high-cardinality fields</text>
+  <text x="345" y="439" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Remove user_id dimensions</text>
+  <text x="345" y="456" font-family="system-ui, sans-serif" font-size="10" fill="#86efac">Target: &lt;10K series/metric</text>
+
+  <!-- Connect to Cardinality -->
+  <line x1="425" y1="285" x2="425" y2="290" stroke="#64748b" stroke-width="2" marker-end="url(#pArrow)"/>
+
+  <!-- Category 3: Cost Optimization -->
+  <rect x="590" y="290" width="240" height="185" rx="8" fill="url(#pCategoryGrad)" filter="url(#pShadow)"/>
+  <text x="710" y="315" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">Cost Optimization</text>
+
+  <rect x="605" y="330" width="210" height="130" rx="6" fill="rgba(255,255,255,0.1)"/>
+  <text x="620" y="350" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#a5f3fc">Strategies:</text>
+  <text x="620" y="370" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Drop DEBUG/TRACE logs</text>
+  <text x="620" y="387" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Reduce dev retention</text>
+  <text x="620" y="404" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">• Extract metrics instead</text>
+  <text x="620" y="430" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#fcd34d">ROI Example:</text>
+  <text x="620" y="448" font-family="system-ui, sans-serif" font-size="10" fill="#e2e8f0">100GB logs → Metrics</text>
+  <text x="620" y="462" font-family="system-ui, sans-serif" font-size="10" fill="#86efac">= 99.9% cost savings</text>
+
+  <!-- Connect to Cost -->
+  <line x1="550" y1="285" x2="710" y2="285" stroke="#64748b" stroke-width="2"/>
+  <line x1="710" y1="285" x2="710" y2="290" stroke="#64748b" stroke-width="2" marker-end="url(#pArrow)"/>
+
+  <!-- Optimization Examples Section -->
+  <rect x="40" y="495" width="770" height="185" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="425" y="520" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#f1f5f9" text-anchor="middle">Optimization Patterns</text>
+
+  <!-- Pattern 1: Filter First -->
+  <rect x="60" y="535" width="230" height="130" rx="6" fill="#334155"/>
+  <text x="175" y="555" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#10b981" text-anchor="middle">✓ Filter First, Then Parse</text>
+  <text x="75" y="580" font-family="monospace" font-size="10" fill="#94a3b8">❌ SLOW:</text>
+  <text x="75" y="595" font-family="monospace" font-size="10" fill="#fca5a5">parse | filter ERROR</text>
+  <text x="75" y="620" font-family="monospace" font-size="10" fill="#94a3b8">✓ FAST:</text>
+  <text x="75" y="635" font-family="monospace" font-size="10" fill="#86efac">filter ERROR | parse</text>
+  <text x="75" y="655" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">Reduces parse load 70%+</text>
+
+  <!-- Pattern 2: Combine Regex -->
+  <rect x="310" y="535" width="230" height="130" rx="6" fill="#334155"/>
+  <text x="425" y="555" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#10b981" text-anchor="middle">✓ Combine Regex Patterns</text>
+  <text x="325" y="580" font-family="monospace" font-size="10" fill="#94a3b8">❌ SLOW:</text>
+  <text x="325" y="595" font-family="monospace" font-size="10" fill="#fca5a5">replaceAll(p1) | replaceAll(p2)</text>
+  <text x="325" y="620" font-family="monospace" font-size="10" fill="#94a3b8">✓ FAST:</text>
+  <text x="325" y="635" font-family="monospace" font-size="10" fill="#86efac">replaceAll("(p1|p2)", "X")</text>
+  <text x="325" y="655" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">Single pass = 50-80% faster</text>
+
+  <!-- Pattern 3: Bucketing -->
+  <rect x="560" y="535" width="230" height="130" rx="6" fill="#334155"/>
+  <text x="675" y="555" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#10b981" text-anchor="middle">✓ Bucket High Cardinality</text>
+  <text x="575" y="580" font-family="monospace" font-size="10" fill="#94a3b8">❌ BAD:</text>
+  <text x="575" y="595" font-family="monospace" font-size="10" fill="#fca5a5">duration_ms (infinite)</text>
+  <text x="575" y="620" font-family="monospace" font-size="10" fill="#94a3b8">✓ GOOD:</text>
+  <text x="575" y="635" font-family="monospace" font-size="10" fill="#86efac">duration_bucket (4 values)</text>
+  <text x="575" y="655" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">99.96% series reduction</text>
+</svg>

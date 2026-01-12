@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420">
+  <defs>
+    <linearGradient id="complianceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="envGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sevGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <filter id="hbShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="hbArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="420" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="350" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e293b" text-anchor="middle">Hybrid Strategy: Compliance + Cost Optimization</text>
+
+  <!-- Incoming logs node -->
+  <rect x="280" y="50" width="140" height="35" rx="6" fill="#334155" filter="url(#hbShadow)"/>
+  <text x="350" y="73" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle" font-weight="bold">Incoming Logs</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="85" x2="350" y2="105" stroke="#64748b" stroke-width="2" marker-end="url(#hbArrow)"/>
+
+  <!-- Decision flow splits into 3 branches -->
+  <!-- Branch connector -->
+  <line x1="350" y1="110" x2="350" y2="125" stroke="#64748b" stroke-width="2"/>
+  <line x1="120" y1="125" x2="580" y2="125" stroke="#64748b" stroke-width="2"/>
+  <line x1="120" y1="125" x2="120" y2="140" stroke="#64748b" stroke-width="2"/>
+  <line x1="350" y1="125" x2="350" y2="140" stroke="#64748b" stroke-width="2"/>
+  <line x1="580" y1="125" x2="580" y2="140" stroke="#64748b" stroke-width="2"/>
+
+  <!-- Branch 1: Compliance Check (Left) -->
+  <rect x="30" y="145" width="180" height="35" rx="6" fill="url(#complianceGrad)" filter="url(#hbShadow)"/>
+  <text x="120" y="168" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">1. Compliance Check</text>
+
+  <!-- Compliance destinations -->
+  <g transform="translate(30, 190)">
+    <rect width="180" height="75" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+    <text x="15" y="20" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Payment logs →</text>
+    <text x="110" y="20" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">payment_logs (90d)</text>
+    <text x="145" y="33" font-family="Arial, sans-serif" font-size="10" fill="#64748b">PCI-DSS</text>
+
+    <text x="15" y="48" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Audit logs →</text>
+    <text x="110" y="48" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">audit_logs (365d)</text>
+    <text x="150" y="61" font-family="Arial, sans-serif" font-size="10" fill="#64748b">SOC 2</text>
+
+    <text x="15" y="73" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Healthcare →</text>
+    <text x="110" y="73" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">phi_logs (7 yrs)</text>
+  </g>
+
+  <!-- Branch 2: Environment Check (Center) -->
+  <rect x="260" y="145" width="180" height="35" rx="6" fill="url(#envGrad)" filter="url(#hbShadow)"/>
+  <text x="350" y="168" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">2. Environment Check</text>
+
+  <!-- Environment destinations -->
+  <g transform="translate(260, 190)">
+    <rect width="180" height="75" rx="4" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+    <text x="15" y="20" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">Production →</text>
+    <text x="105" y="20" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" font-weight="bold">prod_logs (35d)</text>
+
+    <text x="15" y="45" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">Staging →</text>
+    <text x="105" y="45" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" font-weight="bold">staging_logs (14d)</text>
+
+    <text x="15" y="70" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">Development →</text>
+    <text x="105" y="70" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" font-weight="bold">dev_logs (7d)</text>
+  </g>
+
+  <!-- Branch 3: Severity Check (Right) -->
+  <rect x="490" y="145" width="180" height="35" rx="6" fill="url(#sevGrad)" filter="url(#hbShadow)"/>
+  <text x="580" y="168" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">3. Severity Check</text>
+
+  <!-- Severity destinations -->
+  <g transform="translate(490, 190)">
+    <rect width="180" height="75" rx="4" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+    <text x="15" y="20" font-family="Arial, sans-serif" font-size="10" fill="#166534">ERROR/FATAL →</text>
+    <text x="105" y="20" font-family="Arial, sans-serif" font-size="10" fill="#059669" font-weight="bold">Keep in bucket</text>
+
+    <text x="15" y="45" font-family="Arial, sans-serif" font-size="10" fill="#166534">WARN/INFO →</text>
+    <text x="105" y="45" font-family="Arial, sans-serif" font-size="10" fill="#059669" font-weight="bold">Keep in bucket</text>
+
+    <text x="15" y="70" font-family="Arial, sans-serif" font-size="10" fill="#166534">DEBUG/TRACE →</text>
+    <text x="105" y="70" font-family="Arial, sans-serif" font-size="10" fill="#f59e0b" font-weight="bold">DROP / 3-day</text>
+  </g>
+
+  <!-- Priority note at bottom -->
+  <rect x="120" y="300" width="460" height="40" rx="6" fill="#fef3c7" stroke="#fcd34d" stroke-width="1"/>
+  <text x="350" y="318" font-family="Arial, sans-serif" font-size="11" fill="#92400e" text-anchor="middle" font-weight="bold">Priority Order:</text>
+  <text x="350" y="333" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Compliance (1st) → Environment (2nd) → Severity (3rd)</text>
+
+  <!-- Key insight -->
+  <g transform="translate(120, 355)">
+    <rect width="460" height="50" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="230" y="20" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">💡 Key Insight: Compliance routes must be evaluated FIRST</text>
+    <text x="230" y="38" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">to ensure regulatory data is never dropped or under-retained</text>
+  </g>
+</svg>

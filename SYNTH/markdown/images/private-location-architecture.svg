@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="infraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.1" />
+    </linearGradient>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.1" />
+    </linearGradient>
+    <linearGradient id="agGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dtClusterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="appGradPriv" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="privShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="privArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="httpsArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Private Synthetic Location Architecture</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Monitor internal applications without exposing them to the internet</text>
+
+  <!-- Your Infrastructure Box -->
+  <rect x="30" y="65" width="380" height="230" rx="10" fill="url(#infraGrad)" stroke="#ef4444" stroke-width="2"/>
+  <text x="220" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626" text-anchor="middle">YOUR INFRASTRUCTURE</text>
+
+  <!-- ActiveGate -->
+  <rect x="50" y="105" width="180" height="90" rx="8" fill="url(#agGrad)" filter="url(#privShadow)"/>
+  <text x="140" y="130" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Synthetic-Enabled</text>
+  <text x="140" y="148" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">ActiveGate</text>
+  <text x="140" y="175" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Synthetic Engine</text>
+  <text x="140" y="188" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">+ Execution Runtime</text>
+
+  <!-- Internal Apps -->
+  <rect x="50" y="210" width="340" height="70" rx="8" fill="#fff" stroke="#10b981" stroke-width="2"/>
+  <text x="220" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Internal Applications</text>
+
+  <rect x="70" y="250" width="70" height="22" rx="4" fill="url(#appGradPriv)"/>
+  <text x="105" y="265" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">APIs</text>
+
+  <rect x="150" y="250" width="70" height="22" rx="4" fill="url(#appGradPriv)"/>
+  <text x="185" y="265" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Staging</text>
+
+  <rect x="230" y="250" width="70" height="22" rx="4" fill="url(#appGradPriv)"/>
+  <text x="265" y="265" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Admin</text>
+
+  <rect x="310" y="250" width="70" height="22" rx="4" fill="url(#appGradPriv)"/>
+  <text x="345" y="265" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Database</text>
+
+  <!-- Arrow from AG to Apps -->
+  <path d="M140,195 L140,205" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#privArrow)"/>
+  <text x="185" y="205" font-family="Arial, sans-serif" font-size="10" fill="#64748b">Monitors</text>
+
+  <!-- HTTPS Connection -->
+  <path d="M415,150 L475,150" stroke="#10b981" stroke-width="3" fill="none" marker-end="url(#httpsArrow)"/>
+  <text x="445" y="140" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#10b981" text-anchor="middle">HTTPS</text>
+  <text x="445" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Outbound</text>
+
+  <!-- Dynatrace Cloud Box -->
+  <rect x="485" y="65" width="285" height="230" rx="10" fill="url(#cloudGrad)" stroke="#3b82f6" stroke-width="2"/>
+  <text x="627" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">DYNATRACE CLUSTER</text>
+
+  <!-- Cluster Components -->
+  <rect x="505" y="110" width="110" height="50" rx="6" fill="url(#dtClusterGrad)" filter="url(#privShadow)"/>
+  <text x="560" y="133" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Scheduling</text>
+  <text x="560" y="150" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Test triggers</text>
+
+  <rect x="640" y="110" width="110" height="50" rx="6" fill="url(#dtClusterGrad)" filter="url(#privShadow)"/>
+  <text x="695" y="133" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Results</text>
+  <text x="695" y="150" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Storage</text>
+
+  <rect x="505" y="175" width="110" height="50" rx="6" fill="url(#dtClusterGrad)" filter="url(#privShadow)"/>
+  <text x="560" y="198" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Alerting</text>
+  <text x="560" y="215" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Davis AI</text>
+
+  <rect x="640" y="175" width="110" height="50" rx="6" fill="url(#dtClusterGrad)" filter="url(#privShadow)"/>
+  <text x="695" y="198" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">Analytics</text>
+  <text x="695" y="215" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Dashboards</text>
+
+  <!-- Key Benefits -->
+  <rect x="505" y="240" width="245" height="45" rx="6" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+  <text x="627" y="260" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">No inbound firewall rules needed</text>
+  <text x="627" y="275" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Only HTTPS outbound to Dynatrace</text>
+
+  <!-- Bottom note -->
+  <rect x="30" y="305" width="740" height="25" rx="4" fill="#fef3c7"/>
+  <text x="400" y="322" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Deploy Synthetic-Enabled ActiveGate in your DMZ or internal network to monitor private resources</text>
+</svg>

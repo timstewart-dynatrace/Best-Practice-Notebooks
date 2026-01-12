@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="errorBucket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="warnBucket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="infoBucket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="auditBucket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="debugBucket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="bucketShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="bucketArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Bucket Governance Strategy</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Route logs to purpose-built buckets with tiered retention</text>
+
+  <!-- Log Sources -->
+  <rect x="30" y="70" width="100" height="200" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="80" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">All Logs</text>
+  <text x="80" y="115" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">100%</text>
+  <text x="80" y="135" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">volume</text>
+
+  <rect x="50" y="155" width="60" height="15" rx="3" fill="#ef4444"/>
+  <text x="80" y="166" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">5%</text>
+
+  <rect x="50" y="175" width="60" height="15" rx="3" fill="#f59e0b"/>
+  <text x="80" y="186" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">10%</text>
+
+  <rect x="50" y="195" width="60" height="15" rx="3" fill="#3b82f6"/>
+  <text x="80" y="206" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">40%</text>
+
+  <rect x="50" y="215" width="60" height="15" rx="3" fill="#8b5cf6"/>
+  <text x="80" y="226" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">10%</text>
+
+  <rect x="50" y="235" width="60" height="15" rx="3" fill="#10b981"/>
+  <text x="80" y="246" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">35%</text>
+
+  <!-- Routing Arrows -->
+  <path d="M130,162 L170,100" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#bucketArrow)"/>
+  <path d="M130,182 L170,145" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#bucketArrow)"/>
+  <path d="M130,202 L170,190" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#bucketArrow)"/>
+  <path d="M130,222 L170,235" stroke="#8b5cf6" stroke-width="2" fill="none" marker-end="url(#bucketArrow)"/>
+  <path d="M130,242 L170,280" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#bucketArrow)"/>
+
+  <!-- Buckets -->
+  <rect x="180" y="75" width="180" height="45" rx="8" fill="url(#errorBucket)" filter="url(#bucketShadow)"/>
+  <text x="270" y="95" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">error_logs</text>
+  <text x="270" y="112" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">90-day retention</text>
+
+  <rect x="180" y="130" width="180" height="45" rx="8" fill="url(#warnBucket)" filter="url(#bucketShadow)"/>
+  <text x="270" y="150" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">warning_logs</text>
+  <text x="270" y="167" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">35-day retention</text>
+
+  <rect x="180" y="185" width="180" height="45" rx="8" fill="url(#infoBucket)" filter="url(#bucketShadow)"/>
+  <text x="270" y="205" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">default_logs</text>
+  <text x="270" y="222" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">35-day retention</text>
+
+  <rect x="180" y="240" width="180" height="45" rx="8" fill="url(#auditBucket)" filter="url(#bucketShadow)"/>
+  <text x="270" y="260" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">audit_logs</text>
+  <text x="270" y="277" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">1-year retention</text>
+
+  <rect x="180" y="295" width="180" height="45" rx="8" fill="url(#debugBucket)" filter="url(#bucketShadow)"/>
+  <text x="270" y="315" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">debug_logs</text>
+  <text x="270" y="332" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">7-day retention (or DROP)</text>
+
+  <!-- Benefits Section -->
+  <rect x="400" y="70" width="370" height="250" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="585" y="95" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Governance Benefits</text>
+
+  <rect x="420" y="110" width="165" height="90" rx="6" fill="#fef2f2"/>
+  <text x="502" y="135" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#dc2626" text-anchor="middle">Cost Control</text>
+  <text x="502" y="155" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">DROP debug = 35%</text>
+  <text x="502" y="170" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">savings</text>
+  <text x="502" y="190" font-family="Arial, sans-serif" font-size="10" fill="#7f1d1d" text-anchor="middle">Short retention = less DDU</text>
+
+  <rect x="595" y="110" width="165" height="90" rx="6" fill="#d1fae5"/>
+  <text x="677" y="135" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">Compliance</text>
+  <text x="677" y="155" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Audit logs: 1 year</text>
+  <text x="677" y="170" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">PCI/HIPAA ready</text>
+  <text x="677" y="190" font-family="Arial, sans-serif" font-size="10" fill="#064e3b" text-anchor="middle">Separation of concerns</text>
+
+  <rect x="420" y="210" width="165" height="90" rx="6" fill="#dbeafe"/>
+  <text x="502" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e40af" text-anchor="middle">Access Control</text>
+  <text x="502" y="255" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">Team-based buckets</text>
+  <text x="502" y="270" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">IAM policies per bucket</text>
+  <text x="502" y="290" font-family="Arial, sans-serif" font-size="10" fill="#1e3a8a" text-anchor="middle">Need-to-know access</text>
+
+  <rect x="595" y="210" width="165" height="90" rx="6" fill="#fef3c7"/>
+  <text x="677" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">Performance</text>
+  <text x="677" y="255" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Faster queries on</text>
+  <text x="677" y="270" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">smaller buckets</text>
+  <text x="677" y="290" font-family="Arial, sans-serif" font-size="10" fill="#78350f" text-anchor="middle">Reduced scan cost</text>
+</svg>

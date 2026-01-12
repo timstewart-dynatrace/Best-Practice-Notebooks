@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="indexedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="nonIndexedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <filter id="idxShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Indexed vs Non-Indexed Span Fields</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">Filter on indexed fields first for optimal query performance</text>
+
+  <!-- Indexed Fields Section -->
+  <rect x="30" y="70" width="360" height="250" rx="8" fill="#fff" stroke="#22c55e" stroke-width="2" filter="url(#idxShadow)"/>
+  <rect x="30" y="70" width="360" height="35" rx="8" fill="url(#indexedGrad)"/>
+  <text x="210" y="93" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">✓ INDEXED (Fast Filtering)</text>
+
+  <!-- Indexed field rows -->
+  <text x="50" y="130" font-family="monospace" font-size="12" fill="#333">trace.id</text>
+  <text x="200" y="130" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Primary trace identifier</text>
+
+  <line x1="45" y1="145" x2="375" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="50" y="165" font-family="monospace" font-size="12" fill="#333">span.id</text>
+  <text x="200" y="165" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Individual span identifier</text>
+
+  <line x1="45" y1="180" x2="375" y2="180" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="50" y="200" font-family="monospace" font-size="12" fill="#333">dt.entity.service</text>
+  <text x="200" y="200" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Service entity ID</text>
+
+  <line x1="45" y1="215" x2="375" y2="215" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="50" y="235" font-family="monospace" font-size="12" fill="#333">span.name</text>
+  <text x="200" y="235" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Operation name</text>
+
+  <line x1="45" y1="250" x2="375" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="50" y="270" font-family="monospace" font-size="12" fill="#333">span.kind</text>
+  <text x="200" y="270" font-family="Arial, sans-serif" font-size="11" fill="#64748b">server, client, internal...</text>
+
+  <line x1="45" y1="285" x2="375" y2="285" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="50" y="305" font-family="monospace" font-size="12" fill="#333">span.status_code</text>
+  <text x="200" y="305" font-family="Arial, sans-serif" font-size="11" fill="#64748b">ok, error</text>
+
+  <!-- Non-Indexed Fields Section -->
+  <rect x="410" y="70" width="360" height="145" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2" filter="url(#idxShadow)"/>
+  <rect x="410" y="70" width="360" height="35" rx="8" fill="url(#nonIndexedGrad)"/>
+  <text x="590" y="93" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">⚠ NON-INDEXED (Slower)</text>
+
+  <!-- Non-indexed field rows -->
+  <text x="430" y="130" font-family="monospace" font-size="12" fill="#333">url.path</text>
+  <text x="560" y="130" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Requires full scan</text>
+
+  <line x1="425" y1="145" x2="755" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="430" y="165" font-family="monospace" font-size="12" fill="#333">http.url</text>
+  <text x="560" y="165" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Use after indexed filters</text>
+
+  <line x1="425" y1="180" x2="755" y2="180" stroke="#e2e8f0" stroke-width="1"/>
+
+  <text x="430" y="200" font-family="monospace" font-size="12" fill="#333">db.statement</text>
+  <text x="560" y="200" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Custom attributes</text>
+
+  <!-- Best Practice Box -->
+  <rect x="410" y="230" width="360" height="90" rx="8" fill="#1e293b" filter="url(#idxShadow)"/>
+  <text x="590" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#94a3b8" text-anchor="middle">Best Practice Pattern</text>
+  <text x="425" y="280" font-family="monospace" font-size="10" fill="#22c55e">fetch</text>
+  <text x="460" y="280" font-family="monospace" font-size="10" fill="#f8fafc">spans</text>
+  <text x="425" y="295" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="485" y="295" font-family="monospace" font-size="10" fill="#22c55e">span.kind == "server"</text>
+  <text x="670" y="295" font-family="monospace" font-size="10" fill="#64748b">← indexed</text>
+  <text x="425" y="310" font-family="monospace" font-size="10" fill="#1496ff">| filter</text>
+  <text x="485" y="310" font-family="monospace" font-size="10" fill="#fbbf24">contains(url.path, "api")</text>
+  <text x="670" y="310" font-family="monospace" font-size="10" fill="#64748b">← then non-indexed</text>
+</svg>
