@@ -199,12 +199,14 @@ Now that you're oriented in the Dynatrace UI, proceed based on your priorities:
 
 ### Migrating from Another Platform?
 
-If you're migrating from New Relic, Datadog, or another APM tool, consult your organization's internal migration guide (private) for:
+If you're migrating from New Relic, Datadog, or another APM tool, check out the **USFOODS** series which provides:
 
 - Concept mapping from your previous platform to Dynatrace
-- Query translation guidance (e.g., NRQL → DQL)
+- Query translation guides (e.g., NRQL → DQL)
 - Integration patterns for your existing tools
 - A recommended learning path that interleaves ONBRD fundamentals with migration-specific content
+
+> **See USFOODS-01** for a complete learning path that combines ONBRD foundation with migration-focused deep dives.
 
 ### Key Tasks Before Moving On
 

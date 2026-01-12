@@ -324,7 +324,7 @@ Congratulations! You've completed the onboarding series.
 | **Log management** | OPMIG series (OpenPipeline migration) |
 | **Synthetic monitoring** | SYNTH series |
 | **Access control migration** | MZ2POL series |
-| **Platform migration** | Internal migration guide (private) |
+| **Platform migration** | USFOODS series (NR to Dynatrace) |
 | **Official training** | Dynatrace University |
 | **Community** | community.dynatrace.com |
 
