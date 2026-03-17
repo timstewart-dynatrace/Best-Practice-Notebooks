@@ -4,6 +4,8 @@ Dynatrace best-practice notebooks with matching PDF and Markdown exports. These 
 
 > **Recommended:** Import the JSON files from NOTEBOOKS/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
 
+Want to contribute or understand how pull requests are reviewed? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Layout
 
 Each topic follows the same structure:
