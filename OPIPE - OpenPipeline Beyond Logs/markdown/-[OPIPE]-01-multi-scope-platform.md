@@ -19,11 +19,12 @@ OpenPipeline is often introduced as a log processing framework — and logs are 
 2. [Shared Architecture Across Scopes](#shared-architecture-across-scopes)
 3. [The Default Pipeline Anti-Pattern](#the-default-pipeline-anti-pattern)
 4. [Pipeline Design Principles](#pipeline-design-principles)
-5. [Security Context Across Scopes](#security-context-across-scopes)
-6. [Ingestion-Time vs. Query-Time Processing](#ingestion-time-vs-query-time-processing)
-7. [Summary](#summary)
-8. [Next Steps](#next-steps)
-9. [References](#references)
+5. [Processing Groups: Conditional Logic Within a Pipeline](#processing-groups)
+6. [Security Context Across Scopes](#security-context-across-scopes)
+7. [Ingestion-Time vs. Query-Time Processing](#ingestion-time-vs-query-time-processing)
+8. [Summary](#summary)
+9. [Next Steps](#next-steps)
+10. [References](#references)
 
 ---
 
@@ -259,8 +260,100 @@ fetch spans, from:-24h
 | limit 20
 ```
 
+<a id="processing-groups"></a>
+## 5. Processing Groups: Conditional Logic Within a Pipeline
+
+Sections 3 and 4 explained why you need separate pipelines and how to design them. But what happens when a single pipeline receives data from multiple sources that need **different processing logic** — without justifying an entirely new pipeline?
+
+This is what **processing groups** solve.
+
+### What Is a Processing Group?
+
+A processing group is a named collection of processors within a pipeline stage that share a **common matching condition**. Only records that satisfy the group's matcher are processed by the group's processors. Records that don't match skip the group entirely.
+
+```
+Pipeline: application-logs
+├── Processing Stage
+│   ├── Group: "java-apps"     (matcher: k8s.namespace.name == "java-prod")
+│   │   ├── Processor: Parse Java stack traces
+│   │   ├── Processor: Extract exception class
+│   │   └── Processor: Add team = "backend"
+│   │
+│   ├── Group: "nginx-access"  (matcher: log.source == "nginx")
+│   │   ├── Processor: Parse access log format
+│   │   ├── Processor: Extract response code + latency
+│   │   └── Processor: Add team = "platform"
+│   │
+│   └── Global Processor: Add environment = "production"  (no matcher — runs on ALL records)
+```
+
+### How Processing Groups Work
+
+| Behavior | Detail |
+|----------|--------|
+| **Matching** | Each group has a DQL matching condition. Only records satisfying the condition enter the group. |
+| **Inheritance** | All processors within a group inherit the group's matcher. You do not repeat the condition on each processor. |
+| **Multi-match** | If a record matches multiple groups, **all matching groups execute**. Groups are independent — they do not short-circuit. |
+| **Execution order** | Processors **within** a group execute in the order they are listed. |
+| **Global processors** | Processors placed outside any group run on **all records** unconditionally — before or after groups, depending on their position. |
+| **Available in all scopes** | Processing groups work in Logs, Spans, Metrics, Events, and Business Events scopes. |
+
+### When to Use Processing Groups vs. Separate Pipelines
+
+| Scenario | Use Processing Groups | Use Separate Pipelines |
+|----------|----------------------|----------------------|
+| Same bucket destination, different parsing | **Yes** — group per log format | No |
+| Different retention requirements | No | **Yes** — different buckets |
+| Different security context | No | **Yes** — different `dt.security_context` assignment |
+| Same source, multiple enrichment paths | **Yes** — group per enrichment path | No |
+| Completely different data lifecycle | No | **Yes** — separate routing, storage, retention |
+| Reducing pipeline proliferation | **Yes** — consolidate related logic | N/A |
+| Team-level blast radius isolation | No | **Yes** — a bad processor in one pipeline can't affect another |
+
+### The Decision Rule
+
+> **Use processing groups** when the data shares the same pipeline-level concerns (routing, bucket, retention, security context) but needs **different processing logic** based on content.
+>
+> **Use separate pipelines** when the data needs different **lifecycle treatment** — different buckets, different retention, different security context, or different teams owning the configuration.
+
+### Example: Multi-Format Log Pipeline
+
+A single `application-logs` pipeline receives logs from Java services, Node.js services, and Python services. Each has a different log format, but they all go to the same `app_logs` bucket with 35-day retention.
+
+**Without processing groups**, you would need 3 separate pipelines — tripling the configuration surface and the number of routing rules.
+
+**With processing groups**:
+
+| Group | Matching Condition | Processors |
+|-------|-------------------|------------|
+| `java-logs` | `matchesValue(k8s.container.name, "java-*")` | Parse log4j format, extract exception class, enrich with `app.framework = "java"` |
+| `nodejs-logs` | `matchesValue(k8s.container.name, "node-*")` | Parse JSON structured logs, extract request ID, enrich with `app.framework = "nodejs"` |
+| `python-logs` | `matchesValue(k8s.container.name, "python-*")` | Parse Python logging format, extract traceback, enrich with `app.framework = "python"` |
+| *(global)* | All records | Add `dt.security_context = "app-team"`, drop records where `loglevel == "DEBUG"` |
+
+The global processors handle what's common to all records. The groups handle what's specific to each format. One pipeline, one bucket, three parsing paths.
+
+### Example: Span Enrichment by Service Category
+
+In the Spans scope, a single pipeline processes all server spans but needs different enrichment based on service type:
+
+| Group | Matching Condition | Processors |
+|-------|-------------------|------------|
+| `api-services` | `matchesValue(http.route, "/api/*")` | Add `span.category = "api"`, extract API version from path |
+| `database-calls` | `isNotNull(db.system)` | Add `span.category = "database"`, normalize `db.statement` to remove parameters |
+| `messaging` | `in(span.kind, {"producer", "consumer"})` | Add `span.category = "messaging"`, extract queue name |
+
+### Common Mistakes
+
+| Mistake | Problem | Fix |
+|---------|---------|-----|
+| Duplicating matchers on every processor | Verbose, error-prone, hard to maintain | Use a processing group — define the matcher once |
+| Overlapping group matchers without intent | A record processed by multiple groups may get conflicting field values | Make matchers mutually exclusive, or design for intentional multi-match |
+| Putting bucket routing in a group | Bucket assignment applies to the whole pipeline, not per-group | Configure bucket routing at the pipeline level, not inside groups |
+| Too many groups in one pipeline | Becomes as complex as having separate pipelines | If you have >5-6 groups, consider splitting into separate pipelines |
+
 <a id="security-context-across-scopes"></a>
-## 5. Security Context Across Scopes
+## 6. Security Context Across Scopes
 
 The `dt.security_context` field controls **who can see which data** through IAM policies. It is the mechanism that makes pipeline separation actionable from a governance perspective.
 
@@ -328,7 +421,7 @@ fetch spans, from:-1h
 ```
 
 <a id="ingestion-time-vs-query-time-processing"></a>
-## 6. Ingestion-Time vs. Query-Time Processing
+## 7. Ingestion-Time vs. Query-Time Processing
 
 A critical design decision: should you process data in OpenPipeline (at ingestion) or in DQL (at query time)? The answer depends on what you are trying to achieve.
 
@@ -373,6 +466,7 @@ In this notebook you learned:
 - **Shared architecture** — All scopes follow the same six-stage pipeline (routing → masking → filtering → processing → extraction → storage)
 - **The default pipeline anti-pattern** — Sending everything through the default pipeline causes query performance, cost, security, and blast radius problems
 - **Pipeline design principles** — One pipeline per source type, filter early, differentiate retention, order routing rules from specific to general
+- **Processing groups** — Conditional logic within a pipeline: group processors by matching condition to handle multiple data formats without creating separate pipelines. Use groups for different processing; use pipelines for different lifecycle.
 - **Security context across scopes** — `dt.security_context` must be set at ingestion; extension metrics require explicit configuration
 - **Ingestion vs. query time** — Process at ingestion for permanent actions (drop, mask, route, extract); process at query time for flexible analysis
 
@@ -389,6 +483,7 @@ Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline
 ## References
 
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline)
+- [OpenPipeline Processing](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
 - [OpenPipeline Spans](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/openpipeline-spans)
 - [OpenPipeline Metrics](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/openpipeline-metrics)
 - [Grail Bucket Management](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/grail-bucket-management)
