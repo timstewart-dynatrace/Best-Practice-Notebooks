@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380">
+  <defs>
+    <linearGradient id="bgGradS2D3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="splGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#65a30d"/>
+      <stop offset="100%" style="stop-color:#4d7c0f"/>
+    </linearGradient>
+    <linearGradient id="dqlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <filter id="shadowS2D3" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowS2D3" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradS2D3)"/>
+
+  <!-- Title -->
+  <text x="350" y="28" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="18" font-weight="600">SPL to DQL Command Translation</text>
+
+  <!-- Headers -->
+  <rect x="30" y="50" width="280" height="30" rx="6" fill="url(#splGrad)"/>
+  <text x="170" y="70" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">SPL (Splunk)</text>
+
+  <text x="350" y="70" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12">→</text>
+
+  <rect x="390" y="50" width="280" height="30" rx="6" fill="url(#dqlGrad)"/>
+  <text x="530" y="70" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">DQL (Dynatrace)</text>
+
+  <!-- Row 1: search/fetch -->
+  <rect x="30" y="90" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="112" fill="#a3e635" font-family="monospace" font-size="11">search index=app</text>
+
+  <line x1="320" y1="107" x2="380" y2="107" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="90" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="112" fill="#a5b4fc" font-family="monospace" font-size="11">fetch logs</text>
+
+  <!-- Row 2: where/filter -->
+  <rect x="30" y="135" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="157" fill="#a3e635" font-family="monospace" font-size="11">| where level="ERROR"</text>
+
+  <line x1="320" y1="152" x2="380" y2="152" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="135" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="157" fill="#a5b4fc" font-family="monospace" font-size="11">| filter loglevel == "ERROR"</text>
+
+  <!-- Row 3: stats/summarize -->
+  <rect x="30" y="180" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="202" fill="#a3e635" font-family="monospace" font-size="11">| stats count by host</text>
+
+  <line x1="320" y1="197" x2="380" y2="197" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="180" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="202" fill="#a5b4fc" font-family="monospace" font-size="11">| summarize count(), by:{host}</text>
+
+  <!-- Row 4: table/fields -->
+  <rect x="30" y="225" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="247" fill="#a3e635" font-family="monospace" font-size="11">| table field1, field2</text>
+
+  <line x1="320" y1="242" x2="380" y2="242" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="225" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="247" fill="#a5b4fc" font-family="monospace" font-size="11">| fields field1, field2</text>
+
+  <!-- Row 5: sort -->
+  <rect x="30" y="270" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="292" fill="#a3e635" font-family="monospace" font-size="11">| sort -count</text>
+
+  <line x1="320" y1="287" x2="380" y2="287" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="270" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="292" fill="#a5b4fc" font-family="monospace" font-size="11">| sort count desc</text>
+
+  <!-- Row 6: timechart/makeTimeseries -->
+  <rect x="30" y="315" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="45" y="337" fill="#a3e635" font-family="monospace" font-size="11">| timechart span=5m count</text>
+
+  <line x1="320" y1="332" x2="380" y2="332" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D3)"/>
+
+  <rect x="390" y="315" width="280" height="35" rx="4" fill="#1e293b"/>
+  <text x="405" y="337" fill="#a5b4fc" font-family="monospace" font-size="11">| makeTimeseries count(), interval:5m</text>
+
+  <!-- Key differences note -->
+  <rect x="30" y="360" width="640" height="15" rx="4" fill="transparent"/>
+  <text x="350" y="372" text-anchor="middle" fill="#64748b" font-family="system-ui, sans-serif" font-size="10">Key: Use == for equality | Use {"a","b"} for arrays | Alias aggregations for sort</text>
+</svg>

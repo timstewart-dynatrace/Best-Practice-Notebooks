@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0a64bc"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Mobile-to-Backend Trace Correlation</text>
+
+  <!-- Mobile App box (purple) -->
+  <rect x="60" y="55" width="200" height="80" rx="10" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="160" y="88" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Mobile App</text>
+  <text x="160" y="106" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.85)" text-anchor="middle">Dynatrace SDK</text>
+
+  <!-- HTTP Request label below Mobile App -->
+  <text x="160" y="155" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">HTTP Request</text>
+  <rect x="105" y="141" width="110" height="20" rx="4" fill="none" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Arrow with x-dtc header label -->
+  <path d="M260,95 L520,95" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <rect x="330" y="75" width="120" height="22" rx="6" fill="#fff" stroke="#94a3b8" stroke-width="1"/>
+  <text x="390" y="90" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#475569" text-anchor="middle">x-dtc header</text>
+
+  <!-- Backend Service box (blue) -->
+  <rect x="530" y="55" width="200" height="80" rx="10" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="630" y="88" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Backend Service</text>
+  <text x="630" y="106" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.85)" text-anchor="middle">OneAgent</text>
+
+  <!-- Server Span label below Backend -->
+  <text x="630" y="155" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">Server Span</text>
+  <rect x="580" y="141" width="100" height="20" rx="4" fill="none" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Grail box spanning width -->
+  <rect x="60" y="180" width="670" height="60" rx="10" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="395" y="206" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Grail</text>
+  <text x="395" y="226" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)" text-anchor="middle">trace.id links frontend &#x2194; backend</text>
+
+  <!-- Dotted lines from Mobile App down to Grail -->
+  <line x1="160" y1="135" x2="160" y2="180" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Dotted lines from Backend down to Grail -->
+  <line x1="630" y1="135" x2="630" y2="180" stroke="#1496ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Legend bar -->
+  <rect x="40" y="258" width="720" height="48" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="278" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">Dynatrace propagates trace context via x-dtc headers to correlate mobile requests with backend spans.</text>
+  <circle cx="100" cy="295" r="6" fill="#6366f1"/>
+  <text x="115" y="299" font-family="Arial, sans-serif" font-size="10" fill="#333">Mobile App</text>
+  <circle cx="220" cy="295" r="6" fill="#1496ff"/>
+  <text x="235" y="299" font-family="Arial, sans-serif" font-size="10" fill="#333">Backend</text>
+  <circle cx="320" cy="295" r="6" fill="#22c55e"/>
+  <text x="335" y="299" font-family="Arial, sans-serif" font-size="10" fill="#333">Grail Storage</text>
+  <circle cx="440" cy="295" r="6" fill="#64748b"/>
+  <text x="455" y="299" font-family="Arial, sans-serif" font-size="10" fill="#333">Data flow</text>
+</svg>

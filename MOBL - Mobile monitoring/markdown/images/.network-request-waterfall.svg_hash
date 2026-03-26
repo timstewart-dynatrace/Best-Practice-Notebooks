@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1496ff"/>
+      <stop offset="100%" stop-color="#0a64bc"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="350" rx="12" ry="12" fill="#f8f9fa"/>
+
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e293b">Network Request Timing Breakdown</text>
+
+  <!-- Column headers -->
+  <text x="130" y="62" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#64748b">Phase</text>
+  <text x="155" y="62" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#64748b">Timeline</text>
+
+  <!-- Vertical separator -->
+  <line x1="140" y1="50" x2="140" y2="270" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Timeline axis ticks -->
+  <line x1="155" y1="68" x2="155" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="155" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">0ms</text>
+  <line x1="285" y1="68" x2="285" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="285" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">50ms</text>
+  <line x1="415" y1="68" x2="415" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="415" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">100ms</text>
+  <line x1="545" y1="68" x2="545" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="545" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">150ms</text>
+  <line x1="675" y1="68" x2="675" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="675" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">200ms</text>
+
+  <!-- Row 1: DNS Lookup -->
+  <text x="130" y="90" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">DNS Lookup</text>
+  <rect x="155" y="77" width="52" height="20" rx="4" ry="4" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="181" y="91" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">20ms</text>
+
+  <!-- Row 2: TCP Connect -->
+  <text x="130" y="122" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">TCP Connect</text>
+  <rect x="207" y="109" width="78" height="20" rx="4" ry="4" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="246" y="123" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">30ms</text>
+
+  <!-- Row 3: TLS Handshake -->
+  <text x="130" y="154" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">TLS Handshake</text>
+  <rect x="285" y="141" width="104" height="20" rx="4" ry="4" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="337" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">40ms</text>
+
+  <!-- Row 4: Request Sent -->
+  <text x="130" y="186" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">Request Sent</text>
+  <rect x="389" y="173" width="39" height="20" rx="4" ry="4" fill="url(#orangeGrad)" filter="url(#shadow)"/>
+  <text x="408" y="187" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">15ms</text>
+
+  <!-- Row 5: Waiting (TTFB) -->
+  <text x="130" y="218" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">Waiting (TTFB)</text>
+  <rect x="428" y="205" width="156" height="20" rx="4" ry="4" fill="url(#redGrad)" filter="url(#shadow)"/>
+  <text x="506" y="219" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">60ms -- Biggest bottleneck</text>
+
+  <!-- Row 6: Response Received -->
+  <text x="130" y="250" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#334155">Response Received</text>
+  <rect x="584" y="237" width="91" height="20" rx="4" ry="4" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="629" y="251" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ffffff">35ms</text>
+
+  <!-- Total duration line -->
+  <line x1="155" y1="268" x2="675" y2="268" stroke="#334155" stroke-width="2"/>
+  <line x1="155" y1="264" x2="155" y2="272" stroke="#334155" stroke-width="2"/>
+  <line x1="675" y1="264" x2="675" y2="272" stroke="#334155" stroke-width="2"/>
+  <text x="415" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#334155">Total Duration: 200ms</text>
+
+  <!-- Legend bar -->
+  <rect x="0" y="305" width="800" height="45" rx="0" ry="0" fill="#e2e8f0"/>
+  <rect x="0" y="338" width="800" height="12" rx="0" ry="12" fill="#e2e8f0"/>
+  <text x="400" y="333" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">Each phase of a network request is measurable. TTFB is often the largest contributor to latency.</text>
+</svg>

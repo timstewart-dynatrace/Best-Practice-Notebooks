@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 400">
+  <defs>
+    <linearGradient id="bgGradS2D4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="splunkAlertGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#65a30d"/>
+      <stop offset="100%" style="stop-color:#4d7c0f"/>
+    </linearGradient>
+    <linearGradient id="dtAlertGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <filter id="shadowS2D4" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradS2D4)"/>
+
+  <!-- Title -->
+  <text x="350" y="28" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Splunk vs Dynatrace Alerting</text>
+
+  <!-- Splunk Section -->
+  <rect x="30" y="50" width="300" height="160" rx="10" fill="url(#splunkAlertGrad)" filter="url(#shadowS2D4)"/>
+  <text x="180" y="75" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Splunk: Scheduled Queries</text>
+
+  <!-- Splunk Timeline -->
+  <rect x="50" y="95" width="260" height="50" rx="6" fill="#1e293b"/>
+  <line x1="60" y1="120" x2="300" y2="120" stroke="#475569" stroke-width="2"/>
+
+  <!-- Scheduled query points -->
+  <circle cx="80" cy="120" r="6" fill="#a3e635"/>
+  <text x="80" y="145" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8">5m</text>
+
+  <circle cx="140" cy="120" r="6" fill="#a3e635"/>
+  <text x="140" y="145" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8">10m</text>
+
+  <circle cx="200" cy="120" r="6" fill="#a3e635"/>
+  <text x="200" y="145" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8">15m</text>
+
+  <circle cx="260" cy="120" r="6" fill="#ef4444"/>
+  <text x="260" y="145" text-anchor="middle" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="8">Alert!</text>
+
+  <!-- Splunk description -->
+  <text x="180" y="175" text-anchor="middle" fill="#d9f99d" font-family="system-ui, sans-serif" font-size="10">Runs every 5 min, evaluates 15 min window</text>
+  <text x="180" y="190" text-anchor="middle" fill="#d9f99d" font-family="system-ui, sans-serif" font-size="10">Threshold: count > 60 in window</text>
+
+  <!-- Dynatrace Section -->
+  <rect x="370" y="50" width="300" height="160" rx="10" fill="url(#dtAlertGrad)" filter="url(#shadowS2D4)"/>
+  <text x="520" y="75" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Dynatrace: Continuous Monitoring</text>
+
+  <!-- Dynatrace Timeline -->
+  <rect x="390" y="95" width="260" height="50" rx="6" fill="#1e293b"/>
+  <line x1="400" y1="120" x2="640" y2="120" stroke="#475569" stroke-width="2"/>
+
+  <!-- Every minute samples -->
+  <circle cx="410" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="425" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="440" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="455" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="470" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="485" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="500" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="515" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="530" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="545" cy="120" r="4" fill="#818cf8"/>
+  <circle cx="560" cy="120" r="4" fill="#ef4444"/>
+  <circle cx="575" cy="120" r="4" fill="#ef4444"/>
+  <circle cx="590" cy="120" r="4" fill="#ef4444"/>
+  <circle cx="605" cy="120" r="4" fill="#ef4444"/>
+  <circle cx="620" cy="120" r="4" fill="#ef4444"/>
+
+  <text x="520" y="145" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="8">Sliding Window (15m)</text>
+
+  <!-- Dynatrace description -->
+  <text x="520" y="175" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="10">Evaluates every minute</text>
+  <text x="520" y="190" text-anchor="middle" fill="#c7d2fe" font-family="system-ui, sans-serif" font-size="10">Threshold: 3 violating samples of 15</text>
+
+  <!-- Threshold Translation Box -->
+  <rect x="100" y="230" width="500" height="80" rx="10" fill="#1e3a5f" filter="url(#shadowS2D4)"/>
+  <text x="350" y="255" text-anchor="middle" fill="#60a5fa" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Threshold Translation Formula</text>
+  <text x="350" y="285" text-anchor="middle" fill="#f8fafc" font-family="monospace" font-size="14">[Splunk Threshold] = [DT Threshold] × [Violating Samples]</text>
+
+  <!-- Example -->
+  <rect x="100" y="320" width="500" height="65" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="350" y="345" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Example: Splunk threshold of 60 over 15 minutes</text>
+  <text x="350" y="365" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="11">Option A: DT threshold 15 × 4 samples = 60 | Option B: DT threshold 10 × 6 samples = 60</text>
+</svg>

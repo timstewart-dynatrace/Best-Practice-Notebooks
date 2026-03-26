@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dbeafe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bfdbfe;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="350" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Session Properties Architecture</text>
+
+  <!-- ===================== Left: Mobile App (purple) ===================== -->
+  <rect x="30" y="60" width="140" height="90" rx="10" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="100" y="95" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Mobile App</text>
+  <text x="100" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">Dynatrace SDK</text>
+  <text x="100" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">reportValue()</text>
+
+  <!-- Arrow from Mobile App to User Session -->
+  <path d="M170,105 L228,105" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- ===================== Center: User Session (large blue box) ===================== -->
+  <rect x="235" y="48" width="300" height="170" rx="12" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="385" y="72" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">User Session</text>
+
+  <!-- Inner property cards -->
+  <rect x="252" y="82" width="128" height="24" rx="5" fill="rgba(255,255,255,0.2)"/>
+  <text x="316" y="98" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Session ID</text>
+
+  <rect x="390" y="82" width="128" height="24" rx="5" fill="rgba(255,255,255,0.2)"/>
+  <text x="454" y="98" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">User Tag</text>
+
+  <!-- Custom Properties section -->
+  <rect x="252" y="115" width="266" height="90" rx="6" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="385" y="132" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Custom Properties</text>
+
+  <rect x="262" y="140" width="246" height="18" rx="4" fill="rgba(255,255,255,0.12)"/>
+  <text x="385" y="153" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">subscription_tier = "premium"</text>
+
+  <rect x="262" y="162" width="246" height="18" rx="4" fill="rgba(255,255,255,0.12)"/>
+  <text x="385" y="175" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">cart_value = 149.99</text>
+
+  <rect x="262" y="184" width="246" height="18" rx="4" fill="rgba(255,255,255,0.12)"/>
+  <text x="385" y="197" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">ab_test_variant = "checkout_v2"</text>
+
+  <!-- Arrow from User Session to Grail -->
+  <path d="M535,130 L598,130" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- ===================== Right: Grail (green) ===================== -->
+  <rect x="605" y="60" width="160" height="90" rx="10" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="685" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Grail</text>
+  <text x="685" y="115" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">Queryable Storage</text>
+  <text x="685" y="130" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">DQL Access</text>
+
+  <!-- ===================== Below: DQL Query box ===================== -->
+  <rect x="165" y="235" width="460" height="45" rx="8" fill="#1e293b" filter="url(#shadow)"/>
+  <text x="185" y="253" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8">DQL</text>
+  <text x="185" y="270" font-family="monospace, Arial" font-size="11" fill="#a5f3fc">fetch usersessions | filter subscription_tier == "premium"</text>
+
+  <!-- Dotted line from Grail down to DQL box -->
+  <line x1="685" y1="150" x2="685" y2="225" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="685" y1="225" x2="625" y2="257" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Legend bar -->
+  <rect x="40" y="295" width="720" height="42" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="313" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">Custom session properties enrich sessions with business context, enabling powerful DQL segmentation.</text>
+  <circle cx="100" cy="328" r="6" fill="#6366f1"/>
+  <text x="115" y="332" font-family="Arial, sans-serif" font-size="10" fill="#333">Mobile App</text>
+  <circle cx="220" cy="328" r="6" fill="#1496ff"/>
+  <text x="235" y="332" font-family="Arial, sans-serif" font-size="10" fill="#333">User Session</text>
+  <circle cx="350" cy="328" r="6" fill="#22c55e"/>
+  <text x="365" y="332" font-family="Arial, sans-serif" font-size="10" fill="#333">Grail</text>
+  <rect x="430" y="323" width="16" height="10" rx="2" fill="#1e293b"/>
+  <text x="455" y="332" font-family="Arial, sans-serif" font-size="10" fill="#333">DQL Query</text>
+</svg>

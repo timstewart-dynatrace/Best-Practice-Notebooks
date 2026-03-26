@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1496ff"/>
+      <stop offset="100%" stop-color="#0a64bc"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" rx="12" ry="12" fill="#f8f9fa"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Mobile Data Model in Grail</text>
+
+  <!-- Central Grail database -->
+  <g filter="url(#shadow)">
+    <rect x="325" y="145" width="150" height="80" rx="10" fill="url(#greenGrad)"/>
+    <!-- Database icon lines -->
+    <ellipse cx="400" cy="165" rx="40" ry="10" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+    <ellipse cx="400" cy="180" rx="40" ry="10" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+    <ellipse cx="400" cy="195" rx="40" ry="10" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.25"/>
+    <text x="400" y="215" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Grail</text>
+  </g>
+
+  <!-- Box 1: Top-left — dt.entity.device_application (blue) -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="55" width="200" height="60" rx="8" fill="url(#blueGrad)"/>
+    <text x="140" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">dt.entity.device_application</text>
+    <text x="140" y="100" text-anchor="middle" font-size="11" fill="#dbeafe">App entities</text>
+  </g>
+
+  <!-- Box 2: Top-right — bizevents (User Actions) (purple) -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="55" width="200" height="60" rx="8" fill="url(#purpleGrad)"/>
+    <text x="660" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">bizevents (User Actions)</text>
+    <text x="660" y="100" text-anchor="middle" font-size="11" fill="#e0e7ff">Taps, swipes, custom</text>
+  </g>
+
+  <!-- Box 3: Right — bizevents (Sessions) (purple) -->
+  <g filter="url(#shadow)">
+    <rect x="590" y="165" width="180" height="60" rx="8" fill="url(#purpleGrad)"/>
+    <text x="680" y="190" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">bizevents (Sessions)</text>
+    <text x="680" y="210" text-anchor="middle" font-size="11" fill="#e0e7ff">Session containers</text>
+  </g>
+
+  <!-- Box 4: Bottom-right — bizevents (Crashes) (red) -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="270" width="200" height="60" rx="8" fill="url(#redGrad)"/>
+    <text x="660" y="295" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">bizevents (Crashes)</text>
+    <text x="660" y="315" text-anchor="middle" font-size="11" fill="#fecaca">Crash events</text>
+  </g>
+
+  <!-- Box 5: Bottom-left — Metrics (timeseries) (orange) -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="270" width="200" height="60" rx="8" fill="url(#orangeGrad)"/>
+    <text x="140" y="295" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">Metrics (timeseries)</text>
+    <text x="140" y="315" text-anchor="middle" font-size="11" fill="#fed7aa">Performance metrics</text>
+  </g>
+
+  <!-- Connecting lines -->
+  <!-- Box 1 (top-left) to Grail -->
+  <line x1="240" y1="100" x2="330" y2="165" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <!-- Box 2 (top-right) to Grail -->
+  <line x1="560" y1="100" x2="470" y2="165" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <!-- Box 3 (right) to Grail -->
+  <line x1="590" y1="195" x2="475" y2="190" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <!-- Box 4 (bottom-right) to Grail -->
+  <line x1="560" y1="285" x2="470" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <!-- Box 5 (bottom-left) to Grail -->
+  <line x1="240" y1="285" x2="330" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+
+  <!-- Legend bar -->
+  <rect x="40" y="358" width="720" height="30" rx="6" fill="#e2e8f0"/>
+  <text x="400" y="378" text-anchor="middle" font-size="11" fill="#475569">Mobile monitoring data is distributed across entities, business events, and metrics in Grail.</text>
+</svg>

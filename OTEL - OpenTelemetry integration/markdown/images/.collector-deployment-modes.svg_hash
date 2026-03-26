@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420">
+  <defs>
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#334155;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="collectorAgentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="collectorGatewayGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d9488;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0070c9;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowWhite" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#0f172a"/>
+
+  <!-- Title -->
+  <text x="350" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#f1f5f9" text-anchor="middle">Collector Deployment Modes</text>
+
+  <!-- ===== AGENT MODE (LEFT) ===== -->
+  <text x="170" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#f59e0b" text-anchor="middle">Agent Mode (DaemonSet)</text>
+
+  <!-- Node 1 -->
+  <rect x="30" y="65" width="100" height="115" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="80" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 1</text>
+  <!-- App -->
+  <rect x="42" y="93" width="76" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="80" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#fff" text-anchor="middle">Apps</text>
+  <!-- Collector -->
+  <rect x="42" y="130" width="76" height="40" rx="4" fill="url(#collectorAgentGrad)" filter="url(#shadow)"/>
+  <text x="80" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle">Collector</text>
+  <text x="80" y="163" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#fef3c7" text-anchor="middle">Agent</text>
+
+  <!-- Node 2 -->
+  <rect x="145" y="65" width="100" height="115" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="195" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 2</text>
+  <rect x="157" y="93" width="76" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="195" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#fff" text-anchor="middle">Apps</text>
+  <rect x="157" y="130" width="76" height="40" rx="4" fill="url(#collectorAgentGrad)" filter="url(#shadow)"/>
+  <text x="195" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle">Collector</text>
+  <text x="195" y="163" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#fef3c7" text-anchor="middle">Agent</text>
+
+  <!-- Node 3 -->
+  <rect x="260" y="65" width="100" height="115" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="310" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 3</text>
+  <rect x="272" y="93" width="76" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="310" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#fff" text-anchor="middle">Apps</text>
+  <rect x="272" y="130" width="76" height="40" rx="4" fill="url(#collectorAgentGrad)" filter="url(#shadow)"/>
+  <text x="310" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle">Collector</text>
+  <text x="310" y="163" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#fef3c7" text-anchor="middle">Agent</text>
+
+  <!-- Arrows from agents to Dynatrace (Agent Mode) -->
+  <line x1="80" y1="170" x2="80" y2="195" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="195" y1="170" x2="195" y2="195" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="310" y1="170" x2="310" y2="195" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="80" y1="195" x2="170" y2="210" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="195" y1="195" x2="170" y2="210" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="310" y1="195" x2="170" y2="210" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="170" y1="210" x2="170" y2="235" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Dynatrace (Agent Mode) -->
+  <rect x="100" y="240" width="140" height="40" rx="6" fill="url(#dtGrad)" filter="url(#shadow)"/>
+  <text x="170" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">Dynatrace</text>
+
+  <!-- Agent mode characteristics -->
+  <rect x="30" y="295" width="330" height="70" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="45" y="315" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#f59e0b">Agent Mode Characteristics:</text>
+  <text x="45" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Collector on every node (DaemonSet)</text>
+  <text x="45" y="347" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Local processing, lower network hops</text>
+  <text x="45" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Best for: host metrics, local log collection</text>
+
+  <!-- ===== GATEWAY MODE (RIGHT) ===== -->
+  <text x="530" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#14b8a6" text-anchor="middle">Gateway Mode</text>
+
+  <!-- Node 1 (Gateway) -->
+  <rect x="390" y="65" width="100" height="70" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="440" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 1</text>
+  <rect x="402" y="93" width="76" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="440" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#fff" text-anchor="middle">Apps + SDK</text>
+
+  <!-- Node 2 (Gateway) -->
+  <rect x="505" y="65" width="100" height="70" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="555" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 2</text>
+  <rect x="517" y="93" width="76" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="555" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#fff" text-anchor="middle">Apps + SDK</text>
+
+  <!-- Node 3 (Gateway) -->
+  <rect x="620" y="65" width="60" height="70" rx="6" fill="url(#nodeGrad)" stroke="#475569" stroke-width="1"/>
+  <text x="650" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Node 3</text>
+  <rect x="627" y="93" width="46" height="30" rx="4" fill="url(#appGrad)"/>
+  <text x="650" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#fff" text-anchor="middle">Apps</text>
+
+  <!-- Arrows from nodes to gateway -->
+  <line x1="440" y1="135" x2="440" y2="155" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="555" y1="135" x2="555" y2="155" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="650" y1="135" x2="650" y2="155" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="440" y1="155" x2="530" y2="170" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="555" y1="155" x2="530" y2="170" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="650" y1="155" x2="530" y2="170" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="530" y1="170" x2="530" y2="180" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Gateway Collector -->
+  <rect x="450" y="185" width="160" height="50" rx="8" fill="url(#collectorGatewayGrad)" filter="url(#shadow)"/>
+  <text x="530" y="210" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">Gateway Collector</text>
+  <text x="530" y="225" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#99f6e4" text-anchor="middle">Deployment (2+ replicas)</text>
+
+  <!-- Arrow to Dynatrace -->
+  <line x1="530" y1="235" x2="530" y2="255" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Dynatrace (Gateway Mode) -->
+  <rect x="460" y="260" width="140" height="40" rx="6" fill="url(#dtGrad)" filter="url(#shadow)"/>
+  <text x="530" y="285" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">Dynatrace</text>
+
+  <!-- Gateway mode characteristics -->
+  <rect x="390" y="315" width="290" height="85" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="405" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#14b8a6">Gateway Mode Characteristics:</text>
+  <text x="405" y="352" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Centralized collector (Deployment)</text>
+  <text x="405" y="367" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Easier management, fewer connections</text>
+  <text x="405" y="382" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#94a3b8">• Best for: SDK export, centralized processing</text>
+
+  <!-- Divider -->
+  <line x1="375" y1="45" x2="375" y2="405" stroke="#334155" stroke-width="1" stroke-dasharray="5,5"/>
+</svg>

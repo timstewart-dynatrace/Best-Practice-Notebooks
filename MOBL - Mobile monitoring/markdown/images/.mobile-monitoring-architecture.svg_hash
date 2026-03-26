@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="320" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Mobile Monitoring Architecture</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">End-to-end data path from mobile device to Dynatrace analysis</text>
+
+  <!-- Box 1: Mobile Device -->
+  <rect x="20" y="75" width="120" height="80" rx="10" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="80" y="108" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Mobile</text>
+  <text x="80" y="124" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Device</text>
+  <text x="80" y="175" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">SDK captures</text>
+  <text x="80" y="187" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">actions</text>
+
+  <!-- Arrow 1 -->
+  <path d="M140,115 L175,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Box 2: Beacon Endpoint -->
+  <rect x="180" y="75" width="120" height="80" rx="10" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="240" y="108" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Beacon</text>
+  <text x="240" y="124" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Endpoint</text>
+  <text x="240" y="175" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">HTTPS</text>
+  <text x="240" y="187" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">beacons</text>
+
+  <!-- Arrow 2 -->
+  <path d="M300,115 L335,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Box 3: Cluster / ActiveGate -->
+  <rect x="340" y="75" width="120" height="80" rx="10" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="400" y="103" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Cluster /</text>
+  <text x="400" y="119" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">ActiveGate</text>
+  <text x="400" y="175" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">Processing &amp;</text>
+  <text x="400" y="187" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">enrichment</text>
+
+  <!-- Arrow 3 -->
+  <path d="M460,115 L495,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Box 4: Grail Storage -->
+  <rect x="500" y="75" width="120" height="80" rx="10" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="560" y="108" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Grail</text>
+  <text x="560" y="124" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Storage</text>
+  <text x="560" y="175" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">Queryable</text>
+  <text x="560" y="187" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">storage</text>
+
+  <!-- Arrow 4 -->
+  <path d="M620,115 L655,115" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Box 5: Dynatrace UI -->
+  <rect x="660" y="75" width="120" height="80" rx="10" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="720" y="108" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Dynatrace</text>
+  <text x="720" y="124" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">UI</text>
+  <text x="720" y="175" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">Dashboards &amp;</text>
+  <text x="720" y="187" font-family="Arial, sans-serif" font-size="10" fill="#555" text-anchor="middle">notebooks</text>
+
+  <!-- Step numbers -->
+  <circle cx="80" cy="65" r="10" fill="#6366f1"/>
+  <text x="80" y="69" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">1</text>
+  <circle cx="240" cy="65" r="10" fill="#1496ff"/>
+  <text x="240" y="69" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">2</text>
+  <circle cx="400" cy="65" r="10" fill="#1496ff"/>
+  <text x="400" y="69" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">3</text>
+  <circle cx="560" cy="65" r="10" fill="#22c55e"/>
+  <text x="560" y="69" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">4</text>
+  <circle cx="720" cy="65" r="10" fill="#6366f1"/>
+  <text x="720" y="69" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">5</text>
+
+  <!-- Connecting baseline -->
+  <line x1="20" y1="210" x2="780" y2="210" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Phase labels -->
+  <text x="80" y="230" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Capture</text>
+  <text x="240" y="230" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Transport</text>
+  <text x="400" y="230" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Process</text>
+  <text x="560" y="230" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Store</text>
+  <text x="720" y="230" font-family="Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Analyze</text>
+
+  <!-- Legend bar -->
+  <rect x="40" y="255" width="720" height="50" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="275" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">Dynatrace Mobile RUM captures real user interactions and delivers them to Grail for analysis.</text>
+  <circle cx="80" cy="293" r="6" fill="#6366f1"/>
+  <text x="95" y="297" font-family="Arial, sans-serif" font-size="10" fill="#333">Mobile / UI</text>
+  <circle cx="200" cy="293" r="6" fill="#1496ff"/>
+  <text x="215" y="297" font-family="Arial, sans-serif" font-size="10" fill="#333">Processing</text>
+  <circle cx="320" cy="293" r="6" fill="#22c55e"/>
+  <text x="335" y="297" font-family="Arial, sans-serif" font-size="10" fill="#333">Storage</text>
+  <circle cx="420" cy="293" r="6" fill="#64748b"/>
+  <text x="435" y="297" font-family="Arial, sans-serif" font-size="10" fill="#333">Data flow</text>
+</svg>

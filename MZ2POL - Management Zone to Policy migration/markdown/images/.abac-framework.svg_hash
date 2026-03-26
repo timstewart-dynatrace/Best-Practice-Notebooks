@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380">
+  <defs>
+    <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="groupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="policyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="boundaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="segmentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <filter id="abacShadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <marker id="abacArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="380" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">ABAC Framework - Permission Flow</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">User → Group → Policy (+ Boundary) → Permission | Segment → Filtered Data</text>
+
+  <!-- User -->
+  <rect x="30" y="100" width="100" height="70" rx="8" fill="url(#userGrad)" filter="url(#abacShadow)"/>
+  <text x="80" y="130" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">User</text>
+  <text x="80" y="148" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Identity</text>
+  <text x="80" y="160" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">(SAML/SSO)</text>
+
+  <!-- Arrow User to Group -->
+  <path d="M130,135 L170,135" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#abacArrow)"/>
+
+  <!-- Group -->
+  <rect x="180" y="100" width="100" height="70" rx="8" fill="url(#groupGrad)" filter="url(#abacShadow)"/>
+  <text x="230" y="130" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Group</text>
+  <text x="230" y="148" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Collection of</text>
+  <text x="230" y="160" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">users (AD/SAML)</text>
+
+  <!-- Arrow Group to Policy -->
+  <path d="M280,135 L320,135" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#abacArrow)"/>
+
+  <!-- Policy -->
+  <rect x="330" y="80" width="120" height="90" rx="8" fill="url(#policyGrad)" filter="url(#abacShadow)"/>
+  <text x="390" y="110" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Policy</text>
+  <text x="390" y="128" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">WHAT actions</text>
+  <text x="390" y="142" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">are allowed</text>
+  <text x="390" y="160" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">ALLOW logs:read</text>
+
+  <!-- Boundary (connected to Policy) -->
+  <rect x="330" y="185" width="120" height="70" rx="8" fill="url(#boundaryGrad)" filter="url(#abacShadow)"/>
+  <text x="390" y="212" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Boundary</text>
+  <text x="390" y="230" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">WHERE policy</text>
+  <text x="390" y="244" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">applies (scope)</text>
+
+  <!-- Connection line Policy to Boundary -->
+  <line x1="390" y1="170" x2="390" y2="185" stroke="#64748b" stroke-width="2" stroke-dasharray="4,2"/>
+  <text x="395" y="180" font-family="Arial, sans-serif" font-size="10" fill="#64748b">+</text>
+
+  <!-- Arrow Policy to Permission -->
+  <path d="M450,125 L510,125" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#abacArrow)"/>
+
+  <!-- Permission Result -->
+  <rect x="520" y="100" width="120" height="70" rx="8" fill="#1e293b" filter="url(#abacShadow)"/>
+  <text x="580" y="128" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#22c55e" text-anchor="middle">Permission</text>
+  <text x="580" y="148" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Access Granted</text>
+  <text x="580" y="160" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">(scoped by boundary)</text>
+
+  <!-- Segment (separate track) -->
+  <rect x="520" y="200" width="120" height="70" rx="8" fill="url(#segmentGrad)" filter="url(#abacShadow)"/>
+  <text x="580" y="228" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Segment</text>
+  <text x="580" y="246" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">DQL filter for</text>
+  <text x="580" y="260" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">data visibility</text>
+
+  <!-- Arrow to Data -->
+  <path d="M640,135 L680,165" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#abacArrow)"/>
+  <path d="M640,235 L680,205" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#abacArrow)"/>
+
+  <!-- Filtered Data -->
+  <rect x="690" y="160" width="90" height="60" rx="8" fill="url(#dataGrad)" filter="url(#abacShadow)"/>
+  <text x="735" y="185" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Filtered</text>
+  <text x="735" y="200" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">Data</text>
+
+  <!-- Legend -->
+  <rect x="30" y="290" width="740" height="75" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="312" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Component Responsibilities</text>
+
+  <rect x="50" y="325" width="12" height="12" rx="2" fill="url(#groupGrad)"/>
+  <text x="70" y="335" font-family="Arial, sans-serif" font-size="10" fill="#333">Groups: Organize users</text>
+
+  <rect x="200" y="325" width="12" height="12" rx="2" fill="url(#policyGrad)"/>
+  <text x="220" y="335" font-family="Arial, sans-serif" font-size="10" fill="#333">Policies: Define permissions</text>
+
+  <rect x="380" y="325" width="12" height="12" rx="2" fill="url(#boundaryGrad)"/>
+  <text x="400" y="335" font-family="Arial, sans-serif" font-size="10" fill="#333">Boundaries: Restrict scope</text>
+
+  <rect x="560" y="325" width="12" height="12" rx="2" fill="url(#segmentGrad)"/>
+  <text x="580" y="335" font-family="Arial, sans-serif" font-size="10" fill="#333">Segments: Filter data (DQL)</text>
+</svg>

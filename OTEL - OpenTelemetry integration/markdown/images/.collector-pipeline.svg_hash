@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380">
+  <defs>
+    <linearGradient id="collectorBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="receiverGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="processorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="exporterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="extensionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="destGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0070c9;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowWhite" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f8fafc"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#0f172a"/>
+
+  <!-- Title -->
+  <text x="350" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#f1f5f9" text-anchor="middle">OpenTelemetry Collector Pipeline</text>
+
+  <!-- Collector Container -->
+  <rect x="40" y="50" width="620" height="240" rx="12" fill="url(#collectorBg)" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <text x="350" y="75" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#f59e0b" text-anchor="middle">OpenTelemetry Collector</text>
+
+  <!-- Receivers -->
+  <rect x="70" y="95" width="140" height="135" rx="8" fill="url(#receiverGrad)" filter="url(#shadow)"/>
+  <text x="140" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#fff" text-anchor="middle">Receivers</text>
+  <text x="85" y="145" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#dcfce7">• OTLP</text>
+  <text x="85" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#dcfce7">• Jaeger</text>
+  <text x="85" y="179" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#dcfce7">• Prometheus</text>
+  <text x="85" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#dcfce7">• Zipkin</text>
+  <text x="85" y="213" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#dcfce7">• Filelog</text>
+
+  <!-- Arrow R to P -->
+  <line x1="210" y1="162" x2="248" y2="162" stroke="#f8fafc" stroke-width="3" marker-end="url(#arrowWhite)"/>
+
+  <!-- Processors -->
+  <rect x="260" y="95" width="160" height="135" rx="8" fill="url(#processorGrad)" filter="url(#shadow)"/>
+  <text x="340" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#fff" text-anchor="middle">Processors</text>
+  <text x="275" y="145" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#fef3c7">• batch</text>
+  <text x="275" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#fef3c7">• memory_limiter</text>
+  <text x="275" y="179" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#fef3c7">• filter</text>
+  <text x="275" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#fef3c7">• attributes</text>
+  <text x="275" y="213" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#fef3c7">• k8sattributes</text>
+
+  <!-- Arrow P to E -->
+  <line x1="420" y1="162" x2="458" y2="162" stroke="#f8fafc" stroke-width="3" marker-end="url(#arrowWhite)"/>
+
+  <!-- Exporters -->
+  <rect x="470" y="95" width="140" height="135" rx="8" fill="url(#exporterGrad)" filter="url(#shadow)"/>
+  <text x="540" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#fff" text-anchor="middle">Exporters</text>
+  <text x="485" y="145" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#c7d2fe">• otlphttp</text>
+  <text x="485" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#c7d2fe">• otlp</text>
+  <text x="485" y="179" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#c7d2fe">• debug</text>
+  <text x="485" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#c7d2fe">• prometheus</text>
+
+  <!-- Extensions -->
+  <rect x="70" y="245" width="540" height="35" rx="6" fill="url(#extensionGrad)" filter="url(#shadow)"/>
+  <text x="340" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Extensions: health_check, pprof, zpages</text>
+
+  <!-- Destinations -->
+  <rect x="530" y="305" width="130" height="60" rx="8" fill="url(#destGrad)" filter="url(#shadow)"/>
+  <text x="595" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#fff" text-anchor="middle">Dynatrace</text>
+  <text x="595" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#bfdbfe" text-anchor="middle">OTLP Ingest</text>
+
+  <!-- Debug destination -->
+  <rect x="370" y="305" width="100" height="60" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="420" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#94a3b8" text-anchor="middle">Console</text>
+  <text x="420" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b" text-anchor="middle">Debug output</text>
+
+  <!-- Arrows to destinations -->
+  <line x1="540" y1="230" x2="540" y2="260" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="540" y1="260" x2="595" y2="300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowWhite)"/>
+  <line x1="540" y1="260" x2="420" y2="300" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowWhite)"/>
+
+  <!-- Pipeline label -->
+  <text x="340" y="87" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">traces / metrics / logs pipeline</text>
+</svg>

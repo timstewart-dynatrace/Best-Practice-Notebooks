@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340">
+  <defs>
+    <linearGradient id="p1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p4Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d9488;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p5Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p6Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="p7Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="flowShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="flowArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="720" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="360" y="28" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">MZ to Policy Migration Flow</text>
+
+  <!-- === ROW 1: Phases 1-4 === -->
+  <!-- Box dimensions: 145w x 50h, spacing 20px between boxes, arrow in the gap -->
+
+  <!-- Phase 1: Foundation Setup -->
+  <rect x="20" y="55" width="145" height="50" rx="8" fill="url(#p1Grad)" filter="url(#flowShadow)"/>
+  <circle cx="143" cy="69" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="143" y="73" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">1</text>
+  <text x="32" y="73" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 1</text>
+  <text x="32" y="90" font-family="Arial, sans-serif" font-size="11" fill="white">Foundation Setup</text>
+
+  <!-- Arrow 1-2 -->
+  <line x1="165" y1="80" x2="183" y2="80" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Phase 2: Security Context Assignment -->
+  <rect x="190" y="55" width="145" height="50" rx="8" fill="url(#p2Grad)" filter="url(#flowShadow)"/>
+  <circle cx="313" cy="69" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="313" y="73" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">2</text>
+  <text x="202" y="73" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 2</text>
+  <text x="202" y="90" font-family="Arial, sans-serif" font-size="11" fill="white">Security Context</text>
+
+  <!-- Arrow 2-3 -->
+  <line x1="335" y1="80" x2="353" y2="80" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Phase 3: Policy & Boundary Configuration -->
+  <rect x="360" y="55" width="145" height="50" rx="8" fill="url(#p3Grad)" filter="url(#flowShadow)"/>
+  <circle cx="483" cy="69" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="483" y="73" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">3</text>
+  <text x="372" y="73" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 3</text>
+  <text x="372" y="90" font-family="Arial, sans-serif" font-size="11" fill="white">Policy &amp; Boundaries</text>
+
+  <!-- Arrow 3-4 -->
+  <line x1="505" y1="80" x2="523" y2="80" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Phase 4: Segment Creation -->
+  <rect x="530" y="55" width="145" height="50" rx="8" fill="url(#p4Grad)" filter="url(#flowShadow)"/>
+  <circle cx="653" cy="69" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="653" y="73" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">4</text>
+  <text x="542" y="73" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 4</text>
+  <text x="542" y="90" font-family="Arial, sans-serif" font-size="11" fill="white">Segment Creation</text>
+
+  <!-- === Connecting arrow from Row 1 to Row 2 === -->
+  <!-- Vertical drop from Phase 4 down, then horizontal left to Phase 5 -->
+  <polyline points="602,105 602,140 205,140 205,165" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- === ROW 2: Phases 5-7 + Success === -->
+
+  <!-- Phase 5: Parallel Running -->
+  <rect x="130" y="170" width="155" height="50" rx="8" fill="url(#p5Grad)" filter="url(#flowShadow)"/>
+  <circle cx="263" cy="184" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="263" y="188" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">5</text>
+  <text x="142" y="188" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 5</text>
+  <text x="142" y="205" font-family="Arial, sans-serif" font-size="11" fill="white">Parallel Running</text>
+
+  <!-- Arrow 5-6 -->
+  <line x1="285" y1="195" x2="308" y2="195" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Phase 6: Cutover -->
+  <rect x="315" y="170" width="155" height="50" rx="8" fill="url(#p6Grad)" filter="url(#flowShadow)"/>
+  <circle cx="448" cy="184" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="448" y="188" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">6</text>
+  <text x="327" y="188" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 6</text>
+  <text x="327" y="205" font-family="Arial, sans-serif" font-size="11" fill="white">Cutover</text>
+
+  <!-- Arrow 6-7 -->
+  <line x1="470" y1="195" x2="493" y2="195" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Phase 7: Cleanup -->
+  <rect x="500" y="170" width="155" height="50" rx="8" fill="url(#p7Grad)" filter="url(#flowShadow)"/>
+  <circle cx="633" cy="184" r="12" fill="rgba(255,255,255,0.2)"/>
+  <text x="633" y="188" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">7</text>
+  <text x="512" y="188" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Phase 7</text>
+  <text x="512" y="205" font-family="Arial, sans-serif" font-size="11" fill="white">Cleanup</text>
+
+  <!-- Arrow to success -->
+  <line x1="577" y1="220" x2="577" y2="240" stroke="#64748b" stroke-width="2" marker-end="url(#flowArrow)"/>
+
+  <!-- Success indicator -->
+  <circle cx="577" cy="255" r="10" fill="#22c55e"/>
+  <text x="577" y="259" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">&#x2713;</text>
+
+  <!-- Phase detail labels (subtitle row below diagram) -->
+  <rect x="60" y="285" width="600" height="40" rx="6" fill="#e2e8f0" opacity="0.6"/>
+  <text x="360" y="303" font-family="Arial, sans-serif" font-size="10" fill="#475569" text-anchor="middle">
+    Foundation &#x2192; Security Context &#x2192; Policies &#x2192; Segments &#x2192; Parallel Run &#x2192; Cutover &#x2192; Cleanup
+  </text>
+  <text x="360" y="318" font-family="Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">MZ + New Model coexist during Phase 5, enabling safe rollback before final cutover</text>
+</svg>

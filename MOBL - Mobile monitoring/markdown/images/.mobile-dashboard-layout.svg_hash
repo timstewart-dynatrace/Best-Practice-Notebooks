@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1496ff"/>
+      <stop offset="100%" stop-color="#0a64bc"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="multiGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1496ff"/>
+      <stop offset="33%" stop-color="#6366f1"/>
+      <stop offset="66%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" rx="12" ry="12" fill="#f8f9fa"/>
+
+  <!-- Title -->
+  <text x="400" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Mobile KPI Dashboard Layout</text>
+
+  <!-- Row 1: Three KPI tiles -->
+  <!-- Tile 1: Crash-Free Rate (green) -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="50" width="235" height="80" rx="8" fill="url(#greenGrad)"/>
+    <text x="147" y="74" text-anchor="middle" font-size="11" font-weight="bold" fill="#dcfce7">Crash-Free Rate</text>
+    <text x="147" y="112" text-anchor="middle" font-size="32" font-weight="bold" fill="#fff">99.2%</text>
+  </g>
+
+  <!-- Tile 2: Active Sessions (blue) -->
+  <g filter="url(#shadow)">
+    <rect x="282" y="50" width="235" height="80" rx="8" fill="url(#blueGrad)"/>
+    <text x="399" y="74" text-anchor="middle" font-size="11" font-weight="bold" fill="#dbeafe">Active Sessions</text>
+    <text x="399" y="112" text-anchor="middle" font-size="32" font-weight="bold" fill="#fff">12.4K</text>
+  </g>
+
+  <!-- Tile 3: Avg Launch Time (orange) -->
+  <g filter="url(#shadow)">
+    <rect x="534" y="50" width="235" height="80" rx="8" fill="url(#orangeGrad)"/>
+    <text x="651" y="74" text-anchor="middle" font-size="11" font-weight="bold" fill="#fed7aa">Avg Launch Time</text>
+    <text x="651" y="112" text-anchor="middle" font-size="32" font-weight="bold" fill="#fff">1.8s</text>
+  </g>
+
+  <!-- Row 2: Two chart tiles -->
+  <!-- Tile 4: Crash Trend (timeseries, blue) -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="148" width="365" height="100" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+    <rect x="30" y="148" width="365" height="24" rx="8" fill="url(#blueGrad)"/>
+    <rect x="30" y="160" width="365" height="12" fill="url(#blueGrad)"/>
+    <text x="212" y="165" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Crash Trend</text>
+    <!-- Mini timeseries chart -->
+    <polyline points="55,230 100,225 145,220 190,226 235,210 280,215 325,208 370,212"
+              fill="none" stroke="#0a64bc" stroke-width="2"/>
+    <line x1="55" y1="235" x2="370" y2="235" stroke="#cbd5e1" stroke-width="1"/>
+    <text x="55" y="244" font-size="9" fill="#94a3b8">Mon</text>
+    <text x="145" y="244" font-size="9" fill="#94a3b8">Wed</text>
+    <text x="235" y="244" font-size="9" fill="#94a3b8">Fri</text>
+    <text x="325" y="244" font-size="9" fill="#94a3b8">Sun</text>
+  </g>
+
+  <!-- Tile 5: Session Volume (timeseries, purple) -->
+  <g filter="url(#shadow)">
+    <rect x="412" y="148" width="357" height="100" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+    <rect x="412" y="148" width="357" height="24" rx="8" fill="url(#purpleGrad)"/>
+    <rect x="412" y="160" width="357" height="12" fill="url(#purpleGrad)"/>
+    <text x="590" y="165" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Session Volume</text>
+    <!-- Mini bar chart -->
+    <rect x="440" y="200" width="28" height="38" rx="2" fill="#6366f1" opacity="0.7"/>
+    <rect x="478" y="190" width="28" height="48" rx="2" fill="#6366f1" opacity="0.8"/>
+    <rect x="516" y="195" width="28" height="43" rx="2" fill="#6366f1" opacity="0.75"/>
+    <rect x="554" y="185" width="28" height="53" rx="2" fill="#6366f1" opacity="0.85"/>
+    <rect x="592" y="192" width="28" height="46" rx="2" fill="#6366f1" opacity="0.78"/>
+    <rect x="630" y="198" width="28" height="40" rx="2" fill="#6366f1" opacity="0.72"/>
+    <rect x="668" y="182" width="28" height="56" rx="2" fill="#6366f1" opacity="0.9"/>
+    <rect x="706" y="188" width="28" height="50" rx="2" fill="#6366f1" opacity="0.82"/>
+    <line x1="440" y1="238" x2="734" y2="238" stroke="#cbd5e1" stroke-width="1"/>
+  </g>
+
+  <!-- Row 3: Two detail tiles -->
+  <!-- Tile 6: Top Crashes (table, red header) -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="266" width="365" height="96" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+    <rect x="30" y="266" width="365" height="24" rx="8" fill="url(#redGrad)"/>
+    <rect x="30" y="278" width="365" height="12" fill="url(#redGrad)"/>
+    <text x="212" y="283" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">Top Crashes</text>
+    <!-- Table rows -->
+    <line x1="42" y1="305" x2="383" y2="305" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="48" y="302" font-size="10" font-weight="bold" fill="#64748b">Crash Group</text>
+    <text x="280" y="302" font-size="10" font-weight="bold" fill="#64748b">Count</text>
+    <text x="345" y="302" font-size="10" font-weight="bold" fill="#64748b">Users</text>
+    <text x="48" y="320" font-size="10" fill="#334155">NullPointerException</text>
+    <text x="290" y="320" font-size="10" fill="#334155">342</text>
+    <text x="352" y="320" font-size="10" fill="#334155">128</text>
+    <line x1="42" y1="326" x2="383" y2="326" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="48" y="340" font-size="10" fill="#334155">OutOfMemoryError</text>
+    <text x="290" y="340" font-size="10" fill="#334155">187</text>
+    <text x="352" y="340" font-size="10" fill="#334155">95</text>
+    <line x1="42" y1="346" x2="383" y2="346" stroke="#f1f5f9" stroke-width="1"/>
+    <text x="48" y="358" font-size="10" fill="#334155">ANR: main thread</text>
+    <text x="290" y="358" font-size="10" fill="#334155">76</text>
+    <text x="352" y="358" font-size="10" fill="#334155">54</text>
+  </g>
+
+  <!-- Tile 7: OS Distribution (pie chart, multi-color) -->
+  <g filter="url(#shadow)">
+    <rect x="412" y="266" width="357" height="96" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+    <rect x="412" y="266" width="357" height="24" rx="8" fill="#475569"/>
+    <rect x="412" y="278" width="357" height="12" fill="#475569"/>
+    <text x="590" y="283" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">OS Distribution</text>
+    <!-- Pie chart approximation -->
+    <circle cx="510" cy="330" r="28" fill="none" stroke="#1496ff" stroke-width="16" stroke-dasharray="110 66" stroke-dashoffset="0"/>
+    <circle cx="510" cy="330" r="28" fill="none" stroke="#22c55e" stroke-width="16" stroke-dasharray="44 132" stroke-dashoffset="-110"/>
+    <circle cx="510" cy="330" r="28" fill="none" stroke="#f97316" stroke-width="16" stroke-dasharray="22 154" stroke-dashoffset="-154"/>
+    <!-- Legend items -->
+    <rect x="570" y="306" width="10" height="10" rx="2" fill="#1496ff"/>
+    <text x="586" y="315" font-size="10" fill="#334155">iOS (62%)</text>
+    <rect x="570" y="324" width="10" height="10" rx="2" fill="#22c55e"/>
+    <text x="586" y="333" font-size="10" fill="#334155">Android (25%)</text>
+    <rect x="570" y="342" width="10" height="10" rx="2" fill="#f97316"/>
+    <text x="586" y="351" font-size="10" fill="#334155">Other (13%)</text>
+  </g>
+
+  <!-- Legend bar -->
+  <rect x="30" y="374" width="740" height="22" rx="6" fill="#e2e8f0"/>
+  <text x="400" y="389" text-anchor="middle" font-size="10" fill="#475569">A well-designed mobile dashboard provides at-a-glance health, trends, and drill-down capability.</text>
+</svg>

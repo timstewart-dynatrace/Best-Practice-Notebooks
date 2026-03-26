@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <linearGradient id="aPurpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aGreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aOrangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <filter id="aShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="aArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Android Gradle Plugin Integration</text>
+  <text x="400" y="46" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Build-time bytecode instrumentation for zero-code Android monitoring</text>
+
+  <!-- Column 1: Android App -->
+  <rect x="30" y="65" width="170" height="250" rx="10" fill="#fff" stroke="#6366f1" stroke-width="2" filter="url(#aShadow)"/>
+  <rect x="30" y="65" width="170" height="32" rx="10" fill="url(#aPurpleGrad)"/>
+  <rect x="30" y="89" width="170" height="8" fill="url(#aPurpleGrad)"/>
+  <text x="115" y="87" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Android App</text>
+
+  <!-- Android App sub-items -->
+  <rect x="48" y="110" width="134" height="55" rx="6" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="115" y="133" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#5b21b6" text-anchor="middle">build.gradle.kts</text>
+  <text x="115" y="153" font-family="Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">Plugin declaration</text>
+
+  <rect x="48" y="175" width="134" height="45" rx="6" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="115" y="195" font-family="Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">Activities &amp;</text>
+  <text x="115" y="209" font-family="Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">Fragments</text>
+
+  <rect x="48" y="230" width="134" height="45" rx="6" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="115" y="250" font-family="Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">OkHttp &amp;</text>
+  <text x="115" y="264" font-family="Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">Retrofit Calls</text>
+
+  <!-- Column 2: Dynatrace Gradle Plugin (large center) -->
+  <rect x="255" y="65" width="290" height="250" rx="10" fill="#fff" stroke="#1496ff" stroke-width="2" filter="url(#aShadow)"/>
+  <rect x="255" y="65" width="290" height="32" rx="10" fill="url(#aBlueGrad)"/>
+  <rect x="255" y="89" width="290" height="8" fill="url(#aBlueGrad)"/>
+  <text x="400" y="87" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Dynatrace Gradle Plugin</text>
+
+  <!-- Plugin feature boxes (2x2 grid) -->
+  <rect x="275" y="110" width="120" height="50" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+  <text x="335" y="132" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Bytecode</text>
+  <text x="335" y="148" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Instrumentation</text>
+
+  <rect x="405" y="110" width="120" height="50" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+  <text x="465" y="132" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Auto-detect</text>
+  <text x="465" y="148" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Activities</text>
+
+  <rect x="275" y="170" width="120" height="50" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+  <text x="335" y="192" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">OkHttp</text>
+  <text x="335" y="208" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Interceptor</text>
+
+  <rect x="405" y="170" width="120" height="50" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1"/>
+  <text x="465" y="192" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">ProGuard / R8</text>
+  <text x="465" y="208" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">Support</text>
+
+  <!-- Build pipeline indicator -->
+  <rect x="275" y="232" width="250" height="35" rx="6" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+  <text x="400" y="248" font-family="Arial, sans-serif" font-size="10" fill="#c2410c" text-anchor="middle">Build Phase: compile &gt; transform &gt; package</text>
+  <text x="400" y="261" font-family="Arial, sans-serif" font-size="10" fill="#c2410c" text-anchor="middle">Bytecode modified at transform step</text>
+
+  <!-- Column 3: Dynatrace Platform -->
+  <rect x="600" y="65" width="170" height="250" rx="10" fill="#fff" stroke="#22c55e" stroke-width="2" filter="url(#aShadow)"/>
+  <rect x="600" y="65" width="170" height="32" rx="10" fill="url(#aGreenGrad)"/>
+  <rect x="600" y="89" width="170" height="8" fill="url(#aGreenGrad)"/>
+  <text x="685" y="87" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Dynatrace Platform</text>
+
+  <!-- Platform sub-items -->
+  <rect x="618" y="110" width="134" height="40" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="1"/>
+  <text x="685" y="135" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#166534" text-anchor="middle">Grail</text>
+
+  <rect x="618" y="160" width="134" height="40" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="1"/>
+  <text x="685" y="185" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#166534" text-anchor="middle">Dashboards</text>
+
+  <rect x="618" y="210" width="134" height="40" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="1"/>
+  <text x="685" y="235" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#166534" text-anchor="middle">Alerting</text>
+
+  <rect x="618" y="260" width="134" height="40" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="685" y="280" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">Crash Analysis</text>
+  <text x="685" y="294" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">&amp; Symbolication</text>
+
+  <!-- Arrows: Left to Center -->
+  <path d="M200,180 L250,180" stroke="#64748b" stroke-width="2.5" fill="none" marker-end="url(#aArrow)"/>
+  <text x="225" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Plugin applied</text>
+  <text x="225" y="200" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">at build time</text>
+
+  <!-- Arrows: Center to Right -->
+  <path d="M545,180 L595,180" stroke="#64748b" stroke-width="2.5" fill="none" marker-end="url(#aArrow)"/>
+  <text x="570" y="165" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">Runtime</text>
+  <text x="570" y="200" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">beacons</text>
+
+  <!-- Legend bar -->
+  <rect x="40" y="335" width="720" height="50" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="355" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">The Gradle plugin instruments Android bytecode at build time for zero-code monitoring.</text>
+  <circle cx="100" cy="373" r="6" fill="#6366f1"/>
+  <text x="113" y="377" font-family="Arial, sans-serif" font-size="10" fill="#333">App source</text>
+  <circle cx="210" cy="373" r="6" fill="#1496ff"/>
+  <text x="223" y="377" font-family="Arial, sans-serif" font-size="10" fill="#333">Plugin capabilities</text>
+  <circle cx="358" cy="373" r="6" fill="#f97316"/>
+  <text x="371" y="377" font-family="Arial, sans-serif" font-size="10" fill="#333">Build pipeline</text>
+  <circle cx="488" cy="373" r="6" fill="#22c55e"/>
+  <text x="501" y="377" font-family="Arial, sans-serif" font-size="10" fill="#333">Platform</text>
+</svg>

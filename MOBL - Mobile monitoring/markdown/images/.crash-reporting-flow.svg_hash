@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1496ff"/>
+      <stop offset="100%" stop-color="#0a64bc"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <marker id="arrowRight" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#64748b"/>
+    </marker>
+    <marker id="arrowDown" markerWidth="10" markerHeight="10" refX="5" refY="10" orient="auto">
+      <polygon points="0 0, 10 0, 5 10" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="300" rx="12" ry="12" fill="#f8f9fa"/>
+
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e293b">Crash Reporting Flow</text>
+
+  <!-- === Row 1: Steps 1-3 (left to right) === -->
+  <!-- Step 1: App Crash -->
+  <circle cx="52" cy="78" r="11" fill="#94a3b8"/>
+  <text x="52" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">1</text>
+  <rect x="70" y="55" width="160" height="46" rx="8" ry="8" fill="url(#redGrad)" filter="url(#shadow)"/>
+  <text x="150" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">App Crash</text>
+  <text x="150" y="91" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#fecaca">Unhandled exception or signal</text>
+
+  <!-- Arrow 1-2 -->
+  <line x1="230" y1="78" x2="248" y2="78" stroke="#64748b" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+  <!-- Step 2: SDK Captures -->
+  <circle cx="273" cy="78" r="11" fill="#94a3b8"/>
+  <text x="273" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">2</text>
+  <rect x="291" y="55" width="160" height="46" rx="8" ry="8" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="371" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">SDK Captures</text>
+  <text x="371" y="91" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#dbeafe">Stack trace, thread state, context</text>
+
+  <!-- Arrow 2-3 -->
+  <line x1="451" y1="78" x2="469" y2="78" stroke="#64748b" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+  <!-- Step 3: Stored Locally -->
+  <circle cx="494" cy="78" r="11" fill="#94a3b8"/>
+  <text x="494" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">3</text>
+  <rect x="512" y="55" width="160" height="46" rx="8" ry="8" fill="url(#orangeGrad)" filter="url(#shadow)"/>
+  <text x="592" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">Stored Locally</text>
+  <text x="592" y="91" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#fff7ed">Persisted to device storage</text>
+
+  <!-- Connector: Row 1 to Row 2 (Step 3 down-and-across to Step 4) -->
+  <line x1="592" y1="101" x2="592" y2="125" stroke="#64748b" stroke-width="2"/>
+  <line x1="592" y1="125" x2="150" y2="125" stroke="#64748b" stroke-width="2"/>
+  <line x1="150" y1="125" x2="150" y2="145" stroke="#64748b" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- === Row 2: Steps 4-6 (left to right) === -->
+  <!-- Step 4: Next App Launch -->
+  <circle cx="52" cy="178" r="11" fill="#94a3b8"/>
+  <text x="52" y="182" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">4</text>
+  <rect x="70" y="155" width="160" height="46" rx="8" ry="8" fill="url(#purpleGrad)" filter="url(#shadow)"/>
+  <text x="150" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">Next App Launch</text>
+  <text x="150" y="191" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#e0e7ff">User reopens the app</text>
+
+  <!-- Arrow 4-5 -->
+  <line x1="230" y1="178" x2="248" y2="178" stroke="#64748b" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+  <!-- Step 5: Beacon Sent -->
+  <circle cx="273" cy="178" r="11" fill="#94a3b8"/>
+  <text x="273" y="182" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">5</text>
+  <rect x="291" y="155" width="160" height="46" rx="8" ry="8" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="371" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">Beacon Sent</text>
+  <text x="371" y="191" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#dbeafe">Crash data transmitted</text>
+
+  <!-- Arrow 5-6 -->
+  <line x1="451" y1="178" x2="469" y2="178" stroke="#64748b" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+  <!-- Step 6: Symbolication -->
+  <circle cx="494" cy="178" r="11" fill="#94a3b8"/>
+  <text x="494" y="182" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff">6</text>
+  <rect x="512" y="155" width="160" height="46" rx="8" ry="8" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="592" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">Symbolication</text>
+  <text x="592" y="191" text-anchor="middle" font-family="Arial, sans-serif" font-size="9.5" fill="#dcfce7">dSYM / ProGuard mapping applied</text>
+
+  <!-- Row phase labels -->
+  <rect x="22" y="228" width="12" height="12" rx="3" ry="3" fill="#ef4444" opacity="0.7"/>
+  <text x="40" y="239" font-family="Arial, sans-serif" font-size="10" fill="#475569">Crash time (Steps 1-3)</text>
+  <rect x="195" y="228" width="12" height="12" rx="3" ry="3" fill="#6366f1" opacity="0.7"/>
+  <text x="213" y="239" font-family="Arial, sans-serif" font-size="10" fill="#475569">Next launch (Steps 4-6)</text>
+
+  <!-- Legend bar -->
+  <rect x="0" y="258" width="700" height="42" rx="0" ry="0" fill="#e2e8f0"/>
+  <rect x="0" y="288" width="700" height="12" rx="0" ry="12" fill="#e2e8f0"/>
+  <text x="350" y="284" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#475569">Crash data is captured at crash time and sent on the next app launch.</text>
+</svg>

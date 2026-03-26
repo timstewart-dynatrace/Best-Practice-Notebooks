@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340">
+  <defs>
+    <linearGradient id="policyOnlyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="boundedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+    <filter id="pbShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="340" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Policy + Boundary Relationship</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">Policies define WHAT, Boundaries restrict WHERE</text>
+
+  <!-- Without Boundary Section -->
+  <rect x="30" y="70" width="355" height="130" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="2" filter="url(#pbShadow)"/>
+  <rect x="30" y="70" width="355" height="30" rx="8" fill="url(#policyOnlyGrad)"/>
+  <text x="207" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">Without Boundary</text>
+
+  <rect x="50" y="115" width="315" height="35" rx="4" fill="#dbeafe"/>
+  <text x="207" y="138" font-family="monospace" font-size="11" fill="#1e40af" text-anchor="middle">Policy: ALLOW storage:logs:read</text>
+
+  <text x="207" y="175" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">Result: Access to ALL logs in environment</text>
+  <rect x="80" y="182" width="254" height="8" rx="4" fill="#3b82f6"/>
+
+  <!-- With Boundary Section -->
+  <rect x="415" y="70" width="355" height="130" rx="8" fill="#fff" stroke="#ec4899" stroke-width="2" filter="url(#pbShadow)"/>
+  <rect x="415" y="70" width="355" height="30" rx="8" fill="url(#boundedGrad)"/>
+  <text x="592" y="90" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">With Boundary</text>
+
+  <rect x="435" y="110" width="315" height="25" rx="4" fill="#dbeafe"/>
+  <text x="592" y="128" font-family="monospace" font-size="10" fill="#1e40af" text-anchor="middle">Policy: ALLOW storage:logs:read</text>
+
+  <rect x="435" y="140" width="315" height="25" rx="4" fill="#fce7f3"/>
+  <text x="592" y="158" font-family="monospace" font-size="10" fill="#9d174d" text-anchor="middle">Boundary: security_context = "team-a"</text>
+
+  <text x="592" y="185" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">Result: Access to team-a logs ONLY</text>
+  <rect x="520" y="190" width="144" height="8" rx="4" fill="#ec4899"/>
+
+  <!-- Three Domains Section -->
+  <rect x="30" y="215" width="740" height="110" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="400" y="238" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Complete MZ Replacement: Use All Three Domains in Boundary</text>
+
+  <!-- Domain boxes -->
+  <rect x="55" y="255" width="220" height="55" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="165" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">environment:management-zone</text>
+  <text x="165" y="295" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Classic entity access</text>
+
+  <rect x="290" y="255" width="220" height="55" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="400" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">storage:dt.security_context</text>
+  <text x="400" y="295" font-family="Arial, sans-serif" font-size="10" fill="#1e40af" text-anchor="middle">Grail data (logs, spans, metrics)</text>
+
+  <rect x="525" y="255" width="220" height="55" rx="6" fill="#fce7f3" stroke="#ec4899" stroke-width="1"/>
+  <text x="635" y="275" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#9d174d" text-anchor="middle">settings:dt.security_context</text>
+  <text x="635" y="295" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">Settings objects</text>
+</svg>

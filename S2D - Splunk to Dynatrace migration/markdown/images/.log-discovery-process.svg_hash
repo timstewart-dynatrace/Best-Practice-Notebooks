@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320">
+  <defs>
+    <linearGradient id="bgGradS2D2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="step1Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="step2Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="step3Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="step4Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
+    </linearGradient>
+    <linearGradient id="step5Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <filter id="shadowS2D2" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowS2D2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradS2D2)"/>
+
+  <!-- Title -->
+  <text x="350" y="28" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Log Discovery Process</text>
+
+  <!-- Step 1 -->
+  <rect x="30" y="55" width="120" height="100" rx="10" fill="url(#step1Grad)" filter="url(#shadowS2D2)"/>
+  <text x="90" y="80" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">1. Establish</text>
+  <text x="90" y="95" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Scope</text>
+  <text x="90" y="120" text-anchor="middle" fill="#bfdbfe" font-family="system-ui, sans-serif" font-size="9">Hosts, clusters</text>
+  <text x="90" y="133" text-anchor="middle" fill="#bfdbfe" font-family="system-ui, sans-serif" font-size="9">namespaces</text>
+
+  <!-- Arrow 1-2 -->
+  <line x1="155" y1="105" x2="175" y2="105" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D2)"/>
+
+  <!-- Step 2 -->
+  <rect x="180" y="55" width="120" height="100" rx="10" fill="url(#step2Grad)" filter="url(#shadowS2D2)"/>
+  <text x="240" y="80" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">2. Determine</text>
+  <text x="240" y="95" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Specifics</text>
+  <text x="240" y="120" text-anchor="middle" fill="#ddd6fe" font-family="system-ui, sans-serif" font-size="9">SPL discovery</text>
+  <text x="240" y="133" text-anchor="middle" fill="#ddd6fe" font-family="system-ui, sans-serif" font-size="9">queries</text>
+
+  <!-- Arrow 2-3 -->
+  <line x1="305" y1="105" x2="325" y2="105" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D2)"/>
+
+  <!-- Step 3 -->
+  <rect x="330" y="55" width="120" height="100" rx="10" fill="url(#step3Grad)" filter="url(#shadowS2D2)"/>
+  <text x="390" y="80" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">3. Locate in</text>
+  <text x="390" y="95" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Dynatrace</text>
+  <text x="390" y="120" text-anchor="middle" fill="#fef3c7" font-family="system-ui, sans-serif" font-size="9">DQL validation</text>
+  <text x="390" y="133" text-anchor="middle" fill="#fef3c7" font-family="system-ui, sans-serif" font-size="9">queries</text>
+
+  <!-- Arrow 3-4 -->
+  <line x1="455" y1="105" x2="475" y2="105" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D2)"/>
+
+  <!-- Step 4 -->
+  <rect x="480" y="55" width="120" height="100" rx="10" fill="url(#step4Grad)" filter="url(#shadowS2D2)"/>
+  <text x="540" y="80" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">4. Configure</text>
+  <text x="540" y="95" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Ingest</text>
+  <text x="540" y="120" text-anchor="middle" fill="#fecaca" font-family="system-ui, sans-serif" font-size="9">Log ingest rules</text>
+  <text x="540" y="133" text-anchor="middle" fill="#fecaca" font-family="system-ui, sans-serif" font-size="9">if needed</text>
+
+  <!-- Arrow 4-5 (down then right) -->
+  <path d="M 540 160 L 540 195 L 620 195" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowS2D2)"/>
+
+  <!-- Step 5 -->
+  <rect x="550" y="175" width="120" height="100" rx="10" fill="url(#step5Grad)" filter="url(#shadowS2D2)"/>
+  <text x="610" y="200" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">5. Resolve</text>
+  <text x="610" y="215" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Issues</text>
+  <text x="610" y="240" text-anchor="middle" fill="#a7f3d0" font-family="system-ui, sans-serif" font-size="9">Custom sources,</text>
+  <text x="610" y="253" text-anchor="middle" fill="#a7f3d0" font-family="system-ui, sans-serif" font-size="9">timestamps</text>
+
+  <!-- Key at bottom -->
+  <rect x="30" y="180" width="500" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="50" y="200" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Quick Reference Queries:</text>
+
+  <text x="50" y="220" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">VM Logs:</text>
+  <text x="130" y="220" fill="#60a5fa" font-family="monospace" font-size="9">| filter matchesPhrase(host.name, "server")</text>
+
+  <text x="50" y="240" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">K8s Logs:</text>
+  <text x="130" y="240" fill="#60a5fa" font-family="monospace" font-size="9">| filter matchesPhrase(k8s.cluster.name, "prod")</text>
+
+  <text x="50" y="260" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">By Source:</text>
+  <text x="130" y="260" fill="#60a5fa" font-family="monospace" font-size="9">| filter matchesPhrase(log.source, "/var/log")</text>
+
+  <text x="50" y="280" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Compare:</text>
+  <text x="130" y="280" fill="#60a5fa" font-family="monospace" font-size="9">| summarize count = count(), by:{host.name}</text>
+</svg>

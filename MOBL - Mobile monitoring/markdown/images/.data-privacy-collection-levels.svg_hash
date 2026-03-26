@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a64bc;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrowUp" markerWidth="10" markerHeight="7" refX="5" refY="0" orient="auto">
+      <polygon points="0 7, 5 0, 10 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 5 7, 10 0" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Data Collection Levels</text>
+
+  <!-- ===================== Tier 1: Off (Gray) ===================== -->
+  <rect x="100" y="48" width="530" height="48" rx="10" fill="#94a3b8" filter="url(#shadow)"/>
+  <text x="130" y="68" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Off</text>
+  <line x1="170" y1="56" x2="170" y2="86" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="190" y="76" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">No data collected</text>
+
+  <!-- ===================== Tier 2: Performance (Blue) ===================== -->
+  <rect x="100" y="106" width="530" height="48" rx="10" fill="url(#blueGrad)" filter="url(#shadow)"/>
+  <text x="130" y="126" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Performance</text>
+  <line x1="230" y1="114" x2="230" y2="144" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="250" y="126" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)">Anonymous: Crashes, Actions, Network</text>
+  <text x="250" y="142" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)">(no user identity)</text>
+
+  <!-- ===================== Tier 3: User Behavior (Green) ===================== -->
+  <rect x="100" y="164" width="530" height="48" rx="10" fill="url(#greenGrad)" filter="url(#shadow)"/>
+  <text x="130" y="184" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">User Behavior</text>
+  <line x1="240" y1="172" x2="240" y2="202" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="260" y="184" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.9)">Full: + User tags, Session properties, Session replay</text>
+  <text x="260" y="200" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)">(complete user journey visibility)</text>
+
+  <!-- ===================== Right arrow: More data ===================== -->
+  <line x1="680" y1="56" x2="680" y2="200" stroke="#64748b" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <text x="690" y="100" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#475569" transform="rotate(90, 690, 100)">More data</text>
+
+  <!-- ===================== Left arrow: More privacy ===================== -->
+  <line x1="60" y1="200" x2="60" y2="56" stroke="#64748b" stroke-width="2" marker-end="url(#arrowUp)"/>
+  <text x="50" y="152" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#475569" transform="rotate(-90, 50, 152)">More privacy</text>
+
+  <!-- Connecting lines between tiers -->
+  <line x1="365" y1="96" x2="365" y2="106" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="365" y1="154" x2="365" y2="164" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Legend bar -->
+  <rect x="40" y="230" width="720" height="55" rx="6" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="400" y="250" font-family="Arial, sans-serif" font-size="11" fill="#555" text-anchor="middle">Balance privacy requirements with monitoring depth using Dynatrace data collection levels.</text>
+  <circle cx="120" cy="272" r="6" fill="#94a3b8"/>
+  <text x="135" y="276" font-family="Arial, sans-serif" font-size="10" fill="#333">Off</text>
+  <circle cx="200" cy="272" r="6" fill="#1496ff"/>
+  <text x="215" y="276" font-family="Arial, sans-serif" font-size="10" fill="#333">Performance</text>
+  <circle cx="340" cy="272" r="6" fill="#22c55e"/>
+  <text x="355" y="276" font-family="Arial, sans-serif" font-size="10" fill="#333">User Behavior</text>
+  <line x1="480" y1="269" x2="480" y2="277" stroke="#64748b" stroke-width="2"/>
+  <polygon points="477 269, 480 263, 483 269" fill="#64748b"/>
+  <text x="495" y="276" font-family="Arial, sans-serif" font-size="10" fill="#333">Direction indicators</text>
+</svg>
