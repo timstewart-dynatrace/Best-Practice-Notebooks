@@ -62,6 +62,9 @@ By the end of this notebook, you will:
 | Dry run | Yes (`--dry-run`) | No |
 | Delete orphans | Yes (`delete` command) | Manual |
 
+> **Already a Terraform shop?** See **AUTOM-01 §5: When a Terraform Shop Should Add Monaco** for the five patterns where Monaco still earns its place — most commonly bulk download from an existing tenant, multi-tenant identical-config deployment, and app-team self-service without state management.
+
+
 ---
 
 <a id="getting-started"></a>

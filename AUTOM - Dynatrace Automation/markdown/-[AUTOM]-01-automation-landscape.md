@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -12,9 +12,10 @@ Dynatrace provides multiple ways to automate configuration management and operat
 2. [Automation Options Overview](#overview)
 3. [Choosing the Right Tool](#choosing-the-right-tool)
 4. [Decision Framework](#decision-framework)
-5. [Authentication & Token Reference](#api-token-scopes-reference)
-6. [Emerging Capabilities](#emerging-capabilities)
-7. [Next Steps](#next-steps)
+5. [When a Terraform Shop Should Add Monaco](#terraform-shop)
+6. [Authentication & Token Reference](#api-token-scopes-reference)
+7. [Emerging Capabilities](#emerging-capabilities)
+8. [Next Steps](#next-steps)
 
 ---
 
@@ -261,8 +262,60 @@ These tools aren't mutually exclusive. Common combinations:
 
 ---
 
+<a id="terraform-shop"></a>
+## 5. When a Terraform Shop Should Add Monaco
+
+If your team is already a confident Terraform shop, the question isn't "Monaco or Terraform?" — it's "what specific task patterns make Monaco worth adding as a second tool?" The general guidance in §4 (Combining Tools) is to pick one tool per config and avoid overlap. This section names the patterns where Monaco genuinely earns its place alongside an established Terraform footprint.
+
+### Five Patterns Where Monaco Wins for a Terraform Shop
+
+| Pattern | Why Monaco wins |
+|---|---|
+| **Bulk download from an existing tenant** | `monaco download` pulls every config from a tenant into YAML in one command. `terraform import` is resource-by-resource and requires you to author matching HCL first. For onboarding an inherited tenant with hundreds of pre-existing configs, Monaco is the faster on-ramp — *then* convert to Terraform later if desired. |
+| **N tenants, identical configs** | Monaco's `manifest.yaml` lists multiple environments and deploys to all with variable substitution — no per-environment state, no workspaces. For *"we have prod + EU-prod + APAC-prod and they should all look the same"*, Monaco is less ceremony. Terraform workspaces can do it, but each has its own state and the divergence-over-time tax is real. |
+| **App-team self-service** | Letting product teams commit Dynatrace configs alongside their app code with a CI job running `monaco deploy` on merge — no state backend per team, no state-locking infrastructure. The platform team keeps Terraform-managed shared infra; app teams get a low-floor path for their own SLOs / dashboards / management zones. |
+| **Bleeding-edge Settings 2.0 schemas** | When a new schema ships, Monaco supports it immediately (generic schema-id pattern). The Terraform provider catches up later. For configs that haven't reached the provider yet, Monaco is the fallback while you wait for typed resources. |
+| **Drift inspection without ownership** | `monaco deploy --dry-run` shows drift on configs you didn't automate — without the implication that running `apply` would now manage them. Terraform's import-then-plan flow does more than needed for read-only drift checks on classic UI-managed configs. |
+
+### What's NOT a Good Reason for a Terraform Shop
+
+| Reason | Why it's weak |
+|---|---|
+| *"Monaco's YAML is nicer than HCL"* | Preference, not technical. For an existing shop, stick with what works. |
+| *"Monaco doesn't need state"* | True, but you'll want some equivalent (Git history at minimum) for audit. The state-less property is a benefit only when state management is genuinely a barrier (the self-service pattern above). |
+| *"Adding Monaco gives us redundancy / a backup"* | Two tools managing overlapping resources is the documented anti-pattern in §4 Combining Tools. The coordination cost dwarfs the perceived resilience. |
+
+### The Practical Boundary
+
+For an experienced Terraform shop adopting Monaco selectively, the rule is **boundary, not choice** — each config belongs to exactly one tool, and the line runs along these natural seams:
+
+| Use Monaco for | Use Terraform for |
+|---|---|
+| Tenant cloning / bulk migration | Cross-cloud orchestration (AWS / Bitbucket / Dynatrace in one apply — see AUTOM-07 §5.4) |
+| Per-app self-service configs | Platform-team shared infra |
+| Bleeding-edge schemas | Anything with cross-system dependencies |
+| Multi-tenant N×deploy of identical sets | State-backed, dependency-graphed infra |
+| Drift inspection on UI-managed legacy configs | Configs you actively manage |
+
+Document the boundary explicitly (in `DECISIONS.md` or your tenant runbook) so teams know which tool owns which config category — that's what prevents the anti-pattern of overlap.
+
+### When You're Doing the Bulk Download
+
+The bulk-download-then-decide path is the most common reason a Terraform shop adds Monaco. The workflow:
+
+1. `monaco download --manifest manifest.yaml --environment <tenant>` — pulls every config to YAML
+2. Review and clean up (delete noise, parameterize sensitive values, split into logical projects)
+3. Commit to Git as your *source-of-truth* baseline
+4. Either:
+   - **Stay on Monaco** if the configs are stable and the deploy cadence is low → Monaco's lower-ceremony loop wins
+   - **Convert to Terraform** if the configs need cross-system orchestration → use the cleaned YAML as your reference to write HCL deliberately
+
+This sequence lets you delay the Monaco-vs-Terraform commitment until you can see what's actually in the tenant.
+
+---
+
 <a id="api-token-scopes-reference"></a>
-## 5. Authentication & Token Reference
+## 6. Authentication & Token Reference
 
 Dynatrace supports three types of credentials for automation tools. Which you need depends on the tool and the resources you manage.
 
@@ -302,7 +355,7 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 ---
 
 <a id="emerging-capabilities"></a>
-## 6. Emerging Capabilities
+## 7. Emerging Capabilities
 
 ### Dynatrace Intelligence Agents
 
@@ -342,7 +395,7 @@ The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligenc
 ---
 
 <a id="next-steps"></a>
-## 7. Next Steps
+## 8. Next Steps
 
 ### Learning Path by Goal
 

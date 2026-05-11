@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -950,24 +950,17 @@ Since OAuth and Sentinel cannot solve scoped Synthetic access via the v1 API, th
 
 Teams submit **declarative requests** (YAML, Terraform variables, or JSON) describing their desired Synthetic monitors. A **central pipeline** owns the environment-wide API token, validates team intent, and applies synthetics on their behalf.
 
-```
-Team Repo                          Central Terraform Repo
-──────────                        ─────────────────────
-Teams declare desired              Owns environment-wide
-  synthetics (YAML/vars)             API token
-  ↓                                  ↓
-No Dynatrace credentials          Sentinel/OPA enforces:
-  in team repos                    - team ownership tags
-                                   - naming conventions
-                                   - MZ scoping
-                                   - allowed locations
-                                     ↓
-                                   Applies on behalf of teams
-                                     ↓
-                                   Dynatrace
-                                   - Management Zones for visibility
-                                   - Audit via tags
-```
+![Brokered Self-Service — Synthetic Monitor Workaround Pattern](images/04-brokered-self-service-pattern_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Team Repo (product team) | Central Terraform Repo (platform team) |
+|---|---|
+| Declares desired synthetics (YAML / Terraform vars / JSON intent) | Owns the environment-wide API token (long-lived, rotated) |
+| No Dynatrace credentials in the repo | Sentinel/OPA enforces team ownership tags, naming conventions, management-zone scoping, allowed locations |
+| Repo compromise cannot issue Dynatrace API calls | Applies synthetics on behalf of teams |
+| | Result: synthetics in Dynatrace with mandatory tags + management-zone scoping; ownership auditable via tags |
+For environments where SVG doesn't render
+-->
 
 > **Key principle:** Teams never get direct API access. They get **intent-based self-service**, not credentials.
 
