@@ -11,19 +11,18 @@ A practical, opinionated recipe for standing up a Terraform GitOps shop for Dyna
 ## Table of Contents
 
 1. [Introduction — How This Recipe Fits](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Opinionated Repo Layout](#repo-layout)
-4. [State Backend Setup](#state-backend)
-5. [Provider Configuration and Version Discipline](#provider-config)
-6. [Module Strategy](#module-strategy)
-7. [Multi-Environment Promotion](#multi-env-promotion)
-8. [CI/CD Pipeline (cross-reference)](#cicd-pipeline)
-9. [Secrets Handling End-to-End](#secrets-handling)
-10. [Lifecycle Protections](#lifecycle)
-11. [Onboarding New App Teams](#onboarding)
-12. [Cost and DPS Considerations](#cost)
-13. [Operational Realities — State Lock, Break-Glass, DR](#operational)
-14. [Next Steps](#next-steps)
+2. [Opinionated Repo Layout](#repo-layout)
+3. [State Backend Setup](#state-backend)
+4. [Provider Configuration and Version Discipline](#provider-config)
+5. [Module Strategy](#module-strategy)
+6. [Multi-Environment Promotion](#multi-env-promotion)
+7. [CI/CD Pipeline (cross-reference)](#cicd-pipeline)
+8. [Secrets Handling End-to-End](#secrets-handling)
+9. [Lifecycle Protections](#lifecycle)
+10. [Onboarding New App Teams](#onboarding)
+11. [Cost and DPS Considerations](#cost)
+12. [Operational Realities — State Lock, Break-Glass, DR](#operational)
+13. [Next Steps](#next-steps)
 
 ---
 
