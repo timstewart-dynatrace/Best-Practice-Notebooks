@@ -1,6 +1,6 @@
 # AUTOM-02: Settings API
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 04/26/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.
 
@@ -399,7 +399,7 @@ Consider moving to higher-level tools when:
 ### Additional Resources
 
 - [Settings API Documentation](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings)
-- [API Token Management](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens)
+- [API Token Management](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
 - [Schema Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas)
 
 ---

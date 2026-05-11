@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -17,12 +17,19 @@ CI/CD integration brings software development practices to Dynatrace configurati
    - [Drift Detection](#drift-detection)
    - [Reusable Workflows](#reusable-workflows)
 4. [GitLab CI/CD](#gitlab-cicd)
-5. [ArgoCD Integration](#argocd-integration)
-6. [FluxCD Integration](#fluxcd-integration)
-7. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
-8. [Best Practices](#best-practices)
-9. [Governance Architecture](#governance-architecture)
-10. [Next Steps](#next-steps)
+5. [Bitbucket Pipelines](#bitbucket-pipelines)
+   - [Pipeline — Monaco Deploy](#bitbucket-monaco)
+   - [Pipeline — Terraform with Combined Auth](#bitbucket-terraform)
+   - [Terraform Bitbucket Provider](#bitbucket-tf-provider)
+   - [Combined Workspace — Bitbucket and Dynatrace in One Apply](#bitbucket-combined-workspace)
+   - [Variables and Secrets](#bitbucket-variables)
+   - [OIDC Note](#bitbucket-oidc)
+6. [ArgoCD Integration](#argocd-integration)
+7. [FluxCD Integration](#fluxcd-integration)
+8. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
+9. [Best Practices](#best-practices)
+10. [Governance Architecture](#governance-architecture)
+11. [Next Steps](#next-steps)
 
 ---
 
@@ -149,7 +156,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Monaco
         run: |
@@ -187,7 +194,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Monaco
         run: |
@@ -207,7 +214,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Monaco
         run: |
@@ -246,12 +253,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: 1.6.0
+          terraform_version: latest
       
       - name: Terraform Init
         run: terraform init
@@ -315,7 +322,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Retrieve Dynatrace credentials from Vault
         uses: hashicorp/vault-action@v3
@@ -329,7 +336,7 @@ jobs:
             secret/data/dynatrace/prod env_url | DYNATRACE_ENV_URL
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
         run: terraform init
@@ -488,10 +495,10 @@ jobs:
   detect-drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
         run: terraform init
@@ -567,10 +574,10 @@ jobs:
       run:
         working-directory: ${{ inputs.working_directory }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
@@ -600,10 +607,10 @@ jobs:
       run:
         working-directory: ${{ inputs.working_directory }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
@@ -658,12 +665,9 @@ stages:
   - deploy-staging
   - deploy-production
 
-variables:
-  MONACO_VERSION: "2.0.0"
-
 .monaco-setup: &monaco-setup
   before_script:
-    - curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/download/v${MONACO_VERSION}/monaco-linux-amd64 -o monaco
+    - curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
     - chmod +x monaco
     - mv monaco /usr/local/bin/
 
@@ -713,8 +717,365 @@ In GitLab: **Settings → CI/CD → Variables**
 
 ---
 
+<a id="bitbucket-pipelines"></a>
+## 5. Bitbucket Pipelines
+
+Bitbucket Cloud (bitbucket.org) ships **Bitbucket Pipelines** as the integrated CI/CD service. The pipeline definition lives in a `bitbucket-pipelines.yml` file at the repository root. Variables (including secrets) live at three scopes: workspace, repository, and deployment-environment.
+
+> **Bitbucket Data Center / Server** uses a different mechanism (Bitbucket Pipelines is a Cloud-only feature). For self-hosted Bitbucket, integrate via Jenkins, GitLab CI, or another CI/CD tool — the patterns below assume Bitbucket Cloud.
+
+> ### Provider landscape note (mid-2026)
+>
+> The Terraform-provider landscape for Bitbucket Cloud is in active transition:
+>
+> - **`DrFaust92/bitbucket`** — the long-standing community provider — entered **maintenance mode** in March 2026. The maintainer is no longer using Bitbucket and has limited bandwidth for substantive changes.
+> - **Bitbucket App Passwords are being retired by Atlassian** in favor of API tokens (see [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/) and [API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/)). Check the current Atlassian deprecation notice for the exact cutover date — once it lands, `DrFaust92` users need to swap their `BITBUCKET_PASSWORD` from an App Password to an API token (workaround community-validated: use the Atlassian-account email as `BITBUCKET_USERNAME` + an API token as `BITBUCKET_PASSWORD`, with `-parallelism=2` to avoid throttling).
+> - **`FabianSchurig/bitbucket`** — a newer, actively-maintained provider — is the going-forward recommendation. It uses a "generic resources" architecture (resources expose Bitbucket Cloud API endpoints directly via typed core fields plus `request_body` for full API flexibility) and a simplified API-token-only auth. As of May 2026 it is at v0.15.x — **pre-1.0, with schema flux possible** — so the examples below should be verified against the [provider docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) at use time.
+>
+> The examples in this section use **`FabianSchurig/bitbucket`**. For teams with existing `DrFaust92` code, the [migration guide](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) covers resource-name mapping, auth changes, and path-parameter renames (`owner` → `workspace`, `repository` → `repo_slug`).
+
+<a id="bitbucket-monaco"></a>
+### Pipeline — Monaco Deploy
+
+**bitbucket-pipelines.yml** at repo root:
+
+```yaml
+image: atlassian/default-image:4
+
+definitions:
+  steps:
+    - step: &install-monaco
+        name: Install Monaco
+        script:
+          - curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          - chmod +x monaco
+          - mv monaco /usr/local/bin/
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          <<: *install-monaco
+          name: Validate Monaco config
+          script:
+            - monaco validate manifest.yaml
+            - monaco deploy manifest.yaml --environment development --dry-run
+
+  branches:
+    main:
+      - step:
+          <<: *install-monaco
+          name: Deploy to staging
+          deployment: staging
+          script:
+            - monaco deploy manifest.yaml --environment staging
+
+      - step:
+          <<: *install-monaco
+          name: Deploy to production
+          deployment: production
+          trigger: manual
+          script:
+            - monaco deploy manifest.yaml --environment production
+```
+
+Each step declared with `deployment: <env>` inherits that environment's deployment variables. The `trigger: manual` on the production step gates the deploy behind a manual confirmation in the Bitbucket UI.
+
+<a id="bitbucket-terraform"></a>
+### Pipeline — Terraform with Combined Auth
+
+Mirrors the GitHub Actions Terraform pattern (§3.1) — Platform Token + API Token together for full Dynatrace resource coverage:
+
+```yaml
+image: hashicorp/terraform:1.6
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: Terraform Plan
+          deployment: staging
+          script:
+            - terraform init
+            - terraform plan -no-color -out=tfplan
+            - terraform show -no-color tfplan > plan.txt
+          artifacts:
+            - plan.txt
+            - tfplan
+
+  branches:
+    main:
+      - step:
+          name: Terraform Apply (staging)
+          deployment: staging
+          script:
+            - terraform init
+            - terraform apply -auto-approve
+
+      - step:
+          name: Terraform Apply (production)
+          deployment: production
+          trigger: manual
+          script:
+            - terraform init
+            - terraform apply -auto-approve
+```
+
+The pipeline reads `DYNATRACE_ENV_URL`, `DYNATRACE_PLATFORM_TOKEN`, `DYNATRACE_API_TOKEN`, and `DYNATRACE_HTTP_OAUTH_PREFERENCE` from the deployment environment's variables — see [Variables and Secrets](#bitbucket-variables) below.
+
+<a id="bitbucket-tf-provider"></a>
+### Terraform Bitbucket Provider — FabianSchurig (recommended for new code)
+
+The **`FabianSchurig/bitbucket`** provider manages Bitbucket Cloud resources via the Cloud API. Architecture quirks worth knowing before reading the example:
+
+- **Typed core fields + `request_body` escape hatch.** Each resource has a few typed arguments for the most-common fields (`workspace`, `repo_slug`, `key`, `secured`, etc.) plus a `request_body` JSON string for full API payload flexibility. When a field you need is not surfaced as a typed argument, you set it via `request_body = jsonencode({...})`.
+- **Boolean fields are strings.** `secured = "true"`, `enabled = "true"` — typed as string, not bool. The generic-resource architecture preserves API string representations.
+- **Auth is API-token only.** Set the `token` argument on the provider (or `BITBUCKET_TOKEN` env var). No App Password, no OAuth.
+
+Key resources used in this section:
+
+| Resource | What it manages |
+|---|---|
+| `bitbucket_repos` | The repo itself (CRUD); core fields + `request_body` for less-common settings |
+| `bitbucket_pipeline_config` | Enables/disables Bitbucket Pipelines on the repo (`enabled = "true"`) |
+| `bitbucket_repo_settings` | Repository settings split out of the legacy repo resource |
+| `bitbucket_deployments` | A deployment environment (named — staging / production / etc.) |
+| `bitbucket_deployment_variables` | Variable scoped to a deployment environment |
+| `bitbucket_pipeline_variables` | Repository-scoped variable (formerly `bitbucket_repository_variable` in DrFaust92) |
+| `bitbucket_workspace_pipeline_variables` | Workspace-scoped variable shared across repos |
+| `bitbucket_commit_file` | Commits a file (including `bitbucket-pipelines.yml`) — sparse typed schema, use `request_body` for content / branch / message |
+| `bitbucket_pipeline_schedules` | Scheduled pipeline runs |
+
+<a id="bitbucket-combined-workspace"></a>
+### Combined Workspace — Bitbucket and Dynatrace in One Apply
+
+The load-bearing pattern: a single Terraform workspace provisions the Bitbucket repo, enables pipelines on it, creates deployment environments, sets the secured variables holding Dynatrace credentials, commits the `bitbucket-pipelines.yml` file, **and** stands up the Dynatrace configuration the pipeline will deploy. One `terraform apply` brings up the whole CI/CD-to-Dynatrace path.
+
+**Why this is useful:** for net-new tenants or new app teams, you can codify the entire onboarding (repo, pipeline, Dynatrace tenant config) in a single artifact. The drift-detection story is also unified — one `terraform plan` shows drift in both Bitbucket and Dynatrace.
+
+> **Verify against current provider docs at use time.** The FabianSchurig provider is pre-1.0; some `request_body` shapes below (especially for `bitbucket_commit_file`) are best-effort against the May 2026 documentation. Confirm against the [registry docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) before applying.
+
+**main.tf:**
+
+```hcl
+terraform {
+  required_providers {
+    bitbucket = {
+      source  = "FabianSchurig/bitbucket"
+      version = "~> 0.15"  # Pre-1.0; pin tightly until stable 1.x lands
+    }
+    dynatrace = {
+      source  = "dynatrace-oss/dynatrace"
+      version = "~> 1.88"
+    }
+  }
+}
+
+# Bitbucket provider — API token auth (App Passwords are being retired by Atlassian)
+provider "bitbucket" {
+  # token read from BITBUCKET_TOKEN env var; alternatively set inline:
+  # token = var.bitbucket_token
+}
+
+# Dynatrace provider — combined auth (Platform Token + API Token)
+provider "dynatrace" {
+  dt_env_url   = var.dt_env_url
+  dt_api_token = var.dt_api_token
+  # Platform Token is read from DT_PLATFORM_TOKEN env var by the provider
+}
+
+variable "workspace" { type = string }
+variable "dt_env_url" { type = string }
+variable "dt_api_token" { type = string, sensitive = true }
+variable "dt_platform_token" { type = string, sensitive = true }
+
+# --- 1. Bitbucket repo ---
+resource "bitbucket_repos" "config_repo" {
+  workspace = var.workspace
+  repo_slug = "dynatrace-config"
+
+  # Less-common settings go through request_body in the generic-resource architecture
+  request_body = jsonencode({
+    is_private  = true
+    fork_policy = "no_forks"
+    description = "Monaco / Terraform configs for Dynatrace tenant"
+  })
+}
+
+# --- 2. Enable Bitbucket Pipelines on the repo ---
+resource "bitbucket_pipeline_config" "config_repo_pipelines" {
+  workspace = bitbucket_repos.config_repo.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+  enabled   = "true"  # String, not bool — the generic schema preserves API representations
+}
+
+# --- 3. Deployment environments ---
+resource "bitbucket_deployments" "staging" {
+  workspace = var.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+  name      = "staging"
+}
+
+resource "bitbucket_deployments" "production" {
+  workspace = var.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+  name      = "production"
+}
+
+# --- 4. Secured variables holding Dynatrace credentials ---
+# Repository-scoped (visible to every step):
+resource "bitbucket_pipeline_variables" "dt_env_url" {
+  workspace = var.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+  key       = "DYNATRACE_ENV_URL"
+  value     = var.dt_env_url
+  secured   = "false"  # String
+}
+
+# Per-environment (different token per env — locked to that deployment):
+resource "bitbucket_deployment_variables" "staging_platform_token" {
+  workspace        = var.workspace
+  repo_slug        = bitbucket_repos.config_repo.repo_slug
+  environment_uuid = bitbucket_deployments.staging.uuid
+  key              = "DYNATRACE_PLATFORM_TOKEN"
+  value            = var.dt_platform_token  # In real use, source per-env tokens separately
+  secured          = "true"
+}
+
+resource "bitbucket_deployment_variables" "staging_api_token" {
+  workspace        = var.workspace
+  repo_slug        = bitbucket_repos.config_repo.repo_slug
+  environment_uuid = bitbucket_deployments.staging.uuid
+  key              = "DYNATRACE_API_TOKEN"
+  value            = var.dt_api_token
+  secured          = "true"
+}
+
+resource "bitbucket_deployment_variables" "prod_platform_token" {
+  workspace        = var.workspace
+  repo_slug        = bitbucket_repos.config_repo.repo_slug
+  environment_uuid = bitbucket_deployments.production.uuid
+  key              = "DYNATRACE_PLATFORM_TOKEN"
+  value            = var.dt_platform_token
+  secured          = "true"
+}
+
+resource "bitbucket_deployment_variables" "prod_api_token" {
+  workspace        = var.workspace
+  repo_slug        = bitbucket_repos.config_repo.repo_slug
+  environment_uuid = bitbucket_deployments.production.uuid
+  key              = "DYNATRACE_API_TOKEN"
+  value            = var.dt_api_token
+  secured          = "true"
+}
+
+# --- 5. Commit the bitbucket-pipelines.yml into the repo ---
+# bitbucket_commit_file has a sparse typed schema; pass the commit details via
+# request_body. Confirm the exact field names against the provider docs at use
+# time — the pre-1.0 schema may evolve.
+resource "bitbucket_commit_file" "pipelines_yml" {
+  workspace = var.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+
+  request_body = jsonencode({
+    branch   = "main"
+    message  = "ci: provision pipeline config via Terraform"
+    author   = "Terraform <terraform@example.com>"
+    files = {
+      "bitbucket-pipelines.yml" = file("${path.module}/bitbucket-pipelines.yml")
+    }
+  })
+
+  depends_on = [
+    bitbucket_pipeline_config.config_repo_pipelines,
+    bitbucket_deployment_variables.staging_platform_token,
+    bitbucket_deployment_variables.staging_api_token,
+    bitbucket_deployment_variables.prod_platform_token,
+    bitbucket_deployment_variables.prod_api_token,
+  ]
+}
+
+# --- 6. Dynatrace resources the pipeline will deploy on top of ---
+# (Bootstrap resources — things you want present before the pipeline runs for
+# the first time. Day-to-day app-team configs land in the repo and deploy via
+# the pipeline itself.)
+resource "dynatrace_management_zone_v2" "platform_baseline" {
+  name = "platform-baseline"
+
+  rules {
+    type             = "ME"
+    enabled          = true
+    propagation_type = "HOST_TO_PROCESS_GROUP_INSTANCE"
+
+    conditions {
+      key {
+        attribute = "HOST_GROUP_NAME"
+      }
+      string_conditions {
+        operator         = "EQUALS"
+        value            = "platform-baseline"
+        case_sensitive   = false
+      }
+    }
+  }
+}
+```
+
+**Ordering is load-bearing:**
+
+- `bitbucket_repos` must exist before `bitbucket_pipeline_config`, `bitbucket_pipeline_variables`, or `bitbucket_deployments` referencing it.
+- `bitbucket_deployments` must exist before any `bitbucket_deployment_variables` referencing it (the `environment_uuid` is the API-returned identifier).
+- `bitbucket_commit_file` for `bitbucket-pipelines.yml` should `depends_on` both the variables AND the `bitbucket_pipeline_config` — if the pipeline file lands in the repo before pipelines are enabled and variables are in place, the first push triggers a pipeline run that fails (either because pipelines aren't active, or because authentication has nothing to read).
+
+The explicit `depends_on` in `bitbucket_commit_file` is the cleanest way to enforce this; Terraform's automatic dependency graph only catches references, not "must exist when this file is read."
+
+**Caveat on per-env tokens:** the example above uses a single `var.dt_platform_token` for both staging and production deployment variables. In a real setup, you'd want **separate Dynatrace tokens per environment** — typically by running the staging and production applies in separate workspaces, or by sourcing per-environment tokens from a secrets manager (Vault, AWS Secrets Manager, Bitbucket OIDC-to-Vault flow).
+
+<a id="bitbucket-variables"></a>
+### Variables and Secrets
+
+Bitbucket Pipelines has three variable scopes. Pick the right scope per credential:
+
+| Scope | Terraform resource | When to use |
+|---|---|---|
+| **Workspace** | `bitbucket_workspace_pipeline_variables` | Credentials shared across many repos in the workspace (e.g., a workspace-wide Dynatrace token if you don't separate by app). |
+| **Repository** | `bitbucket_pipeline_variables` | Per-repo credentials — typical for a `dynatrace-config` repo with its own Dynatrace tokens. |
+| **Deployment environment** | `bitbucket_deployment_variables` | Per-environment credentials (staging vs. production tokens). The recommended scope when you want different Dynatrace tokens (or different tenants) per environment. |
+
+| Variable | Scope | `secured` | Why |
+|---|---|:-:|---|
+| `DYNATRACE_ENV_URL` | Repository | No | Tenant URL is not secret; visible in every step |
+| `DYNATRACE_PLATFORM_TOKEN` | Deployment | Yes | Per-env; write-only after creation |
+| `DYNATRACE_API_TOKEN` | Deployment | Yes | Per-env; covers synthetics/SLOs not yet on Platform Token |
+| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Repository | No | Static flag, not a credential |
+
+`secured = "true"` makes the variable value write-only — once set, the Bitbucket API won't return it (and Terraform won't drift-detect on the value). If you need to rotate, change the Terraform value and re-apply.
+
+> **Note on YAML templating and secured variables.** Bitbucket Pipelines added a `${{ }}` YAML-templating mechanism that injects workspace, repository, and custom pipeline variables into the pipeline YAML at execution time — but **secured variables are deliberately excluded** from this templating. This is a security guarantee: a Dynatrace token stored in a secured variable cannot be inadvertently rendered into a pipeline YAML field where it might leak into logs. Read your secured variables only via standard environment-variable substitution inside `script:` blocks. Two related additions worth knowing: **Shared Pipeline Variables** (steps export variables to subsequent steps in the same pipeline; 50-variable / 100KB caps) and **Input Variables for Child Pipelines** (parent → child, up to 20 variables) — both work with non-secured variables.
+
+> <sub>**Sources:** [Variables and secrets (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) — three variable scopes (workspace / repository / deployment) and precedence; recent additions (shared pipeline variables, input variables for child pipelines, YAML templating with secured-variable exclusion).</sub>
+
+<a id="bitbucket-oidc"></a>
+### OIDC Note
+
+**Bitbucket Pipelines supports OIDC** for federating to AWS, GCP, and Vault — see the Atlassian docs on [Integrate Pipelines with resource servers using OIDC](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/). The pattern is to add `oidc: true` at the pipeline step level and configure the resource server (AWS / GCP / Vault) to trust the Bitbucket OIDC issuer.
+
+**Dynatrace does not currently document a direct OIDC trust path** for Bitbucket Pipelines — there's no published mechanism to issue a short-lived Dynatrace Platform Token from a Bitbucket OIDC assertion. The practical pattern remains *secured variable holding a long-lived token*, rotated on a cadence.
+
+If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC → Vault (or AWS Secrets Manager) → fetches a Dynatrace token at pipeline start. The pipeline still ends up with a token in memory, but the token in storage is in Vault, not in Bitbucket variables.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Bitbucket provider (FabianSchurig)](https://github.com/FabianSchurig/bitbucket-cli) — actively-maintained successor to `DrFaust92/bitbucket`; v0.15.7 as of May 2026 (pre-1.0, schema flux possible).</sub>
+> - <sub>[Migration guide DrFaust92 → FabianSchurig](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) — resource-name mapping, auth changes, path-parameter renames.</sub>
+> - <sub>[DrFaust92/terraform-provider-bitbucket](https://github.com/DrFaust92/terraform-provider-bitbucket) — long-standing provider, now in maintenance mode (issue #242, March 2026).</sub>
+> - <sub>[Get started with Bitbucket Pipelines (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) — Pipelines overview.</sub>
+> - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/) — auth-token landscape; App Passwords are being retired in favor of API tokens.</sub>
+> - <sub>[Integrate Pipelines with resource servers using OIDC (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/) — Bitbucket OIDC for AWS/GCP/Vault.</sub>
+
+---
+
 <a id="argocd-integration"></a>
-## 5. ArgoCD Integration
+## 6. ArgoCD Integration
 For Kubernetes-native GitOps, use ArgoCD with Dynatrace configs.
 
 ### ArgoCD Application for Monaco Configs
@@ -826,7 +1187,7 @@ data:
 ---
 
 <a id="fluxcd-integration"></a>
-## 6. FluxCD Integration
+## 7. FluxCD Integration
 FluxCD provides an alternative GitOps approach with a pull-based reconciliation model.
 
 ### FluxCD vs ArgoCD
@@ -941,7 +1302,7 @@ spec:
 ---
 
 <a id="dynatrace-operator-gitops-patterns"></a>
-## 7. Dynatrace Operator GitOps Patterns
+## 8. Dynatrace Operator GitOps Patterns
 When deploying the Dynatrace Operator via GitOps, follow these patterns for production environments.
 
 > **Important:** Use `apiVersion: dynatrace.com/v1beta5` or `v1beta6` for Dynatrace Operator 1.8.x. Earlier versions (v1beta1, v1beta2) are deprecated and no longer supported.
@@ -979,7 +1340,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
-  - https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.8.1/kubernetes.yaml
+  - https://github.com/Dynatrace/dynatrace-operator/releases/latest/download/kubernetes.yaml
   - dynakube.yaml
 ```
 
@@ -1110,7 +1471,7 @@ kubectl create secret generic dynakube \
 ---
 
 <a id="best-practices"></a>
-## 8. Best Practices
+## 9. Best Practices
 ### Security
 
 | Practice | Description |
@@ -1212,7 +1573,7 @@ Add deployment notifications:
 ---
 
 <a id="governance-architecture"></a>
-## 9. Governance Architecture
+## 10. Governance Architecture
 
 The previous sections covered individual governance tools (Vault, OPA, Sentinel, drift detection). This section synthesizes them into a cohesive **enterprise governance architecture** for Dynatrace configuration management.
 
@@ -1325,7 +1686,7 @@ This framing is much stronger than trying to pretend the v1 API scoping gap does
 ---
 
 <a id="next-steps"></a>
-## 10. Next Steps
+## 11. Next Steps
 
 ### Deployment Event Tracking
 

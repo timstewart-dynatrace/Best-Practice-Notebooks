@@ -1,6 +1,6 @@
 # AUTOM-06: Dynatrace SDKs
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 Dynatrace provides official SDKs for programmatic access to the platform. These SDKs are auto-generated from OpenAPI specifications, ensuring they stay current with API changes.
 
@@ -504,7 +504,7 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 ### Additional Resources
 
 - [Dynatrace Developer Portal](https://developer.dynatrace.com/)
-- [TypeScript SDK Documentation](https://developer.dynatrace.com/develop/sdks/client-libraries/)
+- [TypeScript SDK Documentation](https://developer.dynatrace.com/develop/sdks/)
 - [Python SDK on PyPI](https://pypi.org/project/dt-sdk/)
 - [API Reference](https://docs.dynatrace.com/docs/dynatrace-api)
 - [MCP Server Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-mcp)
