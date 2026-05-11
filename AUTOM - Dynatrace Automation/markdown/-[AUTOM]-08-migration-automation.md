@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -491,7 +491,7 @@ Congratulations! You've completed the AUTOM series. Here's what you learned:
 
 ---
 
-*This concludes the AUTOM series. For Managed-to-SaaS migrations, see the **M2S series**.*
+*Next: **AUTOM-09: Terraform GitOps Setup Recipe** for the operational architecture of standing up a Terraform GitOps shop (repo layout, state backends, lifecycle protections, team onboarding). For Managed-to-SaaS migrations, see the **M2S series**.*
 
 ---
 

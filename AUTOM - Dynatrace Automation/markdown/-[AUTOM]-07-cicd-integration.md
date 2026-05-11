@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -24,12 +24,19 @@ CI/CD integration brings software development practices to Dynatrace configurati
    - [Combined Workspace — Bitbucket and Dynatrace in One Apply](#bitbucket-combined-workspace)
    - [Variables and Secrets](#bitbucket-variables)
    - [OIDC Note](#bitbucket-oidc)
-6. [ArgoCD Integration](#argocd-integration)
-7. [FluxCD Integration](#fluxcd-integration)
-8. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
-9. [Best Practices](#best-practices)
-10. [Governance Architecture](#governance-architecture)
-11. [Next Steps](#next-steps)
+6. [Atlassian Bamboo (with Bitbucket + S3)](#atlassian-bamboo)
+   - [Stack Assumed](#bamboo-stack)
+   - [Plan Specs YAML — Terraform with Combined Auth](#bamboo-plan-yaml)
+   - [PR Workflow with Plan Branches](#bamboo-pr-workflow)
+   - [Decoupled S3 State Files](#bamboo-s3-state)
+   - [Bamboo Variables and Credentials](#bamboo-variables)
+   - [Manual Stages for Production Gating](#bamboo-manual-stages)
+7. [ArgoCD Integration](#argocd-integration)
+8. [FluxCD Integration](#fluxcd-integration)
+9. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
+10. [Best Practices](#best-practices)
+11. [Governance Architecture](#governance-architecture)
+12. [Next Steps](#next-steps)
 
 ---
 
@@ -1074,8 +1081,275 @@ If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC �
 
 ---
 
+<a id="atlassian-bamboo"></a>
+## 6. Atlassian Bamboo (with Bitbucket + S3)
+
+This section recipes the **Atlassian-only stack** for Terraform GitOps against Dynatrace: a **Bitbucket** repository holding the Terraform code (using the layout from AUTOM-09 §2), **Atlassian Bamboo Data Center** orchestrating the plan/apply pipeline, and **AWS S3 + DynamoDB** as the decoupled state backend. The PR review gate lives in Bitbucket; Bamboo applies on merge to long-lived branches.
+
+The pattern targets shops that already license Bamboo and want to keep CI/CD in the same vendor ecosystem as their source-control layer — without adopting Bitbucket Pipelines or a third-party CI service.
+
+<a id="bamboo-stack"></a>
+### Stack Assumed
+
+| Component | Choice |
+|---|---|
+| **CI/CD** | Bamboo Data Center (self-hosted; Bamboo Cloud was retired by Atlassian) |
+| **Source** | Bitbucket Cloud or Bitbucket Data Center, configured as a Linked Repository in Bamboo |
+| **Plan definition** | Bamboo Specs YAML (the modern code-as-config approach over UI-only plans) |
+| **State backend** | AWS S3 (single bucket, one key per environment) + DynamoDB lock table |
+| **AWS auth on Bamboo agent** | IAM role attached to the Bamboo agent EC2 instance (preferred); static keys in Bamboo encrypted variables (`BAMSCRT@...`) as fallback |
+| **Dynatrace auth** | Platform Token + API Token (combined auth — see §3.1) as Bamboo encrypted plan variables |
+| **PR review** | Bitbucket PRs; required reviewers + branch restrictions configured in Bitbucket |
+
+> If your shop runs Bamboo Cloud, this section won't apply — Atlassian retired Bamboo Cloud in 2017. Bamboo Data Center is the only flavor supported today.
+
+<a id="bamboo-plan-yaml"></a>
+### Plan Specs YAML — Terraform with Combined Auth
+
+The full plan covering plan + apply against one environment. Mirrors the GitHub Actions Combined-Auth pattern (§3.1).
+
+```yaml
+---
+version: 2
+plan:
+  project-key: DTRF
+  key: TERRAFORM
+  name: Dynatrace Terraform — Production
+  description: Plan and apply Terraform against the production Dynatrace tenant
+
+repositories:
+  - dynatrace-terraform:
+      type: bitbucket
+      slug: my-workspace/dynatrace-terraform
+      branch: main
+
+branches:
+  create: for-new-branch
+  delete:
+    after-deleted-days: 30
+
+stages:
+  - Plan:
+      jobs:
+        - Plan
+  - Apply:
+      manual: true
+      jobs:
+        - Apply
+
+Plan:
+  artifact-subscriptions: []
+  tasks:
+    - checkout:
+        repository: dynatrace-terraform
+    - script:
+        - cd envs/production
+        - terraform init -input=false
+        - terraform plan -input=false -no-color -out=tfplan
+        - terraform show -no-color tfplan > plan.txt
+  artifacts:
+    - name: tfplan
+      pattern: envs/production/tfplan
+      shared: true
+    - name: plan.txt
+      pattern: envs/production/plan.txt
+      shared: true
+
+Apply:
+  artifact-subscriptions:
+    - artifact: tfplan
+  tasks:
+    - checkout:
+        repository: dynatrace-terraform
+    - script:
+        - cd envs/production
+        - terraform init -input=false
+        - terraform apply -input=false -auto-approve tfplan
+
+variables:
+  DYNATRACE_ENV_URL: https://my-tenant.live.dynatrace.com
+  # Encrypted via the Bamboo UI (Settings → Plan variables → Add encrypted)
+  # The BAMSCRT@... values below are placeholders; generate real ones in your tenant.
+  DYNATRACE_PLATFORM_TOKEN: BAMSCRT@0@0@<encrypted-platform-token>
+  DYNATRACE_API_TOKEN: BAMSCRT@0@0@<encrypted-api-token>
+  DYNATRACE_HTTP_OAUTH_PREFERENCE: "true"
+```
+
+Key elements:
+
+- `version: 2` — Bamboo Specs YAML format
+- `repositories:` — references a **Linked Repository** already configured globally in Bamboo (admin sets it up once; plans reference by slug)
+- `branches:` — Plan Branches: a child plan is auto-created for every new Bitbucket branch; cleaned up 30 days after branch deletion
+- `stages:` — two stages; the `Apply` stage has `manual: true` so it pauses after Plan completes
+- `artifact-subscriptions:` on Apply — pulls the `tfplan` artifact produced by Plan, ensuring Apply runs *the plan that was reviewed*, not a re-plan
+- `variables:` — plan-scoped values; encrypted variables use the `BAMSCRT@0@0@...` format generated through the Bamboo UI
+
+<a id="bamboo-pr-workflow"></a>
+### PR Workflow with Plan Branches
+
+Bamboo's **Plan Branches** feature creates a child plan per Bitbucket branch automatically. Combined with branch-aware staging, you get the standard plan-on-PR / apply-on-merge GitOps cycle without manual plan configuration per PR.
+
+**How it composes:**
+
+1. **Developer opens a PR** from `feat/new-mz` → `main` in Bitbucket.
+2. **Bamboo detects the new branch** (via the Linked Repository's polling or webhook trigger) and creates a child plan `DTRF-TERRAFORM-FEAT-NEW-MZ` automatically.
+3. **The child plan runs `Plan` stage only.** The `Apply` stage is marked `manual: true` and is gated behind a reviewer in Bamboo — but in the PR workflow you typically also wire stage permissions so the gate effectively means "merge the PR first."
+4. **PR review happens in Bitbucket.** Required reviewers + branch restrictions are enforced there; Bamboo posts plan output as a build status / Bitbucket build update.
+5. **Merge to `main` triggers the main plan.** Plan runs, then the manual Apply gate waits for an authorized user to release production.
+6. **Branch deletion** — once the PR is merged and the source branch deleted, the child plan is removed after `delete.after-deleted-days: 30`.
+
+**Gating the Apply stage to main only:**
+
+The cleanest approach is **branch-aware stage conditions**. Bamboo Specs lets you mark a stage with a `final: true` flag or use plan-branch overrides. In practice for this pattern:
+
+- Define the Apply stage with `manual: true` in the YAML (as above).
+- In the Bamboo UI under the plan's *Branches* tab, set the **Branch overrides** to disable the Apply stage on plan branches — only the main-branch plan executes Apply.
+- Alternatively, gate via Bamboo's *Plan permissions* — only users with "Release production" permission can trigger the Apply stage; ordinary developers cannot.
+
+The combination means: plan branches show the diff but cannot apply; only the main-branch plan, post-merge, with a privileged reviewer's action, applies to production.
+
+<a id="bamboo-s3-state"></a>
+### Decoupled S3 State Files
+
+Per the AUTOM-09 §6 directory-per-env layout, each environment has its own `backend.tf` pointing at a separate S3 key:
+
+```hcl
+# envs/dev/backend.tf
+terraform {
+  backend "s3" {
+    bucket         = "my-org-terraform-state"
+    key            = "dynatrace/dev.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "terraform-state-lock"
+    kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
+  }
+}
+```
+
+```hcl
+# envs/staging/backend.tf
+terraform {
+  backend "s3" {
+    bucket         = "my-org-terraform-state"
+    key            = "dynatrace/staging.tfstate"
+    # ... same bucket / region / lock table, different key
+  }
+}
+```
+
+```hcl
+# envs/production/backend.tf
+terraform {
+  backend "s3" {
+    bucket         = "my-org-terraform-state"
+    key            = "dynatrace/production.tfstate"
+    # ... same bucket / region / lock table, different key
+  }
+}
+```
+
+**Decoupled** here means: each environment has its own state file (its own key in S3, its own DynamoDB lock entry). The Bamboo plan for dev cannot accidentally affect production state because the working directory + `backend.tf` it picks up at `cd envs/<env>` selects a different state file.
+
+**One bucket vs many.** A single bucket with separate keys per env is the simpler operational model and is fine for most shops. Separate buckets per env are warranted when production has different security posture (different KMS keys, different bucket policies, different access patterns). Both work; pick based on your security boundary.
+
+**IAM role on the Bamboo agent** needs (minimum):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::my-org-terraform-state/dynatrace/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::my-org-terraform-state"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+      "Resource": "arn:aws:dynamodb:us-east-1:123456789012:table/terraform-state-lock"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey"],
+      "Resource": "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
+    }
+  ]
+}
+```
+
+Scope the resource ARN to the `dynatrace/` prefix so the role can't touch state for other systems sharing the bucket. For production-only roles (separate Bamboo agents for prod), narrow further to `dynatrace/production.tfstate`.
+
+<a id="bamboo-variables"></a>
+### Bamboo Variables and Credentials
+
+Bamboo has three variable scopes. Pick the right scope per credential type:
+
+| Scope | Where set | When to use |
+|---|---|---|
+| **Global variables** | Bamboo Administration → Global Variables | Truly global values (e.g., a tenant URL shared across many plans). Visible to all plans. |
+| **Plan variables** | Plan configuration → Variables; `variables:` block in YAML | Plan-specific values (the Dynatrace tokens for one tenant). Most credentials live here. |
+| **Plan-branch variables** | Plan → Branch overrides | Per-branch overrides (e.g., a different tenant URL for a feature-branch plan testing against a sandbox tenant). Rarely needed. |
+
+**Encrypted variables** use the `BAMSCRT@0@0@<base64-encrypted-blob>` format. Generate them via:
+
+1. Bamboo UI: Plan configuration → Variables → click "Add encrypted variable"
+2. Or programmatically via `bamboo-specs encrypt` CLI (if you're managing the YAML in source control)
+
+**AWS authentication patterns** (in preference order):
+
+| Approach | Trade-off |
+|---|---|
+| **IAM role attached to Bamboo agent EC2 instance** (recommended) | No credentials in Bamboo at all; AWS SDK auto-detects from instance metadata; rotation is AWS-side |
+| **IAM Identity Center (formerly SSO) federated role** | Slightly more setup; works when Bamboo agents aren't on EC2 |
+| **Static `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` as Bamboo encrypted plan variables** | Works anywhere; requires manual rotation; encrypted-blob format protects them in the YAML |
+
+For the IAM-role pattern, the Terraform script doesn't need any AWS credentials in plan variables — the AWS provider auto-detects from EC2 instance metadata.
+
+**Dynatrace tokens are always encrypted variables.** No exceptions — even in non-production environments, never store Dynatrace tokens as plaintext plan variables.
+
+<a id="bamboo-manual-stages"></a>
+### Manual Stages for Production Gating
+
+The `manual: true` marker on a stage pauses the plan after the previous stage completes and waits for a user to explicitly start the manual stage. This is Bamboo's native gating mechanism — no plugin required.
+
+```yaml
+stages:
+  - Plan:
+      jobs:
+        - Plan
+  - Apply:
+      manual: true       # ← gate
+      jobs:
+        - Apply
+```
+
+**Pair `manual: true` with stage permissions.** The gate is only meaningful if not everyone can release it:
+
+1. In the Bamboo UI under the plan's *Permissions* tab, define a "Release production" permission set with restricted membership.
+2. Configure the manual stage to require that permission to start.
+3. Result: developers can trigger plans and review output, but only authorized users can release the apply.
+
+**Auditing.** Bamboo records who started each stage, with timestamp, in the plan's audit log. For SOX / SOC2 / regulated environments, this is the auditable record of who authorized each production apply. Retain it according to your control framework — Bamboo's default retention is configurable.
+
+**Operational note.** When the Apply stage fails mid-execution (e.g., terraform apply hits an API rate limit and times out), Bamboo leaves the plan in a *failed* state. Recovery is a manual re-trigger of the Apply stage — Bamboo will run it against the same `tfplan` artifact subscribed from the original Plan stage. If state is partially-applied and you need to recover, follow AUTOM-09 §12 (stuck state lock and partial-apply recovery).
+
+> <sub>**Sources:**</sub>
+> - <sub>[Bamboo YAML specs (Atlassian)](https://confluence.atlassian.com/bamboo/bamboo-yaml-specs-938844479.html) — top-level structure (`version`, `plan`, `stages`, jobs, `script` tasks).</sub>
+> - <sub>[Bamboo Specs reference (Atlassian)](https://docs.atlassian.com/bamboo-specs-docs/9.6.0/specs.html) — `manual: true` stage syntax, `repositories` Bitbucket linked repo block, `variables` with `BAMSCRT@...` encrypted form, `branches` plan-branches configuration.</sub>
+> - <sub>[Plan branches (Atlassian)](https://confluence.atlassian.com/bamboo/using-plan-branches-289276872.html) — per-Bitbucket-branch child plans and lifecycle.</sub>
+> - <sub>[Terraform S3 backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/s3) — backend configuration referenced from `envs/<env>/backend.tf`.</sub>
+> - <sub>**Derived:** the IAM policy snippet combines the documented Terraform S3-backend requirements with standard AWS least-privilege practice for the `dynatrace/` key prefix; the branch-overrides approach to gating Apply on plan branches is community guidance grounded in Bamboo's branch-overrides feature documented in the Specs reference.</sub>
+
+---
+
 <a id="argocd-integration"></a>
-## 6. ArgoCD Integration
+## 7. ArgoCD Integration
 For Kubernetes-native GitOps, use ArgoCD with Dynatrace configs.
 
 ### ArgoCD Application for Monaco Configs
@@ -1187,7 +1461,7 @@ data:
 ---
 
 <a id="fluxcd-integration"></a>
-## 7. FluxCD Integration
+## 8. FluxCD Integration
 FluxCD provides an alternative GitOps approach with a pull-based reconciliation model.
 
 ### FluxCD vs ArgoCD
@@ -1302,7 +1576,7 @@ spec:
 ---
 
 <a id="dynatrace-operator-gitops-patterns"></a>
-## 8. Dynatrace Operator GitOps Patterns
+## 9. Dynatrace Operator GitOps Patterns
 When deploying the Dynatrace Operator via GitOps, follow these patterns for production environments.
 
 > **Important:** Use `apiVersion: dynatrace.com/v1beta5` or `v1beta6` for Dynatrace Operator 1.8.x. Earlier versions (v1beta1, v1beta2) are deprecated and no longer supported.
@@ -1471,7 +1745,7 @@ kubectl create secret generic dynakube \
 ---
 
 <a id="best-practices"></a>
-## 9. Best Practices
+## 10. Best Practices
 ### Security
 
 | Practice | Description |
@@ -1573,7 +1847,7 @@ Add deployment notifications:
 ---
 
 <a id="governance-architecture"></a>
-## 10. Governance Architecture
+## 11. Governance Architecture
 
 The previous sections covered individual governance tools (Vault, OPA, Sentinel, drift detection). This section synthesizes them into a cohesive **enterprise governance architecture** for Dynatrace configuration management.
 
@@ -1686,7 +1960,7 @@ This framing is much stronger than trying to pretend the v1 API scoping gap does
 ---
 
 <a id="next-steps"></a>
-## 11. Next Steps
+## 12. Next Steps
 
 ### Deployment Event Tracking
 

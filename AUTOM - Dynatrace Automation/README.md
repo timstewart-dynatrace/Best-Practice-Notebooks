@@ -18,6 +18,7 @@ Comprehensive guide to automating Dynatrace configuration and operations.
 6. [SDKs](markdown/-[AUTOM]-06-sdks.md) — Using Dynatrace SDKs for automation
 7. [CI/CD Integration](markdown/-[AUTOM]-07-cicd-integration.md) — Integrating Dynatrace into CI/CD pipelines
 8. [Migration Automation](markdown/-[AUTOM]-08-migration-automation.md) — Automating configuration migrations
+9. [Terraform GitOps Setup Recipe](markdown/-[AUTOM]-09-terraform-gitops-setup-recipe.md) — Repo layout, state backends, lifecycle protections, team onboarding
 99. [Best Practice Summary](markdown/-[AUTOM]-99-best-practice-summary.md) — Consolidated best practices from the AUTOM series
 
 ## Usage

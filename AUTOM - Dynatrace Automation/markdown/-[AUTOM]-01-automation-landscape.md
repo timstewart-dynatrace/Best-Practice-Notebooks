@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -56,6 +56,7 @@ By the end of this notebook, you will:
 | **AUTOM-06** | Dynatrace SDKs - TypeScript and Python clients |
 | **AUTOM-07** | CI/CD Integration - GitOps patterns |
 | **AUTOM-08** | Migration Automation - Bulk configuration transfer |
+| **AUTOM-09** | Terraform GitOps Setup Recipe - Repo layout, state backends, lifecycle protections, team onboarding |
 
 ### Why Automate?
 

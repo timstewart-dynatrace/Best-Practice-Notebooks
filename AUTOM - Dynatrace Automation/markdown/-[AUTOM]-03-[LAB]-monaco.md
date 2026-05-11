@@ -1,6 +1,6 @@
 # AUTOM-03 LAB: Monaco Configuration as Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 8 (LAB) | **Created:** April 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 (LAB) | **Created:** April 2026 | **Last Updated:** 05/11/2026
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # AUTOM-04 LAB: Terraform for Dynatrace
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 8 (LAB) | **Created:** April 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 (LAB) | **Created:** April 2026 | **Last Updated:** 05/11/2026
 
 ## Overview
 

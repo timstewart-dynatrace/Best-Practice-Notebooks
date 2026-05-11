@@ -1,6 +1,6 @@
 # AUTOM-06: Dynatrace SDKs
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
 
 Dynatrace provides official SDKs for programmatic access to the platform. These SDKs are auto-generated from OpenAPI specifications, ensuring they stay current with API changes.
 
