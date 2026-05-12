@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 05/12/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -31,12 +31,18 @@ CI/CD integration brings software development practices to Dynatrace configurati
    - [Decoupled S3 State Files](#bamboo-s3-state)
    - [Bamboo Variables and Credentials](#bamboo-variables)
    - [Manual Stages for Production Gating](#bamboo-manual-stages)
-7. [ArgoCD Integration](#argocd-integration)
-8. [FluxCD Integration](#fluxcd-integration)
-9. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
-10. [Best Practices](#best-practices)
-11. [Governance Architecture](#governance-architecture)
-12. [Next Steps](#next-steps)
+7. [Azure DevOps Pipelines](#azure-devops-pipelines)
+   - [Stack Assumed](#azuredevops-stack)
+   - [Pipeline YAML — Terraform with Combined Auth](#azuredevops-pipeline-yaml)
+   - [Environments and Approval Gates (configured in UI, not YAML)](#azuredevops-environments)
+   - [Variable Groups for Dynatrace Credentials](#azuredevops-variable-groups)
+   - [PR-Driven Plan-Only Workflow](#azuredevops-pr-workflow)
+8. [ArgoCD Integration](#argocd-integration)
+9. [FluxCD Integration](#fluxcd-integration)
+10. [Dynatrace Operator GitOps Patterns](#dynatrace-operator-gitops-patterns)
+11. [Best Practices](#best-practices)
+12. [Governance Architecture](#governance-architecture)
+13. [Next Steps](#next-steps)
 
 ---
 
@@ -1348,8 +1354,186 @@ stages:
 
 ---
 
+<a id="azure-devops-pipelines"></a>
+## 7. Azure DevOps Pipelines
+
+Azure DevOps Pipelines is widely deployed in enterprise — particularly shops that already license the Microsoft ALM stack and want to keep CI/CD inside the same vendor ecosystem. This section recipes the YAML-pipeline pattern for Terraform-against-Dynatrace.
+
+**Critical distinction from the other platforms in this notebook:** Azure DevOps separates *what runs* (defined in YAML, in the repo) from *when it can run* (approvals configured in the Azure DevOps web UI on Environments). The YAML author cannot bypass approvals — only the Environment owner can configure them. This is a deliberate separation-of-concerns property; it shows up as "approvals are not in YAML" in the docs.
+
+<a id="azuredevops-stack"></a>
+### Stack Assumed
+
+| Component | Choice |
+|---|---|
+| **CI/CD** | Azure DevOps Services (cloud) or Azure DevOps Server 2022+ (self-hosted) |
+| **Pipeline definition** | YAML pipelines (recommended; UI-defined Classic pipelines are legacy) |
+| **Source** | Any Git host — Azure Repos, GitHub, Bitbucket, GitLab — referenced via `resources.repositories` |
+| **Approval mechanism** | **Environments** with **Approvals and checks** configured via UI (not in YAML) — see §7.3 |
+| **Credential storage** | Variable Groups in the Library (optionally linked to Azure Key Vault for rotation) |
+| **Agent** | Microsoft-hosted (default) or self-hosted; self-hosted required when the Terraform plan needs network access to a private Dynatrace tenant or on-prem state backend |
+| **AWS auth** (if S3 backend) | Service connection (AzureRM type for Azure; AWS Toolkit for Azure DevOps extension for AWS) — preferred over static keys in variable groups |
+
+<a id="azuredevops-pipeline-yaml"></a>
+### Pipeline YAML — Terraform with Combined Auth
+
+The full plan covering plan + apply against one environment. Stages map to Plan (auto on every PR) and Apply (deployment job targeting an Environment that has manual-approval check configured).
+
+```yaml
+# azure-pipelines.yml — production
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - envs/production/**
+      - modules/**
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - envs/production/**
+      - modules/**
+
+variables:
+  - group: dynatrace-production    # ← linked variable group; see §7.4
+  - name: TERRAFORM_VERSION
+    value: latest
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Plan
+    displayName: Terraform Plan
+    jobs:
+      - job: PlanJob
+        steps:
+          - checkout: self
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: $(TERRAFORM_VERSION)
+          - script: |
+              cd envs/production
+              terraform init -input=false
+              terraform plan -input=false -no-color -out=tfplan
+              terraform show -no-color tfplan > plan.txt
+            displayName: terraform plan
+            env:
+              DYNATRACE_ENV_URL: $(DYNATRACE_ENV_URL)
+              DYNATRACE_PLATFORM_TOKEN: $(DYNATRACE_PLATFORM_TOKEN)
+              DYNATRACE_API_TOKEN: $(DYNATRACE_API_TOKEN)
+              DYNATRACE_HTTP_OAUTH_PREFERENCE: "true"
+          - publish: envs/production/tfplan
+            artifact: tfplan
+          - publish: envs/production/plan.txt
+            artifact: plan-txt
+
+  - stage: Apply
+    displayName: Terraform Apply (production)
+    dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: ApplyJob
+        environment: dynatrace-production   # ← Environment with manual approval attached via UI
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - download: current
+                  artifact: tfplan
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: $(TERRAFORM_VERSION)
+                - script: |
+                    cd envs/production
+                    cp $(Pipeline.Workspace)/tfplan/tfplan .
+                    terraform init -input=false
+                    terraform apply -input=false -auto-approve tfplan
+                  displayName: terraform apply
+                  env:
+                    DYNATRACE_ENV_URL: $(DYNATRACE_ENV_URL)
+                    DYNATRACE_PLATFORM_TOKEN: $(DYNATRACE_PLATFORM_TOKEN)
+                    DYNATRACE_API_TOKEN: $(DYNATRACE_API_TOKEN)
+                    DYNATRACE_HTTP_OAUTH_PREFERENCE: "true"
+```
+
+Key elements:
+
+- **`trigger:` / `pr:`** — main-branch push triggers full plan+apply; PR triggers plan-only (the Apply stage's `condition` skips it on non-main branches).
+- **`stages:` (Plan, Apply)** — Plan runs on every trigger; Apply runs only on main-branch trigger AND only after the Environment's approval check passes.
+- **`jobs.deployment` + `environment: dynatrace-production`** — the deployment job targets an Environment by name. When the Environment has *Approvals and checks → Approvals* configured via UI, the pipeline pauses on this job until an approver releases it.
+- **`publish:` / `download:`** — the Plan stage publishes `tfplan` as a pipeline artifact; Apply downloads it to ensure the apply runs against the reviewed plan, not a re-plan.
+- **`variables: - group:`** — references a variable group (defined in Azure DevOps Library) by name. Combined-auth tokens (`DYNATRACE_PLATFORM_TOKEN`, `DYNATRACE_API_TOKEN`, `DYNATRACE_ENV_URL`, `DYNATRACE_HTTP_OAUTH_PREFERENCE`) come from there.
+
+<a id="azuredevops-environments"></a>
+### Environments and Approval Gates (configured in UI, not YAML)
+
+Per the [Azure DevOps approvals docs](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals): *"Approvals and other checks aren't defined in the yaml file. Users modifying the pipeline yaml file can't modify the checks performed before start of a stage. Administrators of resources manage checks using the web interface of Azure Pipelines."*
+
+The implication: production safety is enforced **outside** the repo. Even a developer with write access to the YAML cannot remove the gate — only the Environment's administrator can.
+
+**To configure:**
+
+1. **Pipelines → Environments** → create an Environment named `dynatrace-production` (matches the `environment:` value in the YAML deployment job).
+2. **Approvals and checks** tab → click **+** → **Approvals** → add user(s) or group(s) as Approvers, set Timeout, decide whether self-approval is permitted.
+3. (Optional) Add additional checks — **Branch control** to restrict which branches can deploy here, **Business hours** to limit deploy windows, **Required template** to enforce a specific YAML template, **Invoke REST API** to gate on an external system (e.g., ServiceNow change-record validation).
+
+The five check categories (run in this order at stage entry): Static checks (Branch control, Required template, Evaluate artifact) → Pre-check approvals → Dynamic checks (Approval, Invoke Azure Function, Invoke REST API, Business Hours, Query Azure Monitor) → Post-check approvals → Exclusive lock.
+
+> **Bypass option:** an Environment administrator can **bypass** an approval for a stage that's waiting — useful for hotfixes but auditable (Azure DevOps records who bypassed). This is the operationally cleaner equivalent of "edit the YAML to skip the gate" — same effect, but logged and permission-scoped.
+
+<a id="azuredevops-variable-groups"></a>
+### Variable Groups for Dynatrace Credentials
+
+Variable Groups live in **Pipelines → Library**. Two flavors:
+
+| Flavor | Where the values live | When to use |
+|---|---|---|
+| **Plain variable group** | Encrypted in Azure DevOps storage | Smaller shops; tokens managed via Azure DevOps UI |
+| **Key Vault-linked variable group** | Azure Key Vault; values refreshed at pipeline run | Enterprise; centralized secret rotation in Key Vault; audit trail of secret access |
+
+**Variable mapping for combined auth:**
+
+| Variable | Type | Required when |
+|---|---|---|
+| `DYNATRACE_ENV_URL` | Plaintext (URL — not secret) | Always |
+| `DYNATRACE_PLATFORM_TOKEN` | Secret | Primary token is a Platform Token (`dt0s16` / `dt0s01`) |
+| `DYNATRACE_API_TOKEN` | Secret | Primary is Platform Token AND you manage v1.88.0-excluded resources, OR primary itself is a classic `dt0c01` Token |
+| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Plaintext (`"true"`) | When Platform Token is in play |
+
+Mark each secret variable's **🔒 (Lock)** in the variable-group UI — Azure DevOps then redacts the value in logs and won't expose it in plan output.
+
+**Permission control:** *Pipelines → Library → \[your variable group\] → Security* → restrict which pipelines can consume the group, and which users can edit it. Combine with Environment approvals so the credentials don't accidentally end up in a pipeline targeting the wrong tenant.
+
+<a id="azuredevops-pr-workflow"></a>
+### PR-Driven Plan-Only Workflow
+
+The `pr:` trigger at the top of the YAML causes Azure DevOps to run the pipeline on PR open / update. By gating the Apply stage on the source branch (the `condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')` clause), PR builds run Plan only — Apply is skipped automatically.
+
+**Best-practice composition:**
+
+1. **Branch policy on `main`** (configured in *Repos → Branches → main → Branch policies*) — require minimum reviewer count + require PR validation pipeline to pass. Reviewers see the Plan output as a build artifact / posted as a PR comment by the a script step calling the Azure DevOps REST API to add a PR thread, or an actively-maintained marketplace task (check before adopting).
+2. **PR triggers** the pipeline → Plan stage runs → publishes `plan.txt` as artifact + (optional) posts to PR.
+3. **Reviewer approves** PR → merge to `main` → push triggers the pipeline → Plan re-runs → Apply stage queues at the Environment approval gate → approver releases → Apply runs against the new `tfplan` from the post-merge Plan.
+
+The "Plan twice" property (once on PR, once on merge) is intentional — the merge commit can resolve conflicts and produce a different plan than the PR did. Treating the post-merge plan as the source of truth (and what the approver sees) closes the gap.
+
+> <sub>**Sources:**</sub>
+> - <sub>[YAML schema reference (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema/) — top-level structure (`trigger`, `pr`, `stages`, `jobs`, `jobs.deployment`, `variables`, `pool`, `resources`).</sub>
+> - <sub>[Pipeline deployment approvals (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals) — *"Approvals and other checks aren't defined in the yaml file."* Five check categories (Static → Pre-check approvals → Dynamic → Post-check approvals → Exclusive lock). Manual Approval, Branch control, Business hours, Required template, Invoke REST API/Azure Function, Query Azure Monitor, Evaluate artifact.</sub>
+> - <sub>[Variable groups (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups) — Library variable groups, Key Vault linkage, per-group security/permissions.</sub>
+> - <sub>**Community context:** [Looking for Best Practices on using Terraform for Dynatrace automated through Azure DevOps (Dynatrace Guild)](https://community.dynatrace.com/t5/Dynatrace-Guild/Looking-for-Best-Practices-on-using-Terraform-for-Dynatrace/td-p/299276) — May 2026 community thread where a guild member asks exactly this question; this section's structure mirrors the practitioner reply that emerged on the thread (two-layer repo model + state-key-derivation + plan-artifact reuse + manual-approval gates).</sub>
+
+---
+
 <a id="argocd-integration"></a>
-## 7. ArgoCD Integration
+## 8. ArgoCD Integration
 For Kubernetes-native GitOps, use ArgoCD with Dynatrace configs.
 
 ### ArgoCD Application for Monaco Configs
@@ -1461,7 +1645,7 @@ data:
 ---
 
 <a id="fluxcd-integration"></a>
-## 8. FluxCD Integration
+## 9. FluxCD Integration
 FluxCD provides an alternative GitOps approach with a pull-based reconciliation model.
 
 ### FluxCD vs ArgoCD
@@ -1576,7 +1760,7 @@ spec:
 ---
 
 <a id="dynatrace-operator-gitops-patterns"></a>
-## 9. Dynatrace Operator GitOps Patterns
+## 10. Dynatrace Operator GitOps Patterns
 When deploying the Dynatrace Operator via GitOps, follow these patterns for production environments.
 
 > **Important:** Use `apiVersion: dynatrace.com/v1beta5` or `v1beta6` for Dynatrace Operator 1.8.x. Earlier versions (v1beta1, v1beta2) are deprecated and no longer supported.
@@ -1745,7 +1929,7 @@ kubectl create secret generic dynakube \
 ---
 
 <a id="best-practices"></a>
-## 10. Best Practices
+## 11. Best Practices
 ### Security
 
 | Practice | Description |
@@ -1847,7 +2031,7 @@ Add deployment notifications:
 ---
 
 <a id="governance-architecture"></a>
-## 11. Governance Architecture
+## 12. Governance Architecture
 
 The previous sections covered individual governance tools (Vault, OPA, Sentinel, drift detection). This section synthesizes them into a cohesive **enterprise governance architecture** for Dynatrace configuration management.
 
@@ -1960,7 +2144,7 @@ This framing is much stronger than trying to pretend the v1 API scoping gap does
 ---
 
 <a id="next-steps"></a>
-## 12. Next Steps
+## 13. Next Steps
 
 ### Deployment Event Tracking
 

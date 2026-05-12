@@ -101,10 +101,76 @@ The line between `modules/` and `envs/` is the **environment-agnostic vs environ
 | Sentinel policies | Top-level `policy/` directory — not per-env |
 | Provider version constraint | Top-level `versions.tf` shared by every root via symlink, or duplicated identically |
 
-### When to deviate
+### Two-repo variant — modules separate from consumer (community-validated pattern)
+
+A common variant promoted in [a May 2026 Dynatrace Guild thread](https://community.dynatrace.com/t5/Dynatrace-Guild/Looking-for-Best-Practices-on-using-Terraform-for-Dynatrace/td-p/299276) splits modules and consumer into **two repositories** rather than the single-repo single-tree above:
+
+| Repo | Role |
+|---|---|
+| `dynatrace-modules` (or per-resource-family: `dynatrace-dashboards`, `dynatrace-alerting`, `dynatrace-anomalies`, `dynatrace-global-settings`) | Reusable modules. Versioned with Git tags (`v1.4.0`); released as immutable artifacts. |
+| `dynatrace-config-platform` (consumer) | Environment-specific configuration only. References modules via pinned Git tags. |
+
+The consumer repo organizes by ownership rather than by environment alone:
+
+```
+dynatrace-config-platform/
+├─ org/
+│  ├─ _account_template/             # ← Shared root used by every environment below
+│  │  ├─ backend.tf                  # Remote state backend config (S3 + DynamoDB locking)
+│  │  ├─ modules.tf                  # Calls reusable modules with pinned Git-tag versions
+│  │  ├─ variables.tf                # Input variable definitions
+│  │  ├─ locals.tf                   # Derived values (env flags, naming conventions)
+│  │  └─ provider.tf                 # Provider auth/region setup
+│  └─ spoke/
+│     └─ team-a/
+│        ├─ dev/
+│        │  ├─ terraform.tfvars      # Dev-only values
+│        │  ├─ management_zones/     # JSON configs consumed by modules
+│        │  └─ alerting_profiles/
+│        └─ prod/
+│           ├─ terraform.tfvars      # Prod-only values
+│           └─ dashboards/
+└─ .github/workflows/                # (or .azure-pipelines/, .buildkite/, etc.)
+```
+
+**The `_account_template/` shared root** is the key element. Rather than duplicating `backend.tf`, `provider.tf`, `versions.tf` into each env directory (the single-repo pattern above), each team / env directory **symlinks or templates from `_account_template/`** to inherit the shared Terraform boilerplate. Changes to the backend or provider config land in one place; every env picks them up.
+
+**Module enablement via `locals` + conditional `for_each` / `count`** is the per-env-customization knob inside the shared root. Pattern:
+
+```hcl
+# _account_template/locals.tf
+locals {
+  env_flags = {
+    dev  = { enable_synthetic = false, enable_slos = false }
+    prod = { enable_synthetic = true,  enable_slos = true }
+  }
+  flags = local.env_flags[var.env]
+}
+
+# _account_template/modules.tf
+module "synthetic_http" {
+  source   = "git::https://example.com/dynatrace-modules.git//synthetic-http?ref=v1.4.0"
+  for_each = local.flags.enable_synthetic ? var.synthetic_monitors : {}
+  # ...
+}
+```
+
+The flag pattern lets staging skip expensive resources (synthetic monitors consume DPS — see §11) while production runs the full set, all from the same root configuration.
+
+### When to pick the two-repo variant vs the single-repo layout above
+
+| Single-repo (modules/ + envs/) | Two-repo (modules separate) |
+|---|---|
+| Small platform team (1-3 people); modules co-developed with envs | Multiple platform teams; modules consumed by many product repos |
+| Module changes and env changes go in the same PR routinely | Module releases are deliberate events (Git tag → consumer bumps version) |
+| Lower ceremony; faster iteration on module shape | Stronger versioning discipline; module authors and consumers have separate review chains |
+
+The single-repo layout is the right starting point. **Migrate to the two-repo variant when**: (a) more than ~3 product teams are consuming the modules, OR (b) module changes start blocking env changes (or vice versa) due to PR-queue contention, OR (c) audit / compliance requires that the modules code-base is reviewed separately from environment configs.
+
+### When to deviate further
 
 - **Monorepo with many products.** Sub-divide `envs/` further (e.g., `envs/<product>/<env>/`) and consider git submodules for modules consumed by multiple products.
-- **Truly separate platform teams.** Put `modules/` in its own repo, version with Git tags or a private Terraform registry, consume from product-team repos by reference.
+- **Truly separate platform teams.** Put `modules/` in its own repo, version with Git tags or a private Terraform registry, consume from product-team repos by reference — the two-repo variant above is the canonical shape of this.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Module composition (HashiCorp)](https://developer.hashicorp.com/terraform/language/modules/develop/composition) — the "root module + child modules" model.</sub>
@@ -164,6 +230,24 @@ terraform {
 - Public-access block on
 - Lifecycle policy keeping at least 90 days of versions
 - Bucket policy restricting access to the CI/CD service principal + the platform team
+
+**State-key naming — derive from repo + env path:** for shops with multiple Dynatrace-Terraform repos sharing one state bucket, derive the S3 key from `<repo-name>/<env-path>/terraform.tfstate` rather than a flat `dynatrace/<env>.tfstate`. Examples: `dynatrace-config-platform/team-a/prod/terraform.tfstate`, `dynatrace-tenant-bootstrap/sandbox/terraform.tfstate`. This isolation lets multiple repos coexist in one bucket without key collisions; the bucket-policy + KMS-key boundary still applies at the prefix level. A simple `backend.tf` template that interpolates the key from repo + env:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "my-org-terraform-state-prod"
+    # key set per-env in backend config file or via -backend-config flag:
+    # key = "<repo-name>/<env-path>/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "terraform-state-lock"
+    kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
+  }
+}
+```
+
+Initialize per-env: `terraform init -backend-config="key=dynatrace-config-platform/team-a/prod/terraform.tfstate"`.
 
 **DynamoDB lock table:**
 - Primary key: `LockID` (string)
