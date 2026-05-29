@@ -19,6 +19,10 @@ Comprehensive guide to automating Dynatrace configuration and operations.
 7. [CI/CD Integration](markdown/-[AUTOM]-07-cicd-integration.md) — Integrating Dynatrace into CI/CD pipelines
 8. [Migration Automation](markdown/-[AUTOM]-08-migration-automation.md) — Automating configuration migrations
 9. [Terraform GitOps Setup Recipe](markdown/-[AUTOM]-09-terraform-gitops-setup-recipe.md) — Repo layout, state backends, lifecycle protections, team onboarding
+95. [[LAB] Terraform IAM Management](markdown/-[AUTOM]-95-[LAB]-terraform-iam.md) — Hands-on lab: provision groups, policies, and bindings with the Terraform provider
+96. [[LAB] CI/CD with GitHub Actions](markdown/-[AUTOM]-96-[LAB]-cicd-github-actions.md) — Hands-on lab: GitHub Actions workflows for Dynatrace Terraform deployments
+97. [[LAB] Monaco](markdown/-[AUTOM]-97-[LAB]-monaco.md) — Hands-on lab: configuration as code with Monaco
+98. [[LAB] Terraform](markdown/-[AUTOM]-98-[LAB]-terraform.md) — Hands-on lab: Terraform provider basics for Dynatrace
 99. [Best Practice Summary](markdown/-[AUTOM]-99-best-practice-summary.md) — Consolidated best practices from the AUTOM series
 
 ## Usage

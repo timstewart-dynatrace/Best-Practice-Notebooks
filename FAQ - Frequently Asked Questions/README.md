@@ -16,6 +16,7 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 4. [Managing OneAgent Updates on SaaS](markdown/-[FAQ]-04-managing-oneagent-updates-saas.md) — Update mechanism, the three modes, tenant/host-group/host precedence, update vs. maintenance windows, the DynaKube `autoUpdate` deprecation, validation, rollback, and common pitfalls
 5. [Managing ActiveGate Updates on SaaS](markdown/-[FAQ]-05-managing-activegate-updates-saas.md) — Auto-update vs manual decision, ActiveGates-before-OneAgents sequencing, HA-pair rolling updates, role-specific considerations (routing, synthetic, EF 2.0, cloud), validation, rollback, and common pitfalls
 6. [Can We Trust Davis AI? A Risk and Controls Walkthrough](markdown/-[FAQ]-06-can-we-trust-davis-ai.md) — Four-surface taxonomy (Causal, Predictive, Generative/CoPilot, AI Observability) with data residency, training boundary, hallucination controls, autonomy limits, audit trail, IAM, compliance posture, and a decision framework for when to lean in vs hold back
+7. [How Do I Set Up a Launcher Page? (Default + Persona-Based)](markdown/-[FAQ]-07-launcher-page-setup.md) — Default launcher configuration plus persona-based launcher patterns for tailoring the entry experience by role
 
 ## Usage
 1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
