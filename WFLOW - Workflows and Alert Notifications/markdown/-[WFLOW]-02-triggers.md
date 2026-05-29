@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 05/21/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, metric events, schedules, and custom event triggers.
@@ -15,6 +15,7 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 4. [On-Demand Trigger](#on-demand-trigger)
 5. [Event Trigger (Custom/Business Events)](#event-trigger-custombusiness-events)
 6. [Trigger Data and Expressions](#trigger-data-and-expressions)
+7. [Davis Problem Event Payload Reference](#davis-problem-payload-reference)
 
 ---
 
@@ -36,7 +37,7 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 | **On-Demand** | Manual execution or API call | Testing, ad-hoc automation |
 | **Event** | Business/custom event ingested | Business process automation |
 
-![Trigger Types Overview](images/trigger-types-overview.png)
+![Trigger Types Overview](images/02-trigger-types-overview.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Trigger | Source | Use Case |
@@ -99,7 +100,7 @@ When a detected problem triggers, you get access to:
 | Problem updated | Root cause/impact changed | Update incident notes |
 | Problem closed | Problem resolved | Close incident, send summary |
 
-![Detected Problem Lifecycle](images/davis-problem-lifecycle.png)
+![Detected Problem Lifecycle](images/02-davis-problem-lifecycle.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | State | Description | Typical Workflow Actions |
@@ -346,6 +347,135 @@ Access event fields in tasks:
 {{ trigger()["actual_time"] }}     # When actually started
 ```
 
+<a id="davis-problem-payload-reference"></a>
+## 8. Davis Problem Event Payload Reference
+
+> **Verified against Dynatrace Workflows trigger reference (DT docs), May 2026.** Payload field names and lifecycle semantics can drift sprint-to-sprint — re-verify against your tenant version before building load-bearing routing logic on uncommon fields.
+
+Workflows on a Detected Problem trigger receive a single `event` object representing the Davis problem at the moment the trigger fired. Sections 2 and 7 above show common access patterns; this section is the full reference: every field commonly seen in the payload, when it appears, how it joins to DQL, and which downstream notebooks consume it.
+
+### 8.1. Top-Level Field Reference
+
+| Field | Type | Always present? | Notes |
+|-------|------|-----------------|-------|
+| `event.kind` | string | Yes | Always `"DAVIS_PROBLEM"` for this trigger. Distinguishes from `DAVIS_EVENT` (raw signals). |
+| `display_id` | string | Yes | Human-facing problem ID (`"P-12345"`). Use in notifications and ticket subjects. |
+| `problem_id` | string | Yes | Internal problem ID. Use to **join to `fetch dt.davis.problems`** (see §8.3). |
+| `event.id` | string | Yes | Event-record ID for this specific lifecycle update (different per OPEN/UPDATE/CLOSE firing). |
+| `title` / `event.name` | string | Yes | Short problem title — `"High response time on checkout service"`. Both names appear; `event.name` is the DQL-canonical form. |
+| `severity` / `event.category` | string | Yes | One of `AVAILABILITY`, `ERROR`, `SLOWDOWN`, `RESOURCE`, `CUSTOM_ALERT`, `MONITORING_UNAVAILABLE`, `INFO`. Older fields may also surface `CRITICAL` / `HIGH` / `MEDIUM` / `LOW` semantic levels. |
+| `status` | string | Yes | `ACTIVE` (open) or `CLOSED`. Older notebooks and docs sometimes show `OPEN` / `RESOLVED` — both names occur depending on surface. |
+| `event.status_transition` | string | On UPDATE/CLOSE | `CREATED`, `UPDATED`, or `CLOSED` — tells the workflow *which lifecycle event* triggered it. |
+| `start_time` | timestamp (ISO 8601) | Yes | When the problem opened. |
+| `end_time` | timestamp (ISO 8601) | On CLOSE only | When the problem closed. Null/missing while active. |
+| `affected_entity_ids` | string[] | Yes | All entities Davis correlated to this problem (services, hosts, processes, etc.). |
+| `root_cause_entity_id` | string | When determined | Single entity Davis identified as root cause. May be empty/null on initial OPEN before causation analysis completes. |
+| `impacted_entities` | object[] | Yes | Richer per-entity records — typically `{ id, name, type }`. Use when you need the entity *name* without an extra lookup. |
+| `affected_entity_types` | string[] | Yes | Distinct entity types touched by this problem (`["SERVICE", "HOST"]`). Useful for routing without enumerating entity IDs. |
+| `management_zones` | string[] | Yes | Management-zone names this problem touches. Drives team routing in WFLOW-04. |
+| `entity_tags` | object[] | When tagged | Tags on the affected entities (`[{"key": "team", "value": "checkout"}, ...]`). Custom-tag routing reads from here. |
+| `problem_url` | string | Yes | Deep-link to the Davis Problems-app page for this problem. Always include in notifications. |
+| `event.description` | string | Variable | Longer human-readable description; not always populated. Treat as optional. |
+
+> <sub>**Sources:** [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger), [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app). **Derived:** the OPEN vs UPDATE vs CLOSE field-presence column synthesizes the trigger reference with observed payloads — `end_time` and `event.status_transition` are the load-bearing differentiators across lifecycle stages.</sub>
+
+### 8.2. Lifecycle Field Presence
+
+A single workflow can fire on problem **CREATED**, **UPDATED**, and **CLOSED**. The payload shape differs at each stage — guard logic that assumes all fields are populated will silently mis-route close events.
+
+| Field | CREATED | UPDATED | CLOSED |
+|-------|---------|---------|--------|
+| `display_id`, `problem_id`, `title` | ✓ | ✓ | ✓ |
+| `severity`, `status` | ✓ | ✓ | ✓ (`CLOSED`) |
+| `event.status_transition` | `CREATED` | `UPDATED` | `CLOSED` |
+| `start_time` | ✓ | ✓ | ✓ |
+| `end_time` | — | — | ✓ |
+| `root_cause_entity_id` | sometimes empty | usually populated | populated |
+| `affected_entity_ids` | initial set | may expand | final set |
+| `entity_tags` | from initial entities | may expand | final set |
+| `problem_url` | ✓ | ✓ | ✓ |
+
+In community practice the safest routing pattern is: branch on `event.status_transition` first (and fall back to `status` if absent), then read only the fields guaranteed for that branch.
+
+### 8.3. Joining the Payload to DQL
+
+The workflow payload is a snapshot. For longer-window analysis (problem history, MTTR, fleet-wide patterns), join the payload's `problem_id` to the canonical Grail table:
+
+```dql
+// Hydrate the workflow payload against the full Davis problems record.
+// Substitute {{ event()["problem_id"] }} via a DQL workflow task.
+fetch dt.davis.problems, from:-7d
+| filter event.id == "{{ event()['problem_id'] }}"
+| fields display_id,
+         event.name,
+         event.category,
+         event.status,
+         event.start,
+         event.end,
+         affected_entity_ids,
+         root_cause_entity_id,
+         management_zones
+| limit 1
+```
+
+**Why `dt.davis.problems` and not `dt.davis.events`:** `dt.davis.problems` is the canonical problems data object; `dt.davis.events` carries only `DAVIS_EVENT` records (raw signals that *feed* problem detection, not the problems themselves). Querying `dt.davis.events` for problem records returns zero rows on modern tenants.
+
+For aggregate views (e.g., "all problems for the same entity this week") swap the filter:
+
+```dql
+fetch dt.davis.problems, from:-7d
+| filter in("{{ event()['affected_entity_ids'][0] }}", affected_entity_ids)
+| summarize problem_count = count(), by:{event.category, event.status}
+| sort problem_count desc
+```
+
+### 8.4. Common Access Patterns
+
+```jinja
+# Display ID and link — every notification
+{{ event()["display_id"] }}
+{{ event()["problem_url"] }}
+
+# Severity-based routing (see WFLOW-04 §3 routing-by-severity)
+{% if event()["severity"] == "AVAILABILITY" %} page on-call
+{% elif event()["severity"] == "ERROR" %}        notify channel
+{% else %}                                        log only
+{% endif %}
+
+# Lifecycle branch — distinguishes open/update/close in the same workflow
+{% if event()["event.status_transition"] == "CLOSED" %} close ticket
+{% else %}                                                update ticket
+{% endif %}
+
+# Custom-tag access (entity_tags is an array of {key, value} objects)
+{% for tag in event()["entity_tags"] %}
+  {% if tag["key"] == "team" %}{{ tag["value"] }}{% endif %}
+{% endfor %}
+
+# Entity-type filtering — route by what kind of entity is involved
+{% if "SERVICE" in event()["affected_entity_types"] %} service-team channel
+{% elif "HOST" in event()["affected_entity_types"] %}   infra channel
+{% endif %}
+
+# Root cause name (no extra lookup needed — impacted_entities carries names)
+{% for ent in event()["impacted_entities"] %}
+  {% if ent["id"] == event()["root_cause_entity_id"] %}{{ ent["name"] }}{% endif %}
+{% endfor %}
+```
+
+### 8.5. Cross-References
+
+- **WFLOW-04 §3 *Routing by Severity*** consumes `severity` and `management_zones` from this payload to fan notifications out to team channels.
+- **WFLOW-04 §4 *Routing by Team/Service*** reads `entity_tags` (custom tags like `team:checkout`) and `affected_entity_types`.
+- **WFLOW-05 *Incident Management*** uses `display_id`, `problem_url`, `status`, and `start_time` to create and update tickets through the lifecycle.
+- **WFLOW-07 *Remediation*** branches on `root_cause_entity_id` and `title` to pick the right runbook task, and joins `problem_id` to `dt.davis.problems` for richer context before acting.
+
+### 8.6. Honest Caveats
+
+- **Field-name drift:** Some fields surface under two names (`title` ↔ `event.name`, `severity` ↔ `event.category`, `status` value `OPEN` vs `ACTIVE`). Older workflow templates and docs frequently use the older form; new workflows should prefer the `event.*` canonical names because they match the DQL field surface in `dt.davis.problems`.
+- **`status` value vocabulary:** Modern Davis records use `ACTIVE` / `CLOSED`; some legacy notebooks (including earlier sections of this notebook) still show `OPEN` / `RESOLVED`. Both can appear in payloads depending on tenant version — guard with a set check rather than `==`.
+- **Re-verify before load-bearing logic:** This reference is dated 05/21/2026. The Workflows trigger schema is product surface and can change in a sprint. Spot-check a real payload (use a logging task or send-to-Slack-as-debug task) in your tenant before relying on field availability in production routing.
+
 ### Query Detected Problems
 
 ```dql
@@ -417,10 +547,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Workflow Triggers](https://docs.dynatrace.com/docs/platform/workflows/triggers)
-- [Detected Problem Events](https://docs.dynatrace.com/docs/platform/davis-ai/detect/problems)
-- [Business Events](https://docs.dynatrace.com/docs/platform/grail/business-events)
-- [Cron Expression Guide](https://crontab.guru/)
+- [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Business analytics umbrella (DT docs)](https://docs.dynatrace.com/docs/observe/business-analytics)
+- [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Cron expression sandbox (crontab.guru)](https://crontab.guru/)
 
 ---
 

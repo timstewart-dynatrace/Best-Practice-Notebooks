@@ -1,6 +1,6 @@
 # SL2DT-02: Assessment & Inventory
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -414,6 +414,23 @@ All must be true:
 If any check fails, do not proceed to SL2DT-03. Fix the gap first.
 
 **Next step:** **SL2DT-03 — Log Ingest Architecture** (bucket design, OneAgent + OTel + OpenPipeline deployment, FER → processor conversion).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Sumo Logic — inventory APIs
+- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
+- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+
+### Dynatrace — target-side capabilities for sizing assessment
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 
 ---
 

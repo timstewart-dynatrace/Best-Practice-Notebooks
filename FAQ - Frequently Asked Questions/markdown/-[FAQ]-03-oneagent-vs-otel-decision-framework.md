@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 05/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 05/29/2026
 
 ## Overview
 
@@ -35,7 +35,8 @@ This FAQ frames the trade-offs, the hidden costs, and the workload-specific edge
 11. [Pros and Cons Side-by-Side](#pros-cons)
 12. [Is the Conversion Worth the Effort?](#worth-it)
 13. [Recommended Approach](#recommendation)
-14. [Runtime Applicability Map](#runtime-map)
+14. [Deploying to Windows Servers](#windows-deployment)
+15. [Runtime Applicability Map](#runtime-map)
 
 ---
 
@@ -545,8 +546,94 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — serverless-not-supported guidance</sub>
 > - <sub>[otel4s (Typelevel GitHub)](https://github.com/typelevel/otel4s), [zio-telemetry (ZIO GitHub)](https://github.com/zio/zio-telemetry) — runtime-aware OTel libraries for async-fragmenting runtimes</sub>
 
+<a id="windows-deployment"></a>
+## 14. Deploying to Windows Servers
+
+**Short answer: the framework applies to Windows Server unchanged.** The OneAgent-vs-OTel decision is driven by *runtime* (Java / .NET / Node / Python / Go / PHP / Ruby) and *deployment model* (long-lived host vs serverless vs async-fragmenting), **not by the operating system**. A Java service gets the same answer on Windows as on Linux. What changes on Windows is the *weighting* of a few factors and the *deployment mechanics* — covered below.
+
+![Deploying to Windows Server — OneAgent vs OpenTelemetry mechanics](images/03-windows-server-deployment_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| | OneAgent on Windows | OpenTelemetry on Windows |
+|---|---------------------|--------------------------|
+| Install | MSI installer; runs as SYSTEM service; Server Core via headless-mode | Collector MSI registers a "OpenTelemetry Collector" Windows service; logs to Event Log |
+| App instrumentation | Auto-injects IIS application pools (w3wp.exe); classic .NET Framework 4.5.2–4.8 + 3.5 SP1; modern .NET 5–10 + Core 3.0/3.1 | .NET auto-instrumentation injector; per-IIS-app-pool env vars; strong for ASP.NET Core, narrower for .NET Framework |
+| Signals | Logs (Event Log + IIS/text), traces (PurePath), metrics, **Smartscape dependency map** — automatic | Logs (`windowseventlog` + `filelog` receivers), OTLP traces, metrics (`hostmetrics` receiver) — **no Smartscape topology** |
+| Best fit | Lowest-effort deep monitoring on a .NET Framework / IIS estate | Custom spans + multi-backend portability; layer alongside OneAgent |
+| Decisive factor | Classic ASP.NET / WCF / MSMQ on IIS → OneAgent auto-instruments | OTel .NET coverage of .NET Framework is narrower and more manual |
+| Windows containers | Monitor with host OneAgent on the Windows node | Operator/DynaKube is Linux-node-only; §8 in-cluster injection does not apply |
+For environments where SVG doesn't render
+-->
+
+### OneAgent is a first-class citizen on Windows Server
+
+OneAgent installs from an **MSI package and runs as a Windows `SYSTEM` service** — the install creates the registry entries that start it at boot. Server Core installations are supported in headless mode. It delivers the same full-stack deep monitoring it does on Linux: host metrics, process detection, runtime metrics, log streams, Smartscape topology, and PurePath — none of which require a code change. For the current supported Windows Server version list (and Server Core / LTSC notes), check the OneAgent OS support matrix linked in the Sources block rather than hard-coding a version here — the matrix moves with each release train.
+
+### The decisive Windows factor — .NET Framework and IIS
+
+This is the one place where "which OS" materially changes the recommendation, because the classic, Windows-only **.NET Framework** stack lives here.
+
+- **OneAgent auto-instruments classic .NET Framework** (4.5.2–4.8 and 3.5 SP1 supported; 4.5–4.5.1 limited) **and modern .NET** (5/6/7/8/9/10 and Core 3.0/3.1), including **ASP.NET Framework, ASP.NET Core, WCF, gRPC, and named-pipe / TCP / MSMQ services**. IIS application pools have built-in instrumentation rules — OneAgent injects into the `w3wp.exe` worker processes automatically.
+- **OTel's .NET auto-instrumentation is strongest for ASP.NET Core** and is narrower, more manual, and version-sensitive for classic ASP.NET Framework. On IIS it requires per-application-pool environment-variable wiring.
+
+The practical consequence: **on an estate that is predominantly legacy .NET Framework + IIS, OneAgent is the decisive low-effort path to deep coverage** — it instruments the classic stack that OTel covers least well, with no code change and no per-app-pool wiring. OpenTelemetry remains the right layer for *custom business spans* and for *multi-backend portability*; layer it alongside OneAgent (per §8), do not rip it out. For modern ASP.NET Core workloads the coverage gap closes and the choice reverts to the general framework in §9.
+
+### Logs and traces on Windows
+
+Both tools deliver **logs and traces** on Windows — the difference is configuration effort and correlation fidelity.
+
+**Logs**
+
+- **OneAgent** auto-detects and ingests the **Windows Event Log** channels (System / Application / Security) and **text log files** (IIS logs, custom application logs). It is enabled by the *[Built-in] Windows system, application, and security logs* log-ingest rule, or included automatically under *[Built-in] Ingest all logs*. Each log line is auto-correlated to the host / process / service entity that produced it.
+- **OpenTelemetry-only** reads the Event Log via the Collector's `windowseventlogreceiver` (the `channel:` field is required — e.g. `Application`, `System`, `Security`) and text logs via the `filelog` receiver, then exports OTLP. You configure each channel and path and own the attribute hygiene that ties logs back to entities.
+
+**Traces**
+
+- **OneAgent** PurePath auto-captures traces for .NET (including IIS `w3wp.exe`), Java, and Node on Windows with no code change. Critically, it traces the classic Windows service stack — **ASP.NET Framework, WCF, gRPC, and named-pipe / TCP / MSMQ services** — which OTel's .NET auto-instrumentation covers least well.
+- **OpenTelemetry-only** spans come from the .NET auto-instrumentation injector / SDK and export via OTLP; they correlate with OneAgent spans through W3C `traceparent` (per §8). Coverage of classic .NET Framework / WCF / MSMQ is narrower, so some Windows service hops can be missing unless manually instrumented.
+
+### Smartscape dependency mapping on Windows
+
+This is the **sharpest OneAgent-vs-OTel difference on Windows**, and the reason to run OneAgent for topology even when OpenTelemetry owns the spans.
+
+| Dependency-mapping aspect | OneAgent on Windows | OpenTelemetry-only on Windows |
+|---------------------------|---------------------|-------------------------------|
+| Topology graph | Automatic Smartscape — host → process group → service, real-time | None — no Smartscape topology graph |
+| Service-to-service dependencies | Detected automatically for every instrumented service | Inferable only from span parent/child of *instrumented* calls |
+| Process / host entity model | Automatic — every Windows process and host is an entity | Not produced; must be approximated from span attributes |
+| Windows service-stack hops (ASP.NET Framework, WCF, MSMQ, named-pipe / TCP services) | Captured because OneAgent auto-instruments these (§6) → they appear in the map | Appear only if explicitly instrumented; classic Framework / WCF / MSMQ coverage is weak |
+| Uninstrumented / third-party processes | Still placed on the map via host / process observation | Invisible — no span, no node |
+| Configuration effort | Zero | Per-service instrumentation + attribute hygiene |
+
+**Practical impact for a Windows estate:** IIS + WCF + MSMQ + named-pipe IPC is exactly the interaction style OpenTelemetry instruments least completely. An OTel-only deployment shows the hops you instrumented and a blank where you didn't — there is no automatic host / process topology to fall back on. OneAgent fills that gap with a complete, zero-config dependency map. If Smartscape dependency mapping matters to you (impact analysis, Davis RCA, blast-radius), **run OneAgent for topology and let OpenTelemetry own custom spans** — the §13 "layer, don't convert" recommendation applied to the dependency-map question.
+
+### Deployment mechanics on Windows
+
+| Concern | OneAgent | OpenTelemetry |
+|---------|----------|---------------|
+| **Install unit** | MSI; runs as a `SYSTEM` Windows service (`--unpack-msi` extracts the package + batch installer for scripted rollout) | Collector MSI registers a Windows service named "OpenTelemetry Collector" and an Event Log source; per-app .NET injector for in-process instrumentation |
+| **IIS-hosted apps** | Auto-detected; instruments the application pools' `w3wp.exe` processes — no per-pool config | .NET auto-instrumentation requires environment variables set on each IIS application pool |
+| **App redeploy** | Not required — agent attaches at the next process restart | SDK changes need a redeploy; auto-instrumentation changes need a process restart |
+| **Host / runtime metrics** | Automatic | Add a `hostmetrics` receiver to a Collector running on the node |
+| **Coexistence** | Use the §8 Span Sensor or OTLP pattern to avoid duplicate spans | Same — pick one ingestion path per process |
+
+### Windows containers
+
+Container monitoring on Windows is **host-based, not in-cluster-injected**. The Dynatrace Operator (DynaKube) supports **Linux worker nodes only** — there is no Windows-node DynaKube path. Monitor Windows-container workloads by installing **OneAgent on the Windows host node**, which observes the containers running on it; the in-container init-container injection model described in §8 does not apply to Windows containers. If your platform is mixed (Linux + Windows nodes), use the Operator for the Linux nodes and host OneAgent for the Windows nodes.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Install OneAgent on Windows (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows) — *"Creates entries in the Windows Registry that start OneAgent as a `SYSTEM` service"*; `--unpack-msi` extraction for scripted install</sub>
+> - <sub>[.NET technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/dotnet) — Framework 4.5.2–4.8 + 3.5 SP1 and modern .NET 5–10 + Core 3.0/3.1 supported; IIS application-pools have built-in instrumentation rules</sub>
+> - <sub>[OneAgent platform and capability support matrix (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix) — current supported Windows Server versions + Server Core / headless-mode notes</sub>
+> - <sub>[Install the Collector on Windows (opentelemetry.io)](https://opentelemetry.io/docs/collector/install/binary/windows/) — MSI installs the Collector as a Windows service ("OpenTelemetry Collector") with an Event Log source</sub>
+> - <sub>[Get started with Kubernetes monitoring — Full-Stack (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability) — Dynatrace Operator targets Linux worker nodes</sub>
+> - <sub>[Windows event logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-windows-event-logs) — OneAgent auto-detects System / Application / Security channels; enabled via the *[Built-in] Windows system, application, and security logs* rule or *[Built-in] Ingest all logs*</sub>
+> - <sub>[Windows Event Log Receiver (OpenTelemetry collector-contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/windowseventlogreceiver/README.md) — *"tails and parses logs from windows event log API"*; required `channel` field</sub>
+> - <sub>[Distributed traces — concepts (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces/concepts) — OneAgent auto-collects topology data and entity relationships for Smartscape; PurePath</sub>
+> - <sub>**Derived:** the *".NET Framework / IIS estate → OneAgent is the decisive low-effort path"* conclusion combines the documented OneAgent-vs-OTel .NET Framework coverage asymmetry with this notebook's general low-code-change thesis (§5, §9). The *"Windows containers → host OneAgent, §8 injection does not apply"* conclusion combines the Operator-Linux-only fact with the host-based Windows-container monitoring model. The Smartscape table's *"Windows service-stack hops appear in the map / OTel-only leaves a blank"* rows combine OneAgent's documented .NET WCF/MSMQ/named-pipe service instrumentation (§6) with the §4 position that Smartscape topology is a OneAgent-only construct — OTel emits spans, not topology.</sub>
+
 <a id="runtime-map"></a>
-## 14. Runtime Applicability Map
+## 15. Runtime Applicability Map
 
 **Runtime-by-runtime — applicability of this guidance:**
 
@@ -559,7 +646,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | Scala (effect systems — ZIO, Cats Effect, fs2, http4s on IO) | Modified | See §7 — OTel via *otel4s* / *zio-telemetry* is technically required, not preferred |
 | Groovy | Yes | Tracks Java; auto-instrumented by both |
 | Clojure | Mostly | Same JVM auto-instrumentation; `core.async` channels have context issues comparable to coroutines |
-| .NET Framework (4.5+ / classical ASP.NET) | Yes | OneAgent auto-instruments; OTel coverage is narrower for ASP.NET Framework |
+| .NET Framework (4.5+ / classical ASP.NET) | Yes | OneAgent auto-instruments; OTel coverage is narrower for ASP.NET Framework. On IIS / Windows Server this is the decisive factor — see §14 |
 | .NET 6 / 7 / 8+ (modern .NET) | Yes | Both have strong coverage; `AsyncLocal<T>` flows trace context natively across `async` / `await` |
 | Node.js (JavaScript) | Yes | Both use `async_hooks` / `AsyncLocalStorage` |
 | Node.js (TypeScript) | Yes | Same as JavaScript at runtime |

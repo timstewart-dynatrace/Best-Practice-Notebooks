@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 05/21/2026
 
 ## Overview
 
@@ -32,10 +32,10 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
 | 1 | Use Workflows for all new automation | Workflows (not legacy alerting profiles) | Critical | WFLOW-01 |
-| 2 | Stay within execution time limit | Max 15 minutes per workflow execution | Critical | WFLOW-01 |
-| 3 | Stay within task limit | Max 50 tasks per workflow | Critical | WFLOW-01 |
-| 4 | Set individual task timeouts | 5 minutes max per task | Recommended | WFLOW-01 |
-| 5 | Respect concurrent execution cap | Max 100 concurrent executions per environment | Critical | WFLOW-01 |
+| 2 | Keep workflows small and focused | One trigger → one outcome; avoid sprawling multi-stage workflows (community practice — explicit max-execution-time is not published in current docs; verify against your tenant under load) | Recommended | WFLOW-01 |
+| 3 | Keep task count modest | ~20 tasks per workflow as a soft ceiling (community practice — split larger flows into sub-workflows). Hard max not published in current docs. | Recommended | WFLOW-01 |
+| 4 | Set explicit task timeouts | Default is 60 minutes; max 7 days. Configure `timeout: <seconds>` per task. Distinct from the 120s Dynatrace runtime budget that caps each action (DQL/JS) inside the task. | Critical | WFLOW-01, WFLOW-08 |
+| 5 | Avoid uncontrolled fan-out | Throttle high-cardinality triggers (community practice — explicit concurrent-execution cap is not published in current docs; verify against your tenant). | Recommended | WFLOW-01 |
 | 6 | Start with simple notifications | Basic notifications first, then layer in complexity | Recommended | WFLOW-09 |
 | 7 | Run notification tasks in parallel | Default parallel execution for independent tasks (Slack + Teams + Email simultaneously) | Recommended | WFLOW-03 |
 | 8 | Use sequential execution with `dependsOn` | Chain tasks that require previous task output | Recommended | WFLOW-04 |
@@ -156,8 +156,8 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 1 | Always use `export default async function` | Required function signature for every JavaScript action | Critical | WFLOW-08 |
 | 2 | Wrap all external calls in try-catch | Return `{success: false, error: error.message}` on failure instead of throwing | Critical | WFLOW-08 |
 | 3 | Implement retry with exponential backoff | Max 3 retries, delay = `1000 * attempt` ms, retry only on 5xx errors | Recommended | WFLOW-08 |
-| 4 | Set request timeouts | `AbortController` with 10-second timeout on external HTTP calls | Critical | WFLOW-08 |
-| 5 | Set DQL query timeouts | `requestTimeoutMilliseconds: 30000` on all `queryExecute()` calls | Critical | WFLOW-08 |
+| 4 | Set request timeouts on external HTTP | `AbortController` with 10-second timeout on outbound `fetch()` calls. Distinct from task `timeout` (whole-task budget) and 120s runtime budget (per-action). See WFLOW-08 §8. | Critical | WFLOW-08 |
+| 5 | Set DQL query timeouts | `requestTimeoutMilliseconds: 30000` on all `queryExecute()` calls. This caps the SDK→engine HTTP call only; the engine's own 120s runtime budget still applies. See WFLOW-08 §8. | Critical | WFLOW-08 |
 | 6 | Limit DQL query scope | `from: now() - 1h`, select only needed `fields`, `limit 100` | Critical | WFLOW-08 |
 | 7 | Use `Promise.all()` for parallel entity lookups | Execute all independent API calls concurrently | Recommended | WFLOW-08 |
 | 8 | Always use HTTPS for external calls | Never use `http://` in HTTP request URLs | Critical | WFLOW-09 |
@@ -240,11 +240,17 @@ This notebook contains **91 best practices** across 13 categories extracted from
 
 ## References
 
-- [Dynatrace Workflows Documentation](https://docs.dynatrace.com/docs/platform/workflows)
-- [Workflow Actions Reference](https://docs.dynatrace.com/docs/platform/workflows/actions)
-- [Workflow Triggers](https://docs.dynatrace.com/docs/platform/workflows/triggers)
-- [Jinja Expressions](https://docs.dynatrace.com/docs/platform/workflows/expressions)
-- [Dynatrace SDK](https://developer.dynatrace.com/develop/sdks/)
+- [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger)
+- [Workflow actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions)
+- [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)
+- [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
+- [Upgrade guide — Alert notification (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification)
+- [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop)
 
 ---
 

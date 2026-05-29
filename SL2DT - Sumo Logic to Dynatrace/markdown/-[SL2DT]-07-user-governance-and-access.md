@@ -1,6 +1,6 @@
 # SL2DT-07: User Governance & Access
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -320,6 +320,20 @@ Bucket read/write permissions are evaluated per-query. Audit events must include
 - [ ] Rollout plan documented (shadow-mode → cutover → retire legacy)
 
 **Next step:** **SL2DT-08 — Automation & GitOps** (Monaco/Terraform for config promotion, CI/CD integration).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace IAM
+- [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
+- [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/access-control/access-tokens)
+- [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
+
+### Sumo Logic users and roles (source)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
 
 ---
 

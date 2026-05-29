@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 05/29/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -48,6 +48,18 @@ The built-in Kubernetes dashboard provides:
 - Recent events and problems
 
 Navigate to: **Infrastructure > Kubernetes**
+
+### Release Radar (April 2026): Enhanced Kubernetes Visibility
+
+Three additions to the Kubernetes app's cluster and workload views:
+
+| Capability | What it surfaces | Why it matters |
+|---|---|---|
+| **Horizontal Pod Autoscaler (HPA)** | HPA is now a first-class object — scaling triggers, current/desired replica counts, and the workloads it drives | See *why* a workload scaled (which metric crossed which threshold) without leaving Dynatrace |
+| **Custom Resources (CRs)** | Monitor up to **5 Custom Resources per cluster**, surfacing CRD-heavy ecosystems (Argo, Istio, Cert-Manager, Kyverno, operator-managed databases) | Brings operator/CRD state into the same view as native Kubernetes objects |
+| **Cloud configuration in cluster details** | The underlying managed-cluster configuration (EKS, AKS, GKE) shown inline as YAML or JSON | Correlate cluster and cloud state in one place — no jumping to the cloud console |
+
+> **Note:** The per-cluster Custom Resource cap (5) means you choose which CRDs matter most — prioritize the operators whose state actually drives incidents in your environment.
 
 ```dql
 // List all monitored Kubernetes clusters (smartscape topology)

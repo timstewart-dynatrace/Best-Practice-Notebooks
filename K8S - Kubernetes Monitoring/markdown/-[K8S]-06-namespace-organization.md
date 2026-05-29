@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 05/21/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -124,6 +124,25 @@ timeseries avgMemUsageBytes = avg(dt.kubernetes.container.memory_working_set), f
 | sort avgMemUsageBytes desc
 | limit 15
 ```
+
+### Per-Namespace Service Detection Scoping
+
+Service detection settings — including **Enhanced Endpoints for SDv1** (Dynatrace v1.329+) — can be overridden per Kubernetes namespace, not just at the environment level. Useful when one namespace runs services that need different endpoint-naming behavior than the tenant default.
+
+**Override path:** *Kubernetes app → select cluster or namespace → Actions menu → Service detection settings → Process and contextualize → Services → Service detection v1*
+
+**Scoping precedence (most specific wins):**
+
+| Scope | When to use |
+|---|---|
+| Environment-wide | Default policy for the whole tenant |
+| Host group | Group of hosts with shared service-detection needs |
+| Kubernetes cluster | All namespaces in one cluster (e.g., a multi-tenant cluster owned by one team) |
+| Kubernetes namespace | One workload — typically when a service behind a reverse proxy (Nginx/Apache/IIS) collapses to `GET /*` and you want to keep the per-endpoint metrics elsewhere |
+
+**Tenant-creation-date reminder:** environments created at v1.333+ have Enhanced Endpoints always on and not configurable at any scope. Per-namespace overrides apply only to older environments where the setting is toggleable.
+
+> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).</sub>
 
 <a id="resource-quotas-and-limits"></a>
 ## 3. Resource Quotas and Limits

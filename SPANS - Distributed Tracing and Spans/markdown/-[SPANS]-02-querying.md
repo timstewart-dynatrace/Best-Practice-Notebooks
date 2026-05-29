@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 05/21/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -159,6 +159,28 @@ fetch spans, from:-1h
 | sort start_time desc
 | limit 50
 ```
+
+### 4.1. Endpoint-Name Span Identity (Enhanced Endpoints)
+
+Since Dynatrace v1.329, the **Enhanced Endpoints for SDv1** setting changes what populates `span.name` for HTTP server spans on auto-instrumented services. Environments created at v1.333+ have it always on; older environments may need to enable it explicitly at *Settings → Process and contextualize → Services → Service detection v1*.
+
+**Practical impact on DQL queries:**
+
+| Before Enhanced Endpoints | After Enhanced Endpoints |
+|---|---|
+| `span.name == "GET /users/42"` matched one literal path | `span.name == "GET /users/{id}"` matches the endpoint template; the per-request URL goes elsewhere |
+| Every distinct URL produced a distinct `span.name` value | Endpoint templates collapse path-variable variations into one named endpoint |
+| Metrics aggregated into `NON_KEY_REQUESTS` for unmarked requests | Each detected endpoint emits individual `dt.service.request.*` metrics |
+
+**Filtering rule of thumb:**
+
+- Use `contains(span.name, "/users")` or `startsWith(span.name, "GET /users")` for portable filtering — both forms work before and after the setting is enabled.
+- Exact equality on a literal URL (`span.name == "GET /users/42"`) only worked when endpoints weren't templated. Switch to `contains()` on the path stem.
+- For services without the `http.route` span attribute (often Nginx, Apache, IIS in front of a backend), endpoints may collapse to `GET /*`. Use request-naming rules to recover named endpoints — see [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).
+
+**Services not affected:** external services, background activity, queue listeners, key-value stores — Enhanced Endpoints does not create endpoints for these.
+
+> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).</sub>
 
 ---
 

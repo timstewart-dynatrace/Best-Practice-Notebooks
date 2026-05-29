@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 05/26/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 05/28/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -373,6 +373,20 @@ Map your resource mix to the token type the Service User should hold:
 | Synthetic monitors, SLO v1, legacy config APIs | Classic API Token (`dt0c01`) | Provider v1.88.0+ requires classic API Token for these resources. |
 | **Access Tokens (the `dynatrace_api_token` resource itself)** | **Classic API Token (`dt0c01`) — see disclaimer below** | Documented requirement: `apiTokens.read` + `apiTokens.write` scopes, which are classic-API-Token scopes. |
 | Account Management / IAM (policies, groups, service users) | OAuth Client + `DT_ACCOUNT_ID` | IAM resources are account-level; Platform Token cannot manage them. |
+
+#### Sprint update (SaaS 1.340) — classic REST APIs now accept Platform Tokens
+
+The decision table above routes Synthetics / SLO v1 / legacy *Terraform resources* to classic API Tokens because the provider requires them. For **direct REST API calls** (outside Terraform), the classic-token-only constraint has loosened: as of SaaS 1.340, the **classic network-zone, ActiveGate, and OneAgent REST APIs** accept Platform Tokens as an authentication option alongside classic API tokens.
+
+| Classic REST API | Before SaaS 1.340 | SaaS 1.340+ |
+|------------------|-------------------|-------------|
+| Network-zone REST API | Classic API Token only | Classic API Token **or** Platform Token |
+| ActiveGate REST API | Classic API Token only | Classic API Token **or** Platform Token |
+| OneAgent REST API | Classic API Token only | Classic API Token **or** Platform Token |
+
+This narrows the set of surfaces that *force* a classic token. Two caveats: (1) it applies to **direct REST API consumption**, not the Terraform provider — the provider's resource-level token requirements are unchanged until a provider release says otherwise; (2) the release note adds the capability but does not publish the exact Platform Token **scope** required for each API — verify the scope against the API Explorer / Swagger before relying on it. The auth-scheme rule still holds: a Platform Token uses `Authorization: Bearer`, a classic token uses `Authorization: Api-Token` — sending the wrong scheme returns 401 even when the token is otherwise valid.
+
+> <sub>**Sources:** [Dynatrace SaaS 1.340 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340) — *"Added support for platform tokens for classic network zone / ActiveGate / OneAgent REST APIs."* **Softened:** the exact Platform Token scope per classic API is not stated in the release note — verify at the API Explorer before relying on it.</sub>
 
 #### Special case — Terraform minting Access Tokens (`dynatrace_api_token`)
 

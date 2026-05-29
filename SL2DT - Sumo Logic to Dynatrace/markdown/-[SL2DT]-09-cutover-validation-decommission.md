@@ -1,6 +1,6 @@
 # SL2DT-09: Cutover, Validation & Decommission
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -325,6 +325,22 @@ aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
 **You're done.** Hand off to steady-state operations. Start scoping the next project (phase 2 tool migrations, if any).
 
 **Next:** **SL2DT-99 — Summary & Runbook Index** (full runbook compendium + quick-start for future migrations).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace migration validation surfaces
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
+- [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+
+### Sumo Logic decommission references (source)
+- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
 
 ---
 

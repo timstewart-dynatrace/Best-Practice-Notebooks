@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 05/21/2026
 
 With discovery and strategy complete, it’s time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -227,7 +227,26 @@ Define alternative zones for each primary zone:
 
 ### 2.4 Creating Network Zones
 
-**Via API:**
+> **Sprint 1.339 deprecation (May 2026):** The dedicated `/api/v2/networkZones` Configuration API endpoint is deprecated. New automation should target the Settings 2.0 schema `builtin:networkzones.zones` via `POST /api/v2/settings/objects` — the same pattern used elsewhere in the AUTOM series. The legacy endpoint below still functions during the deprecation window so existing scripts keep working; treat the Settings 2.0 form as canonical for new work.
+
+**Settings 2.0 (recommended for new automation):**
+
+```bash
+curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/settings/objects" \
+  -H "Authorization: Api-Token {token}" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "schemaId": "builtin:networkzones.zones",
+    "scope": "environment",
+    "value": {
+      "name": "datacenter-east",
+      "description": "Primary datacenter in East region",
+      "alternativeZones": ["datacenter-west"]
+    }
+  }]'
+```
+
+**Legacy Configuration API (deprecated, still works during the deprecation window):**
 
 ```bash
 curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/networkZones" \

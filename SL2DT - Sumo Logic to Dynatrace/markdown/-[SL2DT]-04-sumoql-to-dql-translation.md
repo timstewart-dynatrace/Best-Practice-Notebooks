@@ -1,6 +1,6 @@
 # SL2DT-04: SumoQL → DQL Translation
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -411,6 +411,20 @@ fetch logs, from:-1h
 - [ ] Translation report delivered to stakeholders
 
 **Next step:** **SL2DT-05 — Monitor/Alert Conversion** (apply translations + anomaly detection redirects to Monitor-class assets).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace query and pattern languages
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-pattern-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+
+### Sumo Logic source-language reference
+- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
+- [Sumo Logic parse operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/parse-operators/)
 
 ---
 

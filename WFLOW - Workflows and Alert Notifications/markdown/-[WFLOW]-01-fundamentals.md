@@ -1,6 +1,6 @@
 # WFLOW-01: Workflow Fundamentals
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 05/21/2026
 
 ## Introduction to Dynatrace Workflows
 Dynatrace Workflows is the automation engine that enables event-driven automation, scheduled tasks, and integration orchestration. This notebook introduces core concepts, components, and your first workflow.
@@ -115,13 +115,13 @@ Dynamic values using Jinja2 syntax:
 
 ```
 {{ event()["title"] }}           # Access trigger data
-{{ result("task_name").output }} # Access task output
+{{ result("task_name") }}        # Previous task result — shape depends on task type; see WFLOW-08 §6
 {{ env.SECRET_NAME }}             # Access secrets
 ```
 
 ### Visual: Workflow Execution Flow
 
-![Workflow Execution Flow](images/workflow-execution-flow.png)
+![Workflow Execution Flow](images/01-workflow-execution-flow.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Stage | Description | Examples |
@@ -179,15 +179,21 @@ Results captured
 Execution complete (success/failure)
 ```
 
-### Limits and Quotas
+### Platform Limits
 
-| Limit | Value | Notes |
-|-------|-------|-------|
-| Max execution time | 15 minutes | Per workflow execution |
-| Max concurrent executions | 100 | Per environment |
-| Max tasks per workflow | 50 | Design for simplicity |
-| Task timeout | 5 minutes | Per individual task |
-| Rate limit | Varies | Depends on subscription |
+Two distinct timeouts apply to every workflow task — confusing them is one of the most common causes of "why did my task fail at exactly 2 minutes?":
+
+| Limit | Default | Maximum | Scope |
+|-------|---------|---------|-------|
+| **Task timeout** | 60 minutes | 7 days | Wall-clock budget for the whole task, including retries and loops. Configured per task via the `timeout` field (in seconds). |
+| **Dynatrace runtime timeout** | 120 seconds | — | Per-action execution budget inside the AutomationEngine runtime (applies to DQL queries and individual JavaScript/HTTP calls). Hits the action, not the task — the task itself keeps going. |
+| **DQL `requestTimeoutMilliseconds`** | (SDK default) | — | The JavaScript SDK's `queryExecute()` parameter — caps the HTTP call from your JS action to the DQL engine. In milliseconds. |
+
+> **Why this matters.** Raising the task `timeout` does not help a DQL query that's hitting the 120-second runtime budget — you need to narrow the query window, pre-aggregate, or split the work. Conversely, an approval task waiting for a human pager-out doesn't need a runtime budget — it needs a long task timeout (`timeout: 1800` for 30 minutes, `timeout: 86400` for 24 hours).
+
+Concrete handling: see [WFLOW-08 § *Configuring Task Timeouts*](#) for the YAML/JSON shape on `execute-dql-query`, `run-javascript`, and approval tasks.
+
+**Other platform constraints.** Concurrency caps, per-workflow task counts, and rate limits exist but are not consistently published in current Dynatrace docs and have changed over the product's life. In community practice, treat "keep workflows small (under ~20 tasks), keep them focused (one trigger → one outcome), and don't fan out hundreds of concurrent executions" as the operational rule. Verify against your tenant's actual behavior under load before designing around a specific number.
 
 ### Execution States
 
@@ -326,10 +332,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Dynatrace Workflows Documentation](https://docs.dynatrace.com/docs/platform/workflows)
-- [Workflow Triggers](https://docs.dynatrace.com/docs/platform/workflows/triggers)
-- [Workflow Actions](https://docs.dynatrace.com/docs/platform/workflows/actions)
-- [Jinja Expressions](https://docs.dynatrace.com/docs/platform/workflows/expressions)
+- [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger)
+- [Workflow actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 
 ---
 

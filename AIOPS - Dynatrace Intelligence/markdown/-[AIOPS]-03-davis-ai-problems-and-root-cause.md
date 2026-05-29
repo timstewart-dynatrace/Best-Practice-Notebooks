@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 05/29/2026
 
 ## Overview
 
@@ -67,6 +67,8 @@ Davis answers using Smartscape — the dependency graph. Three signals on three 
 
 **Categories:** `ERROR`, `RESOURCE_CONTENTION`, `AVAILABILITY`, `SLOWDOWN`, `CUSTOM_ALERT`. Categories are stable; counts vary widely by environment.
 
+**Severity** is a separate axis from category. The unified `event.severity` field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below.
+
 **Key fields on a problem record:**
 
 | Field | Description |
@@ -76,6 +78,7 @@ Davis answers using Smartscape — the dependency graph. Three signals on three 
 | `event.name` | Short problem title |
 | `event.description` | Longer narrative |
 | `event.category` | One of the categories above |
+| `event.severity` | Unified severity as an integer 1–5 (1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational), aligned to the ITIL severity model. Propagates from the constituent alerts up to the parent problem. Coexists with `event.category` — severity answers *how bad*, category answers *what kind*. |
 | `event.status` | `ACTIVE` or `CLOSED` |
 | `event.start` / `event.end` | Timestamps; `event.end` is null on active problems |
 | `root_cause_entity_id` / `root_cause_entity_name` | Davis-attributed root cause |
@@ -136,7 +139,24 @@ fetch dt.davis.problems, from:-2h
 <a id="rollups"></a>
 ## 5. Problem Severity and Category Rollups
 
-Severity reporting answers *what kind of problems are we generating?* — useful in weekly operational reviews and for trending detection-volume month over month.
+Two different axes, both useful in weekly operational reviews and for trending detection volume month over month:
+
+- **Severity** (`event.severity`, integer 1–5) — *how bad* — for prioritization, SLA reporting, and routing. 1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational (ITIL-aligned).
+- **Category** (`event.category`) — *what kind* — for spotting which failure modes dominate.
+
+Start with the severity rollup, then break down by category.
+
+```dql
+// Last 7 days — problem count by severity (1=Critical … 5=Informational)
+fetch dt.davis.problems, from:-7d
+| fieldsAdd severity_label = if(event.severity == 1, "Critical",
+    else: if(event.severity == 2, "High",
+    else: if(event.severity == 3, "Medium",
+    else: if(event.severity == 4, "Low",
+    else: "Informational"))))
+| summarize problem_count = count(), by:{event.severity, severity_label}
+| sort event.severity asc
+```
 
 ```dql
 // Last 7 days — problem count by category

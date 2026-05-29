@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 05/29/2026
 
 ## Overview
 
@@ -66,6 +66,23 @@ Azure Resources → Azure Monitor → Dynatrace SaaS (direct connection)
 ### Supported Azure Regions
 
 Dynatrace supports all Azure public regions, Azure Government, and Azure China (with separate configuration).
+
+### Release Radar (April 2026): Native Azure Experience in Clouds is GA
+
+The enhanced **Clouds app** experience — already available for AWS — is now **generally available for Microsoft Azure**, bringing Azure to parity. For net-new Azure onboarding, this is the recommended path; the connection-mechanism table above still describes what runs underneath.
+
+What the native Azure experience adds:
+
+| Capability | What it gives you |
+|---|---|
+| **Unified resource view** | Metrics, logs, metadata, and topology for Azure subscriptions in one place, alongside AWS |
+| **Opinionated insights & dashboards** | Pre-built dashboards and investigations over enriched Azure telemetry to shorten root-cause analysis |
+| **Pre-configured health alerts** | Health alerts created and managed directly in the Clouds app, with drill-down, search, and filtering scoped to Azure resources |
+| **Broad metric coverage** | Any Azure Monitor native platform metric across services, queryable through DQL |
+| **Topology inventory** | Periodic scanning enriched with native metadata (tags, subscription IDs), fully queryable via DQL |
+| **Onboarding & lifecycle management** | Centralized provisioning that converts Azure subscriptions into native Dynatrace connections, reducing operational overhead |
+
+> **Note:** Azure resource topology and metadata surface through the modern Smartscape model. The `dt.entity.azure_*` entity types in the queries below remain valid for entity lookups; for new topology-traversal queries prefer `dt.smartscape.*` and `smartscapeNodes`.
 
 <a id="authentication"></a>
 

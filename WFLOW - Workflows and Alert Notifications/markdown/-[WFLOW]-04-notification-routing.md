@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 05/29/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -137,7 +137,7 @@ tasks:
 | **MEDIUM** | Slack #alerts |
 | **LOW** | Slack #alerts (business hours only) |
 
-![Severity-Based Notification Routing](images/notification-routing.png)
+![Severity-Based Notification Routing](images/04-notification-routing.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Severity | Channel | Action |
@@ -194,6 +194,18 @@ tasks:
       channel: "#alerts-production"
       message: ":information_source: *{{ event()['severity'] }}* {{ event()['title'] }}"
 ```
+
+> **Update — unified `event.severity` field (2026).** Dynatrace now exposes a standardized **`event.severity`** value as an **integer 1–5** (1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational), aligned to the ITIL severity model. It propagates from the constituent alerts up to the parent problem, which makes severity a first-class, consistent routing dimension across alerts, the problem feed, and Workflows.
+>
+> | Integer | Tier |
+> |---------|------|
+> | 1 | Critical |
+> | 2 | High |
+> | 3 | Medium |
+> | 4 | Low |
+> | 5 | Informational |
+>
+> **The string-based conditions shown in this section (`"CRITICAL"` / `"HIGH"` / `"MEDIUM"` / `"LOW"`) remain valid** — the numeric field is additive, not a breaking change. If you decide to standardize on the numeric scale for new workflows, map the tiers as above and confirm the exact attribute form in your own tenant's workflow event payload before switching production conditions. In DQL (problem feed, reporting) the field is queried directly as `event.severity` — see **AIOPS-03 §5** for the severity rollup pattern.
 
 <a id="routing-by-teamservice"></a>
 ## 4. Routing by Team/Service
@@ -519,10 +531,11 @@ In this notebook, you learned:
 
 ## References
 
-- [Workflow Conditions](https://docs.dynatrace.com/docs/platform/workflows/conditions)
-- [Jinja Expressions](https://docs.dynatrace.com/docs/platform/workflows/expressions)
-- [Wait Action](https://docs.dynatrace.com/docs/platform/workflows/actions/wait)
-- [Task Dependencies](https://docs.dynatrace.com/docs/platform/workflows/actions/dependencies)
+- [Workflow reference / Jinja expressions + conditions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Workflow actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions)
+- [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
 
 ---
 

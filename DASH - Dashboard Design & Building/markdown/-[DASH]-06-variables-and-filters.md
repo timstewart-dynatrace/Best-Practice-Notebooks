@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 05/29/2026
 
 ## Overview
 
@@ -51,6 +51,8 @@ Dynatrace dashboards support several variable types, each suited for different f
 | Lowercase with underscores | `$k8s_namespace` | Consistent, readable in queries |
 
 > **Important:** Variable names are case-sensitive. Use consistent casing across all tiles that reference the same variable.
+
+> **Update (April 2026): Variables can drive dynamic coloring.** Dashboard variables now feed into tile coloring and threshold conditions, not just query filters. A single template can apply different color thresholds per selected environment or team — for example, a stricter "red above 2%" error threshold in prod versus a looser one in dev — by referencing the variable in the tile's color rules. This keeps visual rules in sync with the variable selection instead of hard-coding one threshold for all contexts.
 
 <a id="entity-selector-variables"></a>
 

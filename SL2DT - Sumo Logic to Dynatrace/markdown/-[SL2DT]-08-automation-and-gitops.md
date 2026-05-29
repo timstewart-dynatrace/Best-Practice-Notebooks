@@ -1,6 +1,6 @@
 # SL2DT-08: Automation & GitOps
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -503,6 +503,24 @@ jobs:
 - [ ] Rollback runbook in `runbooks/rollback.md`
 
 **Next step:** **SL2DT-09 — Cutover, Validation & Decommission** (parallel run, validation gates, Sumo teardown).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace automation and configuration-as-code
+- [Configuration as code (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code)
+- [Terraform configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform)
+- [Monaco configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
+- [Dynatrace Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
+- [Monaco (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-monitoring-as-code)
+- [API authentication (DT docs)](https://docs.dynatrace.com/docs/shortlink/api-authentication)
+- [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
+
+### Sumo Logic automation (source)
+- [Sumo Logic Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/SumoLogic/sumologic/latest/docs)
+- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
 
 ---
 

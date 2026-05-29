@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -492,6 +492,23 @@ fetch logs, from:-1h
 - [ ] No scope with >10% volume gap uninvestigated
 
 **Next step:** **SL2DT-04 — SumoQL → DQL Translation** (translate the query surface with the `sumoql-to-dql` skill).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Log ingest paths
+- [Ingest from (DT docs)](https://docs.dynatrace.com/docs/ingest-from)
+- [Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent)
+- [OpenTelemetry ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
+- [Logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs)
+- [Dynatrace API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api)
+
+### Routing, parsing, and storage
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-pattern-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
 
 ---
 

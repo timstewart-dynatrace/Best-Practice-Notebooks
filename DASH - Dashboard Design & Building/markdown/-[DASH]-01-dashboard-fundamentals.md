@@ -1,6 +1,6 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 05/29/2026
 
 ## Overview
 
@@ -118,6 +118,20 @@ Sections group related tiles visually. Use sections to organize dashboards by th
 ### Variables
 
 Variables make dashboards dynamic. A single dashboard template can serve multiple teams by letting users select entities, environments, or time ranges from dropdown controls. Variables are covered in depth in **DASH-06**.
+
+### Release Radar (April 2026): New Tile Types and Authoring Controls
+
+Recent additions to the dashboard authoring surface:
+
+| Addition | What it does | Where it helps |
+|---|---|---|
+| **Treemap visualization** | New tile type for hierarchical data — area encodes magnitude so dominant categories pop out (e.g. requests per service, grouped by Kubernetes namespace) | Spotting the big contributors in nested categories where a bar chart would need many rows |
+| **Row marker coloring (tables)** | Color-coded row markers visually group related rows while keeping the table readable | Operations tables (DASH-04) where rows belong to tiers, teams, or severities |
+| **Centralized tile indicator controls** | Show/hide warnings, descriptions, and custom timeframes across *all* tiles from one dashboard-level control | Cleaning up a dense dashboard for a wall screen vs. an editing session |
+| **Dashboard variables for dynamic coloring** | Variables can drive coloring and threshold conditions, so visual rules stay in sync with the selected environment/team | Reusable templates — see **DASH-06** |
+| **Direct image upload in Markdown** | Built-in image library: upload images directly inside Markdown tiles across Dashboards, Notebooks, and Launcher | Embedding logos, legends, or architecture snippets without an external host |
+
+Add **Treemap** to the tile-type vocabulary alongside the chart types in the table above. It is the right choice when you want *share-of-total within a hierarchy* at a glance, rather than precise per-category values.
 
 <a id="design-principles"></a>
 

@@ -1,6 +1,6 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -396,6 +396,21 @@ Workflow-based monitors should respect maintenance windows. Settings 2.0 schema 
 - [ ] App teams trained on monitor rebuild (train-the-trainer — see SL2DT-01)
 
 **Next step:** **SL2DT-06 — Dashboard Conversion** (rebuild dashboards using the translation output).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace alerting and intelligence
+- [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
+- [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
+- [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+
+### Sumo Logic monitor and alert reference (source)
+- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
 
 ---
 

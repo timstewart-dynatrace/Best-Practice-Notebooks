@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -293,6 +293,19 @@ Give each app team this playbook:
 - [ ] Aggregate metric: dashboard-conversion fidelity ≥90%
 
 **Next step:** **SL2DT-07 — User Governance & Access** (IAM groups, bucket-scoped policies, SSO).
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace visualization surfaces
+- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+
+### Sumo Logic dashboard reference (source)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
 
 ---
 

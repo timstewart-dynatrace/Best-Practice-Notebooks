@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 05/21/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -486,6 +486,22 @@ Get-Service -Name "Dynatrace OneAgent"
 # Check connection
 & "C:\Program Files\dynatrace\oneagent\agent\tools\oneagent-connection-check.exe"
 ```
+
+### What You'll See on Modern Tenants
+
+Once OneAgent is reporting and services appear in the verification queries above, **Enhanced Endpoints for SDv1** (Dynatrace v1.329+) shapes what shows up under each service:
+
+| Tenant creation date | Default state | What you do |
+|---|---|---|
+| v1.333 or later | **Always on, not configurable** | Nothing — each service automatically exposes individual endpoints with `dt.service.request.*` metrics |
+| v1.330 – v1.332 | On by default (toggleable) | Verify the toggle hasn't been disabled |
+| v1.329 or earlier | Off by default | Enable at *Settings → Process and contextualize → Services → Service detection v1* if you want per-endpoint metrics |
+
+**Why it matters during onboarding:** before Enhanced Endpoints, only manually marked "key requests" emitted individual metrics — everything else collapsed into a single `NON_KEY_REQUESTS` bucket. Now every detected endpoint is named and tracked automatically, which materially changes what's visible on day one.
+
+**Services not affected:** external services, background activity, queue listeners, key-value stores — these never get per-endpoint metrics regardless of the setting.
+
+> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).</sub>
 
 <a id="troubleshooting"></a>
 ## 7. Troubleshooting

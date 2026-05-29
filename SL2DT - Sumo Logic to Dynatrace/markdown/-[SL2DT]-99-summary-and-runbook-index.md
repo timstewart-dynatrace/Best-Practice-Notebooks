@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 04/21/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -267,6 +267,60 @@ For environments where SVG doesn't render
 
 - [Sumo Logic Docs](https://help.sumologic.com/docs/)
 - [Dynatrace Docs](https://docs.dynatrace.com/docs/)
+
+---
+
+<a id="references"></a>
+## 9. References
+
+### Dynatrace — by topic
+
+**Platform / DQL / Grail**
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-pattern-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+
+**Ingest**
+- [Ingest from (DT docs)](https://docs.dynatrace.com/docs/ingest-from)
+- [Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent)
+- [OpenTelemetry ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
+- [Logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs)
+- [Dynatrace API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api)
+
+**Intelligence and workflows**
+- [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
+- [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+
+**Visualization**
+- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
+
+**Access and tokens**
+- [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
+- [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/access-control/access-tokens)
+- [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
+- [API authentication (DT docs)](https://docs.dynatrace.com/docs/shortlink/api-authentication)
+
+**Automation**
+- [Configuration as code (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code)
+- [Terraform configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform)
+- [Monaco configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
+- [Dynatrace Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
+- [Monaco (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-monitoring-as-code)
+
+### Sumo Logic — by topic
+- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
+- [Sumo Logic parse operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/parse-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
+- [Sumo Logic Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/SumoLogic/sumologic/latest/docs)
 
 ---
 

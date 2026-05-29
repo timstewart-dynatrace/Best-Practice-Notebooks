@@ -1,6 +1,6 @@
 # WFLOW-07: Problem-Triggered Remediation
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 05/15/2026
 
 ## Auto-Remediation with Workflows
 Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.
@@ -52,7 +52,7 @@ Level 4: Self-healing with learning
 
 ### Auto-Remediation Loop
 
-![Auto-Remediation Loop](images/remediation-loop.png)
+![Auto-Remediation Loop](images/07-remediation-loop.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Action | Description |
@@ -557,10 +557,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Workflow Actions](https://docs.dynatrace.com/docs/platform/workflows/actions)
-- [JavaScript Action](https://docs.dynatrace.com/docs/platform/workflows/actions/javascript)
-- [HTTP Request Action](https://docs.dynatrace.com/docs/platform/workflows/actions/http-request)
-- [Kubernetes API](https://kubernetes.io/docs/reference/kubernetes-api/)
+- [Workflow actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions)
+- [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)
+- [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Kubernetes API reference (kubernetes.io)](https://kubernetes.io/docs/reference/kubernetes-api/)
 
 ---
 

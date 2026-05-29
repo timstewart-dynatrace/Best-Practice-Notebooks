@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 04/30/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 05/26/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -51,6 +51,8 @@ Use this when multiple teams own different frontends but share a single RUM tena
 <a id="policy-fundamentals"></a>
 ## 1. Policy Fundamentals
 Policies define **what actions** users can perform. They're separate from boundaries (which control **what data** users can see).
+
+> **One policy language for all authorization.** Dynatrace's security policies are the single configuration surface for *every* authorization requirement — environment access, Grail data access, and AppEngine capabilities alike. What used to be split between classic *roles* (RBAC — "viewer", "admin") and attribute-based permissions is now unified: classic roles are expressed as `environment:roles:*` permissions inside the same `ALLOW` grammar as `storage:*` and `app-engine:*`. There is no separate RBAC subsystem to manage — one policy, one language, optionally scoped by `WHERE` conditions or boundaries.
 
 ### Policy Scope Levels
 
@@ -162,7 +164,28 @@ ALLOW document:documents:read;
 | `metrics` | Metric data | read, write |
 | `events` | Platform events | read, write |
 | `bizevents` | Business events | read, write |
+| `entities` | Smartscape entities (Classic surface) | read |
+| `system` | System/audit data (query events, internal) | read |
 | `buckets` | Storage buckets | read, write, delete |
+
+Specialized record tables follow the same `storage:<table>:read` shape — e.g. `storage:security.events:read`, `storage:user.sessions:read`, `storage:user.replays:read`, `storage:application.snapshots:read`, `storage:smartscape:read`.
+
+**Storage condition attributes:** scope `storage:*` reads with `storage:bucket-name` (e.g. `startsWith "default_"`), `storage:table-name` (e.g. `= "logs"`), and `storage:dt.security_context` (the Gen3 record-level scoping spine — see IAM-05). Example — default-bucket monitoring read:
+
+```
+ALLOW storage:buckets:read WHERE storage:bucket-name startsWith "default_";
+ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+```
+
+For system/audit data (the *Storage All System Data Read* managed policy), add `storage:system:read`:
+
+```
+ALLOW storage:buckets:read;
+ALLOW storage:system:read;
+ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
+      storage:entities:read, storage:bizevents:read, storage:spans:read;
+```
 
 ### Settings Service Details
 
@@ -177,6 +200,61 @@ ALLOW document:documents:read;
 |----------|-------------|----------|
 | `documents` | Dashboards, notebooks | read, write, delete, share |
 | `directShares` | Direct share links | write |
+
+### Environment Roles (`environment:roles:*`)
+
+Classic environment roles are expressed as IAM permissions. This is how RBAC folds into the one policy language (see §1). All are scoped by the `environment:management-zone` attribute **except** `agent-install` and `configure-request-capture-data` (management-zone not applicable).
+
+| Permission | Classic role meaning |
+|------------|----------------------|
+| `environment:roles:viewer` | Access environment (read) |
+| `environment:roles:manage-settings` | Change monitoring settings |
+| `environment:roles:agent-install` | Download / install OneAgent |
+| `environment:roles:logviewer` | View logs |
+| `environment:roles:view-sensitive-request-data` | View sensitive request data |
+| `environment:roles:configure-request-capture-data` | Configure capture of sensitive data |
+| `environment:roles:replay-sessions-with-masking` | Replay session data (masked) |
+| `environment:roles:replay-sessions-without-masking` | Replay session data (unmasked) |
+| `environment:roles:view-security-problems` | View security problems |
+| `environment:roles:manage-security-problems` | Manage security problems |
+
+> **Privacy / compliance note.** The session-replay pair and `view-sensitive-request-data` are the load-bearing least-privilege controls here — `replay-sessions-without-masking` and `view-sensitive-request-data` expose unmasked end-user data and should be granted narrowly (specific groups, specific management zones), never bundled into a broad editor policy.
+
+### Extensions Service Details
+
+Extension authorization splits into *definitions* (the extension package) and *configurations* (a deployed instance):
+
+| Permission | Description | Condition attributes |
+|------------|-------------|----------------------|
+| `extensions:definitions:read` / `:write` | The extension package itself | `extensions:extension-name` |
+| `extensions:configurations:read` / `:write` | A deployed configuration | `extensions:host`, `extensions:host-group`, `extensions:ag-group`, `extensions:management-zone` |
+| `extensions:configuration.actions:write` | Run configuration actions | (as above) |
+| `extensions:discovery.jmx:read` / `extensions:discovery.pmi:read` | Discovery surfaces | — |
+
+**Extension-ownership delegation** — let a team manage *their* extension on *their* hosts without granting tenant-wide extension rights:
+
+```
+ALLOW extensions:definitions:read, extensions:definitions:write
+WHERE extensions:extension-name = "com.acme.payments";
+ALLOW extensions:configurations:read, extensions:configurations:write
+WHERE extensions:host-group startsWith "payments-";
+```
+
+### AppEngine Service Details (`app-engine:*`)
+
+| Permission | Description |
+|------------|-------------|
+| `app-engine:apps:run` | See / open an app (controls navigation visibility) |
+| `app-engine:functions:run` | Execute AppEngine functions |
+| `app-engine:apps:install` | Install apps |
+| `app-engine:apps:delete` | Remove apps |
+
+App-level scoping uses the `shared:app-id` attribute (operators `=`, `!=`, `IN`, `NOT IN`, `startsWith`, `NOT startsWith`). Example — let developers install only their own apps, and grant Workflows access:
+
+```
+ALLOW app-engine:apps:install, app-engine:apps:delete WHERE shared:app-id startsWith "my.";
+ALLOW app-engine:apps:run WHERE shared:app-id = "dynatrace.automations";
+```
 
 <a id="condition-expressions"></a>
 ## 4. Condition Expressions
@@ -459,6 +537,22 @@ ALLOW storage:spans:read WHERE storage:bucket-name = "pci_spans";
 // No access to non-PCI buckets
 ```
 
+### Pattern 10: Tiered Environment Access (Management Zones)
+
+Grant full access in lower environments and read-only in production — using `environment:roles:*` permissions scoped by the `environment:management-zone` attribute (the classic-role surface, complementary to the Grail patterns above):
+
+```
+// Full access in dev and hardening
+ALLOW environment:roles:viewer, environment:roles:manage-settings
+WHERE environment:management-zone IN ("dev", "hardening");
+
+// Read-only in production
+ALLOW environment:roles:viewer
+WHERE environment:management-zone IN ("prod");
+```
+
+This is the canonical app-developer shape: iterate freely in non-prod, observe-only in prod. Add `environment:roles:logviewer` to the prod statement if the team needs production log access without settings rights.
+
 ### Choosing Between Patterns
 
 | Requirement | Recommended Pattern |
@@ -468,6 +562,7 @@ ALLOW storage:spans:read WHERE storage:bucket-name = "pci_spans";
 | Compliance/regulatory data separation | **Pattern 9 (Bucket-Based)** |
 | Temporary project access | Pattern 2 (Security Context) |
 | Cost allocation by team | **Pattern 3 (Buckets)** |
+| Full in non-prod, read-only in prod | **Pattern 10 (Management Zones)** |
 
 <a id="default-vs-custom-policies"></a>
 ## 6. Default vs Custom Policies
@@ -482,6 +577,25 @@ Dynatrace provides default policies for common use cases:
 | `environment-admin` | Full environment control | Administrators |
 | `account-viewer` | View account settings | Cross-team visibility |
 | `account-iam-admin` | Manage IAM | IAM administrators |
+
+### Reach for Managed Policies First
+
+**Default to the policies Dynatrace ships before authoring custom ones.** Most standard scenarios — monitoring read access, app users, automation access — are already covered by managed policies; hand-rolling a custom policy for these is extra surface to maintain and audit. Author custom policies only when no managed policy fits (team-scoped data, specific single-capability grants, compliance constraints).
+
+Commonly used managed policies for Grail and AppEngine onboarding:
+
+| Managed policy | Grants |
+|----------------|--------|
+| **Storage Default Monitoring Read** | Read on default buckets; auto-adjusts as new tables are added |
+| **Storage `<table>` Read** | Per-table read (e.g. *Storage logs Read*) |
+| **Storage All System Data Read** | System/audit + query-event data |
+| **Storage All Grail Data Read** | Unrestricted Grail read |
+| **AppEngine User** | `apps:run` + `functions:run` (+ document/state access) |
+| **AppEngine Admin** | Full app lifecycle (install/delete) + settings |
+| **AppEngine Developer** | App install/delete scoped to own apps |
+| **AutomationEngine Access** | Workflows app + automation run access |
+
+> Environment-admin groups typically receive *AppEngine Admin*, *AutomationEngine Access*, and *Storage All Grail Data Read* automatically. Verify the exact managed-policy set in your tenant's Account Management — the catalog evolves.
 
 ### When to Use Default Policies
 
@@ -718,6 +832,12 @@ In this notebook, you learned:
 - [Policy Statements Reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/policy-statement)
 - [Permission Management](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management)
 - [Account Policies](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+
+### References
+
+- [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — authoritative permission + attribute catalog
+- [Tailored access management, Part 1 — one configuration for all authorization requirements (Dynatrace News)](https://www.dynatrace.com/news/blog/tailored-access-management-for-dynatrace-part-1-one-configuration-for-all-authorization-requirements/)
+- [Tailored access management, Part 2 — onboard users to Grail and AppEngine (Dynatrace News)](https://www.dynatrace.com/news/blog/tailored-access-management-part-2-onboard-users-to-grail-and-appengine/)
 
 ---
 

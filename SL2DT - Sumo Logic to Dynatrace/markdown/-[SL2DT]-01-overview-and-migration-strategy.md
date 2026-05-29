@@ -1,6 +1,6 @@
 # SL2DT-01: Overview & Migration Strategy
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 04/26/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
 
 ## Overview
 
@@ -260,6 +260,25 @@ If you're just here for a specific question:
 - [SL2DT AGENT-TASKS.md](../docs/AGENT-TASKS.md) — brief for building the `Dynatrace-SumoLogic` migration tool
 - [NR2DT series](../../nr2dt/) — parallel pattern for New Relic migrations
 - [S2D series](../../s2d/) — parallel pattern for Splunk migrations
+
+---
+
+<a id="references"></a>
+## 11. References
+
+### Dynatrace platform overview
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
+- [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
+
+### Sumo Logic platform reference
+- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
 
 ---
 

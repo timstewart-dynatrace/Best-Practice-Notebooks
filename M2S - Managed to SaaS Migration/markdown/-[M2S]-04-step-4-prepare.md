@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 05/21/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -420,7 +420,27 @@ Recreate each zone from your Design step. Use the Settings UI or API:
 
 Settings > Network zones > Add network zone
 
-**Via API:**
+> **Sprint 1.339 deprecation (May 2026):** The dedicated `/api/v2/networkZones` Configuration API endpoint is deprecated in favor of the Settings 2.0 schema `builtin:networkzones.zones`. Prefer the Settings 2.0 form below for new automation; the legacy endpoint still works during the deprecation window.
+
+**Via Settings 2.0 API (recommended):**
+
+```bash
+# Create a network zone via Settings 2.0
+curl -X POST "https://{tenant-id}.live.dynatrace.com/api/v2/settings/objects" \
+  -H "Authorization: Api-Token {token}" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "schemaId": "builtin:networkzones.zones",
+    "scope": "environment",
+    "value": {
+      "name": "datacenter-east",
+      "description": "Primary datacenter in East region",
+      "alternativeZones": ["datacenter-west"]
+    }
+  }]'
+```
+
+**Via legacy Configuration API (deprecated, still functional during deprecation window):**
 
 ```bash
 # Create a network zone

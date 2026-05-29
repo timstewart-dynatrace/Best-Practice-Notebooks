@@ -1,6 +1,6 @@
 # WFLOW-06: Custom Notification Templates
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 05/15/2026
 
 ## Rich Message Formatting
 Create professional, informative notifications with dynamic content, formatting, and data enrichment. This notebook covers Jinja templating, Slack Block Kit, Teams Adaptive Cards, and data enrichment patterns.
@@ -476,10 +476,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Jinja2 Template Designer](https://jinja.palletsprojects.com/templates/)
-- [Slack Block Kit](https://api.slack.com/block-kit)
-- [Teams Adaptive Cards](https://docs.microsoft.com/adaptive-cards/)
-- [Workflow Expressions](https://docs.dynatrace.com/docs/platform/workflows/expressions)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [Jinja2 template designer (Pallets)](https://jinja.palletsprojects.com/templates/)
+- [Slack Block Kit reference (Slack API)](https://api.slack.com/block-kit)
+- [Slack Block Kit Builder (Slack)](https://app.slack.com/block-kit-builder)
+- [Teams Adaptive Cards (Microsoft Learn)](https://docs.microsoft.com/adaptive-cards/)
 
 ---
 

@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 05/15/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -484,11 +484,13 @@ In this notebook, you learned:
 
 ## References
 
-- [Workflow Notifications](https://docs.dynatrace.com/docs/platform/workflows/actions/notifications)
-- [Slack Actions](https://docs.dynatrace.com/docs/platform/workflows/actions/slack)
-- [Microsoft Teams Actions](https://docs.dynatrace.com/docs/platform/workflows/actions/msteams)
-- [Email Actions](https://docs.dynatrace.com/docs/platform/workflows/actions/email)
-- [Jinja Expressions](https://docs.dynatrace.com/docs/platform/workflows/expressions)
+- [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [Slack action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack)
+- [Microsoft Teams action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams)
+- [Email action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email)
+- [PagerDuty action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty)
+- [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
+- [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
 
 ---
 

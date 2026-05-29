@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 05/15/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -41,7 +41,7 @@ Integrate Dynatrace workflows with enterprise incident management platforms. Thi
 
 ### Integration Flow
 
-![Incident Management Integration Flow](images/incident-management-flow.png)
+![Incident Management Integration Flow](images/05-incident-management-flow.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Component | Action |
@@ -403,10 +403,13 @@ In this notebook, you learned:
 
 ## References
 
-- [PagerDuty Actions](https://docs.dynatrace.com/docs/platform/workflows/actions/pagerduty)
-- [ServiceNow Actions](https://docs.dynatrace.com/docs/platform/workflows/actions/servicenow)
-- [PagerDuty Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/)
-- [ServiceNow REST API](https://developer.servicenow.com/dev.do#!/reference/api)
+- [PagerDuty action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty)
+- [ServiceNow action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now)
+- [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [PagerDuty Events API v2 (PagerDuty Developer)](https://developer.pagerduty.com/docs/events-api-v2/overview/)
+- [ServiceNow REST API reference (ServiceNow Developer)](https://developer.servicenow.com/dev.do#!/reference/api)
 
 ---
 
