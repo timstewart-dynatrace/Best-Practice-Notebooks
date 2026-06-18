@@ -72,7 +72,7 @@ After picking a doorway, the recommended path will route you through one or more
 
 - [Overlap Map](08-overlap-map.md) — Where multiple series cover the same ground; which is canonical and recommended reading order
 - [Workshop Agendas](10-workshop-agendas.md) — Sample 1-day, 3-day, and 5-day partner/SI workshop plans
-- [Series Catalog & Cross-Reference](99-index.md) — Full inventory of all 32 topic series with cross-reference matrix and reading-order presets
+- [Series Catalog & Cross-Reference](99-index.md) — Full inventory of all 28 topic series with cross-reference matrix and reading-order presets
 
 ---
 

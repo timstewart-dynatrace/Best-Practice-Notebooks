@@ -1,6 +1,6 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 06/17/2026
 
 ## Overview
 
@@ -81,7 +81,9 @@ Carry the Dynatrace problem id into a ServiceNow field (`u_dynatrace_problem_id`
 <a id="connector"></a>
 ## 3. Rung 2 — Native ServiceNow Connector
 
-Dynatrace provides a native ServiceNow action for workflows that handles create / update / comment / resolve without hand-building HTTP calls — less wiring, and update/resolve give you de-duplication and auto-close when the Dynatrace problem closes.
+Dynatrace provides a native ServiceNow action for workflows that handles **Create Incident / Resolve incident / Comment on an incident / Update record** (plus Search incidents, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring, and resolve/comment give you de-duplication and auto-close when the Dynatrace problem closes.
+
+The connection authenticates with **Basic Authentication** or **OAuth Client Credentials** (there is no API-key option). On Create Incident, `Category`, `Subcategory`, `Impact`, `Urgency`, and `Assignment Group` are required, and `Correlation ID` (set to the Dynatrace problem/event ID) is the de-dup key. **WFLOW-05** walks the worked workflow setup — connection, each operation, the severity→Impact/Urgency mapping, and production hardening.
 
 > **Confirm availability in your tenant.** The native connector has been published via the Dynatrace Hub and listed as a preview; check its current GA/preview status before standardising on it for production. If it is not yet GA in your environment, Rung 1 (HTTP Table API) delivers the same one-way outcome today — which is why the ladder starts there.
 
@@ -100,13 +102,15 @@ Every rung shares one requirement: the Davis problem must already carry the meta
 | ServiceNow field | Source in Dynatrace |
 |------------------|---------------------|
 | `assignment_group` | enriched `team` property / Smartscape ownership |
-| `urgency` / `impact` / priority | `event.severity` (the 1–5 unified severity) |
+| `urgency` / `impact` / priority | `event.severity` (the 1–5 unified severity) compressed to ServiceNow's 1 (High)–3 (Low) — mapping table in WFLOW-05 §5 |
 | `short_description` | `event.name` + `display_id` |
 | correlation key (de-dup) | `display_id` carried into a custom field |
 
 If the problem fires without these, the incident lands in a default queue with no priority — the ITSM equivalent of "everything goes to one channel." Enrich upstream.
 
-> <sub>**Sources:** [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration), [ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview), [Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/). Problem-trigger query validated on a live tenant 06/16/2026. **Softened:** native-connector GA vs preview status varies — confirm in your tenant's Hub.</sub>
+> **Harden whichever rung you pick.** One-way creation that silently fails is worse than no integration — problems open in Dynatrace but never reach the queue. Retry transient failures, dead-letter permanent ones (don't retry a 4xx), link the incident number back onto the problem, and monitor the workflow itself. WFLOW-05 §8 has the patterns.
+
+> <sub>**Sources:** [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration), [ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now), [ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview), [Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/). Native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed against the workflow-action page 06/17/2026. Problem-trigger query validated on a live tenant 06/16/2026. **Softened:** native-connector GA vs preview status varies — confirm in your tenant's Hub.</sub>
 
 ---
 
