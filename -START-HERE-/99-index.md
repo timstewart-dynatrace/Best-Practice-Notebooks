@@ -48,7 +48,7 @@
 | **SPANS** | [Distributed Tracing and Spans](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) | 9 | Span fundamentals, querying, topology, analytics, cost optimization |
 | **SYNTH** | [Synthetic Monitoring](../SYNTH%20-%20Synthetic%20Monitoring/) | 7 | Browser monitors, HTTP monitors, private locations, network monitoring |
 | **WEBRUM** | [Web Real User Monitoring](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) | 9 | RUM fundamentals, SPA, Core Web Vitals, session replay |
-| **WFLOW** | [Workflows and Alert Notifications](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) | 10 | Workflow triggers, notification routing, incident management, JS/HTTP actions, governance |
+| **WFLOW** | [Workflows and Alert Notifications](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) | 11 | Workflow triggers, notification routing, incident management, JS/HTTP actions, governance; CMDB tag enrichment LAB |
 
 ---
 

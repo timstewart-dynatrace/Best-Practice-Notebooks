@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 05/21/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 06/19/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -19,6 +19,7 @@ When built-in actions aren't enough, use JavaScript and HTTP requests for custom
 8. [Integration Examples](#integration-examples)
 9. [Performance Tips](#performance-tips)
 10. [Configuring Task Timeouts](#configuring-task-timeouts)
+11. [CMDB-Driven Host Tag Enrichment](#cmdb-host-tag-enrichment)
 
 ---
 
@@ -27,7 +28,7 @@ When built-in actions aren't enough, use JavaScript and HTTP requests for custom
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:write` |
+| **Permissions** | `automation:workflows:write` (§11 also needs an API token with `oneAgents.write` stored in the Credential Vault) |
 | **Prior Knowledge** | **WFLOW-01** through **WFLOW-07**, JavaScript basics |
 
 <a id="javascript-action-basics"></a>
@@ -944,6 +945,22 @@ fetch events, from: now() - 24h
 | limit 20
 ```
 
+<a id="cmdb-host-tag-enrichment"></a>
+## 11. CMDB-Driven Host Tag Enrichment
+
+A frequent ask: read host→application mappings from a CMDB and apply them as host tags in bulk. This is the capstone that combines this notebook's building blocks — an SDK DQL query (§2), `fetch()` to a Dynatrace API with auth (§3), retry logic (§4), `result()` / `withItems` data passing between tasks (§7), and the Credential Vault — into one deployable workflow.
+
+The shape is two `run-javascript` tasks:
+
+1. **`query_hosts_and_enrich`** — enriches `dt.entity.host` through a CMDB lookup chain (`lookup [load "/lookups/…"]`), dedups by host id, and diffs against existing tags → returns `hosts[]`.
+2. **`apply_tags_to_hosts`** — loops (`withItems`) over `hosts[]` and POSTs a `set hostTag` operation to the **OneAgent Remote Configuration Management API** (`${ENVIRONMENT_URL}/api/v2/oneagents/remoteConfigurationManagement`) using a Gen2 (classic) `oneAgents.write` API token read from the Credential Vault. Guardrails: `DRY_RUN`, `MAX_HOSTS`, skip-existing, 409-retry. (Config is supplied via workflow inputs; the platform-token path, `fleet-management:oneagents:write`, isn't GA yet.)
+
+One `set hostTag` operation writes both `primary_tags.*` (the prefix is mandatory) and `dt.*` primary fields (`dt.security_context`, `dt.cost.costcenter`) — see **FAQ-02 (Tagging: Sources, Standards & Strategy)** for the tagging-source model.
+
+> **Hands-on build:** the complete step-by-step walkthrough — build it in the Workflows editor, both scripts, customization, the loop/condition wiring, the safety model, and an import-ready YAML skeleton — is in the **WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment**.
+
+> <sub>**Sources:** [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job), [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data). **Derived:** the two-task shape combines this notebook's §2–§7 mechanics — full hands-on build in the WFLOW-95 LAB.</sub>
+
 ## Next Steps
 
 With custom integrations ready, learn governance:
@@ -960,6 +977,7 @@ With custom integrations ready, learn governance:
 - **Error handling** is critical for reliability — inside a task use `try/catch`; between tasks use the workflow `conditions` block
 - **On-failure branches** use `error` / `error or cancelled` state conditions to route around dead tasks
 - **Performance** matters - limit query scope, use parallelism
+- **Bulk host operations** combine an enrichment query with a `withItems` loop over the Remote Configuration Management API — introduced in §11, full hands-on build in the **WFLOW-95 LAB**
 
 ---
 
@@ -975,6 +993,7 @@ In this notebook, you learned:
 - Data transformation patterns
 - Integration examples (GitHub, Datadog, Splunk)
 - Performance optimization tips
+- A CMDB-driven host tag enrichment capstone (§11) — full build in the **WFLOW-95 LAB**
 
 ---
 
@@ -984,6 +1003,8 @@ In this notebook, you learned:
 - [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)
 - [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
 - [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job)
+- [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data)
 - [Dynatrace SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/)
 - [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop)
 
