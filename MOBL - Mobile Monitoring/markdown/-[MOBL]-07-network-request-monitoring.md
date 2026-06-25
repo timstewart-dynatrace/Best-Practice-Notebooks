@@ -1,6 +1,6 @@
 # MOBL-07: Network Request Monitoring
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -338,8 +338,8 @@ Continue to **MOBL-08** to explore crash analysis and error tracking for mobile 
 
 ## References
 
-- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications)
-- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/instrument-mobile-apps)
+- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
+- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-hybrid-app)
 - [Distributed Tracing with Mobile Apps](https://docs.dynatrace.com/docs/platform-modules/applications-and-microservices/distributed-tracing)
 - [DQL Business Events Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 

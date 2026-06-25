@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -507,8 +507,8 @@ fetch logs, from:-1h
 
 ### Routing, parsing, and storage
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-pattern-language)
-- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 
 ---
 

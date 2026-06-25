@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -362,10 +362,10 @@ Continue to **MOBL-03** to learn about custom user actions, manual instrumentati
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/initial-setup/instrument-ios-app)
-- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/initial-setup/instrument-ios-app/swiftui)
-- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/initial-setup/configure-mobile-app)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
+- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls)
+- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/customization/configuration-settings)
 
 ---
 

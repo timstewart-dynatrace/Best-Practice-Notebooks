@@ -1,6 +1,6 @@
 # S2D-09: Naming Standards & Organization
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 9 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 9 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -251,7 +251,7 @@ This completes the S2D (Splunk to Dynatrace) migration series. You should now be
 
 - [Dynatrace Documentation](https://docs.dynatrace.com/docs)
 - [DQL Reference](https://docs.dynatrace.com/docs/shortlink/dql-reference)
-- [Anomaly Detectors](https://docs.dynatrace.com/docs/shortlink/davis-anomaly-detectors)
+- [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Workflows](https://docs.dynatrace.com/docs/shortlink/workflows)
 
 ---

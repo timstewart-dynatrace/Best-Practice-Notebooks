@@ -1,6 +1,6 @@
 # OPMIG-03: OpenPipeline Migration Guide: Part 3
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 06/23/2026
 
 ## Migration Assessment & Planning
 ---
@@ -829,7 +829,7 @@ With your assessment complete, continue with:
 
 - [OpenPipeline Configuration Tutorial](https://docs.dynatrace.com/docs/platform/openpipeline/getting-started/tutorial-configure-processing)
 - [Log Management Limits](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits)
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/data-model/buckets)
+- [organize-data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 
 ---
 

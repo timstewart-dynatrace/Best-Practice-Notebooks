@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -302,7 +302,7 @@ Give each app team this playbook:
 ### Dynatrace visualization surfaces
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 - [Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
-- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 
 ### Sumo Logic dashboard reference (source)
 - [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)

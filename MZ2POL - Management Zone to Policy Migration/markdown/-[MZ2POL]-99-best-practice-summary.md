@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 04/27/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -55,10 +55,10 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
-| Start with default policies; customize only when needed | `Dynatrace Viewer` for read-only, `Dynatrace Standard User` for regular users, `Dynatrace Professional User` for power users, `Dynatrace Admin User` for admins | Critical |
-| Pair a Dynatrace access policy with a data access policy | Viewers -> `Dynatrace Viewer` + `Data Viewer`; Developers -> `Dynatrace Standard` + `Data Viewer`; SRE -> `Dynatrace Professional` + `Data Editor`; Admins -> `Dynatrace Admin` + `Data Editor` | Critical |
+| Start with built-in policies; customize only when needed | `Standard User` for regular/read-only users (+ data-read policies), `Pro User` for power users, `Admin User` for admins. (Classic "Dynatrace Viewer / Professional User" and "Data Viewer / Editor" are not current IAM policy names.) | Critical |
+| Pair a platform policy with data-access policies | Viewers -> `Standard User` + `Read Logs`/`Read Metrics`; Developers -> `Standard User` + `Read Logs`/`Read Spans`/`Read Metrics`; SRE -> `Pro User` + `All Grail data read access`; Admins -> `Admin User` | Critical |
 | Apply least privilege | Grant the minimum permissions required for each role; never use `ALLOW storage:*:*` without a boundary or condition | Critical |
-| Use policy conditions with `WHERE` for scoped access | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-frontend"` | Recommended |
+| Use policy conditions with `WHERE` for scoped access | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-frontend"` (a `WHERE` clause supports `AND`, not `OR`) | Recommended |
 | Never create one policy per user | Assign policies to groups; bind users to groups | Critical |
 | Never duplicate default policies | Extend with custom policies only for permissions default policies do not cover | Recommended |
 | Use descriptive policy names | Format: `"Frontend Team - Standard Access"` not `"Policy 1"` | Recommended |
@@ -87,7 +87,7 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 | Use segments for data filtering; use policies+boundaries for access control | Segments replace MZ filtering; policies+boundaries replace MZ permissions. Never conflate the two. | Critical |
 | Align segments with business structure | Create segments per team, product, region, or environment — not per technical component | Critical |
 | Use `matchesValue(tags, "key:value")` for tag-based segment filters | Replaces MZ rule `host tag equals value` | Critical |
-| Use `matchesPhrase(dt.entity.service.name, "text")` for service name filters | Replaces MZ rule `service name contains` | Recommended |
+| Use `contains(entity.name, "text")` for service name filters | Replaces MZ rule `service name contains` (the entity name field is `entity.name`, not `dt.entity.service.name`) | Recommended |
 | Use variables for dynamic segments | Entity variable: `filter dt.entity.kubernetes_cluster == $cluster`; List variable: `filter matchesValue(tags, concat("env:", $environment))` | Recommended |
 | Test segment filter logic with DQL before creating the segment | Run the filter as a standalone DQL query and verify results match expected entity set | Critical |
 | Use consistent segment naming | `"Production Environment"`, `"Frontend Team Services"`, `"North America Region"` — not `"Segment 1"` | Recommended |
@@ -107,7 +107,7 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 | Stay within 80 buckets per environment | Default platform limit | Critical |
 | Target ~1 TB/day per bucket for optimal query performance | Acceptable: 1-3 TB/day (limited query window). Hard limit: 3 TB/day per bucket. | Recommended |
 | Create buckets and configure OpenPipeline routing BEFORE migrating policies | Data must flow to correct buckets first; policies reference bucket names | Critical |
-| Reference buckets in both policies and boundaries | Policy: `ALLOW storage:logs:read WHERE storage:bucket.name = "frontend_logs"`. Boundary: `storage:bucket.name IN ("frontend_logs", "frontend_spans")` | Recommended |
+| Reference buckets in both policies and boundaries | Policy: `ALLOW storage:logs:read WHERE storage:bucket-name = "frontend_logs"`. Boundary: `storage:bucket-name IN ("frontend_logs", "frontend_spans")` | Recommended |
 | Do not use buckets for regional or application MZs | Use segments instead — buckets cannot be consolidated or split later | Recommended |
 
 <a id="group-and-saml-structure"></a>
@@ -116,8 +116,8 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
 | Use SAML groups tied to Active Directory for team management | Map AD groups to Dynatrace groups via SAML assertion; no separate user management needed | Critical |
-| Structure: Group -> Policy + Boundary | `Group: "LOB5-Team" (SAML)` -> `Policy: Dynatrace Professional` + `Boundary: LOB5-Scope (three-domain)` | Critical |
-| For stricter isolation, apply boundary to all policies on a group | Both `Dynatrace Viewer` and `Dynatrace Professional` get the same boundary | Recommended |
+| Structure: Group -> two parallel bindings (Gen3 + Gen2) | `Group: "LOB5-Team" (SAML)` -> `Pro User` + Gen3 boundary (`storage`/`settings:dt.security_context`), and `Environment role - Access environment` + Gen2 boundary (`environment:management-zone`) | Critical |
+| For stricter isolation, apply the Gen3 boundary to all platform policies on a group | Both `Standard User` and `Pro User` get the same Gen3 boundary | Recommended |
 | Create one group per MZ-equivalent scope | `frontend-team`, `prod-viewers`, `sre-team` — one group per access boundary | Critical |
 | Never assign permissions to individual users | Always use group-based policy bindings | Critical |
 | Document group-to-MZ mapping during migration | Maintain a table: MZ name -> new group name -> policy -> boundary | Recommended |

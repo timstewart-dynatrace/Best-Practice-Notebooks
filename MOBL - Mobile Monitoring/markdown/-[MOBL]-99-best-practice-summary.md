@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -257,11 +257,11 @@ Mandatory patterns and filters for querying mobile data in Grail.
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/initial-setup/instrument-ios-app)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
 - [Android SDK Integration Guide](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring)
-- [Session Replay for Mobile](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/session-replay-for-mobile)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/setup-and-configuration/privacy-settings)
+- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
 
 ---
 

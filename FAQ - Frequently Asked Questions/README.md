@@ -18,7 +18,7 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 6. [Can We Trust Davis AI? A Risk and Controls Walkthrough](markdown/-[FAQ]-06-can-we-trust-davis-ai.md) — Four-surface taxonomy (Causal, Predictive, Generative/CoPilot, AI Observability) with data residency, training boundary, hallucination controls, autonomy limits, audit trail, IAM, compliance posture, and a decision framework for when to lean in vs hold back
 7. [How Do I Set Up a Launcher Page? (Default + Persona-Based)](markdown/-[FAQ]-07-launcher-page-setup.md) — Default launcher configuration plus persona-based launcher patterns for tailoring the entry experience by role
 8. [How Does OneAgent Decide Which Logs to Collect?](markdown/-[FAQ]-08-oneagent-log-autodiscovery.md) — Log auto-discovery rules, what gets picked up automatically vs what needs a custom log source, host scanning, include/exclude patterns, and verification checklist
-9. [Custom Metrics and Attributes — Creation, Management, and Best Practices](markdown/-[FAQ]-09-custom-metrics-attributes-best-practices.md) — Custom metric ingestion patterns, naming conventions, cardinality management, attribute enrichment, and integration workflows
+9. [When Should I Query a Metric Instead of Raw Logs?](markdown/-[FAQ]-09-metrics-instead-of-log-queries.md) — Decision framework for replacing recurring log aggregations with pre-extracted metrics; covers Grail query economics, OOTB metrics, cardinality, and extraction trade-offs
 
 ## Usage
 1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.

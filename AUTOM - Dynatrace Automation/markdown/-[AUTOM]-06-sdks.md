@@ -1,6 +1,6 @@
 # AUTOM-06: Dynatrace SDKs
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
 
 Dynatrace provides official SDKs for programmatic access to the platform. These SDKs are auto-generated from OpenAPI specifications, ensuring they stay current with API changes.
 
@@ -433,7 +433,7 @@ def generate_host_report():
 
 ### Dynatrace MCP Server
 
-The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-mcp) provides an alternative to traditional SDKs for AI-assisted workflows. It implements the Model Context Protocol (MCP), allowing AI assistants to interact with Dynatrace programmatically.
+The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) provides an alternative to traditional SDKs for AI-assisted workflows. It implements the Model Context Protocol (MCP), allowing AI assistants to interact with Dynatrace programmatically.
 
 ### Setup
 
@@ -507,7 +507,7 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 - [TypeScript SDK Documentation](https://developer.dynatrace.com/develop/sdks/)
 - [Python SDK on PyPI](https://pypi.org/project/dt-sdk/)
 - [API Reference](https://docs.dynatrace.com/docs/dynatrace-api)
-- [MCP Server Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-mcp)
+- [MCP Server Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp)
 
 ---
 

@@ -1,6 +1,6 @@
 # S2D-06: ArrayMovingSum for Extended Timeframes
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -217,8 +217,8 @@ Convert to 1-hour equivalent:
 ## References
 
 - [ArrayMovingSum Documentation](https://docs.dynatrace.com/docs/shortlink/array-functions#array-moving-sum)
-- [DQL Array Functions](https://docs.dynatrace.com/docs/shortlink/dql-array-functions)
-- [Anomaly Detectors](https://docs.dynatrace.com/docs/shortlink/davis-anomaly-detectors)
+- [Array functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/array-functions)
+- [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 
 ---
 

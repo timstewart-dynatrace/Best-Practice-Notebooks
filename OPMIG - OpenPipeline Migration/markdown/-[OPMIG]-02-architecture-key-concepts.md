@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 06/23/2026
 
 ## Architecture & Key Concepts
 ---
@@ -360,7 +360,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 | Limit | Value | Context |
 |-------|-------|------|
 | **DQL processor script length** | 8,192 characters | Per `/reference/limits` (May 2026 doc) |
-| **Processor matching condition length** | 1,500 characters | Per `/reference/limits` (May 2026 doc) |
+| **Processor matching condition length** | 4,096 characters (Settings API); 1,500 for legacy Configurations API / Classic pipelines | Per `/reference/limits` (Jun 17, 2026 doc) |
 | **Max DPL pattern length** | 4 KB | Per parse pattern |
 | **Max captured groups per parse** | 100 groups | Use multiple parse operations |
 | **Max alternatives in pattern** | 50 alternatives | `(opt1\|opt2\|...\|opt50)` |

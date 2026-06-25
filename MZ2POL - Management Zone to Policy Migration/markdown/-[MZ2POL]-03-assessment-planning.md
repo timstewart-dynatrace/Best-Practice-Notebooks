@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 04/04/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -279,8 +279,8 @@ If using buckets for team/compliance isolation:
 - [ ] OpenPipeline routing rules configured
 - [ ] Data flowing to correct buckets verified
 - [ ] Bucket-specific policies created
-- [ ] Policies include `WHERE storage:bucket.name = "..."` conditions
-- [ ] Boundaries include `storage:bucket.name IN (...)` restrictions
+- [ ] Policies include `WHERE storage:bucket-name = "..."` conditions
+- [ ] Boundaries include `storage:bucket-name IN (...)` restrictions
 
 ---
 

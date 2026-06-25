@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 9 | **Created:** December 2025 | **Last Updated:** 04/27/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -15,7 +15,7 @@ This notebook provides a comprehensive guide to **IAM Policies** and **Policy Bo
 3. [Default Policies](#default-policies)
 4. [Condition and Boundary Syntax](#condition-and-boundary-syntax)
 5. [Creating Boundaries](#creating-boundaries)
-6. [Best Practice: Complete Boundary for MZ Restriction](#best-practice-complete-boundary-for-mz-restriction)
+6. [Best Practice: Two Boundaries (Gen3 + Gen2 Transitional)](#best-practice-complete-boundary-for-mz-restriction)
 7. [Recommended Group-Policy-Boundary Structure](#recommended-group-policy-boundary-structure)
 8. [Mapping MZ Access to Policies + Boundaries](#mapping-mz-access-to-policies-boundaries)
 9. [Security Context and Bucket Strategy](#security-context-and-bucket-strategy)
@@ -98,11 +98,15 @@ By the end of this notebook, you will:
 
 | Component | Description | Examples |
 |-----------|-------------|----------|
-| **Effect** | Permission type | `ALLOW` (only option currently) |
+| **Effect** | Permission type | `ALLOW` or `DENY` (a `DENY` always overrules a matching `ALLOW`) |
 | **Service** | Dynatrace service | `storage`, `settings`, `app` |
 | **Resource** | Resource type | `logs`, `buckets`, `objects` |
 | **Action** | Operation | `read`, `write`, `delete` |
 | **Condition** | Optional filter | `WHERE field = "value"` |
+
+> **Effects:** Authorization is **implicit-deny** — anything not `ALLOW`ed is denied. Compose access from `ALLOW` statements and simply omit what you don't want to grant. Reserve explicit `DENY` for narrowing a broad `ALLOW`; a `DENY` always wins over any `ALLOW`, regardless of order.
+>
+> **Combining conditions:** A policy `WHERE` clause supports **`AND`** (e.g. `WHERE settings:schemaId = "..." AND storage:bucket-name = "logs_prod"`). It does **not** support `OR` — to express OR, write multiple `ALLOW` statements.
 
 ### Basic Policy Statements
 
@@ -132,34 +136,45 @@ ALLOW storage:logs:*
 
 <a id="default-policies"></a>
 ## 3. Default Policies
-Dynatrace provides **default policies** that cover common access patterns. These are **read-only** but cover most use cases.
+Dynatrace provides **built-in (default) IAM policies** that cover common access patterns. They are managed by Dynatrace (not editable) and auto-adjust as the platform evolves.
 
-### Dynatrace Access Policies
+> **Naming note:** The classic Gen2 roles "Dynatrace Viewer / Standard User / Professional User / Admin User" and "Data Viewer / Data Editor" are **not** current IAM policy names — they were RBAC roles. The names below are the current built-in IAM policies (see the [default policies reference](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies)).
 
-| Policy | Use Case | Key Permissions |
-|--------|----------|----------------|
-| **Dynatrace Viewer** | Read-only access | View dashboards, data, settings |
-| **Dynatrace Operator** | Basic operations | Viewer + create dashboards, notebooks |
-| **Dynatrace Standard User** | Regular users | Operator + modify some settings |
-| **Dynatrace Professional User** | Power users | Standard + advanced features |
-| **Dynatrace Admin User** | Administrators | Full platform access |
+### Platform Access Policies
+
+| Policy | Use Case | Grants |
+|--------|----------|--------|
+| **Standard User** | Regular users | Access the environment and run Dynatrace Apps |
+| **Pro User** | Power users | Build, deploy, and run apps + automated workflows |
+| **Admin User** | Administrators | Administrative access across all Platform Services |
+
+There is **no built-in "Viewer" policy** — compose read-only access from a platform policy plus the granular data-read policies below.
 
 ### Data Access Policies
 
-| Policy | Use Case | Key Permissions |
-|--------|----------|----------------|
-| **Data Viewer** | Read monitored data | Query logs, metrics, traces |
-| **Data Editor** | Modify data configs | Viewer + data configuration |
+| Policy | Use Case |
+|--------|----------|
+| **All Grail data read access** | Unrestricted read across all Grail tables and buckets |
+| **Storage Default Monitoring Read** | Read on the default monitoring buckets; auto-extends as new tables are added |
+| **Read Logs** / **Read Spans** / **Read Metrics** / **Read Events** / **Read Entities** | Granular read, one policy per signal type |
+| **Settings Reader** / **Settings Writer** | Read / read-write of Settings 2.0 objects |
 
-### Choosing the Right Default Policy
+### Environment Role Policies (Classic surface)
+
+| Policy | Use Case |
+|--------|----------|
+| **Environment role - Access environment** | Viewer-level Classic environment access |
+| **Environment role - Change monitoring settings** | Edit Classic monitoring settings |
+
+### Choosing the Right Built-in Policies
 
 ```
-User Type              → Dynatrace Policy       + Data Policy
-─────────────────────────────────────────────────────────────
-Executives/Viewers     → Dynatrace Viewer       + Data Viewer
-Developers             → Dynatrace Standard     + Data Viewer
-SRE/Operations         → Dynatrace Professional + Data Editor
-Platform Admins        → Dynatrace Admin        + Data Editor
+User Type              → Platform Policy   + Data / Settings Policies
+──────────────────────────────────────────────────────────────────────
+Executives/Viewers     → Standard User     + Read Logs / Read Metrics (or All Grail data read access)
+Developers             → Standard User     + Read Logs / Read Spans / Read Metrics
+SRE/Operations         → Pro User          + All Grail data read access + Settings Writer
+Platform Admins        → Admin User        + (admin policies as needed)
 ```
 
 ---
@@ -260,15 +275,17 @@ storage:dt.security_context = "team-platform"
 
 <a id="best-practice-complete-boundary-for-mz-restriction"></a>
 ## 6. Best Practice: Two Boundaries (Gen3 + Gen2 Transitional)
-When restricting access to replicate a Management Zone, **don't bundle Gen2 and Gen3 conditions inside one boundary.** Split them into two boundaries and attach both to the policy. A policy carries multiple boundaries; their effective scope is the intersection.
+When restricting access to replicate a Management Zone, **don't bundle Gen2 and Gen3 conditions inside one boundary.** Split them across **two parallel policy bindings** on the same group — a Gen3 binding scoped by Gen3 conditions and a Gen2 binding scoped by the `environment:management-zone` condition. Their effective scope is the intersection.
 
 ```
 # Gen3 policy binding (canonical) — Grail data + Settings 2.0
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       settings:objects:read, settings:objects:write
 WHERE storage:dt.security_context IN ("LOB5")
-   OR settings:dt.security_context IN ("LOB5");
+  AND settings:dt.security_context IN ("LOB5");
 ```
+
+> The `WHERE` clause uses **`AND`**, not `OR` — a policy `WHERE` does not support `OR`. Each condition only constrains the permissions of its own service: `storage:dt.security_context` scopes the `storage:*` reads, and `settings:dt.security_context` scopes the `settings:*` actions.
 
 ```
 # Gen2 policy binding (transitional) — Classic entity access via Management Zones
@@ -298,12 +315,12 @@ For organizations using SAML/SSO with Active Directory, this structure provides 
 ```
 Group: "LOB5-Team" (SAML from Active Directory)
 ├── Policy binding 1 — Gen3 (canonical):
-│   Policy: Dynatrace Standard User (Grail data + Settings 2.0)
+│   Policies: Standard User (+ Read Logs / Read Spans / Read Metrics; Settings Reader)
 │   Boundary:
 │     storage:dt.security_context IN ("LOB5");
 │     settings:dt.security_context IN ("LOB5");
 └── Policy binding 2 — Gen2 (transitional):
-    Policy: environment:roles:viewer
+    Policy: Environment role - Access environment
     Boundary:
       environment:management-zone IN ("LOB5");
 ```
@@ -311,19 +328,19 @@ Group: "LOB5-Team" (SAML from Active Directory)
 ### Key Benefits
 
 - **SAML Group**: Ties to existing AD group membership - no separate user management
-- **Standard User Policy**: Provides baseline access without boundary (if needed)
-- **Pro User + Boundary**: Advanced permissions restricted to team's scope
+- **Gen3 binding**: Grail data + Settings access scoped by `dt.security_context`
+- **Gen2 binding**: Classic entity access scoped by `environment:management-zone`, retired cleanly after MZ migration
 
-### Alternative: All Policies with Boundary
+### Alternative: Tighten the Platform Policy Too
 
-For stricter isolation, apply the boundary to all policies:
+For stricter isolation, bind a higher platform policy under the same Gen3 boundary:
 
 ```
 Group: "LOB5-Team" (SAML from AD)
-├── Policy: Dynatrace Viewer
-│   └── Boundary: LOB5-Scope
-└── Policy: Dynatrace Professional
-    └── Boundary: LOB5-Scope
+├── Policy: Standard User
+│   └── Boundary: LOB5-Scope (Gen3)
+└── Policy: Pro User
+    └── Boundary: LOB5-Scope (Gen3)
 ```
 
 ### Binding via UI
@@ -357,10 +374,10 @@ Group: "LOB5-Team" (SAML from AD)
 
 | MZ Permission | Equivalent Policy + Boundary |
 |---------------|-----------------------------|
-| View only | `Dynatrace Viewer` + Boundary |
-| View + Edit | `Dynatrace Standard User` + Boundary |
-| Full access to MZ | `Dynatrace Professional User` + Boundary |
-| Admin in MZ | Custom policy + Boundary |
+| View only | `Standard User` + data-read policies + Boundary |
+| View + Edit | `Pro User` + `Settings Writer` + Boundary |
+| Full access to MZ | `Pro User` + `All Grail data read access` + Boundary |
+| Admin in MZ | `Admin User` (or a custom policy) + Boundary |
 
 ### Migration Example: Team-Based MZ
 
@@ -376,19 +393,16 @@ Group: "LOB5-Team" (SAML from AD)
 
 2. Create two parallel policy bindings — Gen3 with Gen3 boundary, Gen2 with Gen2 boundary:
 
-   **Binding 1 — Gen3 (canonical):**
-   ```
-   ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-         settings:objects:read, settings:objects:write
-   WHERE storage:dt.security_context IN ("team-frontend")
-      OR settings:dt.security_context IN ("team-frontend");
-   ```
+   Binding 1 — Gen3 (canonical):
+     ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+           settings:objects:read, settings:objects:write
+     WHERE storage:dt.security_context IN ("team-frontend")
+       AND settings:dt.security_context IN ("team-frontend");
+     (policy WHERE uses AND, not OR — each condition scopes its own service)
 
-   **Binding 2 — Gen2 (transitional, until MZ retirement):**
-   ```
-   ALLOW environment:roles:viewer
-   WHERE environment:management-zone IN ("Frontend-Team");
-   ```
+   Binding 2 — Gen2 (transitional, until MZ retirement):
+     ALLOW environment:roles:viewer
+     WHERE environment:management-zone IN ("Frontend-Team");
 
 3. Attach both bindings to the group:
    Group: Frontend Developers (SAML)
@@ -407,17 +421,17 @@ Group: "LOB5-Team" (SAML from AD)
 1. Set security context on entities:
    - Hosts get dt.security_context = "prod-{region}"
 
-2. Create boundary:
-   Name: Production Environment
-   Query:
-   environment:management-zone IN ("Production");
-   storage:dt.security_context startsWith "prod-";
-   settings:dt.security_context startsWith "prod-";
+2. Create two boundaries (don't mix Gen2 and Gen3 in one):
+   Gen3 boundary "Production - Grail":
+     storage:dt.security_context startsWith "prod-";
+     settings:dt.security_context startsWith "prod-";
+   Gen2 boundary "Production - Classic":
+     environment:management-zone IN ("Production");
 
-3. Bind to group:
+3. Bind to group with two parallel bindings:
    Group: Production Operators (SAML)
-   Policy: Dynatrace Professional User
-   Boundary: Production Environment
+   Binding 1 (Gen3): Pro User + data-read policies, Boundary "Production - Grail"
+   Binding 2 (Gen2): Environment role - Access environment, Boundary "Production - Classic"
 ```
 
 ---
@@ -699,16 +713,16 @@ ALLOW storage:spans:read
 |-------|-------------|----------|
 | User can't access anything | No policy bound | Bind policy to user's group |
 | User sees too much | Boundary too broad or missing | Tighten boundary conditions |
-| User can't see expected data | Missing data policy | Add Data Viewer/Editor |
+| User can't see expected data | Missing data policy | Add a data-read policy (e.g. `Read Logs` / `All Grail data read access`) |
 | Permissions inconsistent | Multiple conflicting policies | Review all bound policies |
-| Works in classic, not Grail | Only environment domain used | Add storage domain to boundary |
-| Settings not restricted | Missing settings domain | Add settings:dt.security_context |
+| Works in classic, not Grail | Only environment domain used | Add storage domain (Gen3 boundary) |
+| Settings not restricted | Missing settings domain | Add `settings:dt.security_context` boundary |
 
 ### Debugging Steps
 
 1. **Verify group membership**: Is user in correct group?
 2. **Check policy bindings**: What policies are bound to group?
-3. **Review boundaries**: Are all three domains included?
+3. **Review boundaries**: Are both Gen3 and Gen2 boundaries attached where needed?
 4. **Test with admin**: Does admin see the data?
 5. **Check security context**: Is it set on the entities?
 

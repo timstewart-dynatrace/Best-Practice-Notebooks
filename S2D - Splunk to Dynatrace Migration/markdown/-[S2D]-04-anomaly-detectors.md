@@ -1,6 +1,6 @@
 # S2D-04: Alert Migration - Anomaly Detectors
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -305,7 +305,7 @@ fetch logs, from:now()-24h
 
 ## References
 
-- [Anomaly Detectors](https://docs.dynatrace.com/docs/shortlink/davis-anomaly-detectors)
+- [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Custom Events for Alerting](https://docs.dynatrace.com/docs/shortlink/custom-events-alerting)
 - [Alerting Profiles](https://docs.dynatrace.com/docs/shortlink/alerting-profiles)
 

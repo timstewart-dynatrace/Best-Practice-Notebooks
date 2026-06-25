@@ -1,6 +1,6 @@
 # SL2DT-09: Cutover, Validation & Decommission
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -333,7 +333,7 @@ aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
 
 ### Dynatrace migration validation surfaces
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)

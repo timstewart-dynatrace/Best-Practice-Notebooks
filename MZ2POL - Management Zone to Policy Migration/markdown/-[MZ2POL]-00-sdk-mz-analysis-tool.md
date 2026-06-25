@@ -1,6 +1,6 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 01/28/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 > **Purpose:** Query Management Zone configurations via the Dynatrace SDK, analyze entity assignments, and assess security context coverage to support migration planning.
 

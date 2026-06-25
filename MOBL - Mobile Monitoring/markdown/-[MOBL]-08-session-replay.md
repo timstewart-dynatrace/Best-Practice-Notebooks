@@ -1,6 +1,6 @@
 # MOBL-08: Session Replay for Mobile
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -379,8 +379,8 @@ Continue to **MOBL-09** to explore advanced mobile monitoring topics including c
 
 ## References
 
-- [Session Replay for Mobile](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/session-replay-for-mobile)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications/setup-and-configuration/privacy-settings)
+- [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
 - [DEM Licensing](https://docs.dynatrace.com/docs/manage/subscriptions/digital-experience-monitoring-units)
 
 ---

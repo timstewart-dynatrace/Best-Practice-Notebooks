@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 04/27/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -90,15 +90,17 @@ Policies are the core of ABAC - they define **WHAT** users can do.
 
 ### Default Policies Categories
 
-**Dynatrace Access Policies** (Platform features):
-- `Dynatrace Viewer` - Read-only access
-- `Dynatrace Standard User` - Standard operations
-- `Dynatrace Professional User` - Advanced features
-- `Dynatrace Admin User` - Full administration
+> The current built-in IAM policy names are below. The classic Gen2 roles "Dynatrace Viewer / Professional User" and "Data Viewer / Editor" are no longer the IAM policy names.
 
-**Data Access Policies** (Monitored data):
-- `Data Viewer` - Read monitored data
-- `Data Editor` - Modify data configurations
+**Platform access policies** (feature-level):
+- `Standard User` - Access the environment and run Dynatrace Apps
+- `Pro User` - Build, deploy, and run apps + automated workflows
+- `Admin User` - Administrative access across all Platform Services
+
+**Data access policies** (monitored data):
+- `All Grail data read access` - Unrestricted Grail read
+- `Read Logs` / `Read Spans` / `Read Metrics` / `Read Events` / `Read Entities` - Granular per-signal read
+- `Settings Reader` / `Settings Writer` - Read / read-write Settings 2.0 objects
 
 ### Policy Statement Structure
 
@@ -130,23 +132,25 @@ Boundaries restrict **WHERE** policies apply - they limit the scope of permissio
 
 ### Boundary Query Syntax
 
+A boundary query is a **bare condition expression** — no `WHERE` keyword (that belongs to policy statements), one condition per line:
+
 ```
 <field> <operator> "<value>"
 ```
 
 **Supported Operators:**
-- `=` - Equals
-- `!=` - Not equals
-- `startsWith` - Prefix match
-- `in` - Value in list
+- `=` / `!=` - Equals / not equals
+- `IN` / `NOT IN` - Value in / not in list
+- `startsWith` / `NOT startsWith` - Prefix match
+- `MATCH` - Wildcard match, `storage` domain only (see note below)
 
 **Common Fields:**
 - `environment` - Environment restrictions
-- `environment:management-zone` - MZ-based restrictions
+- `environment:management-zone` - MZ-based restrictions (Classic)
 - `storage:dt.security_context` - Security context filtering
-- `storage:bucket.name` - Bucket-based restrictions
+- `storage:bucket-name` - Bucket-based restrictions
 
-> **Note:** `MATCH` is also available for wildcard pattern matching on the storage domain — `storage:dt.security_context MATCH('team-*')`. It supports `*` at any position and is required when `dt.security_context` holds an array value. For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
+> **Note:** `MATCH` provides wildcard pattern matching on the `storage` domain — `storage:dt.security_context MATCH("team-*")` — and supports `*` at any position (unlike `startsWith`). It is also the documented workaround for the known `startsWith` bug on Smartscape / Classic-entity conditions (e.g. `storage:smartscape:read`). For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
 
 ### Boundary Examples
 
@@ -167,16 +171,16 @@ storage:dt.security_context = "team-frontend"
 
 **Restrict by Bucket (data partitioning):**
 ```
-storage:bucket.name IN ("frontend_logs", "frontend_spans")
+storage:bucket-name IN ("frontend_logs", "frontend_spans")
 ```
 
 ### Boundary Limitations
 
 | Limitation | Workaround |
 |------------|------------|
-| Max 10 restrictions per boundary | Create multiple boundaries |
-| No AND operator (lines are OR) | Use multiple boundary assignments |
-| Only works with security policies | Cannot use with role-based permissions |
+| Max 10 conditions per boundary | Create multiple boundaries |
+| No logical operators — one line per condition, OR-combined | Use multiple boundary assignments for AND |
+| Bare conditions (no `WHERE`) | `WHERE` belongs to policy statements, not boundaries |
 
 ---
 
@@ -235,9 +239,9 @@ Grant team access to their specific buckets:
 
 ```
 // Policy: Grant team access to their buckets
-ALLOW storage:logs:read WHERE storage:bucket.name = "frontend_logs"
-ALLOW storage:spans:read WHERE storage:bucket.name = "frontend_spans"
-ALLOW storage:metrics:read WHERE storage:bucket.name = "frontend_metrics"
+ALLOW storage:logs:read WHERE storage:bucket-name = "frontend_logs"
+ALLOW storage:spans:read WHERE storage:bucket-name = "frontend_spans"
+ALLOW storage:metrics:read WHERE storage:bucket-name = "frontend_metrics"
 ```
 
 ### Using Buckets in Boundaries
@@ -249,7 +253,7 @@ Combine buckets with security context for layered control:
 ```
 # Gen3 binding: storage policies + Gen3 boundary
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
-WHERE storage:bucket.name IN ("frontend_logs", "frontend_spans", "frontend_metrics")
+WHERE storage:bucket-name IN ("frontend_logs", "frontend_spans", "frontend_metrics")
   AND storage:dt.security_context IN ("team-frontend");
 ```
 
@@ -414,7 +418,7 @@ fetch dt.entity.kubernetes_cluster
 - Users assigned to MZ get filtered view
 
 **New (Policies + Boundaries + Segments):**
-1. **Policy**: `Dynatrace Standard User` or custom policy
+1. **Policy**: `Standard User` (or a custom policy)
 2. **Boundary**: `storage:dt.security_context = "team-frontend"`
 3. **Segment**: DQL filter for frontend services
 

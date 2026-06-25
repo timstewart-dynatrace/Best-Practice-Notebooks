@@ -1,6 +1,6 @@
 # SL2DT-01: Overview & Migration Strategy
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -267,8 +267,8 @@ If you're just here for a specific question:
 ## 11. References
 
 ### Dynatrace platform overview
-- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
-- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)

@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 04/04/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -166,9 +166,9 @@ Tag: env:production → Security Context: prod-{team}
 
 Confirm policies and boundaries are created per MZ2POL-04:
 
-- [ ] Default policies identified for each user type
+- [ ] Built-in policies identified for each user type
 - [ ] Custom policies created where needed
-- [ ] Boundary for each access scope (all three domains)
+- [ ] Gen3 boundary (`storage` + `settings:dt.security_context`) and Gen2 boundary (`environment:management-zone`) for each access scope
 - [ ] Security context conditions configured
 - [ ] Boundary naming follows convention
 - [ ] Policy and boundary documentation complete
@@ -199,9 +199,9 @@ For each group:
 
 | Group | Policy | Boundary | Environment |
 |-------|--------|----------|-------------|
-| frontend-team | Dynatrace Standard User | Frontend Team Scope | Production |
-| sre-team | Dynatrace Professional User | All Production | Production |
-| prod-viewers | Dynatrace Viewer | Production Only | Production |
+| frontend-team | Standard User + Read Logs/Spans/Metrics | Frontend Team Scope | Production |
+| sre-team | Pro User + All Grail data read access | All Production | Production |
+| prod-viewers | Standard User + Read Logs/Metrics | Production Only | Production |
 
 ---
 

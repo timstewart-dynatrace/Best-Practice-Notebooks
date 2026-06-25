@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 9 | **Created:** December 2025 | **Last Updated:** 02/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -228,7 +228,7 @@ fetch dt.entity.service
 |-------|-------------|----------|
 | User can't access anything | No policy bound | Bind policy to user's group |
 | User sees too much | Boundary too broad or missing | Tighten boundary conditions |
-| User can't see expected data | Missing data policy | Add Data Viewer/Editor |
+| User can't see expected data | Missing data policy | Add a data-read policy (`Read Logs` / `All Grail data read access`) |
 | Permissions inconsistent | Multiple conflicting policies | Review all bound policies |
 | Works in classic, not Grail | Only environment domain used | Add storage domain to boundary |
 -->
@@ -246,7 +246,7 @@ fetch dt.entity.service
 | Group membership | Verify user is in correct group |
 | Policy binding | Verify group has policy bound |
 | Boundary scope | Verify boundary isn't too restrictive |
-| Data policy | Verify Data Viewer/Editor policy included |
+| Data policy | Verify a data-read policy (`Read Logs` / `All Grail data read access`) is included |
 | Segment selection | Check if restrictive segment is active |
 
 **Resolution Steps**:

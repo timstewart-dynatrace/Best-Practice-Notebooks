@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 05/21/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 06/23/2026
 
 ## Production Best Practices
 This final notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -416,7 +416,7 @@ Workflow Automation emits two event types in Grail:
 
 `execution.id` is the **correlation key** that joins task events to their parent workflow run, and links workflow runs to any downstream logs the run produced (HTTP-action target logs, JavaScript-action `console.log` output captured by the run, etc.).
 
-> <sub>**Sources:** [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Workflow reference (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language).</sub>
+> <sub>**Sources:** [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Workflow reference (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language).</sub>
 
 ### 4.2 Failed executions with task-level detail
 

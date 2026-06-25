@@ -1,6 +1,6 @@
 # MZ2POL-05: Segments Implementation
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 04/04/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -145,8 +145,8 @@ filter matchesValue(tags, "env:production")
 // Multiple conditions (AND)
 filter matchesValue(tags, "env:production") and matchesValue(tags, "team:frontend")
 
-// Pattern matching
-filter matchesPhrase(dt.entity.service.name, "payment")
+// Pattern matching on entity name
+filter contains(entity.name, "payment")
 ```
 
 ---
@@ -194,8 +194,8 @@ filter matchesValue(tags, "region:us-east-1") or matchesValue(tags, "region:us-w
 **Description**: Payment system services and dependencies
 **Filter**:
 ```dql
-filter matchesPhrase(dt.entity.service.name, "payment") 
-   or matchesPhrase(dt.entity.service.name, "checkout")
+filter contains(entity.name, "payment") 
+   or contains(entity.name, "checkout")
 ```
 
 ---
@@ -288,10 +288,11 @@ fetch dt.entity.service
 
 ```dql
 // Test log filtering with segment condition
-// Validates segment will work for log queries
+// Logs are scoped by dt.security_context (the access-control field),
+// not by entity tags — tags live on entities, not on log records.
 fetch logs, from:-1h
-| filter matchesValue(dt.entity.service.tags, "team:frontend")
-| fields timestamp, content, dt.entity.service
+| filter dt.security_context == "team-frontend"
+| fields timestamp, content, dt.security_context
 | sort timestamp desc
 | limit 20
 ```
@@ -302,12 +303,14 @@ fetch logs, from:-1h
 ## 7. Mapping MZ Rules to Segment Filters
 ### Common MZ Rule Patterns
 
+> Segment filters are evaluated per data object — entity fields (`entity.name`, `tags`) apply to entity includes, while signal fields (`k8s.namespace.name`, `dt.security_context`) apply to logs/spans includes.
+
 | MZ Rule Type | Segment Filter Equivalent |
 |--------------|---------------------------|
 | Host tag equals | `filter matchesValue(tags, "key:value")` |
-| Service name contains | `filter matchesPhrase(dt.entity.service.name, "text")` |
-| Process group tag | `filter matchesValue(dt.entity.process_group.tags, "key:value")` |
-| Kubernetes namespace | `filter dt.entity.cloud_application.namespace == "namespace"` |
+| Service name contains | `filter contains(entity.name, "text")` |
+| Process group tag | `filter matchesValue(tags, "key:value")` |
+| Kubernetes namespace | `filter k8s.namespace.name == "namespace"` |
 | Cloud provider tag | `filter matchesValue(tags, "cloud:aws")` |
 
 ### Conversion Examples
@@ -321,7 +324,7 @@ filter matchesValue(tags, "env:production")
 **MZ Rule**: Service name contains `payment`
 **Segment Filter**:
 ```dql
-filter matchesPhrase(dt.entity.service.name, "payment")
+filter contains(entity.name, "payment")
 ```
 
 **MZ Rule**: Host in AWS
@@ -333,7 +336,7 @@ filter matchesValue(tags, "cloud:aws")
 **MZ Rule**: Kubernetes namespace equals `production`
 **Segment Filter**:
 ```dql
-filter dt.entity.cloud_application.namespace == "production"
+filter k8s.namespace.name == "production"
 ```
 
 ---
@@ -392,9 +395,9 @@ Segments can be:
 | Share segments | `storage:filter-segments:share` |
 | Delete segments | `storage:filter-segments:delete` |
 
-These permissions are included in default policies:
-- **Dynatrace Standard User**: Read, Write, Share
-- **Dynatrace Professional User**: Read, Write, Share, Delete
+These permissions are typically granted via the platform policies:
+- **Standard User**: read, write, share
+- **Pro User**: read, write, share, delete
 
 ---
 

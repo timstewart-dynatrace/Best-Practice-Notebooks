@@ -1,6 +1,6 @@
 # SL2DT-02: Assessment & Inventory
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -429,7 +429,7 @@ If any check fails, do not proceed to SL2DT-03. Fix the gap first.
 
 ### Dynatrace — target-side capabilities for sizing assessment
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 
 ---

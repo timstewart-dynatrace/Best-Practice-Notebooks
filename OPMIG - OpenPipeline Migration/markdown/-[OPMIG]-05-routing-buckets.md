@@ -1,6 +1,6 @@
 # OPMIG-05: Dynamic Routing & Bucket Management
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 06/23/2026
 
 > **OpenPipeline Migration Series** | Notebook 5 of 9  
 > **Level:** Intermediate  
@@ -882,7 +882,7 @@ Now that you understand routing and buckets, continue with:
 ## References
 
 - [OpenPipeline Data Flow](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow)
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/data-model/buckets)
+- [organize-data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 - [OpenPipeline Limits](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits)
 
 ---

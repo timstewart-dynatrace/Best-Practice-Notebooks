@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -393,7 +393,7 @@ In this notebook, you learned:
 ## References
 
 - [Dynatrace Android Instrumentation](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring)
-- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/platform-modules/digital-experience/mobile-applications)
+- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
 - [Dynatrace Android Agent API](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring/android-manual-instrumentation)
 
 ---

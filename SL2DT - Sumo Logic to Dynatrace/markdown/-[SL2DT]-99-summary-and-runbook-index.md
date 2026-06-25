@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
 
 ## Overview
 
@@ -276,9 +276,9 @@ For environments where SVG doesn't render
 ### Dynatrace — by topic
 
 **Platform / DQL / Grail**
-- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
-- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-pattern-language)
-- [Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail)
+- [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [DPL Pattern Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
 
 **Ingest**
