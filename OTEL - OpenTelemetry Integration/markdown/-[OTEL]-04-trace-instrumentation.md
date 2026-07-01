@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 01/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -15,7 +15,8 @@ Traces provide visibility into request flows across services. This notebook cove
 4. [Context Propagation](#context-propagation)
 5. [Span Attributes and Events](#span-attributes-and-events)
 6. [Language-Specific Examples](#language-specific-examples)
-7. [Best Practices](#best-practices)
+7. [Sampling: Head vs. Tail](#sampling-head-vs-tail)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -45,6 +46,17 @@ Traces provide visibility into request flows across services. This notebook cove
 | Custom business spans | Manual |
 | Production with specific needs | Hybrid |
 | Serverless / Lambda | SDK with auto-instrumentation |
+
+### Service Mesh: Istio & Envoy
+
+A service mesh emits telemetry without touching application code — the sidecar proxy (Envoy) generates spans for the traffic it routes. This is zero-code instrumentation at the infrastructure layer, complementary to the SDK patterns above.
+
+- **Envoy** can be configured to emit OpenTelemetry traces directly (an OpenTelemetry tracing provider) and ship them via OTLP — point the exporter at your collector or the Dynatrace OTLP endpoint.
+- **Istio** wires this mesh-wide: set the mesh's tracing provider to OpenTelemetry and Istio applies the proxy tracing configuration across the mesh.
+
+Mesh spans cover proxy-to-proxy hops; combine them with app-level SDK spans (via W3C trace-context propagation, §4) for an end-to-end trace. See the Dynatrace Istio/Envoy integration docs for the provider configuration.
+
+> <sub>**Sources:** [Istio and Envoy integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/integrations).</sub>
 
 <a id="auto-instrumentation"></a>
 ## 2. Auto-Instrumentation
@@ -358,8 +370,86 @@ fetch spans, from:-1h
 | limit 20
 ```
 
+<a id="sampling-head-vs-tail"></a>
+## 7. Sampling: Head vs. Tail
+
+Sampling discards a portion of traces to control trace volume and cost. *Where* the decision is made changes what you can decide on.
+
+| Approach | Where | Decision basis | Trade-off |
+|----------|-------|----------------|-----------|
+| **Head sampling** | SDK, at span start | Random / rate-based only — the request outcome isn't known yet | Cheap and simple; keeps/drops blindly, so it can drop the errors and slow traces you most want |
+| **Tail sampling** | Collector, after the trace completes | The full trace — status, latency, attributes | Keeps the interesting traces; costs memory/CPU (the collector buffers each trace until it finishes) |
+
+### Head sampling (SDK)
+
+```python
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+
+# Keep 10% of traces — decided at the root span, propagated to children
+provider = TracerProvider(sampler=TraceIdRatioBased(0.1))
+```
+
+Head sampling is consistent across a trace (the root decision propagates), but it cannot prefer errors or slow requests — it does not yet know how the request ends.
+
+### Tail sampling (Collector)
+
+The `tail_sampling` processor buffers each trace until it completes, then applies policies — so you can keep every error and slow trace and probabilistically sample only the healthy remainder:
+
+```yaml
+processors:
+  tail_sampling:
+    decision_wait: 30s          # how long to buffer a trace before deciding
+    policies:
+      - name: keep-errors
+        type: status_code
+        status_code: {status_codes: [ERROR, UNSET]}
+      - name: keep-slow
+        type: latency
+        latency: {threshold_ms: 500}
+      - name: sample-the-rest
+        type: probabilistic
+        probabilistic: {sampling_percentage: 20}
+```
+
+Tail sampling is **stateful** — all of a trace's spans must reach the **same** collector instance for the decision to see the whole trace. In a tiered deployment (OTEL-03 §5) that means routing by trace ID to the gateway tier; never shard one trace across gateways.
+
+### The trap: sampling biases trace-derived metrics
+
+If OpenTelemetry traces are sampled, trace-derived metrics (request counts, error rates) are computed only from the sampled subset — a 20% sampler makes throughput look 5× lower than reality.
+
+Compute service metrics **before** sampling. The `spanmetrics` connector reads the full, unsampled trace stream and emits RED metrics; `tail_sampling` then thins only the trace stream that gets stored:
+
+```yaml
+connectors:
+  spanmetrics: {}
+  forward/sampling: {}
+service:
+  pipelines:
+    traces/in:                       # full stream
+      receivers: [otlp]
+      exporters: [spanmetrics, forward/sampling]
+    metrics/spanmetrics:             # metrics from ALL traces (unbiased)
+      receivers: [spanmetrics]
+      exporters: [otlphttp]
+    traces/sampled:                  # only sampled traces are stored
+      receivers: [forward/sampling]
+      processors: [tail_sampling]
+      exporters: [otlphttp]
+```
+
+(Representative wiring — see the Dynatrace sampling docs demo for the full pipeline.)
+
+### Dynatrace guidance
+
+- **Do not mix sampling modes on one trace.** Combining OTel sampling and OneAgent sampling on the same distributed trace yields inconsistent, partial traces — pick one owner per trace (see OTEL-07 §9 signal routing).
+- Sampling is a **cost lever, not a default** — start by keeping everything, measure ingest, and sample only if trace volume is the cost driver. OTel trace volume bills directly under DPS (see OTEL-01 §6 and the FINOPS series).
+
+> <sub>**Sources:**</sub>
+> - <sub>[Sampling with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/sampling) — `tail_sampling` policies (`status_code`/`latency`/`probabilistic`, `decision_wait`), `spanmetrics`-before-sampling to avoid metric bias, and the no-mixed-mode warning</sub>
+> - <sub>**Derived:** the "route by trace ID to one gateway" requirement combines tail-sampling statefulness with the tiered topology in OTEL-03 §5; the cost-lever framing combines the docs with the DPS trace model (OTEL-01 §6 / FINOPS)</sub>
+
 <a id="best-practices"></a>
-## 7. Best Practices
+## 8. Best Practices
 ### Span Naming
 
 | Good | Bad | Why |

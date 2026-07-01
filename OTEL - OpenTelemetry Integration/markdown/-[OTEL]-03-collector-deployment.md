@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 05/19/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -13,10 +13,11 @@ The OTel Collector can be deployed in various patterns depending on your infrast
 2. [Agent Mode (Sidecar/DaemonSet)](#agent-mode-sidecardaemonset)
 3. [Gateway Mode](#gateway-mode)
 4. [Kubernetes Deployment](#kubernetes-deployment)
-5. [Docker Compose](#docker-compose)
-6. [High Availability](#high-availability)
-7. [Resource Sizing](#resource-sizing)
-8. [Security Considerations](#security-considerations)
+5. [Scaling Prometheus Scraping](#scaling-prometheus-scraping)
+6. [Docker Compose](#docker-compose)
+7. [High Availability](#high-availability)
+8. [Resource Sizing](#resource-sizing)
+9. [Security Considerations](#security-considerations)
 
 ---
 
@@ -384,8 +385,286 @@ The operator's auto-instrumentation feature is the strongest pull for greenfield
 > - <sub>[OpenTelemetryCollector CRD reference (opentelemetry-operator GitHub)](https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api.md)</sub>
 > - <sub>**Derived:** "when to use which" table combines operator design with operational trade-offs observed in community deployments</sub>
 
+<a id="scaling-prometheus-scraping"></a>
+## 5. Scaling Prometheus Scraping: Target Allocator & Tiered Collectors
+
+The single-collector pattern in **OTEL-05 — Metrics Instrumentation, §6** (one collector with a `prometheus` receiver scraping annotated pods) is the right starting point and carries most deployments. But it does not scale horizontally: a `prometheus` receiver owns a fixed target list, so a second replica makes **both** collectors scrape **every** target — double-counting metrics, not sharing load. Once you reach thousands of scrape targets or millions of data points per minute, you need a tiered architecture that shards scraping across replicas.
+
+This builds directly on the OpenTelemetry Operator pattern in §4 — the **Target Allocator** is an Operator component.
+
+![Tiered Prometheus scraping with Target Allocator](images/03-prometheus-target-allocator-tiered_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Resource | Role |
+|------|----------|------|
+| Target Allocator | Operator component | Discovers targets via CRDs; consistent-hash assigns them to scrapers |
+| Scraper tier | Deployment + HPA | Stateless `prometheus` receiver that polls the allocator for its slice; scales horizontally |
+| Gateway tier | StatefulSet | Stateful processing (cumulativetodelta, k8sattributes); receives a resource-hashed stream so a series lands on one gateway |
+| Dynatrace | OTLP API | `otlphttp` export to `/api/v2/otlp` |
+For environments where SVG does not render
+-->
+
+### Why two tiers
+
+| Concern | Tier | Why it must live here |
+|---------|------|----------------------|
+| Target discovery & sharding | Target Allocator | One brain assigns targets to scrapers and rebalances on scale events |
+| Scraping | Scraper (Deployment) | Stateless and shardable — scale horizontally with an HPA |
+| Counter→delta conversion, enrichment | Gateway (StatefulSet) | `cumulativetodelta` keeps **per-series memory state**; every sample for a series must reach the **same** instance |
+
+The split exists because of `cumulativetodelta`. Prometheus counters are cumulative; Dynatrace prefers delta temporality (cross-reference **OTEL-07 — Dynatrace Integration, §9**). Converting cumulative→delta requires remembering the previous value **per series**, so it cannot be sharded blindly — the gateway tier receives a **resource-hashed** stream so all samples of a series land on one gateway.
+
+### Target Allocator
+
+The Allocator discovers targets from **Prometheus Operator CRDs** and distributes them across scrapers by consistent hashing. Each scraper's `prometheus` receiver polls the Allocator for its assigned slice instead of holding a static `scrape_configs` list:
+
+```yaml
+# Scraper tier — prometheus receiver driven by the Target Allocator
+receivers:
+  prometheus:
+    target_allocator:
+      endpoint: http://tiered-allocator-ta
+      interval: 15s
+      collector_id: ${env:K8S_POD_NAME}   # unique per scraper pod
+```
+
+The Allocator selects which CRDs to honor with label selectors:
+
+```yaml
+# Target Allocator config
+prometheus_cr:
+  enabled: true
+  scrapeInterval: 15s
+  service_monitor_selector:
+    matchlabels:
+      prometheus.dynatrace.com: "true"
+  pod_monitor_selector:
+    matchlabels:
+      prometheus.dynatrace.com: "true"
+  scrape_config_selector:
+    matchlabels:
+      prometheus.dynatrace.com: "true"
+```
+
+Targets are declared with the same three CRDs a Prometheus Operator stack uses — opt them in with the matching label:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: my-service
+  labels:
+    prometheus.dynatrace.com: "true"
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  endpoints:
+    - port: metrics
+      interval: 60s
+```
+
+`PodMonitor` selects pods directly (bypassing Services); `ScrapeConfig` is the native Prometheus format for annotation-based discovery.
+
+### Scraper tier → gateway tier
+
+Scrapers do **no** stateful processing — a `memory_limiter` and then hand off via the **`loadbalancing`** exporter, keyed by `resource` so all series from a given source resource route to one gateway:
+
+```yaml
+# Scraper tier — route to gateways by resource hash
+exporters:
+  loadbalancing:
+    routing_key: resource          # load-bearing: keeps a series on one gateway
+    resolver:
+      k8s:
+        service: tiered-gateway.otel-ta
+    protocol:
+      otlp:
+        tls:
+          insecure: true
+```
+
+The gateway tier does the stateful work — converting counters, enriching with Kubernetes attributes, exporting to Dynatrace:
+
+```yaml
+# Gateway tier (StatefulSet)
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 95
+    spike_limit_percentage: 5
+  metric_start_time:
+  cumulativetodelta:
+    max_staleness: 10m        # ~10x scrape interval; evicts stale series
+    initial_value: drop
+  k8sattributes:
+    # extract metadata.dynatrace.com/* annotations + k8s.* resource attributes
+  transform: {}
+
+exporters:
+  otlphttp:
+    endpoint: ${env:DT_ENDPOINT}
+    headers:
+      Authorization: "Api-Token ${env:DT_API_TOKEN}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, metric_start_time, cumulativetodelta, k8sattributes, transform]
+      exporters: [otlphttp]
+```
+
+`max_staleness` bounds gateway memory: a series not seen within that window is evicted, so pod churn does not grow state unbounded. Set it to roughly 10x the scrape interval.
+
+### Scaling the fleet
+
+Both tiers run an HPA. Scale **up** immediately and **down** slowly, so a brief lull does not drop a replica mid-series and reset delta state:
+
+```yaml
+behavior:
+  scaleUp:
+    stabilizationWindowSeconds: 0
+  scaleDown:
+    stabilizationWindowSeconds: 300   # ~5x scrape interval
+```
+
+Replica counts scale roughly with data-point throughput. Dynatrace publishes a reference sizing (60-second scrape interval) — treat these as a **starting point and size against your own data-points-per-minute and target count**, not as fixed values:
+
+| Data points/min | Targets | Scraper replicas | Gateway replicas |
+|-----------------|---------|------------------|------------------|
+| 1M | ~5 | 2 | 2 |
+| 10M | ~60 | 13 | 4 |
+| 30M | ~334 | 38 | 8 |
+| 60M | ~667 | 74 | 18 |
+| 90M | ~1,000 | 102 | 23 |
+
+Hash-based distribution does not rebalance on actual load — a heavy target stays pinned to its assigned scraper. If one target dominates, split it across multiple ports/paths or vertically size the scraper that owns it.
+
+### Deploying the tiers
+
+Four components deploy in the order the reference repo prescribes — RBAC and discovery CRs first, then one Helm release per tier:
+
+```bash
+# 1. ServiceAccounts, ClusterRoles, bindings + the ScrapeConfig CRs
+kubectl apply -f rbac.yaml
+kubectl apply -f scrapeconfig.yaml
+
+# 2. one Helm release per component
+helm upgrade --install allocator       <chart> -f allocator.values.yaml
+helm upgrade --install tier1-scraper   <chart> -f tier1-scraper.values.yaml
+helm upgrade --install tier2-gateway   <chart> -f tier2-gateway.values.yaml
+helm upgrade --install selfmon-scraper <chart> -f selfmon-scraper.yaml   # recommended
+```
+
+The repo ships one values file per component (`allocator.values.yaml`, `tier1-scraper.values.yaml`, `tier2-gateway.values.yaml`, `selfmon-scraper.yaml`) plus `rbac.yaml` and `scrapeconfig.yaml`. **Prerequisite:** the Prometheus Operator CRDs (`ServiceMonitor`/`PodMonitor`/`ScrapeConfig`) must already be installed — the Allocator consumes them.
+
+### RBAC: what each tier needs
+
+Each tier runs under its own `ServiceAccount` bound to a `ClusterRole` scoped to only what that tier does — the Allocator needs the broadest access (it does discovery), scrapers need target-resolution reads, gateways need only the metadata `k8sattributes` enriches with:
+
+| ServiceAccount | Reads | Why |
+|----------------|-------|-----|
+| `tiered-otel-allocator` | pods, endpoints, services, endpointslices, nodes, nodes/metrics, configmaps, secrets, ingresses, namespaces + Prometheus CRDs (`servicemonitors`, `podmonitors`, `scrapeconfigs`, `probes`) + non-resource URL `/metrics` | Discovers targets from CRDs and the API server |
+| `tiered-otel-scraper` | pods, endpoints, services, endpointslices, nodes, namespaces, replicasets, deployments, statefulsets, daemonsets, jobs, cronjobs (`get`/`list`/`watch`) | Resolves scrape targets behind Services/Endpoints |
+| `tiered-otel-gateway` | pods, namespaces, nodes, replicasets, jobs, cronjobs (`get`/`list`/`watch`) | `k8sattributes` enrichment metadata only |
+
+Worked `ClusterRole` for the Allocator — the load-bearing one. Note the Prometheus CRD verbs and the `/metrics` non-resource URL, both of which the scraper/gateway roles omit:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tiered-otel-allocator
+rules:
+  - apiGroups: [""]
+    resources: [pods, endpoints, services, nodes, nodes/metrics, configmaps, secrets, namespaces]
+    verbs: [get, list, watch]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: [servicemonitors, podmonitors, scrapeconfigs, probes]
+    verbs: ["*"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tiered-otel-allocator
+subjects:
+  - kind: ServiceAccount
+    name: tiered-otel-allocator
+    namespace: otel-ta
+roleRef:
+  kind: ClusterRole
+  name: tiered-otel-allocator
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Each of the four ServiceAccounts gets a matching `ClusterRoleBinding`. Unlike the `OpenTelemetryCollector` CRD path in §4 (where the Operator creates the collector ServiceAccount for you), this Helm-values deployment provisions all four explicitly in `rbac.yaml`.
+
+### Target Allocator high availability
+
+The Allocator sits on the control path — if it is unreachable, scrapers cannot learn their assignments. Run **multiple Allocator replicas**. Because the assignment algorithm is deterministic, the replicas need no leader election or shared state:
+
+> "Run multiple TA replicas for failure tolerance. Because the consistent-hashing algorithm is deterministic, all replicas independently produce the same target-to-scraper assignments without coordination."
+
+Every replica computes the identical target→scraper map from the same discovered set, so a scraper polling any replica gets a consistent answer and losing a replica is transparent — the scraper simply polls another.
+
+### Self-monitoring & verification
+
+The reference deployment ships a dedicated **self-monitoring collector** (`selfmon-scraper`) whose only job is to scrape the other collectors' and the allocator's internal telemetry and forward it to Dynatrace — the fleet observing itself. It is a `prometheus` receiver doing pod discovery in the collector namespace, keyed off annotations:
+
+```yaml
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-selfmon
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names: [otel-ta]
+          # keep pods annotated metrics.dynatrace.com/scrape: "true";
+          # read the scrape port from metrics.dynatrace.com/port
+exporters:
+  otlphttp/dynatrace:
+    endpoint: ${env:DT_ENDPOINT}
+    headers:
+      Authorization: "Api-Token ${env:DT_API_TOKEN}"
+```
+
+Watch these collector self-metrics — they tell you whether the fleet is keeping up and whether routing is intact:
+
+| Metric | Tier | Healthy signal |
+|--------|------|----------------|
+| `otelcol_receiver_accepted_metric_points` | Scraper | Rises in step with scrape volume; flat-lining means scraping stalled |
+| `otelcol_processor_incoming_items` vs `otelcol_processor_outgoing_items` | Gateway | Roughly equal; a growing gap means a processor (usually `memory_limiter`) is dropping |
+| `otelcol_exporter_send_failed_metric_points` | Gateway | Near zero; sustained non-zero means export to Dynatrace is failing (auth, endpoint, or rate) |
+| `otelcol_loadbalancer_num_resolutions` | Scraper | Changes when the gateway set scales; a value stuck through a known scale event means stale routing |
+
+Once these land in Dynatrace you can chart them with `timeseries` like any other metric and alert on the export-failure and processor-gap signals. Confirm the exact ingested metric keys in the metric browser first — collector self-metric naming varies by distribution and OTel Collector version.
+
+### Single collector vs. tiered — which to run
+
+| Run | When |
+|-----|------|
+| Single collector (OTEL-05 §6) | Up to a few hundred targets / low-single-digit-million data points per minute; one team, one config; no need for horizontal scrape scaling |
+| Tiered + Target Allocator | Thousands of targets; HPA-driven horizontal scaling; CRD-based (`ServiceMonitor` / `PodMonitor` / `ScrapeConfig`) discovery across many teams |
+
+Complete, runnable configs (Helm values for all three tiers, RBAC, self-monitoring) live in the Dynatrace OTel Collector repo under `config_examples/prometheus-large-scale/`.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Prometheus standard use case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/prometheus/standard)</sub>
+> - <sub>[prometheus-large-scale config examples (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/tree/main/config_examples/prometheus-large-scale) — verbatim tier-1 scraper / tier-2 gateway / allocator Helm values</sub>
+> - <sub>[OpenTelemetry Operator (opentelemetry-operator GitHub)](https://github.com/open-telemetry/opentelemetry-operator) — Target Allocator component</sub>
+> - <sub>**Derived:** the "why two tiers" split and the single-vs-tiered decision table synthesize the docs architecture with the `cumulativetodelta` per-series-state constraint from OTEL-07 §9</sub>
+
 <a id="docker-compose"></a>
-## 5. Docker Compose
+## 6. Docker Compose
 ### Basic Setup
 
 ```yaml
@@ -416,7 +695,7 @@ services:
 ```
 
 <a id="high-availability"></a>
-## 6. High Availability
+## 7. High Availability
 ### HA Considerations
 
 | Component | HA Strategy |
@@ -466,7 +745,7 @@ spec:
 ```
 
 <a id="resource-sizing"></a>
-## 7. Resource Sizing
+## 8. Resource Sizing
 ### Sizing Guidelines
 
 | Throughput | CPU | Memory | Replicas |
@@ -510,7 +789,7 @@ spec:
 ```
 
 <a id="security-considerations"></a>
-## 8. Security Considerations
+## 9. Security Considerations
 ### Token Management
 
 Store Dynatrace API tokens in Kubernetes Secrets:

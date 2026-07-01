@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -57,6 +57,14 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 - **Duplicating Davis.** Before building a custom detector, confirm OOTB Davis or an existing metric event does not already cover the condition. Duplicate detection means duplicate alerts.
 - **Querying logs/traces directly in a recurring detector.** Pays query cost on every evaluation, forever. Extract a metric first (FAQ-09, OPIPE).
 - **A detector with a bare event template.** No team/zone property means nothing to route on (ALERT-01 §4).
+- **The cloned detector.** In a fast rollout the dominant noise source is not one badly-tuned alert — it is a base detector template copied across teams with its threshold, sensitivity, and routing left unchanged. Two weeks later that team has muted the channel. You cannot review your way out of this one clone at a time; defend at the template, not at each copy.
+
+**Make the base template safe by default.** The fix is to make the *default* shape adaptive, not static, so the worst case of a copy-paste is a correctly-scoped, loosely-tuned alert — never an unscoped firehose. A base detector template should ship with:
+
+- An **auto-adaptive (or seasonal) analyzer as the default**, not a static threshold — the only inputs a team must supply are the metric/selector and the owning team/area property.
+- **No-data does not alert**, so missing telemetry during onboarding stays silent until instrumentation lands.
+- A **violating-samples / sliding-window minimum** (e.g. ≥3-of-5) so a single transient spike never pages.
+- **Routing bound to the team/area property the template already requires**, so even an untuned clone reaches the right owner.
 
 <a id="prototype"></a>
 ## 4. Prototype Before You Commit

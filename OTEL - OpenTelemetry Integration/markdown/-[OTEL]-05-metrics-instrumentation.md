@@ -1,6 +1,6 @@
 # OTEL-05: Metrics Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 05/19/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
 
 ## Creating Custom Metrics with OpenTelemetry
 OpenTelemetry metrics provide quantitative measurements of your application's behavior over time. This notebook covers metric types, instrumentation patterns, and integration with Dynatrace.
@@ -280,6 +280,8 @@ OpenTelemetry and Prometheus both expose metrics, and an OTel Collector can brid
 | **OTel SDK → Prometheus** | App uses `PrometheusMetricReader`; existing Prometheus stack scrapes it | App is OTel-instrumented but an existing Prometheus-based monitoring stack must keep working |
 
 The first direction is the common path in Dynatrace deployments. The rest of this section walks the end-to-end pattern.
+
+> **This section shows the single-collector pattern** — one collector scrapes a fixed set of annotated pods. It does not scale horizontally (a second replica would scrape every target again, double-counting). For thousands of targets or millions of data points per minute, use the tiered **Target Allocator** architecture in **OTEL-03 — Collector Deployment Patterns, §5 Scaling Prometheus Scraping** (scraper Deployment + gateway StatefulSet + resource-hash routing).
 
 ![Prometheus scrape via OTel Collector to Dynatrace](images/05-prometheus-scrape-otlp-flow_930x500.png)
 

@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -40,6 +40,8 @@ This is the cost decision that the field most often gets wrong.
 **Default to simple workflows where possible.** This may mean several simple workflows instead of one big one — that is the cheaper shape, because their query and runs are not charged under workflow-hours. Reach for a multi-step workflow when you genuinely need conditional branching, multi-team routing, or a single centralised configuration; the capability is worth the cost when you need it, but do not pay it by default.
 
 > Verify current billing specifics against the Workflows documentation for your DPS model — the simple-vs-billed boundary is the kind of detail that shifts, and it is exactly what the field-authored source document got partially right but did not fully pin down.
+
+**A worked trap.** A frequent pattern is *one routing workflow per team or area* that catches every problem for that area and posts to the team's chat channel. It looks like simple fan-out — but the form of the delivery action decides the billing, not the apparent shape. A single built-in notification action keeps the workflow simple; a hand-rolled HTTP-function call or a run-JavaScript task to reach the same channel is what can tip it into the billed multi-step category. Choose the action type deliberately, and confirm which connectors count as simple notification actions for your DPS model.
 
 <a id="pattern"></a>
 ## 2. The Routing Pattern

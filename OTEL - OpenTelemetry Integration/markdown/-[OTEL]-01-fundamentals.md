@@ -1,6 +1,6 @@
 # OTEL-01: OpenTelemetry Fundamentals
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 02/09/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
 
 ## Introduction to OpenTelemetry and Dynatrace
 OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics.
@@ -255,6 +255,20 @@ exporter = OTLPSpanExporter(
     headers={"Authorization": f"Api-Token {os.environ['DT_API_TOKEN']}"}
 )
 ```
+
+### OpenTelemetry Licensing & Cost
+
+OpenTelemetry data is billed exactly like any other ingested data under the Dynatrace Platform Subscription (DPS) — there is no separate OTel licence and no OTel surcharge or discount. Each signal maps to DPS capabilities:
+
+| Signal | Ingest & Process | Retain | Query |
+|--------|------------------|--------|-------|
+| Traces | per GiB ingested | GiB-days (10 days included) | per GiB scanned (Distributed Tracing / Services apps don't bill queries) |
+| Metrics | per 100k data points | GiB-days (15 months @ 1-min granularity included) | included with Ingest & Process |
+| Logs | per GiB ingested | GiB-days | per GiB scanned |
+
+**OneAgent vs. OTel:** Full-Stack Monitoring includes defined OneAgent trace/metric volumes — you're charged only for OneAgent data *above* the included volume. OpenTelemetry data has no included allowance; it bills on the rate card from the first byte. Practical consequence: high-volume OTel traces/metrics are a direct cost line — size and (if needed) sample them deliberately (see OTEL-04 §7 and the FINOPS series).
+
+> <sub>**Sources:** [OpenTelemetry licensing (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/opentelemetry-licensing) — DPS treats OTel data like any ingested data; per-signal capabilities; OneAgent included-volume vs. OTel rate-card.</sub>
 
 ```dql
 // View OpenTelemetry traces in Dynatrace

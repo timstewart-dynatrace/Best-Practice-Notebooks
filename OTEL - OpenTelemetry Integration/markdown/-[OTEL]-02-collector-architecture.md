@@ -1,6 +1,6 @@
 # OTEL-02: OpenTelemetry Collector Architecture
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 02/09/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
 
 ## Understanding the OTel Collector Pipeline
 The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnostic service for receiving, processing, and exporting telemetry data. This notebook covers its architecture, components, and configuration.
@@ -183,6 +183,46 @@ processors:
       span:
         - 'attributes["http.url"] == "/health"'
 ```
+
+### Masking Sensitive Data (redaction / transform)
+
+Telemetry can carry PII — tokens in headers, emails in attributes, user IDs in log bodies. Strip it **in the collector, before egress**, so it never reaches the backend. Two processors do this:
+
+| Processor | Use |
+|-----------|-----|
+| `redaction` | Straightforward allow/block of attribute values; redacts matching values completely |
+| `transform` | OTTL-based; full or **partial** redaction via pattern replacement, per signal |
+
+`redaction` — block values matching a pattern (e.g. a leaked Dynatrace token) and keep a summary of what was scrubbed:
+
+```yaml
+processors:
+  redaction:
+    allow_all_keys: true
+    blocked_values:
+      - "dt0[a-z]0[1-9]\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}"   # Dynatrace token shape
+    summary: info
+```
+
+`transform` — partial masking of specific attributes across traces, metrics, and logs (separate `trace_statements` / `metric_statements` / `log_statements` blocks):
+
+```yaml
+processors:
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          - replace_all_patterns(attributes, "value", "[\w.]+@[\w.]+", "***@***")   # mask emails
+```
+
+Two rules that bite:
+
+- **Order matters** — place redaction/transform **before** any routing or exporting so downstream steps only ever see sanitized data.
+- **Span names are not attributes** in OTLP — masking attribute values does not touch the span name; handle it separately (e.g. a name-rewriting statement / `set_semconv_span_name`).
+
+This is the collector-side complement to OpenPipeline ingest-time masking (OPLOGS / OPIPE): use collector redaction when data must be scrubbed **before it leaves your network**, OpenPipeline masking when it is scrubbed at ingest.
+
+> <sub>**Sources:** [Mask sensitive data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/redact) — `redaction` (`blocked_values`/`allow_all_keys`/`summary`) and `transform` (`replace_all_patterns`, per-signal statements); processor-order and span-name caveats.</sub>
 
 <a id="exporters"></a>
 ## 5. Exporters

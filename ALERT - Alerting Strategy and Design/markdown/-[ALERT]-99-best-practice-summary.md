@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -12,7 +12,8 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 
 1. [Principles](#principles)
 2. [Complete Setup Checklist](#checklist)
-3. [Cross-Series Map](#map)
+3. [The Ongoing Audit Loop](#audit)
+4. [Cross-Series Map](#map)
 
 ---
 
@@ -33,6 +34,7 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 5. **Prefer simple workflows.** Pay for multi-step only when you need conditional/multi-team logic.
 6. **Match destination to urgency.** Fast-burn → page; slow-burn → ticket.
 7. **Validate every query before it becomes an alert.** A detector on a silent query is worse than no alert.
+8. **Audit on a cadence.** Building well is half the job. A standing review — classify every problem, trace each false positive to the config behind it, and track the trend per area — keeps the funnel honest as services change.
 
 <a id="checklist"></a>
 ## 2. Complete Setup Checklist
@@ -62,8 +64,46 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 - [ ] Production detectors/SLOs promoted to config-as-code
 - [ ] Alerts that fire without action reviewed and tuned
 
+<a id="audit"></a>
+## 3. The Ongoing Audit Loop
+
+The setup checklist above is build-time. Noise creeps back as services, traffic, and ownership change, so a standing audit is what keeps the funnel honest. The point is not to *count* false positives — it is to find the repeating configuration patterns behind them, so the same noise is not regenerated next period.
+
+**Classify every problem.** Each problem in the audit window lands in exactly one bucket:
+
+| Class | Meaning | Action |
+|-------|---------|--------|
+| **True Positive (TP)** | A real issue that required action | None — the detector is working |
+| **False Positive (FP)** | Fired but needed no action — a threshold, scope, detection-method, or sliding-window issue | Trace it to the config and fix the source |
+| **Under Review (UR)** | Not yet conclusive | Carry to the next period; gather more data points |
+
+Every FP must trace back to a concrete cause — the analyzer type, the entity scope, the sliding window, or the event template. An FP with no configuration change behind it is just a number; an FP with an identified root cause is progress.
+
+**Track one KPI:** the false-positive rate over time, per area, and whether it is trending down. That single trend is the primary output of every cycle.
+
+**Signals to scan each cycle:**
+
+| Signal | What it flags |
+|--------|---------------|
+| **Fire rate** | A detector firing many times a day is a tuning or de-dup candidate |
+| **Silence rate** | Never fired in 90+ days → redundant, or watching a dead path |
+| **Immediate-silence rate** | Acknowledged and closed with no action = noise |
+| **Routing coverage** | Every alert should route to exactly one owner; an unrouted alert is invisible |
+| **Runbook link** | An alert with no runbook attached has no possible action |
+| **Owner / area property** | Present, so the alert maps to a team — also catches copy-paste clones that never set it |
+
+**Cadence:**
+
+| Stage | When | Focus |
+|-------|------|-------|
+| **Pre-go-live** | Before an area or service reaches production | Every new or migrated detector fires correctly in non-prod; nothing fires on no-data |
+| **Early** (first ~3 months) | Monthly | Top-noise alerts reviewed with the owning team |
+| **Steady state** | Quarterly | Cross-area review; retire detectors silent 90+ days or at a 100% silence rate |
+
+Express these as recurring queries over the problem feed (`fetch events | filter event.kind == "DAVIS_PROBLEM"`); AIOPS-03 and ORGNZ-10 carry validated problem-feed query patterns to build on.
+
 <a id="map"></a>
-## 3. Cross-Series Map
+## 4. Cross-Series Map
 
 | Piece | Built in |
 |-------|----------|
