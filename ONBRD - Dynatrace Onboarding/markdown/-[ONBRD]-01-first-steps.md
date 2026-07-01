@@ -1,6 +1,6 @@
 # ONBRD-01: Getting Started: Your First Steps in Dynatrace
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 06/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/01/2026
 
 ## Finding Your Way Around
 Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.
@@ -26,7 +26,7 @@ Welcome to Dynatrace. This notebook helps you get oriented in your new environme
 
 Three sprint-1.337 changes establish what "new customer onboarding" should default to in 2026:
 
-1. **Platform tokens (`dt0s16` / `dt0s01`) with `Authorization: Bearer …`** — recommended default for all new automation. Classic `dt0c01` (`Authorization: Api-Token …`) still works for legacy paths but should not be the default for new pipelines. Wrong scheme returns `401 Unsupported authorization scheme` even when scopes are correct (covered in ONBRD-02 IAM and Authentication).
+1. **Platform tokens (`dt0s16`) with `Authorization: Bearer …`** — recommended default for all new automation. Classic `dt0c01` (`Authorization: Api-Token …`) still works for legacy paths but should not be the default for new pipelines. Wrong scheme returns `401 Unsupported authorization scheme` even when scopes are correct (covered in ONBRD-02 IAM and Authentication).
 2. **Settings v2 (Environment API v2)** — new automation should target Settings v2 paths. Sprint 1.337 SaaS announced that many remaining Configuration API endpoints now have Settings v2 equivalents. Plan onboarding tooling around Settings v2 (Terraform `dynatrace_settings`, Monaco v2). See ONBRD-06 (Organizing Your Environment) and ONBRD-09 (Setting Up Alerts) for the schema-id patterns to use.
 3. **Extensions 3rd-gen API** (managed via Dynatrace API Application → Extensions) — **the only recommended path for new customers adopting custom Extensions.** Existing customers may continue with 2nd-gen, but advocate 3rd-gen as the default in any onboarding conversation.
 
@@ -142,7 +142,7 @@ Modern Dynatrace platform access uses three credential types — choose based on
 
 | Token Type | Prefix | When to Use |
 |------------|--------|-------------|
-| **Platform Token** *(recommended default)* | `dt0s16` / `dt0s01` | New automation, Workflows, MCP integrations, OpenPipeline configuration |
+| **Platform Token** *(recommended default)* | `dt0s16` | New automation, Workflows, MCP integrations, OpenPipeline configuration |
 | **OAuth Client** | (client ID + secret) | External SaaS integrations, account-admin automation |
 | **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts; migrate to Platform Token where possible |
 

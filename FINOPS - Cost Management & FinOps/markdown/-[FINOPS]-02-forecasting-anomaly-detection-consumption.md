@@ -1,6 +1,6 @@
 # FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 05/19/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -122,14 +122,14 @@ Where Cost Monitors are anomaly-detection ("is this period unusual"), **Budget A
 ### What they do
 
 - Track month-to-date consumption against an explicit budget (the customer's DPS annual commit, monthly-allocated)
-- Fire at configurable thresholds — typically 50% / 75% / 90% of monthly budget
+- Fire at configurable thresholds — Dynatrace auto-provisions 75% / 90% / 100% of the annual commitment on every DPS account; customize tiers (e.g., 50/75/90) on top of that default for earlier signal
 - Notify finance, procurement, and platform teams via email or webhook
 - Provide an end-of-period forecast based on month-to-date trajectory
 
 ### What to configure
 
 1. **Set the monthly budget to the DPS annual commit / 12.** If your commit is not evenly distributed (e.g., growth-phased commit), set per-month budgets to match the contract.
-2. **Pick threshold tiers based on time-to-react.** 50% mid-month gives plenty of room to act; 90% with a week left in the month is a fire alarm. Most programs use 50/75/90, but for tight-commit customers a 25/50/75 cadence gives earlier signal.
+2. **Pick threshold tiers based on time-to-react.** The Dynatrace-provisioned default is 75/90/100 of the annual commitment, enabled automatically with no configuration required. Many programs add an earlier custom tier (e.g., 50%) for more lead time; for tight-commit customers a 25/50/75 cadence gives earlier signal still.
 3. **Tier the notification escalation.** 50% → platform team. 75% → platform team + finance. 90% → procurement + leadership. The threshold tiers map to who needs to act.
 4. **Annual rollover handling.** Confirm whether unused monthly budget rolls within the year (most DPS contracts do) — this affects how a 75% June alert is interpreted (might be fine if January-May ran low).
 
@@ -366,7 +366,7 @@ In community practice, the most common DIY use cases are:
 
 A six-step plan for layering forecasting + anomaly detection on top of FINOPS-01's consumption visibility:
 
-1. **Turn on Budget Alerts immediately.** This is the lowest-effort, highest-value step. Set 50/75/90 thresholds; tier notification escalation.
+1. **Turn on Budget Alerts immediately.** This is the lowest-effort, highest-value step — Dynatrace auto-provisions 75/90/100 thresholds by default; add an earlier custom tier (e.g., 50%) if your program wants more lead time, and tier notification escalation.
 2. **Enable Cost Monitors for the top 5 capabilities you actually use.** Let baselines establish for 2-3 weeks before tuning. Don't enable monitors for capabilities with little traffic — noise.
 3. **Build one DIY weekly per-bucket trend report.** The week-over-week pattern in §5 with delta-pct sort, scheduled via Workflow, delivered to a `#cost-watch` Slack channel. This is the tactical-layer signal that most programs lack.
 4. **Once the trend report has 4 weeks of history, add anomaly detection.** Run the §9 per-capability anomaly workflow against `dt.billing.*` series.

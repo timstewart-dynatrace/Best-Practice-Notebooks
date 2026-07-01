@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -120,7 +120,7 @@ Dynatrace Gen3 splits NR's monolithic alert into two layers, with **Workflows** 
 
 ```
 Metric Event (the detection)
-  │ schema: builtin:problem.metric.events
+  │ schema: builtin:anomaly-detection.metric-events (classic) / builtin:davis.anomaly-detectors (Gen3)
   │ query (DQL or metric expression)
   │ threshold + operator
   │ duration (n out of m samples)

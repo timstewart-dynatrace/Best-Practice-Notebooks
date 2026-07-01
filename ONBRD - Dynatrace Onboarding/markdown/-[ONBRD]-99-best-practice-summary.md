@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 06/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ A new 2026 tenant should default to these choices unless there is a specific rea
 
 | Area | Default | Why |
 |---|---|---|
-| API token | **Platform Token** (`dt0s16` / `dt0s01`) with `Authorization: Bearer` | Sprint-1.337 default; aligns with Gen3 IAM model. Classic API Tokens (`dt0c01`, `Authorization: Api-Token`) only for legacy paths. |
+| API token | **Platform Token** (`dt0s16`) with `Authorization: Bearer` | Sprint-1.337 default; aligns with Gen3 IAM model. Classic API Tokens (`dt0c01`, `Authorization: Api-Token`) only for legacy paths. |
 | Configuration | **Settings v2** / Configuration as Code (Terraform `dynatrace_settings`, Monaco v2) | Sprint-1.337 announced Configuration API endpoints have Settings v2 equivalents. Plan automation around Settings v2. |
 | Extensions | **Extensions 3rd-gen** (managed via Dynatrace API Application → Extensions) | Only recommended path for new customers. |
 | Tagging at source | **Primary fields/tags at OneAgent install** via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (single tags-hub form, June 2026; prefix written explicitly) | OneAgent attribute enrichment (1.331+) emits these on every signal at ingest. |

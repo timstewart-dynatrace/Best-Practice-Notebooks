@@ -1,6 +1,6 @@
 # S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 10 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 04/16/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 10 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -202,9 +202,9 @@ resource "dynatrace_iam_policy" "sre_access" {
   environment     = var.dynatrace_environment_id
   statement_query = <<-EOT
     ALLOW storage:logs:read
-      WHERE storage:bucket.name IN ("app_logs", "infra_logs");
+      WHERE storage:bucket-name IN ("app_logs", "infra_logs");
     ALLOW storage:spans:read
-      WHERE storage:bucket.name = "default_spans";
+      WHERE storage:bucket-name = "default_spans";
     ALLOW storage:metrics:read;
   EOT
 }

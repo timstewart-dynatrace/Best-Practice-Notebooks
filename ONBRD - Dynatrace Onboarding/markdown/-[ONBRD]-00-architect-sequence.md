@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 06/10/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -59,7 +59,7 @@ For environments where SVG doesn't render
 
 - **Decision:** Confirm access; record tenant URL; plan token strategy for downstream automation.
 - **Depends on:** procurement complete, tenant provisioned.
-- **2026 specifics:** Plan for Platform Tokens (`dt0s16` / `dt0s01`, `Authorization: Bearer`) as the default for new automation per sprint-1.337. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work. Extensions 3rd-gen for any custom integrations.
+- **2026 specifics:** Plan for Platform Tokens (`dt0s16`, `Authorization: Bearer`) as the default for new automation per sprint-1.337. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work. Extensions 3rd-gen for any custom integrations.
 - **Output:** confirmed tenant access; first Platform Token decision recorded.
 - **Deep dive:** [ONBRD-99 § 1 Recommended Defaults](-[ONBRD]-99-best-practice-summary.ipynb) for the 2026 token / API / extension stack.
 
@@ -67,7 +67,7 @@ For environments where SVG doesn't render
 
 - **Decision:** SSO method (SAML / OIDC); initial group structure; first parameterized policies.
 - **Depends on:** Step 01 (access confirmed).
-- **2026 specifics:** Issue the first Platform Token (`dt0s16` / `dt0s01`, `Authorization: Bearer`) — Classic API Tokens (`dt0c01`) only for legacy installer-download paths. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06). Sprint-1.338 ActiveGate token schema changed — review upgrade-notes for any AG-token-issuing automation.
+- **2026 specifics:** Issue the first Platform Token (`dt0s16`, `Authorization: Bearer`) — Classic API Tokens (`dt0c01`) only for legacy installer-download paths. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06). Sprint-1.338 ActiveGate token schema changed — review upgrade-notes for any AG-token-issuing automation.
 - **Output:** SSO live; admin group + first parameterized policy in place; first Platform Token issued.
 - **Deep dive:** [IAM series](../../iam/) for full IAM administration (13 notebooks); [FAQ-02](../../faq/notebooks/-[FAQ]-02-tagging-sources-standards-strategy.ipynb) for `dt.security_context` strategy.
 

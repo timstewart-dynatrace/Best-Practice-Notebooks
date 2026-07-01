@@ -1,6 +1,6 @@
 # SLO-01: SLO and SLI Fundamentals
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 5 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 5 | **Created:** June 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -26,7 +26,8 @@ This is the conceptual foundation for the series. SLO-02 builds the SLI queries,
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 with Grail and the SLO app |
-| **Permissions** | `storage:metrics:read`, `storage:spans:read` for SLI queries; `settings:objects:read/write` to create SLOs |
+| **IAM permissions (SLO app itself)** | `slo:slos:read`, `slo:slos:write`, `slo:objective-templates:read` — the gating permissions for the app; a minimal read/write grant is `ALLOW slo:slos:read, slo:objective-templates:read; ALLOW slo:slos:write;` |
+| **Data-source permissions** | `storage:metrics:read`, `storage:spans:read`, plus whichever of `storage:logs:read` / `storage:bizevents:read` / `storage:events:read` / `storage:buckets:read` your SLI queries touch; `settings:objects:read/write` to create SLOs |
 | **Concepts** | Basic DQL (see the SPANS and DBMON series); familiarity with your service topology |
 
 <a id="blocks"></a>
@@ -57,11 +58,11 @@ Dynatrace has two generations of SLO tooling:
 | | SLO Classic | Modern SLO app (use this) |
 |--|-------------|---------------------------|
 | SLI definition | Metric expressions, fixed indicator types | **DQL-based** — any `good ÷ total` query over metrics, spans, logs, or bizevents |
-| Backing schema | classic config | `builtin:slo` (Settings 2.0) |
-| As code | limited | `dynatrace_slo_v2` Terraform resource / Monaco |
+| Backing schema | classic config | `builtin:monitoring.slo` (Settings 2.0) |
+| As code | limited | `dynatrace_slo_v2` Terraform resource (metric-based SLIs only — SLO-05 §2) / Monaco (full schema, incl. DQL-based Custom SLOs) |
 | Data scope | service metrics | all Grail data types |
 
-New work should use the **modern SLO app** with DQL-based SLIs — it covers every data type and is the path that is actively developed. If you have SLO Classic definitions, Dynatrace publishes an upgrade path.
+New work should use the **modern SLO app** with DQL-based SLIs — it covers every data type and is the path that is actively developed. Dynatrace's own guidance is to still prefer a metric-based SLI over a DQL one where a suitable pre-aggregated metric exists, since metric queries are faster and cheaper to evaluate; use `makeTimeseries` for event/log-derived SLIs where no such metric exists (SLO-02). If you have SLO Classic definitions, Dynatrace publishes an upgrade path.
 
 ![Anatomy of a Dynatrace SLO](images/01-slo-anatomy_930x500.png)
 

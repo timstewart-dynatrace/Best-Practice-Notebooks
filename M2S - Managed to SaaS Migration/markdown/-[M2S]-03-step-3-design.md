@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 05/21/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 With discovery and strategy complete, it’s time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -454,7 +454,7 @@ Create purpose-specific tokens with minimal scopes:
 | Configuration migration | `settings.read`, `settings.write` |
 | Entity queries | `entities.read` |
 | Metrics and logs | `metrics.read`, `logs.read` |
-| Automation | `automation.read`, `automation.write` |
+| AutomationEngine (Workflows) | OAuth client scopes `automation:workflows:read`, `automation:workflows:write` (not a classic API-token scope) |
 
 ---
 

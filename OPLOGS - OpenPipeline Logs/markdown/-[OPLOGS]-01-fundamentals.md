@@ -1,6 +1,6 @@
 # OPLOGS-01: OpenPipeline Fundamentals
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 06/30/2026
 
 ## Understanding the Unified Data Ingestion Framework
 This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.
@@ -151,6 +151,9 @@ Logs sent directly via the Dynatrace API:
 - Third-party integrations
 - Cloud provider logs (AWS, Azure, GCP)
 
+#### Delivery reliability
+The Log Ingest API acknowledges accepted data with **HTTP 204 No Content** (empty body). When a request fails on a *retryable* response code (each endpoint documents which codes are retryable), the **client is responsible for retrying with exponential backoff** — Dynatrace does not retry on the sender's behalf. The ActiveGate that serves the endpoint buffers ingested data to an on-disk queue (default **300 MB**, configured by `disk_queue_max_size_mb`; location by `disk_queue_path`) and forwards it to Dynatrace in batches; when that queue fills, the API returns **`503 Usable space limit reached`** as a back-pressure signal — increase `disk_queue_max_size_mb` if this recurs under normal load. Cloud-forwarder integrations (e.g. Amazon Data Firehose) implement their own buffering and smart-retry against the OpenPipeline endpoint.
+
 ### OTLP (`/api/v2/otlp/v1/logs`)
 OpenTelemetry Protocol logs:
 - OpenTelemetry Collector
@@ -255,6 +258,7 @@ Continue to **OPLOGS-02: Migration Guide** to learn how to migrate from classic 
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [Grail Data Lakehouse](https://docs.dynatrace.com/docs/platform/grail)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Log ingestion API (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api) — delivery reliability: HTTP 204 success, retryable codes + exponential backoff, ActiveGate disk-queue buffering, `503 Usable space limit reached`
 
 ---
 

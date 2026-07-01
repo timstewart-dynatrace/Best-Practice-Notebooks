@@ -1,6 +1,6 @@
 # SL2DT-07: User Governance & Access
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 05/15/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -29,7 +29,8 @@ Governance drift — users without proper policies, buckets without proper scopi
 |-------------|---------|
 | **Audience** | Platform admins + security team |
 | **Inputs** | `inventory/roles.json`, `users.json`, `rbac-mapping.md` from SL2DT-02 |
-| **Dynatrace access** | Platform Token with `iam:groups:write`, `iam:policies:write`, `settings:objects:write` |
+| **Dynatrace access — Platform Token** | For querying runtime IAM state (`fetch dt.iam.policies`, audit events): `iam:groups:read`, `iam:policies:read`, `settings:objects:read` |
+| **Dynatrace access — OAuth client** | **The Terraform resources used in this notebook's HCL examples (`dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`) are OAuth-client-only** — a Platform Token cannot drive them. Provision an OAuth client (`DT_CLIENT_ID`/`DT_CLIENT_SECRET`/`DT_ACCOUNT_ID`) with scopes `account-idm-read`, `account-idm-write`, `iam-policies-management`, `account-env-read` |
 | **SSO context** | Existing IdP details (Okta, Entra, Ping) |
 | **Prior reading** | IAM-01 (Platform IAM fundamentals), IAM-07 (bucket policies) |
 
@@ -86,12 +87,14 @@ resource "dynatrace_iam_policy" "p_prod_readers" {
 }
 
 # Binding
-resource "dynatrace_iam_policy_bindings" "b_prod_readers" {
+resource "dynatrace_iam_policy_bindings_v2" "b_prod_readers" {
   group = dynatrace_iam_group.g_prod_readers.id
   environment = var.tenant_uuid
   policy = [dynatrace_iam_policy.p_prod_readers.id]
 }
 ```
+
+> **Critical — `dynatrace_iam_policy_bindings_v2` re-assigns all policies bound to a group on every apply.** Per the [`dynatrace_iam_policy_bindings_v2` resource docs (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2): *"This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* The single-policy example above is illustrative — if `g_prod_readers` already has other policies bound (in Dynatrace itself or in a separate Terraform resource), applying this block with only `p_prod_readers` listed will **unbind those other policies**. List every policy that should remain bound to the group in the same `policy = [...]` array.
 
 ### Policy Language
 

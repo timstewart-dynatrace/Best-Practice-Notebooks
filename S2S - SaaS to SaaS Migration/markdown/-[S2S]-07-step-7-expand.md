@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 10 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 04/16/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 10 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -229,6 +229,11 @@ resource "dynatrace_slo_v2" "checkout_availability" {
   target_warning     = 99.95
   metric_expression  = "(100)*(builtin:service.errors.server.successCount:splitBy()):merge(0):default(0)/((builtin:service.requestCount.server:splitBy()):merge(0):default(0))"
   filter             = "type(SERVICE),tag(app:checkout),tag(env:production)"
+
+  # required block — omitting it fails terraform apply schema validation
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+  }
 }
 ```
 

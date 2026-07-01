@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 07/01/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -25,7 +25,7 @@ This notebook covers browser monitors in Dynatrace, including single-URL monitor
 - ✅ Completed SYNTH-01 Fundamentals
 - ✅ Web application URL to monitor
 
-> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_step_execution` events in `fetch dt.synthetic.events` **when the classic browser experience is in use**; with the *new browser monitor experience* activated, detailed actions surface in RUM instead. Confirm which path your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
+> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_step_execution` events in `fetch dt.synthetic.events` **when the classic browser experience is in use**; with the *new browser monitor experience* activated, detailed actions surface in RUM instead. **Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all** — they run the new experience by default, so this discovery step matters mainly for pre-2026-01-26 tenants. Confirm which path your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
 
 <a id="browser-monitor-types"></a>
 ## 1. Browser Monitor Types
@@ -163,10 +163,15 @@ Browser monitors capture full-page render timing. In Grail this is exposed as **
 
 | Metric key | Description | Unit |
 |------------|-------------|------|
-| `dt.synthetic.browser.duration` | Total monitor duration (sum of all step durations) | ms |
+| `dt.synthetic.browser.duration` | Total monitor duration (sum of all step durations). Dynatrace recommends this as the best representation of user experience. | ms |
 | `dt.synthetic.browser.step.duration` | Individual step (action) duration | ms |
 | `dt.synthetic.browser.availability` | Availability rate | % |
-| `dt.synthetic.browser.executions` | Execution count | count |
+| `dt.synthetic.browser.executions` / `.step.executions` | Execution counts | count |
+| `dt.synthetic.browser.classic.total_duration` / `.step.classic.total_duration` | Total duration measured by the **classic RUM JavaScript** — kept available even after the new experience is activated (dual ingestion, no extra cost) | ms |
+| `dt.synthetic.browser.user_events.duration` / `.step.user_events.duration` | Duration measured from the new RUM JavaScript, summed from step-level user events | ms |
+| `dt.synthetic.browser.user_events.total_duration` / `.step.user_events.total_duration` | Total duration from the new RUM JavaScript — the extended/enhanced breakdown that ships with the new browser monitor experience | ms |
+
+> **New-experience metric family:** the `user_events.*` and `classic.total_duration` metrics only appear once a monitor is executing under the **new browser monitor experience** (environment- or monitor-level setting, or by default on tenants created after January 26, 2026). Both classic and new-experience metrics are ingested simultaneously during the transition, at no additional cost — so it's safe to query for `user_events.*` speculatively and fall back to plain `duration` if it returns nothing.
 
 ![Navigation Timing](images/02-navigation-timing.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -189,7 +194,9 @@ Browser monitors capture full-page render timing. In Grail this is exposed as **
 | **Largest Contentful Paint** | Largest element rendered | < 2.5s | > 4.0s |
 | **Cumulative Layout Shift** | Visual stability | < 0.1 | > 0.25 |
 
-> **Important:** Core Web Vitals (LCP, FCP, CLS) are **Real User Monitoring** measurements, not synthetic browser metric keys. The Synthetic on Grail browser metrics expose **availability**, **total duration**, and **per-step duration** — not the individual W3C navigation-timing phases or Web Vitals. For Web Vitals analysis, see the WEBRUM series. Targets above are Google's thresholds; set your own baselines from observed data.
+> **Important:** Core Web Vitals (LCP, FCP, CLS) are **Real User Monitoring** measurements, not synthetic browser metric keys. The Synthetic on Grail browser metrics expose **availability**, **total duration** (classic and new-experience variants), and **per-step duration** — not the individual W3C navigation-timing phases or Web Vitals. For Web Vitals analysis, see the WEBRUM series. Targets above are Google's thresholds; set your own baselines from observed data.
+
+> <sub>**Sources:** [Browser monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-metrics/browser-monitor-metrics), [Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/new-browser-monitoring-experience). Metric table (incl. `user_events.*` / `classic.total_duration` family) and dual-ingestion/no-extra-cost claim confirmed at source 07/01/2026.</sub>
 
 ```dql
 // Browser duration — average and worst-case per monitor (metrics path)
@@ -309,7 +316,7 @@ Continue to **SYNTH-03: HTTP Monitors** to learn about lightweight API monitorin
 ## References
 
 - [Browser monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/browser-monitors)
-- [Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/activate-new-browser-monitor-experience)
+- [Activate new browser monitor experience (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/new-browser-monitoring-experience)
 - [Browser monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-metrics/browser-monitor-metrics)
 - [Synthetic app (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-app)
 

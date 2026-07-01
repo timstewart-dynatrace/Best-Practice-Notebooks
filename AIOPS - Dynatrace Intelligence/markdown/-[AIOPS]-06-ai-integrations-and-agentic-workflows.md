@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 06/30/2026
 
 ## Overview
 
@@ -57,6 +57,10 @@ For environments where SVG doesn't render
 **AutomationEngine.** The orchestration layer that wraps workflows for higher-level automation patterns — predictive maintenance, approval-based remediation, ChatOps integration.
 
 These three are complementary, not exclusive. A mature observability practice uses all three for different jobs.
+
+> **Adjacent capability — AI Observability (monitoring *your own* GenAI apps).** Distinct from the three Dynatrace-Intelligence integration surfaces above: **AI Observability** ingests GenAI / LLM telemetry from your *own* applications as OpenTelemetry spans. It reads Dynatrace's native `gen_ai.*` attributes — so native OTel, **OpenLLMetry**, and OneAgent's Python GenAI auto-instrumentation (Bedrock / OpenAI / Azure OpenAI / LangChain, OneAgent 1.339+) flow straight in. **OpenInference** (the Arize AI standard) uses its own `llm.*` attributes and **must be normalized to `gen_ai.*` first** — either with an OTel Collector `transform` processor or via Dynatrace OpenPipeline (see the OPIPE series). Prerequisites: a DPS license with Traces powered by Grail, OTLP ingestion enabled, and an API token with the `openTelemetryTrace.ingest` scope.
+
+> <sub>**Sources:** [Get started with OpenInference and AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/get-started/openinference), [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability).</sub>
 
 <a id="wf-dql-cost"></a>
 ## 2. Workflow Tutorial: Optimize DQL Cost

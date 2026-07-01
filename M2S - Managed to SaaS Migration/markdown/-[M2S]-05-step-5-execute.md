@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -217,7 +217,7 @@ Create purpose-specific tokens in SaaS with minimal scopes:
 | Configuration API | `settings.read`, `settings.write` |
 | Entity queries | `entities.read` |
 | Metrics/logs queries | `metrics.read`, `logs.read` |
-| Automation | `automation.read`, `automation.write` |
+| AutomationEngine (Workflows) | OAuth client scopes `automation:workflows:read`, `automation:workflows:write` (not a classic API-token scope) |
 
 > **Important:** Never reuse Managed API tokens. Generate fresh tokens in SaaS with the principle of least privilege.
 

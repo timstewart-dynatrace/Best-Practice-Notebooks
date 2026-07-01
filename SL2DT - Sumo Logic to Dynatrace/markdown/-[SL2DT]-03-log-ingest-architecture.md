@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 06/23/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -51,9 +51,11 @@ Commit to `config/ingest/` as Terraform HCL + Monaco YAML.
 <a id="access"></a>
 ## 2. Prerequisites & Access
 
-### Platform Token
+This step uses two distinct credential types — they are **not interchangeable**, and mixing them up is a common source of "permission denied" confusion during ingest setup.
 
-Platform Token (prefix `dt0s16.`) with these scopes:
+### Platform Token — query/runtime API calls
+
+Platform Token (prefix `dt0s16.`) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline config read/write, IAM policy read/write via the platform APIs):
 
 ```
 storage:buckets:read, storage:buckets:write
@@ -71,6 +73,24 @@ export DT_TOKEN="dt0s16.XXXXX..."
 curl -H "Authorization: Bearer $DT_TOKEN" "$DT_TENANT/platform/classic/environment-api/v2/tokens/lookup" \
   -H "Content-Type: application/json" -d "{\"token\": \"$DT_TOKEN\"}"
 ```
+
+### OAuth client — Terraform-managed bucket definitions
+
+**The `dynatrace_platform_bucket` Terraform resource used later in this notebook is OAuth-client-only** — a Platform Token cannot drive it, regardless of the `storage:*` scopes above. Provision an OAuth client with:
+
+```
+storage:bucket-definitions:read    (View bucket metadata)
+storage:bucket-definitions:write   (Write buckets)
+storage:bucket-definitions:delete  (Delete buckets)
+```
+
+```bash
+export DT_CLIENT_ID="dt0s02.XXXXX"
+export DT_CLIENT_SECRET="dt0s02.XXXXX.YYYYY"
+export DT_ACCOUNT_ID="<account-uuid>"
+```
+
+The Platform Token scopes above (`storage:buckets:*`) gate query/read access to bucket **data** at runtime — they are a separate concern from OAuth-client-gated bucket **definition** CRUD via Terraform.
 
 ### Terraform + Monaco
 
@@ -335,33 +355,88 @@ For each bucket, define a pipeline that:
 
 ### Example: Production API Logs Pipeline
 
+**Note on API surface:** the OpenPipeline **Configurations API** (the older `pipelineId`/`matchers`/`processors` JSON shape) is deprecated with an end-of-life of **June 29, 2026**. Current pipeline configuration goes through the **Settings API**, using the per-scope schema family `builtin:openpipeline.<scope>.pipelines` (plus `.routing` and `.ingest-sources` for matching/routing and source config), or the equivalent Terraform resource. Both forms below reflect the current shape.
+
+**Settings API — `builtin:openpipeline.logs.pipelines`:**
+
 ```json
 {
-  "id": "pipeline_prod_api",
-  "displayName": "Production API Logs",
-  "matchers": [
-    { "attribute": "k8s.namespace.name", "operator": "matches", "value": "prod-api-*" }
-  ],
-  "processors": [
-    {
-      "type": "parse",
-      "pattern": "LD 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status"
-    },
-    {
-      "type": "add-field",
-      "field": "dt.source_entity",
-      "expression": "concat('prod/api/', k8s.deployment.name)"
-    },
-    {
-      "type": "redact",
-      "field": "content",
-      "pattern": "\\b\\d{16}\\b",
-      "replacement": "[REDACTED_CCN]"
+  "schemaId": "builtin:openpipeline.logs.pipelines",
+  "scope": "environment",
+  "value": {
+    "displayName": "Production API Logs",
+    "customId": "pipeline_prod_api",
+    "processing": {
+      "processors": [
+        {
+          "type": "dql",
+          "id": "processor_parse_http_fields",
+          "description": "Parse method/path/status from content",
+          "matcher": "true",
+          "dql": {
+            "script": "parse content, \"LD 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
+          },
+          "enabled": true
+        },
+        {
+          "type": "fieldsAdd",
+          "id": "processor_add_source_entity",
+          "description": "Derive dt.source_entity from k8s.deployment.name",
+          "matcher": "true",
+          "fieldsAdd": {
+            "fields": [
+              { "name": "dt.source_entity", "value": "concat('prod/api/', k8s.deployment.name)" }
+            ]
+          },
+          "enabled": true
+        }
+      ]
     }
-  ],
-  "targetBucket": "custom_logs_prod"
+  }
 }
 ```
+
+**Terraform equivalent — `dynatrace_openpipeline_v2_logs_pipelines`:**
+
+```hcl
+resource "dynatrace_openpipeline_v2_logs_pipelines" "pipeline_prod_api" {
+  display_name = "Production API Logs"
+  custom_id    = "pipeline_prod_api"
+  processing {
+    processors {
+      processor {
+        type        = "dql"
+        id          = "processor_parse_http_fields"
+        description = "Parse method/path/status from content"
+        matcher     = "true"
+        dql {
+          script = "parse content, \"LD 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
+        }
+        enabled = true
+      }
+      processor {
+        type        = "fieldsAdd"
+        id          = "processor_add_source_entity"
+        description = "Derive dt.source_entity from k8s.deployment.name"
+        matcher     = "true"
+        fields_add {
+          fields {
+            field {
+              name  = "dt.source_entity"
+              value = "concat('prod/api/', k8s.deployment.name)"
+            }
+          }
+        }
+        enabled = true
+      }
+    }
+  }
+}
+```
+
+Redaction (masking the 16-digit card-number pattern from the earlier illustrative example) belongs in a dedicated masking/DQL processor stage — see OPLOGS-03 and OPIPE for the current redaction processor shape rather than a standalone `"type": "redact"` block, which does not exist in the current API.
+
+Route-to-bucket is a separate concern from the pipeline's processors — it's handled by the pipeline's `storage` stage / bucket-assignment processor (`bucket_assignment_processor` in Terraform), not a top-level `targetBucket` field on the pipeline object.
 
 ### Validation Queries
 

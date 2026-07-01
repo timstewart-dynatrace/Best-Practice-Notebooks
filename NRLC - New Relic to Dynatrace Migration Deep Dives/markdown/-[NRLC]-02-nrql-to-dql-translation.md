@@ -1,6 +1,6 @@
 # NRLC-02: NRQL → DQL Translation
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -391,7 +391,7 @@ Translation alone doesn't guarantee correctness. The full loop is:
 NRQL → [compile] → DQL → [syntax validate] → [tenant validate] → [behavioral validate]
 ```
 
-1. **Syntax validate** — the engine's `DQLSyntaxValidator` posts the DQL to `/api/v2/settings/objects` for parser-level validation. No data executes.
+1. **Syntax validate** — the engine's `DQLSyntaxValidator` posts the DQL to the Grail language service's `POST /platform/storage/query/v1/query:verify` endpoint for parser-level validation. No data executes.
 2. **Tenant validate** — `DTEnvironmentRegistry` checks that referenced metrics, entities, buckets, and OpenPipeline enrichment attributes actually exist in the target tenant.
 3. **Behavioral validate** — run both NRQL (against NR) and translated DQL (against DT) over the same time window and compare result shape and magnitudes.
 

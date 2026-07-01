@@ -1,12 +1,12 @@
 # NRLC-06: SLO & Workload Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
 SLOs are the service contracts that survive migration only if their math survives. Workloads are the groupings that determine what an SLO targets. This deep dive covers SLO metric expression migration, the SLO auditor that validates math equivalence, and the conversion of NR workloads to Gen3 OpenPipeline enrichments + IAM-scoped buckets.
 
-**Phase 23 key transactions:** `key_transaction_transformer` auto-emits a bundle for each NR Key Transaction — `builtin:monitoring.slo` definition + OpenPipeline enrichment attribute (`keyTransaction.name`) + Workflow with `migratedFrom` tag. Phase 11 `slo_transformer` handles SLO v1 / v2; Phase 11 `workload_transformer` emits `builtin:segment` + bucket-scoped IAM policy (Gen3 default) with `LegacyWorkloadTransformer` preserving Management Zone under `--legacy`.
+**Phase 23 key transactions:** `key_transaction_transformer` auto-emits a bundle for each NR Key Transaction — `builtin:monitoring.slo` definition + OpenPipeline enrichment attribute (`keyTransaction.name`) + Workflow with `migratedFrom` tag. Phase 11 `slo_transformer` handles SLO v1 / v2; Phase 11 `workload_transformer` emits an OpenPipeline enrichment rule + Grail Filter Segment (`dynatrace_segment`; not a `builtin:*` Settings schema) + bucket-scoped IAM policy (Gen3 default) with `LegacyWorkloadTransformer` preserving Management Zone under `--legacy`.
 
 ---
 

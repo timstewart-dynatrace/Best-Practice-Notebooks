@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 05/19/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 06/30/2026
 
 ## Overview
 
@@ -77,6 +77,7 @@
 | Automation · AppEngine | Workflow · Functions (Small) | Workflow-hours · invocations |
 | Synthetic · RUM | Browser · HTTP · Clickpath · Sessions | Actions · requests · sessions |
 | Files | Retain (tenant-global) | Bytes |
+| Data | Data Egress (forward to S3 / GCP / Azure) | Bytes (per-destination) |
 Units are NOT commensurable — aggregate within one capability first.
 -->
 
@@ -96,6 +97,7 @@ DPS bills along **capabilities** — discrete units of platform functionality, e
 | **Synthetic Monitoring** | Browser Monitor / Clickpath, HTTP Monitor | Synthetic actions / HTTP requests |
 | **Real User Monitoring** | RUM session billing | Sessions |
 | **Files** | Files - Retain | Bytes |
+| **Data** | Data Egress (forward logs / metrics / events to AWS S3, GCP, Azure) | Bytes (uncompressed, counted per destination) |
 
 ### Why the unit families matter
 
@@ -243,7 +245,7 @@ Notice the pattern split — when you need *trend* (line/bar over time), use `dt
 <a id="byte-based"></a>
 ## 6. Querying Byte-Based Capabilities
 
-Logs, Events, Traces, and Files all bill in bytes. Use `fetch dt.system.events` because the per-bucket attribution is essential for chargeback — but be aware of the field-name variation:
+Logs, Events, Traces, Files, and Data Egress all bill in bytes. Use `fetch dt.system.events` because the per-bucket (or, for egress, per-destination) attribution is essential for chargeback — but be aware of the field-name variation:
 
 | Capability | Unit field | Bucket field |
 |------------|-----------|--------------|
@@ -258,6 +260,7 @@ Logs, Events, Traces, and Files all bill in bytes. Use `fetch dt.system.events` 
 | Traces - Retain | `billed_bytes` | `usage.bucket` |
 | Traces - Query | `billed_bytes` | (`query_start` instead) |
 | Files - Retain | `billed_bytes` | (none — tenant-global) |
+| Data Egress | `billed_bytes` | (per-destination; uncompressed) |
 
 **Traces - Ingest is the outlier** — it uses `ingested_bytes` instead of `billed_bytes`. This is the most common cross-capability footgun.
 
@@ -303,7 +306,24 @@ fetch dt.system.events, from:-7d
 
 Retention queries use `max(billed_bytes)` rather than `sum()` because each hour's record carries the *cumulative* bucket size — taking the max within the bucket gives the high-water mark for that hour. Summing would double-count.
 
-> <sub>**Sources:** [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Events (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-events), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces). The hourly-area-chart pattern is lifted verbatim from the [DPS Usage Details DEMO dashboard](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription) (Log-Retain tile). All three queries verified live on a SaaS tenant (2026-05-19).</sub>
+### Data Egress — forwarding data out of Dynatrace
+
+**Data Egress** is a distinct DPS capability that bills when you forward data (logs, metrics, or events) *out* of Dynatrace to an external destination — currently **AWS S3, GCP, and Azure**. It bills in bytes (`billed_bytes`) measured on the **uncompressed** size, and is counted **once per destination**: routing the same data to N destinations multiplies consumption N×. List price is **$0.15 / GiB** at the time of writing — your rate card may differ.
+
+```
+// Data Egress — total GiB forwarded to external destinations over last 7 days
+// Doc-cited shape (event.type "Data Egress", billed_bytes); validate in your tenant once egress is configured
+fetch dt.system.events, from:-7d
+| filter event.kind == "BILLING_USAGE_EVENT"
+| filter event.type == "Data Egress"
+| dedup event.id
+| summarize { total_gib = sum(toDouble(billed_bytes)) / 1073741824 }
+```
+
+The account-level equivalent is **Account Management → Subscription → Overview → Cost and usage details → Usage summary → Data Egress**, or the Account Management API `GET /subscriptions/{subscriptionId}/usage`. Because forwarding *is* the cost driver, the optimization levers are *filter before you forward* and *minimize the destination count* — the same shape as the FINOPS-03 Cut / Tune / Filter framework.
+
+
+> <sub>**Sources:** [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Events (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-events), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces), [Data Egress (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/data/dps-data-egress). The hourly-area-chart pattern is lifted verbatim from the [DPS Usage Details DEMO dashboard](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription) (Log-Retain tile). The Log / Trace / Retain queries are verified live on a SaaS tenant (2026-05-19); the **Data Egress query is doc-cited, not live-validated** — egress was not configured on the validation tenant, so verify the `event.type` and `billed_bytes` shape in your own tenant once forwarding is enabled.</sub>
 
 <a id="count-based"></a>
 ## 7. Querying Count-Based Capabilities

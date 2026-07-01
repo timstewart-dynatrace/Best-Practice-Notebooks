@@ -1,6 +1,6 @@
 # S2S-03: Step 3 — Design: Target Tenant Architecture
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -95,7 +95,7 @@ resource "dynatrace_iam_policy" "sre_settings" {
 }
 ```
 
-> **Warning:** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket.name = "app_logs"`). Design buckets and segments **before** writing policies — the `WHERE` clauses must reference resources that will exist in the target tenant.
+> **Warning:** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket-name = "app_logs"`). Design buckets and segments **before** writing policies — the `WHERE` clauses must reference resources that will exist in the target tenant.
 
 ### Audit Source IAM Structure
 
@@ -308,7 +308,7 @@ This is the single most important reference for Step 4 (Prepare) and Step 5 (Exe
 | 23 | IAM groups | Policies defined | **Terraform only** |
 | 24 | IAM policy bindings | Groups + policies | **Terraform only** |
 
-> **Why IAM last?** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket.name = "app_logs"`). If those resources do not exist yet, you cannot validate that the policies are correct. Deploy the resources first, then lock them down with IAM.
+> **Why IAM last?** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket-name = "app_logs"`). If those resources do not exist yet, you cannot validate that the policies are correct. Deploy the resources first, then lock them down with IAM.
 
 ### Validate Deployment Prerequisites
 

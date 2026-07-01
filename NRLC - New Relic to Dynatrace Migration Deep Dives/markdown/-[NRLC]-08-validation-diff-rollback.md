@@ -1,6 +1,6 @@
 # NRLC-08: Validation, Diff & Rollback
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -58,14 +58,14 @@ For environments where SVG doesn't render
 <a id="syntax"></a>
 ## 2. DQL Syntax Validation
 
-The `DQLSyntaxValidator` posts each DQL query to the DT validation endpoint without executing it:
+The `DQLSyntaxValidator` posts each DQL query to the Grail language service's validation endpoint without executing it:
 
 ```
-POST /api/v2/settings/objects
-body: { schemaId: "builtin:problem.metric.events", value: { ...query: "<DQL>" } }
+POST /platform/storage/query/v1/query:verify
+body: { query: "<DQL>" }
 ```
 
-DT responds with parser errors if the DQL is invalid. Common issues caught:
+This is the dedicated Grail language-service endpoint for DQL syntax validation (sibling endpoints `/query:parse` and `/query:autocomplete` cover parsing and autocomplete) — it is not a Settings 2.0 object write, since posting a DQL string embedded in a Settings object would validate the object's schema, not the query itself. DT responds with parser errors if the DQL is invalid. Common issues caught:
 
 - Unknown DQL functions
 - Misuse of named parameters (e.g., `round(value, 2)` instead of `round(value, decimals: 2)`)

@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 07/01/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -334,7 +334,7 @@ Continue to **SYNTH-05: Network Monitoring** to learn about synthetic network av
 ## References
 
 - [Private synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations)
-- [Synthetic architecture and communication (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-architecture)
+- [Synthetic architecture and communication (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/architecture-communication-latest)
 - [ActiveGate (DT docs)](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-activegate)
 - [ActiveGate capabilities on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-k8s/guides/activegate-capabilities)
 

@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/01/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -204,7 +204,7 @@ The modern platform supports three credential types — pick based on the integr
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Token Type | Prefix | Auth Scheme | When to Use |
 |------------|--------|-------------|-------------|
-| Platform Token (recommended default, sprint-1.337+) | dt0s16 / dt0s01 | Authorization: Bearer | New automation, Workflows, MCP, OpenPipeline, Settings v2 |
+| Platform Token (recommended default, sprint-1.337+) | dt0s16 | Authorization: Bearer | New automation, Workflows, MCP, OpenPipeline, Settings v2 |
 | OAuth Client | client ID + secret | Authorization: Bearer | External SaaS integrations, account-admin automation |
 | Classic API Token (legacy phase-out) | dt0c01 | Authorization: Api-Token | Existing scripts; OneAgent installer (PaaS); migrate to Platform Token |
 For environments where SVG doesn't render
@@ -212,7 +212,7 @@ For environments where SVG doesn't render
 
 | Credential | Prefix / Form | When to Use |
 |------------|---------------|-------------|
-| **Platform Token** *(recommended default for new automation)* | `dt0s16` / `dt0s01` | New automation, Workflows, MCP integrations, OpenPipeline configuration, Settings v2 |
+| **Platform Token** *(recommended default for new automation)* | `dt0s16` | New automation, Workflows, MCP integrations, OpenPipeline configuration, Settings v2 |
 | **OAuth 2.0 Client** | client ID + secret | External SaaS integrations, account-admin automation |
 | **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts; migrate to Platform Token where possible |
 
@@ -228,7 +228,7 @@ Platform Tokens are the standard for new automation as of sprint-337. They:
 
 ```bash
 # Authorization scheme by token prefix:
-#   dt0s16 / dt0s01  →  Authorization: Bearer <token>
+#   dt0s16           →  Authorization: Bearer <token>  (dt0s01 is a separate SCIM account token, not a Platform Token)
 #   dt0c01           →  Authorization: Api-Token <token>
 # Wrong scheme returns 401 even with correct scopes/policies.
 ```

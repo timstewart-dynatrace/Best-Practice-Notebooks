@@ -1,6 +1,6 @@
 # NRLC-09: Toolchain Reference & End-to-End Runbook
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -216,11 +216,11 @@ Migrating one entity type at a time is the safe pattern. The `--components` flag
 | `maintenance_windows` | NR scheduled + recurring maintenance + mute rules → DT Maintenance Windows + detector filters | `maintenance_window_transformer` (Phase 17) |
 | `change_tracking` | NR deployment markers → DT events API (`CUSTOM_DEPLOYMENT`, `CUSTOM_CONFIGURATION`) | `change_tracking_transformer` (Phase 17) |
 | `custom_event_ingest` | NR custom events → bizevent CloudEvent payloads | `custom_event_ingest_transformer` (Phase 17) |
-| `synthetics` | NR Ping / Browser / Scripted API / Scripted Browser → `builtin:synthetic_test` | `synthetic_transformer` (Phase 11) |
+| `synthetics` | NR Ping / Browser / Scripted API / Scripted Browser → `dynatrace_http_monitor`/`dynatrace_browser_monitor` (Config-v1, `ExternalSyntheticIntegration` scope) | `synthetic_transformer` (Phase 11) |
 | `synthetics_specialized` | CERT_CHECK + BROKEN_LINKS | `synthetic_specialized_transformer` (Phase 24) |
 | `slos` | NR SLOs (v1 / v2) → `builtin:monitoring.slo` | `slo_transformer` (Phase 11) |
 | `key_transactions` | NR Key Transactions → SLO + OpenPipeline enrichment + Workflow bundle | `key_transaction_transformer` (Phase 23) |
-| `workloads` | NR Workloads → `builtin:segment` + bucket-scoped IAM | `workload_transformer` (Phase 11, Gen3 default) |
+| `workloads` | NR Workloads → Grail Filter Segment (`dynatrace_segment`) + bucket-scoped IAM | `workload_transformer` (Phase 11, Gen3 default) |
 | `tags` | NR tag rules → OpenPipeline enrichment (`builtin:openpipeline.*`) | `tag_transformer` (Phase 11, Gen3 default) |
 | `logs` | NR log forwarding configs → DT ingest or OneAgent log collection runbook | `log_parsing_transformer` + runbook (Phase 11) |
 | `drops` | NR drop rules → OpenPipeline filter processors | `drop_rule_transformer` (Phase 11) |
@@ -268,7 +268,7 @@ Output: a Monaco v2 project (`manifest.yaml` + per-config-type directories with 
 python3 migrate.py export-terraform --input ./output --output ./terraform-project
 ```
 
-Output: HCL files using the `dynatrace-oss/dynatrace` provider. Resources include `dynatrace_dashboard`, `dynatrace_alerting`, `dynatrace_metric_event`, `dynatrace_slo`, `dynatrace_openpipeline`, etc.
+Output: HCL files using the `dynatrace-oss/dynatrace` provider. Resources include `dynatrace_document` (Gen3 dashboards), `dynatrace_davis_anomaly_detectors` (Gen3 detection) or `dynatrace_metric_events` (classic metric events), `dynatrace_slo_v2`, and the per-data-type `dynatrace_openpipeline_v2_<type>_*` family (e.g. `dynatrace_openpipeline_v2_logs_pipelines`), etc.
 
 ### Why both formats
 

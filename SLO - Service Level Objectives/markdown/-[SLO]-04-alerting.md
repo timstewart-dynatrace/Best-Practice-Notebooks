@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 5 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 5 | **Created:** June 2026 | **Last Updated:** 07/01/2026
 
 ## Overview
 
@@ -77,11 +77,24 @@ timeseries {
 Dynatrace surfaces SLO health as events you can alert on. In practice you have two routes:
 
 - **Built-in SLO alerting** — the SLO definition itself can raise an alert when the error budget / burn rate crosses a configured level. This is the simplest path and keeps the alert tied to the SLO object.
-- **A Davis anomaly detector or metric event on the burn-rate query** — when you want the full multiwindow fast/slow-burn logic, evaluate a burn-rate query (Section 2) in the Anomaly Detection app and let it raise a Davis event. See AIOPS-02 §4 for the detector build flow and event template.
+- **Anomaly Detection on the burn-rate query** — when you want the full multiwindow fast/slow-burn logic, evaluate a burn-rate query in the Anomaly Detection app and let it raise a Davis event. See AIOPS-02 §4 for the detector build flow and event template.
 
 Either way the breach becomes a Davis problem/event carrying the SLO context — which is what a workflow routes on.
 
-> In community practice the multiwindow fast/slow-burn pattern is built with detectors on the burn-rate query rather than the built-in single-threshold alert — verify the exact options available in your tenant's SLO app version, as the built-in alerting controls evolve.
+**The documented recipe for the burn-rate query** is to append two lines to the SLI definition, then feed that into Anomaly Detection:
+
+```dql
+| fieldsAdd sli = "YOUR SLI"
+| fieldsAdd target = "YOUR SLO-target" // in percentage
+| fieldsAdd burnRate = ((100 - sli[]) / (100 - target))
+| fieldsRemove sli
+```
+
+If you want one aggregated burn-rate value across every contributing entity rather than a per-entity series (at the cost of losing which entity is driving it), add a `summarize sloBurnRate = avg(burnRate[]), timeframe = takeFirst(timeframe), interval = takeFirst(interval)` step. Segments are **not currently supported** inside Anomaly Detection, so a segment-scoped SLO's burn-rate alert needs the segment expressed as a query filter instead.
+
+**Fast-burn tuning, per Dynatrace's own recommendation:** Anomaly Detection's **-1h look-back window** is called out as well-suited for fast-burn alerting, with **10–14** as "a good starting point" for the static burn-rate threshold at that window — adjust up or down based on the SLO's criticality and evaluation period. Dynatrace also recommends four event properties on the custom alert so the resulting event carries enough context to route and correlate automatically: **`dt.source` entity** (attaches the affected service entities), **`event.type`** (`ERROR_EVENT` / `AVAILABILITY_EVENT` / `PERFORMANCE_EVENT` — matches the event into Dynatrace Intelligence RCA), **`slo.name`** (ties the event back to the SLO, which is unique per environment), and **`dt.owner`** (drives automatic routing to the right team).
+
+> The **slow-burn tier** (longer look-back, lower threshold, ticket-not-page routing) below is the standard SRE multiwindow pattern layered on top of this recipe — Dynatrace's docs describe the fast-burn -1h/10–14 configuration explicitly but do not publish an equivalent numeric recommendation for a slow-burn window, so treat those values as a sound starting point to tune against your own traffic and SLO criticality rather than a vendor-specified default.
 
 <a id="routing"></a>
 ## 4. Routing SLO Breaches
@@ -103,7 +116,7 @@ This is exactly the routing covered in WFLOW-04. The key dependency is upstream:
 - **One SLO breach, one notification.** Let the problem group related signals; do not also alert on the underlying raw metrics or you double-notify.
 - **Review what fired.** If an SLO pages and no one acts, the target or the burn thresholds are wrong — tune them.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/). Burn-rate query validated against a live tenant 06/16/2026. **Derived:** the fast/slow-burn window pairs are the standard SRE values, applied to Dynatrace detectors.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the "Monitor error-budget burn rates" section (fetched 07/01/2026); [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/). Burn-rate query validated against a live tenant 06/16/2026. **Derived:** the two-tier fast/slow-burn window pairs are the standard SRE values layered onto the Dynatrace-documented fast-burn recipe above — Dynatrace's own docs only specify the fast-burn side.</sub>
 
 ---
 
