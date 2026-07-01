@@ -43,6 +43,8 @@ This notebook produces five deliverables: an IAM architecture, a Grail bucket an
 | **OAuth Client** | `account-idm-read`, `account-idm-write`, `iam-policies-management` scopes (for IAM design validation) |
 | **Stakeholder Alignment** | IAM owners, platform team, and security team available for design review |
 
+> The Terraform resources used below (`dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_slo_v2`) are documented with full worked examples in **AUTOM-04**'s consolidated resource catalog — this notebook shows the migration-specific design pattern, not the general resource shape.
+
 <a id="iam-architecture-design"></a>
 ## 1. IAM Architecture Design
 

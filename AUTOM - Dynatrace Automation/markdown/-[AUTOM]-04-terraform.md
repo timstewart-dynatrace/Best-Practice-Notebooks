@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 05/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/01/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -574,6 +574,24 @@ terraform fmt
 
 <a id="resource-types"></a>
 ## 4. Resource Types
+This section is the repo's consolidated Terraform resource catalog, organized by domain — worked examples for each resource follow below. Series covering a domain in depth (SLO, S2S, NRLC, SL2DT, MZ2POL, OPIPE, IAM) point back here by name rather than repeating the resource shape.
+
+| Domain | Resource | Auth requirement | Notes |
+|--------|----------|-------------------|-------|
+| Classic config | `dynatrace_management_zone_v2`, `dynatrace_autotag_v2` | Classic API token (`settings.read`/`settings.write`) | Below |
+| Alerting | `dynatrace_alerting` (classic profile), `dynatrace_metric_events` (custom metric alert, `builtin:anomaly-detection.metric-events`) | Classic API token (`settings.read`/`settings.write`) | Below |
+| SLO | `dynatrace_slo_v2` (`builtin:monitoring.slo`) | Classic API token (`slo.read`/`slo.write`, `settings.read`/`settings.write`) | Below — see also SLO-05 for the full DQL-vs-metric-selector SLI gap |
+| Synthetic | `dynatrace_http_monitor`, `dynatrace_browser_monitor` | Classic API token (`ExternalSyntheticIntegration`) | Below |
+| Automation / Workflows | `dynatrace_automation_workflow` | Platform Token or OAuth client | Below |
+| Documents (dashboards, notebooks) | `dynatrace_document` | Platform Token or OAuth client | Below |
+| Segments | `dynatrace_segment` | Platform Token or OAuth client | Below — see also NRLC-06/09 for the Gen3 management-zone-replacement framing |
+| Maintenance | `dynatrace_maintenance` | Classic API token (`settings.read`/`settings.write`) | Below |
+| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingest_sources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | OAuth client only | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
+| Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Below — see also ORGNZ for bucket strategy |
+| IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Below — full hands-on walkthrough in AUTOM-95 LAB |
+
+> **The OAuth-client-only resources above are a distinct category, not a version nuance.** Unlike most Gen3 resources (which accept either a Platform Token with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` or an OAuth client), buckets and IAM objects only work with `DT_CLIENT_ID`/`DT_CLIENT_SECRET`/`DT_ACCOUNT_ID` OAuth client credentials — a Platform Token will not authenticate against these APIs regardless of scopes. This surfaced repeatedly during a 07/01/2026 cross-series audit (SL2DT-03/07, S2S) where notebooks had implied Platform-Token eligibility for these resources.
+
 ### Management Zone
 
 ```hcl
@@ -663,8 +681,49 @@ resource "dynatrace_slo_v2" "availability" {
   metric_expression = "builtin:synthetic.http.availability.location.total:splitBy()"
   
   filter            = "type(SYNTHETIC_TEST)"
+
+  # required block (fixed 07/01/2026 — missing this causes terraform apply to fail schema validation;
+  # confirmed against the current provider schema, same fix applied to SLO-05 / S2S-07 the same day)
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+  }
 }
 ```
+
+### Metric Event (Custom Anomaly Detection Alert)
+
+```hcl
+resource "dynatrace_metric_events" "disk_usage_high" {
+  enabled                    = true
+  event_entity_dimension_key = "dt.entity.host"
+  summary                    = "Disk usage critical"
+
+  event_template {
+    description = "Disk usage exceeded threshold"
+    event_type  = "CUSTOM_ALERT"
+    title       = "Disk usage critical"
+    davis_merge = false
+  }
+
+  model_properties {
+    type               = "STATIC_THRESHOLD"
+    alert_condition    = "ABOVE"
+    alert_on_no_data   = false
+    samples            = 5
+    violating_samples  = 3
+    dealerting_samples = 5
+    threshold          = 90
+  }
+
+  query_definition {
+    type        = "METRIC_KEY"
+    aggregation = "AVG"
+    metric_key  = "builtin:host.disk.usedPct"
+  }
+}
+```
+
+Settings 2.0 schema `builtin:anomaly-detection.metric-events`. Requires classic API token scopes `settings.read`/`settings.write` (verified at the provider registry 07/01/2026). This is the resource NRLC-04/09 point to for New-Relic-alert-condition migrations — do not confuse it with the singular, nonexistent `dynatrace_metric_event`.
 
 ---
 
@@ -706,11 +765,41 @@ resource "dynatrace_http_monitor" "homepage" {
 }
 ```
 
+### Browser Monitor (Synthetic)
+
+```hcl
+data "dynatrace_synthetic_location" "location" {
+  name = "Location"
+}
+
+resource "dynatrace_browser_monitor" "homepage_clickpath" {
+  name       = "Homepage Clickpath"
+  frequency  = 15
+  locations  = [data.dynatrace_synthetic_location.location.id]
+  enabled    = true
+
+  script {
+    version = "1.0"
+    events {
+      event {
+        type = "navigate"
+        navigate {
+          description = "Load homepage"
+          url         = "https://example.com"
+        }
+      }
+    }
+  }
+}
+```
+
+Requires the classic API token scope `ExternalSyntheticIntegration` (same as `dynatrace_http_monitor` — verified at the provider registry 07/01/2026). NRLC-09 points here for New-Relic-synthetic-check migrations; treat this and `dynatrace_http_monitor` as Config-v1 (classic) objects, not Settings 2.0 — there is no `builtin:synthetic_*` schema.
+
 ---
 
 ### Gen3 Platform Resources
 
-Gen3 resources require **Platform Token** (with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) or **OAuth Client Credentials**.
+Most Gen3 resources (Workflow, Document, Segment, Maintenance below) accept **either** a Platform Token (with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) **or** OAuth Client Credentials. **Two categories below are the exception and require OAuth Client Credentials only** — a Platform Token will not authenticate against the Grail Buckets or IAM APIs regardless of scopes (confirmed at the provider registry 07/01/2026, after this exact assumption was found wrong in SL2DT-03/07 during a cross-series audit).
 
 #### Automation Workflow
 
@@ -844,6 +933,55 @@ resource "dynatrace_maintenance" "weekly_patch" {
   }
 }
 ```
+
+#### OpenPipeline (per-data-type resource family)
+
+```hcl
+resource "dynatrace_openpipeline_v2_logs_pipelines" "custom_logs" {
+  # see the provider's openpipeline_v2_logs_pipelines resource docs for the full pipeline/processor schema
+  # (structure mirrors the builtin:openpipeline.logs.pipelines Settings 2.0 schema)
+}
+```
+
+**There is no single `dynatrace_openpipeline` resource.** OpenPipeline is Terraform-managed as a per-data-type family — `dynatrace_openpipeline_v2_logs_pipelines`, `_logs_routing`, `_logs_ingest_sources`, and equivalents for `spans`/`metrics`/`events`/`bizevents` — each backed by its own `builtin:openpipeline.<scope>.*` Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough.
+
+#### Grail Bucket — OAuth client only
+
+```hcl
+resource "dynatrace_platform_bucket" "custom_logs" {
+  name         = "custom_logs_bucket"
+  display_name = "Custom logs bucket"
+  retention    = 67
+  table        = "logs" # logs | spans | events | bizevents
+}
+```
+
+**SaaS only, OAuth client credentials only.** Requires an OAuth client with `storage:bucket-definitions:read`, `storage:bucket-definitions:write`, and `storage:bucket-definitions:delete` (verified at the provider registry 07/01/2026). See ORGNZ for bucket-strategy guidance and `terraform-provider-dynatrace -export dynatrace_platform_bucket` to bootstrap from existing buckets.
+
+#### IAM (group, policy, binding) — OAuth client only
+
+```hcl
+resource "dynatrace_iam_group" "platform_engineers" {
+  name = "Platform Engineers"
+}
+
+resource "dynatrace_iam_policy" "read_only" {
+  name        = "Read-Only Access"
+  account     = var.account_uuid
+  environment = "" # deprecated argument — use account instead (fixed 07/01/2026)
+  statement_query = "ALLOW environment:roles:viewer;"
+}
+
+resource "dynatrace_iam_policy_bindings_v2" "binding" {
+  policy_id = dynatrace_iam_policy.read_only.id
+  account   = var.account_uuid
+  groups    = [dynatrace_iam_group.platform_engineers.id]
+}
+```
+
+> **`dynatrace_iam_policy_bindings_v2` re-assigns all policies bound to a group** — every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound (verbatim from the provider docs). This is the single most common Terraform-IAM footgun in this repo's own history.
+
+IAM resources require an OAuth client with `account-idm-read`/`account-idm-write` and `iam-policies-management` scopes — never a Platform Token. Full hands-on walkthrough (DSL discovery, bulk export, import, gotchas table) is in **AUTOM-95 LAB**, not repeated here.
 
 ---
 

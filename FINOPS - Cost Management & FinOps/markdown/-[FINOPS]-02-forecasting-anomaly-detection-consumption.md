@@ -119,6 +119,8 @@ Cost Monitors operate at the capability level — they catch "Logs ingest is way
 
 Where Cost Monitors are anomaly-detection ("is this period unusual"), **Budget Alerts** are threshold-based ("are we on track to hit the commit"). Both surfaces live in Account Management, often configured by the same person, but they answer different questions.
 
+> Neither Cost Monitors nor Budget Alerts have a Settings 2.0 schema or Terraform resource — they're Account Management API objects, confirmed not to exist alongside the rest of the repo's schema catalog in **AUTOM-02**. Don't go looking for a `builtin:` schema for cost config; it isn't there.
+
 ### What they do
 
 - Track month-to-date consumption against an explicit budget (the customer's DPS annual commit, monthly-allocated)

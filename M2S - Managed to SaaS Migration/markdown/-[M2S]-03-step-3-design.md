@@ -36,6 +36,8 @@ Before starting this notebook, you should have:
 | **Firewall change process** | Ability to request firewall rule changes |
 | **Security stakeholders engaged** | Security and identity team involvement |
 
+> The Settings 2.0 schema for network zones (`builtin:networkzones.zones`) is catalogued alongside every other domain's schema in **AUTOM-02**'s consolidated Settings 2.0 Schema Catalog.
+
 ---
 
 ## Learning Objectives

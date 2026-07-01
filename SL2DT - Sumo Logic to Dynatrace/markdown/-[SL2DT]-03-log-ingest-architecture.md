@@ -92,6 +92,8 @@ export DT_ACCOUNT_ID="<account-uuid>"
 
 The Platform Token scopes above (`storage:buckets:*`) gate query/read access to bucket **data** at runtime — they are a separate concern from OAuth-client-gated bucket **definition** CRUD via Terraform.
 
+> This OAuth-client-only requirement isn't unique to buckets — it applies to every IAM resource too, and **AUTOM-04**'s consolidated resource catalog now documents the full list of OAuth-client-only resources in one place (buckets, IAM group/policy/bindings) alongside the Platform-Token-eligible ones.
+
 ### Terraform + Monaco
 
 ```bash

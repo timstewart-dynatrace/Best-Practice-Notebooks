@@ -30,6 +30,8 @@ The master reference for the open-source toolchain that powers every preceding n
 | **Required reading** | All preceding NRLC notebooks (this is the operational reference) |
 | **Access** | NR API key + DT API token; both with appropriate scopes (see §2) |
 
+> For the full Terraform resource catalog (worked examples for every resource named in §5's export list, plus the OAuth-client-only vs. Platform-Token distinction for IAM/bucket resources), see **AUTOM-04** (Terraform Provider) and **AUTOM-02** (Settings API) rather than treating this notebook as the canonical shape.
+
 <a id="projects"></a>
 ## 1. The Three Projects — How They Fit
 

@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 07/01/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -50,9 +50,9 @@ By the end of this notebook, you will:
 | Notebook | Focus |
 |----------|-------|
 | **AUTOM-01** (this notebook) | Automation landscape overview |
-| **AUTOM-02** | Settings API - REST API for configuration |
+| **AUTOM-02** | Settings API - REST API for configuration (incl. the repo's consolidated Settings 2.0 schema catalog) |
 | **AUTOM-03** | Monaco - Configuration-as-code CLI |
-| **AUTOM-04** | Terraform Provider - Infrastructure-as-code |
+| **AUTOM-04** | Terraform Provider - Infrastructure-as-code (incl. the repo's consolidated Terraform resource catalog) |
 | **AUTOM-05** | Dynatrace Workflows - Event-driven automation |
 | **AUTOM-06** | Dynatrace SDKs - TypeScript and Python clients |
 | **AUTOM-07** | CI/CD Integration - GitOps patterns |
