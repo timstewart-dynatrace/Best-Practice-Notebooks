@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 07/08/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -86,6 +86,29 @@ Use this checklist to validate your migration:
 - [ ] Metrics being generated
 - [ ] Events appearing correctly
 - [ ] Business events available
+
+### Verify source-level coverage
+
+> **Coverage vs. volume — the log-module self-monitoring events.** For the *All log sources are flowing* check above, verify coverage at the source level — a source OneAgent detects but does not ingest won't appear as volume at all, so a volume query alone can't distinguish it from a source that was never discovered. The log module emits a `log_source.status` event per discovered source into `dt.system.events`, carrying `log.source.file_status` and `log.source.ingest_status` — so it reveals sources OneAgent **detected but is not ingesting**, which a `fetch logs` count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.
+>
+> This event stream is **Early Access** and requires **opt-in** (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in *Log ingest Overview* dashboard for Dynatrace **1.339+** — verify it is flowing in your tenant before relying on it). See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants without the opt-in.
+
+```dql
+// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == "Log Module" and event.type == "log_source.status"
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == "Active"
+| fieldsAdd coverage =
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Ingested", "Available | Ingesting", else:
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Not ingested", "Available | NOT ingesting", else:
+    if(log.source.ingest_status == "Partially ingested", "Partial ingestion",
+    else: "Unsupported or issue")))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+```
 
 ---
 

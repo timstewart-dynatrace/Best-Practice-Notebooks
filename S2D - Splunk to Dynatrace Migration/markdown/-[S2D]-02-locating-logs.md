@@ -1,6 +1,6 @@
 # S2D-02: Locating Logs in Dynatrace
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -198,6 +198,29 @@ oneagentctl --get-log-content-access
 ### Timestamp and Splitting Issues
 
 If logs appear but counts differ or content seems incorrect, you may need [Timestamp and Splitting Rules](https://docs.dynatrace.com/docs/shortlink/lma-timestamp-configuration) to properly parse multi-line logs or custom timestamp formats.
+
+### Check what OneAgent discovered first
+
+> **Coverage vs. volume — the log-module self-monitoring events.** Before assuming a missing Splunk log needs a custom source or a new ingest rule, check what OneAgent already discovered — the gap is often a source detected but not yet configured for ingest, not a discovery miss. The log module emits a `log_source.status` event per discovered source into `dt.system.events`, carrying `log.source.file_status` and `log.source.ingest_status` — so it reveals sources OneAgent **detected but is not ingesting**, which a `fetch logs` count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.
+>
+> This event stream is **Early Access** and requires **opt-in** (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in *Log ingest Overview* dashboard for Dynatrace **1.339+** — verify it is flowing in your tenant before relying on it). See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants without the opt-in.
+
+```dql
+// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == "Log Module" and event.type == "log_source.status"
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == "Active"
+| fieldsAdd coverage =
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Ingested", "Available | Ingesting", else:
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Not ingested", "Available | NOT ingesting", else:
+    if(log.source.ingest_status == "Partially ingested", "Partial ingestion",
+    else: "Unsupported or issue")))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+```
 
 <a id="troubleshooting-checklist"></a>
 ## Troubleshooting Checklist

@@ -1,6 +1,6 @@
 # FAQ-08: How Does OneAgent Decide Which Logs to Collect?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 06/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -231,7 +231,44 @@ These matter at design time. A directory with tens of thousands of rotated files
 
 Don't assume coverage — confirm it, then patch the gaps deliberately.
 
-1. **Verify what was actually discovered before adding anything.** Dynatrace records each discovered log source with its monitoring state and ingest status. Query Grail to see what OneAgent picked up and whether it's being ingested:
+1. **Verify what was actually discovered before adding anything — from the log-module self-monitoring events.** The OneAgent log module emits a self-monitoring event per discovered source into `dt.system.events` under the `Log Module` provider. Each `log_source.status` event carries the source's current file status and ingest status, so one events query gives you the whole coverage picture — including sources that were **detected but are not being ingested**, which a `fetch logs` query cannot show (no stored records means nothing to count):
+
+```dql
+fetch dt.system.events, from:-24h
+| filter event.provider == "Log Module" and event.type == "log_source.status"
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == "Active"
+| fieldsAdd coverage =
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Ingested", "Available | Ingesting", else:
+    if(log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Not ingested", "Available | NOT ingesting", else:
+    if(log.source.ingest_status == "Partially ingested", "Partial ingestion",
+    else: "Unsupported or issue")))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+```
+
+   `log.source.file_status` reflects the source's current state (`FILE_STATUS_OK`, `FILE_STATUS_IS_BINARY`, `FILE_STATUS_NOT_EXIST`, …) and `log.source.ingest_status` is one of `Ingested` / `Not ingested` / `Partially ingested`. Crossing the two gives a coverage matrix — the cell that matters most is **available but not ingesting**: a source OneAgent can read but no ingest rule keeps.
+
+   | | Ingesting | NOT ingesting |
+   |---|-----------|---------------|
+   | **Available** (`FILE_STATUS_OK`) | ✅ working as intended | ⚠️ detected, silently uncollected — the gap to investigate |
+   | **Unsupported / issue** | ingesting despite a file issue | ❌ dead — neither cleanly readable nor collected |
+
+   To list the sources behind the ⚠️ cell, swap the `summarize` for a filter and `fields`:
+
+```dql
+fetch dt.system.events, from:-24h
+| filter event.provider == "Log Module" and event.type == "log_source.status"
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == "Active"
+| filter log.source.file_status == "FILE_STATUS_OK" and log.source.ingest_status == "Not ingested"
+| fields log.source, log.source.file_status, log.source.ingest_status, log.source.origin
+| limit 50
+```
+
+   This surface is billing-cheap — it scans events, not raw log records (0 bytes billed in testing) — and needs only event-read permission rather than logs-table read. It is delivered in **Early Access** and requires opt-in: the OneAgent log module must be enabled to send self-monitoring events to your tenant, and its content is folding into the built-in **Log ingest Overview** dashboard for Dynatrace **1.339+** (staged rollout — verify the events are flowing in your tenant before relying on them). Until they are, the Grail log-records query below remains the working path.
+
+   **Fallback (no opt-in / older tenant).** Query the stored log records directly. This sees only sources that produced records, so it cannot separate "detected but not ingested" from "never detected" — but it needs no opt-in:
 
 ```dql
 fetch logs, from:-24h
@@ -240,7 +277,7 @@ fetch logs, from:-24h
 | limit 20
 ```
 
-`log.source.file_status` reflects the current monitoring state of a source and `log.source.ingest_status` reflects whether its content is being ingested — together they tell you "discovered but not ingested" apart from "never discovered." The **Discovery & Coverage** view in the platform gives the same picture interactively.
+   The **Discovery & Coverage** view in the platform gives the same picture interactively.
 
 2. **For a missing log, walk the three gates in order (§2).** Is a deep-monitored process holding it open? Does its path/name match an include rule and dodge the exclude rules? Does the file itself meet the §3 properties? The first failing gate is your answer.
 
@@ -252,7 +289,7 @@ fetch logs, from:-24h
 
 6. **Mind the storage step.** Discovery is not ingestion. Log Monitoring is on by default, but your **log ingest rules** decide what's stored in Grail and what's dropped — a source can be discovered and still produce no stored records because a rule excludes it.
 
-> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — narrow-only security rules; [Log ingestion via OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa) — ingest rules gate storage. DQL fields `log.source`, `log.source.file_status`, `log.source.ingest_status` confirmed against the Grail semantic dictionary; query verified with the Dynatrace DQL verifier. **Derived:** the verify-first / make-discoverable-before-custom ordering is an authoring recommendation, not a documented procedure.</sub>
+> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — narrow-only security rules; [Log ingestion via OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa) — ingest rules gate storage. The `dt.system.events` / `Log Module` / `log_source.status` coverage queries and the `log.source.file_status` (`FILE_STATUS_OK` / `FILE_STATUS_IS_BINARY` / `FILE_STATUS_NOT_EXIST`) and `log.source.ingest_status` (`Ingested` / `Not ingested` / `Partially ingested`) values were executed live against a tenant (07/08/2026) — the "available but not ingesting" cell returned real sources (OneAgent's own logs, `/var/log/syslog`). The self-monitoring event stream is Early Access, opt-in, and folds into the built-in *Log ingest Overview* dashboard at Dynatrace 1.339+. **Derived:** the file-status × ingest-status coverage matrix and the verify-first / make-discoverable-before-custom ordering are authoring recommendations, not a documented procedure.</sub>
 
 <a id="gotchas"></a>
 ## 9. Common Gotchas
