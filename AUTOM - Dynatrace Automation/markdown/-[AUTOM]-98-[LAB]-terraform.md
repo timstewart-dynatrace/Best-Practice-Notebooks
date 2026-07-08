@@ -1,6 +1,6 @@
 # AUTOM-98 LAB: Terraform for Dynatrace
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 05/18/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -165,6 +165,8 @@ terraform init
 ```
 
 ---
+
+> **Provider version currency (checked 07/08/2026):** the `~> 1.96` constraint **floats** — `terraform init` will pull the newest 1.x release (v1.100.0 as of July 2026), and releases v1.97–v1.100 include stricter validation and breaking changes (`dynatrace_kubernetes_enrichment` field removal in v1.100; stricter OpenPipeline-v2, anomaly, and RUM validation in v1.97) plus new resources (`dynatrace_maintenance_windows` in v1.98 — deprecates `dynatrace_maintenance`; OpenPipeline `*_dataforwarding` in v1.99). The walkthrough below was validated against v1.96.x. If you need the validated baseline exactly, pin `version = "1.96.4"`-style (exact); if you float, review the [provider release notes](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) for the versions `init` selects before applying.
 
 <a id="first-resource"></a>
 ## 3. Create Your First Resource — Alerting Profile

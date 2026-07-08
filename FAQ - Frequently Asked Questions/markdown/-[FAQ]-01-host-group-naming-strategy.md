@@ -1,6 +1,6 @@
 # FAQ-01: Why you need a good Host Group naming strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 05/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -64,29 +64,29 @@ For environments where SVG doesn't render
 
 ### How Host Groups Shape the Topology
 
-Dynatrace organizes monitored entities in a hierarchy:
+Dynatrace's entity model links these layers — host groups contain hosts, hosts run Process Group Instances, PGIs aggregate into Process Groups, and services associate with Process Groups. Host-group context propagates upward through the topology:
 
-**Process → Process Group → Host → Host Group**
+**Host Group → Host → Process Group Instance → Process Group → Service**
 
 When OneAgent detects running processes on a host, it assigns each one to a **Process Group** (PG) based on technology, command line, working directory, and metadata. The per-host running instances are called **Process Group Instances** (PGIs). PGs and PGIs inherit context from the host they run on, and hosts roll up into the host group you assign. Services then associate with the process groups that handle their requests.
 
 The practical effect: **the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace** — in Smartscape, dashboards, alerts, IAM policies, and management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like *"all error-prone services in `app-pci`"* work without manual selection.
 
-| Layer | Inherits from | Why it matters |
+| Layer | Gets host-group context from | Why it matters |
 |-------|---------------|---------------|
-| Process | Host → Host Group | Process detection rules can be scoped per host group |
-| Process Group | Host → Host Group | PG naming and grouping rules respect host group context |
+| Host | Direct assignment (at OneAgent install or via `oneagentctl`) | The root of the chain — host group is a host-level attribute |
 | Process Group Instance | The host it runs on | PGI metadata carries host group identity through to spans/services |
+| Process Group | Its member PGIs (which run on hosts) | PG naming, grouping, and detection rules respect host group context |
 | Service | The PGs that handle its requests | Service ownership reflects the host group of the underlying processes |
 | SLO / Alert | The entities they target | Boundaries follow the topology rollup automatically |
 
 ![Dynatrace Topology Rollup](images/01-topology-rollup_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Layer | Inherits From | What Consumes It |
+| Layer | Gets host-group context from | What Consumes It |
 |-------|---------------|-------------------|
-| Process | Host → Host Group | Detection rules |
-| Process Group / PGI | Host → Host Group | Naming, grouping rules, thresholds |
+| Host | Direct assignment | Root of the rollup |
+| PGI / Process Group | The host(s) they run on | Naming, grouping rules, thresholds |
 | Service | The PGs handling its requests | Dashboards, IAM scope |
 | Host Group context propagates to | Smartscape, dashboards, alerts/thresholds, IAM, management zones |
 For environments where SVG doesn't render

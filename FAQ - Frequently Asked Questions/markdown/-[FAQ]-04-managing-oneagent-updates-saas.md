@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 05/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -99,7 +99,7 @@ For environments where SVG doesn't render
 
 | Scope | When to use |
 |-------|-------------|
-| **Tenant default** | The fleet-wide policy. For most tenants this is `Automatic at earliest convenience` or `Automatic during update windows`, depending on change-control culture. |
+| **Tenant default** | The fleet-wide policy. For most tenants this is `Automatic updates at earliest convenience` or `Automatic updates during update windows`, depending on change-control culture. |
 | **Host group override** | Different cadences for different host groups — e.g., `production` updates during a Saturday window, `nonprod` updates at earliest convenience, `pci-prod` stays on `No automatic updates` pending change-board approval. This is the most common reason to deviate from the tenant default. |
 | **Per-host override** | Exceptional cases — a specific host running a workload with strict version-pinning needs, or a host on extended quarantine after an incident. Per-host overrides are powerful but invisible at the fleet-management level; document them. |
 
@@ -117,8 +117,8 @@ Three modes, available at every scope:
 
 | Mode | What it does | When to pick it |
 |------|--------------|-----------------|
-| **Automatic at earliest convenience** | OneAgent updates as soon as the new version is available and the host is in a position to restart the agent. | Default for nonprod, dev, lab fleets; default for most production fleets without explicit change-control requirements. |
-| **Automatic during update windows** | OneAgent updates only within a configured update window (one-time, daily, weekly, or monthly recurrence). | Fleets with peak-period sensitivity (retail freeze, end-of-month batch jobs) where the update mechanic is fine but the *timing* needs to be predictable. |
+| **Automatic updates at earliest convenience** | OneAgent updates as soon as the new version is available and the host is in a position to restart the agent. | Default for nonprod, dev, lab fleets; default for most production fleets without explicit change-control requirements. |
+| **Automatic updates during update windows** | OneAgent updates only within a configured update window (one-time, daily, weekly, or monthly recurrence). | Fleets with peak-period sensitivity (retail freeze, end-of-month batch jobs) where the update mechanic is fine but the *timing* needs to be predictable. |
 | **No automatic updates** | OneAgent never auto-updates; manual "Update now" or pinned-version flows only. | Strict change control (PCI, regulated industries, change-board ratification required) — every version transition is a named, ticketed change. |
 
 ![OneAgent Auto-Update — Decision Tree](images/04-auto-vs-manual-decision-tree_930x500.png)
@@ -126,8 +126,8 @@ Three modes, available at every scope:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Question | Yes → | No → |
 |----------|------|------|
-| Regulated change-control requires named, versioned changes? | Automatic during update windows | (continue) |
-| Pinned-version requirement (security baseline / certified build)? | No automatic updates | Automatic at earliest convenience |
+| Regulated change-control requires named, versioned changes? | Automatic updates during update windows | (continue) |
+| Pinned-version requirement (security baseline / certified build)? | No automatic updates | Automatic updates at earliest convenience |
 For environments where SVG doesn't render
 -->
 
@@ -135,13 +135,13 @@ For environments where SVG doesn't render
 
 | Mode | Operator cost | Lag from latest | Notes |
 |------|--------------|-----------------|-------|
-| Automatic at earliest convenience | Lowest | Hours-to-days | Background — most fleets pick this and never revisit |
-| Automatic during update windows | Low | Days-to-weeks (window-dependent) | Predictable; aligns with established maintenance cadences |
+| Automatic updates at earliest convenience | Lowest | Hours-to-days | Background — most fleets pick this and never revisit |
+| Automatic updates during update windows | Low | Days-to-weeks (window-dependent) | Predictable; aligns with established maintenance cadences |
 | No automatic updates | Highest | Until manually applied — potentially long | Every transition is a ticket; risks fleet drifting silently if not managed |
 
 The "No automatic updates" mode is often picked defensively at tenant standup ("we'll turn it on later") and then forgotten. If you adopt this mode, pair it with a recurring calendar reminder to evaluate available versions, or you will discover that the fleet is six months behind a year later.
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Automatic at earliest convenience"*, *"Automatic during update windows"*, and *"No automatic updates"* are the three documented modes; "Update now" and environment-wide "Update now to target version" are the manual triggers when auto-update is disabled.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Automatic updates at earliest convenience"*, *"Automatic updates during update windows"*, and *"No automatic updates"* are the three documented modes; "Update now" and environment-wide "Update now to target version" are the manual triggers when auto-update is disabled.</sub>
 
 <a id="windows"></a>
 ## 5. Update Windows vs Maintenance Windows
@@ -150,7 +150,7 @@ Two related-but-distinct mechanisms are easy to confuse:
 
 | Concept | What it does | Where to set |
 |---------|--------------|--------------|
-| **Update window** | Defines *when* automatic OneAgent updates may execute. Only applies when the update mode is `Automatic during update windows`. | Settings → Preferences → OneAgent updates → Update windows |
+| **Update window** | Defines *when* automatic OneAgent updates may execute. Only applies when the update mode is `Automatic updates during update windows`. | Settings → Preferences → OneAgent updates → Update windows |
 | **Maintenance window** | Suppresses *alerting* on monitored entities during the window. Does **not** govern OneAgent updates. | Settings → Maintenance windows |
 
 In community practice, the confusion goes both directions: teams set a Maintenance Window expecting it to delay OneAgent updates (it does not), or they set an Update Window expecting alerts to be suppressed during it (they are not). Maintenance windows govern alerting; update windows govern the update mechanic itself. They are independent tools and often used together.
@@ -206,7 +206,7 @@ In community practice, mixed-version environments (AGs lagging behind OneAgents)
 <a id="validation"></a>
 ## 8. Validation After Update
 
-For most fleets on `Automatic at earliest convenience`, post-update validation is implicit — the platform itself reports OneAgent health, version, and process injection status. The check usually doesn't need a separate workflow.
+For most fleets on `Automatic updates at earliest convenience`, post-update validation is implicit — the platform itself reports OneAgent health, version, and process injection status. The check usually doesn't need a separate workflow.
 
 For change-controlled fleets, the explicit validation set is:
 
@@ -216,7 +216,7 @@ For change-controlled fleets, the explicit validation set is:
 4. **No new ingestion errors.** Spans, logs, and metrics from the host continue to land; no spike in dropped events.
 5. **Application functioning normally.** If a deep-injection-relevant change shipped (Java agent library swap, .NET profiler change), validate the apps themselves restart cleanly.
 
-For fleets running `Automatic during update windows`, build this checklist into the post-window review so any anomalies get caught before the next window's batch.
+For fleets running `Automatic updates during update windows`, build this checklist into the post-window review so any anomalies get caught before the next window's batch.
 
 > <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update). **Derived:** the validation list combines the documented update mechanism with general observability hygiene — no single page enumerates this checklist, which is community / engagement practice.</sub>
 
@@ -241,7 +241,7 @@ In community practice, the right time to plan rollback is *before* enabling a br
 
 | Pitfall | Why it happens | What to do instead |
 |---------|----------------|--------------------|
-| **"We'll disable auto-update for safety, then forget about it."** | `No automatic updates` is set at standup as a precaution and never revisited. Fleet drifts months behind. | Pair `No automatic updates` with a recurring calendar reminder to evaluate available versions, or pick `Automatic during update windows` instead. |
+| **"We'll disable auto-update for safety, then forget about it."** | `No automatic updates` is set at standup as a precaution and never revisited. Fleet drifts months behind. | Pair `No automatic updates` with a recurring calendar reminder to evaluate available versions, or pick `Automatic updates during update windows` instead. |
 | **Maintenance window expected to delay an update.** | Maintenance windows suppress *alerts*, not updates. Setting a maintenance window and expecting OneAgent to wait is a common confusion. | Use **update windows** for update timing; use maintenance windows for alert suppression. The two are independent. |
 | **Per-host overrides accumulating invisibly.** | One-off per-host changes pile up; the host-group setting is no longer the effective policy across the group. | If multiple hosts in a group need different behavior, that's a signal the group should be split — not a signal to multiply per-host overrides. |
 | **DynaKube `autoUpdate: false` as the K8s pinning mechanism.** | The DynaKube field is deprecated; many older blog posts still recommend it. | Pin the OneAgent version on the tenant instead, *or* set `version`/`image` on the DynaKube CR. |
@@ -259,8 +259,8 @@ In community practice, the right time to plan rollback is *before* enabling a br
 
 For most SaaS tenants, the right configuration is:
 
-1. **Tenant default: `Automatic at earliest convenience`.** Lowest operator cost; fleet stays current automatically.
-2. **Host-group overrides for production: `Automatic during update windows`** if your change-control culture wants predictable timing. Pair with a recurring update window (e.g., Sunday 02:00–04:00 local).
+1. **Tenant default: `Automatic updates at earliest convenience`.** Lowest operator cost; fleet stays current automatically.
+2. **Host-group overrides for production: `Automatic updates during update windows`** if your change-control culture wants predictable timing. Pair with a recurring update window (e.g., Sunday 02:00–04:00 local).
 3. **Host-group override for regulated tiers (PCI, FedRAMP equivalent, etc.): `No automatic updates`** with a documented quarterly version-evaluation cadence. Pin the version on the tenant or via DynaKube `version`/`image` for K8s workloads.
 4. **Per-host overrides only in exceptional cases** — and only when you've documented why elsewhere (DECISIONS.md, change ticket, host-group naming convention).
 5. **Update ActiveGates before OneAgents.** See FAQ-05.
@@ -275,7 +275,7 @@ For Kubernetes-only tenants, the recommended pattern is:
 
 ## Summary
 
-OneAgent update management on SaaS is a four-axis decision: mode (auto / windowed / off), scope (tenant / host group / host), Kubernetes special case (version pin on tenant), and sequencing (after ActiveGates). The default `Automatic at earliest convenience` is the right answer for most fleets; the few cases where it isn't are change-controlled production, regulated tiers, and explicit canary patterns. The most common failure is choosing `No automatic updates` defensively at standup and letting the fleet drift — pair it with a calendar mechanism, or pick `Automatic during update windows` instead.
+OneAgent update management on SaaS is a four-axis decision: mode (auto / windowed / off), scope (tenant / host group / host), Kubernetes special case (version pin on tenant), and sequencing (after ActiveGates). The default `Automatic updates at earliest convenience` is the right answer for most fleets; the few cases where it isn't are change-controlled production, regulated tiers, and explicit canary patterns. The most common failure is choosing `No automatic updates` defensively at standup and letting the fleet drift — pair it with a calendar mechanism, or pick `Automatic updates during update windows` instead.
 
 ## Next Steps
 

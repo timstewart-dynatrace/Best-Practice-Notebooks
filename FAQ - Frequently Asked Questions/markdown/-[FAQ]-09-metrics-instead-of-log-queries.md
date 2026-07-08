@@ -1,6 +1,6 @@
 # FAQ-09: When Should I Query a Metric Instead of Raw Logs?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 07/07/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -65,9 +65,9 @@ Under DPS, each Grail data type is billed across distinct **capabilities**. The 
 | **Logs** | billed (bytes) | billed (bytes) | **billed (bytes scanned)** |
 | **Events** | billed | billed | **billed** |
 | **Traces** | billed | billed | **billed** |
-| **Metrics** | billed (data points) | billed | **— no Query capability —** |
+| **Metrics** | billed (data points) | billed | **Included (no marginal charge)** |
 
-Logs, events, and traces each carry a **Query** capability: when you scan them with DQL, you consume billable bytes (over and above the query volume bundled into *Retain with Included Queries*). **Metrics have no Query capability at all** — they bill on ingest and retention, and reading them back with `timeseries` does not draw a separate query charge.
+Logs, events, and traces each carry a **Query** capability: when you scan them with DQL, you consume billable bytes (over and above the query volume bundled into *Retain with Included Queries*). The Metrics **Query** capability exists in the DPS billing model but is **always included at no additional charge** — querying metrics via `timeseries` never appears as a line item on your bill. Metrics bill on ingest and retention only.
 
 Now put that against how dashboards and alerts behave. A dashboard tile re-runs its query on every load and every auto-refresh. An alert or anomaly detector re-evaluates on a fixed interval, continuously, for as long as it exists. A `fetch logs` aggregation in either of those places pays the log **Query** cost *every single time*. The identical answer sourced from a metric pays it *never*.
 
@@ -75,7 +75,7 @@ This is why the move is almost pure upside for recurring workloads: you are not 
 
 The flip side keeps you honest: for a **one-shot investigation**, a single `fetch logs` scan is cheap and a metric can't show you the offending line. Don't pre-build metrics for questions you ask once.
 
-> <sub>**Sources:** [DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces). **Derived:** the "Metrics have no Query capability" contrast is read from comparing the billed-capability lists on the DPS Logs vs. DPS Metrics pages — neither page states the comparison; FINOPS-01 documents the same capability split from a live tenant.</sub>
+> <sub>**Sources:** [DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces). **Corrected (07/08/2026):** an earlier revision framed this as metrics lacking a Query capability entirely — in fact the DPS Metrics page documents a Query dimension that is *"always included"* (no marginal charge), so the capability exists but never bills; FAQ-11 §9 documents the same finding. FINOPS-01 documents the billed-capability split from a live tenant.</sub>
 
 <a id="decision"></a>
 ## 3. The Decision — Recurring vs. One-Shot
@@ -85,7 +85,7 @@ The flip side keeps you honest: for a **one-shot investigation**, a single `fetc
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Question | Branch | Use | Cost behavior |
 |----------|--------|-----|---------------|
-| How often does this query run? | Recurring — dashboards / alerts / SLOs | Query a METRIC (OOTB or extracted) | Metrics: Ingest + Retain only, NO Query capability |
+| How often does this query run? | Recurring — dashboards / alerts / SLOs | Query a METRIC (OOTB or extracted) | Metrics: Query always included (no marginal charge) |
 | How often does this query run? | One-shot — RCA / forensics / ad-hoc | fetch logs (scan once, tight time range) | Logs: Query capability billed per bytes scanned |
 | Guardrail | Extract at ingest via OpenPipeline | Bounded dimensions only | Cardinality = product of dimensions; never request/user/trace IDs |
 | Note | Extraction is forward-only | Split retention | Metrics long & cheap; raw logs short |

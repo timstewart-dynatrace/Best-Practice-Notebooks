@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 07/08/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -127,6 +127,8 @@ spec:
       ports:
         - containerPort: 4317
 ```
+
+> **Collector version currency (checked 07/08/2026):** the pins in this notebook (`otel/opentelemetry-collector-contrib:0.151.0`, Dynatrace distro `v0.48.0`) are the **validated baseline** for these examples. Newer Dynatrace-distro releases exist — **v0.49.0–v0.51.0** (wrapping upstream contrib 0.153–0.155) — with breaking changes to review before bumping: the `filter` processor's default `error_mode` changed to `ignore` (0.49), `span_metrics` now rejects duplicate dimension names at startup (0.50), and `memory_limiter` self-metrics were renamed to `otelcol_processor_memory_limiter_*` (0.51 — affects self-monitoring dashboards that chart those series). The pinned versions remain valid and supported; upgrade deliberately per the always-pin guidance in this section, reviewing the [release notes](https://github.com/Dynatrace/dynatrace-otel-collector/releases) for each version you cross.
 
 <a id="gateway-mode"></a>
 ## 3. Gateway Mode

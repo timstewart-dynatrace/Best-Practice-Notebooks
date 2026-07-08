@@ -1,7 +1,7 @@
 # Series Catalog & Cross-Reference
 
 > **Purpose:** Full inventory of all 32 Dynatrace Best Practice Topic series with cross-references between them. Use this as a quick lookup when you need to find which series covers a specific topic, or to see related material across series.
-> **Last Updated:** 07/07/2026
+> **Last Updated:** 07/08/2026
 
 ![Series by Category](images/99-series-by-category.svg)
 

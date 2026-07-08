@@ -1,6 +1,6 @@
 # OPLOGS-07: Analytics & Dashboards
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 06/16/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 07/08/2026
 
 ## Aggregation, Time Series, and Visualization Queries
 This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.
@@ -213,7 +213,7 @@ fetch logs, from: now() - 7d
 
 > 📊 **Reference queries moved to OPLOGS-99.** See [**OPLOGS-99 § 9.1 Dashboard-Ready Queries**](../../oplogs/notebooks/-[OPLOGS]-99-best-practice-summary.ipynb) for single-value, time-series, breakdown, and percentile queries optimized for dashboard tiles. The teaching content for *how* dashboard queries are constructed lives in OPLOGS-05 (querying-parsing).
 
-> 💰 **Cost-aware design — prefer a metric for queries that run on a schedule.** Dashboard tiles and alerts re-run their query on every render and evaluation. A `fetch logs … | summarize` behind a recurring tile pays the Grail **log Query** cost every time, whereas the same answer sourced from a metric does not — Metrics powered by Grail have no Query capability. For any recurring aggregate, check for an out-of-the-box metric first, and otherwise extract one from the log stream at ingest (OpenPipeline metric extraction — see OPLOGS-03 §3). Reserve `fetch logs` for one-shot investigation. **FAQ-09** covers the full decision and the DPS query economics.
+> 💰 **Cost-aware design — prefer a metric for queries that run on a schedule.** Dashboard tiles and alerts re-run their query on every render and evaluation. A `fetch logs … | summarize` behind a recurring tile pays the Grail **log Query** cost every time, whereas the same answer sourced from a metric does not — the Metrics powered by Grail **Query** dimension is always included at no additional charge, so metric reads never appear on the bill. For any recurring aggregate, check for an out-of-the-box metric first, and otherwise extract one from the log stream at ingest (OpenPipeline metric extraction — see OPLOGS-03 §3). Reserve `fetch logs` for one-shot investigation. **FAQ-09** covers the full decision and the DPS query economics.
 
 <a id="trend-analysis"></a>
 ## 5. Trend Analysis

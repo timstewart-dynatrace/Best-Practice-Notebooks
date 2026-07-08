@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 07/07/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -277,7 +277,7 @@ The classic mechanism (Settings → Log Monitoring → Metrics extraction) still
 Calculated service metrics are the classic way to derive request-scoped metrics (by URL pattern, request attribute, etc.). Their status is documented precisely: *"currently, no deprecation date is set"*, but *"when creating new calculated service metrics, you should use OpenPipeline, which uses metric extraction from span data"* — and *"OpenPipeline will eventually become the default method … at that point, the current calculated service metrics functionality will be deprecated."* The Grail path also lifts a real limitation: classic calculated metrics keep at most the top 100 dimension values, while Grail stores the full dimension cardinality (metrics already above 2,000 cardinality cannot be auto-upgraded).
 
 
-> **Update (SaaS 1.343, July 2026):** OpenPipeline metric extraction now supports **histogram metrics** — you can extract a histogram (not just a counter or gauge value) from logs or spans, giving percentile-capable series from record data without shipping raw histograms through OTLP. This narrows the gap noted elsewhere in this entry between OTLP histogram ingestion and record-derived metrics.
+> **Forthcoming/rolling out (SaaS 1.343, July 2026):** OpenPipeline metric extraction adds support for **histogram metrics** — you can extract a histogram (not just a counter or gauge value) from logs or spans, giving percentile-capable series from record data without shipping raw histograms through OTLP. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Until it arrives, the OTLP histogram path and counter/value extraction described in this section remain the available surfaces. This narrows the gap noted elsewhere in this entry between OTLP histogram ingestion and record-derived metrics.
 
 > <sub>**Sources:**</sub>
 > - <sub>[OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — counter/value processors, supported scopes, Grail-only routing</sub>
@@ -400,7 +400,7 @@ The Metrics API v2 (`/api/v2/metrics/query`) and Data Explorer consume **metric 
 Query-size ceilings differ by an order of magnitude and change what is *feasible*: Classic caps a query at 20 million data points; Grail at **500 million** — high-cardinality, long-window analyses that Classic rejects are routine in Notebooks.
 
 
-> **Update (SaaS 1.343, July 2026):** metric **metadata is now queryable via DQL** — available metrics with their dimensions and descriptions can be listed directly from a query, extending the `metrics` discovery command described above. Useful for building self-documenting dashboards and for auditing which dimensions a metric actually carries before writing `by:{...}` clauses.
+> **Forthcoming/rolling out (SaaS 1.343, July 2026):** metric **metadata becomes queryable via DQL** — available metrics with their dimensions and descriptions can be listed directly from a query, extending the `metrics` discovery command described above. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it; the `metrics` discovery command described above remains the working surface until then. Useful for building self-documenting dashboards and for auditing which dimensions a metric actually carries before writing `by:{...}` clauses.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Metric commands — timeseries, metrics (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands)</sub>
@@ -414,7 +414,7 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 <a id="cost"></a>
 ## 9. What Metrics Cost Under DPS
 
-The Metrics powered by Grail capability has three dimensions — **Ingest & Process**, **Retain**, and **Query** — but the third is a formality: *"querying metrics using the `timeseries` command is always included."* Metric reads never appear on the bill. (FAQ-09 framed this as "metrics have no Query capability"; the docs' precise framing is that the Query dimension exists and is always included — same practical outcome.)
+The Metrics powered by Grail capability has three dimensions — **Ingest & Process**, **Retain**, and **Query** — but the third is a formality: *"querying metrics using the `timeseries` command is always included."* Metric reads never appear on the bill. (FAQ-09 reaches the same conclusion from the cost-decision angle: the Query dimension exists but is always included, so metric reads never bill.)
 
 ### 9.1 Ingest & Process — billed per data point
 

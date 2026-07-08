@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/07/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/08/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -349,7 +349,7 @@ Verbatim from the [Platform Tokens docs (DT docs)](https://docs.dynatrace.com/do
 
 #### No `dynatrace_platform_token` Terraform resource exists
 
-The Dynatrace Terraform provider has **no resource for minting Platform Tokens** (verified against provider source 2026-05-22 — the `dynatrace/api/iam/` directory contains `bindings`, `boundaries`, `groups`, `permissions`, `policies`, `serviceusers`, `users`, and `v2bindings`, with no token subdirectory). The provider's v1.88.1 release notes describe Platform Token **consumption** by other resources (`dynatrace_davis_anomaly_detectors`, `dynatrace_generic_setting`, `dynatrace_site_reliability_guardian`, `dynatrace_slack_notification`), not Platform Token creation.
+The Dynatrace Terraform provider has **no resource for minting Platform Tokens** (verified against provider source 2026-05-22; **re-verified at v1.100.0 on 2026-07-08** — the `dynatrace/api/iam/` directory contains `bindings`, `boundaries`, `groups`, `permissions`, `policies`, `serviceusers`, `users`, and `v2bindings`, still with no token subdirectory). The provider's v1.88.1 release notes describe Platform Token **consumption** by other resources (`dynatrace_davis_anomaly_detectors`, `dynatrace_generic_setting`, `dynatrace_site_reliability_guardian`, `dynatrace_slack_notification`), not Platform Token creation.
 
 Platform Tokens are minted **out-of-band** via either:
 
@@ -389,6 +389,8 @@ This narrows the set of surfaces that *force* a classic token. Two caveats: (1) 
 > <sub>**Sources:** [Dynatrace SaaS 1.340 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340) — *"Added support for platform tokens for classic network zone / ActiveGate / OneAgent REST APIs."* **Softened:** the exact Platform Token scope per classic API is not stated in the release note — verify at the API Explorer before relying on it.</sub>
 
 #### Sprint update (SaaS 1.342–1.343) — platform tokens reach effectively all classic APIs
+
+*(SaaS 1.343 released July 7, 2026 with a staged tenant rollout from mid-July — the 1.343 items below are forthcoming for most tenants; verify availability in your tenant before switching automation. The classic-token guidance in the decision table above remains the working model until then.)*
 
 The 1.340 loosening has since widened substantially:
 
@@ -597,7 +599,7 @@ This section is the repo's consolidated Terraform resource catalog, organized by
 | Automation / Workflows | `dynatrace_automation_workflow` | Platform Token or OAuth client | Below |
 | Documents (dashboards, notebooks) | `dynatrace_document` | Platform Token or OAuth client | Below |
 | Segments | `dynatrace_segment` | Platform Token or OAuth client | Below — see also NRLC-06/09 for the Gen3 management-zone-replacement framing |
-| Maintenance | `dynatrace_maintenance` | Classic API token (`settings.read`/`settings.write`) | Below |
+| Maintenance | `dynatrace_maintenance` (provider ≤ v1.97) · `dynatrace_maintenance_windows` (v1.98+, newer schema — `dynatrace_maintenance` deprecated) | Classic API token (`settings.read`/`settings.write`) | Below |
 | OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingest_sources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | OAuth client only | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
 | Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Below — see also ORGNZ for bucket strategy |
 | IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Below — full hands-on walkthrough in AUTOM-95 LAB |
@@ -945,6 +947,8 @@ resource "dynatrace_maintenance" "weekly_patch" {
   }
 }
 ```
+
+> **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` is **deprecated** in provider v1.98+ in favor of **`dynatrace_maintenance_windows`**, which manages the newer maintenance-windows schema (recurring and one-time windows). The example above remains valid — `dynatrace_maintenance` still works on current provider versions and is the working resource if you are pinned below v1.98. For new configurations on v1.98+, start with `dynatrace_maintenance_windows`; migrate existing configs on your next maintenance touch (review the resource docs for the schema differences before switching).
 
 #### OpenPipeline (per-data-type resource family)
 

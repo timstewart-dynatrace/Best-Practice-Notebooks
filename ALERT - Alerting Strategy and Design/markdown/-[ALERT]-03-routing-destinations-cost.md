@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 07/07/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 
@@ -62,7 +62,7 @@ Routing dimensions — severity, team/ownership, service, time of day — and es
 | Slack / Teams | Native workflow connector | WFLOW-03/04 |
 | PagerDuty / on-call | Native connector — use for fast-burn pages | WFLOW-04, SLO-04 |
 | Jira | Native connector — create/comment/assign issues | WFLOW-04 |
-| Jira Service Management | Native JSM connector (SaaS 1.343) — send Dynatrace events to JSM for alert management | WFLOW-04 |
+| Jira Service Management | Native JSM connector (SaaS 1.343, staged rollout — verify in tenant) — send Dynatrace events to JSM for alert management | WFLOW-04 |
 | ServiceNow | Native connector / HTTP Table API / ITOM app | ALERT-04 |
 | Email | Native action | WFLOW-03 |
 | xMatters | Legacy alerting-profile path (see below) | — |
@@ -70,7 +70,7 @@ Routing dimensions — severity, team/ownership, service, time of day — and es
 
 Match the destination to the urgency: fast-burn / acute → page (PagerDuty, on-call); slow-burn / steady → ticket (Jira, ServiceNow).
 
-> **New (SaaS 1.343):** a dedicated **Jira Service Management connector** joins the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. If your ITSM is Atlassian-based, this is now the first-choice JSM path before custom webhooks.
+> **Forthcoming/rolling out (SaaS 1.343):** a dedicated **Jira Service Management connector** joins the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Once available, it becomes the first-choice JSM path; until then, the existing Jira connector and custom-webhook paths described in this section remain the working options.
 
 <a id="legacy"></a>
 ## 4. The Legacy Path
