@@ -46,6 +46,7 @@ Framework for assessing and advancing Dynatrace observability adoption across th
 - [ADOPT-03: Success Metrics](ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/markdown/-%5BADOPT%5D-03-success-metrics.md) — Defining KPIs and measuring adoption
 - [ADOPT-04: Team Enablement](ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/markdown/-%5BADOPT%5D-04-team-enablement.md) — Training and organization strategies
 - [ADOPT-05: Optimization Roadmap](ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/markdown/-%5BADOPT%5D-05-optimization-roadmap.md) — Building your adoption roadmap
+- [ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement](ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/markdown/-%5BADOPT%5D-06-maximizing-value-staged-enablement.md) — Coverage audit workflow, staged enablement waves, and value gates for closing partial-coverage gaps
 - [ADOPT-99: Best Practice Summary](ADOPT%20-%20Observability%20Adoption%20%26%20Maturity/markdown/-%5BADOPT%5D-99-best-practice-summary.md) — Consolidated best practices from the ADOPT series
 
 ### [AIOPS - Dynatrace Intelligence](AIOPS%20-%20Dynatrace%20Intelligence/README.md)
@@ -149,6 +150,7 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 - [FAQ-09: When Should I Query a Metric Instead of Raw Logs?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-09-metrics-instead-of-log-queries.md) — Decision framework for replacing recurring log aggregations with pre-extracted metrics; covers Grail query economics, OOTB metrics, cardinality, and extraction trade-offs
 - [FAQ-10: How Do I Size and Scale ActiveGates?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-10-activegate-sizing-and-scaling.md) — Capability-to-sizing-dimension map, host-based and containerized K8s sizing tables, synthetic node sizing, HA/network-zone survivor-capacity math, and saturation detection via `dt.sfm.active_gate.*` Grail metrics
 - [FAQ-11: How Do Metrics Work in Dynatrace?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-11-how-metrics-work.md) — End-to-end metric mechanics: data-point model (gauge summaries + count deltas), Classic vs Grail dual-write backends, all ingest paths (OneAgent, API v2, OTLP, OpenPipeline), storage/rollup/retention, cardinality enforcement, timeseries querying, and DPS billing
+- [FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-12-cost-of-coverage-gaps.md) — Per-capability habit-to-handicap matrix for migration customers; what each gap costs, when reduced coverage is right, and objection handling
 
 ### [FINOPS - Cost Management & FinOps](FINOPS%20-%20Cost%20Management%20%26%20FinOps/README.md)
 Best practices for understanding, forecasting, and optimizing Dynatrace Platform Subscription (DPS) consumption.

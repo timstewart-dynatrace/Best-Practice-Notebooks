@@ -1,6 +1,6 @@
 # ADOPT-04: Team Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 5 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 

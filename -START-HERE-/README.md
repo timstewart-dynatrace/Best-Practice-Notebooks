@@ -1,7 +1,7 @@
 # Best Practice Topics — Where to Start
 
 > **Purpose:** A focused table of contents for the Dynatrace Best Practice Topics. Use the entry-point selector below to find your starting path, then follow the sequenced reading order across topic series.
-> **Last Updated:** 07/08/2026
+> **Last Updated:** 07/09/2026
 
 ![Three Doorways into the Playbook](images/00-three-doorways.svg)
 

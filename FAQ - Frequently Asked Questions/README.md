@@ -21,6 +21,7 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 9. [When Should I Query a Metric Instead of Raw Logs?](markdown/-[FAQ]-09-metrics-instead-of-log-queries.md) — Decision framework for replacing recurring log aggregations with pre-extracted metrics; covers Grail query economics, OOTB metrics, cardinality, and extraction trade-offs
 10. [How Do I Size and Scale ActiveGates?](markdown/-[FAQ]-10-activegate-sizing-and-scaling.md) — Capability-to-sizing-dimension map, host-based and containerized K8s sizing tables, synthetic node sizing, HA/network-zone survivor-capacity math, and saturation detection via `dt.sfm.active_gate.*` Grail metrics
 11. [How Do Metrics Work in Dynatrace?](markdown/-[FAQ]-11-how-metrics-work.md) — End-to-end metric mechanics: data-point model (gauge summaries + count deltas), Classic vs Grail dual-write backends, all ingest paths (OneAgent, API v2, OTLP, OpenPipeline), storage/rollup/retention, cardinality enforcement, timeseries querying, and DPS billing
+12. [Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage](markdown/-[FAQ]-12-cost-of-coverage-gaps.md) — Per-capability habit-to-handicap matrix for migration customers who carry partial-enablement patterns from their previous tool; what each gap costs, when reduced coverage is right, and objection handling
 
 ## Usage
 1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.

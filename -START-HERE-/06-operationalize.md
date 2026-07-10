@@ -1,7 +1,7 @@
 # Operationalize Module — DASH → WFLOW → AUTOM → AIOPS
 
 > **Purpose:** Sequenced reading order for layering dashboards, alert routing, configuration automation, and Davis intelligence on a working tenant. The order matters: each builds on the previous.
-> **Last Updated:** 07/08/2026
+> **Last Updated:** 07/09/2026
 
 ![Operationalize Sequence](images/06-operationalize-flow.svg)
 

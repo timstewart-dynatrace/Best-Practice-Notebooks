@@ -1,7 +1,7 @@
 # Maturity Module — Continuous Improvement
 
 > **Purpose:** Framing for ongoing improvement of a Dynatrace practice using the [ADOPT](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) series. Maturity is not a one-time milestone — it's a loop you run every 6–12 months.
-> **Last Updated:** 05/07/2026
+> **Last Updated:** 07/09/2026
 
 ![Maturity Loop](images/07-maturity-loop.svg)
 
@@ -38,6 +38,7 @@ This module is referenced from each doorway as the final step. It is also the ri
 | 03 | Success Metrics | Recommended | First pass: define what "improvement" means for your team |
 | 04 | Team Enablement | Recommended | When the team is hitting its skill ceiling |
 | 05 | Optimization Roadmap | Mandatory | First pass: build a 6–12 month plan |
+| 06 | Maximizing Platform Value (Coverage Audit & Staged Enablement) | Recommended | When coverage gaps are limiting platform value |
 | 99 | Best Practice Summary | Reference | One-page synthesis |
 
 ---

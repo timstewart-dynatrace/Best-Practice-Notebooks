@@ -1,6 +1,6 @@
 # ADOPT-01: Observability Maturity Model
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 5 | **Created:** March 2026 | **Last Updated:** 04/26/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 

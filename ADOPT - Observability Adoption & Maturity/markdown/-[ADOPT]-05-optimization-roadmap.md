@@ -1,6 +1,6 @@
 # ADOPT-05: Optimization Roadmap
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 5 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
 
 ## Overview
 

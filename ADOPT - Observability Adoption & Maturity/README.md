@@ -15,7 +15,8 @@ Framework for assessing and advancing Dynatrace observability adoption across th
 3. [Success Metrics](markdown/-[ADOPT]-03-success-metrics.md) — Defining KPIs, measuring adoption progress, and quantifying business value
 4. [Team Enablement](markdown/-[ADOPT]-04-team-enablement.md) — Training strategies, organizational structure, and role-based enablement
 5. [Optimization Roadmap](markdown/-[ADOPT]-05-optimization-roadmap.md) — Building a multi-phase adoption roadmap with clear milestones and dependencies
-6. [Best Practice Summary](markdown/-[ADOPT]-99-best-practice-summary.md) — Consolidated checklist of every actionable best practice with priorities and source references
+6. [Maximizing Platform Value — Coverage Audit and Staged Enablement](markdown/-[ADOPT]-06-maximizing-value-staged-enablement.md) — Coverage audit DQL workflow, staged enablement waves, and value gates — the program that operationalizes FAQ-12's habit-to-handicap matrix
+7. [Best Practice Summary](markdown/-[ADOPT]-99-best-practice-summary.md) — Consolidated checklist of every actionable best practice with priorities and source references
 
 ## Usage
 1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
