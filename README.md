@@ -24,7 +24,7 @@ Each topic follows the same structure:
 - pdfs/ — Printable/exported versions of the notebooks
 - markdown/ — Markdown exports of the same content
 - README.md — Topic overview and usage guide
-- AGENTS.md — Routing table for AI agents (present per series as it rolls out)
+- AGENTS.md — Routing table for AI agents (present in every series)
 
 A few series use uppercase NOTEBOOKS/ and PDFs/ directory names; markdown/ is lowercase everywhere.
 
