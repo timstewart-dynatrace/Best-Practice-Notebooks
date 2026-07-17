@@ -1,6 +1,6 @@
 # M2S-08: Step 8 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 8 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -377,8 +377,8 @@ Monitor platform adoption using audit events. If audit logging is enabled, query
 // Track daily active users over the past 7 days (requires audit log access)
 fetch events, from:-7d
 | filter event.type == "AUDIT_LOG"
-| summarize activeUsers = countDistinct(user), by:{bin(timestamp, 1d)}
-| sort timestamp desc
+| summarize activeUsers = countDistinct(user), by:{day = bin(timestamp, 1d)}
+| sort day desc
 ```
 
 ```dql

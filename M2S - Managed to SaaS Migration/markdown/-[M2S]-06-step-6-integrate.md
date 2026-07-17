@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -82,13 +82,19 @@ Work through dashboards in priority order:
 
 ### Verify Dashboards Are Present
 
-```dql
-// List all dashboards in SaaS — compare count to your Managed inventory
-fetch dt.entity.dashboard
-| fieldsAdd entity.name
-| sort entity.name asc
+Dashboards are **Document Service** objects on SaaS, not Grail entities — `fetch dt.entity.dashboard` is **not valid DQL** and returns no data. To list and count dashboards on your SaaS tenant so you can compare against your Managed inventory, use the **Document Service API**:
 
+```bash
+# Count all dashboards migrated to SaaS (compare to your Managed inventory)
+curl -s "https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'" \
+  -H "Authorization: Api-Token {TOKEN}" | jq '.totalCount'
+
+# List dashboard names and owners
+curl -s "https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'" \
+  -H "Authorization: Api-Token {TOKEN}" | jq -r '.documents[] | "\(.name)\t\(.owner)"'
 ```
+
+Requires the `documents:read` token scope. Alternatively, open the **Dashboards** app in the SaaS UI and compare the list against your Managed dashboard inventory.
 
 ### URL Format Changes
 
@@ -176,7 +182,7 @@ fetch dt.davis.problems, from:-24h
 ```dql
 // Problem trend over last 7 days — confirms Dynatrace Intelligence baseline is building
 fetch dt.davis.problems, from:-7d
-| makeTimeseries count = count(default: 0), interval: 1d
+| makeTimeseries count = count(default: 0), interval: 24h
 ```
 
 <a id="cicd-pipeline-integration"></a>
@@ -239,19 +245,17 @@ fetch events, from:-24h
 If you use Dynatrace release tracking, verify that version metadata is being captured correctly after the CI/CD update:
 
 ```dql
-// Check release versions detected by Dynatrace
-fetch dt.entity.service
-| fieldsAdd entity.name, releaseVersion, releaseStage
-| filter isNotNull(releaseVersion)
-| sort entity.name asc
+// Check release versions captured by Dynatrace via deployment events
+// Release version and stage are carried in deployment events, not as entity fields
+fetch events, from:-7d
+| filter event.kind == "CUSTOM_DEPLOYMENT"
+| fieldsKeep event.name, dt.entity.service, event.deployment.release_version, event.deployment.release_stage, timestamp
+| sort timestamp desc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fieldsAdd name, releaseVersion, releaseStage
-// | filter isNotNull(releaseVersion)
-// | sort name asc
-// | limit 20
+// Note: releaseVersion / releaseStage are not directly addressable fields on dt.entity.service in DQL.
+// Release tracking data surfaces through deployment events (event.kind == "CUSTOM_DEPLOYMENT") or
+// via the Release Monitoring app in the Dynatrace UI.
 
 ```
 
@@ -373,7 +377,7 @@ Most organizations have scripts and tools that call Dynatrace APIs for automatio
 | **Configuration API v1** | `https://{managed}/e/{env-id}/api/config/v1/...` | `https://{tenant}.live.dynatrace.com/api/config/v1/...` |
 | **Cluster API** | `https://{managed}/api/cluster/v2/...` | N/A — use Account Management API instead |
 
-> **Important:** The Cluster Management API does not exist in SaaS. Scripts that use cluster-level APIs (user management, environment provisioning, license management) must be rewritten to use the [Account Management API](https://docs.dynatrace.com/docs/manage/identity-access-management/account-api) or the SaaS UI.
+> **Important:** The Cluster Management API does not exist in SaaS. Scripts that use cluster-level APIs (user management, environment provisioning, license management) must be rewritten to use the [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api) or the SaaS UI.
 
 ### Common Script Types to Audit
 
@@ -469,7 +473,7 @@ fetch dt.entity.synthetic_test
 ```dql
 // List synthetic monitors with their names — verify expected monitors are present
 fetch dt.entity.synthetic_test
-| fieldsAdd entity.name, type
+| fieldsAdd entity.name, entity.type
 | sort entity.name asc
 
 // Note: smartscapeNodes SYNTHETIC_TEST is not yet available on Grail
@@ -521,9 +525,9 @@ Do not proceed to Step 7 (Expand) until all items are confirmed.
 - [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
 - [Automations (Workflows) Documentation](https://docs.dynatrace.com/docs/platform-modules/automations)
 - [Extensions 2.0 Documentation](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
-- [Cloud Integrations Overview](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-cloud-platforms)
+- [Cloud Integrations Overview](https://docs.dynatrace.com/docs/ingest-from)
 - [Synthetic Monitoring Documentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/synthetic-monitoring)
-- [Account Management API](https://docs.dynatrace.com/docs/manage/identity-access-management/account-api)
+- [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---
 

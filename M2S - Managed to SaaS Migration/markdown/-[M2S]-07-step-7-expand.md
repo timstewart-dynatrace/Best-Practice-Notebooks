@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Expand: Adopt New SaaS Capabilities
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 With the migration complete and integrations reconnected, the real value of moving to SaaS begins. Dynatrace SaaS includes an entire generation of capabilities that were never available in Managed — Grail, Notebooks, OpenPipeline, Dynatrace Assist, AppEngine, and AutomationEngine. This notebook provides a structured approach to adopting each capability, with a recommended timeline that avoids overwhelming teams while ensuring steady progress.
 
@@ -312,7 +312,7 @@ fetch dt.davis.problems, from:-24h
 ```dql
 // Problem trends over 7 days — baseline for workflow trigger validation
 fetch dt.davis.problems, from:-7d
-| makeTimeseries problemCount = count(default: 0), interval: 1d
+| makeTimeseries problemCount = count(default: 0), interval: 24h
 ```
 
 <a id="davis-copilot"></a>
@@ -499,7 +499,7 @@ Do not proceed to Step 8 (Enable) until the high-priority items are confirmed.
 - [Notebooks Documentation](https://docs.dynatrace.com/docs/observe-and-explore/notebooks)
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [AutomationEngine (Workflows) Documentation](https://docs.dynatrace.com/docs/platform-modules/automations)
-- [Dynatrace Assist Documentation](https://docs.dynatrace.com/docs/platform/davis-ai/davis-copilot)
+- [Dynatrace Assist Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai)
 - [AppEngine Documentation](https://docs.dynatrace.com/docs/platform/appengine)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)
 

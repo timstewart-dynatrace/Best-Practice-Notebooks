@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 04/26/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -18,7 +18,7 @@ Three sprint-1.337 changes affect a Managed → SaaS migration:
 
 1. **OneAgent primary fields/tags at source** — Latest Dynatrace SaaS tenants gain primary fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and customer-defined primary tags as top-level attributes. Consider this in the M2S-03 (Design) step when deciding what tag/security-context model to recreate post-migration.
 2. **Configuration API → Settings v2 acceleration** — Dynatrace Managed exposes the older Configuration API for many resources; the SaaS target's Settings v2 surface now covers more of those endpoints. Migration tooling (M2S-04/05) should target Settings v2 wherever possible. Plan for the legacy/v2 split where Managed has a unique Configuration API endpoint.
-3. **Platform tokens** for new automation. Classic `dt0c01` still works for legacy paths, but new SaaS pipelines should default to `dt0s16`/`dt0s01` Platform tokens with `Authorization: Bearer …`.
+3. **Platform tokens** for new automation. Classic `dt0c01` still works for legacy paths, but new SaaS pipelines should default to `dt0s16` Platform tokens (`Authorization: Bearer …`). Note: `dt0s01` is a separate SCIM/account-management token — it is NOT a Platform Token prefix and should not be used for environment-level automation.
 
 **Extensions 3rd-gen API** (ToDo #1) — if Managed has custom 2nd-gen Extensions, migration to SaaS is also the natural moment to graduate to 3rd-gen via the Dynatrace API Application → Extensions surface.
 
@@ -216,13 +216,18 @@ fetch dt.entity.synthetic_test
 ```
 
 ```dql
-// Synthetic tests by type
-fetch dt.entity.synthetic_test
-| summarize testCount = count(), by:{type}
+// Synthetic monitors by type (HTTP, browser, multi-protocol)
+// dt.entity.synthetic_test does not expose a 'type' field in Grail entity store;
+// use dt.synthetic.events to count distinct monitors by execution event type.
+fetch dt.synthetic.events, from:-1h
+| filter in(event.type, {"http_monitor_execution", "browser_monitor_execution", "multiprotocol_monitor_execution"})
+| summarize testCount = countDistinct(dt.synthetic.monitor.id), by:{event.type}
 | sort testCount desc
 
-// Note: smartscapeNodes SYNTHETIC_TEST is not yet available on Grail
-// Continue using fetch dt.entity.synthetic_test until Smartscape coverage expands
+// Note: event.type values map to monitor types:
+//   http_monitor_execution      → HTTP monitor
+//   browser_monitor_execution   → Browser (clickpath) monitor
+//   multiprotocol_monitor_execution → Network availability (TCP/ICMP/DNS) monitor
 ```
 
 ### OneAgent Version Assessment
@@ -267,7 +272,7 @@ Record your findings in this table:
 | Management Zones | ___ | Will migrate as-is |
 | Dashboards | ___ | Classic dashboards migrate; rebuild as modern recommended |
 
-> **Important:** If your host count exceeds 25,000, you will need multiple SaaS tenants. Discuss tenant topology with your Dynatrace account team before proceeding.
+> **Important:** Dynatrace recommends keeping a single environment at roughly **25,000 hosts of typical load**; the platform can technically scale higher, but beyond that threshold plan to split host-unit quota across multiple SaaS tenants/environments. This is a planning guideline, not a hard cap — discuss tenant topology with your Dynatrace account team before proceeding.
 
 <a id="confirm-use-cases-and-goals"></a>
 
@@ -332,7 +337,7 @@ The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-u
 |-------------|----------|
 | **Managed version** | 1.294 or later |
 | **Version alignment** | Best results when Managed and SaaS are on the same major version (e.g., both 1.294.x) |
-| **IAM policy** | `upgrade-assistant:environments:write` assigned in Account Management |
+| **IAM policy** | `upgrade-assistant:environments:write` to operate the app, plus `app-engine:apps:install` to install it — both assigned in Account Management |
 | **Installation** | Install the SaaS Upgrade Assistant app on your target SaaS tenant |
 
 > **Tip:** Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.

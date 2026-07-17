@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/02/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -348,7 +348,7 @@ The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upg
 |-------------|--------|
 | **Managed cluster version** | v1.294 or later |
 | **Version alignment** | Same major version on Managed and SaaS recommended |
-| **IAM policy** | `upgrade-assistant:environments:write` assigned to migration users |
+| **IAM policy** | `upgrade-assistant:environments:write` (operate the app) + `app-engine:apps:install` (install the Hub app) assigned to migration users |
 | **Token scopes** | `Read network zones`, `Write network zones`, `Capture request data` |
 
 ### 5.2 Installation Steps
@@ -715,10 +715,10 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 - [SaaS Upgrade Assistant on Dynatrace Hub](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/)
 - [ActiveGate Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation)
 - [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones)
-- [SAML SSO Setup](https://docs.dynatrace.com/docs/manage/identity-access-management/single-sign-on)
+- [SAML SSO Setup](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management)
-- [OneAgent Communication](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/oneagent-configuration/network-connectivity)
-- [Azure Native Dynatrace Service](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-cloud-platforms/microsoft-azure-services/azure-native-integration)
+- [OneAgent Communication](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements)
+- [Azure Native Dynatrace Service](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration)
 
 ---
 

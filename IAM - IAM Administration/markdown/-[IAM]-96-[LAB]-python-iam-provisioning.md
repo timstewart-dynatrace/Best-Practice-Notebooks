@@ -1,10 +1,10 @@
-# IAM-96 LAB: Python IAM Provisioning — Groups, Policies, Boundaries, Bindings
+# IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API
 
-> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 07/16/2026
+> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 07/16/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
 
 ## Overview
 
-Hands-on lab: onboard teams into a persona + team IAM model with **Python** using the [Python-IAM-Group-Policy-MZ-Boundry](https://github.com/timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry) tool. One command creates the group, the shared parameterized policy, the per-team boundary, and the binding — idempotently. Every expected output below comes from a real run, verified live against the Account Management API on 07/16/2026.
+Hands-on lab: build the complete IAM chain — **group → parameterized policy → boundary → binding** — from scratch in Python, using nothing but `requests` and the Account Management REST API. No SDK, no pre-built tool: every call is shown raw, with the **actual response** the API returned, so you can validate your own results against each step.
 
 This is one of **three provisioning flavors**:
 
@@ -12,252 +12,401 @@ This is one of **three provisioning flavors**:
 |--------|----------|----------|
 | curl / shell | **IAM-12** | One-off scripts, CI glue |
 | Terraform | **IAM-95** | Declarative IaC, drift detection, plan/apply review |
-| **Python (this lab)** | **IAM-96** | Programmatic onboarding, portals, ad-hoc admin |
+| **Python raw API (this lab)** | **IAM-96** | Learning the API itself; building your own tooling |
 
-**What one `--team` command builds** (the BPN pattern from IAM-05 / IAM-10):
+**What you will build** (the BPN pattern from IAM-05 / IAM-10):
 
 ```
-1. GROUP     "<Team> Team"                        (created or found)
-2. POLICY    tpl-team-data-access                 (created ONCE, reused by every team)
-             ALLOW storage:logs:read WHERE storage:dt.security_context IN ("${bindParam:team}"); ...
-3. BOUNDARY  bnd-team-<security-context>          (one per team, defense-in-depth)
-4. BINDING   group ⟶ policy  with parameters={"team": "<security-context>"} + boundary
+1. GROUP     PYLAB-Checkout Team
+2. POLICY    PYLAB-tpl-team-data-access          (parameterized: ${bindParam:team})
+3. BOUNDARY  PYLAB-bnd-team-checkout             (hardcoded scope, defense-in-depth)
+4. BINDING   group ⟶ policy   at ENVIRONMENT level,
+             with parameters={"team": "pylab-checkout"} + the boundary
 ```
 
-**Time:** 20–30 minutes | **Difficulty:** Beginner-friendly | **Cost:** No consumption impact (IAM objects only)
-
----
+**Time:** 30–40 minutes | **Difficulty:** Beginner-friendly | **Cost:** No consumption impact (IAM objects only)
 
 ## Table of Contents
 
-1. [Setup](#step-1-setup)
-2. [Preview a Team Onboarding (Dry Run)](#step-2-dry-run)
-3. [Execute](#step-3-execute)
-4. [Onboard a Second Team (Watch the Policy Get Reused)](#step-4-second-team)
-5. [Prove Idempotency](#step-5-idempotency)
-6. [Validate](#step-6-validate)
-7. [Clean Up](#step-7-cleanup)
-8. [Troubleshooting](#troubleshooting)
-9. [Validation Checklist](#validation-checklist)
-10. [References](#references)
-
----
+1. [Step 0 — Setup](#step-0-setup)
+2. [Step 1 — Get an OAuth token](#step-1-get-an-oauth-token)
+3. [Step 2 — Create the group](#step-2-create-the-group)
+4. [Step 3 — Create the parameterized policy](#step-3-create-the-parameterized-policy)
+5. [Step 4 — Create the boundary](#step-4-create-the-boundary)
+6. [Step 5 — Bind policy to group](#step-5-bind-policy-to-group)
+7. [Step 6 — Verify what you built](#step-6-verify-what-you-built)
+8. [Step 7 — What happens on a re-run (idempotency)](#step-7-what-happens-on-a-re-run-idempotency)
+9. [Step 8 — Clean up](#step-8-clean-up)
+10. [Troubleshooting](#troubleshooting)
+11. [Validation checklist](#validation-checklist)
+12. [References](#references)
 
 ## Prerequisites
 
 | Requirement | Details |
 |-------------|---------|
-| **Python** | 3.10+ (`python3 --version`) |
-| **Project** | `git clone git@github.com:timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry.git` |
+| **Python** | 3.10+ with `requests` (`pip install requests`) |
 | **Account UUID** | Account Management → Account settings |
 | **OAuth client** | Account Management → Identity & access management → OAuth clients |
-| **OAuth scopes** | `account-idm-read account-idm-write iam-policies-management iam:groups:read iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write account-env-read` |
+| **OAuth scopes** | `account-idm-read account-idm-write iam-policies-management iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write` |
 | **Prior reading** | IAM-04 (policy authoring), IAM-05 (boundary design), IAM-10 (templated policies) |
 
 > ⚠️ **Safety rails (do not skip):**
 > 1. Run only against a **sanctioned test tenant** — confirm the environment ID before executing.
-> 2. Use a `PYTEST-` name prefix for lab objects so they are unmistakable.
-> 3. Always pass `--level-type environment --level-id <env-id>`. Groups/policies/boundaries are **account-level** objects; the binding grants access, and environment-scoping it confines the lab to one environment.
-> 4. Every command below runs as a **dry run by default** — nothing changes until you add `--execute`.
+> 2. Keep the `PYLAB-` name prefix so lab objects are unmistakable.
+> 3. The binding is created at **environment level**. Groups/policies/boundaries are account-level objects by API design; the binding is what grants access, and environment-scoping it confines the lab to one environment.
 
-<a id="step-1-setup"></a>
-## Step 1 — Setup
+<a id="step-0-setup"></a>
+## Step 0 — Setup
 
-```bash
-git clone git@github.com:timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry.git
-cd Python-IAM-Group-Policy-MZ-Boundry
-pip install -r requirements.txt
-cp .env.example .env    # then edit with your account UUID + OAuth client
-```
-
-Sanity-check credentials with a read-only call:
+Export your credentials (or set them in your shell profile — never hardcode them in scripts):
 
 ```bash
-python setup_group.py --list-boundaries
+export DT_ACCOUNT_UUID="<your-account-uuid>"
+export DT_CLIENT_ID="dt0s02.XXXXXXXX"
+export DT_CLIENT_SECRET="dt0s02.XXXXXXXX.YYYY..."
+export DT_ENV_ID="abc12345"          # your TEST environment id
 ```
 
-**Expected output (shape):**
-
-```
-Policy Boundaries:
-------------------------------------------------------------
-  <existing-boundary-name>
-    UUID: 469072db-e3fd-4df3-975a-60412fc9b388
-    Query: environment:management-zone IN ("...");...
-
-Total: 5 boundaries
-```
-
-✅ **Checkpoint:** a count prints without a 401 — your OAuth client works.
-
-<a id="step-2-dry-run"></a>
-## Step 2 — Preview a Team Onboarding (Dry Run)
-
-```bash
-python setup_group.py --team "PYTEST-Gamma" --security-context pytest-gamma \
-    --management-zone "PYTEST-Gamma" \
-    --policy-name "PYTEST-tpl-team-data-access" \
-    --level-type environment --level-id abc12345
-```
-
-**Expected output:**
-
-```
-============================================================
-DRY RUN - No changes will be made
-============================================================
-
-Team:              PYTEST-Gamma
-Security context:  pytest-gamma
-Management zone:   PYTEST-Gamma
-Binding level:     environment (abc12345)
-
-------------------------------------------------------------
-Status: DRY_RUN
-Message: Would onboard team 'PYTEST-Gamma': group 'PYTEST-Gamma Team' bound to
-'PYTEST-tpl-team-data-access' with team=pytest-gamma and boundary 'bnd-team-pytest-gamma'
-
-Steps completed: group_dry_run, policy_dry_run, boundary_dry_run, binding_dry_run
-```
-
-<a id="step-3-execute"></a>
-## Step 3 — Execute
-
-Add `--execute` to the same command. **Expected output:**
-
-```
-Status: SUCCESS
-Message: Team 'PYTEST-Gamma' onboarded: group 'PYTEST-Gamma Team' bound to
-'PYTEST-tpl-team-data-access' with team=pytest-gamma and boundary 'bnd-team-pytest-gamma'
-
-Steps completed: group_created, policy_created, boundary_created, binding_bound
-Group: CREATED
-  UUID: 864aad76-a7de-41a4-9f23-9894aa7241eb
-Policy: CREATED
-  UUID: 86c52dfc-deb9-4b88-84fe-3cb3cb043b3b
-Boundary: CREATED
-  UUID: 52831d58-7e3d-470a-99ec-285de6e20140
-Binding: BOUND
-```
-
-<a id="step-4-second-team"></a>
-## Step 4 — Onboard a Second Team (Watch the Policy Get Reused)
-
-```bash
-python setup_group.py --team "PYTEST-Delta" --security-context pytest-delta \
-    --policy-name "PYTEST-tpl-team-data-access" \
-    --level-type environment --level-id abc12345 --execute
-```
-
-**Expected output — note `policy_exists`:**
-
-```
-Steps completed: group_created, policy_exists, boundary_created, binding_bound
-```
-
-✅ **Checkpoint:** the second team did **not** create a second policy. One template, many bindings — that is the IAM-10 pattern working.
-
-<a id="step-5-idempotency"></a>
-## Step 5 — Prove Idempotency
-
-Re-run the exact Step 3 command. **Expected output:**
-
-```
-Status: SUCCESS
-Steps completed: group_exists, policy_exists, boundary_exists, binding_unchanged
-Binding: UNCHANGED
-```
-
-Nothing errored, nothing duplicated — the tool converges. (Under the hood, the API answers 400 "already exists" when the binding matches the desired state; the tool treats that as convergence. See IAM-12 §7.)
-
-<a id="step-6-validate"></a>
-## Step 6 — Validate
-
-**In the UI** — Account Management → Identity & access management: Groups (search `PYTEST-`), Policies (open `PYTEST-tpl-team-data-access` → see literal `${bindParam:team}`; bindings tab shows resolved values), Boundaries.
-
-**Via Python:**
+Start a Python session (`python3`) and set up the shared constants:
 
 ```python
-import requests
-from dynatrace_group_setup import DynatraceGroupSetup, load_env
+import json, os, requests
 
-load_env()
-s = DynatraceGroupSetup()
-r = requests.get("https://api.dynatrace.com/iam/v1/repo/environment/abc12345/bindings",
-                 headers=s.headers)
-group = s.get_group_by_name("PYTEST-Gamma Team")
-for b in r.json()["policyBindings"]:
-    if group["uuid"] in b.get("groups", []):
-        print(b["parameters"], b["boundaries"])
+ACCOUNT = os.environ["DT_ACCOUNT_UUID"]
+ENV_ID  = os.environ["DT_ENV_ID"]
+API     = "https://api.dynatrace.com"
 ```
 
-**Expected output:**
+<a id="step-1-get-an-oauth-token"></a>
+## Step 1 — Get an OAuth token
 
-```
-{'team': 'pytest-gamma'} ['52831d58-7e3d-470a-99ec-285de6e20140']
-```
-
-✅ **Checkpoint:** `parameters.team` equals the security context; exactly one boundary attached.
-
-<a id="step-7-cleanup"></a>
-## Step 7 — Clean Up
-
-Deletion order matters: **group first** (dropping its bindings), then policy, then boundary.
+The Account Management API does **not** use classic API tokens — it uses OAuth2 client credentials against the Dynatrace SSO, with your account as the `resource`:
 
 ```python
-from dynatrace_group_setup import DynatraceGroupSetup, load_env
-load_env()
-s = DynatraceGroupSetup()
+resp = requests.post(
+    "https://sso.dynatrace.com/sso/oauth2/token",
+    data={
+        "grant_type": "client_credentials",
+        "client_id": os.environ["DT_CLIENT_ID"],
+        "client_secret": os.environ["DT_CLIENT_SECRET"],
+        "scope": "account-idm-read account-idm-write iam-policies-management "
+                 "iam:policies:read iam:policies:write iam:bindings:read "
+                 "iam:bindings:write iam:boundaries:read iam:boundaries:write",
+        "resource": f"urn:dtaccount:{ACCOUNT}",
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
 
-for team, ctx in [("PYTEST-Gamma", "pytest-gamma"), ("PYTEST-Delta", "pytest-delta")]:
-    g = s.get_group_by_name(f"{team} Team")
-    if g: print("group:", s.delete_group(g["uuid"])["status"])
-    b = s.get_boundary_by_name(f"bnd-team-{ctx}")
-    if b: print("boundary:", s.delete_boundary(b["uuid"])["status"])
-
-p = s.get_policy_by_name("PYTEST-tpl-team-data-access", level_type="account")
-if p: print("policy:", s.delete_policy(p["uuid"])["status"])
+HEADERS = {"Authorization": f"Bearer {resp.json()['access_token']}",
+           "Content-Type": "application/json"}
 ```
 
-**Expected output:**
+**Sample result (HTTP 200):**
+
+```json
+{
+  "scope": "account-idm-read account-idm-write iam-policies-management iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write",
+  "token_type": "Bearer",
+  "expires_in": 300,
+  "access_token": "eyJhbGciOiJFUzI1NiIs...(redacted)",
+  "resource": "urn:dtaccount:<account-uuid>"
+}
+```
+
+> **Note `expires_in: 300`** — tokens live 5 minutes. Long-running scripts must re-fetch.
+
+✅ **Checkpoint:** HTTP 200 with an `access_token`. A 400 `invalid_scope` here means your OAuth client is missing one of the scopes.
+
+<a id="step-2-create-the-group"></a>
+## Step 2 — Create the group
+
+Groups live under `/iam/v1/accounts/{account}/groups`. **The payload is an ARRAY** — the most common first-timer error is posting a plain object:
+
+```python
+resp = requests.post(
+    f"{API}/iam/v1/accounts/{ACCOUNT}/groups",
+    headers=HEADERS,
+    json=[{
+        "name": "PYLAB-Checkout Team",
+        "description": "Lab: team-scoped access for checkout",
+    }],
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+GROUP_UUID = resp.json()[0]["uuid"]
+```
+
+**Sample result (HTTP 201):**
+
+```json
+[
+  {
+    "uuid": "0b7a0ab6-3e4a-4419-a70d-bdede67a0a56",
+    "name": "PYLAB-Checkout Team",
+    "owner": "LOCAL",
+    "description": "Lab: team-scoped access for checkout",
+    "hidden": false,
+    "createdAt": null,
+    "updatedAt": null
+  }
+]
+```
+
+✅ **Checkpoint:** response is an array with one object; save its `uuid`. `owner: "LOCAL"` means the group is managed here (SAML-federated groups show `"SAML"`).
+
+<a id="step-3-create-the-parameterized-policy"></a>
+## Step 3 — Create the parameterized policy
+
+One policy for ALL teams: the `${bindParam:team}` placeholders get resolved per binding (Step 5). Statement rules that matter (all live-verified — see IAM-04): **no wildcards**, comma-lists allowed, **reads** can be condition-scoped, storage **writes** cannot.
+
+```python
+statement = """\
+ALLOW environment:roles:viewer;
+ALLOW app-engine:apps:run;
+ALLOW document:documents:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN ("${bindParam:team}");
+ALLOW settings:objects:read WHERE settings:dt.security_context IN ("${bindParam:team}");
+ALLOW settings:schemas:read;
+"""
+
+resp = requests.post(
+    f"{API}/iam/v1/repo/account/{ACCOUNT}/policies",
+    headers=HEADERS,
+    json={
+        "name": "PYLAB-tpl-team-data-access",
+        "description": "Lab: parameterized team data access",
+        "statementQuery": statement,
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+POLICY_UUID = resp.json()["uuid"]
+```
+
+**Sample result (HTTP 201, abridged)** — note the API **parses your statement** into structured `statements[]`; this is where invalid permissions or wildcards get rejected with a 400:
+
+```json
+{
+  "uuid": "a20ff1ee-46fe-4a65-ac4a-fc922e5e4337",
+  "name": "PYLAB-tpl-team-data-access",
+  "description": "Lab: parameterized team data access",
+  "tags": [],
+  "statementQuery": "ALLOW environment:roles:viewer;\nALLOW app-engine:apps:run;\n...",
+  "statements": [
+    { "effect": "ALLOW", "permissions": ["environment:roles:viewer"], "conditions": null },
+    { "effect": "ALLOW", "permissions": ["app-engine:apps:run"], "conditions": null },
+    { "effect": "ALLOW", "permissions": ["document:documents:read"], "conditions": null },
+    {
+      "effect": "ALLOW",
+      "permissions": [
+        "storage:logs:read", "storage:spans:read", "storage:metrics:read",
+        "storage:events:read", "storage:bizevents:read"
+      ],
+      "conditions": [
+        {
+          "name": "storage:dt.security_context",
+          "operator": "IN",
+          "values": ["${bindParam:team}"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+✅ **Checkpoint:** HTTP 201; the `statements[]` array shows your WHERE clause as a structured condition with the **literal** `${bindParam:team}` value — the placeholder survives until binding time.
+
+<a id="step-4-create-the-boundary"></a>
+## Step 4 — Create the boundary
+
+One standalone boundary per team, hardcoded scope (the policy carries the parameterized scope; the boundary is the defense-in-depth layer — IAM-05):
+
+```python
+resp = requests.post(
+    f"{API}/iam/v1/repo/account/{ACCOUNT}/boundaries",
+    headers=HEADERS,
+    json={
+        "name": "PYLAB-bnd-team-checkout",
+        "boundaryQuery": 'storage:dt.security_context IN ("pylab-checkout");\n'
+                         'settings:dt.security_context IN ("pylab-checkout");\n',
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+BOUNDARY_UUID = resp.json()["uuid"]
+```
+
+**Sample result (HTTP 201):**
+
+```json
+{
+  "uuid": "b410aff3-e405-48e4-b6c7-35634ecbb1dd",
+  "levelType": "account",
+  "levelId": "<account-uuid>",
+  "name": "PYLAB-bnd-team-checkout",
+  "boundaryQuery": "storage:dt.security_context IN (\"pylab-checkout\");\nsettings:dt.security_context IN (\"pylab-checkout\");\n",
+  "boundaryConditions": [
+    { "name": "storage:dt.security_context",  "operator": "IN", "values": ["pylab-checkout"] },
+    { "name": "settings:dt.security_context", "operator": "IN", "values": ["pylab-checkout"] }
+  ],
+  "metadata": {}
+}
+```
+
+✅ **Checkpoint:** `levelType: "account"` — boundaries are always account-level objects; they take effect only when attached to a binding (next step). Add an `environment:management-zone IN ("...")` line only while the team still has a classic MZ (MZ2POL transitional).
+
+<a id="step-5-bind-policy-to-group"></a>
+## Step 5 — Bind policy to group
+
+The binding is where everything meets: it resolves `${bindParam:team}`, attaches the boundary, and — created at **environment** level — confines the granted access to one environment:
+
+```python
+resp = requests.post(
+    f"{API}/iam/v1/repo/environment/{ENV_ID}/bindings/{POLICY_UUID}",
+    headers=HEADERS,
+    json={
+        "groups": [GROUP_UUID],
+        "parameters": {"team": "pylab-checkout"},
+        "boundaries": [BOUNDARY_UUID],
+    },
+)
+print(resp.status_code, repr(resp.text))
+```
+
+**Sample result:**
 
 ```
-group: DELETED
-boundary: DELETED
-group: DELETED
-boundary: DELETED
-policy: DELETED
+204 ''
 ```
 
-Verify with `python setup_group.py --list-groups | grep PYTEST` → no results.
+> **Success is HTTP 204 with an EMPTY body** — don't call `.json()` on it. If you want account-wide grants instead, POST to `/iam/v1/repo/account/{ACCOUNT}/bindings/{POLICY_UUID}`.
 
-<a id="troubleshooting"></a>
+✅ **Checkpoint:** 204. The user-visible effect: members of `PYLAB-Checkout Team` can now read only data whose `dt.security_context` is `pylab-checkout`, only in environment `abc12345`.
+
+<a id="step-6-verify-what-you-built"></a>
+## Step 6 — Verify what you built
+
+Two useful reads. The quick one only lists policy UUIDs per group:
+
+```python
+resp = requests.get(
+    f"{API}/iam/v1/repo/environment/{ENV_ID}/bindings/groups/{GROUP_UUID}",
+    headers=HEADERS,
+)
+print(json.dumps(resp.json(), indent=2))
+```
+
+**Sample result (HTTP 200):**
+
+```json
+{
+  "policyUuids": [
+    "a20ff1ee-46fe-4a65-ac4a-fc922e5e4337"
+  ]
+}
+```
+
+The full listing carries the resolved **parameters and boundaries** — filter it for your group:
+
+```python
+resp = requests.get(f"{API}/iam/v1/repo/environment/{ENV_ID}/bindings", headers=HEADERS)
+mine = [b for b in resp.json()["policyBindings"] if GROUP_UUID in b.get("groups", [])]
+print(json.dumps(mine, indent=2))
+```
+
+**Sample result (HTTP 200):**
+
+```json
+[
+  {
+    "policyUuid": "a20ff1ee-46fe-4a65-ac4a-fc922e5e4337",
+    "groups": ["0b7a0ab6-3e4a-4419-a70d-bdede67a0a56"],
+    "parameters": {
+      "team": "pylab-checkout"
+    },
+    "boundaries": ["b410aff3-e405-48e4-b6c7-35634ecbb1dd"]
+  }
+]
+```
+
+✅ **Checkpoint:** `parameters.team` equals your security context and exactly one boundary UUID is attached. Also check the UI: Account Management → Identity & access management → Policies → `PYLAB-tpl-team-data-access` → bindings tab shows the resolved value.
+
+<a id="step-7-what-happens-on-a-re-run-idempotency"></a>
+## Step 7 — What happens on a re-run (idempotency)
+
+POST the exact same binding from Step 5 again:
+
+**Sample result (HTTP 400):**
+
+```json
+{
+  "error": {
+    "code": 400,
+    "message": "Policy binding cannot be created, such binding already exists: level type: environment,level id: abc12345, policy uuid: a20ff1ee-46fe-4a65-ac4a-fc922e5e4337, groups: [0b7a0ab6-3e4a-4419-a70d-bdede67a0a56], parameters: {team=pylab-checkout}",
+    "errorsMap": null
+  }
+}
+```
+
+> **This 400 is convergence, not failure.** When the desired state is identical to the current state, both the create endpoint and the per-group update endpoint (`POST .../bindings/{policy}/{group}`) answer "already exists." Any tooling you build on these calls should treat that message as success-unchanged — see IAM-12 §7.
+
+<a id="step-8-clean-up"></a>
+## Step 8 — Clean up
+
+**Deletion order matters:** the group first (removing it drops its bindings), then the policy (a still-bound policy returns 400), then the boundary:
+
+```python
+r1 = requests.delete(f"{API}/iam/v1/accounts/{ACCOUNT}/groups/{GROUP_UUID}", headers=HEADERS)
+r2 = requests.delete(f"{API}/iam/v1/repo/account/{ACCOUNT}/policies/{POLICY_UUID}", headers=HEADERS)
+r3 = requests.delete(f"{API}/iam/v1/repo/account/{ACCOUNT}/boundaries/{BOUNDARY_UUID}", headers=HEADERS)
+print(r1.status_code, r2.status_code, r3.status_code)
+```
+
+**Sample result:**
+
+```
+200 204 204
+```
+
+> Quirk: group deletion answers `200` with body `1` (count of deleted groups); policy and boundary deletion answer `204` with empty bodies.
+
+✅ **Checkpoint:** search `PYLAB-` in the UI — nothing remains.
+
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `Error: Missing environment variables` | `.env` absent or incomplete | Copy `.env.example` → `.env`, fill all four values |
-| 401 / `Invalid OAuth2 credentials` | Wrong client secret or scopes | Recreate the OAuth client with the full scope list |
-| 400 `Invalid permission name` when creating a custom policy | Nonexistent permission or wildcard | See verified rules in **IAM-04** and the error table in **IAM-12 §7** |
-| Binding: `ERROR ... already exists` on old tool versions | Pre-07/2026 version without convergence handling | `git pull` — re-runs now report `UNCHANGED` |
-| Policy deletion 400 | Policy still bound to a group | Delete the group (drops bindings) before the policy |
+| HTTP | Message (abridged) | Cause | Fix |
+|------|--------------------|-------|-----|
+| 400 | `invalid_scope` (token call) | OAuth client missing scopes | Recreate client with the full scope list |
+| 401 | Unauthorized | Token expired (5-min lifetime) | Re-run Step 1 |
+| 400 | `payload.map is not a function` | Group POST got an object | Wrap payload in `[{...}]` |
+| 400 | `ALLOW or DENY must be followed by a permission...` | Wildcard in statement | No wildcards — enumerate permissions |
+| 400 | `Invalid condition name for permission storage:logs:write` | WHERE on a storage write | Storage writes take no conditions |
+| 400 | `such binding already exists` | Re-posting identical binding | That's convergence — treat as success (Step 7) |
+| 400 | on policy DELETE | Policy still bound | Delete the group first (Step 8 order) |
 
-<a id="validation-checklist"></a>
-## Validation Checklist
+## Validation checklist
 
-- [ ] Read-only `--list-boundaries` worked before any writes
-- [ ] Dry run showed all four steps as `*_dry_run`
-- [ ] First team: `policy_created` · second team: `policy_exists` (shared template)
-- [ ] Re-run reported `binding_unchanged` — no duplicates, no errors
-- [ ] API check showed `parameters.team` + exactly 1 boundary
-- [ ] Cleanup removed every `PYTEST-` object
+- [ ] Token response showed `expires_in: 300` and your account as `resource`
+- [ ] Group create returned an **array** with `owner: "LOCAL"`
+- [ ] Policy create echoed structured `statements[]` with the literal `${bindParam:team}` condition
+- [ ] Boundary create showed `levelType: "account"` and parsed `boundaryConditions`
+- [ ] Binding create returned **204 with an empty body**
+- [ ] Full bindings list showed `parameters` + `boundaries` for your group
+- [ ] Re-posting the binding returned 400 "already exists" (convergence)
+- [ ] Cleanup returned `200, 204, 204` and the UI shows no `PYLAB-` objects
 
-<a id="references"></a>
 ## References
 
-- **IAM-04** Policy Authoring (verified statement syntax) · **IAM-05** Boundary Design · **IAM-10** Templated Policy Assignments · **IAM-12** API Provisioning (curl flavor) · **IAM-95** Terraform lab (same pattern, IaC flavor)
+- **IAM-04** Policy Authoring (verified statement syntax) · **IAM-05** Boundary Design · **IAM-10** Templated Policy Assignments · **IAM-12** API Provisioning scripts (curl flavor) · **IAM-95** Terraform lab (same pattern as IaC)
 - **MZ2POL series** — migrating off Management Zones onto this pattern
-- Repo: [Python-IAM-Group-Policy-MZ-Boundry](https://github.com/timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry) · Reference utility: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-IAM-Utility-3.0)
+- Productionized version of exactly these calls (dry-run CLI, idempotent re-runs, delete helpers): [Python-IAM-Group-Policy-MZ-Boundry](https://github.com/timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry) · Full-featured utility: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-IAM-Utility-3.0)
 
 ---
 

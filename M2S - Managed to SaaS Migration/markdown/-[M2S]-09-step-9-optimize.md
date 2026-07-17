@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/17/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -296,7 +296,7 @@ Track the problem trend over the first weeks post-migration. A healthy baseline 
 ```dql
 // Problem trend over last 7 days — expect a declining curve as baselines establish
 fetch dt.davis.problems, from:-7d
-| makeTimeseries problemCount = count(default: 0), interval: 1d
+| makeTimeseries problemCount = count(default: 0), interval: 24h
 ```
 
 ```dql
