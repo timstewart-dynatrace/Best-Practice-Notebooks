@@ -1,6 +1,6 @@
 # OPLOGS-07: Analytics & Dashboards
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 07/08/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Aggregation, Time Series, and Visualization Queries
 This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.
@@ -313,7 +313,7 @@ Continue to **OPLOGS-08: Security & Data Protection** for data protection patter
 <a id="references"></a>
 ## 📚 References
 - [DQL Aggregation Functions](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions)
-- [DQL makeTimeseries](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/makeTimeseries)
+- [DQL makeTimeseries](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries)
 - [Dynatrace Dashboards](https://docs.dynatrace.com/docs/observe-and-explore/dashboards-and-notebooks/dashboards-new)
 
 ---

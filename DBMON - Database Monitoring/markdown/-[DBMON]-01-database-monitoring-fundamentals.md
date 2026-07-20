@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 06/10/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -201,13 +201,13 @@ fetch spans, from:-24h
 
 While OneAgent captures database calls from the application side (client spans), ActiveGate extensions monitor the database server itself. This provides internal metrics that are invisible from the application perspective.
 
-> **Recommendation for new customers:** start with **Extensions 3rd-gen** (the current generation, sprint-1.337+). Extensions 2.0 is still supported for existing installs; Extensions 3rd-gen is the default for net-new database monitoring.
+> **Recommendation for new customers:** build on **Extensions 2.0** — the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Note that recent Dynatrace doc pages say simply "Extensions" and mean Extensions 2.0.
 
 ### Extension Architecture
 
 | Component | Role |
 |-----------|------|
-| **ActiveGate** | Hosts the extension runtime; must be **host-based** (not Kubernetes-based) for Extensions 2.0 — Extensions 3rd-gen support is evolving, check the Dynatrace docs for current K8s status |
+| **ActiveGate** | Hosts the extension runtime; must be **host-based** (not Kubernetes-based) for Extensions 2.0 — verify current Kubernetes-based ActiveGate support against the Dynatrace docs |
 | **Extension Package** | YAML-defined declarative package executed by the Extension Execution Controller (EEC). Most database extensions ship with built-in SQL/Prometheus/SNMP data sources; custom logic can be added via an optional Python data source |
 | **Monitoring Configuration** | Defines connection string, credentials, polling interval, and the destination Grail bucket |
 | **`default_database_monitoring` bucket** | Where extension logs land by default; reference this bucket in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05) |

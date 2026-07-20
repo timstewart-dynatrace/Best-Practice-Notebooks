@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 06/05/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -131,7 +131,7 @@ The Clouds App is the modern onboarding path for SaaS tenants. It is **polling-b
 
 **AWS Organizations (multi-account)**
 
-For org-wide onboarding, use the **Settings app** (not the Clouds App) to create an organization-monitoring configuration. Requires an AWS Organizations delegated admin with permission to run StackSets in the management region. See the [Onboard AWS Organizations](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/onboard-aws-organizations) docs.
+For org-wide onboarding, use the **Settings app** (not the Clouds App) to create an organization-monitoring configuration. Requires an AWS Organizations delegated admin with permission to run StackSets in the management region. See the [Onboard AWS Organizations](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-organizations) docs.
 
 **Classic: Settings UI / ActiveGate polling**
 
@@ -199,7 +199,7 @@ The Clouds App's **EventBridge** option (Advanced path) registers an [EventBridg
 > **In community practice**, EventBridge ingestion is most valuable for **security and operational signals AWS already produces** (GuardDuty, Inspector, Health Dashboard, AutoScaling) rather than for application telemetry — application events are better generated directly by your code and pushed to OneAgent or the Business Events API.
 
 
-> <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Onboard AWS Organizations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/onboard-aws-organizations), [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html), [EventBridge API destinations (AWS docs)](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html). **Derived:** the Advanced-path control surface table synthesizes the public docs with field-observed Clouds App UI; verify exact labels in your tenant. The multi-account pattern matrix and the OU-StackSet rollout cadence are field-observed — no DT-published guidance ranks them. **Softened:** the Recommended → Recommended+Custom → trim-from-Auto-Discovery promotion sequence, the org-vs-per-OU break-point at ~500 accounts, and the "EventBridge for security signals, OneAgent for app telemetry" framing are community / SE guidance, not documented best practices.</sub>
+> <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Onboard AWS Organizations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-organizations), [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html), [EventBridge API destinations (AWS docs)](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html). **Derived:** the Advanced-path control surface table synthesizes the public docs with field-observed Clouds App UI; verify exact labels in your tenant. The multi-account pattern matrix and the OU-StackSet rollout cadence are field-observed — no DT-published guidance ranks them. **Softened:** the Recommended → Recommended+Custom → trim-from-Auto-Discovery promotion sequence, the org-vs-per-OU break-point at ~500 accounts, and the "EventBridge for security signals, OneAgent for app telemetry" framing are community / SE guidance, not documented best practices.</sub>
 
 <a id="querying-aws-entities"></a>
 
@@ -213,7 +213,7 @@ The Clouds App's **EventBridge** option (Advanced path) registers an [EventBridg
 
 A common operational pattern: identify AWS resources that haven't been onboarded into your tagging governance scheme. This becomes a recurring dashboard tile or a Davis-triggered Workflow.
 
-> <sub>**Sources:** [DQL fetch reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language/dql-commands#fetch), [Entity model (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/entities/entity-model). Entity types verified at [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services).</sub>
+> <sub>**Sources:** [DQL fetch reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands#fetch), [Entity model (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-entities). Entity types verified at [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services).</sub>
 
 ```dql
 // List all EC2 instances with their names and instance types
@@ -283,7 +283,7 @@ fetch dt.entity.ec2_instance
 
 ### EC2 CPU Usage
 
-> <sub>**Sources:** [timeseries command (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language/dql-commands#timeseries), [Semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/semantic-dictionary) — `dt.host.cpu.usage`, `cloud.aws.lambda.*` metric definitions, [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology). **Derived:** the `arrayAvg` / `arraySum` post-aggregation pattern is the canonical idiom for sorting a `timeseries` result by total / mean per dimension — see the DQL examples skill for variants.</sub>
+> <sub>**Sources:** [timeseries command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands#timeseries), [Semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/semantic-dictionary) — `dt.host.cpu.usage`, `cloud.aws.lambda.*` metric definitions, [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology). **Derived:** the `arrayAvg` / `arraySum` post-aggregation pattern is the canonical idiom for sorting a `timeseries` result by total / mean per dimension — see the DQL examples skill for variants.</sub>
 
 ```dql
 // EC2 CPU usage over the last 6 hours, top 10 busiest instances
@@ -316,7 +316,7 @@ timeseries errors = sum(cloud.aws.lambda.errors), from:-6h, by:{dt.entity.aws_la
 
 ### Community Pattern — Lambda Health Score (Errors per Invocation)
 
-Inspired by the [Cost Allocation Dashboard (Dynatrace community-examples)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/Cost%20Allocation%20%5Bby%20Dynatrace%5D) pattern of joining two metrics by a shared dimension. Useful as a single-tile signal for SRE dashboards. Community-derived — adapt to your tenant's metric availability.
+Inspired by the [Cost Allocation Dashboard (Dynatrace community-examples)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/cost-allocation) pattern of joining two metrics by a shared dimension. Useful as a single-tile signal for SRE dashboards. Community-derived — adapt to your tenant's metric availability.
 
 ```dql
 // Lambda error rate (errors/invocations) over 24h by function — community-inspired pattern
@@ -626,7 +626,7 @@ Primary references for everything in this notebook. See REFERENCE.md for the ful
 Maintained by Dynatrace on GitHub. Pin to a release before deploying to production — `main` is a moving target.
 
 - [Dynatrace Operator (dynatrace-operator)](https://github.com/Dynatrace/dynatrace-operator) — DynaKube CRD + Kubernetes Operator (DT-published, last verified 06/05/2026). The route for EKS / AWS-hosted Kubernetes — see CLOUD-03.
-- [S3 Log Forwarder (dynatrace-aws-platform-monitoring-s3-log-forwarder)](https://github.com/Dynatrace/dynatrace-aws-platform-monitoring-s3-log-forwarder) — Serverless application pushing logs from Amazon S3 to Dynatrace (DT-published, last verified 06/05/2026). Use for log sources written to S3 by AWS services that don't write to CloudWatch Logs directly.
+- [S3 Log Forwarder (dynatrace-aws-s3-log-forwarder)](https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder) — Serverless application pushing logs from Amazon S3 to Dynatrace (DT-published, last verified 06/05/2026). Use for log sources written to S3 by AWS services that don't write to CloudWatch Logs directly.
 
 > **Disclaimer — Lambda extension distribution:** Dynatrace's AWS Lambda monitoring is distributed via [AWS Lambda Layers and the AWS Serverless Application Repository (SAR)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration), not as a single open-source repo. The previously-archived `dt-awslayertool` (2021) is not a current artifact. Follow the canonical Lambda docs in CLOUD-04 rather than searching GitHub.
 
@@ -634,9 +634,9 @@ Maintained by Dynatrace on GitHub. Pin to a release before deploying to producti
 
 ⚠️ **Disclaimer:** These are community-curated examples in the [Dynatrace/community-examples](https://github.com/Dynatrace/community-examples) repository. They are Dynatrace-published but explicitly marked as community contributions — not officially supported, not part of the product, and may lag behind current Dynatrace features. Verify against the latest DQL syntax and your tenant's schema before adopting. The repo is actively maintained (last verified 06/05/2026).
 
-- [Cost Allocation Dashboard (community)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/Cost%20Allocation%20%5Bby%20Dynatrace%5D) — DPS cost allocation patterns; the metric-join pattern in §5's Lambda Health Score is inspired by it
-- [DQL Usage Overview (community)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/DQL%20Usage%20Overview) — DQL execution cost monitoring; useful for understanding which AWS queries are expensive
-- [CI-CD Pipeline App (community)](https://github.com/Dynatrace/community-examples/tree/main/dynatrace%20apps/CI-CD%20Pipeline) — pipeline observability via OpenPipeline; integrates with AWS CodePipeline / CodeBuild signals
+- [Cost Allocation Dashboard (community)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/cost-allocation) — DPS cost allocation patterns; the metric-join pattern in §5's Lambda Health Score is inspired by it
+- [DQL Usage Overview (community)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/dql-usage-overview) — DQL execution cost monitoring; useful for understanding which AWS queries are expensive
+- [CI-CD Pipeline App (community)](https://github.com/Dynatrace/community-examples/tree/main/dynatrace-apps/ci-cd-pipeline) — pipeline observability via OpenPipeline; integrates with AWS CodePipeline / CodeBuild signals
 
 ### AWS-Side References (Primary, External)
 

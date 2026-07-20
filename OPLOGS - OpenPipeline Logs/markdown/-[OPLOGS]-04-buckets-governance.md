@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -492,9 +492,9 @@ Continue to **OPLOGS-05: Querying & Parsing** to learn advanced DQL techniques f
 
 <a id="references"></a>
 ## 📚 References
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/data-model/buckets)
-- [Log Storage Configuration](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/log-monitoring-data-storage)
-- [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/data-retention)
+- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Log Storage Configuration](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
+- [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [IAM Policies](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
 
 ---

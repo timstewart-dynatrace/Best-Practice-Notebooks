@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -565,9 +565,9 @@ Continue to **OPLOGS-04: Buckets & Data Governance** to learn about storage mana
 <a id="references"></a>
 ## 📚 References
 - [OpenPipeline Overview](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [OpenPipeline Processors](https://docs.dynatrace.com/docs/platform/openpipeline/configuration/processors)
-- [Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/log-processing/extract-metrics)
-- [Event Generation](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/log-processing/create-business-events)
+- [OpenPipeline Processors](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline)
+- [Event Generation](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans)
 - [DPL Pattern Language](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
 
 ---

@@ -1,6 +1,6 @@
 # IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API
 
-> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 07/16/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
+> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 07/18/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
 
 ## Overview
 
@@ -26,6 +26,8 @@ This is one of **three provisioning flavors**:
 
 **Time:** 30–40 minutes | **Difficulty:** Beginner-friendly | **Cost:** No consumption impact (IAM objects only)
 
+---
+
 ## Table of Contents
 
 1. [Step 0 — Setup](#step-0-setup)
@@ -40,6 +42,8 @@ This is one of **three provisioning flavors**:
 10. [Troubleshooting](#troubleshooting)
 11. [Validation checklist](#validation-checklist)
 12. [References](#references)
+
+---
 
 ## Prerequisites
 
@@ -379,6 +383,7 @@ print(r1.status_code, r2.status_code, r3.status_code)
 
 ✅ **Checkpoint:** search `PYLAB-` in the UI — nothing remains.
 
+<a id="troubleshooting"></a>
 ## Troubleshooting
 
 | HTTP | Message (abridged) | Cause | Fix |
@@ -391,6 +396,7 @@ print(r1.status_code, r2.status_code, r3.status_code)
 | 400 | `such binding already exists` | Re-posting identical binding | That's convergence — treat as success (Step 7) |
 | 400 | on policy DELETE | Policy still bound | Delete the group first (Step 8 order) |
 
+<a id="validation-checklist"></a>
 ## Validation checklist
 
 - [ ] Token response showed `expires_in: 300` and your account as `resource`
@@ -402,6 +408,7 @@ print(r1.status_code, r2.status_code, r3.status_code)
 - [ ] Re-posting the binding returned 400 "already exists" (convergence)
 - [ ] Cleanup returned `200, 204, 204` and the UI shows no `PYLAB-` objects
 
+<a id="references"></a>
 ## References
 
 - **IAM-04** Policy Authoring (verified statement syntax) · **IAM-05** Boundary Design · **IAM-10** Templated Policy Assignments · **IAM-12** API Provisioning scripts (curl flavor) · **IAM-95** Terraform lab (same pattern as IaC)

@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -310,7 +310,7 @@ Continue to **OPLOGS-03: Querying & Parsing** to learn DQL syntax and DPL parsin
 ## 📚 References
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [Log Ingest API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)
-- [OTLP Log Ingestion](https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/getting-started/logs)
+- [OTLP Log Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs)
 
 ---
 

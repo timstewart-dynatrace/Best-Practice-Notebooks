@@ -1,6 +1,6 @@
 # SPANS-04: Service Dependencies & Flow Analysis
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 04/26/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Mapping Your Distributed System
 This notebook teaches you how to use span data to understand service relationships, analyze request flows, and identify critical dependencies in your system.
@@ -246,6 +246,24 @@ Analyze asynchronous messaging patterns using PRODUCER and CONSUMER spans:
 | `messaging.system` | Kafka, RabbitMQ, etc. |
 | `messaging.destination.name` | Topic/queue name |
 | `messaging.operation` | publish, receive, etc. |
+
+### Trace Context Across Message Brokers
+
+PRODUCER and CONSUMER spans only join the **same trace** if trace context travels inside the message. Whether that happens automatically depends on the client library:
+
+| Broker | Auto-instrumentation | Implication |
+|--------|----------------------|-------------|
+| Kafka, RabbitMQ | First-class — OpenTelemetry Java lists Kafka `0.11+` and RabbitMQ `2.7+` | `traceparent` is injected and extracted for you |
+| **Google Cloud Pub/Sub** | **Absent from that supported-libraries list** | Context is **not** propagated for you — the trace breaks silently at each hop |
+
+Where auto-instrumentation is missing, carry the W3C `traceparent` yourself through the message `attributes` map:
+
+- **Publisher:** inject the active context as a `traceparent` attribute before publishing.
+- **Subscriber:** read `traceparent` from the message attributes and use it as the parent when starting the consumer span.
+
+**Symptom to look for:** consumer spans that are *root* spans. If the queries below show healthy producer **and** consumer volume for a destination but the two never appear in one trace, missing context propagation is the usual cause.
+
+> <sub>Auto-instrumentation coverage varies by language and client version — verify for your own runtime rather than assuming. **Sources:** [Span and trace context propagation (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions); [OpenTelemetry Java supported libraries (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md)</sub>
 
 ```dql
 // Find message producers (services sending async messages)

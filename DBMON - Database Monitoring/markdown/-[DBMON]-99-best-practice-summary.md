@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 7 | Prefer Extensions 3rd-gen for new database integrations | Sprint-1.337+ default for net-new; Extensions 2.0 still supported for existing installs. Extensions 2.0 require **host-based ActiveGate** (K8s-based AG not supported); 3rd-gen K8s support is evolving — check Dynatrace docs | **Critical** | Deployment |
+| 7 | Build new database integrations on Extensions 2.0 | Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Extensions 2.0 require **host-based ActiveGate** (K8s-based AG not supported) | **Critical** | Deployment |
 | 7b | Extensions are YAML-defined with optional Python data sources | YAML package executed by EEC; built-in SQL/Prometheus/SNMP data sources cover most cases; Python data source is for custom logic only — not required by default | **Recommended** | Architecture |
 | 7c | Route extension logs to the `default_database_monitoring` bucket | Default destination for extension log output; reference this bucket name in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05) | **Recommended** | IAM/Bucket |
 | 8 | Install PostgreSQL extension | Captures: connections, transactions/sec, tuple operations, table/index sizes, lock waits, replication lag | **Recommended** | Extension |

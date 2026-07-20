@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/20/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -39,7 +39,7 @@ Dynatrace offers multiple integration methods depending on the data source:
 |--------|-------------|--------------|
 | Clouds App | AWS (GA) / Azure (preview) — direct connection | No |
 | AG-Polling (Classic) | GCP today; AWS/Azure without Clouds app; restricted networks | Yes |
-| Extensions (3rd-gen / 2.0) | Custom data sources, SaaS APIs, SNMP, on-host integrations | Yes |
+| Extensions 2.0 | Custom data sources, SaaS APIs, SNMP, on-host integrations | Yes |
 | OTel Direct | OTel-instrumented apps and collectors | No (OTLP) |
 For environments where SVG doesn't render
 -->
@@ -48,7 +48,7 @@ For environments where SVG doesn't render
 |--------|----------|---------------------|
 | **Clouds App (recommended where supported)** | AWS (GA), Azure (preview); GCP not yet available | No (direct connection) |
 | **Cloud Integrations (Classic / AG-polling)** | GCP today; AWS / Azure where Clouds app is not used | Yes |
-| **Extensions 3rd-gen *(recommended for new customers)*** | Custom data sources, SaaS APIs, on-host integrations | Yes (AG-hosted) |
+| **Extensions 2.0** *(current framework)* | Custom data sources, SaaS APIs, on-host integrations | Yes (AG-hosted) |
 | **Extensions 2.0 *(legacy / existing installs)*** | Pre-existing Extension 2.0 packages | Yes |
 | **OpenTelemetry** | OTel-instrumented apps | No (direct OTLP ingest) |
 | **Log Ingest** | External log sources | Optional (AG can route) |
@@ -62,7 +62,7 @@ For environments where SVG doesn't render
 | **Azure** | Clouds app (preview) — direct connection |
 | **GCP** | AG-based polling (Clouds app not yet available); review Azure Native and GCP push-based as alternatives |
 | **AWS Lambda** | Clouds app + DT_TAGS env var (sprint-1.337) for tag propagation |
-| **Custom DB / SaaS / SNMP** | Extensions 3rd-gen on AG |
+| **Custom DB / SaaS / SNMP** | Extensions 2.0 on AG |
 | **OTel-instrumented app** | OTLP ingest direct to Dynatrace |
 
 ### Why Integrate Before OneAgent?
@@ -201,7 +201,7 @@ The GCP integration uses Cloud Monitoring (formerly Stackdriver) APIs.
 
 Extensions are Dynatrace's framework for integrating any data source — databases, SaaS platforms, network devices, on-host integrations, and more.
 
-> **Recommendation for new customers:** start with **Extensions 3rd-gen** (the current generation). Extensions 2.0 is still supported for existing installs but Extensions 3rd-gen is the default path for net-new integrations.
+> **Recommendation for new customers:** build on **Extensions 2.0** — the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Recent Dynatrace doc pages say simply "Extensions" and mean Extensions 2.0.
 
 ![Extension Execution Flow](images/04-extension-execution-flow.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -262,7 +262,7 @@ activeGate:
 
 For SaaS platforms without a pre-built extension, you can build a custom extension:
 
-1. Use the Extensions SDK (3rd-gen for new development)
+1. Use the Extensions 2.0 SDK
 2. Define metrics schema in YAML
 3. Write the polling logic
 4. Package and upload to Dynatrace
@@ -421,7 +421,7 @@ With cloud and SaaS integrations configured:
 - [ ] AWS / Azure / GCP integration configured (Clouds app where supported, AG polling for GCP)
 - [ ] Required cloud permissions granted
 - [ ] ActiveGate assigned for Extensions
-- [ ] Extensions 3rd-gen evaluated as default for net-new integrations
+- [ ] Extensions 2.0 evaluated for custom integrations; any remaining EF1.0 extensions identified for migration
 - [ ] Key SaaS platforms identified for integration
 - [ ] Extensions installed from Hub
 - [ ] Data verified flowing into Dynatrace
@@ -435,7 +435,7 @@ In this notebook, you learned:
 - The integration method matrix (Clouds app / AG polling / Extensions / OTel / Ingest APIs)
 - Per-provider status (AWS GA, Azure preview, GCP not-yet-Clouds-app)
 - AWS, Azure, and GCP setup paths
-- Extensions framework with 3rd-gen as the new-customer default
+- Extensions 2.0 as the current extensions framework
 - Dynatrace Hub for discovery
 - Common SaaS integration patterns
 - DQL queries to verify integrations are landing in topology

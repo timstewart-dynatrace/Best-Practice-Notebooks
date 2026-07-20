@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 05/29/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -162,19 +162,19 @@ fetch dt.entity.azure_vm
 ```dql
 // Count Azure VMs and Web Apps
 fetch dt.entity.azure_vm
-| summarize provider = "Azure", resource_type = "Virtual Machine", resource_count = count()
+| summarize resource_count = count()
+| fieldsAdd provider = "Azure", resource_type = "Virtual Machine"
 | append [
     fetch dt.entity.azure_web_app
-    | summarize provider = "Azure", resource_type = "Web App", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "Azure", resource_type = "Web App"
   ]
 | append [
     fetch dt.entity.azure_sql_database
-    | summarize provider = "Azure", resource_type = "SQL Database", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "Azure", resource_type = "SQL Database"
   ]
 | sort resource_count desc
-// ]
-// ]
-
 ```
 
 ### List Azure Web Apps

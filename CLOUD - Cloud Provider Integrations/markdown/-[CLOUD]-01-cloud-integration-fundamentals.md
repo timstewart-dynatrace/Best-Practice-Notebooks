@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -200,29 +200,23 @@ This query uses `append` to combine entity counts from multiple cloud providers 
 ```dql
 // Compare cloud resource counts across providers
 fetch dt.entity.ec2_instance
-| summarize provider = "AWS", resource_type = "Compute (EC2)", resource_count = count()
+| summarize resource_count = count()
+| fieldsAdd provider = "AWS", resource_type = "Compute (EC2)"
 | append [
     fetch dt.entity.azure_vm
-    | summarize provider = "Azure", resource_type = "Compute (VM)", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "Azure", resource_type = "Compute (VM)"
   ]
 | append [
     fetch dt.entity.aws_lambda_function
-    | summarize provider = "AWS", resource_type = "Serverless (Lambda)", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "AWS", resource_type = "Serverless (Lambda)"
   ]
 | sort provider asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_LAMBDA_FUNCTION
-// | summarize provider = "AWS", resource_type = "Compute (EC2)", resource_count = count()
-// | append [
-// smartscapeNodes AWS_LAMBDA_FUNCTION
-// | summarize provider = "Azure", resource_type = "Compute (VM)", resource_count = count()
-// ]
-// | append [
-// smartscapeNodes AWS_LAMBDA_FUNCTION
-// | summarize provider = "AWS", resource_type = "Serverless (Lambda)", resource_count = count()
-// ]
-// | sort provider asc
+// Note: Smartscape node types cover infrastructure/service topology
+// (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
+// (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
 
 ```
 

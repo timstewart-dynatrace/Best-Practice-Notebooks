@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -20,7 +20,7 @@ Three sprint-1.337 changes affect a Managed → SaaS migration:
 2. **Configuration API → Settings v2 acceleration** — Dynatrace Managed exposes the older Configuration API for many resources; the SaaS target's Settings v2 surface now covers more of those endpoints. Migration tooling (M2S-04/05) should target Settings v2 wherever possible. Plan for the legacy/v2 split where Managed has a unique Configuration API endpoint.
 3. **Platform tokens** for new automation. Classic `dt0c01` still works for legacy paths, but new SaaS pipelines should default to `dt0s16` Platform tokens (`Authorization: Bearer …`). Note: `dt0s01` is a separate SCIM/account-management token — it is NOT a Platform Token prefix and should not be used for environment-level automation.
 
-**Extensions 3rd-gen API** (ToDo #1) — if Managed has custom 2nd-gen Extensions, migration to SaaS is also the natural moment to graduate to 3rd-gen via the Dynatrace API Application → Extensions surface.
+**Extensions review** (ToDo #1) — if Managed carries custom **Extensions Framework 1.0** extensions, migration to SaaS is the natural moment to rebuild them as **Extensions 2.0**, the current extensions framework. EF1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Extensions 2.0 are managed via the Dynatrace API Application → Extensions surface.
 
 ---
 
@@ -335,12 +335,12 @@ The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-u
 
 | Requirement | Details |
 |-------------|----------|
-| **Managed version** | 1.294 or later |
-| **Version alignment** | Best results when Managed and SaaS are on the same major version (e.g., both 1.294.x) |
+| **Managed version** | No fixed minimum in the SaaS Upgrade Assistant docs — align to the same *major* version as the target SaaS tenant (verify the current requirement in docs) |
+| **Version alignment** | Export from the same **major** version as the target SaaS environment to avoid false-positive migration failures (docs example: Managed 1.284.x → SaaS 1.284.x) |
 | **IAM policy** | `upgrade-assistant:environments:write` to operate the app, plus `app-engine:apps:install` to install it — both assigned in Account Management |
 | **Installation** | Install the SaaS Upgrade Assistant app on your target SaaS tenant |
 
-> **Tip:** Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.
+> **Tip:** Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.</cell id="m2s-01-cell-23">
 
 <a id="what-migrates-and-what-doesnt"></a>
 

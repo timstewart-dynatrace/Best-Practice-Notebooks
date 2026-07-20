@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -353,6 +353,22 @@ Install new SaaS-connected ActiveGates in parallel with existing Managed ActiveG
 4. **Decommission Managed AGs** after all agents are migrated
 
 This approach maintains monitoring continuity and provides easy rollback if issues occur.
+
+---
+
+### 3.6 ActiveGate Footprint for Cloud-Native and Serverless Estates
+
+The sizing table above is keyed on **routed host count** — the right model for a VM-heavy estate. A Cloud Run / GKE / OTLP-heavy estate routes very little through ActiveGates, so its AG footprint is minimal and driven by specific needs rather than by total workload count:
+
+| Cloud-native need | ActiveGate involvement |
+|-------------------|------------------------|
+| **Cloud Run / OTLP apps → SaaS** | Typically none — telemetry goes to the SaaS ingest/OTLP endpoints directly (or via an existing routing AG only if the network requires it) |
+| **GKE OneAgent (DynaKube) → SaaS** | Direct, or via an in-cluster ActiveGate the Dynatrace Operator can deploy — not sized from the host table |
+| **GCP log forwarding** | Runs as a container workload (Pub/Sub + forwarder), **not** an ActiveGate — see **CLOUD-06: GCP Integration** for forwarder sizing |
+| **Private synthetic monitoring** | Dedicated synthetic ActiveGate(s) — sized by synthetic load, not routed hosts |
+| **Residual VMs / VMware / Extensions 2.0** | Host-based ActiveGate(s) sized normally for just those remaining hosts |
+
+> **Rule of thumb:** For a predominantly cloud-native estate, size ActiveGates for the *residual* host/VM count plus any private-synthetic and extension needs — not for the total workload count. Most Cloud Run and OTLP traffic never touches an ActiveGate.
 
 ---
 

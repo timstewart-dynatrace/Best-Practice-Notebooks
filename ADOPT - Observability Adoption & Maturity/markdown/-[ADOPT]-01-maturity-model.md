@@ -1,6 +1,6 @@
 # ADOPT-01: Observability Maturity Model
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -11,7 +11,7 @@ Observability maturity is not a binary state — organizations progress through 
 Sprint 1.337 brought three changes that map directly onto the adoption maturity model documented in this series — they each represent a platform-evolution marker that mature programs should be tracking:
 
 1. **OneAgent primary fields/tags at the source** (top-level `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` + customer-defined primary tags) — **maturity marker:** `ADOPTING` programs surface these in 1-3 dashboards; `MATURE` programs use them to drive bucket routing, IAM ABAC, and cost allocation; `OPTIMIZED` programs have phased out OpenPipeline parse processors for OneAgent-instrumented data.
-2. **Extensions 3rd-gen API recommendation** (managed via Dynatrace API Application → Extensions, Platform tokens) — **maturity marker:** measure adoption of 3rd-gen Extensions vs lingering 2nd-gen. Track this as a target for the next quarterly health review (ADOPT-02).
+2. **Extensions 2.0 adoption** (managed via the Dynatrace API Application → Extensions surface, Platform tokens) — **maturity marker:** measure migration off Extensions Framework 1.0 onto **Extensions 2.0**, the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Track this as a target for the next quarterly health review (ADOPT-02).
 3. **OneAgent + OpenTelemetry-injector coexistence guidance** (K8S-11 § 2a) — **maturity marker:** programs running both injectors need explicit per-namespace decisions. `MATURE` programs document the canonical split (e.g., OTel-managed namespaces excluded from OneAgent injection); `OPTIMIZED` programs enforce it via OPA/Conftest gates.
 
 Add these to the platform-health-assessment checklist in ADOPT-02 and the success metrics in ADOPT-03.

@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 07/01/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -36,7 +36,7 @@ A new 2026 tenant should default to these choices unless there is a specific rea
 |---|---|---|
 | API token | **Platform Token** (`dt0s16`) with `Authorization: Bearer` | Sprint-1.337 default; aligns with Gen3 IAM model. Classic API Tokens (`dt0c01`, `Authorization: Api-Token`) only for legacy paths. |
 | Configuration | **Settings v2** / Configuration as Code (Terraform `dynatrace_settings`, Monaco v2) | Sprint-1.337 announced Configuration API endpoints have Settings v2 equivalents. Plan automation around Settings v2. |
-| Extensions | **Extensions 3rd-gen** (managed via Dynatrace API Application → Extensions) | Only recommended path for new customers. |
+| Extensions | **Extensions 2.0** (managed via the Dynatrace API Application → Extensions surface) | Current extensions framework; EF1.0 end of support 2025-03-31. |
 | Tagging at source | **Primary fields/tags at OneAgent install** via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (single tags-hub form, June 2026; prefix written explicitly) | OneAgent attribute enrichment (1.331+) emits these on every signal at ingest. |
 | Boundary field | **`dt.security_context`** for data + IAM scoping | Gen3 standard; segments + this field replace legacy Management Zones. |
 | IAM policies | **Parameterized policies** bound to groups via binding parameters | Avoids N-copies-of-similar-policy maintenance burden. |

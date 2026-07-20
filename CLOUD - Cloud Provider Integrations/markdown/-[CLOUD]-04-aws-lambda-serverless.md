@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 04/26/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -71,12 +71,11 @@ Dynatrace monitors Lambda functions through two complementary approaches:
 
 | Metric | Description | Healthy Range |
 |---|---|---|
-| `cloud.aws.lambda.invocations` | Total invocations | Application-dependent |
-| `cloud.aws.lambda.duration` | Execution time (ms) | < function timeout |
-| `cloud.aws.lambda.errors` | Execution errors | 0 (ideally) |
-| `cloud.aws.lambda.throttles` | Throttled invocations | 0 |
-| `cloud.aws.lambda.concurrentExecutions` | Concurrent runs | < reserved concurrency |
-| `cloud.aws.lambda.unreservedConcurrentExecutions` | Unreserved concurrency | < account limit |
+| `dt.cloud.aws.lambda.invocations` | Total invocations | Application-dependent |
+| `dt.cloud.aws.lambda.duration` | Execution time (ms) | < function timeout |
+| `dt.cloud.aws.lambda.errors` | Execution errors | 0 (ideally) |
+| `dt.cloud.aws.lambda.throttlers` | Throttled invocations | 0 |
+| `dt.cloud.aws.lambda.conc_executions` | Concurrent runs | < reserved concurrency |
 
 ### List Monitored Lambda Functions
 
@@ -99,7 +98,7 @@ fetch dt.entity.aws_lambda_function
 
 ```dql
 // Lambda average execution duration over the last 6 hours
-timeseries avgDuration = avg(cloud.aws.lambda.duration), from:-6h, by:{dt.entity.aws_lambda_function}
+timeseries avgDuration = avg(dt.cloud.aws.lambda.duration), from:-6h, by:{dt.entity.aws_lambda_function}
 | fieldsAdd avgDurationValue = arrayAvg(avgDuration)
 | sort avgDurationValue desc
 | limit 10
@@ -131,7 +130,7 @@ fetch spans, from:-6h
 | filter contains(span.name, "lambda") and isNotNull(faas.coldstart)
 | fieldsKeep timestamp, span.name, duration, faas.coldstart, faas.invocation_id
 | filter faas.coldstart == true
-| summarize cold_start_count = count(), avg_duration_ms = avg(duration) / 1ms
+| summarize {cold_start_count = count(), avg_duration_ms = avg(duration) / 1ms}
 
 ```
 
@@ -139,7 +138,7 @@ fetch spans, from:-6h
 
 ```dql
 // Lambda duration percentiles over the last 6 hours
-timeseries p50 = percentile(cloud.aws.lambda.duration, 50), from:-6h, by:{dt.entity.aws_lambda_function}
+timeseries p50 = percentile(dt.cloud.aws.lambda.duration, 50), from:-6h, by:{dt.entity.aws_lambda_function}
 | fieldsAdd p50Value = arrayAvg(p50)
 | sort p50Value desc
 | limit 10
@@ -153,14 +152,14 @@ Lambda errors fall into two categories:
 
 | Error Type | Description | Metric |
 |---|---|---|
-| **Function errors** | Unhandled exceptions, timeout, OOM | `cloud.aws.lambda.errors` |
-| **Invocation errors** | Permission issues, throttling, invalid payload | `cloud.aws.lambda.throttles` |
+| **Function errors** | Unhandled exceptions, timeout, OOM | `dt.cloud.aws.lambda.errors` |
+| **Invocation errors** | Permission issues, throttling, invalid payload | `dt.cloud.aws.lambda.throttlers` |
 
 ### Error Rate by Function
 
 ```dql
 // Lambda error count by function over the last 24 hours
-timeseries errors = sum(cloud.aws.lambda.errors), from:-24h, by:{dt.entity.aws_lambda_function}
+timeseries errors = sum(dt.cloud.aws.lambda.errors), from:-24h, by:{dt.entity.aws_lambda_function}
 | fieldsAdd totalErrors = arraySum(errors)
 | filter totalErrors > 0
 | sort totalErrors desc
@@ -171,9 +170,9 @@ timeseries errors = sum(cloud.aws.lambda.errors), from:-24h, by:{dt.entity.aws_l
 
 ```dql
 // Error rate percentage by function over the last 24 hours
-timeseries errors = sum(cloud.aws.lambda.errors, default:0), from:-24h, by:{dt.entity.aws_lambda_function}
+timeseries errors = sum(dt.cloud.aws.lambda.errors, default:0), from:-24h, by:{dt.entity.aws_lambda_function}
 | append [
-    timeseries invocations = sum(cloud.aws.lambda.invocations, default:1), from:-24h, by:{dt.entity.aws_lambda_function}
+    timeseries invocations = sum(dt.cloud.aws.lambda.invocations, default:1), from:-24h, by:{dt.entity.aws_lambda_function}
   ]
 | fieldsAdd totalErrors = arraySum(errors), totalInvocations = arraySum(invocations)
 | fieldsAdd error_pct = totalErrors / totalInvocations * 100.0
@@ -195,7 +194,7 @@ Throttling occurs when Lambda cannot allocate an execution environment, typicall
 
 ```dql
 // Lambda throttles over the last 24 hours by function
-timeseries throttles = sum(cloud.aws.lambda.throttles), from:-24h, by:{dt.entity.aws_lambda_function}
+timeseries throttles = sum(dt.cloud.aws.lambda.throttlers), from:-24h, by:{dt.entity.aws_lambda_function}
 | fieldsAdd totalThrottles = arraySum(throttles)
 | filter totalThrottles > 0
 | sort totalThrottles desc
@@ -205,7 +204,7 @@ timeseries throttles = sum(cloud.aws.lambda.throttles), from:-24h, by:{dt.entity
 
 ```dql
 // Concurrent Lambda executions over the last 6 hours
-timeseries concurrency = max(cloud.aws.lambda.concurrentExecutions), from:-6h, by:{dt.entity.aws_lambda_function}
+timeseries concurrency = max(dt.cloud.aws.lambda.conc_executions), from:-6h, by:{dt.entity.aws_lambda_function}
 | fieldsAdd peakConcurrency = arrayMax(concurrency)
 | sort peakConcurrency desc
 | limit 10
@@ -295,7 +294,7 @@ DynamoDB is frequently used with Lambda for serverless data storage. Key monitor
 fetch spans, from:-6h
 | filter span.kind == "client" and isNotNull(db.system)
 | filter db.system == "dynamodb"
-| summarize avg_duration_ms = avg(duration) / 1ms, call_count = count(), by:{db.namespace, db.operation}
+| summarize {avg_duration_ms = avg(duration) / 1ms, call_count = count()}, by:{db.namespace, db.operation}
 | sort avg_duration_ms desc
 | limit 15
 ```
@@ -320,7 +319,7 @@ Dynatrace traces the entire flow as a single distributed trace when the Lambda L
 // Slowest traces involving Lambda functions in the last hour
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize trace_duration = max(duration), span_count = count(), by:{trace.id}
+| summarize {trace_duration = max(duration), span_count = count()}, by:{trace.id}
 | sort trace_duration desc
 | limit 10
 ```

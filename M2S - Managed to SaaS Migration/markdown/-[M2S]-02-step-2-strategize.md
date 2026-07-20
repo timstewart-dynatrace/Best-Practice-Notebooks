@@ -1,6 +1,6 @@
 # M2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 04/06/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -144,6 +144,22 @@ Migrate by geography (EMEA → APAC → Americas) or by application criticality.
 | Complex integrations | Risky | Recommended | Recommended |
 | Short timeline required | Fastest | Moderate | Longest |
 | Risk-averse organization | Higher risk | Lower risk | Lowest risk |
+
+### Cloud-Native and Serverless Estates
+
+Host count is the wrong yardstick for a Cloud Run / GKE / OTLP-heavy estate. A shop with thousands of Cloud Run services and a handful of GKE clusters may report only a few residual VMs, yet its migration is far from "small." Size the approach on the axes that actually drive coordination and risk in a cloud-native estate:
+
+| Cloud-native axis | Big Bang | Phased by Env | Phased by Cluster/Service |
+|-------------------|----------|---------------|---------------------------|
+| **Cloud Run / serverless services** | < ~20 services, single team | Dozens across a few teams | Hundreds of services or many owning teams |
+| **GKE / Kubernetes clusters** | 1 cluster | 2–3 clusters | 4+ clusters or multi-region |
+| **Log volume & pipeline complexity** | Low, few sources | Moderate, some OpenPipeline routing | High volume, many sources / bucket-routing rules |
+| **Redirect blast radius** | One redeploy window | Per-environment redeploys | Per-cluster / per-service-team redeploys |
+
+Map these onto the same risk profiles as the host-count bands above: a single GKE cluster with modest log volume behaves like a **Big Bang** candidate, while many clusters or high log volume push you toward **Phased by Cluster/Service** for an isolated blast radius. Two cloud-native specifics change the mechanics:
+
+- **The redirect is a redeploy, not an `oneagentctl` reconfigure** — a new Cloud Run revision or rolled GKE pods. See **M2S-05: Step 5 — Execute** for the per-surface redirect matrix.
+- **ActiveGate footprint is minimal** — cloud-native estates route far less through ActiveGates (forwarder path, private synthetics, and residual VMs only). See **M2S-03: Step 3 — Design** for cloud-native AG sizing.
 
 <a id="order-of-operations"></a>
 

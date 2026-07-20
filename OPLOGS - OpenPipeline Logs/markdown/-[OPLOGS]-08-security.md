@@ -1,6 +1,6 @@
 # OPLOGS-08: Security & Data Protection
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Sensitive Data Discovery, Masking, and Compliance
 This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.
@@ -455,8 +455,8 @@ Continue to **OPLOGS-07: Buckets & Cost Optimization** for storage management.
 
 <a id="references"></a>
 ## 📚 References
-- [OpenPipeline Data Masking](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/log-processing/mask-sensitive-data)
-- [Log Security Best Practices](https://docs.dynatrace.com/docs/observe-and-explore/logs/log-management-and-analytics/lma-security)
+- [OpenPipeline Data Masking](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data)
+- [Log Security Best Practices](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-security-context)
 - [GDPR and Compliance](https://docs.dynatrace.com/docs/manage/data-privacy-and-security)
 
 ---

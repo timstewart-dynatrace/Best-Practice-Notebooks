@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -173,11 +173,14 @@ Deploy last because dashboards and calculated metrics need data to be meaningful
 | **Service detection, request attributes** | BEFORE OneAgent redirect | Must be in place when services appear |
 | **Entity-level custom settings** | AFTER OneAgent redirect | Entity must exist in SaaS first |
 | **Deep monitoring, container rules** | BEFORE OneAgent redirect | Needed for correct instrumentation |
+| **Grail bucket routing & retention** (OpenPipeline Storage stage) | BEFORE high-volume log-source redirect | Records cannot be moved between buckets after ingest; a bucket's name and class (live/historic) are fixed at creation, while retention and the query-billing model can be changed later |
 
 Also note:
 - **Process restarts are needed for full-stack mode** — for services to appear in the new SaaS tenant
 - **Process restarts are also needed for infra-only mode** — for Application Security vulnerability detection and JMX metrics
 - **Minimize delta** with recent configuration changes — this is why the configuration freeze (Step 4) is critical
+
+> **Log-heavy migration — decide bucket strategy before logs flow.** Grail bucket layout, retention, and query-billing model are among the most consequential decisions in a log-driven migration, and most of it is **irreversible after first ingest**: records cannot be moved between buckets, and a bucket's name and class (live/historic) are fixed at creation, while retention and the query-billing model can be changed later. Route logs to the right buckets via the OpenPipeline **Storage** stage on the SaaS tenant *before* redirecting high-volume log sources — otherwise everything lands in `default_logs` and cannot be re-bucketed later. See **ORGNZ-03: Bucket Strategy and Design** and **OPLOGS-04: Buckets & Data Governance** for the full bucket/retention design, and confirm bucket routing is in place as part of Step 4 (Prepare).
 
 <a id="manual-configuration-items"></a>
 
@@ -307,6 +310,23 @@ For environments requiring zero monitoring gaps:
 > **Note:** Running two agents simultaneously doubles the CPU and memory overhead on the host. Use this method only when monitoring continuity is a hard requirement.
 
 > **Tip — OneAgent Attribute Enrichment (1.333+):** During agent redirect, consider adding primary tags and fields at the same time using `oneagentctl --set-host-tag`. This enriches all telemetry at the source with `primary_tags.environment`, `dt.security_context`, `dt.cost.costcenter`, etc. — eliminating the need for some server-side auto-tagging rules. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+
+<a id="redirecting-containerized-and-serverless-workloads"></a>
+
+### Redirecting Containerized and Serverless Workloads
+
+The `oneagentctl` reconfigure method above applies to **host-based OneAgents** (VMs and bare metal). Containerized and serverless workloads have no long-lived host to reconfigure, so the redirect happens through the deployment surface — the operator custom resource, the image build, or the exporter endpoint — not through `oneagentctl`.
+
+| Surface | Redirect mechanism | Restart / redeploy |
+|---------|--------------------|--------------------|
+| **Host VM** (GCE / EC2 / on-prem) | `oneagentctl --set-server` + `--set-tenant-token` (+ `--set-network-zone`), as above | Restart the OneAgent service **and** restart app processes to re-inject deep monitoring |
+| **Kubernetes / GKE** (Dynatrace Operator / DynaKube) | `spec.apiUrl` is **immutable** (Operator 1.3.0+): delete the DynaKube custom resource and its token secret, recreate both against the new `apiUrl`, then roll the workloads | Rolling pod restart adopts the new tenant; no node restart |
+| **Cloud Run — Java / Node.js** (OneAgent) | OneAgent tenant credentials are baked in as **build-time image arguments** (`DT_API_URL`, `DT_API_TOKEN`): rebuild the image against the new tenant and deploy a new revision | The new revision *is* both the redirect and the re-injection |
+| **Cloud Run — other runtimes / OTLP apps** | Repoint the OTLP exporter endpoint and API token, then deploy a new revision | New revision |
+
+> **Key difference from VMs:** On containerized and serverless surfaces the redirect and the deep-code re-injection are the **same action** — the rolled pods or the new revision. There is no separate "now also restart your applications" step the way there is on a VM, because the workload is recreated from scratch on every deploy.
+
+**Cloud Run runtime caveat:** OneAgent monitoring of Cloud Run managed is currently limited to **Java and Node.js**; other runtimes (Go, Python, .NET) report via **OTLP** rather than OneAgent — verify current runtime support before planning the redirect. Cloud Run instances appear on the **Hosts** page, and first-generation execution environments do not expose CPU/memory metrics.
 
 <a id="migration-wave-execution"></a>
 
@@ -502,6 +522,8 @@ Before proceeding to Step 6, confirm that you have completed each item:
 
 - [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
 - [OneAgent Configuration via Command Line](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface)
+- [Migrate Dynatrace Operator to a New Environment](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-dto-to-tenant)
+- [Monitor Google Cloud Run (Managed)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/cloudrun)
 - [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones)
 - [Extensions 2.0 Framework](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
 

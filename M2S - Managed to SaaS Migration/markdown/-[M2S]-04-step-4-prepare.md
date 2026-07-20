@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -38,7 +38,7 @@ Before starting this notebook, you should have:
 | **Identity provider access** | Admin access to your SAML IdP (Azure Entra, Okta, etc.) |
 | **Infrastructure access** | Ability to deploy new ActiveGate VMs/instances |
 | **Network changes approved** | Firewall rules from Design step implemented or in progress |
-| **Managed cluster v1.294+** | Required for SaaS Upgrade Assistant compatibility |
+| **Managed cluster version** | Align to the same *major* version as the target SaaS tenant (docs state no fixed minimum — verify the current requirement) |
 
 ---
 
@@ -154,6 +154,8 @@ After the tenant is provisioned, configure these baseline settings:
 | **Currency** | Settings > Preferences | Match your reporting currency |
 | **Data retention** | Settings > Data privacy > Data retention | Set per data type (logs, metrics, spans) |
 | **Session timeout** | Account Management > Security | Align with your organization's policy |
+
+> **Decide Grail bucket strategy before any logs flow — it is largely irreversible.** The **Data retention** row above sets *default* per-type retention. For a log-heavy migration the higher-leverage decision is your **custom Grail bucket layout**: which log sources land in which buckets, each bucket's retention, and its query-billing model. Records cannot be moved between buckets after ingest, and a bucket's name and class (live/historic) are fixed at creation, while retention and the query-billing model can be changed later — so this must be designed *before* Step 5 redirects high-volume log sources (otherwise everything lands in `default_logs` and cannot be re-bucketed later). Design it now against **ORGNZ-03: Bucket Strategy and Design** and **OPLOGS-04: Buckets & Data Governance**, and plan to route logs via the OpenPipeline **Storage** stage.
 
 ### 2.4 Verify Tenant Access
 
@@ -346,8 +348,8 @@ The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upg
 
 | Requirement | Detail |
 |-------------|--------|
-| **Managed cluster version** | v1.294 or later |
-| **Version alignment** | Same major version on Managed and SaaS recommended |
+| **Managed cluster version** | No fixed minimum in the SaaS Upgrade Assistant docs; align to the same *major* version as the target SaaS tenant, and verify the current requirement in docs |
+| **Version alignment** | Export from the same **major** version as the target SaaS environment to avoid false-positive migration failures (docs example: Managed 1.284.x → SaaS 1.284.x) |
 | **IAM policy** | `upgrade-assistant:environments:write` (operate the app) + `app-engine:apps:install` (install the Hub app) assigned to migration users |
 | **Token scopes** | `Read network zones`, `Write network zones`, `Capture request data` |
 
@@ -628,6 +630,7 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 | Tenant accessible at `{tenant-id}.live.dynatrace.com` | [ ] |
 | Tenant accessible at `{tenant-id}.apps.dynatrace.com` | [ ] |
 | Baseline settings configured (timezone, currency, retention) | [ ] |
+| Grail bucket strategy designed before ingest (buckets, retention, query-billing) — see ORGNZ-03 / OPLOGS-04 | [ ] |
 | API access verified | [ ] |
 
 ### SSO and Identity

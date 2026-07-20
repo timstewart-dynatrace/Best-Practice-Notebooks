@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -93,37 +93,28 @@ Some entities are provider-specific and require separate queries:
 ```dql
 // Compare compute resource counts across cloud providers
 fetch dt.entity.ec2_instance
-| summarize provider = "AWS", resource_type = "EC2 Instance", resource_count = count()
+| summarize resource_count = count()
+| fieldsAdd provider = "AWS", resource_type = "EC2 Instance"
 | append [
     fetch dt.entity.azure_vm
-    | summarize provider = "Azure", resource_type = "Virtual Machine", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "Azure", resource_type = "Virtual Machine"
   ]
 | append [
     fetch dt.entity.aws_lambda_function
-    | summarize provider = "AWS", resource_type = "Lambda Function", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "AWS", resource_type = "Lambda Function"
   ]
 | append [
     fetch dt.entity.azure_web_app
-    | summarize provider = "Azure", resource_type = "Web App", resource_count = count()
+    | summarize resource_count = count()
+    | fieldsAdd provider = "Azure", resource_type = "Web App"
   ]
 | sort provider asc, resource_count desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_EC2_INSTANCE
-// | summarize provider = "AWS", resource_type = "EC2 Instance", resource_count = count()
-// | append [
-// smartscapeNodes AWS_EC2_INSTANCE
-// | summarize provider = "Azure", resource_type = "Virtual Machine", resource_count = count()
-// ]
-// | append [
-// smartscapeNodes AWS_EC2_INSTANCE
-// | summarize provider = "AWS", resource_type = "Lambda Function", resource_count = count()
-// ]
-// | append [
-// smartscapeNodes AWS_EC2_INSTANCE
-// | summarize provider = "Azure", resource_type = "Web App", resource_count = count()
-// ]
-// | sort provider asc, resource_count desc
+// Note: Smartscape node types cover infrastructure/service topology
+// (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
+// (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
 
 ```
 
@@ -158,7 +149,7 @@ fetch dt.entity.kubernetes_cluster
 // detected problems from the last 7 days across all infrastructure
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
-| summarize problem_count = count(), avg_duration_hours = avg(resolved_problem_duration / 1h), by:{event.category}
+| summarize {problem_count = count(), avg_duration_hours = avg(resolved_problem_duration / 1h)}, by:{event.category}
 | sort problem_count desc
 ```
 
@@ -235,7 +226,7 @@ fetch dt.davis.problems, from:-24h
 // Service-level error rates from spans in the last hour
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(span.status_code == "ERROR"), by:{service.name}
+| summarize {total = count(), errors = countIf(span.status_code == "ERROR")}, by:{service.name}
 | fieldsAdd error_pct = errors * 100.0 / total
 | filter total > 10
 | sort error_pct desc

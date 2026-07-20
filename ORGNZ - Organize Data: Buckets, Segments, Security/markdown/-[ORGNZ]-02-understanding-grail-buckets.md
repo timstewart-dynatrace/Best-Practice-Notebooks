@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -147,7 +147,7 @@ System tables are queried with `fetch dt.system.*` — they never need a `bucket
 
 | Limit | Value | Notes |
 |-------|-------|-------|
-| Maximum buckets per environment | 80 | Default limit; can request increase |
+| Maximum buckets per environment | 80 | Default; increase on request (+1 per 10 GB daily ingest) |
 | Typical capacity | Up to 5 TB/day per table | With default bucket limit |
 
 ### Bucket Size Guidelines
@@ -162,7 +162,7 @@ System tables are queried with `fetch dt.system.*` — they never need a `bucket
 
 | Limit | Value |
 |-------|-------|
-| Minimum retention | 1 day |
+| Minimum retention | **1 day** for logs, events, and bizevents; **10 days for spans** |
 | Maximum retention | 3,657 days (~10 years + 1 week) |
 
 <a id="query-constraints"></a>
@@ -173,13 +173,13 @@ Understanding query limits is critical for bucket planning:
 
 | Limit | Value | Impact |
 |-------|-------|--------|
-| Maximum data scanned | 500 GB | Limits queryable time window |
+| Default `fetch` scan limit | 500 GB | Default value of the `scanLimitGBytes` parameter — **not** a platform cap. Override per query; `scanLimitGBytes:-1` scans the whole time range |
 | Maximum records returned | 1,000 | Use aggregations for larger datasets |
 | Maximum response payload | 1 MB | Large result sets may be truncated |
 
 ### Queryable Window by Ingest Volume
 
-The 500 GB scan limit determines how far back you can query:
+With the default 500 GB `fetch` scan limit, a single unmodified query reaches back roughly:
 
 | Daily Ingest | Queryable Window |
 |--------------|------------------|
@@ -222,6 +222,7 @@ Dynatrace provides default buckets with varying retention:
 | Display name | Yes | Can be updated anytime |
 | Retention period | Yes | **Caution**: Lowering deletes data |
 | Data table type | No | Fixed at creation |
+| Bucket class (live / historic) | No | Read-only after creation |
 
 ### Data Handling
 
@@ -277,8 +278,8 @@ Continue with the ORGNZ series:
 
 ## References
 
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/data-management/buckets)
-- [Data Retention](https://docs.dynatrace.com/docs/platform/grail/data-management/data-retention)
+- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 
 ---

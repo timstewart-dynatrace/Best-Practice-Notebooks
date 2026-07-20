@@ -1,6 +1,6 @@
 # OPLOGS-06: Topology & Entity Context
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
 
 ## Leveraging Entity Relationships in Log Analysis
 This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.
@@ -392,8 +392,8 @@ Continue to **OPLOGS-07: Analytics & Dashboards** for aggregation and visualizat
 
 <a id="references"></a>
 ## 📚 References
-- [Dynatrace Entity Model](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/dql-guide/dql-entities)
-- [Kubernetes Monitoring](https://docs.dynatrace.com/docs/shortlink/kubernetes-monitoring)
+- [Dynatrace Entity Model](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
+- [Kubernetes Monitoring](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Log Enrichment](https://docs.dynatrace.com/docs/observe-and-explore/logs/log-management-and-analytics/lma-log-enrichment)
 
 ---

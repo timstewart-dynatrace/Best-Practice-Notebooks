@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -67,6 +67,22 @@ The Helm deployment creates the necessary Pub/Sub subscriptions, IAM roles, and 
 - **Labels vs tags** — GCP uses "labels" (equivalent to AWS tags / Azure tags)
 - **Cloud Monitoring quotas** — API call limits apply per project
 - **Pub/Sub costs** — Message volume determines Pub/Sub costs; filter at source to reduce volume
+
+### Forwarder Sizing and Throughput
+
+For a high-volume GCP estate, size the Pub/Sub log forwarder **before** turning on high-cardinality sources — unfiltered volume above the forwarder's ceiling backs up silently in the Pub/Sub subscription.
+
+| Deployment | Throughput | Notes |
+|---|---|---|
+| **Base resources** | ~8 GB/hour | Beyond this, messages are retained in the Pub/Sub subscription |
+| **Vertical — 4 vCPU / 4 Gi, 1 replica** | ~8 MB/s (~480 MB/min) | Dynatrace does **not** recommend scaling vertically — env vars must be re-tuned per machine |
+| **Horizontal — 4 replicas (4 vCPU / 4 Gi)** | ~25 MB/s (~2 TB/day) | Preferred scaling axis |
+| **Horizontal — 6 replicas (4 vCPU / 4 Gi)** | ~46 MB/s (~4 TB/day) | |
+| **Autoscaling** | Recommended only above ~450 MB/min on a 4 vCPU / 4 Gi machine | |
+
+**Sizing method:** estimate your post-filter TB/day, size the replica count to match, and filter at the **Log Sink** (source) plus **OpenPipeline** to control back-pressure and cost. Filtering at the source is the cheapest lever — it lowers both Pub/Sub cost and forwarder load.
+
+> <sub>**Source:** [Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only)</sub>
 
 <a id="authentication"></a>
 
@@ -251,18 +267,47 @@ Cloud Run is GCP's serverless container platform. It shares some monitoring patt
 | **Runtime** | Any Docker image | Managed runtimes + custom |
 | **Max duration** | 60 minutes | 15 minutes |
 | **Concurrency** | Multiple requests per instance | One per execution (default) |
-| **Monitoring** | OneAgent in container | Lambda Layer |
+| **Monitoring** | OneAgent (Java/Node only) or OTLP | Lambda Layer |
 | **Cold start** | Container pull + startup | Runtime initialization |
+
+### Cloud Run Monitoring: OneAgent Coverage and Caveats
+
+OneAgent monitoring of Cloud Run managed is **limited to Java and Node.js**. Cloud Run itself runs any container image, but OneAgent auto-injection does not cover every runtime — other runtimes (Go, Python, .NET) send telemetry via **OTLP** instead.
+
+| Aspect | Detail |
+|---|---|
+| **Supported runtimes (OneAgent)** | Java and Node.js only — other runtimes use OTLP-direct |
+| **Credentials** | Baked in as **build-time image arguments** (`DT_API_URL`, `DT_API_TOKEN`) — repointing to a new tenant requires an image rebuild and a new revision |
+| **Execution environments** | Gen1 vs Gen2 — **Gen1 does not expose CPU/memory metrics** (intentional security limits); Gen2 has no such restriction |
+| **Where instances appear** | On the **Hosts** page (with GCP properties and each instance's memory limit), not the Container groups page |
+| **Cold-start overhead** | Agent injection adds startup overhead; because each revision autoscales from zero, cold starts appear more often than on always-on hosts |
+
+> **Migration note:** because Cloud Run credentials are build-time image args, redirecting a Cloud Run workload to a new Dynatrace tenant means rebuilding the image and deploying a new revision — see **M2S-05: Step 5 — Execute** for the full serverless/container redirect matrix.
+
+> <sub>**Source:** [Monitor Google Cloud Run managed (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/cloudrun)</sub>
 
 ```dql
 // Cloud Run service spans in the last hour
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(cloud.platform) and cloud.platform == "gcp_cloud_run"
-| summarize avg_duration_ms = avg(duration) / 1ms, request_count = count(), by:{service.name}
+| summarize {avg_duration_ms = avg(duration) / 1ms, request_count = count()}, by:{service.name}
 | sort request_count desc
 | limit 10
 ```
+
+### Tracing Across Pub/Sub
+
+GCP shops frequently place Pub/Sub between services. **Pub/Sub is absent from OpenTelemetry's auto-instrumentation coverage** where Kafka and RabbitMQ are first-class (the OpenTelemetry Java supported-libraries list carries Kafka `0.11+` and RabbitMQ `2.7+`, but no Pub/Sub entry) — so trace context is not propagated for you, and a distributed trace breaks silently at every Pub/Sub hop unless you propagate it yourself. Coverage varies by language and client version; verify for your own runtime.
+
+Carry the W3C **`traceparent`** through the Pub/Sub message `attributes` map:
+
+- **Publisher:** inject the active trace context into `message.attributes` (a `traceparent` attribute) before publishing.
+- **Subscriber:** read `traceparent` from `message.attributes` and use it as the parent when starting the consumer span.
+
+Without this, producer and consumer spans appear as disconnected traces. See the **SPANS** series for span and trace-context fundamentals.
+
+> <sub>**Sources:** [Span and trace context propagation (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions); [OpenTelemetry Java supported libraries (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md)</sub>
 
 <a id="entity-mapping"></a>
 
@@ -295,7 +340,7 @@ GCP uses a project-based hierarchy that maps to Dynatrace as follows:
 
 - GCP integration authenticates via **service account JSON keys** with Monitoring Viewer and Compute Viewer roles
 - **GKE Autopilot** requires ApplicationMonitoring mode; **GKE Standard** supports CloudNativeFullStack
-- **Cloud Run** is monitored as a serverless container platform with OneAgent injected into the container image
+- **Cloud Run** is monitored with OneAgent (Java/Node only; other runtimes via OTLP) injected at image build time; instances appear on the **Hosts** page
 - GCP **projects and labels** should map to Dynatrace tags and segments for consistent governance
 
 ### Next Steps

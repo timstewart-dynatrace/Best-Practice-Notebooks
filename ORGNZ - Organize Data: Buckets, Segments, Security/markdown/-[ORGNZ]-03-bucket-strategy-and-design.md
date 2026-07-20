@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 07/20/2026
 
 ## Overview
 
@@ -219,7 +219,7 @@ Platform: Access to all buckets
 
 ### Query Performance at Scale
 
-Bucket sizing directly impacts queryability due to the 500 GB scan limit:
+Bucket sizing shapes queryability because `fetch` stops after 500 GB of uncompressed data by default (override with `scanLimitGBytes`):
 
 | Bucket Ingest | Impact |
 |---------------|--------|
@@ -273,8 +273,8 @@ Continue with the ORGNZ series:
 
 ## References
 
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/data-management/buckets)
-- [Data Retention](https://docs.dynatrace.com/docs/platform/grail/data-management/data-retention)
+- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [OpenPipeline Routing](https://docs.dynatrace.com/docs/platform/openpipeline)
 
 ---
