@@ -76,9 +76,9 @@ Most teams won't read every notebook. The mandatory/recommended/optional flags b
 | 05 | Bucket-Level Access Control | Optional | Scenario-specific: compliance, retention, hard cost separation, hostile multi-tenancy. Default to security_context for general access. |
 | 06 | security_context | Mandatory | Universal scope field for general data access. Underpins IAM boundary design. |
 | 07 | Advanced Permission Patterns | Optional | Complex multi-environment scenarios |
-| 08 | Grail Segments | Recommended | Logical data partitions; useful for dashboards and queries |
+| 08 | Grail Segments | Recommended | Logical data partitions; useful for dashboards and queries. Canonical for segment fundamentals and limits. |
 | 09 | Enterprise Patterns | Optional | Large multi-business-unit organizations |
-| 10 | Advanced Segment Definitions | Optional | Sophisticated segment usage |
+| 10 | Advanced Segment Definitions | Recommended if using segments | Canonical for segment mechanics: filter syntax, variables, visibility, segments-as-code, Davis problem includes |
 | 99 | Best Practice Summary | Reference | One-page synthesis |
 
 **Critical sidebar — buckets vs security_context:** Use buckets for storage / retention / cost / compliance separation; use security_context (a universal field) for general access control. Reading 02–06 in order makes this distinction clear. Avoid the anti-pattern of using buckets as the primary access-control mechanism — they are immutable, capped at 80 per tenant, and not universal across all configuration types.
@@ -119,8 +119,12 @@ Most teams won't read every notebook. The mandatory/recommended/optional flags b
 | security_context | (mentioned in IAM-04, 05) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) notebook 06 |
 | Policy authoring | [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) notebook 02 | [IAM](../IAM%20-%20IAM%20Administration/) notebooks 04–05 |
 | Gen2 → Gen3 access control | (overview in [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/)) | [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) full series |
+| Segments | [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) notebook 06 | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) notebooks 08, 10 |
+| Management Zones → Segments (filtering) | — | [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) notebook 05 |
 
 If a topic appears in ONBRD with light coverage and you need depth, dive into the canonical series.
+
+**Sidebar — Management Zones do two jobs.** An MZ can be enforcing *who may read what* (access control) or scoping *what a user sees* (filtering). They migrate to different places: access control becomes IAM policies and boundaries ([MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) notebooks 02–04, 06–08), while filtering becomes segments ([MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) notebook 05, built on [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) 08 and 10). Most estates contain more of the second kind than teams expect. If your MZs are only used for filtering, MZ2POL-05 reads on its own — you do not need the access-control notebooks.
 
 ---
 

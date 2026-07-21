@@ -1,6 +1,6 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
 
 > **Purpose:** Query Management Zone configurations via the Dynatrace SDK, analyze entity assignments, and assess security context coverage to support migration planning.
 
@@ -414,12 +414,14 @@ export default async function() {
 
 ## Next Steps
 
+> **This tool is an inventory aid, not a converter.** There is **no automatic Management Zone to Segment conversion** in Dynatrace — no button, no API, no wizard. Unlike Metric Events, which have a supported automatic upgrade path to Anomaly Detectors, every Management Zone must be re-expressed by hand as a segment or an IAM policy. The classifications below tell you *how much work each zone is* and *which construct it maps to*; they do not perform the migration. See MZ2POL-05 for the mapping scenarios and MZ2POL-04 for the policy/boundary path.
+
 ### Based on the analysis above:
 
 1. **High MZ count?** -> Prioritize by usage (query `dt.sfm.server.management_zones.queries_counter`)
 2. **Low security_context coverage?** -> Plan host tag deployment or OpenPipeline enrichment
 3. **Many tag-based MZ rules?** -> Map to segment filters using `matchesValue(tags, "key:value")`
-4. **Many SELECTOR rules?** -> Review entity selectors for segment conversion
+4. **Many SELECTOR rules?** -> Expect the highest per-zone effort; entity includes support only `=` and `in()`, so many selectors need the fallback tag (MZ2POL-05 §4.6)
 5. **Host groups in use?** -> Use `dt.host_group.id` in boundaries for vertical MZ migration
 
 ### Migration Priority:
@@ -427,9 +429,9 @@ export default async function() {
 | Priority | Criteria | Action |
 |----------|----------|--------|
 | 1 | MZs with >100 entities | Migrate first - highest impact |
-| 2 | Tag-based MZ rules | Easy segment conversion |
+| 2 | Tag-based MZ rules | Lowest-effort mapping (still manual) — MZ2POL-05 §4.1 |
 | 3 | Host group-based MZs | Use boundary on `dt.host_group.id` |
-| 4 | Entity selector MZs | Review and convert to segments |
+| 4 | Entity selector MZs | Hand-map to segment filters; check the operator restrictions in MZ2POL-05 |
 | 5 | Complex/nested MZs | Manual analysis required |
 
 ---
@@ -438,6 +440,7 @@ export default async function() {
 ## Related Notebooks
 - **MZ2POL-01**: Introduction - Why Migrate
 - **MZ2POL-03**: Assessment and Planning
+- **MZ2POL-05**: Migrating Management Zone Filtering to Segments
 - **MZ2POL-06**: Migration Execution
 - **MZ2POL-07**: Validation and Troubleshooting
 

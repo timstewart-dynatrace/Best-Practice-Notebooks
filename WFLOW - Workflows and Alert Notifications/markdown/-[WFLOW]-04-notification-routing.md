@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 05/29/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -53,6 +53,10 @@ The Events API endpoint `GET /events` no longer returns the `metadata` property 
 
 <a id="routing-strategies"></a>
 ## 1. Routing Strategies
+
+> ⚠️ **Migrating from alerting profiles? One capability does not come across.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`) — a common way to suppress transient blips. **As of 07/2026 the workflow model has no equivalent**; Dynatrace's upgrade guide states there is *"currently"* no alternative for delivering problems active longer than *X* minutes. That word is the guide's own — re-check it before planning a cutover wave.
+>
+> Teams relying on it get *noisier* after migration, which reads as "the migration broke alerting." Treat a long delay as evidence the alert was the wrong *shape* rather than merely delayed: a profile suppressing 30 minutes of a firing condition is usually describing a burn-rate concern, which belongs in an SLO burn-rate alert (**SLO-04**) or a Davis anomaly detector (**AIOPS-02**). Inventory `delayInMinutes` across every profile before cutover, and sequence the profiles that use it into the **last** migration wave — they are the only ones whose behavior you cannot yet reproduce. See **MZ2POL-09** §6.1.
 ### Why Route Alerts?
 
 | Problem | Impact | Solution |
@@ -67,7 +71,7 @@ The Events API endpoint `GET /events` no longer returns the `metadata` property 
 | Dimension | Route Based On | Example |
 |-----------|----------------|----------|
 | **Severity** | Problem severity level | Critical → PagerDuty, Low → Slack |
-| **Team** | Entity tags, management zones | `team:checkout` → #checkout-alerts |
+| **Team** | Entity tags, or Smartscape ownership | `team:checkout` → #checkout-alerts |
 | **Service** | Service name or entity ID | Payment service → payments team |
 | **Time** | Hour of day, day of week | Weekends → on-call only |
 | **Environment** | prod/staging/dev tags | Prod → immediate, Dev → daily digest |
@@ -249,7 +253,13 @@ tasks:
       message: "{{ event()['title'] }}"
 ```
 
-### Management Zone Routing
+### Management Zone Routing (legacy — do not build new workflows on this)
+
+> ⚠️ **This pattern breaks silently when Management Zones are retired.** `event()["management_zones"]` still resolves after the zones are deleted — to an **empty array** — so every condition below evaluates false and the workflow stops notifying without raising an error. There is no Management Zone filter on the problem trigger itself (WFLOW-02 §2).
+>
+> Use the tag-based pattern above instead. If a region is the routing dimension, tag the entities (`region:us-east`) or use Smartscape ownership rather than reading the MZ array. Teams actively migrating off MZs should read MZ2POL-01 §5.
+
+Retained for reference, and only valid while your Management Zones still exist:
 
 ```yaml
 conditions:
@@ -429,7 +439,7 @@ conditions:
   - name: is_high_or_above
     expression: '{{ event()["severity"] in ["CRITICAL", "HIGH"] }}'
   - name: is_production
-    expression: '{{ "Production" in event().get("management_zones", []) }}'
+    expression: '{{ "env:prod" in event().get("tags", []) }}'
   - name: is_business_hours
     expression: '{{ now().weekday() < 5 and now().hour >= 9 and now().hour < 17 }}'
 
@@ -457,7 +467,7 @@ tasks:
   - name: email_alert
     type: dynatrace.email:send
     conditions:
-      - '{{ event()["severity"] == "CRITICAL" or (event()["severity"] == "HIGH" and "Production" in event().get("management_zones", [])) }}'
+      - '{{ event()["severity"] == "CRITICAL" or (event()["severity"] == "HIGH" and "env:prod" in event().get("tags", [])) }}'
 ```
 
 ### Query Workflow Routing Effectiveness
@@ -508,7 +518,7 @@ With routing configured, integrate with incident management:
 
 - **Conditions** control task execution using Jinja expressions
 - **Severity routing** ensures appropriate response levels
-- **Team routing** uses tags or management zones
+- **Team routing** uses entity tags or Smartscape ownership — not management zones
 - **Time-based routing** reduces off-hours noise
 - **Escalation patterns** prevent missed alerts
 - Test conditions with On-Demand trigger before production
@@ -522,7 +532,7 @@ In this notebook, you learned:
 - Why and when to route alerts conditionally
 - Conditional expression syntax and operators
 - Severity-based routing patterns
-- Team and management zone routing
+- Team routing by entity tag, and why management-zone routing is now legacy
 - Time-based (business hours) routing
 - Escalation with wait and check patterns
 - Multi-channel notification strategy
@@ -536,6 +546,7 @@ In this notebook, you learned:
 - [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — old→new mapping; states the Management Zone filter is no longer supported
 
 ---
 

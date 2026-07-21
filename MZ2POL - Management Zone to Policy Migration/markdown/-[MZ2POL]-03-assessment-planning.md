@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -259,7 +259,7 @@ fetch dt.entity.service
 - [ ] Document access verification results
 
 #### Phase 5: Cutover
-- [ ] Update alerting profiles to use segments
+- [ ] Rebuild MZ-scoped alerting profiles as problem-triggered workflows (affected-entity tags + DQL matcher) — **not** as segments
 - [ ] Migrate API integrations
 - [ ] Remove MZ-based access (RBAC)
 - [ ] Monitor for access issues

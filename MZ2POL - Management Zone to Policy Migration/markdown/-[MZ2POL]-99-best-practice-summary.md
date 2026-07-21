@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/16/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -145,7 +145,7 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 | Run parallel (MZ + new model) for 2-4 weeks before cutover | Both systems active simultaneously; users should see identical data via both paths | Critical |
 | Compare entity counts between MZ and segment during parallel running | `countIf(in(managementZones, {"MZ-Name"}))` vs `countIf(matchesValue(tags, "key:value"))` — counts must match | Critical |
 | Update dashboards to use segments before cutover | Replace MZ filters with segment selectors at dashboard level and tile level | Critical |
-| Update alerting profiles to use segments before removing MZs | Alerts scoped to MZs will break when MZs are removed | Critical |
+| Rebuild MZ-scoped alerting profiles as problem-triggered workflows before removing MZs | The MZ filter has no successor in the alerting model; route on affected-entity tags + optional DQL matcher. Segments do **not** scope alerting. Inventory `delayInMinutes` first — duration-based suppression has no equivalent as of 07/2026 (the upgrade guide says *"currently"*; re-check before cutover), and those profiles belong in the last wave | Critical |
 | Update API integrations to use new access model before cutover | API calls with MZ parameters must be converted to policy-based authentication | Recommended |
 | Archive MZ configurations before deletion | Export via Settings API and store in version control | Recommended |
 | Wait 2+ weeks after cutover before deleting MZs | Verify no remaining MZ dependencies in alerting, dashboards, or API integrations | Critical |

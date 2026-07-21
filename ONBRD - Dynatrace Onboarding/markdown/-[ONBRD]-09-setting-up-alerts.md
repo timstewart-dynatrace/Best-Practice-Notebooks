@@ -1,6 +1,6 @@
 # ONBRD-09: Setting Up Alerts
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
 
 ## Getting Notified When Things Go Wrong
 Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.
@@ -80,7 +80,11 @@ Workflows are event-driven automations that can:
 | **Filtering** | JavaScript expressions | Rule-based |
 | **Actions** | 20+ built-in actions | Fixed notifications |
 | **Automation** | Full automation capability | Notification only |
-| **Modern platform** | Recommended | Being deprecated |
+| **Modern platform** | Recommended | Dynatrace Classic — supported, not deprecated |
+
+> **On the status of alerting profiles.** No Dynatrace page announces a deprecation or an end-of-life date for alerting profiles. They are labeled **Dynatrace Classic**, and the docs carry the steer *"to set up alerting and notifications, we recommend using simple workflows."* Treat that as *build new alerting on workflows*, not as *your existing profiles are about to stop working*.
+>
+> One caveat does bite: an alerting profile scoped by a **Management Zone** is only as durable as that zone. The MZ filter has no successor in the alerting model, so teams retiring Management Zones must rebuild those profiles as problem-triggered workflows first. See MZ2POL-01 §5.
 
 <a id="creating-your-first-workflow"></a>
 ## 3. Creating Your First Workflow

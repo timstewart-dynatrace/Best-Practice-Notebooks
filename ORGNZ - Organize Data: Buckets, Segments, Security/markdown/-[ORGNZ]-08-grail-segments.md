@@ -1,6 +1,6 @@
 # ORGNZ-08: Grail Segments
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 05/26/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -114,20 +114,30 @@ Segment:
 ## Segment Limits
 | Limit | Value | Notes |
 |-------|-------|-------|
+| Segments per environment | 10,000 | Tenant-wide ceiling |
 | Maximum includes (rules) per segment | 20 | Plan rule complexity accordingly |
 | Include blocks per data/entity type | 1 | Cannot have multiple rules for same type |
-| Expressions per filter condition | 10 | Maximum conditions per filter |
-| Values per variable | 10,000 | Maximum variable values |
+| Expressions per filter condition | 1 min / 10 max | Maximum conditions per filter |
+| Values per variable | 10,000 | Maximum values in the variable dropdown |
+| Selected variable values per segment | 100 | Classic entities |
+| Segments applied per query | 10 | Cannot stack unlimited segments |
+| Additional include per classic entity type + relationship | 1 | One relationship hop only |
 
-### Wildcard Restrictions
+### Operators and Wildcards
 
-| Pattern | Supported? | Notes |
-|---------|------------|-------|
-| `starts-with` | Yes | Must have at least one preceding character |
-| `contains` | No | Not supported in segment filter conditions |
-| `ends-with` | No | Not supported in segment filter conditions |
+Segment filter conditions offer only two operators: **`=` and `in()`**. There is no separate `contains` operator — substring and suffix matching is expressed by placing a **wildcard `*` inside the value**.
 
-> **Important**: The `contains` restriction applies to **signal data** filters (logs, spans, events). For **entity type** includes, `tags contains 'value'` is valid because it checks tag membership, not substring matching.
+| Matching | How to express it | Where it works |
+|----------|-------------------|----------------|
+| Equals | `field = "value"` | Everywhere |
+| Set membership | `in(field, {"a", "b"})` | Everywhere |
+| Starts-with | `field = "prefix*"` | Signal data; `entity.name` |
+| Contains | `field = "*text*"` | Signal data; `entity.name` |
+| Ends-with | `field = "*suffix"` | Signal data; `entity.name` |
+
+> **Important**: on **classic entity** includes, the documented wildcard support applies to the `entity.name` property; other entity *properties* support exact `equals` only, so `starts-with` / `contains` / `ends-with` matching is unavailable on them. Signal-data includes (logs, spans, events, metrics) have no such restriction. Tag conditions are a separate case — a tag filter tests **membership in the tag set**, not a substring of a string field — so verify tag-based entity includes against your own tenant before relying on wildcard behavior there.
+
+> An asterisk may also follow a variable name in a starts-with condition — for example `foo = $bar*` — which is what makes variable-driven segments practical.
 
 <a id="segment-design-patterns"></a>
 ## Segment Design Patterns
