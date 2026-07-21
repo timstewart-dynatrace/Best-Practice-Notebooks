@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 07/08/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -70,6 +70,28 @@ Routing dimensions — severity, team/ownership, service, time of day — and es
 
 Match the destination to the urgency: fast-burn / acute → page (PagerDuty, on-call); slow-burn / steady → ticket (Jira, ServiceNow).
 
+### Migrating a classic notification: the official mapping
+
+If you are converting classic problem notifications to workflows, this is the documented old→new correspondence:
+
+| Classic notification | Workflow equivalent |
+|---------------------|--------------------|
+| Ansible | RedHat Ansible connector |
+| Custom integration | HTTP Request action |
+| Email | Microsoft 365 / Email connector |
+| Jira | Jira connector |
+| PagerDuty | PagerDuty connector |
+| ServiceNow | ServiceNow connector |
+| Slack | Slack connector |
+
+### The four with no native connector
+
+**Opsgenie, Trello, VictorOps, and xMatters are currently not supported** as native workflow connectors. Each becomes an HTTP-action rebuild against the destination's current API — and per §1, adding an HTTP action can move a workflow out of the *simple* (unbilled) category into the billed multi-step one. Budget for that rather than discovering it.
+
+Rebuild the payload against the destination's live API contract; do not port the classic webhook body verbatim.
+
+> ⚠️ **A classic integration scoped by a Management Zone is only as durable as that Management Zone.** The MZ filter has **no successor** inside the alerting model — Dynatrace's upgrade guide states it is *"no longer supported."* If you are retiring Management Zones, those notifications must be rebuilt as problem-triggered workflows first, filtered on affected-entity tags. **MZ2POL-09** covers that conversion end to end, including the capability regressions.
+
 > **Forthcoming/rolling out (SaaS 1.343):** a dedicated **Jira Service Management connector** joins the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Once available, it becomes the first-choice JSM path; until then, the existing Jira connector and custom-webhook paths described in this section remain the working options.
 
 <a id="legacy"></a>
@@ -77,7 +99,7 @@ Match the destination to the urgency: fast-burn / acute → page (PagerDuty, on-
 
 Some integrations predate workflows and still rely on **classic problem notifications** driven by alerting profiles rather than the AutomationEngine. **xMatters** is the canonical example: Dynatrace workflows are the preferred routing method, but they do not drive xMatters directly unless you POST the problem JSON to an xMatters endpoint via a workflow HTTP action.
 
-If you have a classic problem-notification integration working, it is not deprecated — but new integrations should use workflows. When you find a destination that "only works the classic way," check whether it exposes a webhook a workflow HTTP action can target before settling for the alerting-profile path.
+If you have a classic problem-notification integration working, it is not deprecated — but new integrations should use workflows. The one caveat that does bite: if the integration is scoped by a **Management Zone**, it inherits that zone's lifetime (see §3). When you find a destination that "only works the classic way," check whether it exposes a webhook a workflow HTTP action can target before settling for the alerting-profile path.
 
 <a id="cost"></a>
 ## 5. Cost Discipline

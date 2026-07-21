@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, metric events, schedules, and custom event triggers.
@@ -68,10 +68,20 @@ The most common trigger for alert notifications. Fires when Dynatrace Intelligen
 
 | Setting | Description | Example |
 |---------|-------------|----------|
-| **Categories** | Problem types to include | Infrastructure, Application |
-| **Entity Type** | Entity types to filter | Service, Host, Process |
-| **Management Zones** | Scope to specific zones | Production, Checkout |
-| **Tags** | Entity tags to match | `env:prod`, `team:checkout` |
+| **Problem state** | Active only, or active + closed | `Active` |
+| **Categories** | Problem categories to include | Infrastructure, Application |
+| **Severity** | Minimum severity threshold | `CRITICAL` |
+| **Affected entities — tags** | Tags the problem's affected entities must carry. Three modes: include all / all defined tags / any defined tag | `team:checkout` |
+| **Additional custom filter query** | A DQL **matcher** on the incoming problem record (a subset of DQL — no aggregation, no querying across a set of events) | `maintenance.is_under_maintenance == false` |
+| **Updates** | Re-trigger when selected fields change | Root cause changed |
+
+> ⚠️ **There is no Management Zone filter on the problem trigger.** An earlier revision of this notebook listed one; that was wrong. Dynatrace's alert-notification upgrade guide states the Management Zone filter is *"no longer supported — use Grail record-based field filters instead."* Scope the trigger with **affected-entity tags** plus the custom DQL matcher instead.
+>
+> This matters most if you are migrating off Management Zones: a workflow whose condition reads `event()["management_zones"]` keeps evaluating after the zones are deleted, but against an **empty array** — so every condition silently goes false and the workflow stops routing without erroring. See MZ2POL-01 §5 for the full MZ-job-to-successor mapping.
+
+> **Validate the filter before you save it.** The trigger configuration offers **Query past events**, which estimates how many matching events occurred in your environment over recent windows. Use it on every non-trivial trigger.
+>
+> The result to distrust is **zero across every window in an environment you know is busy**. A trigger can be syntactically valid, save without error, and still never fire — nothing surfaces an error to tell you, because an over-constrained filter is not a malformed one. Check in particular that the **categories selected above and any category named in the custom filter query agree**: a matcher narrowing to a category you did not select leaves nothing that can ever match. Reading the estimate at authoring time costs seconds and is the only signal you get.
 
 ### Problem Event Data
 
@@ -329,7 +339,7 @@ Access event fields in tasks:
 {{ event()["status"] }}               # OPEN, RESOLVED
 {{ event()["affected_entity_ids"] }}  # Array of entity IDs
 {{ event()["root_cause_entity_id"] }} # Root cause entity
-{{ event()["management_zones"] }}     # Array of MZ names
+{{ event()["management_zones"] }}     # Array of MZ names (legacy — empty once MZs are retired; do not route on this)
 {{ event()["problem_url"] }}          # Link to problem
 ```
 
@@ -553,6 +563,7 @@ In this notebook, you learned:
 - [Business Observability umbrella (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability)
 - [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Cron expression sandbox (crontab.guru)](https://crontab.guru/)
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — old→new mapping; states the Management Zone filter is no longer supported
 
 ---
 

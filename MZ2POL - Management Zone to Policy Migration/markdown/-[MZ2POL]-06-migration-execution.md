@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 06/25/2026
 
 ## Overview
 
@@ -314,7 +314,7 @@ Track issues during parallel running:
 
 Before removing MZ access:
 
-- [ ] Alerting profiles: Update to use segments (when available)
+- [ ] Alerting profiles: rebuild as problem-triggered workflows. The MZ filter has **no successor** inside the alerting model — route on affected-entity tags plus an optional DQL matcher on the problem record. Segments do not scope alerting
 - [ ] API integrations: Update to use new access model
 - [ ] Automation workflows: Verify still functional
 
@@ -385,7 +385,7 @@ After successful cutover (recommended: wait 2+ weeks):
 
 **Caution**: Only remove MZs no longer referenced anywhere
 
-- [ ] Verify no alerting profiles use MZ
+- [ ] Verify no alerting profiles use MZ (and that each has a live workflow replacement running in parallel)
 - [ ] Verify no API integrations use MZ
 - [ ] Verify no dashboards rely on MZ filtering
 - [ ] Delete MZ via Settings

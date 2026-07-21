@@ -84,7 +84,7 @@ Both M2S and S2S land you on a Gen3 SaaS tenant. Several Foundation topics diffe
 
 | Topic | Why refresh | Reading |
 |---|---|---|
-| Gen3 IAM model | Gen3 IAM is policy-based with security_context boundaries; Gen2 management zones do not translate one-to-one | [IAM](../IAM%20-%20IAM%20Administration/) — notebooks 01 (governance foundations), 04 (policy authoring), 05 (boundary design); [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) — full series for Gen2 MZ → Gen3 policy migration |
+| Gen3 IAM model | Gen3 IAM is policy-based with security_context boundaries; Gen2 management zones do not translate one-to-one | [IAM](../IAM%20-%20IAM%20Administration/) — notebooks 01 (governance foundations), 04 (policy authoring), 05 (boundary design); [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) — full series for Gen2 MZ → Gen3 policy migration, or notebook 05 alone if the MZs are used for filtering rather than permissions |
 | Grail buckets | Storage model is fundamentally different from Managed; bucket choices affect cost, retention, and access | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — notebooks 02 (understanding buckets), 03 (bucket strategy and design) |
 | security_context | Universal scope field for Gen3 access control; not present in earlier generations | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — notebook 06 |
 | OpenPipeline (Logs) | Replaces Classic Logs in Gen3; if your Managed tenant used Classic Logs, OpenPipeline migration is a separate workstream | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series |

@@ -246,10 +246,11 @@ Tools and guidance for migrating from Management Zones to Policy-based access co
 - [MZ2POL-02: Access Control Model](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-02-access-control-model.md) — Policies and access control concepts
 - [MZ2POL-03: Assessment & Planning](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-03-assessment-planning.md) — Migration assessment and planning
 - [MZ2POL-04: Policies and Boundaries](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-04-policies-and-boundaries.md) — Defining policies and boundaries
-- [MZ2POL-05: Segments Implementation](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-05-segments-implementation.md) — Implementing segments
+- [MZ2POL-05: Migrating Management Zone Filtering to Segments](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-05-segments-implementation.md) — Migration scenarios, conversion blockers, and MZ-rule-to-filter mapping
 - [MZ2POL-06: Migration Execution](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-06-migration-execution.md) — Executing the migration
 - [MZ2POL-07: Validation & Troubleshooting](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-07-validation-troubleshooting.md) — Validating and resolving issues
 - [MZ2POL-08: Templated Policies Migration](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-08-templated-policies-migration.md) — Policy templates for bulk MZ migration
+- [MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-09-alerting-and-notification-migration.md) — MZ-scoped alerting profiles become problem-triggered workflows; the tag prerequisite, capability regressions, and the deletion test
 - [MZ2POL-99: Best Practice Summary](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-99-best-practice-summary.md) — Consolidated best practices from the MZ2POL series
 
 ### [NR2DT - New Relic to Dynatrace Migration Steps](NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/README.md)

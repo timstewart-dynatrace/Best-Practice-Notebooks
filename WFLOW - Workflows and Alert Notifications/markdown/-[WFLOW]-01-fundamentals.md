@@ -1,6 +1,6 @@
 # WFLOW-01: Workflow Fundamentals
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 05/21/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
 
 ## Introduction to Dynatrace Workflows
 Dynatrace Workflows is the automation engine that enables event-driven automation, scheduled tasks, and integration orchestration. This notebook introduces core concepts, components, and your first workflow.
@@ -68,7 +68,7 @@ Dynatrace offers multiple automation approaches. When should you use Workflows?
 | Problem notification → Webhook | Detected Problem trigger → HTTP Request task |
 | Custom integration | Detected Problem trigger → JavaScript + HTTP |
 
-> **Recommendation:** New implementations should use Workflows. Legacy alerting profiles will eventually be deprecated.
+> **Recommendation:** New implementations should use Workflows. Alerting profiles are labeled **Dynatrace Classic** and Dynatrace recommends simple workflows for new setups — but no deprecation or end-of-life date has been published, so existing profiles keep working. The one real forcing function is Management Zones: a profile scoped by an MZ has no successor filter in the alerting model and must be rebuilt as a problem-triggered workflow before those zones are retired (MZ2POL-01 §5).
 
 <a id="workflow-components"></a>
 ## 3. Workflow Components

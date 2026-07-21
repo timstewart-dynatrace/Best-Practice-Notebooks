@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 05/26/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -63,8 +63,10 @@ Segment filter conditions define which data a segment includes. Understanding th
 | `NOT IN` | `k8s.namespace.name NOT IN ("kube-system")` | Exclude list of values |
 
 > **Important — operator availability depends on data type:**
-> - **Signal data includes** (logs, spans, events, metrics) support `=`, `!=`, `contains`, `not contains`, `starts with`, `ends with`, `IN`, and `NOT IN`.
-> - **Classic entity includes** (`dt.entity.*`) only support `=` (with optional prefix wildcard `*`) and `in()`. `contains` and `ends-with` are **not available** for entity includes.
+> - The underlying operator set is **`=` and `in()`** only. `starts-with`, `contains`, and `ends-with` are not separate operators — they are expressed by placing a **wildcard `*` inside the value** (`"prefix*"`, `"*text*"`, `"*suffix"`).
+> - **Signal data includes** (logs, spans, events, metrics) accept wildcards freely, so all three matching modes are available.
+> - **Classic entity includes** (`dt.entity.*`): documented wildcard support applies to the `entity.name` property. Other entity *properties* support exact `equals` only, so wildcard matching is unavailable on them. Tag conditions test **membership in the tag set** rather than a substring, so verify tag-based entity includes against your own tenant.
+> - An asterisk may follow a variable name in a starts-with condition — `foo = $bar*`.
 >
 > For cross-signal consistency, prefer prefix-based naming conventions (e.g., `prod-web-tier` not `web-tier-prod`) so `starts-with` works everywhere.
 
@@ -352,7 +354,7 @@ fetch dt.entity.host_group
 | App | `dt.host_group.id contains $app` | Matches host groups containing selected app (signal includes only) |
 | Stage | `dt.host_group.id ends-with _$stage` | Matches host groups ending with selected stage (signal includes only) |
 
-> **Note:** `contains` and `ends-with` operators are available for signal data includes (logs, spans, events, metrics) but **not** for classic entity includes. For entity includes, use `starts-with` (prefix wildcard) patterns. Always test with the segment preview before deploying.
+> **Note:** contains and ends-with matching (wildcards anywhere in the value) works on signal data includes. On classic entity includes, documented wildcard support applies to `entity.name`; other entity properties are exact-equals only, so prefix-based naming conventions are the reliable pattern there. Always test with the segment preview before deploying.
 
 ### Step 4: Validate Across Signal Types
 
@@ -435,7 +437,7 @@ When you select a segment in one Dynatrace app (e.g., Logs), the selection **per
 | **detected problems require event includes** | To filter problems with segments, define an events include with `event.kind = "DAVIS_PROBLEM"`; entity includes alone do not filter problem records | Add event-type includes alongside entity includes |
 | **Single relationship traversal** | Entity relationships can only traverse one hop | Target specific entity types directly in includes |
 | **Inclusions only, no exclusions** | Cannot say "everything EXCEPT team-X" | Explicitly include what you want (MZ supported exclusions; segments do not) |
-| **Entity includes: no contains/ends-with** | Classic entity includes only support `=` and prefix wildcards; `contains` and `ends-with` are not available | Use prefix-based naming conventions; signal includes support broader operators |
+| **Entity properties are equals-only** | Wildcard matching on classic entity includes is documented for `entity.name`; other entity properties support exact `equals` only | Use prefix-based naming conventions; put the broader condition on a signal include |
 | **1 include per data type** | Cannot have two `logs` include blocks | Combine conditions with `OR` within a single include |
 | **Max 20 includes per segment** | Hard limit on rule count | Consolidate rules; use variables for flexibility |
 | **Max 10 expressions per filter** | Limits filter complexity | Use OpenPipeline to pre-enrich data with simpler filter fields |
@@ -553,7 +555,7 @@ curl -X POST "$DT_ENV/api/v2/settings/objects" \
 The `dynatrace-oss/dynatrace` Terraform provider exposes segments through the `dynatrace_segment` resource. The structural shape mirrors the Settings 2.0 schema above. Required scopes on the credential:
 
 - `storage:filter-segments:read` and `storage:filter-segments:write` for create/update
-- `storage:filter-segments:share` if the segment is `PUBLIC` or shared with groups
+- `storage:filter-segments:share` if the segment's visibility is set beyond the owner (there is no share-with-specific-group mechanism — see §6)
 - `storage:filter-segments:delete` if `terraform destroy` should remove segments
 
 See AUTOM-04 §6 for the resource-table-driven catalog (including which auth scheme each Terraform resource requires) and AUTOM-09 for the broader GitOps repo layout and state-backend recommendations. The `dynatrace_segment` resource is Platform-Token-friendly; combined auth (`DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) is the recommended default so the Settings 2.0 object carries the calling service user as `owner` for IAM filtering downstream.

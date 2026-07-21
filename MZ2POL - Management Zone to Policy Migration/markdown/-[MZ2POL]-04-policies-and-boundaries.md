@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 9 | **Created:** December 2025 | **Last Updated:** 07/16/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -104,9 +104,25 @@ By the end of this notebook, you will:
 | **Action** | Operation | `read`, `write`, `delete` |
 | **Condition** | Optional filter | `WHERE field = "value"` |
 
-> **Effects:** Authorization is **implicit-deny** — anything not `ALLOW`ed is denied. Compose access from `ALLOW` statements and simply omit what you don't want to grant. Reserve explicit `DENY` for narrowing a broad `ALLOW`; a `DENY` always wins over any `ALLOW`, regardless of order.
+> **Effects:** Authorization is **implicit-deny** — anything not `ALLOW`ed is denied. Compose access from `ALLOW` statements and simply omit what you don't want to grant. Reserve explicit `DENY` for narrowing a broad `ALLOW`; a `DENY` always wins over any `ALLOW`, regardless of order — but see the caveat below on what a `DENY` can and cannot narrow.
 >
 > **Combining conditions:** A policy `WHERE` clause supports **`AND`** (e.g. `WHERE settings:schemaId = "..." AND storage:bucket-name = "logs_prod"`). It does **not** support `OR` — to express OR, write multiple `ALLOW` statements.
+
+> ⚠️ **`DENY` cannot narrow a grant by record-level condition — it removes the permission outright.** A `WHERE` on a `DENY` behaves differently depending on what it scopes:
+>
+> | Statement | What it actually does |
+> |---|---|
+> | `DENY storage:buckets:read WHERE storage:bucket-name = "logs_delivery"` | Works as written — denies only that bucket |
+> | `DENY storage:logs:read WHERE storage:dt.security_context = "sensitive"` | **Denies every log**, not only the `sensitive` ones |
+>
+> Dynatrace states it plainly: this kind of scoped exclusion *"is only possible with buckets. This is because you can apply a DQL `DENY` statement to buckets, but not to record-level permissions."*
+>
+> **Why this matters for an MZ migration specifically.** The instinct carried over from Management Zones is to grant broadly and then carve out the one zone a team must not see. There is no record-level `DENY` that does this. Two options that work:
+>
+> 1. **Grant the complement** — enumerate what the group *may* see with `ALLOW ... WHERE storage:dt.security_context MATCH (...)` instead of excluding what it may not.
+> 2. **Isolate, then deny the bucket** — route the excluded data to its own bucket and `DENY storage:buckets:read` on it.
+>
+> The failure mode is not subtle once it lands — the group loses the entire data type — but the statement *reads* as though it were scoped, so it tends to survive review.
 
 ### Basic Policy Statements
 
@@ -195,6 +211,12 @@ Policies and boundaries share the same condition syntax.
 | `in` | Value in list | `field in ("a", "b", "c")` |
 | `IN` | Value in list (alternative) | `field IN ("a", "b")` |
 | `MATCH` | Wildcard pattern match (storage domain only) | `field MATCH ('team-*')` |
+
+For `storage:dt.security_context` and `settings:dt.security_context` specifically, the documented operator set is **`IN`, `=`, `startsWith`, and `MATCH`**.
+
+> **Place wildcards next to a word separator.** Dynatrace's guidance is to put the `*` immediately before or after a separator character — `-`, `_`, `.`, or `/` — because `MATCH("db-tech-*")` evaluates more efficiently than `MATCH("db-tech*")`. This is a performance rule rather than a correctness one, but it has a design consequence worth acting on: **build your `dt.security_context` values with explicit separators between dimensions** rather than running them together. A structured value such as `plat:k8s/comp:db/bu:digital/app:easytrade` gives every transversal team a boundary that lands cleanly on a separator, while a concatenated value like `k8sdbdigitaleasytrade` does not.
+>
+> Dimension **order** matters for the same reason: whichever dimension you place first is the one that prefix matching can slice on cheapest. Put the most transversal dimension — usually platform or component — at the front. See IAM-05 for the full boundary-design treatment.
 
 ### Supported Fields
 
@@ -775,6 +797,7 @@ For large-scale migrations with many Management Zones, see **MZ2POL-08: Template
 - [Policy Boundaries Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
 - [Grant Access with Security Context](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)
 - [Policy Templating](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating)
+- [Use Grail buckets to partition data](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — bucket-level access control, and why a `DENY` scopes buckets but not records
 
 ---
 

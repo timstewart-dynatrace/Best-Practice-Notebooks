@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 9 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
 
 ## Overview
 
@@ -34,7 +34,8 @@ By the end of this notebook, you will:
 1. Understand why Management Zones are being deprecated
 2. Know the key differences between MZs and the new model
 3. Recognize the benefits of Policies, Boundaries, and Segments
-4. Identify your current MZ usage patterns for migration planning
+4. Distinguish the three axes an MZ conflates — routing, visibility, and filtering — and where each one lands
+5. Identify your current MZ usage patterns for migration planning
 
 ### Sprint 1.337 (April 2026): Migration Urgency Confirmed by API
 
@@ -188,7 +189,9 @@ fetch dt.entity.service
 
 - Management Zones will be **retired** with classic apps
 - All new Dynatrace apps use Grail and Segments
-- Alerting profiles will be bound to Segments
+- Alerting profiles give way to **problem-triggered workflows** — not to Segments (see §5)
+
+> **Segments do not scope alerting.** A common misreading of this migration is that alerting profiles will eventually accept a segment the way a dashboard does. They will not. Alerting profiles are scoped by Management Zone plus severity-rule tag matching; their Gen3 successor is a problem-triggered workflow whose trigger filters on affected-entity tags and an optional DQL matcher. Segments touch alerting in exactly one place — scoping an *anomaly detector* — and never scope triggers, notifications, or problem visibility. §5 gives the full mapping.
 
 ---
 
@@ -202,13 +205,33 @@ fetch dt.entity.service
 
 ### What to Migrate
 
+Management Zones do several unrelated jobs at once, and those jobs migrate to **different** places. Read this table as a fan-out, not a rename — there is no single construct that "replaces" a Management Zone.
+
 | Current MZ Use Case | New Solution |
 |---------------------|-------------|
 | User access restriction | Policies + Boundaries |
 | Data filtering in UI | Segments |
-| Alerting profiles | Segments (upcoming) |
+| Alerting profile scoping | **Problem-triggered workflows** — trigger filters on affected-entity tags + optional DQL matcher |
+| Problem *visibility* (who may see which problems) | IAM record-level policy on `dt.security_context` |
+| Anomaly detector scoping | Segments (the one place segments touch alerting) |
 | Dashboard filtering | Segments |
 | API access control | Policies + Boundaries |
+
+### The three axes, kept separate
+
+The single most common planning error is collapsing these into one:
+
+| Axis | Question it answers | Mechanism |
+|------|--------------------|-----------|
+| **Routing** | Who gets paged? | Workflow trigger: affected-entity tags + DQL matcher |
+| **Visibility** | Who may see the problem at all? | IAM policy on `dt.security_context` |
+| **Filtering** | What does a user see in the UI? | Segments |
+
+Segments are not an access-control mechanism and are not a routing mechanism. Anyone holding `storage:filter-segments:read` can apply any segment.
+
+> ⚠️ **The Management Zone filter has no successor inside the alerting model.** Dynatrace's upgrade guide states it plainly: *"Management Zone filter — No longer supported. Use Grail record-based field filters instead."* This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-05 §4 for the rule-to-dimension classification.
+
+> ⚠️ **Duration-based suppression has no successor today.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). As of 07/2026 the workflow model has **no equivalent** — the upgrade guide's wording is that there is *"currently"* no alternative, so re-check it before planning a cutover wave. Inventory this field across every profile: any team relying on it to suppress short-lived noise will see a noise increase, which makes those profiles the right candidates for the **last** migration wave rather than the first. See MZ2POL-09 §6.1.
 
 ### Migration Phases
 
@@ -228,7 +251,8 @@ In this notebook, you learned:
 1. **Why migrate**: Management Zones don't work with Grail and will be retired
 2. **The new model**: Policies (what) + Boundaries (where) + Segments (filter)
 3. **Key benefits**: Scalability, flexibility, separation of concerns
-4. **Assessment queries**: How to audit your current MZ usage
+4. **The fan-out**: one MZ's jobs migrate to *different* constructs — access to policies/boundaries, UI filtering to segments, alert routing to workflow triggers, problem visibility to `dt.security_context`
+5. **Assessment queries**: How to audit your current MZ usage
 
 ## Next Steps
 
@@ -237,12 +261,17 @@ Continue to **MZ2POL-02: Understanding the New Access Control Model** to dive de
 - Boundary configuration
 - Segment creation and management
 
+For the alerting side of the migration specifically, see **WFLOW-02** (problem-trigger configuration) and **WFLOW-04** (tag- and ownership-based routing).
+
 <a id="additional-resources"></a>
 ## Additional Resources
 - [Access Management Concepts](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts)
 - [Policy Boundaries](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
 - [Upgrade from RBAC to ABAC](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles)
 - [Segments Documentation](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries)
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the authoritative old→new mapping, including the "Management Zone filter: no longer supported" line and the connector equivalence table
+- [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic surface; carries the "we recommend using simple workflows" steer
+- [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the one documented intersection of segments and alerting
 
 ---
 
