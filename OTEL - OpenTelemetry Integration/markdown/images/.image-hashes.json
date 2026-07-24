@@ -1,0 +1,11 @@
+{
+  "03-operator-managed-collector_930x500.svg": "9e0b0d55bca4337ecac5edffc95a2b77d908f021b69c5a0c2e296de6d832718b",
+  "03-prometheus-target-allocator-tiered_930x500.svg": "a0568a7646f7ecdd0ad3c97e64d5a845772e67f3ee70d459a857ac7ff4e92291",
+  "05-prometheus-scrape-otlp-flow_930x500.svg": "939c0362439e7dcd559c784d18f6ec985d2b235293ac3a84d9ec9efe6106e1b4",
+  "07-collector-dynakube-oneagent-coexistence_930x500.svg": "c1a1f5ecf2600f11fb7a821d29114919623746fdf64a10e9a26ea0b8e1056ba5",
+  "collector-deployment-modes.svg": "d8cc7705d77f407026b56cf435e0da0796cadb58187faf461867fc9a1f1f6666",
+  "collector-pipeline.svg": "e9562eade459cf2581ddd8aeb3d02f26a8dad27eb2f1640229d7595ae6b20dd3",
+  "dynatrace-token-format.svg": "005da90e836e032579bde09b30f469db7fe1958315fa9bf9d045ab73e03a8e76",
+  "hybrid-instrumentation.svg": "7a2b6314f43aa0a614315adf833c562b4377f49b9a03972543fd5ddbdf26a6b8",
+  "otel-architecture.svg": "5dc1369c6400f195848cca59a71b85236abbc030e5a2573bb764037904eee9d8"
+}

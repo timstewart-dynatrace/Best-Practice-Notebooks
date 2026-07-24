@@ -1,0 +1,10 @@
+{
+  "01-billing-event-flow_930x500.svg": "80f068ed06c355588c746c024537659c5accc1f258ff78c24078e6aecf51d253",
+  "01-dps-capability-categories_930x500.svg": "f19c0631a80e91286d3a21d1af1042c253c8dff0027cf84b24945049f5cfe2ff",
+  "01-tenant-vs-account-surfaces_930x500.svg": "5ea3a25e696d064ccf909084e2ee38964b9f0f55ac7f66806f63ee503002a80d",
+  "02-anomaly-detection-architecture_930x500.svg": "39952f43e9e0fd254bb0b231d1d94440a36f4401cd3a5bf9224fc66fa5cdc520",
+  "02-burn-rate-trajectory_930x500.svg": "e376ebb3d07e8fa0c6b5f45a063a9808e6e0f672dd079bf56c00b9bb3f5baea6",
+  "02-three-layers-cost-visibility_930x500.svg": "51fa1e3eb95287d7624857d170c03b92540feef9b825ce01e4097f8ec8dccf13",
+  "03-cut-tune-filter-tradeoffs_930x500.svg": "a5c8fdb22de54613e3766a203584cc15cdfe1f3c8f65fb8e475239561ce14173",
+  "03-optimization-decision-tree_930x500.svg": "e90dab3879d3908c77a47f22f3592a8e2faf1897face011a533c15d37cb49160"
+}

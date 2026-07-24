@@ -1,0 +1,10 @@
+{
+  "01-saas-benefits.svg": "b25a2e11740e0a373f7113807ec5fb06c4a4da817cf9844aacefe351592c29a3",
+  "02-migration-framework.svg": "4e3f664cb6c6ce759b0544e0c2a729267be18389cff12c592db170445470e82f",
+  "03-activegate-deployment.svg": "c96c92133c89e47d38811d1ff95527b02e49ce109e3ab4404e4a487c233739bf",
+  "03-network-architecture.svg": "6fa383d7a099e4ee155d072f7c026a1174e608f75ee0854010ffc4af2eea675b",
+  "03-network-zones.svg": "dcc2a3205af3e7f60ffeffc15c6af94502ba9f63d871d596d8e149a7a480c09a",
+  "03-security-model.svg": "58da6c93b85279eb0300594eaa712fbf3a867192ce747c8025b8f4d968058774",
+  "05-agent-migration-sequence.svg": "9ddd31fe6f4a26a9608a553102caca1a9a0f764d817d67a8b4eab3015b70719d",
+  "05-config-migration.svg": "9150767c0d7ad0880661efff939e74349967e011c51bb3794070bc43fcae8404"
+}

@@ -1,0 +1,10 @@
+{
+  "01-dynatrace-intelligence-overview.svg": "9f5e0cbcf8e313fb61ccf857cef44120f81c8b8f9d1762387361bc2b35657908",
+  "02-anomaly-detection-mechanisms.svg": "4f02bd4623f663178ae0c2068557fc9110f820367ff259c6849833aebe3553fd",
+  "02-anomaly-detector-setup-flow_930x500.svg": "bfb97101b8965885b5e9671dd70f3c30b0bf49b44e37726a1bcb42d11ec8f791",
+  "03-causal-ai-flow.svg": "393b4bc1709dec5a475691aa3b060b99c3277384894127ddb259aa167712e84d",
+  "04-dynatrace-assist-surfaces.svg": "cb31459a5ae8197e63e0277eed7b7a5e2d8e8132c9508ea9ca3bd70f86a3ab87",
+  "05-ai-model-categories.svg": "855b167a00b783593cfdc5928a1f7db3e13c47c5d8f0daa6d1aab35e5b817dd3",
+  "06-ai-integration-surfaces.svg": "175178539300d570e181e0449527b2bec6605697585d2b54081764dd9140b0a3",
+  "07-detect-investigate-remediate.svg": "56f4d1dd4f68ec82739d7fe5bb534ff2371cddc2c6f5e21153f862f738ff097d"
+}

@@ -1,0 +1,7 @@
+{
+  "log-discovery-process.svg": "3d8a116616eeb91d7c03469aedbe1333c6becb882e26bf82ea97524c36e0a383",
+  "migration-overview.svg": "c95a9946e01c74f7e033fb9ddd54e3d7ae161e1a149d28e225a04c60900b1202",
+  "query-translation-flow.svg": "e41ecfe60eb90e491fdfcc867cb304db33a1a5ab542ec2478482306ea0715aca",
+  "splunk-vs-dynatrace-alerting.svg": "f6b2b98ac6abbdec1228d4381f0710414af419826d15cdb0675226b5e9e649be",
+  "workflow-vs-anomaly-detector.svg": "e2874a8362211cd1fc5a062890f3e02533555b836eb2e58f04b3fac2c9479567"
+}

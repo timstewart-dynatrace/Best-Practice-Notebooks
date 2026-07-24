@@ -1,0 +1,17 @@
+{
+  "01-automation-pyramid.svg": "69c7afc058873e8c2bc55f5c410549ef755026bdf837f17c9eac74a69a4c19d8",
+  "01-decision-tree.svg": "20ebebb57ca74742b72fcd3ed392463900364d4bac3c7af2739dd259249aee00",
+  "01-tool-comparison.svg": "af3c60f70c07ee4a75a75a8f0add694b62a5e6575842fb959225904b243a21cd",
+  "03-monaco-workflow_930x500.svg": "3b8f7c38838cd69077da633d2119a74c5fd7d1fcb9ce4e8e4a7c90b38a601517",
+  "04-brokered-self-service-pattern_930x500.svg": "1afca4d0d2ab7fc91cc0ebdacc369f85c8780f831e08895fd689449a47d2735f",
+  "04-mint-out-of-band-provision-flow_930x500.svg": "4bc03be1c1441a942fd8d23760f34aefb1fb75cab059bb69565a6c491c0ce102",
+  "05-workflow-architecture_930x500.svg": "4c56c246132375141fc1235887ac8e36289650d959bcf23c32e8e1fa68b69a5d",
+  "07-gitflow-branch-env-mapping_930x500.svg": "4d79e4c300d4126f5038f468ef08d6cff4f77df62460d86f25a7c52f41e7f21b",
+  "07-gitops-workflow_930x500.svg": "7ef39a9b33b34989cf9294df339bb42e3d3f86ac2dc6ae0e63a2873e057e7502",
+  "07-oauth-mints-ephemeral-platform-token_930x500.svg": "da08dfc784bcf11cf38f364658b791c3d852bec31f267002967641cce0f10eb6",
+  "07-single-sa-writer-flow_930x500.svg": "600d5ef94ec3ef9f6bc299d77d01aa62364aa97bbc6dd1d550eb4c05d4118bdf",
+  "09-lifecycle-protection-decision_930x500.svg": "3e7f1bff0dac04143f965d8ff6c6c71961e99f5826774b7baa956baf9de99013",
+  "09-multi-env-promotion-flow_930x500.svg": "89242f763bd84380fecd4f858eeb4aaed585197ca374bb25706c0f81d1d46491",
+  "09-repo-layout_930x500.svg": "e22a167dd2ed334a89822ada26649680b5845d119011d98237107c3023a8a29e",
+  "96-cicd-github-actions-flow_930x500.svg": "62dfaa3f10a025673d12fe6157505731e5ce20ea20576117b1e9d4edd3f88e3c"
+}

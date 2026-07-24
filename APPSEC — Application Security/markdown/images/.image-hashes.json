@@ -1,0 +1,12 @@
+{
+  "01-three-pillars-of-appsec_930x500.svg": "e53b843962f05f5be131fc3c4ea607cca3e12f7123269a9a3d4313b3f8ca0b8f",
+  "02-rva-vulnerability-triage_930x500.svg": "db02ead5d380aeacd35f9ea30cf96ee1be6a5083f2e930c2c0a63134992f9e07",
+  "03-code-level-vulns_930x500.svg": "3f4bf0490e4f81c40f492fc5631fd021057afe22eacf1e867eac1000ad898cbe",
+  "04-rap-detection-to-blocking_930x500.svg": "df7cceaedeb0faaa57217b376c58f943a538e8974b60a337fd23e8915bd204c3",
+  "05-spm-compliance-frameworks_930x500.svg": "1504dabba57466fdca6b8dff5b88a2afeaf48e28ef7a321fa99dff789698d1be",
+  "06-k8s-container-security_930x500.svg": "54d7f582fec57a763b9bcc53052ad72b5a2464e6fd135ba71ed6ec79a4567c2e",
+  "07-investigator-davis-copilot_930x500.svg": "a6cd1fead9a26e5ecfe4433e12ba3dd7f2b7b48c40c0c5250555445047c0958c",
+  "08-workflow-remediation-flow_930x500.svg": "8b6d6405c6368bcbfd03d38e3d7482e736b21a3e8d4751bf983b8ba61954513c",
+  "09-appsec-permission-matrix_930x500.svg": "3dafc96e266939d31b5f19bc32bb122e0549da3f286b2a5a5fd699d13db607f1",
+  "10-appsec-governance-dashboard_930x500.svg": "d517134b71973ccf1187d681db33106fd9f9e79645a4113fa46686643a2603f5"
+}

@@ -1,0 +1,19 @@
+{
+  "bucket-tiering.svg": "e51e1056aa265738b2062aa233c45b3fb9ea3a39e08ee6d489a94d59c88a5efd",
+  "classic-vs-openpipeline.svg": "10ec4771f7f781952ac24a872a36eab6e93404a743450a9a2f169a02664f8943",
+  "decision-tree-masking.svg": "f69b8d26653bbb73c0d51f1d11652667e84adc16716a73f0c956b1c7b680e434",
+  "decision-tree-parsing.svg": "e4c7b87e57a026b5fff94eddaaf87ea0cb4fc87820c0dc7a4a0dc2a1bf67026e",
+  "decision-tree-performance.svg": "119f39272dea4ec6fe2cdd81a3964294e1d72dbbaa89456617fb42f0b07daff5",
+  "dynamic-routing.svg": "0b0580025d82f5a1ae381591892d52bf05a3c1089495bfc58a8671a2955eebd8",
+  "entity-field-timeline.svg": "f5de50609eaf78ac4df3e0c664da46303412449eee782b84fa93e5c2275dfdf3",
+  "extraction-stage.svg": "02585775c19ed2b5ee698b770b35e9e1636bad760f415bbee4532b599477b1cf",
+  "hybrid-bucket-strategy.svg": "43ef201f73984b8f17b8ffc1b1e8616711ab19faf27614dd02b30bd488c00e52",
+  "masking-order.svg": "c25ae3069a5c783921d96debf1a504eb0fb5527e0c5e8a03066b4dd5b9952b85",
+  "migration-phases.svg": "9c1a1cdcd6d59183ac82040fde6df6c12a5d16937b963300ed8bcd6ad5dc4da3",
+  "multi-pipeline-processing.svg": "c00a4ee08a29b1ed670061a1ced652a36f7587dd7c7f07fc490a17bece84f462",
+  "openpipeline-architecture.svg": "2a8021b034a757d091e855b035ccdce82cb5155f91cf3182b73941e1c86d78d7",
+  "openpipeline-ui-overview.svg": "0cca3ec904cc7322a803c90c5a2b330952332c1a43943d8dfd2ecd948ebf5084",
+  "processing-order.svg": "8078b82aff6784f67b263285d32ef53309c9d3f9b8365bded974f0b034f0f3ab",
+  "processor-config-panel.svg": "290ff235463ede0e1a5dea767d337320e8da09e0691649a515dfffa4d32832bc",
+  "troubleshooting-decision-tree.svg": "d308bc17cfd99487bbd96c194f6cdd2c9fa2891571a8909974a25a6bc2566ad7"
+}

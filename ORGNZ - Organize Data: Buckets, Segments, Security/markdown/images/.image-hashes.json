@@ -1,0 +1,17 @@
+{
+  "01-grail-data-model.svg": "276139a4ae6e68cff98b49bf76318a1a3182bdc9fd56cbd50775470bb73aa7c0",
+  "01-organization-decision-framework.svg": "04100bdd08d35aef306a278a867d83786e913ca44355149340bf592295eecb21",
+  "02-logs-bucket-hierarchy.svg": "a4a7e1c98f3a23dc95a7884f4495ce3f3a766c607cc664ac4efefbfb4e01506b",
+  "02-multi-signal-bucket-hierarchy.svg": "b775c802a0ef22c838923822de8221503ec83c3c9e7e3a9b5d255e2015237f21",
+  "03-bucket-query-time-window.svg": "72a1928e038d71491f5aaea1108a264a30473baeaf9116416c61d0ff0c5333ec",
+  "04-permission-hierarchy.svg": "7d35db2119f597578257ef29442bdb80e08f95e5664f061c7464e1f2af4baef9",
+  "04-query-time-flow.svg": "fc6c7f7e4514c956dff7f0df36aff6212e25766d1a89671774cacce888c03b8d",
+  "05-bucket-access-tiers.svg": "21eff1621ff16c2b8ecbe35956f826df7ad8de88949049c7decc63efe8408a52",
+  "05-team-isolation-architecture.svg": "4d92379f99c2de42116afc8a40335e16a6c2bcf2a8e1c45ea0c11c0d8d5d339e",
+  "06-structured-security-context.svg": "404f37c938ce584610c6ad50c1d0d44591cc82ee3282a30dd1658ac315516862",
+  "07-record-level-permissions.svg": "2b998fa59dfc30bbfdf5c39ab94ef8d771ec9e06dcc82dff3beb2706ab216c0f",
+  "07-tiered-access-model.svg": "47ba4d6eb5abd281084f5537027bd736823ae19ee33b194d702f7b249e935492",
+  "09-lob-isolation-pattern.svg": "80751e26c946400c6ebdaa4822c971ff79317645f4a8cc8e5955c92e9084fe98",
+  "09-organization-decision-framework.svg": "04100bdd08d35aef306a278a867d83786e913ca44355149340bf592295eecb21",
+  "10-multi-include-segment-pattern.svg": "32038e110314e280978517c7752f6f2cbe0839be9019edf6bf4b98c4be9988e2"
+}

@@ -1,0 +1,11 @@
+{
+  "01-openpipeline-architecture.svg": "f1efd848551eaa497a5cef2c8d39bb731198c6162e87bc4cb5814a816e5d9dc9",
+  "02-migration-patterns.svg": "5fee33e8d16b5e54f5447070c2c513ab9591a32a16c5e133ed3db06737713dc6",
+  "03-dpl-matchers.svg": "4515317545802c4e7617a8c1c7941c3b6d2a2350278fdaa1369307524d958f54",
+  "04-bucket-governance.svg": "5983a1d1d76d787821ec895cb70640312c2809a0b01473fe83d0df104628e7c9",
+  "05-dql-pipeline.svg": "2065d3e13f4da55627268342848bae731bb754c914372f2fe43687928e023998",
+  "06-entity-topology.svg": "1e0a3b4ae220a85da33ce9b626b523da81304ed6d0864e041a4c5d1e1c0fa227",
+  "07-aggregation-functions.svg": "59923387bbfb219f446af452587fb8d8c2ab73300632ee7193f2a4d87b2c5b31",
+  "08-masking-pipeline.svg": "5304cbd196b8a70232f21ff8358dbb24a0dc164acf5d495a8feeb87fcac59434",
+  "08-sensitive-data-classification.svg": "60923387bdb73e47c4b2ea03bfd7683cda9d915af64e127af79ef2948e92de0a"
+}

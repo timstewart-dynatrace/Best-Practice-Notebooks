@@ -1,0 +1,18 @@
+{
+  "01-iam-governance-framework.svg": "91d23d7b67aae918bbb48d637700d799ca0f770717edfc58791e192376525eec",
+  "03-group-hierarchy-patterns.svg": "467b7986b9e4f30d2afc238a4334cfd5f67024f1dfcb0e8c6a33d1df311e50de",
+  "03-saml-group-mapping.svg": "c9e131cb93e92632d88c4c20f8ddd16282a6b830299cc0abf7fcbc54f136d3a8",
+  "04-policy-decision-tree.svg": "c487397fec1b8355d4f3704d9a6921b084d06de350ac7ea1957ceb25dcd8a923",
+  "04-policy-statement-anatomy.svg": "2dd49029ea3057859d43620c7b660c021c3e0b3a3da835d73082f2a0fe8669bc",
+  "05-boundary-three-domains.svg": "5ebb71693b17c6aacfc1e899dc56ed42441b8aeb927fef06c9c2a3a0e59802ae",
+  "05-multi-tenant-isolation.svg": "2d395022c3f907e1be52afd2bd7de5dee14529fdda4cadfce041d8eace035e65",
+  "06-scim-provisioning-flow.svg": "65934651ee0f40e55d16d5e4a1d4f2add253c27a6048f14171a0acf30533a8cf",
+  "06-user-lifecycle-flow.svg": "80f71b8b85f7672c69ad83c376e458b54d5de4761133a4911928fc9061aa5fdb",
+  "09-troubleshooting-decision-tree.svg": "d593bbc08a8b81f4752379b30acecc931f9b52afc5ce1508b9b2aac699fe9010",
+  "11-policy-config-domain.png": "816be87a603a78d9acd662f3425116fe3f7f85aef0f74f0b2f94af9761081585",
+  "11-policy-data-domain.png": "9adc0dd55ed2f1804004129ae2deed8dcb2a6d96514ba6dfd0500bdcf95cbcdf",
+  "11-policy-flow-automation.png": "ba0597a990f980da945560b391b79e55929554c7d574f7ceed1dfb2e6135e957",
+  "policy-boundary-equation.svg": "3321db3d3a7e357a4bb2d86c860c13d0860d15daa53e265dda1080dae2d25dca",
+  "policy-boundary-reuse.svg": "527d9c5e8b6724da75d7c40873ca5a94a6f7299170befae18bb4ed6592e745d1",
+  "team-group-boundary-flow.svg": "2d478c300f2ffa0c2c736bbb1eb65507352bc0e531cfe4aa97586dd4767586ea"
+}

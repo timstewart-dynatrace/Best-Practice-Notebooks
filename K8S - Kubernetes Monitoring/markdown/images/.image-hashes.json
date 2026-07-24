@@ -1,0 +1,10 @@
+{
+  "01-k8s-data-flow.svg": "6c8923d113f4cab560bb7375352123cfaaf0797937903cd1369c2d3342c563de",
+  "01-k8s-entity-relationships.svg": "e01c98ebf77e11c9aa870bd9e13cd68c3a5f458264f93b9fe7104e9e0956e1e2",
+  "02-dynakube-operator-architecture.svg": "0664337e59f9659f2047bda67c006c2670eb0e24509148503f5b72bd3f0eebf6",
+  "03-gitops-workflow.svg": "80bc76c1dd1d69c44483d556a14290dddf1d32ab4be032dbdb9aa7b427a8d978",
+  "04-node-capacity-utilization.svg": "5782a451a488f95c364d9ccdf5640f1efd25279ac600545b738f6473c5817d32",
+  "07-k8s-event-log-flow.svg": "8f3ccf2d93d7662d50893ac462c02ddbd47b8f2db67f95a37e10511015832ca7",
+  "09-troubleshooting-methodology.svg": "faf8da8137fc88bbdbf1a1ab6d7b3e76ad493b30d0a7cf893b6ca50e9b7434cb",
+  "10-enrichment-methods-comparison.svg": "36ad66a7815f5d7238a69daa6f76fdec83764322f6f89c215897dc930d0a1674"
+}
