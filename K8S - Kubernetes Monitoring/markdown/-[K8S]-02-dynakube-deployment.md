@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 07/27/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -492,7 +492,8 @@ helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
 |------------------|---------|---------|-------|
 | 1.7.x | 1.23 | 1.29 | Supported (verify against your environment) |
 | 1.8.x | 1.24 | 1.30 | Supported |
-| 1.9.x | 1.25 | 1.31 | **Latest** (v1.9.0, April 2026) — verify min/max ranges in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
+| 1.9.x | 1.25 | 1.31 | Supported |
+| 1.10.x | — | — | **Latest** (v1.10.1, July 2026) — **skip 1.10.0**, which carries an auto-update defect its own release notes advise skipping. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
 
 > **Operator support window:** the Standard 9-month / Enterprise 12-month support policy means versions older than v1.7 are likely past EOL. Plan upgrades accordingly. Older versions may still function but will not receive security or compatibility fixes.
 
@@ -539,7 +540,7 @@ In this notebook, you learned:
 - [DynaKube parameters reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — full CRD spec (renamed from `dynakube-crd`)
 - [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — reference list of supported feature-flag annotations
 - [Helm chart values.yaml (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml) — every Helm install option
-- [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — current latest is v1.9.0 (April 2026); check before each install
+- [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — current latest is v1.10.1 (July 2026; skip 1.10.0 — auto-update defect); check before each install
 
 ---
 
