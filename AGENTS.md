@@ -18,8 +18,8 @@ The corpus is far too large to read wholesale. Route instead:
    blocks you can quote directly.
 4. For broad "where do I start" / adoption-journey questions, use
    [`-START-HERE-/`](-START-HERE-/README.md) — a playbook that sequences series
-   by scenario (net-new, expand/consolidate, deployment migration) and includes
-   a series overlap map.
+   by scenario (net-new, expand/consolidate, deployment migration,
+   classic → Gen3 platform) and includes a series overlap map.
 
 ## Formats — read only markdown
 
@@ -101,7 +101,7 @@ Paths are the literal directory names (they contain spaces — quote them in she
 | NR2DT | `NR2DT - New Relic to Dynatrace Migration Steps` | New Relic → Dynatrace: process, discovery → cutover |
 | NRLC | `NRLC - New Relic to Dynatrace Migration Deep Dives` | NR2DT companion: query translation, dashboards, alerting, validation reference |
 | OPMIG | `OPMIG - OpenPipeline Migration` | Classic log processing → OpenPipeline |
-| MZ2POL | `MZ2POL - Management Zone to Policy Migration` | Management Zones → policy-based access control |
+| MZ2POL | `MZ2POL - Management Zone to Policy Migration` | Management Zones → policy-based access control (notebooks 01-04, 06-08) and → segments for filtering (notebook 05) |
 
 Disambiguation for the overlapping clusters:
 - **OpenPipeline**: logs → OPLOGS; other signal types → OPIPE; migrating from classic pipelines → OPMIG.
