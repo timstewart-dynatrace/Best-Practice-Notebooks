@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/08/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -184,9 +184,11 @@ fetch dt.entity.host | summarize hosts = count()
 // fetch dt.entity.service | summarize services = count()
 // fetch dt.entity.process_group | summarize process_groups = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST | summarize hosts = count()
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST" | summarize hosts = count()
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -200,6 +202,12 @@ fetch dt.entity.host
          physicalMemory
 | sort entity.name
 | limit 100
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; physicalMemory -> host.physical.memory; entity.name -> name.
 ```
 
 ```dql
@@ -207,6 +215,15 @@ fetch dt.entity.host
 fetch dt.entity.host
 | summarize count = count(), by: {osType}
 | sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize count = count(), by: {os.type}
+//   | sort count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: osType -> os.type (LINUX -> OS_TYPE_LINUX).
 ```
 
 ### Service Discovery
@@ -217,6 +234,16 @@ fetch dt.entity.service
 | fields entity.name, serviceType
 | sort entity.name
 | limit 100
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | fields name, dt.service.sdv1_type
+//   | sort name
+//   | limit 100
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
 ```
 
 ```dql
@@ -224,6 +251,15 @@ fetch dt.entity.service
 fetch dt.entity.service
 | summarize count = count(), by: {serviceType}
 | sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | summarize count = count(), by: {dt.service.sdv1_type}
+//   | sort count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type.
 ```
 
 ```dql
@@ -243,12 +279,22 @@ fetch dt.entity.process_group
 | fields entity.name
 | sort entity.name
 | limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
 ```
 
 ```dql
 // Count process groups
 fetch dt.entity.process_group
 | summarize count = count()
+
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
 ```
 
 ### Log Discovery
@@ -307,11 +353,14 @@ fetch dt.entity.kubernetes_cluster
 | fields entity.name
 | sort entity.name
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fields name
-// | sort name
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fields name
+//   | sort name
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ```dql
@@ -321,12 +370,15 @@ fetch dt.entity.cloud_application_namespace
 | sort entity.name
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_NAMESPACE
-// | fields name
-// | sort name
-// | limit 50
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_NAMESPACE"
+//   | fields name
+//   | sort name
+//   | limit 50
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ```dql
@@ -336,12 +388,15 @@ fetch dt.entity.cloud_application
 | sort entity.name
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_DEPLOYMENT
-// | fields name
-// | sort name
-// | limit 50
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_DEPLOYMENT"
+//   | fields name
+//   | sort name
+//   | limit 50
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ### Problems Discovery

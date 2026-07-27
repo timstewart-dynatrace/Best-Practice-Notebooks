@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -610,15 +610,14 @@ fetch dt.entity.service
 | sort dt.security_context asc
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fields name,
-// dt.security_context,
-// tags,
-// managementZones
-// | sort dt.security_context asc
-// | limit 50
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
@@ -627,6 +626,12 @@ fetch dt.entity.service
 fetch dt.entity.service
 | summarize count = count(), by:{dt.security_context}
 | sort count desc
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ---

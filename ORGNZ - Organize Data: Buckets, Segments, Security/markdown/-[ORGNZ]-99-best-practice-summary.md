@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -257,6 +257,16 @@ fetch dt.entity.service
 | filter contains(tags, "team:platform")
 | fields entity.name, tags
 | limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | expand tags
+//   | filter contains(tags, "team:platform")
+//   | fields name, tags
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
@@ -322,6 +332,9 @@ fetch spans, from:-1h
 fetch dt.entity.host_group
 | fields host_group = entity.name, id
 | sort host_group asc
+
+// Note: dt.entity.* is deprecated. There is no Smartscape "HOST_GROUP" node type; host-group
+// membership is exposed as the dt.host_group.id field on HOST nodes. Keep the classic query above.
 ```
 
 ```dql
@@ -330,6 +343,15 @@ fetch dt.entity.cloud_application_namespace
 | fields namespace = entity.name
 | fieldsAdd tag = concat("Namespace:", namespace)
 | sort namespace asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_NAMESPACE"
+//   | fields namespace = name
+//   | fieldsAdd tag = concat("Namespace:", namespace)
+//   | sort namespace asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 <a id="query-performance"></a>

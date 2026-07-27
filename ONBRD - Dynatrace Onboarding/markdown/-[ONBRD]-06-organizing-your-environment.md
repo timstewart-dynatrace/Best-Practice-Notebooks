@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -304,12 +304,15 @@ fetch dt.entity.host
 | fields entity.name
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | filter contains(name, "prod")
-// | fields name
-// | limit 20
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | filter contains(name, "prod")
+//   | fields name
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ```dql
@@ -317,6 +320,15 @@ fetch dt.entity.host
 fetch dt.entity.host
 | summarize host_count = count(), by: {osType}
 | sort host_count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize host_count = count(), by: {os.type}
+//   | sort host_count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: osType -> os.type (LINUX -> OS_TYPE_LINUX).
 ```
 
 ```dql
@@ -326,12 +338,15 @@ fetch dt.entity.service
 | fields entity.name, serviceType
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | filter contains(name, "checkout")
-// | fields name, serviceType
-// | limit 20
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | filter contains(name, "checkout")
+//   | fields name, dt.service.sdv1_type
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
 ```
 
 ```dql
@@ -361,6 +376,18 @@ fetch dt.entity.host
       and not(contains(entity.name, "dev"))
 | fields entity.name
 | limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | filter not(contains(name, "prod"))
+//         and not(contains(name, "staging"))
+//         and not(contains(name, "dev"))
+//   | fields name
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ## 7. Next Steps

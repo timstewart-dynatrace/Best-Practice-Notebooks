@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 05/29/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -77,11 +77,12 @@ fetch dt.entity.service
 | fieldsKeep id, entity.name
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fieldsKeep id, name
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | fieldsKeep id, name
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
 ```
 
 ### Querying Hosts for Variable Population
@@ -92,11 +93,12 @@ fetch dt.entity.host
 | fieldsKeep id, entity.name
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsKeep id, name
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | fieldsKeep id, name
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
 ```
 
 <a id="string-variables"></a>
@@ -265,6 +267,10 @@ fetch dt.entity.service
 | summarize service_count = count(), by:{tags}
 | sort service_count desc
 | limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query analyzes entity
+// tags, which are not a flat "tags" field on Smartscape nodes (resolve via getNodeField). Keep
+// the classic query above for tag analysis.
 ```
 
 ### Pattern 3: Golden Signals Template

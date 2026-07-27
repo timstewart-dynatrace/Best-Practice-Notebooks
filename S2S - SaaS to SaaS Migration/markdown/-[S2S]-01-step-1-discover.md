@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 10 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 10 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -156,13 +156,12 @@ fetch dt.entity.host
 | summarize count = count(), by:{provider, osType}
 | sort count desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsAdd provider = if(isNotNull(awsNameTag), then: "AWS",
-// else: if(isNotNull(azureResourceGroupName), then: "Azure", else: "On-Premises"))
-// | summarize count = count(), by:{provider, osType}
-// | sort count desc
-
+// Smartscape note (dt.entity.* is deprecated but still functional): the classic cloud-tag
+// fields (awsNameTag / azureResourceGroupName / gcpProjectId) are not Smartscape node fields.
+// On Smartscape, smartscapeNodes "HOST" exposes cloud.provider directly — e.g.
+//   smartscapeNodes "HOST" | summarize count = count(), by:{cloud.provider}
+// (aws / azure / gcp; null = on-premises) — which replaces the tag-presence if-chain.
+// Keep the classic query above; the live-topology count caveat also applies.
 ```
 
 ### Kubernetes Cluster Inventory
@@ -173,11 +172,14 @@ fetch dt.entity.kubernetes_cluster
 | fields entity.name, id
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fields name, id
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fields name, id
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ### Service Inventory
@@ -188,11 +190,14 @@ fetch dt.entity.service
 | summarize count = count(), by:{serviceType}
 | sort count desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize count = count(), by:{serviceType}
-// | sort count desc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | summarize count = count(), by:{dt.service.sdv1_type}
+//   | sort count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type.
 ```
 
 ### Application and Synthetic Inventory
@@ -203,6 +208,9 @@ fetch dt.entity.application
 | summarize app_count = count()
 | append [fetch dt.entity.synthetic_test | summarize synthetic_count = count()]
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ### ActiveGate Inventory
@@ -213,6 +221,15 @@ fetch dt.entity.application
 fetch dt.entity.host
 | fieldsAdd entity.name
 | summarize activeGateCount = count()
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | fieldsAdd name
+//   | summarize activeGateCount = count()
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: entity.name -> name.
 ```
 
 ### Configuration Change Audit

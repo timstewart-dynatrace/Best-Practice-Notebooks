@@ -1,8 +1,8 @@
-# M2S-08: Step 8 — Enable: User Enablement and Communication
+# M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
-A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 8 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
+A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
 > **M2S Migration Journey — 3 Phases / 9 Steps**
 >
@@ -10,7 +10,7 @@ A successful migration is measured not by the technical cutover but by whether e
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | **8. Enable** | 9. Optimize
+> **Run:** **7. Enable** | 8. Expand | 9. Optimize
 
 ---
 
@@ -439,7 +439,7 @@ Build a migration adoption dashboard that tracks these metrics over time. Share 
 
 ## 7. Step Completion Checklist
 
-Do not proceed to Step 9 (Optimize) until all items are confirmed.
+Do not proceed to Step 8 (Expand) until all items are confirmed.
 
 | Checkpoint | Status |
 |-----------|--------|
@@ -467,7 +467,7 @@ Do not proceed to Step 9 (Optimize) until all items are confirmed.
 
 ## Next Step
 
-> **M2S-09: Step 9 — Optimize** — Validate the migration, optimize SaaS configuration, decommission the Managed environment, and establish ongoing operational excellence.
+> **M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities** — Adopt the SaaS-exclusive capabilities that were never available in Managed: Grail, Notebooks, OpenPipeline, workflow automation, Dynatrace Assist, and platform apps.
 
 ### Additional Resources
 
@@ -482,7 +482,7 @@ Do not proceed to Step 9 (Optimize) until all items are confirmed.
 
 ## Summary
 
-In Step 8, you:
+In Step 7, you:
 
 - Executed a structured communication plan targeting all stakeholders with audience-specific messaging
 - Delivered persona-based training for platform admins, SRE/operations, developers, management, and security

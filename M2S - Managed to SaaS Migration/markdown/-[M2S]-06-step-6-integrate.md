@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -10,7 +10,7 @@ With OneAgents reporting to SaaS and configurations migrated, the next challenge
 >
 > **Upgrade:** 4. Prepare | 5. Execute | **6. Integrate**
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 
 ---
 
@@ -492,7 +492,7 @@ fetch events, from:-1h
 
 ## 8. Step Completion Checklist
 
-Do not proceed to Step 7 (Expand) until all items are confirmed.
+Do not proceed to Step 7 (Enable) until all items are confirmed.
 
 | Checkpoint | Status |
 |-----------|--------|
@@ -518,7 +518,7 @@ Do not proceed to Step 7 (Expand) until all items are confirmed.
 
 ## Next Step
 
-> **M2S-07: Step 7 — Expand** — Adopt new SaaS-exclusive capabilities. Extend monitoring to additional environments, enable cloud integrations, onboard OpenTelemetry sources, and expand coverage beyond what was possible on Managed.
+> **M2S-07: Step 7 — Enable** — Train users and communicate the migration to the organization. Deliver persona-based training, update runbooks and documentation, publish self-service resources, and establish support channels for the broader user base.
 
 ### Additional Resources
 

@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 07/15/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -253,6 +253,8 @@ jobs:
         run: |
           monaco deploy manifest.yaml --environment production
 ```
+
+> **Optional — iterating locally.** These workflows run on GitHub-hosted runners, but you can also run them on your machine with [`act`](https://github.com/nektos/act) (Docker required) to catch YAML or step-ordering mistakes without a push cycle. It's a convenience for the *pipeline wiring*, not a check on the *config change* — `act` emulates the runner, it never talks to your tenant, so the load-bearing guardrail stays `monaco deploy --dry-run` (above) or `terraform plan`. One caution worth knowing: `act` does not honor GitHub Environment protection, so an `environment: production` approval gate like the one in the deploy workflow above is silently bypassed — don't point it at a production-deploy job.
 
 ---
 

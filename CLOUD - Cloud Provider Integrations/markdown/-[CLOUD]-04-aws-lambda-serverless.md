@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -86,12 +86,10 @@ fetch dt.entity.aws_lambda_function
 | sort entity.name asc
 | limit 25
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_LAMBDA_FUNCTION
-// | fieldsKeep id, name, awsLambdaFunctionRuntime, awsCodeSize, tags
-// | sort name asc
-// | limit 25
-
+// Smartscape note (dt.entity.* is deprecated but still functional): AWS Lambda functions ARE
+// modeled on Smartscape as smartscapeNodes "AWS_LAMBDA_FUNCTION", but the classic aws* attribute
+// fields (e.g. awsLambdaFunctionRuntime) differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION"
+// | limit 1 for the node field names. Keep the classic query above until the fields are mapped.
 ```
 
 ### Lambda Execution Time Over Time

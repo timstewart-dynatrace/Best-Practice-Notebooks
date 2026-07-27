@@ -1,6 +1,6 @@
 # ADOPT-01: Observability Maturity Model
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -221,13 +221,10 @@ fetch dt.entity.host
 | append [fetch dt.entity.service | summarize service_count = count()]
 | append [fetch dt.entity.process_group | summarize process_group_count = count()]
 | append [fetch dt.entity.application | summarize application_count = count()]
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize host_count = count()
-// | append [fetch dt.entity.service | summarize service_count = count()]
-// | append [fetch dt.entity.process_group | summarize process_group_count = count()]
-// | append [fetch dt.entity.application | summarize application_count = count()]
 
+// Keep classic: this is a completeness inventory spanning types not all present on Grail
+// Smartscape (e.g. application, process groups). Smartscape would count live topology, not
+// the full monitored inventory — the wrong basis for a coverage-breadth assessment.
 ```
 
 ### 7.2 Data Ingestion Diversity

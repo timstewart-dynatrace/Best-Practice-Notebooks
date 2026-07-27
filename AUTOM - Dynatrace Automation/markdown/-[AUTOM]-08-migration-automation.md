@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -236,49 +236,84 @@ entity_mapping = {
 ## 4. Terraform Export
 ### Using the Export Utility
 
-Dynatrace provides a Terraform export utility:
+The export utility is **not a separate download** — it is the provider binary itself, invoked with `-export`. After `terraform init` the executable sits under `.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/<version>/<os_arch>/`.
 
 ```bash
-# Install the export utility
-# Download from: https://github.com/dynatrace-oss/terraform-provider-dynatrace
+# Linux / macOS
+./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [<resourcename>[=<id>]]
 
-# Export all configurations
-terraform-provider-dynatrace-export \
-  -e "$DT_SOURCE_URL" \
-  -t "$DT_SOURCE_TOKEN" \
-  -o ./terraform-export
+# Windows
+terraform-provider-dynatrace.exe -export [options] [<resourcename>[=<id>]]
 ```
+
+Credentials are supplied through **environment variables**, not command-line arguments:
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DYNATRACE_ENV_URL` | Yes | Source tenant endpoint |
+| `DYNATRACE_API_TOKEN` | Yes | API token for the source tenant |
+| `DYNATRACE_TARGET_FOLDER` | No | Output directory (default: `./configuration`) |
+
+```bash
+export DYNATRACE_ENV_URL="https://source-tenant.live.dynatrace.com"
+export DYNATRACE_API_TOKEN="<your-source-api-token>"
+export DYNATRACE_TARGET_FOLDER="./terraform-export"
+
+./terraform-provider-dynatrace -export -ref -id
+```
+
+> **Never pass the token as a command-line argument.** Anything on the command line is visible to every user who can run `ps` on that host, and it lands in shell history and CI job logs. The utility reads credentials from the environment for exactly this reason. AUTOM-04 §3 covers the provider auth model in full.
+
+### Migrating Between Tenants — the `-migrate` Flag
+
+For tenant-to-tenant moves (Managed to SaaS, or consolidation) use `-migrate` rather than `-ref`. The two are mutually exclusive: `-ref` emits data-source references for a tenant you will keep managing in place, while `-migrate` resolves dependencies for recreating configuration in a *different* tenant.
+
+| Approach | Command | Use when |
+|----------|---------|----------|
+| **Bulk** | `./terraform-provider-dynatrace -export -migrate` | Target tenant is fresh, with no configuration to preserve |
+| **Iterative** | `./terraform-provider-dynatrace -export -migrate -datasources <resourcename>` | Target already holds configuration you must not overwrite |
+
+Export with the environment pointed at the source, then repoint it at the target to apply. The migration guide also documents source-scoped variables (`DYNATRACE_SOURCE_ENV_URL`, `DYNATRACE_SOURCE_API_TOKEN`) so both endpoints can be held at once.
+
+> **Entity IDs do not survive the move.** A migrated OneAgent can register as a *new* entity in the target, which silently breaks any configuration pinned to an entity ID. Re-check everything that references a specific entity after apply — this is the single most common post-migration surprise.
 
 ### Export Output Structure
 
-```
-terraform-export/
+Output defaults to a **module structure** — one directory per resource family — written to `DYNATRACE_TARGET_FOLDER`, or `./configuration` if unset. Pass `-flat` to put everything in a single directory instead.
+
+```text
+configuration/
 ├── main.tf
-├── variables.tf
-├── management_zones.tf
-├── auto_tagging.tf
-├── alerting.tf
-├── dashboards/
+├── providers.tf
+├── dynatrace_management_zone_v2/
 │   └── *.tf
-└── terraform.tfstate  # Optional: import existing state
+├── dynatrace_autotag_v2/
+│   └── *.tf
+├── .flawed/              # deprecated configs requiring modification before apply
+└── .required_attention/  # items missing essentials (e.g. credential payloads the API cannot return)
 ```
 
-### Importing to Target
+Triage `.flawed/` and `.required_attention/` before committing anything — the second directory is where secrets that the source API refuses to return end up, and they must be re-entered by hand. **Dashboards are excluded by default**; name the resource explicitly to opt in, or run `-list-exclusions` to see the full default-exclusion list.
+
+### Importing to the Target
 
 ```bash
-cd terraform-export
+cd configuration
 
-# Update provider configuration for target
-cat > terraform.tfvars <<EOF
-dynatrace_url   = "$DT_TARGET_URL"
-dynatrace_token = "$DT_TARGET_TOKEN"
-EOF
+# Repoint the provider at the target tenant
+export DYNATRACE_ENV_URL="https://target-tenant.apps.dynatrace.com"
+export DYNATRACE_API_TOKEN="<your-target-api-token>"
 
-# Initialize and apply
 terraform init
-terraform plan
+terraform plan     # expect a large first plan — review it before applying
 terraform apply
 ```
+
+Adding `-import-state` to the original export runs `terraform init` and imports the exported resources into state automatically, if you want a bootstrapped workspace rather than HCL files alone.
+
+The full `-export` flag reference lives in **AUTOM-04 §8**. The end-to-end Managed-to-SaaS Terraform walkthrough — export, triage, repoint, apply, verify — is in **M2S-95 LAB**, and is not repeated here.
+
+Sources: [Terraform export utility (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility), [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration).
 
 ---
 
@@ -328,12 +363,20 @@ Create the archive with:
 
 ### When to Use
 
-| Scenario | Recommended Tool |
-|----------|------------------|
-| Managed to SaaS | SaaS Upgrade Assistant |
-| SaaS to SaaS | Monaco |
-| Backup/Restore | Monaco or Terraform |
-| GitOps workflow | Monaco |
+Dynatrace sanctions **three** approaches for Managed-to-SaaS configuration migration. The Assistant is the recommended default, but it is not the only supported path — if you already run config-as-code, use the tool you already run.
+
+| Scenario | Recommended Tool | Notes |
+|----------|------------------|-------|
+| Managed to SaaS — no config-as-code today | **SaaS Upgrade Assistant** | Recommended default. Guided UI, compatibility check, progress tracking. |
+| Managed to SaaS — already running Monaco | **Monaco** | Download from Managed, deploy to SaaS with a retargeted manifest (§3 above). |
+| Managed to SaaS — already running Terraform | **Terraform** (`-export -migrate`) | Repoint the provider at the SaaS tenant. Full walkthrough in **M2S-95 LAB**. |
+| SaaS to SaaS | Monaco | |
+| Backup/Restore | Monaco or Terraform | |
+| GitOps workflow | Monaco or Terraform | |
+
+Whichever path you pick, one set of settings **never** migrates automatically and must be recreated by hand: extension and cloud credential configurations (AWS, Azure, GCP, Cloud Foundry, Kubernetes), access tokens and personal access tokens, problem-notification integrations (Jira, OpsGenie, PagerDuty, and the rest), mobile symbolication and JavaScript error settings, request naming and merged services, multi-dimensional analysis saved views, account management (users, groups, permissions), tags and custom entity names, and process-grouping rules — which must be migrated *before* the upgrade, not after. Budget for this explicitly: it is the 10% from §1 that consumes 90% of the effort.
+
+Source: [Migrate configuration (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg#settings-that-require-manual-migration).
 
 ---
 
@@ -384,6 +427,9 @@ Run these DQL queries on the target tenant to verify entity counts:
 fetch dt.entity.synthetic_test
 | summarize total = count()
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ### Validation Script
@@ -483,7 +529,10 @@ Congratulations! You've completed the AUTOM series. Here's what you learned:
 - [Monaco Documentation](https://github.com/dynatrace/dynatrace-configuration-as-code)
 - [Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace)
 - [Dynatrace API Reference](https://docs.dynatrace.com/docs/dynatrace-api)
-- [M2S Migration Series](../m2s/) - For Managed-to-SaaS specific guidance
+- [Terraform export utility (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility)
+- [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration)
+- [Migrate configuration — Managed to SaaS (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg)
+- [M2S Migration Series](../m2s/) - For Managed-to-SaaS specific guidance, including the **M2S-95 LAB** Terraform migration walkthrough
 
 ---
 

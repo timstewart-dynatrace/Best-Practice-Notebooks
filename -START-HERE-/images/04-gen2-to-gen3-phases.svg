@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <defs>
+    <marker id="dn" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Doorway 4 — Classic to Gen3 Platform</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">Same tenant, same deployment — what changes is the surface you operate</text>
+  <text x="52" y="168" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700" transform="rotate(-90 52 168)">CLASSIC</text>
+  <text x="52" y="314" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700" transform="rotate(-90 52 314)">GEN3</text>
+  <rect x="90" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="150" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">0 · Understand</text>
+  <rect x="90" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="150" y="159" text-anchor="middle" fill="#FCA5A5" font-size="10">Classic UI</text>
+  <text x="150" y="177" text-anchor="middle" fill="#FCA5A5" font-size="10">Entity model</text>
+  <line x1="150" y1="224" x2="150" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="90" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="150" y="305" text-anchor="middle" fill="#86EFAC" font-size="10">Grail storage</text>
+  <text x="150" y="323" text-anchor="middle" fill="#86EFAC" font-size="10">Smartscape</text>
+  <rect x="228" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="288" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">1 · Access</text>
+  <rect x="228" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="288" y="159" text-anchor="middle" fill="#FCA5A5" font-size="10">Management</text>
+  <text x="288" y="177" text-anchor="middle" fill="#FCA5A5" font-size="10">zones</text>
+  <line x1="288" y1="224" x2="288" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="228" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="288" y="287" text-anchor="middle" fill="#86EFAC" font-size="10">Policies +</text>
+  <text x="288" y="305" text-anchor="middle" fill="#86EFAC" font-size="10">boundaries</text>
+  <text x="288" y="323" text-anchor="middle" fill="#86EFAC" font-size="10">Segments</text>
+  <text x="288" y="341" text-anchor="middle" fill="#86EFAC" font-size="10">Buckets</text>
+  <rect x="366" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="426" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">2 · Query</text>
+  <rect x="366" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="426" y="150" text-anchor="middle" fill="#FCA5A5" font-size="10">Selectors</text>
+  <text x="426" y="168" text-anchor="middle" fill="#FCA5A5" font-size="10">USQL</text>
+  <text x="426" y="186" text-anchor="middle" fill="#FCA5A5" font-size="10">Log Viewer</text>
+  <line x1="426" y1="224" x2="426" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="366" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="426" y="296" text-anchor="middle" fill="#86EFAC" font-size="10">DQL</text>
+  <text x="426" y="314" text-anchor="middle" fill="#86EFAC" font-size="10">smartscapeNodes</text>
+  <text x="426" y="332" text-anchor="middle" fill="#86EFAC" font-size="10">OpenPipeline</text>
+  <rect x="504" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="564" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">3 · Dashboards</text>
+  <rect x="504" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="564" y="150" text-anchor="middle" fill="#FCA5A5" font-size="10">Classic</text>
+  <text x="564" y="168" text-anchor="middle" fill="#FCA5A5" font-size="10">dashboards</text>
+  <text x="564" y="186" text-anchor="middle" fill="#FCA5A5" font-size="10">MZ filters</text>
+  <line x1="564" y1="224" x2="564" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="504" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="564" y="296" text-anchor="middle" fill="#86EFAC" font-size="10">Gen3 dashboards</text>
+  <text x="564" y="314" text-anchor="middle" fill="#86EFAC" font-size="10">Variables</text>
+  <text x="564" y="332" text-anchor="middle" fill="#86EFAC" font-size="10">Notebooks</text>
+  <rect x="642" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="702" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">4 · Alerting</text>
+  <rect x="642" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="702" y="150" text-anchor="middle" fill="#FCA5A5" font-size="10">Metric events</text>
+  <text x="702" y="168" text-anchor="middle" fill="#FCA5A5" font-size="10">Alerting profiles</text>
+  <text x="702" y="186" text-anchor="middle" fill="#FCA5A5" font-size="10">SLO Classic</text>
+  <line x1="702" y1="224" x2="702" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="642" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="702" y="296" text-anchor="middle" fill="#86EFAC" font-size="10">Anomaly detectors</text>
+  <text x="702" y="314" text-anchor="middle" fill="#86EFAC" font-size="10">Workflows</text>
+  <text x="702" y="332" text-anchor="middle" fill="#86EFAC" font-size="10">Platform SLOs</text>
+  <rect x="780" y="78" width="120" height="24" fill="#1496FF" opacity="0.15" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="840" y="95" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">5 · Config</text>
+  <rect x="780" y="118" width="120" height="100" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="840" y="159" text-anchor="middle" fill="#FCA5A5" font-size="10">Settings v1</text>
+  <text x="840" y="177" text-anchor="middle" fill="#FCA5A5" font-size="10">Manual config</text>
+  <line x1="840" y1="224" x2="840" y2="252" stroke="#64748B" stroke-width="1.5" marker-end="url(#dn)"/>
+  <rect x="780" y="258" width="120" height="112" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="840" y="296" text-anchor="middle" fill="#86EFAC" font-size="10">Settings 2.0</text>
+  <text x="840" y="314" text-anchor="middle" fill="#86EFAC" font-size="10">Monaco</text>
+  <text x="840" y="332" text-anchor="middle" fill="#86EFAC" font-size="10">Terraform</text>
+  <line x1="52" y1="398" x2="878" y2="398" stroke="#334155" stroke-width="1"/>
+  <text x="52" y="424" fill="#F8FAFC" font-size="13" font-weight="700">Sequencing rules</text>
+  <text x="52" y="446" fill="#94A3B8" font-size="11">Phase 1 before Phase 2 — bucket and security_context decisions determine what any DQL query can see.</text>
+  <text x="52" y="463" fill="#94A3B8" font-size="11">Phase 2 before Phases 3 and 4 — dashboards and detection are both built on queries.</text>
+  <text x="52" y="480" fill="#94A3B8" font-size="11">Phase 5 last, but started early — version-control each phase as it completes, not at the end.</text>
+</svg>

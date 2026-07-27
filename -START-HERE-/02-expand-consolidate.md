@@ -1,7 +1,7 @@
 # Doorway 2 — Expanding or Consolidating
 
 > **Purpose:** Reading order for existing Dynatrace customers adding scope or pulling data from another tool. Skips most Foundation reading; focuses on the specific expansion or consolidation pattern.
-> **Last Updated:** 07/15/2026
+> **Last Updated:** 07/23/2026
 
 ![Expanding or Consolidating Sub-Paths](images/02-expand-subpaths.svg)
 
@@ -26,7 +26,7 @@
 - You are extending its scope or consolidating data from another tool into it
 - Examples: adding Kubernetes coverage, replacing Splunk for a subset of log sources, replacing New Relic APM for one application portfolio, building dashboards and automation for a maturing practice
 
-If you are net-new to Dynatrace (no tenant yet), see [Doorway 1 — Net New](01-net-new.md). If you are migrating an existing Dynatrace deployment between deployment models, see [Doorway 3 — Deployment Migration](03-deployment-migration.md).
+If you are net-new to Dynatrace (no tenant yet), see [Doorway 1 — Net New](01-net-new.md). If you are migrating an existing Dynatrace deployment between deployment models, see [Doorway 3 — Deployment Migration](03-deployment-migration.md). If your tenant still runs classic constructs — management zones as permissions, metric events, alerting profiles, Classic Logs — see [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md); that migration is worth completing before layering new scope on top of it.
 
 ---
 
@@ -47,7 +47,7 @@ Multiple sub-paths can run in parallel.
 
 | Step | Reading |
 |---|---|
-| 1. Pick the domain | See [Domain Enablement Module](05-domain-enablement.md) for the recommended first-read in each domain |
+| 1. Pick the domain | See [Domain Enablement Module](06-domain-enablement.md) for the recommended first-read in each domain |
 | 2. Confirm prerequisites | Domain Enablement lists what Foundation pieces each domain needs (most assume basic [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) + [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) already in place) |
 | 3. Read the domain series | Direct entry into the relevant series — [K8S](../K8S%20-%20Kubernetes%20Monitoring/), [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/), [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/), [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/), [MOBL](../MOBL%20-%20Mobile%20Monitoring/), [DBMON](../DBMON%20-%20Database%20Monitoring/), [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/), [SYNTH](../SYNTH%20-%20Synthetic%20Monitoring/), [APPSEC](../APPSEC%20—%20Application%20Security/) |
 | 4. Foundation refresh if needed | See [Foundation Refresh Checkpoints](#foundation-refresh-checkpoints) below — Gen3 changes to ORGNZ and IAM may apply if your tenant predates them |
@@ -103,15 +103,17 @@ Your tenant is operational; you are improving the depth and quality of dashboard
 | 3. Reliability targets (optional) | [SLO](../SLO%20-%20Service%20Level%20Objectives/) — full series if building formal SLOs |
 | 4. Configuration automation | [AUTOM](../AUTOM%20-%20Dynatrace%20Automation/) — notebooks 01–04 are the foundation (Settings API, Monaco, Terraform); 05–08 build on that (workflows-as-code, SDKs, CI/CD, migration automation) |
 | 4. Davis intelligence | [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) — full series; especially notebook 02 (anomaly detection), 03 (Davis problems and root cause), 06 (integrations and agentic workflows) |
-| 5. Continuous improvement | [Maturity Module](07-maturity.md) → [ADOPT](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) — ongoing |
+| 5. Continuous improvement | [Maturity Module](08-maturity.md) → [ADOPT](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) — ongoing |
 
-See [Operationalize Module](06-operationalize.md) for the recommended order of these series and the reasoning behind it.
+See [Operationalize Module](07-operationalize.md) for the recommended order of these series and the reasoning behind it.
 
 ---
 
 ## Foundation Refresh Checkpoints
 
 Even existing customers may need to refresh on Foundation topics, particularly if your tenant predates Gen3 or you are touching a previously-unaddressed area.
+
+If several rows below apply at once, you are not doing a refresh — you are doing a surface migration. Read [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md) instead, which sequences these into phases rather than treating them as independent catch-ups.
 
 | Topic | Why refresh | Reading |
 |---|---|---|
@@ -127,10 +129,10 @@ These are not blockers — refresh as needed, in parallel with your sub-path.
 
 ## Where to Next
 
-- [Operationalize Module](06-operationalize.md) — for ongoing operations work
-- [Maturity Module](07-maturity.md) — for continuous improvement framing
-- [Overlap Map](08-overlap-map.md) — when you find the same topic covered in multiple series
-- [Foundation Module](04-foundation.md) — full Foundation reading order if you decide to do a comprehensive refresh
+- [Operationalize Module](07-operationalize.md) — for ongoing operations work
+- [Maturity Module](08-maturity.md) — for continuous improvement framing
+- [Overlap Map](09-overlap-map.md) — when you find the same topic covered in multiple series
+- [Foundation Module](05-foundation.md) — full Foundation reading order if you decide to do a comprehensive refresh
 
 ---
 

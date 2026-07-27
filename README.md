@@ -167,6 +167,8 @@ Frequently asked questions and answers across the Dynatrace Best-Practice Notebo
 - [FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-13-openshift-scc-seccomp-injection.md) — Why anyuid + seccomp:RuntimeDefault fails at admission after Operator 1.9.0, SCC compatibility matrix, custom SCC fix, pre-upgrade impact assessment, and change-management practices
 - [FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-14-sql-server-extension-vs-custom-scripts.md) — Decision framework and migration sequence for mapping a homegrown script/Telegraf monitor estate onto the Dynatrace SQL Server extension; covers honest gaps, the small custom EF 2.0 fallback, and when keeping Telegraf is right
 - [FAQ-15: How Does DPL Work?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-15-how-dpl-works.md) — Canonical Dynatrace Pattern Language reference: the matcher-expression model, a regex compare/contrast (DPL does no backtracking, and character classes are the only regex-compatible construct), the full matcher catalog, the traps that return null or a silently wrong value, the five DQL surfaces that consume DPL, and a four-step failure diagnosis
+- [FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-16-entity-selectors-to-smartscape.md) — Classify the query before translating it, entity type and construct mapping, `traverse` and edge discovery, and why the same entity set can return different name strings
+- [FAQ-17: How Do I Plan a Migration Cutover?](FAQ%20-%20Frequently%20Asked%20Questions/markdown/-%5BFAQ%5D-17-planning-a-migration-cutover.md) — The eight cutover invariants, which migration series documents each, the validation ladder, rollback triggers, and entity-parity checks
 
 ### [FINOPS - Cost Management & FinOps](FINOPS%20-%20Cost%20Management%20%26%20FinOps/README.md)
 Best practices for understanding, forecasting, and optimizing Dynatrace Platform Subscription (DPS) consumption.
@@ -218,9 +220,10 @@ Guide for migrating from Dynatrace Managed to Dynatrace SaaS.
 - [M2S-04: Step 4 — Prepare: Readiness and Pre-Migration](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-04-step-4-prepare.md) — Assessing readiness and preparing for migration
 - [M2S-05: Step 5 — Execute: Migrate Configuration and Agents](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-05-step-5-execute.md) — Migrating configurations and redirecting agents to SaaS
 - [M2S-06: Step 6 — Integrate: Reconnect Integrations](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-06-step-6-integrate.md) — Reconnecting cloud integrations and third-party tools
-- [M2S-07: Step 7 — Expand: Adopt New SaaS Capabilities](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-07-step-7-expand.md) — Discovering and adopting new SaaS-only capabilities
-- [M2S-08: Step 8 — Enable: User Enablement and Communication](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-08-step-8-enable.md) — User training, support, and operations handover
+- [M2S-07: Step 7 — Enable: User Enablement and Communication](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-07-step-7-enable.md) — User training, support, and operations handover
+- [M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-08-step-8-expand.md) — Discovering and adopting new SaaS-only capabilities
 - [M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-09-step-9-optimize.md) — Validating the migration, optimizing the environment, and decommissioning Managed
+- [M2S-95: [LAB] Terraform for Managed-to-SaaS Migration](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-95-%5BLAB%5D-terraform-migration.md) — Appendix lab: migrating with the Terraform provider — bulk vs iterative export, Managed-source auth and scopes, entity-ID preservation via `oneagentctl`, wave-ordered apply
 - [M2S-99: Best Practice Summary](M2S%20-%20Managed%20to%20SaaS%20Migration/markdown/-%5BM2S%5D-99-best-practice-summary.md) — Definitive reference of all best practices from the M2S series
 
 ### [MOBL - Mobile Monitoring](MOBL%20-%20Mobile%20Monitoring/README.md)
@@ -436,6 +439,7 @@ Client-side monitoring and observability for web applications with session repla
 - [WEBRUM-06: Performance Analysis](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-06-performance-analysis.md) — Page load and runtime performance
 - [WEBRUM-07: Session Replay](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-07-session-replay.md) — Visual reproduction of user sessions
 - [WEBRUM-08: Dashboards and Alerting](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-08-dashboards-and-alerting.md) — RUM metrics dashboards and alerts
+- [WEBRUM-09: Migrating USQL to DQL](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-09-usql-to-dql-migration.md) — USQL to DQL grammar and field mapping
 - [WEBRUM-99: Best Practice Summary](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-99-best-practice-summary.md) — Consolidated best practices from the WEBRUM series
 
 ### [WFLOW - Workflows and Alert Notifications](WFLOW%20-%20Workflows%20and%20Alert%20Notifications/README.md)

@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -161,6 +161,11 @@ fetch dt.entity.service
 | summarize serviceCount = count(), by:{managementZone = mz}
 | sort serviceCount desc
 | limit 20
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
 ```
 
 ---

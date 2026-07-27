@@ -1,6 +1,6 @@
 # M2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -10,7 +10,7 @@ With your discovery complete, it's time to turn inventory into action. This note
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 
 ---
 
@@ -44,7 +44,7 @@ With your discovery complete, it's time to turn inventory into action. This note
 |-------|--------|--------|--------|
 | **Plan** | 1. Discover | **2. Strategize** | 3. Design |
 | **Upgrade** | 4. Prepare | 5. Execute | 6. Integrate |
-| **Run** | 7. Expand | 8. Enable | 9. Optimize |
+| **Run** | 7. Enable | 8. Expand | 9. Optimize |
 For environments where SVG doesn't render
 -->
 
@@ -60,7 +60,7 @@ The Managed-to-SaaS migration follows a proven three-phase, nine-step framework.
 |-------|-------|-------|
 | **Plan** | 1. Discover → 2. Strategize → 3. Design | Understand what you have, decide how to move it, design the target |
 | **Upgrade** | 4. Prepare → 5. Execute → 6. Integrate | Set up SaaS, migrate agents and config, reconnect integrations |
-| **Run** | 7. Expand → 8. Enable → 9. Optimize | Extend coverage, activate new capabilities, tune for value |
+| **Run** | 7. Enable → 8. Expand → 9. Optimize | Enable teams, adopt new capabilities, tune for value |
 
 ### What Each Step Delivers
 
@@ -72,8 +72,8 @@ The Managed-to-SaaS migration follows a proven three-phase, nine-step framework.
 | 4 | **Prepare** | SaaS tenant provisioned, ActiveGates deployed, network validated |
 | 5 | **Execute** | Configurations migrated, OneAgents redirected, data flowing |
 | 6 | **Integrate** | Webhooks, CI/CD, ITSM, and third-party tools reconnected |
-| 7 | **Expand** | Additional environments, cloud integrations, OpenTelemetry |
-| 8 | **Enable** | Workflows, OpenPipeline, Business Analytics, Notebooks activated |
+| 7 | **Enable** | User communication, persona-based training, documentation, and support channels |
+| 8 | **Expand** | Grail, Notebooks, OpenPipeline, Workflows, and Dynatrace Assist adopted |
 | 9 | **Optimize** | Alert tuning, cost management, query performance, feature adoption |
 
 ### Time Investment by Phase
@@ -239,6 +239,8 @@ These are the non-obvious factors that derail migrations when overlooked.
 |---------------|--------|
 | **Security approvals** | Firewall change requests may require weeks of lead time |
 | **SSO/SAML configuration** | IdP must sign the **entire SAML message**, not just the assertion |
+| **SSO federation limits** | SaaS supports **SAML 2.0 only** (plus SCIM provisioning) — OIDC federation and direct LDAP are not available; confirm your IdP can federate via SAML |
+| **Outbound email (SMTP)** | No custom SMTP on SaaS — notifications are sent by Dynatrace; route to an internal relay via a webhook or Workflow email action if required |
 | **API token rotation** | New tokens needed for SaaS — update all automation and integrations |
 | **Data residency** | Confirm SaaS tenant region meets compliance requirements |
 
@@ -264,12 +266,8 @@ fetch dt.entity.host
 | summarize hostCount = count(), by:{version}
 | sort hostCount desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsAdd version = installerVersion
-// | summarize hostCount = count(), by:{version}
-// | sort hostCount desc
-
+// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
+// field, so this version distribution stays on the classic entity store.
 ```
 
 ```dql
@@ -279,12 +277,9 @@ fetch dt.entity.host | summarize hosts = count()
 | append [fetch dt.entity.application | summarize applications = count()]
 | append [fetch dt.entity.process_group | summarize process_groups = count()]
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE | summarize hosts = count()
-// | append [fetch dt.entity.service | summarize services = count()]
-// | append [fetch dt.entity.application | summarize applications = count()]
-// | append [fetch dt.entity.process_group | summarize process_groups = count()]
-
+// Keep classic: this is a completeness inventory spanning types not all present on Grail
+// Smartscape (e.g. application). Smartscape would count live topology, not the full
+// monitored inventory — the wrong basis for a migration-completeness check.
 ```
 
 ```dql
@@ -351,10 +346,10 @@ fetch dt.entity.host
 | summarize totalHosts = count()
 | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "Compare totalHosts to target"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize totalHosts = count()
-// | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "Compare totalHosts to target"
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes "HOST" | summarize totalHosts = count() | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "..."
+// Caveat: for validating against a discovery inventory keep the classic count — Smartscape's
+// live-topology count omits hosts not currently in active topology.
 ```
 
 ```dql

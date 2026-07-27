@@ -1,6 +1,6 @@
-# M2S-07: Step 7 — Expand: Adopt New SaaS Capabilities
+# M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With the migration complete and integrations reconnected, the real value of moving to SaaS begins. Dynatrace SaaS includes an entire generation of capabilities that were never available in Managed — Grail, Notebooks, OpenPipeline, Dynatrace Assist, AppEngine, and AutomationEngine. This notebook provides a structured approach to adopting each capability, with a recommended timeline that avoids overwhelming teams while ensuring steady progress.
 
@@ -10,7 +10,7 @@ With the migration complete and integrations reconnected, the real value of movi
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** **7. Expand** | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | **8. Expand** | 9. Optimize
 
 ---
 
@@ -470,7 +470,7 @@ This timeline begins after Step 6 (Integrate) is complete and the migration is s
 
 ## 10. Step Completion Checklist
 
-Do not proceed to Step 8 (Enable) until the high-priority items are confirmed.
+Do not proceed to Step 9 (Optimize) until the high-priority items are confirmed.
 
 | Checkpoint | Priority | Status |
 |-----------|----------|--------|
@@ -490,7 +490,7 @@ Do not proceed to Step 8 (Enable) until the high-priority items are confirmed.
 
 ## Next Step
 
-> **M2S-08: Step 8 — Enable** — Train users and communicate the migration to the organization. Build DQL competency across teams, establish Centers of Excellence, and create self-service resources for the broader user base.
+> **M2S-09: Step 9 — Optimize** — Validate the migration, optimize SaaS configuration, decommission the Managed environment, and establish ongoing operational excellence.
 
 ### Additional Resources
 
@@ -507,7 +507,7 @@ Do not proceed to Step 8 (Enable) until the high-priority items are confirmed.
 
 ## Summary
 
-In Step 7, you:
+In Step 8, you:
 
 - Surveyed the full set of SaaS-exclusive capabilities and prioritized adoption
 - Adopted Grail as the unified query platform, replacing USQL with DQL

@@ -1,6 +1,6 @@
 # K8S-11: Multi-Tool Coexistence & Advanced Configuration
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 13 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 ## Running Dynatrace Alongside Other Monitoring Tools
 Many organizations run multiple monitoring tools during migrations or for specialized use cases. This notebook covers patterns for running Dynatrace alongside tools like New Relic, Datadog, or Prometheus without conflicts.
@@ -369,6 +369,16 @@ fetch dt.entity.cloud_application_instance
 | sort count desc
 | limit 20
 
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_POD"
+//   | expand tag = tags
+//   | filter contains(toString(tag), "dynatrace")
+//   | summarize count = count(), by:{name}
+//   | sort count desc
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
@@ -379,13 +389,15 @@ fetch dt.entity.service
 | sort entity.name asc
 | limit 30
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | filter isNotNull(tags)
-// | fields name, tags
-// | sort name asc
-// | limit 30
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | filter isNotNull(tags)
+//   | fields name, tags
+//   | sort name asc
+//   | limit 30
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 <a id="complete-configuration-example"></a>

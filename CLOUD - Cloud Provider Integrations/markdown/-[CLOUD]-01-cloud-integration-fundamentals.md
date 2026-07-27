@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -178,10 +178,10 @@ The following queries demonstrate how to explore cloud entities in your Dynatrac
 fetch dt.entity.ec2_instance
 | summarize instance_count = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_EC2_INSTANCE
-// | summarize instance_count = count()
-
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### Count Azure VMs
@@ -191,6 +191,10 @@ fetch dt.entity.ec2_instance
 fetch dt.entity.azure_vm
 | summarize vm_count = count()
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### Compare Cloud Resources Across Providers
@@ -218,6 +222,9 @@ fetch dt.entity.ec2_instance
 // (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
 // (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
 
+// Keep classic: this is a multi-cloud completeness inventory. Most of these resource types
+// (EC2, Azure VM, RDS, Web App) are not Smartscape nodes — only some (AWS Lambda) are — so keep
+// the classic entity-store query for a complete cross-provider count.
 ```
 
 ### Host CPU Usage Across Cloud Hosts

@@ -1,6 +1,6 @@
 # ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -65,6 +65,9 @@ fetch dt.entity.host
 | fieldsAdd mode = monitoringMode
 | summarize hosts = count(), by:{mode}
 | sort hosts desc
+
+// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
+// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 **Log coverage** — hosts actually shipping logs vs. the inventory above:

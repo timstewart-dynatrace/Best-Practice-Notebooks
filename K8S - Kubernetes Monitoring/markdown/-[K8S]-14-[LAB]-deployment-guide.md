@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -457,11 +457,9 @@ fetch dt.entity.host
 | fieldsKeep entity.name, host_group, state
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsKeep name, host_group, state
-// | sort name asc
-
+// Smartscape note (dt.entity.* is deprecated but still functional): state is a classic-only
+// field with no Smartscape node equivalent (Smartscape expresses liveness via node lifetime).
+// Keep the classic query above; host_group maps to the dt.host_group.id field on HOST nodes.
 ```
 
 Expected: Every node in your cluster should appear with the `host_group` matching your `<cluster-name>` value from the DynaKube.
@@ -499,12 +497,13 @@ fetch dt.entity.process_group_instance
 | fieldsKeep entity.name, softwareVersion
 | limit 10
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes PROCESS
-// | filter isNotNull(softwareVersion)
-// | fieldsKeep name, softwareVersion
-// | limit 10
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "PROCESS"
+//   | filter isNotNull(softwareVersion)
+//   | fieldsKeep name, softwareVersion
+//   | limit 10
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
 ```
 
 Expected: Process groups with version information from `app.kubernetes.io/version` labels. If empty, verify your pods carry the required labels (Section 7).

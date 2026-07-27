@@ -1,6 +1,6 @@
 # S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 10 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 10 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -315,11 +315,13 @@ fetch dt.entity.host
 | summarize host_count = count()
 | fieldsAdd validation = "Compare this count against the pre-migration baseline from Step 4"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize host_count = count()
-// | fieldsAdd validation = "Compare this count against the pre-migration baseline from Step 4"
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize host_count = count()
+//   | fieldsAdd validation = "Compare this count against the pre-migration baseline from Step 4"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -328,11 +330,13 @@ fetch dt.entity.service
 | summarize service_count = count()
 | fieldsAdd validation = "Services should appear within 5 minutes of agent reconnection"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize service_count = count()
-// | fieldsAdd validation = "Services should appear within 5 minutes of agent reconnection"
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | summarize service_count = count()
+//   | fieldsAdd validation = "Services should appear within 5 minutes of agent reconnection"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 <a id="kubernetes-operator-migration"></a>

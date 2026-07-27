@@ -1,6 +1,6 @@
 # S2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 10 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 04/16/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 10 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -267,13 +267,9 @@ fetch dt.entity.host
 | append [fetch dt.entity.application | summarize applications = count()]
 | append [fetch dt.entity.process_group | summarize process_groups = count()]
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hosts = count()
-// | append [fetch dt.entity.service | summarize services = count()]
-// | append [fetch dt.entity.application | summarize applications = count()]
-// | append [fetch dt.entity.process_group | summarize process_groups = count()]
-
+// Keep classic: this is a completeness inventory spanning types not all present on Grail
+// Smartscape (e.g. application, process groups). Smartscape would count live topology, not
+// the full monitored inventory — the wrong basis for a migration-completeness check.
 ```
 
 ```dql
@@ -282,6 +278,9 @@ fetch dt.entity.active_gate
 | fieldsAdd entity.name, networkZone
 | sort entity.name asc
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ```dql
@@ -290,6 +289,9 @@ fetch dt.entity.host
 | fieldsAdd version = installerVersion
 | summarize hostCount = count(), by:{version}
 | sort hostCount desc
+
+// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
+// field, so this version distribution stays on the classic entity store.
 ```
 
 <a id="risk-assessment"></a>
@@ -348,6 +350,14 @@ Define measurable success criteria before migration starts. These criteria deter
 fetch dt.entity.host
 | summarize totalHosts = count()
 | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "Compare totalHosts to target"
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize totalHosts = count()
+//   | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "Compare totalHosts to target"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql

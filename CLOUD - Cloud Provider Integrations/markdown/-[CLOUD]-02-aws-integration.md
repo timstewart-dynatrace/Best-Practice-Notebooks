@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -222,12 +222,10 @@ fetch dt.entity.ec2_instance
 | sort entity.name asc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_EC2_INSTANCE
-// | fieldsKeep id, name, tags, awsInstanceType, awsAvailabilityZone
-// | sort name asc
-// | limit 20
-
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### Count EC2 Instances by Instance Type
@@ -237,6 +235,11 @@ fetch dt.entity.ec2_instance
 fetch dt.entity.ec2_instance
 | summarize instance_count = count(), by:{awsInstanceType}
 | sort instance_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### List Lambda Functions
@@ -248,12 +251,10 @@ fetch dt.entity.aws_lambda_function
 | sort entity.name asc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes AWS_LAMBDA_FUNCTION
-// | fieldsKeep id, name, tags, awsLambdaFunctionRuntime
-// | sort name asc
-// | limit 20
-
+// Smartscape note (dt.entity.* is deprecated but still functional): AWS Lambda functions ARE
+// modeled on Smartscape as smartscapeNodes "AWS_LAMBDA_FUNCTION", but the classic aws* attribute
+// fields (e.g. awsLambdaFunctionRuntime) differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION"
+// | limit 1 for the node field names. Keep the classic query above until the fields are mapped.
 ```
 
 ### List RDS Instances
@@ -265,6 +266,10 @@ fetch dt.entity.relational_database_service
 | sort entity.name asc
 | limit 20
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ```dql
@@ -275,6 +280,11 @@ fetch dt.entity.ec2_instance
 | fieldsKeep id, entity.name, awsAvailabilityZone, tags
 | sort entity.name asc
 | limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 <a id="aws-metrics"></a>

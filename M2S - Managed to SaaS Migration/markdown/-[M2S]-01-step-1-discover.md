@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -10,7 +10,7 @@ The first step in any Managed-to-SaaS migration is understanding what you are mo
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 
 ### Sprint 1.337 (April 2026) Updates Affecting M2S
 
@@ -33,7 +33,8 @@ Three sprint-1.337 changes affect a Managed → SaaS migration:
 3. [Confirm Use Cases and Goals](#confirm-use-cases-and-goals)
 4. [SaaS Upgrade Assistant Overview](#saas-upgrade-assistant-overview)
 5. [What Migrates and What Doesn't](#what-migrates-and-what-doesnt)
-6. [Step Completion Checklist](#step-completion-checklist)
+6. [Product Safeguards, Limits & SaaS Security Review](#product-safeguards-and-security-review)
+7. [Step Completion Checklist](#step-completion-checklist)
 
 ---
 
@@ -142,10 +143,11 @@ Before planning the migration, take a complete inventory of what exists in your 
 fetch dt.entity.host
 | summarize hostCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count()
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST" | summarize hostCount = count()
+// Caveat: Smartscape counts CURRENT live topology and can report fewer hosts than the
+// classic entity store, which retains monitored hosts not in active topology. For a
+// pre-migration discovery inventory, keep the classic entity-store count above.
 ```
 
 ```dql
@@ -154,10 +156,10 @@ fetch dt.entity.host
 | summarize hostCount = count(), by:{osType}
 | sort hostCount desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count(), by:{osType}
-// | sort hostCount desc
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes "HOST" | summarize hostCount = count(), by:{os.type} | sort hostCount desc
+// Field map: osType -> os.type (value form also changes, e.g. LINUX -> OS_TYPE_LINUX).
+// The live-topology count caveat from the previous cell applies here too.
 ```
 
 **Managed alternative (Entities API v2):**
@@ -175,10 +177,11 @@ curl -s "https://{managed-url}/api/v2/entities?entitySelector=type(HOST)&pageSiz
 fetch dt.entity.service
 | summarize serviceCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize serviceCount = count()
-
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes "SERVICE" | summarize serviceCount = count()
+// Caveat: Smartscape reflects CURRENT live topology and typically reports fewer services
+// than the classic entity store (short-lived / inactive services are omitted). For a
+// pre-migration discovery inventory, keep the classic entity-store count above.
 ```
 
 ```dql
@@ -187,10 +190,10 @@ fetch dt.entity.service
 | summarize serviceCount = count(), by:{serviceType}
 | sort serviceCount desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize serviceCount = count(), by:{serviceType}
-// | sort serviceCount desc
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes "SERVICE" | summarize serviceCount = count(), by:{dt.service.sdv1_type} | sort serviceCount desc
+// Field map: serviceType -> dt.service.sdv1_type (same value labels, e.g. WEB_REQUEST_SERVICE).
+// The live-topology count caveat applies here too.
 ```
 
 ### Application Inventory
@@ -240,10 +243,8 @@ fetch dt.entity.host
 | summarize hostCount = count(), by:{installerVersion}
 | sort hostCount desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count(), by:{installerVersion}
-// | sort hostCount desc
+// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
+// field, so this agent-version distribution stays on the classic entity store.
 ```
 
 ### ActiveGate Assessment
@@ -387,9 +388,51 @@ Understanding portability constraints upfront prevents surprises during executio
 | Problems | detected problem history stays in Managed |
 | Deployment events | Release tracking starts fresh |
 
+<a id="product-safeguards-and-security-review"></a>
+
+## 6. Product Safeguards, Limits & SaaS Security Review
+
+During discovery, inventory the product safeguards and platform limits that behave differently on SaaS, and complete a short security and privacy review so nothing surprises you during execution. Several of these settings are **not** carried over automatically by the SaaS Upgrade Assistant and must be re-established manually.
+
+### Capture Rates and Traffic Safeguards
+
+**Adaptive Traffic Management (ATM)** governs how much trace and service-call data is captured. Its behavior depends on your licensing model — confirm which one your target tenant uses before you rely on full trace fidelity.
+
+| Licensing model | Capture behavior | Plan for |
+|-----------------|------------------|----------|
+| **Classic (host-unit) license** | Safeguard caps apply: roughly **250 full-service calls/min per in-use host unit**, an environment floor of **5,000 full-service calls/min**, and per-process bounds of **50–50,000 calls/min**. | Environments near these caps may sample. Compare captured-vs-total call volume before assuming 100% trace fidelity. |
+| **Dynatrace Platform Subscription (DPS) / ATM v3** | **Adaptive** — sampling adjusts to your licensed volume and typically approaches ~100% capture, with **no fixed per-host-unit number**. | DPS tenants scale capture to licensed volume rather than a static cap. Verify your tenant's ATM version, as capture behavior differs from the classic model. |
+
+**SQL bind-variable capture** is off by default and is a **self-service toggle** — *Settings > Server-side service monitoring > Deep monitoring > Database > "Capture SQL bind values"* (global, with an optional process-group override), **not** a Support request. It is DPS-gated, consumes additional trace ingress volume (which can lower the overall OneAgent capture rate on SaaS), and literal values in batched statements are always masked. Inventory where it is enabled on Managed so you can reproduce it deliberately — and narrowly — on SaaS.
+
+**API rate limits** — the Dynatrace API returns **HTTP 429** when request-rate limits are exceeded. Bulk automation during migration (token recreation, configuration import, entity queries) should use backoff/retry rather than tight loops.
+
+### Settings the SaaS Upgrade Assistant Does Not Carry Over
+
+Some cluster-level safeguards are **not** migrated by the SaaS Upgrade Assistant. Record their Managed values during discovery and re-apply them manually during Prepare/Execute:
+
+| Setting | Why it matters | Action |
+|---------|----------------|--------|
+| Overload prevention — max entry-point PurePaths/traces per process per minute | Protects against trace floods from a single process | Record the Managed value; set manually on SaaS |
+| Overload prevention — max user actions per minute (RUM) | Caps RUM ingestion spikes | Record and re-apply manually |
+
+### SaaS Security and Privacy Review
+
+Identity, notification, and data-control surfaces differ on SaaS. Confirm each during discovery:
+
+| Area | Managed | SaaS | Implication |
+|------|---------|------|-------------|
+| **SSO federation** | SAML, OIDC, LDAP | **SAML 2.0 only** (plus SCIM provisioning) | OIDC federation and direct LDAP are **not** available on SaaS — plan SAML 2.0 through your IdP. |
+| **Outbound email (SMTP)** | Custom SMTP server (CMC) | Email sent by Dynatrace; **no custom SMTP** | If you need your own mail path, route to an internal relay via a webhook or Workflow email action. |
+| **Data-subject rights** | — | **Privacy Rights** app: export personal data and perform **record-level hard deletion in Grail** through an auditable, multi-reviewer workflow | Use this surface for GDPR/CCPA export and deletion requests. |
+| **Network access control** | — | **IP allow-list** (CIDR) for UI and API | Caveat: it protects the latest (Grail/Gen3) UI and API only — it does **not** block the classic `*.live.dynatrace.com` UI or the data-ingest APIs. |
+| **Dynatrace Support access** | Customer-grantable | **No customer grant/deny toggle** — role-based, internally approved, restricted to the Dynatrace corporate network with MFA, and **every access and change is audit-logged and visible to you** | Governance shifts from a prospective switch to auditable, least-privilege access. |
+
+> <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/database-services-classic/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Privacy Rights (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights), [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
+
 <a id="step-completion-checklist"></a>
 
-## 6. Step Completion Checklist
+## 7. Step Completion Checklist
 
 Before proceeding to Step 2, confirm that you have completed each item:
 
@@ -403,6 +446,9 @@ Before proceeding to Step 2, confirm that you have completed each item:
 | SaaS Upgrade Assistant requirements understood (version, IAM, installation) | [ ] |
 | Non-portable items identified and manual recreation plan noted | [ ] |
 | Historic data limitation communicated to stakeholders | [ ] |
+| Product safeguards and limits reviewed (ATM capture behavior, SQL bind-variable capture, API rate limits) | [ ] |
+| Overload-prevention settings inventoried for manual re-apply on SaaS | [ ] |
+| SaaS security review complete (SSO surface, custom SMTP, Privacy Rights, IP allow-list, support-access model) | [ ] |
 
 ## Next Step
 
@@ -427,6 +473,7 @@ In Step 1, you:
 - Confirmed your migration use cases and goals with measurable success criteria
 - Understood the SaaS Upgrade Assistant as the primary migration tool
 - Identified what migrates automatically, what requires manual recreation, and what data does not transfer
+- Reviewed product safeguards, platform limits, and the SaaS security/privacy surface (capture rates, SSO, notifications, privacy controls, support-access model)
 
 ---
 

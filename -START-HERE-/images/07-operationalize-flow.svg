@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Operationalize Sequence</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Each stage builds on the previous — read in order</text>
+  <defs>
+    <marker id="arrowOp" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+  <rect x="40" y="180" width="190" height="140" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="135" y="208" text-anchor="middle" fill="#BFDBFE" font-size="16" font-weight="700">DASH</text>
+  <text x="135" y="225" text-anchor="middle" fill="#94A3B8" font-size="11">Dashboards</text>
+  <line x1="60" y1="235" x2="210" y2="235" stroke="#1E293B" stroke-width="1"/>
+  <text x="135" y="258" text-anchor="middle" fill="#F8FAFC" font-size="12">First — visibility</text>
+  <text x="135" y="278" text-anchor="middle" fill="#94A3B8" font-size="10">Everything else needs</text>
+  <text x="135" y="293" text-anchor="middle" fill="#94A3B8" font-size="10">dashboards to be visible</text>
+  <text x="135" y="313" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="700">1–2 weeks</text>
+  <line x1="230" y1="250" x2="265" y2="250" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrowOp)"/>
+  <rect x="270" y="180" width="190" height="140" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="365" y="208" text-anchor="middle" fill="#FCD34D" font-size="16" font-weight="700">WFLOW</text>
+  <text x="365" y="225" text-anchor="middle" fill="#94A3B8" font-size="11">Workflows + Alerting</text>
+  <line x1="290" y1="235" x2="440" y2="235" stroke="#1E293B" stroke-width="1"/>
+  <text x="365" y="258" text-anchor="middle" fill="#F8FAFC" font-size="12">Second — response</text>
+  <text x="365" y="278" text-anchor="middle" fill="#94A3B8" font-size="10">Alert routing, incident</text>
+  <text x="365" y="293" text-anchor="middle" fill="#94A3B8" font-size="10">management</text>
+  <text x="365" y="313" text-anchor="middle" fill="#FCD34D" font-size="10" font-weight="700">2–3 weeks</text>
+  <line x1="460" y1="250" x2="495" y2="250" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrowOp)"/>
+  <rect x="500" y="180" width="190" height="140" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="595" y="208" text-anchor="middle" fill="#86EFAC" font-size="16" font-weight="700">AUTOM</text>
+  <text x="595" y="225" text-anchor="middle" fill="#94A3B8" font-size="11">Configuration as Code</text>
+  <line x1="520" y1="235" x2="670" y2="235" stroke="#1E293B" stroke-width="1"/>
+  <text x="595" y="258" text-anchor="middle" fill="#F8FAFC" font-size="12">Third — automation</text>
+  <text x="595" y="278" text-anchor="middle" fill="#94A3B8" font-size="10">Monaco, Terraform,</text>
+  <text x="595" y="293" text-anchor="middle" fill="#94A3B8" font-size="10">CI/CD integration</text>
+  <text x="595" y="313" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="700">3–6 weeks</text>
+  <line x1="690" y1="250" x2="725" y2="250" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrowOp)"/>
+  <rect x="730" y="180" width="190" height="140" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="825" y="208" text-anchor="middle" fill="#DDD6FE" font-size="16" font-weight="700">AIOPS</text>
+  <text x="825" y="225" text-anchor="middle" fill="#94A3B8" font-size="11">Davis Intelligence</text>
+  <line x1="750" y1="235" x2="900" y2="235" stroke="#1E293B" stroke-width="1"/>
+  <text x="825" y="258" text-anchor="middle" fill="#F8FAFC" font-size="12">Fourth — intelligence</text>
+  <text x="825" y="278" text-anchor="middle" fill="#94A3B8" font-size="10">Davis problems, anomaly</text>
+  <text x="825" y="293" text-anchor="middle" fill="#94A3B8" font-size="10">detection, agentic AI</text>
+  <text x="825" y="313" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="700">2–4 weeks</text>
+  <text x="465" y="375" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="700">Reasoning</text>
+  <text x="465" y="395" text-anchor="middle" fill="#94A3B8" font-size="11">You alert against what you can see (DASH); you automate what you've designed (WFLOW + DASH);</text>
+  <text x="465" y="412" text-anchor="middle" fill="#94A3B8" font-size="11">you trust Davis when its findings are visible somewhere (everything above)</text>
+  <text x="465" y="450" text-anchor="middle" fill="#64748B" font-size="11">Total time: 8–15 weeks for full operationalize maturity</text>
+</svg>

@@ -18,6 +18,7 @@ Client-side monitoring and observability for web applications with session repla
 6. [Performance Analysis](markdown/-[WEBRUM]-06-performance-analysis.md) — Page load analysis, runtime performance, and bottleneck identification
 7. [Session Replay](markdown/-[WEBRUM]-07-session-replay.md) — Visual session recording, privacy masking, and replay playback
 8. [Dashboards and Alerting](markdown/-[WEBRUM]-08-dashboards-and-alerting.md) — RUM metrics dashboards and performance-based alerting
+9. [Migrating USQL to DQL](markdown/-[WEBRUM]-09-usql-to-dql-migration.md) — USQL → DQL grammar and field mapping, with the classic-RUM vs New RUM decision that determines which field names apply
 99. [Best Practice Summary](markdown/-[WEBRUM]-99-best-practice-summary.md) — Consolidated best practices from the WEBRUM series
 
 ## Usage

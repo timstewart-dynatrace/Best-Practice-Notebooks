@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -10,7 +10,7 @@ The migration is functionally complete. Agents are reporting, configurations are
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | **9. Optimize**
+> **Run:** 7. Enable | 8. Expand | **9. Optimize**
 
 ---
 
@@ -400,7 +400,7 @@ Before scheduling sign-off meetings, prepare the following:
 2. **Issue log** — Any open issues with resolution timeline
 3. **Risk register** — Remaining risks (e.g., baselines still establishing)
 4. **Decommission plan** — Timeline and steps for Managed shutdown
-5. **Training completion report** — From Step 8 (Enable)
+5. **Training completion report** — From Step 7 (Enable)
 
 ---
 
@@ -491,8 +491,8 @@ Congratulations on completing the M2S: Managed-to-SaaS Migration series. Here is
 | **4. Prepare** | Upgrade | Provisioned SaaS tenant, deployed ActiveGates, configured SSO |
 | **5. Execute** | Upgrade | Migrated configurations via SaaS Upgrade Assistant, migrated OneAgents |
 | **6. Integrate** | Upgrade | Reconnected dashboards, alerting, CI/CD, ITSM, extensions, and API scripts |
-| **7. Expand** | Run | Adopted SaaS-exclusive capabilities — Grail, Notebooks, Workflows, Dynatrace Assist |
-| **8. Enable** | Run | Trained users, updated documentation, established support processes |
+| **7. Enable** | Run | Trained users, updated documentation, established support processes |
+| **8. Expand** | Run | Adopted SaaS-exclusive capabilities — Grail, Notebooks, Workflows, Dynatrace Assist |
 | **9. Optimize** | Run | Validated migration, optimized performance, obtained sign-off, decommissioned Managed |
 
 ### Ongoing Success

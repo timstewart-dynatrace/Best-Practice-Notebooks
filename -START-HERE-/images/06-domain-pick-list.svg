@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="20" font-weight="700">Domain Enablement</text>
+  <text x="465" y="52" text-anchor="middle" fill="#94A3B8" font-size="11">8 domains + 3 cross-cutting ingestion mechanisms</text>
+  <rect x="40" y="100" width="200" height="80" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="140" y="125" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">K8S</text>
+  <text x="140" y="145" text-anchor="middle" fill="#94A3B8" font-size="10">Kubernetes Monitoring</text>
+  <text x="140" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">15 notebooks</text>
+  <rect x="250" y="100" width="200" height="80" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="350" y="125" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">CLOUD</text>
+  <text x="350" y="145" text-anchor="middle" fill="#94A3B8" font-size="10">AWS / Azure / GCP</text>
+  <text x="350" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">9 notebooks</text>
+  <rect x="460" y="100" width="200" height="80" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="560" y="125" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">SPANS</text>
+  <text x="560" y="145" text-anchor="middle" fill="#94A3B8" font-size="10">Distributed Tracing</text>
+  <text x="560" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">9 notebooks</text>
+  <rect x="670" y="100" width="200" height="80" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="770" y="125" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">DBMON</text>
+  <text x="770" y="145" text-anchor="middle" fill="#94A3B8" font-size="10">Databases</text>
+  <text x="770" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">7 notebooks</text>
+  <rect x="40" y="195" width="200" height="80" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="140" y="220" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">WEBRUM</text>
+  <text x="140" y="240" text-anchor="middle" fill="#94A3B8" font-size="10">Web RUM</text>
+  <text x="140" y="255" text-anchor="middle" fill="#94A3B8" font-size="10">9 notebooks</text>
+  <rect x="250" y="195" width="200" height="80" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="350" y="220" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">MOBL</text>
+  <text x="350" y="240" text-anchor="middle" fill="#94A3B8" font-size="10">Mobile (iOS/Android)</text>
+  <text x="350" y="255" text-anchor="middle" fill="#94A3B8" font-size="10">13 notebooks</text>
+  <rect x="460" y="195" width="200" height="80" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="560" y="220" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">SYNTH</text>
+  <text x="560" y="240" text-anchor="middle" fill="#94A3B8" font-size="10">Synthetic Monitoring</text>
+  <text x="560" y="255" text-anchor="middle" fill="#94A3B8" font-size="10">7 notebooks</text>
+  <rect x="670" y="195" width="200" height="80" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="770" y="220" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">BIZEV</text>
+  <text x="770" y="240" text-anchor="middle" fill="#94A3B8" font-size="10">Business Events</text>
+  <text x="770" y="255" text-anchor="middle" fill="#94A3B8" font-size="10">7 notebooks</text>
+  <text x="465" y="310" text-anchor="middle" fill="#22D3EE" font-size="14" font-weight="700">Cross-Cutting Ingestion Mechanisms</text>
+  <text x="465" y="328" text-anchor="middle" fill="#94A3B8" font-size="11">Touch multiple domains; read when ingestion design becomes the focus</text>
+  <rect x="105" y="345" width="220" height="80" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
+  <text x="215" y="370" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">OTEL</text>
+  <text x="215" y="390" text-anchor="middle" fill="#94A3B8" font-size="10">OpenTelemetry collectors</text>
+  <text x="215" y="405" text-anchor="middle" fill="#94A3B8" font-size="10">9 notebooks</text>
+  <rect x="355" y="345" width="220" height="80" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
+  <text x="465" y="370" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">OPLOGS</text>
+  <text x="465" y="390" text-anchor="middle" fill="#94A3B8" font-size="10">OpenPipeline for logs</text>
+  <text x="465" y="405" text-anchor="middle" fill="#94A3B8" font-size="10">9 notebooks</text>
+  <rect x="605" y="345" width="220" height="80" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
+  <text x="715" y="370" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">OPIPE</text>
+  <text x="715" y="390" text-anchor="middle" fill="#94A3B8" font-size="10">Spans, metrics, events</text>
+  <text x="715" y="405" text-anchor="middle" fill="#94A3B8" font-size="10">7 notebooks</text>
+  <text x="465" y="455" text-anchor="middle" fill="#94A3B8" font-size="11" font-weight="700">Recommended sequence if doing multiple:</text>
+  <text x="465" y="475" text-anchor="middle" fill="#64748B" font-size="11">Infrastructure (K8S/CLOUD) → SPANS → Frontend (WEBRUM/MOBL) → DBMON → SYNTH → BIZEV</text>
+</svg>

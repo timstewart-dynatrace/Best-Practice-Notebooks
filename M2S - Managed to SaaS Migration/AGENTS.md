@@ -3,12 +3,13 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-10 notebooks on migrating from Dynatrace Managed to Dynatrace SaaS: a
+11 notebooks on migrating from Dynatrace Managed to Dynatrace SaaS: a
 3-phase / 9-step journey (Plan → Upgrade → Run) covering discovery, strategy,
 target architecture, the SaaS Upgrade Assistant, Grail bucket planning before
 first ingest, OneAgent/ActiveGate/Kubernetes/serverless cutover, integration
 reconnection, SaaS-capability adoption, user enablement, and Managed
-decommissioning, plus a consolidated best-practice summary.
+decommissioning, plus a consolidated best-practice summary and an appendix LAB
+on running the migration with the Terraform provider.
 
 ## Routing table
 
@@ -22,9 +23,10 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Pre-migration readiness: licensing for dual-run, tenant provisioning, SAML SSO setup, parallel ActiveGates, SaaS Upgrade Assistant install (align to the target tenant's major version — no fixed minimum), Grail bucket strategy before first ingest, config freeze, rollback plan | `-[M2S]-04-step-4-prepare.md` |
 | Running the migration: dependency-ordered configuration waves via the SaaS Upgrade Assistant, redirecting each workload surface to SaaS (OneAgent via `oneagentctl`, Kubernetes DynaKube recreate, Cloud Run image rebuild, OTLP endpoint repoint), Grail bucket routing before high-volume log redirect, per-wave validation | `-[M2S]-05-step-5-execute.md` |
 | Reconnecting integrations: dashboards, alert/notification channels, CI/CD pipelines, ITSM, extensions, API scripts, synthetic monitors | `-[M2S]-06-step-6-integrate.md` |
-| Adopting SaaS-only capabilities post-cutover: Grail, Notebooks, OpenPipeline, Workflows, Dynatrace Assist, platform apps, privacy controls | `-[M2S]-07-step-7-expand.md` |
-| Communication plan, persona-based training, documentation updates, support channels, measuring enablement success | `-[M2S]-08-step-8-enable.md` |
+| Communication plan, persona-based training, documentation updates, support channels, measuring enablement success | `-[M2S]-07-step-7-enable.md` |
+| Adopting SaaS-only capabilities post-cutover: Grail, Notebooks, OpenPipeline, Workflows, Dynatrace Assist, platform apps, privacy controls | `-[M2S]-08-step-8-expand.md` |
 | Final validation, performance/retention optimization, Davis baseline establishment, stakeholder sign-off, decommissioning the Managed cluster | `-[M2S]-09-step-9-optimize.md` |
+| Migrating configuration with **Terraform** instead of (or alongside) the SaaS Upgrade Assistant: bulk vs iterative export (`-migrate`, `-datasources`, duplicate handling), Managed-source URL form / token type / required scopes, what never exports, `.flawed` and `.requires_attention` triage, entity-ID preservation via `oneagentctl`, wave-ordered apply, post-cutover `-import-state` adoption and drift detection | `-[M2S]-95-[LAB]-terraform-migration.md` |
 | Consolidated checklist of every M2S best practice across the 9 steps and the 11-step order of operations | `-[M2S]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[M2S]-99-best-practice-summary.md`

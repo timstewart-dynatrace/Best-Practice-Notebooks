@@ -1,6 +1,6 @@
 # S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -81,16 +81,12 @@ fetch dt.entity.host
     | summarize count = count(), by:{provider}
   ]
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize total_hosts = count()
-// | append [
-// smartscapeNodes HOST
-// | fieldsAdd provider = if(isNotNull(awsNameTag), then: "AWS",
-// else: if(isNotNull(azureResourceGroupName), then: "Azure", else: "On-Premises"))
-// | summarize count = count(), by:{provider}
-// ]
-
+// Smartscape note (dt.entity.* is deprecated but still functional): the classic cloud-tag
+// fields (awsNameTag / azureResourceGroupName / gcpProjectId) are not Smartscape node fields.
+// On Smartscape, smartscapeNodes "HOST" exposes cloud.provider directly — e.g.
+//   smartscapeNodes "HOST" | summarize count = count(), by:{cloud.provider}
+// (aws / azure / gcp; null = on-premises) — which replaces the tag-presence if-chain.
+// Keep the classic query above; the live-topology count caveat also applies.
 ```
 
 ### Validate Log Continuity
