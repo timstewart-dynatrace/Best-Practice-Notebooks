@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -342,15 +342,13 @@ fetch dt.entity.service
 | sort entity.name asc
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fields name,
-// dt.security_context,
-// managementZones
-// | filter isNotNull(dt.security_context)
-// | sort name asc
-// | limit 50
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ### Analyze Entity Types and Their Attributes
@@ -366,13 +364,11 @@ fetch dt.entity.host
          managementZones
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fields name,
-// tags,
-// managementZones
-// | limit 20
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Check Kubernetes Cluster Distribution
@@ -388,13 +384,11 @@ fetch dt.entity.kubernetes_cluster
          managementZones
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fields name,
-// tags,
-// managementZones
-// | sort name asc
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ---

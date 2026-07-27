@@ -1,12 +1,10 @@
 # WEBRUM-06: Performance Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 9 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
 
 ## Overview
 
 Web performance directly impacts user experience, conversion rates, and SEO rankings. While Core Web Vitals (covered in WEBRUM-03) provide high-level scoring, a deeper performance analysis requires understanding the full page load waterfall — from DNS lookup to load complete — and how performance varies across geographies, network conditions, and device types.
-
-This notebook covers page load waterfall analysis, time-to-first-byte (TTFB), DOM interactive timing, speed index concepts, performance by geography and network type, and techniques for identifying slow pages and bottlenecks.
 
 ---
 

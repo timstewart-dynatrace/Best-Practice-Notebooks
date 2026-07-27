@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -10,7 +10,7 @@ With the target architecture designed, it is time to prepare everything needed f
 >
 > **Upgrade:** **4. Prepare** | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 ---
 
 ## Table of Contents
@@ -95,6 +95,8 @@ During migration, both the Managed environment and the SaaS tenant are active si
 
 > **Important:** Do not let the Managed license expire before all agents are migrated. If the Managed license lapses during migration, OneAgents still connected to Managed will stop reporting.
 
+> **Complimentary overlap licensing:** In community practice, Dynatrace commonly provides complimentary parallel SaaS licensing to cover the migration overlap (often cited as up to ~6 months) — this is not a contractual entitlement, so confirm the scope and duration with your account team when you plan the dual-run window above.
+
 ### 1.2 DPS (Dynatrace Platform Subscription)
 
 SaaS uses the DPS consumption model. Key differences from Managed licensing:
@@ -172,6 +174,10 @@ Confirm all migration team members can access the new tenant:
 curl -s "https://{tenant-id}.live.dynatrace.com/api/v1/time" \
   -H "Authorization: Api-Token {token}" | python3 -m json.tool
 ```
+
+### 2.5 Request Feature Flags (if needed)
+
+Some SaaS capabilities are gated behind **feature flags** that Dynatrace enables per tenant on request. If your target design depends on a feature that is not visible in the freshly provisioned tenant, raise a Dynatrace Support request during preparation so it is enabled before Step 5 (Execute) — do not wait until cutover to discover a gap.
 
 ---
 
@@ -399,6 +405,8 @@ The SaaS Upgrade Assistant groups configurations by type. Review the counts to v
 | Request attributes | | | [ ] |
 | Service detection rules | | | [ ] |
 | SLOs | | | [ ] |
+
+> **Not carried over by the SaaS Upgrade Assistant:** cluster overload-prevention settings — the maximum entry-point PurePaths/traces per process per minute and the maximum user actions per minute (RUM) — are **not** exported. Re-apply the values you inventoried in Step 1 manually on the SaaS tenant during preparation.
 
 ---
 

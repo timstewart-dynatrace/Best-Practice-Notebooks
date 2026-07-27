@@ -1,6 +1,6 @@
 # AUTOM-95 LAB: Terraform IAM Management
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 95 — Terraform IAM Management LAB | **Created:** May 2026 | **Last Updated:** 07/16/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 95 — Terraform IAM Management LAB | **Created:** May 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -836,7 +836,7 @@ The provider supports `-import-state` instead of `-flat -id`, which auto-runs `t
 <a id="deprecated"></a>
 ## 13. Deprecated Arguments to Avoid
 
-The current provider version (v1.96) flags these deprecations. Do **not** re-add them:
+The provider has flagged these deprecations since v1.96. Do **not** re-add them:
 
 | Deprecated | Replaced by | Notes |
 |---|---|---|

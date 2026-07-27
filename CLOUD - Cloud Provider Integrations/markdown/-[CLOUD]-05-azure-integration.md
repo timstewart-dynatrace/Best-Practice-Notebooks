@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -155,6 +155,10 @@ fetch dt.entity.azure_vm
 | sort entity.name asc
 | limit 20
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### Count Azure Resources by Type
@@ -175,6 +179,11 @@ fetch dt.entity.azure_vm
     | fieldsAdd provider = "Azure", resource_type = "SQL Database"
   ]
 | sort resource_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 ### List Azure Web Apps
@@ -185,6 +194,11 @@ fetch dt.entity.azure_web_app
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 | limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
+// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
+// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
+// classic query above for the cloud-resource inventory.
 ```
 
 <a id="azure-metrics"></a>

@@ -1,7 +1,7 @@
 # Doorway 3 — Deployment Migration
 
 > **Purpose:** Reading order for existing Dynatrace customers changing deployment model — Managed → SaaS or SaaS → SaaS. Focused on migration mechanics; selective Foundation refresh where Gen3 differs from prior generations.
-> **Last Updated:** 07/15/2026
+> **Last Updated:** 07/23/2026
 
 ![Deployment Migration Sub-Paths](images/03-deployment-subpaths.svg)
 
@@ -24,7 +24,7 @@
 - You are moving to a different deployment model — Dynatrace Managed → Dynatrace SaaS, or one SaaS tenant → another SaaS tenant
 - The migration is the deployment model itself, not a tool replacement; your underlying observability practice continues
 
-If you are net-new to Dynatrace, see [Doorway 1 — Net New](01-net-new.md). If you are expanding scope or consolidating data into your existing tenant, see [Doorway 2 — Expanding or Consolidating](02-expand-consolidate.md).
+If you are net-new to Dynatrace, see [Doorway 1 — Net New](01-net-new.md). If you are expanding scope or consolidating data into your existing tenant, see [Doorway 2 — Expanding or Consolidating](02-expand-consolidate.md). If your deployment model is staying put and what you actually need to change is the constructs you operate — management zones as permissions, metric events, alerting profiles, Classic Logs — see [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md).
 
 ---
 
@@ -94,15 +94,18 @@ Both M2S and S2S land you on a Gen3 SaaS tenant. Several Foundation topics diffe
 
 These should run alongside the M2S or S2S step that introduces them — typically in step 3 (Design) and step 7 (Expand).
 
+If most of this table applies — that is, you are carrying a substantially classic configuration across the deployment move — treat the surface migration as its own workstream rather than a set of refresh notes. [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md) sequences it into phases and covers the constructs this table does not (metric events, alerting profiles, classic dashboards, USQL, metric and entity selectors).
+
 ---
 
 ## Where to Next
 
 After deployment migration completes:
 
-- [Domain Enablement Module](05-domain-enablement.md) — to add domains that may have been deferred during the migration
-- [Operationalize Module](06-operationalize.md) — to take advantage of Gen3-only operations capabilities (Workflows, Davis intelligence, AppEngine apps)
-- [Maturity Module](07-maturity.md) — for ongoing optimization and governance
+- [Domain Enablement Module](06-domain-enablement.md) — to add domains that may have been deferred during the migration
+- [Operationalize Module](07-operationalize.md) — to take advantage of Gen3-only operations capabilities (Workflows, Davis intelligence, AppEngine apps)
+- [Maturity Module](08-maturity.md) — for ongoing optimization and governance
+- [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md) — if classic constructs came across with you and still need retiring
 
 If you find yourself also consolidating from another tool during or after the deployment migration (for example, taking the opportunity to retire Splunk while you are already in transition), see [Doorway 2 — Expanding or Consolidating](02-expand-consolidate.md), Sub-Path B or C.
 

@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/16/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -126,7 +126,7 @@ terraform {
   required_providers {
     dynatrace = {
       source  = "dynatrace-oss/dynatrace"
-      version = "~> 1.93"        # Current: v1.93.0 (March 2026)
+      version = "~> 1.100"       # Current: v1.100.0 (released 07/02/2026)
     }
   }
 }
@@ -136,6 +136,8 @@ provider "dynatrace" {
   dt_api_token = var.dynatrace_token  # Classic API token (dt0c01.xxxx)
 }
 ```
+
+> **Provider version — v1.100.0, released 07/02/2026.** This is the current release at the time of writing and the version every version-specific claim in this notebook is stated against. Unlike a SaaS sprint, a provider release reaches nobody automatically: the version in play is whatever your `required_providers` block resolves to, and `terraform init` pins it in `.terraform.lock.hcl` until you deliberately run `terraform init -upgrade`. Check your lock file before assuming a resource or attribute described here is available to you, and check the [registry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest) for releases newer than v1.100.0.
 
 > **Important:** Synthetic monitors and SLO definitions require a classic API Token (`dt0c01.*`). OAuth/Platform Token authentication does not support these resource types as of provider v1.88.0.
 
@@ -1423,9 +1425,10 @@ Executable typically lives at `.terraform/providers/registry.terraform.io/dynatr
 
 **Required env vars:**
 
-- `DYNATRACE_TENANT` — environment identifier
-- **Auth:** Platform Token or OAuth client. For Gen3/IAM resources, set `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`.
-- `DYNATRACE_TARGET_FOLDER` (optional) — output directory; defaults to `.configuration/`
+- `DYNATRACE_ENV_URL` (required) — tenant endpoint
+- `DYNATRACE_API_TOKEN` (required) — API token for that tenant
+- `DYNATRACE_TARGET_FOLDER` (optional) — output directory; defaults to `./configuration`
+- **Gen3/IAM resources** additionally need an OAuth client: `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`.
 
 **Output structure:**
 
@@ -1482,7 +1485,7 @@ A Terraform shop doesn't need Monaco for most use cases, but five specific patte
 
 ### Additional Resources
 
-- [Terraform Provider Documentation](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs) (v1.96.0, May 2026)
+- [Terraform Provider Documentation](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs) (v1.100.0, July 2026)
 - [Provider GitHub Repository](https://github.com/dynatrace-oss/terraform-provider-dynatrace)
 - [Terraform CLI commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — `-export` utility reference
 - [Terraform Style Guide](https://developer.hashicorp.com/terraform/language/style)
@@ -1517,7 +1520,7 @@ The following GitHub repositories provide starter templates, reusable modules, a
 
 | Repository | Description |
 |------------|-------------|
-| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.93.0, 180 releases) -- supports hundreds of resource types with export capability |
+| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.100.0, 190 releases) -- supports hundreds of resource types with export capability |
 | [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | Official samples repo with 10 Terraform starter templates in `basic-templates-terraform` |
 
 ### Starter Templates & Modules (in `dynatrace-configuration-as-code-samples`)

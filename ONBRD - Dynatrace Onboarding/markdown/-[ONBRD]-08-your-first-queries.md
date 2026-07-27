@@ -1,6 +1,6 @@
 # ONBRD-08: Your First Queries
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Learning DQL Fundamentals
 Dynatrace Query Language (DQL) is how you access data in Grail. This notebook introduces the core concepts and patterns you'll use daily.
@@ -94,10 +94,12 @@ fetch spans, from:-1h
 fetch dt.entity.host
 | limit 10
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | limit 10
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | limit 10
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -200,6 +202,12 @@ fetch dt.entity.host
          status = state,
          os = osType
 | limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); entity.name -> name.
 ```
 
 ### fieldsAdd vs fields
@@ -384,6 +392,12 @@ fetch dt.entity.host
     cores = cpuCores
 | sort name
 | limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; entity.name -> name.
 ```
 
 ## 10. Next Steps

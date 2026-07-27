@@ -1,6 +1,6 @@
 # IAM-10: Templated Policy-Group Assignments
 
-> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 07/16/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -448,15 +448,10 @@ fetch dt.entity.service
 | fields total, withContext, missingContext,
          coveragePercent = round(100.0 * withContext / total, decimals: 2)
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize
-// total = count(),
-// withContext = countIf(isNotNull(dt.security_context)),
-// missingContext = countIf(isNull(dt.security_context))
-// | fields total, withContext, missingContext,
-// coveragePercent = round(100.0 * withContext / total, decimals: 2)
-
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
 ```
 
 ```dql
@@ -465,6 +460,11 @@ fetch dt.entity.service
 | filter isNotNull(dt.security_context)
 | summarize count = count(), by:{dt.security_context}
 | sort count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
 ```
 
 <a id="troubleshooting-templated-policies"></a>

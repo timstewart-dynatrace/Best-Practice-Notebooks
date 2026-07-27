@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -118,11 +118,13 @@ fetch dt.entity.kubernetes_cluster
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fieldsKeep id, name, tags
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Node CPU and Memory Usage

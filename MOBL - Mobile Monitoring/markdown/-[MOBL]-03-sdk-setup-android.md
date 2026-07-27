@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -311,6 +311,9 @@ fetch dt.entity.mobile_application
 | fields entity.name, id, tags
 | sort entity.name asc
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 The query above searches for mobile application entities with "Android" in their name or tags. If your app appears in the results, the Dynatrace environment is aware of it.

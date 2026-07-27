@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 07/21/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies.
@@ -709,12 +709,10 @@ fetch dt.entity.service
 | sort count desc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize count = count(), by:{dt.security_context}
-// | sort count desc
-// | limit 20
-
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
 ```
 
 ```dql
@@ -724,6 +722,12 @@ fetch dt.entity.service
 | fields entity.name, tags
 | sort entity.name
 | limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
+// (entity tags are also not a flat "tags" field on Smartscape — resolve via getNodeField.)
 ```
 
 ```dql
@@ -735,14 +739,10 @@ fetch dt.entity.host
     missing = countIf(isNull(dt.security_context))
 | fieldsAdd coveragePercent = round(100.0 * withContext / total, decimals: 2)
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize
-// total = count(),
-// withContext = countIf(isNotNull(dt.security_context)),
-// missing = countIf(isNull(dt.security_context))
-// | fieldsAdd coveragePercent = round(100.0 * withContext / total, decimals: 2)
-
+// Smartscape note (dt.entity.* is deprecated but still functional): dt.security_context exists
+// on Smartscape nodes but as an ARRAY (empty [] when unset, not null), so isNull / isNotNull
+// and by:{dt.security_context} do not carry over — a Smartscape rewrite would miscount coverage.
+// Keep the classic query above.
 ```
 
 ```dql

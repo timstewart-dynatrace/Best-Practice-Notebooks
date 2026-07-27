@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -42,10 +42,12 @@ OneAgent coverage is the most fundamental health indicator. Gaps in deployment m
 // Count all monitored hosts and break down by monitoring mode
 fetch dt.entity.host
 | summarize total_hosts = count()
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize total_hosts = count()
 
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize total_hosts = count()
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration discovery inventory keep the classic query above.
 ```
 
 ### 1.2 Hosts by Monitoring Mode
@@ -57,6 +59,9 @@ Dynatrace supports multiple monitoring modes. Full-stack provides the deepest vi
 fetch dt.entity.host
 | summarize host_count = count(), by:{monitoringMode}
 | sort host_count desc
+
+// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
+// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 ### 1.3 Agent Version Distribution
@@ -69,6 +74,9 @@ fetch dt.entity.host
 | summarize host_count = count(), by:{agentVersion}
 | sort host_count desc
 | limit 20
+
+// No Smartscape equivalent: agentVersion / installerVersion (OneAgent version) is not a
+// Smartscape node field. Keep the classic query above for agent-version distribution.
 ```
 
 > **Tip:** If you see more than 3-4 distinct agent versions, consider enabling auto-update or scheduling a coordinated update. A single major version across the fleet reduces support complexity.
@@ -114,11 +122,14 @@ Auto-discovered services and process groups indicate the depth of application-le
 fetch dt.entity.service
 | summarize service_count = count(), by:{serviceType}
 | sort service_count desc
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize service_count = count(), by:{serviceType}
-// | sort service_count desc
 
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | summarize service_count = count(), by:{dt.service.sdv1_type}
+//   | sort service_count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration discovery inventory keep the classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type.
 ```
 
 ### 3.2 Process Group Inventory
@@ -129,12 +140,11 @@ fetch dt.entity.process_group
 | summarize pg_count = count(), by:{softwareTechnologies}
 | sort pg_count desc
 | limit 15
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes PROCESS
-// | summarize pg_count = count(), by:{softwareTechnologies}
-// | sort pg_count desc
-// | limit 15
 
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
 ```
 
 <a id="data-ingestion"></a>
@@ -183,6 +193,9 @@ fetch dt.entity.environment_active_gate
 | fieldsAdd entity.name
 | summarize ag_count = count()
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ### 5.2 ActiveGate Metric Health
@@ -209,6 +222,9 @@ Host units are a primary consumption metric. Each host consumes units based on i
 fetch dt.entity.host
 | summarize host_count = count(), by:{monitoringMode}
 | fieldsAdd estimated_hu = if(monitoringMode == "FULL_STACK", then: host_count, else: host_count * 0)
+
+// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
+// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 ### 6.2 Log Ingestion Volume for Cost Awareness

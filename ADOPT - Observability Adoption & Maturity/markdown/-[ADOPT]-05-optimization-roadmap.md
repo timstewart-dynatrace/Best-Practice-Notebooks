@@ -1,6 +1,6 @@
 # ADOPT-05: Optimization Roadmap
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -129,11 +129,9 @@ fetch dt.davis.problems, from:-30d
 fetch dt.entity.host
 | summarize host_count = count(), by:{agentVersion}
 | sort host_count desc
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize host_count = count(), by:{agentVersion}
-// | sort host_count desc
 
+// No Smartscape equivalent: agentVersion / installerVersion (OneAgent version) is not a
+// Smartscape node field. Keep the classic query above for agent-version distribution.
 ```
 
 ### 2.3 Dashboard Consolidation
@@ -287,6 +285,9 @@ Not every host requires full-stack monitoring. Infrastructure-only mode costs fe
 fetch dt.entity.host
 | summarize host_count = count(), by:{monitoringMode}
 | sort host_count desc
+
+// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
+// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 ### 5.4 Span Volume Analysis

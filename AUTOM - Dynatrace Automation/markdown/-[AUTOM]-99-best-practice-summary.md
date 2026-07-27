@@ -1,6 +1,6 @@
 # AUTOM-99: Best Practice Summary
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-08) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.
 
@@ -245,7 +245,7 @@ Key GitHub repositories organized by tool, providing starter templates, working 
 
 | Repository | Description |
 |------------|-------------|
-| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.93.0, 180 releases) with export capability |
+| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.100.0, 190 releases) with export capability |
 | [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 10 Terraform starter templates, reusable modules, DQL data source, IAM onboarding |
 
 ### CI/CD & Platform Engineering

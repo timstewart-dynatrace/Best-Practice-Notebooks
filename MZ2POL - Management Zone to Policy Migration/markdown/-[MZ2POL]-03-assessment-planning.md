@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -60,6 +60,11 @@ fetch dt.entity.service
 | summarize serviceCount = count(), by:{managementZone = mz}
 | sort serviceCount desc
 | limit 25
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
 ```
 
 ---
@@ -169,14 +174,14 @@ fetch dt.entity.service
          tags
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | filter isNull(dt.security_context)
-// | fields name,
-// managementZones,
-// tags
-// | limit 50
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
@@ -186,6 +191,12 @@ fetch dt.entity.service
 | summarize 
     withContext = countIf(isNotNull(dt.security_context)),
     withoutContext = countIf(isNull(dt.security_context))
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ---

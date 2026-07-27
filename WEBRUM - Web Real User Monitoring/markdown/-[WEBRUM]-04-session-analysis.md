@@ -1,12 +1,10 @@
 # WEBRUM-04: Session Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 9 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
 
 ## Overview
 
 User session analysis is the foundation of understanding how real users interact with your web applications. A session represents a complete visit — from the first page load to the last interaction before timeout. By analyzing sessions, you can identify user journey patterns, measure engagement, track conversions, calculate bounce rates, and understand how geographic location and device type impact the user experience.
-
-This notebook covers session segmentation, user journey mapping, conversion funnel analysis, bounce rate calculations, and geographic/device breakdowns using DQL.
 
 ---
 

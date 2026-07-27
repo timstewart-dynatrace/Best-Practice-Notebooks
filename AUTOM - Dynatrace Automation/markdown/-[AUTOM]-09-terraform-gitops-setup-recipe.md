@@ -1,6 +1,6 @@
 # AUTOM-09: Terraform GitOps Setup Recipe
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 05/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 07/24/2026
 
 A practical, opinionated recipe for standing up a Terraform GitOps shop for Dynatrace from scratch. This notebook covers what AUTOM-04 (Terraform resources) and AUTOM-07 (CI/CD integration) deliberately don't — repo layout, state backend choices, multi-environment promotion, lifecycle protections, secrets handling end-to-end, team onboarding, and operational realities. Use it as the bootstrap reference; consult AUTOM-04 for resource-level patterns and AUTOM-07 for CI/CD pipeline specifics.
 
@@ -356,12 +356,12 @@ See **AUTOM-07 §3.1 Terraform Workflow with Combined Auth** for the full patter
 | **Quarterly** | Bump the production version constraint after staging has been on the newer version for 2–4 weeks without issue |
 | **On a known breaking change** | Coordinate the bump across all envs in one PR; bring a rollback plan |
 
-The Dynatrace provider has been on a steady cadence (8 minor versions in 6 months as of May 2026 — v1.88 through v1.96). Staying current is straightforward if you treat it as a recurring chore.
+The Dynatrace provider has been on a steady cadence — 13 minor versions between November 2025 and July 2026, v1.88 through v1.100. Staying current is straightforward if you treat it as a recurring chore.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Provider requirements (HashiCorp)](https://developer.hashicorp.com/terraform/language/providers/requirements) — `required_providers` syntax.</sub>
 > - <sub>[Version constraints (HashiCorp)](https://developer.hashicorp.com/terraform/language/expressions/version-constraints) — `~>`, `>=`, exact-pin semantics.</sub>
-> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (current: v1.96.0, May 2026).</sub>
+> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (current: v1.100.0, released 07/02/2026).</sub>
 
 <a id="module-strategy"></a>
 ## 5. Module Strategy

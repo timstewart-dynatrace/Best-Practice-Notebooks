@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -500,13 +500,15 @@ fetch dt.entity.process_group_instance
 | sort entity.name asc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes PROCESS
-// | filter contains(name, "kafka") or contains(name, "Kafka")
-// | fields name, tags
-// | sort name asc
-// | limit 20
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "PROCESS"
+//   | filter contains(name, "kafka") or contains(name, "Kafka")
+//   | fields name, tags
+//   | sort name asc
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ## Summary

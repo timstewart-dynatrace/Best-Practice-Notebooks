@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/15/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -410,13 +410,11 @@ fetch dt.entity.host
 | sort entity.name
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fields name, state, monitoringMode
-// | filter state == "RUNNING"
-// | sort name
-// | limit 50
-
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: entity.name -> name.
 ```
 
 ```dql
@@ -424,6 +422,11 @@ fetch dt.entity.host
 fetch dt.entity.host
 | summarize host_count = count(), by: {state, monitoringMode}
 | sort host_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
 ```
 
 ```dql
@@ -432,6 +435,12 @@ fetch dt.entity.host
 | fields entity.name, state, monitoringMode
 | summarize host_count = count(), by: {state}
 | sort host_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: entity.name -> name.
 ```
 
 ```dql
@@ -441,12 +450,15 @@ fetch dt.entity.service
 | summarize service_count = count(), by: {serviceType}
 | sort service_count desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fields name, serviceType
-// | summarize service_count = count(), by: {serviceType}
-// | sort service_count desc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | fields name, dt.service.sdv1_type
+//   | summarize service_count = count(), by: {dt.service.sdv1_type}
+//   | sort service_count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
 ```
 
 ```dql
@@ -456,12 +468,10 @@ fetch dt.entity.process_group
 | sort entity.name
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes PROCESS
-// | fields name
-// | sort name
-// | limit 50
-
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
+// granularity (process instances), so its results are not comparable to a process-group
+// query. Keep the classic dt.entity.process_group query above.
 ```
 
 ### Host Verification Commands

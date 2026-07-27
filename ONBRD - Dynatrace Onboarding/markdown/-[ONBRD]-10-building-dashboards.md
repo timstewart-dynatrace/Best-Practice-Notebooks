@@ -1,6 +1,6 @@
 # ONBRD-10: Building Dashboards
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Visualizing Your Data
 Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.
@@ -198,11 +198,10 @@ fetch dt.entity.host
 | filter state == "RUNNING"
 | summarize host_count = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | filter state == "RUNNING"
-// | summarize host_count = count()
-
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
 ```
 
 ```dql
@@ -210,6 +209,15 @@ fetch dt.entity.host
 fetch dt.entity.host
 | summarize count = count(), by: {osType}
 | sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize count = count(), by: {os.type}
+//   | sort count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: osType -> os.type (LINUX -> OS_TYPE_LINUX).
 ```
 
 ```dql
@@ -218,6 +226,12 @@ fetch dt.entity.host
 | fields name = entity.name, os = osType, state, cpuCores
 | sort name
 | limit 25
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; entity.name -> name.
 ```
 
 ### Log Queries

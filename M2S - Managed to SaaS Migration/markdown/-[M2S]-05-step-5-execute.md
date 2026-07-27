@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -10,7 +10,7 @@ With your SaaS environment prepared, it is time to execute the migration. This s
 >
 > **Upgrade:** 4. Prepare | **5. Execute** | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 
 ---
 
@@ -333,6 +333,8 @@ The `oneagentctl` reconfigure method above applies to **host-based OneAgents** (
 ## 5. Migration Wave Execution
 
 Execute the OneAgent migration in waves, starting with non-production and progressing to production.
+
+> **Capacity pre-warm for large waves:** If a single wave will connect more than ~1,000 hosts to the SaaS tenant within a few hours, notify your Dynatrace account team in advance so the tenant can be pre-scaled for the ingest surge. Pacing large fleets this way avoids throttling and delayed host check-in.
 
 ### Wave Execution Order
 

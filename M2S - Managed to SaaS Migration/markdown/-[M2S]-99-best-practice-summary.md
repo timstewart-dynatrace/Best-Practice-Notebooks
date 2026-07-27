@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -16,8 +16,8 @@ The M2S series follows a structured, step-based approach to Managed-to-SaaS migr
 | 4 | **Prepare** | Readiness and Pre-Migration |
 | 5 | **Execute** | Migrate Configuration and Agents |
 | 6 | **Integrate** | Reconnect Integrations |
-| 7 | **Expand** | Adopt New SaaS Capabilities |
-| 8 | **Enable** | User Enablement and Communication |
+| 7 | **Enable** | User Enablement and Communication |
+| 8 | **Expand** | Adopt New SaaS Capabilities |
 | 9 | **Optimize** | Validate, Optimize, and Decommission |
 
 > **OneAgent Attribute Enrichment (1.333+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via `oneagentctl --set-host-tag` or `--set-host-tag` at install time. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
@@ -50,8 +50,8 @@ Within the upgrade phase, follow this precise execution order:
 4. [Step 4: Prepare — Readiness and Pre-Migration](#step-4-prepare)
 5. [Step 5: Execute — Migrate Configuration and Agents](#step-5-execute)
 6. [Step 6: Integrate — Reconnect Integrations](#step-6-integrate)
-7. [Step 7: Expand — Adopt New SaaS Capabilities](#step-7-expand)
-8. [Step 8: Enable — User Enablement and Communication](#step-8-enable)
+7. [Step 7: Enable — User Enablement and Communication](#step-7-enable)
+8. [Step 8: Expand — Adopt New SaaS Capabilities](#step-8-expand)
 9. [Step 9: Optimize — Validate, Optimize, and Decommission](#step-9-optimize)
 
 ---
@@ -63,8 +63,8 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Complete entity discovery before strategy | Run Entities API v2 inventory: `type(HOST)`, `type(SERVICE)`, `type(APPLICATION)`, `type(SYNTHETIC_TEST)`. Document counts in a spreadsheet before any other planning work. | Critical |
 | Plan for historic data loss | Historic metrics, logs, traces, problems, and session data **cannot be migrated**. Export critical reports before shutdown. Run dual environments to build SaaS baselines. | Critical |
-| Enforce host limit per tenant | Maximum **25,000 monitored hosts** per SaaS tenant. Split into multiple tenants if consolidating Managed clusters exceeds this. | Critical |
-| Align Managed and SaaS versions | Both environments must be on the **same major version** (e.g., both 1.294.x) before using SaaS Upgrade Assistant. | Critical |
+| Plan tenant sizing against the host guideline | Dynatrace recommends roughly **25,000 hosts per environment** (about 50,000 per cluster) as a sizing guideline — verify current thresholds with Dynatrace. The enforced ceiling is your licensed **host-unit quota**, a separate metric. Split into multiple environments when consolidating Managed clusters would exceed the recommendation. | Recommended |
+| Align Managed and SaaS versions | There is **no fixed minimum Managed version** for the SaaS Upgrade Assistant — align the Managed cluster to the **same major version** as the target SaaS tenant rather than targeting a specific floor. | Critical |
 | Use SaaS Upgrade Assistant for most migrations | Install the app on the target SaaS tenant. Assign `upgrade-assistant:environments:write` IAM policy to migration users. The SaaS Upgrade Assistant is the recommended tool for the majority of migrations. | Recommended |
 | Use Monaco for tenant consolidation | When consolidating multiple Managed tenants with **identical configuration names**, use Monaco—the SaaS Upgrade Assistant cannot resolve name conflicts. | Recommended |
 
@@ -77,7 +77,7 @@ Within the upgrade phase, follow this precise execution order:
 | Define measurable success criteria | Set targets: 100% host coverage, 100% service discovery, <15 min data gaps, 100% alert delivery, 100% dashboard availability, 100% integration success. | Critical |
 | Budget time for the 10% manual items (90/10 rule) | 90% of configs migrate automatically; the remaining 10% (credentials, webhooks, custom scripts) takes 90% of the manual effort. Plan accordingly. | Recommended |
 | Engage Dynatrace Professional Services early | Involve account team and PS during the Strategize phase, not during execution. Early engagement prevents avoidable rework. | Recommended |
-| Choose one migration tool | Pick **one** primary tool: SaaS Upgrade Assistant (recommended), Monaco, Terraform, or Settings API. Never mix approaches—Monaco YAML conflicts with the SaaS Upgrade Assistant. | Critical |
+| Choose one migration tool | Pick **one** primary tool: SaaS Upgrade Assistant (recommended), Monaco, Terraform, or Settings API. Never mix approaches—Monaco YAML conflicts with the SaaS Upgrade Assistant. The rule is one writer per configuration schema per migration window; sequencing tools with an explicit ownership handoff is safe. For the Terraform path and the handoff pattern, see M2S-95. | Critical |
 
 <a id="step-3-design"></a>
 ## 3. Step 3: Design — Create Target Architecture
@@ -100,7 +100,7 @@ Within the upgrade phase, follow this precise execution order:
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|--------------------------|----------|
-| Require Managed cluster v1.294+ | SaaS Upgrade Assistant requires **Dynatrace Managed version 1.294 or later**. Upgrade the Managed cluster first if needed. | Critical |
+| Align the Managed version before upgrading | The SaaS Upgrade Assistant has **no fixed minimum Managed version** — align the Managed cluster to the **same major version** as the target SaaS tenant rather than a specific floor. Upgrade the Managed cluster first if the versions differ. | Critical |
 | Coordinate dual licensing | Work with Dynatrace account team to arrange temporary overlap licensing for the period both Managed and SaaS run simultaneously. | Critical |
 | Deploy new SaaS ActiveGates in parallel | Install new SaaS-connected AGs alongside existing Managed AGs **before** migrating OneAgents. Validates connectivity without impacting monitored hosts. | Critical |
 | Install SaaS Upgrade Assistant | Install the app on the target SaaS tenant and verify connectivity to the Managed cluster. Confirm all required permissions are in place. | Critical |
@@ -139,20 +139,8 @@ Within the upgrade phase, follow this precise execution order:
 | Deploy dedicated AGs for Extensions 2.0 | Extensions 2.0 require **host-based** ActiveGate (not K8s-based). Deploy a separate AG group for extension execution. | Recommended |
 | Remove hardcoded entity IDs from dashboards | Before importing dashboards, replace hardcoded entity IDs with entity selectors. Update management zone IDs and dashboard owners. | Recommended |
 
-<a id="step-7-expand"></a>
-## 7. Step 7: Expand — Adopt New SaaS Capabilities
-
-| Practice | Recommended Setting/Value | Priority |
-|----------|--------------------------|----------|
-| Adopt Grail for unified querying | Replace ad-hoc USQL queries with Notebook-based DQL analysis. Grail provides a unified data lakehouse for logs, metrics, traces, events, and entities. | Recommended |
-| Configure OpenPipeline for log masking | Configure log processing rules in OpenPipeline to redact PII (SSNs, credit card numbers, email addresses) before storage. | Recommended |
-| Enable PII masking at ingest | Settings > Request attributes: enable masking on all attributes capturing user input, account numbers, or personal data. Configure session replay masking for RUM. | Critical |
-| Implement Workflows for automation | Replace Managed problem notifications with SaaS Workflow triggers + HTTP Request actions. Recreate custom webhook logic as workflow steps. | Recommended |
-| Right-size data retention for cost optimization | Configure Grail bucket retention by data type. Logs: set retention based on compliance needs. Metrics: leverage the 5-year aggregated retention. Use `bucket:` targeting in queries to limit scan scope. | Recommended |
-| Explore Dynatrace Assist for AI-assisted analysis | Enable Dynatrace Assist for natural language querying and root cause analysis. | Optional |
-
-<a id="step-8-enable"></a>
-## 8. Step 8: Enable — User Enablement and Communication
+<a id="step-7-enable"></a>
+## 7. Step 7: Enable — User Enablement and Communication
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|--------------------------|----------|
@@ -163,6 +151,18 @@ Within the upgrade phase, follow this precise execution order:
 | Map Managed roles to SaaS IAM policies | Cluster admin > Account admin. Environment admin > Environment admin. Monitor user > Viewer + specific policies. Custom roles > Custom IAM policies. | Critical |
 | Replace LDAP with SAML | SaaS does not support direct LDAP authentication. Migrate to SAML 2.0 SSO through your IdP. | Critical |
 | Filter SAML group claims to Dynatrace groups only | Azure Entra limit: **150 groups** per user in SAML claim. Filter to Dynatrace-related groups to stay under the limit. | Recommended |
+
+<a id="step-8-expand"></a>
+## 8. Step 8: Expand — Adopt New SaaS Capabilities
+
+| Practice | Recommended Setting/Value | Priority |
+|----------|--------------------------|----------|
+| Adopt Grail for unified querying | Replace ad-hoc USQL queries with Notebook-based DQL analysis. Grail provides a unified data lakehouse for logs, metrics, traces, events, and entities. | Recommended |
+| Configure OpenPipeline for log masking | Configure log processing rules in OpenPipeline to redact PII (SSNs, credit card numbers, email addresses) before storage. | Recommended |
+| Enable PII masking at ingest | Settings > Request attributes: enable masking on all attributes capturing user input, account numbers, or personal data. Configure session replay masking for RUM. | Critical |
+| Implement Workflows for automation | Replace Managed problem notifications with SaaS Workflow triggers + HTTP Request actions. Recreate custom webhook logic as workflow steps. | Recommended |
+| Right-size data retention for cost optimization | Configure Grail bucket retention by data type. Logs: set retention based on compliance needs. Metrics: leverage the 5-year aggregated retention. Use `bucket:` targeting in queries to limit scan scope. | Recommended |
+| Explore Dynatrace Assist for AI-assisted analysis | Enable Dynatrace Assist for natural language querying and root cause analysis. | Optional |
 
 <a id="step-9-optimize"></a>
 ## 9. Step 9: Optimize — Validate, Optimize, and Decommission

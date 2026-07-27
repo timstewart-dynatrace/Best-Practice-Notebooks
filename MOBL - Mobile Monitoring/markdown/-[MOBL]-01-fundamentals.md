@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 04/26/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -149,6 +149,9 @@ fetch dt.entity.mobile_application
 | fields entity.name, id, tags
 | sort entity.name asc
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 <a id="beacon-data-flow"></a>
@@ -188,6 +191,10 @@ Use the following query to see a summary of your configured mobile applications:
 fetch dt.entity.mobile_application
 | summarize app_count = count(), by:{entity.name}
 | sort app_count desc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 <a id="mobile-vs-web-rum"></a>
@@ -251,6 +258,10 @@ fetch dt.entity.mobile_application
 | fields entity.name, id, lifetime, tags
 | sort entity.name asc
 | limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ---

@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -116,6 +116,9 @@ fetch dt.entity.ec2_instance
 // (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
 // (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
 
+// Keep classic: this is a multi-cloud completeness inventory. Most of these resource types
+// (EC2, Azure VM, RDS, Web App) are not Smartscape nodes — only some (AWS Lambda) are — so keep
+// the classic entity-store query for a complete cross-provider count.
 ```
 
 ### Unified Host CPU Usage (All Providers)
@@ -136,11 +139,13 @@ fetch dt.entity.kubernetes_cluster
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fieldsKeep id, name, tags
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Cross-Cloud Problem Analysis
@@ -315,13 +320,15 @@ fetch dt.entity.host
 | sort entity.name asc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsKeep id, name, tags
-// | filter isNull(tags) or tags == ""
-// | sort name asc
-// | limit 20
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | fieldsKeep id, name, tags
+//   | filter isNull(tags) or tags == ""
+//   | sort name asc
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Vulnerability Overview

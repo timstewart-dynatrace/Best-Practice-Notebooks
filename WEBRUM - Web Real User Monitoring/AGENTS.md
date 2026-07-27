@@ -3,10 +3,10 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-9 notebooks on Dynatrace web RUM: the JavaScript agent and injection methods,
+10 notebooks on Dynatrace web RUM: the JavaScript agent and injection methods,
 SPA instrumentation, Core Web Vitals, session/error/performance analysis,
-session replay, and RUM dashboards and alerting — all queried via
-`user.sessions` and `user.events` in Grail.
+session replay, RUM dashboards and alerting, and USQL → DQL migration — all
+queried via `user.sessions` and `user.events` in Grail.
 
 ## Routing table
 
@@ -22,6 +22,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Slow pages: page load waterfall, TTFB, DOM interactive/load event timing, performance by geography/network/device, bottleneck identification | `-[WEBRUM]-06-performance-analysis.md` |
 | Session replay for web: DOM mutation recording (not video), privacy masking, finding replay-eligible sessions, correlating replay with performance, third-party replay tools | `-[WEBRUM]-07-session-replay.md` |
 | Dashboards and alerts: executive vs operational views, Apdex calculation in DQL, error-rate and performance-degradation alerts, combined RUM + synthetic view | `-[WEBRUM]-08-dashboards-and-alerting.md` |
+| Migrating USQL to DQL: grammar mapping (SELECT/WHERE/GROUP BY → fetch/filter/summarize), `usersession`/`useraction`/`userevent`/`usererror` table mapping, session and user-action field tables, and the classic-RUM-on-Grail vs New RUM split that decides which field names apply | `-[WEBRUM]-09-usql-to-dql-migration.md` |
 | Consolidated checklist: injection method, bot filtering, CWV thresholds, replay/privacy settings, alerting values, DQL patterns | `-[WEBRUM]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[WEBRUM]-99-best-practice-summary.md`

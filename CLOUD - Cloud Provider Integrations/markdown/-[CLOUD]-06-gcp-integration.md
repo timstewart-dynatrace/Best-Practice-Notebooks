@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -158,12 +158,14 @@ fetch dt.entity.host
 | sort entity.name asc
 | limit 20
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | fieldsKeep id, name, tags
-// | sort name asc
-// | limit 20
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### List Kubernetes Clusters (Including GKE)
@@ -174,11 +176,13 @@ fetch dt.entity.kubernetes_cluster
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fieldsKeep id, name, tags
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### GCP Service Entity Count
@@ -189,11 +193,12 @@ fetch dt.entity.cloud_application
 | summarize resource_count = count()
 | fieldsAdd resource_type = "Cloud Applications (GKE/Cloud Run)"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_DEPLOYMENT
-// | summarize resource_count = count()
-// | fieldsAdd resource_type = "Cloud Applications (GKE/Cloud Run)"
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_DEPLOYMENT"
+//   | summarize resource_count = count()
+//   | fieldsAdd resource_type = "Cloud Applications (GKE/Cloud Run)"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
 ```
 
 <a id="gke-monitoring"></a>

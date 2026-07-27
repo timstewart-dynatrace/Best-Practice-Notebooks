@@ -1,12 +1,10 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 9 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
 
 ## Overview
 
 JavaScript errors are among the most impactful issues affecting web application user experience. A single unhandled exception can break page functionality, prevent form submissions, or cause entire features to stop working. Dynatrace RUM captures JavaScript errors, XHR/fetch errors, and custom errors in real-time, enabling you to quantify error impact on real users.
-
-This notebook covers error types, error grouping, impact analysis (how many sessions/users are affected), rage click detection, and error-to-session correlation using DQL.
 
 ---
 

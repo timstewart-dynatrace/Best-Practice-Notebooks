@@ -1,9 +1,9 @@
 # Best Practice Topics — Where to Start
 
 > **Purpose:** A focused table of contents for the Dynatrace Best Practice Topics. Use the entry-point selector below to find your starting path, then follow the sequenced reading order across topic series.
-> **Last Updated:** 07/15/2026
+> **Last Updated:** 07/23/2026
 
-![Three Doorways into the Playbook](images/00-three-doorways.svg)
+![Four Doorways into the Playbook](images/00-doorways.svg)
 
 ---
 
@@ -15,13 +15,13 @@ If you are a:
 
 - **Customer** evaluating or expanding Dynatrace — start with the doorway that matches your situation below.
 - **Partner or SI consultant** scoping an engagement — see [Workshop Agendas](10-workshop-agendas.md) for sample 1-day, 3-day, and 5-day plans built from the topic series.
-- **Self-paced learner** — pick a doorway based on your situation (greenfield, migration, expanding, deployment change) and follow the sequenced reading order. Time estimates are calendar weeks for a small/mid-sized team; enterprise scale takes longer.
+- **Self-paced learner** — pick a doorway based on your situation (greenfield, migration, expanding, deployment change, classic-to-Gen3) and follow the sequenced reading order. Time estimates are calendar weeks for a small/mid-sized team; enterprise scale takes longer.
 
 ---
 
 ## Pick Your Doorway
 
-Three entry points, each routing to the right combination of topic series. Pick the one that matches your situation:
+Four entry points, each routing to the right combination of topic series. Doorways 1–3 are keyed to a change in *circumstance* — a new tenant, new scope, a new deployment model. Doorway 4 is keyed to a change in *surface*: the environment stays put, but the constructs you operate it with are replaced. Pick the one that matches your situation:
 
 ### Doorway 1 — [Net New](01-net-new.md)
 
@@ -55,22 +55,35 @@ Sub-paths covered:
 - Managed → SaaS migration
 - SaaS → SaaS tenant consolidation or region change
 
+### Doorway 4 — [Classic → Gen3 Platform](04-gen2-to-gen3.md)
+
+You have a working SaaS tenant that is not moving, but it still runs classic constructs — management zones used for access control, metric events, alerting profiles, classic dashboards, Classic Logs, or USQL.
+
+Phases covered:
+
+- Understand the shift (Grail, Smartscape, navigation)
+- Access and data architecture (MZs → policies, boundaries, segments; buckets; security_context)
+- Query surfaces (selectors and USQL → DQL; Classic Logs → OpenPipeline)
+- Dashboards and notebooks
+- Alerting and SLOs (metric events → anomaly detectors; alerting profiles → workflows)
+- Config-as-code and go-live
+
 ---
 
 ## Reusable Modules
 
 After picking a doorway, the recommended path will route you through one or more of these modules. They can also be read directly:
 
-- [Foundation Module](04-foundation.md) — ONBRD + ORGNZ + IAM reading order, mandatory vs optional flags
-- [Domain Enablement Module](05-domain-enablement.md) — Pick-list of domains with prerequisites and recommended sequencing
-- [Operationalize Module](06-operationalize.md) — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS sequence, with reasoning for that order
-- [Maturity Module](07-maturity.md) — ADOPT framing for continuous improvement
+- [Foundation Module](05-foundation.md) — ONBRD + ORGNZ + IAM reading order, mandatory vs optional flags
+- [Domain Enablement Module](06-domain-enablement.md) — Pick-list of domains with prerequisites and recommended sequencing
+- [Operationalize Module](07-operationalize.md) — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS sequence, with reasoning for that order
+- [Maturity Module](08-maturity.md) — ADOPT framing for continuous improvement
 
 ---
 
 ## Reference
 
-- [Overlap Map](08-overlap-map.md) — Where multiple series cover the same ground; which is canonical and recommended reading order
+- [Overlap Map](09-overlap-map.md) — Where multiple series cover the same ground; which is canonical and recommended reading order
 - [Workshop Agendas](10-workshop-agendas.md) — Sample 1-day, 3-day, and 5-day partner/SI workshop plans
 - [Series Catalog & Cross-Reference](99-index.md) — Full inventory of all 32 topic series with cross-reference matrix and reading-order presets
 
@@ -85,6 +98,7 @@ Rough estimates for a small to mid-sized team. Enterprise scale takes longer due
 | Foundation | 2–3 weeks | Tenant operational; OneAgent and ActiveGate deployed; basic IAM, tagging, and bucket strategy in place |
 | First domain | 1–2 weeks per domain | One observability domain (Kubernetes, web RUM, mobile, database, etc.) producing useful data |
 | Migration (Net New from another tool) | 3–9 months | Dual-running the source tool and Dynatrace; staged cutover by component |
+| Classic → Gen3 surface migration | 3–6 months | Access model, query surfaces, dashboards, and alerting moved off classic constructs; see [Doorway 4](04-gen2-to-gen3.md) for the phase breakdown |
 | Operationalize | 4–8 weeks | Dashboards, alerts, workflows, and automation in steady state |
 | Maturity | Continuous | Ongoing optimization, governance, FinOps, platform expansion |
 
@@ -122,10 +136,10 @@ Time estimates within each doorway file refine these numbers by sub-track.
 This includes:
 - Adding the new series to `99-index.md` with notebook count and focus area
 - Placing the series in the appropriate module/category
-- Adding cross-references in `08-overlap-map.md` if overlaps exist with other series
+- Adding cross-references in `09-overlap-map.md` if overlaps exist with other series
 - Updating last Updated dates across all affected files to the current date
 - Updating series count references (e.g., "28 topic series" → "32 topic series") in all files if the count changes
-- Verifying doorway-specific impact (if the new series affects any reading path in 01/02/03)
+- Verifying doorway-specific impact (if the new series affects any reading path in 01/02/03/04)
 
 The playbook is the primary navigation aid for all users; stale series counts or missing categories create confusion and degraded user experience.
 

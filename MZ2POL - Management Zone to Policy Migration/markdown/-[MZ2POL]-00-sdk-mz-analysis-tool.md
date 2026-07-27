@@ -1,6 +1,6 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 > **Purpose:** Query Management Zone configurations via the Dynatrace SDK, analyze entity assignments, and assess security context coverage to support migration planning.
 
@@ -258,6 +258,14 @@ fetch dt.entity.service
 | fieldsAdd 
     securityContextPercent = round(100.0 * withSecurityContext / total, decimals: 2),
     mzPercent = round(100.0 * withMZs / total, decimals: 2)
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ### Host Coverage
@@ -271,6 +279,14 @@ fetch dt.entity.host
 | fieldsAdd 
     securityContextPercent = round(100.0 * withSecurityContext / total, decimals: 2),
     mzPercent = round(100.0 * withMZs / total, decimals: 2)
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ---
@@ -288,6 +304,11 @@ fetch dt.entity.service
 | summarize entityCount = count(), by: {managementZone = mz}
 | sort entityCount desc
 | limit 30
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
 ```
 
 ---
@@ -305,6 +326,10 @@ fetch dt.entity.host
 | summarize count = count(), by: {tag}
 | sort count desc
 | limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Tag Key Frequency
@@ -320,6 +345,10 @@ fetch dt.entity.host
 | summarize count = count(), uniqueValues = countDistinct(tagValue), by: {tagKey}
 | sort count desc
 | limit 30
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ---
@@ -333,6 +362,14 @@ fetch dt.entity.cloud_application_namespace
 | fields namespace = entity.name, id
 | sort namespace asc
 | limit 30
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_NAMESPACE"
+//   | fields namespace = name, id
+//   | sort namespace asc
+//   | limit 30
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
 ```
 
 ---
@@ -344,6 +381,11 @@ Host groups are key for vertical MZ migration (environment-based access control)
 ```python
 fetch dt.entity.host_group
 | fields hostGroup = entity.name, id
+
+// Note: dt.entity.* is deprecated. There is no Smartscape "HOST_GROUP" node type
+// (smartscapeNodes "HOST_GROUP" returns nothing); host-group membership is exposed as the
+// dt.host_group.id field on HOST nodes (e.g. smartscapeNodes "HOST" | summarize by:{dt.host_group.id}).
+// Keep the classic query above to list host-group entities.
 ```
 
 ---

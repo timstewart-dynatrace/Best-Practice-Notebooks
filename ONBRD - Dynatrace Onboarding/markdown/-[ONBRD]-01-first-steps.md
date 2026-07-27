@@ -1,6 +1,6 @@
 # ONBRD-01: Getting Started: Your First Steps in Dynatrace
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Finding Your Way Around
 Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.
@@ -157,10 +157,12 @@ Before deploying OneAgent, check if any data is already flowing. Run these queri
 fetch dt.entity.host
 | summarize host_count = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize host_count = count()
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize host_count = count()
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -169,6 +171,12 @@ fetch dt.entity.host
 | fields entity.name, state, monitoringMode
 | sort entity.name
 | limit 50
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state / monitoring-mode detail.
+// Other fields do map: entity.name -> name.
 ```
 
 ```dql
@@ -178,12 +186,15 @@ fetch dt.entity.service
 | sort entity.name
 | limit 50
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fields name, serviceType
-// | sort name
-// | limit 50
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | fields name, dt.service.sdv1_type
+//   | sort name
+//   | limit 50
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
 ```
 
 ```dql

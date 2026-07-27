@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -317,6 +317,9 @@ fetch dt.entity.mobile_application
 | fields entity.name, id, tags
 | sort entity.name asc
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ### Verify Beacon Data Arriving
@@ -342,6 +345,10 @@ This query retrieves general details for your mobile app entities, including the
 fetch dt.entity.mobile_application
 | fields entity.name, id, lifetime, tags
 | limit 10
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 ## Summary

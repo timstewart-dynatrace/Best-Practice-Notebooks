@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 10 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 04/16/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 10 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -97,11 +97,13 @@ fetch dt.entity.host
 | summarize host_count = count()
 | fieldsAdd entity_type = "Hosts"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize host_count = count()
-// | fieldsAdd entity_type = "Hosts"
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "HOST"
+//   | summarize host_count = count()
+//   | fieldsAdd entity_type = "Hosts"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -110,11 +112,13 @@ fetch dt.entity.service
 | summarize service_count = count()
 | fieldsAdd entity_type = "Services"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize service_count = count()
-// | fieldsAdd entity_type = "Services"
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | summarize service_count = count()
+//   | fieldsAdd entity_type = "Services"
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
 ```
 
 ```dql
@@ -123,11 +127,10 @@ fetch dt.entity.process_group
 | summarize pg_count = count()
 | fieldsAdd entity_type = "Process Groups"
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes PROCESS
-// | summarize pg_count = count()
-// | fieldsAdd entity_type = "Process Groups"
-
+// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
+// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
+// granularity (process instances), so its count is not comparable to a process-group
+// count. Keep the classic dt.entity.process_group query above.
 ```
 
 ```dql
@@ -316,6 +319,11 @@ fetch dt.entity.host
 | filter contains(entity.name, "activegate") or contains(entity.name, "ActiveGate")
 | fields entity.name, id, state
 | sort entity.name asc
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent (Smartscape expresses
+// liveness via node lifetime, not a state field). Keep the classic query above.
+// Other fields do map: entity.name -> name.
 ```
 
 <a id="kubernetes-operator-preparation"></a>

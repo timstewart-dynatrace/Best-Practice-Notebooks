@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 06/25/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -121,15 +121,11 @@ fetch dt.entity.service
 | fields total, withContext, withoutContext,
          coveragePercent = 100.0 * withContext / total
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize
-// total = count(),
-// withContext = countIf(isNotNull(dt.security_context)),
-// withoutContext = countIf(isNull(dt.security_context))
-// | fields total, withContext, withoutContext,
-// coveragePercent = 100.0 * withContext / total
-
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ### Assignment Methods
@@ -269,6 +265,11 @@ Compare data visibility between systems:
 fetch dt.entity.service
 | filter in(managementZones, {"Frontend-Team"})
 | summarize mzServiceCount = count()
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
 ```
 
 ```dql
@@ -277,6 +278,10 @@ fetch dt.entity.service
 fetch dt.entity.service
 | filter matchesValue(tags, "team:frontend")
 | summarize segmentServiceCount = count()
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ### Parallel Running Checklist
@@ -447,6 +452,12 @@ fetch dt.entity.service
 | fields total, withContext,
          coveragePercent = 100.0 * withContext / total
 | filter coveragePercent < 100
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
 ```
 
 ```dql
@@ -457,6 +468,12 @@ fetch dt.entity.service
     viaMZ = countIf(arraySize(managementZones) > 0),
     viaTag = countIf(isNotNull(tags))
 | fields viaMZ, viaTag
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ---

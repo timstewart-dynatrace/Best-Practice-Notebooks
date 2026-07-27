@@ -1,12 +1,10 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 9 | **Created:** March 2026 | **Last Updated:** 04/25/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
 
 ## Overview
 
 Core Web Vitals (CWV) are Google's standardized metrics for measuring real-world user experience on the web. They focus on three pillars: loading performance, interactivity, and visual stability. Dynatrace captures these metrics via the RUM JavaScript agent using the browser's PerformanceObserver API, making them available for DQL analysis in Grail.
-
-This notebook covers the three Core Web Vitals — LCP, INP, and CLS — how Dynatrace measures them, what good/poor thresholds look like, and how to track them over time with DQL queries.
 
 ---
 

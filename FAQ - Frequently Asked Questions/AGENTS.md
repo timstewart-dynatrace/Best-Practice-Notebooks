@@ -3,7 +3,7 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-15 standalone single-page reference entries, each answering one recurring
+17 standalone single-page reference entries, each answering one recurring
 Dynatrace question in decision-support format. Entries are independent — there
 is no reading order; match the question and read only that entry.
 
@@ -28,6 +28,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | OpenShift pods rejected with `Forbidden: seccomp may not be set`: anyuid + Operator 1.9.0 default flip, SCC compatibility matrix, custom SCC fix, pre-upgrade audit | `-[FAQ]-13-openshift-scc-seccomp-injection.md` |
 | Replacing custom SQL Server / Telegraf monitoring scripts with the Dynatrace extension: `sql-server.*` metric mapping, honest gaps (tempdb version store), EF 2.0 fallback | `-[FAQ]-14-sql-server-extension-vs-custom-scripts.md` |
 | How DPL works: the pattern model, coming from regex (no backtracking, character classes as the only overlap), matcher catalog, why a pattern returns null or the wrong value, quantifiers, the five DQL surfaces (`parse` / `parseAll` / `matchesPattern` / `replacePattern` / `splitByPattern`), ingest-vs-query placement, failure diagnosis | `-[FAQ]-15-how-dpl-works.md` |
+| Migrating classic entity queries to Smartscape: classifying the query first (mass-data filter vs entity list), `dt.entity.*` → `smartscapeNodes` type mapping, `classicEntitySelector`/`entityName`/`entityAttr` construct migration, `traverse` and edge discovery, host/process/container groups as fields rather than nodes, and the gotchas (`getNodeField` null inside `smartscapeNodes`, uppercase node vs lowercase edge types, `id_classic` as the id bridge) | `-[FAQ]-16-entity-selectors-to-smartscape.md` |
+| Planning a migration cutover across any migration type: the eight cutover invariants (Go/No-Go gate, three-tier validation ladder, parallel-run window with an end date, T-minus runbook, rollback triggers-before-procedures, decommission gated on stabilization, stabilization window, lessons-learned), which series documents each best (SL2DT-09, S2S-09, NR2DT-08, OPMIG-09, MZ2POL-06), and live-verified entity-parity checks (`smartscapeNodes` inventory, `lifetime[end]` staleness) — orchestrates rather than restates | `-[FAQ]-17-planning-a-migration-cutover.md` |
 
 ## Related series
 

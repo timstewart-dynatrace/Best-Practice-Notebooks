@@ -1,6 +1,6 @@
 # S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -322,6 +322,9 @@ fetch dt.entity.synthetic_test
 | summarize monitor_count = count()
 | fieldsAdd validation = "Compare against source tenant synthetic monitor count"
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 <a id="extension-migration"></a>

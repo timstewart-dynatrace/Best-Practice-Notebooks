@@ -1,6 +1,6 @@
 # MOBL-04: Cross-Platform Frameworks
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -213,6 +213,9 @@ fetch dt.entity.mobile_application
 | sort entity.name asc
 | limit 50
 
+// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
+// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
+// so keep the classic dt.entity.* query above.
 ```
 
 You should see separate entries for your Android and iOS applications. If either is missing, revisit the configuration and ensure the Application ID and Beacon URL are correctly set for that platform.

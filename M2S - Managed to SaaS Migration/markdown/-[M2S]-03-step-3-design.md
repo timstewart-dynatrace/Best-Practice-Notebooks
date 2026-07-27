@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -10,7 +10,7 @@ With discovery and strategy complete, it's time to design the target architectur
 >
 > **Upgrade:** 4. Prepare | 5. Execute | 6. Integrate
 >
-> **Run:** 7. Expand | 8. Enable | 9. Optimize
+> **Run:** 7. Enable | 8. Expand | 9. Optimize
 ---
 
 ## Table of Contents

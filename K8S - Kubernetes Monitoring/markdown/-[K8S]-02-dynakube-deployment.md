@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 07/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 07/24/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -450,11 +450,13 @@ fetch dt.entity.kubernetes_cluster
 | fields entity.name, tags
 | sort entity.name asc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes K8S_CLUSTER
-// | fields name, tags
-// | sort name asc
-
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "K8S_CLUSTER"
+//   | fields name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql

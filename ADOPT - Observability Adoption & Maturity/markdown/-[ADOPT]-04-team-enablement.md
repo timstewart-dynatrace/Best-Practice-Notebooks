@@ -1,6 +1,6 @@
 # ADOPT-04: Team Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
 
 ## Overview
 
@@ -215,12 +215,15 @@ fetch dt.entity.service
 | fieldsAdd entity.name, serviceType
 | sort entity.name asc
 | limit 25
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | fieldsAdd name, serviceType
-// | sort name asc
-// | limit 25
 
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes "SERVICE"
+//   | fieldsAdd name, dt.service.sdv1_type
+//   | sort name asc
+//   | limit 25
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration discovery inventory keep the classic query above.
+// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
 ```
 
 ### Exercise 2: "What happened in the last hour?"

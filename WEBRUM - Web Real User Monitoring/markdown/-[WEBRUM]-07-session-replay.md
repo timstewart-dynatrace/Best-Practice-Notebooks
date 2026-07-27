@@ -1,12 +1,10 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 9 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
 
 ## Overview
 
 Session Replay allows you to visually replay a user's interaction with your web application — seeing exactly what the user saw, where they clicked, how they scrolled, and when errors occurred. Unlike traditional analytics that show numbers, session replay provides qualitative context for quantitative data.
-
-This notebook covers how Dynatrace Session Replay works (DOM snapshot recording vs. video), data privacy considerations, masking configuration, how to find and analyze replays via DQL, and strategies for correlating replay data with performance metrics. It also touches on integration patterns with third-party replay tools.
 
 ---
 

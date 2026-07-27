@@ -1,7 +1,7 @@
 # Series Catalog & Cross-Reference
 
 > **Purpose:** Full inventory of all 32 Dynatrace Best Practice Topic series with cross-references between them. Use this as a quick lookup when you need to find which series covers a specific topic, or to see related material across series.
-> **Last Updated:** 07/15/2026
+> **Last Updated:** 07/23/2026
 
 ![Series by Category](images/99-series-by-category.svg)
 
@@ -51,7 +51,7 @@
 | **SLO** | [Service Level Objectives](../SLO%20-%20Service%20Level%20Objectives/) | 5 | SLI fundamentals, defining SLIs, error budgets, burn-rate alerting, SLOs as code |
 | **SPANS** | [Distributed Tracing and Spans](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) | 9 | Span fundamentals, querying, topology, analytics, cost optimization |
 | **SYNTH** | [Synthetic Monitoring](../SYNTH%20-%20Synthetic%20Monitoring/) | 7 | Browser monitors, HTTP monitors, private locations, network monitoring |
-| **WEBRUM** | [Web Real User Monitoring](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) | 9 | RUM fundamentals, SPA, Core Web Vitals, session replay |
+| **WEBRUM** | [Web Real User Monitoring](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) | 10 | RUM fundamentals, SPA, Core Web Vitals, session replay, USQL → DQL migration |
 | **WFLOW** | [Workflows and Alert Notifications](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) | 10 | Workflow triggers, notification routing, incident management, JS/HTTP actions, governance |
 
 ---
@@ -131,24 +131,25 @@ Read in order; each builds on the previous.
 
 This table shows which doorway in the playbook uses each series and how it appears (Primary = first-class entry; Refresh = revisit only where Gen3 or scope changed; — = not used).
 
-| Series | Net New | Expanding / Consolidating | Deployment Migration |
-|---|---|---|---|
-| ONBRD | Primary | Refresh as needed | Refresh as needed |
-| ORGNZ | Primary | Primary (Gen3 changes) | Primary (Gen3 changes) |
-| IAM | Primary | Primary (Gen3 changes) | Primary (Gen2 → Gen3) |
-| NRLC | If from New Relic | If consolidating APM from NR | — |
-| NR2DT | If from New Relic | — | — |
-| S2D | If from Splunk | If consolidating logs from Splunk | — |
-| SL2DT | If from Sumo Logic | If consolidating logs from Sumo | — |
-| M2S | — | — | Primary (Managed → SaaS) |
-| S2S | — | — | Primary (SaaS → SaaS) |
-| OPMIG | — | If on Classic Logs | — |
-| MZ2POL | — | If migrating Gen2 access control, **or** replacing MZ-based filtering with segments (notebook 05) | If migrating Gen2 MZs |
-| K8S, CLOUD, SPANS, WEBRUM, MOBL, DBMON, BIZEV, SYNTH | After Foundation | Primary for "adding a domain" | After deployment migration |
-| OTEL, OPLOGS, OPIPE | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise |
-| DASH, WFLOW, AUTOM, AIOPS | After first domain | Primary for "maturing operations" | After deployment migration |
-| ADOPT | Ongoing | Ongoing | Ongoing |
-| FAQ | Reference | Reference | Reference |
+| Series | Net New | Expanding / Consolidating | Deployment Migration | Classic → Gen3 |
+|---|---|---|---|---|
+| ONBRD | Primary | Refresh as needed | Refresh as needed | Refresh as needed |
+| ORGNZ | Primary | Primary (Gen3 changes) | Primary (Gen3 changes) | Primary (Phase 1) |
+| IAM | Primary | Primary (Gen3 changes) | Primary (Gen2 → Gen3) | Primary (Phase 1) |
+| NRLC | If from New Relic | If consolidating APM from NR | — | — |
+| NR2DT | If from New Relic | — | — | — |
+| S2D | If from Splunk | If consolidating logs from Splunk | — | — |
+| SL2DT | If from Sumo Logic | If consolidating logs from Sumo | — | — |
+| M2S | — | — | Primary (Managed → SaaS) | — |
+| S2S | — | — | Primary (SaaS → SaaS) | — |
+| OPMIG | — | If on Classic Logs | — | Primary (Phase 2) |
+| MZ2POL | — | If migrating Gen2 access control, **or** replacing MZ-based filtering with segments (notebook 05) | If migrating Gen2 MZs | Primary (Phase 1) |
+| K8S, CLOUD, SPANS, WEBRUM, MOBL, DBMON, BIZEV, SYNTH | After Foundation | Primary for "adding a domain" | After deployment migration | Refresh as needed |
+| OTEL, OPLOGS, OPIPE | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise |
+| DASH, WFLOW, AUTOM, AIOPS | After first domain | Primary for "maturing operations" | After deployment migration | Primary (Phases 3–5) |
+| ALERT, SLO, FINOPS | After first domain | Primary for "maturing operations" | After deployment migration | Primary (Phases 4–5) |
+| ADOPT | Ongoing | Ongoing | Ongoing | Ongoing |
+| FAQ | Reference | Reference | Reference | Reference (entries 02, 07, 11, 12) |
 
 ---
 
@@ -205,11 +206,11 @@ Quick lists for time-boxed reading:
 2. [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — first 5 notebooks (introduction, buckets, bucket strategy, Grail permissions, bucket-level access)
 3. [IAM](../IAM%20-%20IAM%20Administration/) — first 5 notebooks (governance, SSO, group architecture, policies, boundaries)
 
-Aligned with [Foundation Module](04-foundation.md).
+Aligned with [Foundation Module](05-foundation.md).
 
 ### "I have 1 month" — Foundation + first domain + light operationalize
 
-1. [Foundation Module](04-foundation.md) reading order
+1. [Foundation Module](05-foundation.md) reading order
 2. One domain — typically [K8S](../K8S%20-%20Kubernetes%20Monitoring/) or [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) depending on environment
 3. [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) — first 4 notebooks (fundamentals, hierarchy, executive, operations)
 4. [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) — first 4 notebooks (fundamentals, triggers, notifications basics, notification routing)
@@ -217,9 +218,18 @@ Aligned with [Foundation Module](04-foundation.md).
 ### "I have 1 quarter" — full Net New track
 
 1. [Net New Doorway](01-net-new.md) — full reading order across all phases
-2. [Domain Enablement Module](05-domain-enablement.md) — at least 2 domains
-3. [Operationalize Module](06-operationalize.md) — DASH → WFLOW → AUTOM
-4. [Maturity Module](07-maturity.md) — kick off
+2. [Domain Enablement Module](06-domain-enablement.md) — at least 2 domains
+3. [Operationalize Module](07-operationalize.md) — DASH → WFLOW → AUTOM
+4. [Maturity Module](08-maturity.md) — kick off
+
+### "I have 1 quarter" — Classic → Gen3 surface migration
+
+1. [Classic → Gen3 Doorway](04-gen2-to-gen3.md) — Phase 0 assessment, then Phase 1 in full
+2. [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) — full series; [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — notebooks 02, 03, 05, 06, 08
+3. [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series if still on Classic Logs (run as its own workstream)
+4. [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — full series before migrating any individual alert
+
+Phases 2–5 typically extend past a quarter; the doorway sets the order.
 
 ---
 
@@ -231,7 +241,7 @@ Update checklist for each new series:
 - [ ] Add series name, notebook count, and focus area to the appropriate table above (Operationalize, Domain Enablement, etc.)
 - [ ] Add to `99-index.md` cross-reference map if overlaps exist with other series
 - [ ] Update series-count references in all -START-HERE- files (currently 32 topic series as of July 15, 2026)
-- [ ] Add the new series to relevant module files (e.g., if the series supports Domain Enablement, add to `05-domain-enablement.md`)
+- [ ] Add the new series to relevant module files (e.g., if the series supports Domain Enablement, add to `06-domain-enablement.md`)
 - [ ] Update `Last Updated` dates to current date across all affected files
 - [ ] Verify no broken internal cross-references to the new series
 
