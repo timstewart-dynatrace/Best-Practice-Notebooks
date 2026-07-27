@@ -3,7 +3,7 @@
 
   <!-- Title and subtitle, matching project convention (y=38 / y=62) -->
   <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Start Here — Find Your Path</text>
-  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Three doorways into the Dynatrace Best Practice Topics — pick the one that matches your situation</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Four doorways into the Dynatrace Best Practice Topics — pick the one that matches your situation</text>
 
   <defs>
     <marker id="shArrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -11,43 +11,62 @@
     </marker>
   </defs>
 
+  <!-- Four-card grid deliberately shares 00-doorways.svg geometry:
+       x = 30 / 252 / 474 / 696, width 204, gap 18 — centres 132 / 354 / 576 / 798.
+       Keeping both images on one grid is what stops them drifting apart again. -->
+
   <!-- Doorway 1 — Net New (green) -->
-  <rect x="40" y="100" width="270" height="190" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
-  <text x="175" y="128" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 1</text>
-  <text x="175" y="155" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="700">Net New</text>
-  <text x="175" y="178" text-anchor="middle" fill="#94A3B8" font-size="12">Greenfield or migrating from</text>
-  <text x="175" y="194" text-anchor="middle" fill="#94A3B8" font-size="12">another tool — net-new tenant</text>
-  <text x="175" y="222" text-anchor="middle" fill="#CBD5E1" font-size="11">No prior observability platform</text>
-  <text x="175" y="240" text-anchor="middle" fill="#CBD5E1" font-size="11">From New Relic / Splunk / Sumo</text>
-  <text x="175" y="258" text-anchor="middle" fill="#CBD5E1" font-size="11">Multi-tool hybrid migration</text>
-  <text x="175" y="280" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="600">2–9 months</text>
+  <rect x="30" y="100" width="204" height="190" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="132" y="124" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 1</text>
+  <text x="132" y="159" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Net New</text>
+  <text x="132" y="189" text-anchor="middle" fill="#94A3B8" font-size="11">Greenfield or migrating</text>
+  <text x="132" y="204" text-anchor="middle" fill="#94A3B8" font-size="11">from another tool</text>
+  <text x="132" y="228" text-anchor="middle" fill="#CBD5E1" font-size="10">No prior platform</text>
+  <text x="132" y="245" text-anchor="middle" fill="#CBD5E1" font-size="10">From New Relic / Splunk</text>
+  <text x="132" y="262" text-anchor="middle" fill="#CBD5E1" font-size="10">Multi-tool hybrid</text>
+  <text x="132" y="281" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="600">2–9 months</text>
 
   <!-- Doorway 2 — Expanding / Consolidating (blue) -->
-  <rect x="330" y="100" width="270" height="190" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
-  <text x="465" y="128" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 2</text>
-  <text x="465" y="155" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="700">Expanding / Consolidating</text>
-  <text x="465" y="178" text-anchor="middle" fill="#94A3B8" font-size="12">Existing tenant — adding scope or</text>
-  <text x="465" y="194" text-anchor="middle" fill="#94A3B8" font-size="12">consolidating from another tool</text>
-  <text x="465" y="222" text-anchor="middle" fill="#CBD5E1" font-size="11">Add a new domain (K8S, RUM, …)</text>
-  <text x="465" y="240" text-anchor="middle" fill="#CBD5E1" font-size="11">Consolidate logs or APM</text>
-  <text x="465" y="258" text-anchor="middle" fill="#CBD5E1" font-size="11">Mature operations &amp; AI</text>
-  <text x="465" y="280" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="600">1 week – 6 months</text>
+  <rect x="252" y="100" width="204" height="190" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="354" y="124" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 2</text>
+  <text x="354" y="151" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Expanding /</text>
+  <text x="354" y="169" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Consolidating</text>
+  <text x="354" y="189" text-anchor="middle" fill="#94A3B8" font-size="11">Existing tenant — adding</text>
+  <text x="354" y="204" text-anchor="middle" fill="#94A3B8" font-size="11">scope or consolidating</text>
+  <text x="354" y="228" text-anchor="middle" fill="#CBD5E1" font-size="10">Add a domain (K8S, RUM)</text>
+  <text x="354" y="245" text-anchor="middle" fill="#CBD5E1" font-size="10">Consolidate logs or APM</text>
+  <text x="354" y="262" text-anchor="middle" fill="#CBD5E1" font-size="10">Mature operations &amp; AI</text>
+  <text x="354" y="281" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="600">1 week – 6 months</text>
 
   <!-- Doorway 3 — Deployment Migration (purple) -->
-  <rect x="620" y="100" width="270" height="190" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
-  <text x="755" y="128" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 3</text>
-  <text x="755" y="155" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="700">Deployment Migration</text>
-  <text x="755" y="178" text-anchor="middle" fill="#94A3B8" font-size="12">Existing customer changing</text>
-  <text x="755" y="194" text-anchor="middle" fill="#94A3B8" font-size="12">their deployment model</text>
-  <text x="755" y="222" text-anchor="middle" fill="#CBD5E1" font-size="11">Managed → SaaS</text>
-  <text x="755" y="240" text-anchor="middle" fill="#CBD5E1" font-size="11">SaaS → SaaS consolidation</text>
-  <text x="755" y="258" text-anchor="middle" fill="#CBD5E1" font-size="11">Region change</text>
-  <text x="755" y="280" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">3–9 months</text>
+  <rect x="474" y="100" width="204" height="190" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="576" y="124" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 3</text>
+  <text x="576" y="151" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Deployment</text>
+  <text x="576" y="169" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Migration</text>
+  <text x="576" y="189" text-anchor="middle" fill="#94A3B8" font-size="11">Existing customer changing</text>
+  <text x="576" y="204" text-anchor="middle" fill="#94A3B8" font-size="11">their deployment model</text>
+  <text x="576" y="228" text-anchor="middle" fill="#CBD5E1" font-size="10">Managed → SaaS</text>
+  <text x="576" y="245" text-anchor="middle" fill="#CBD5E1" font-size="10">SaaS → SaaS consolidation</text>
+  <text x="576" y="262" text-anchor="middle" fill="#CBD5E1" font-size="10">Region change</text>
+  <text x="576" y="281" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">3–9 months</text>
+
+  <!-- Doorway 4 — Classic → Gen3 Platform (cyan, matching 00-doorways.svg) -->
+  <rect x="696" y="100" width="204" height="190" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="798" y="124" text-anchor="middle" fill="#A5F3FC" font-size="11" font-weight="700" letter-spacing="1.5">DOORWAY 4</text>
+  <text x="798" y="151" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Classic → Gen3</text>
+  <text x="798" y="169" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">Platform</text>
+  <text x="798" y="189" text-anchor="middle" fill="#94A3B8" font-size="11">Same environment — classic</text>
+  <text x="798" y="204" text-anchor="middle" fill="#94A3B8" font-size="11">surfaces onto the platform</text>
+  <text x="798" y="228" text-anchor="middle" fill="#CBD5E1" font-size="10">MZs → policies / segments</text>
+  <text x="798" y="245" text-anchor="middle" fill="#CBD5E1" font-size="10">Classic Logs → OpenPipeline</text>
+  <text x="798" y="262" text-anchor="middle" fill="#CBD5E1" font-size="10">USQL → DQL, new dashboards</text>
+  <text x="798" y="281" text-anchor="middle" fill="#A5F3FC" font-size="11" font-weight="600">3–6 months</text>
 
   <!-- Convergence arrows from each doorway down to the modules row -->
-  <line x1="175" y1="290" x2="270" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
-  <line x1="465" y1="290" x2="465" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
-  <line x1="755" y1="290" x2="660" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
+  <line x1="132" y1="290" x2="300" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
+  <line x1="354" y1="290" x2="420" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
+  <line x1="576" y1="290" x2="510" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
+  <line x1="798" y1="290" x2="630" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#shArrow)"/>
 
   <!-- "All paths converge" hint -->
   <text x="465" y="335" text-anchor="middle" fill="#64748B" font-size="11" font-style="italic">all paths converge through the same modules</text>
@@ -82,10 +101,10 @@
   <!-- Alternative path — skip the playbook and browse the topics list directly -->
   <text x="465" y="425" text-anchor="middle" fill="#64748B" font-size="11" font-style="italic">— or —</text>
   <rect x="245" y="438" width="440" height="34" fill="#1E293B" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="5 3" rx="17"/>
-  <text x="465" y="460" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="600">Already know what you need? Browse all 28 topic series</text>
+  <text x="465" y="460" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="600">Already know what you need? Browse all 32 topic series</text>
   <!-- Down chevron after the text, indicating topics live below the banner -->
   <path d="M 660 454 L 668 462 L 676 454" fill="none" stroke="#94A3B8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Footer line -->
-  <text x="465" y="491" text-anchor="middle" fill="#64748B" font-size="10">3 doorways  ·  4 reusable modules  ·  1 / 3 / 5-day workshop agendas</text>
+  <text x="465" y="491" text-anchor="middle" fill="#64748B" font-size="10">4 doorways  ·  4 reusable modules  ·  1 / 3 / 5-day workshop agendas</text>
 </svg>
