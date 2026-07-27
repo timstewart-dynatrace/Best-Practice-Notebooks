@@ -9,7 +9,7 @@
 
 ## Table of Contents
 
-1. [Alphabetical Catalog](#alphabetical-catalog) — All 28 series with one-line descriptions
+1. [Alphabetical Catalog](#alphabetical-catalog) — All 32 series with one-line descriptions
 2. [By Category](#by-category) — Series grouped by their role in the journey
 3. [By Entry Point](#by-entry-point) — Which doorway uses each series
 4. [Cross-Reference Matrix](#cross-reference-matrix) — For each series, related series to read
