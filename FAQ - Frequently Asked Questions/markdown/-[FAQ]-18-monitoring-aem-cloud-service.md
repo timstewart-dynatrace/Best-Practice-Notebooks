@@ -58,7 +58,7 @@ Three things to internalise before you start:
 | **It replaces your other APM** | Adobe states that once Dynatrace is integrated, data stops flowing to other APM tools on those environments. This is a cutover, not a parallel run — see § 8 |
 | **Adobe owns the agent** | Version, upgrade timing, injection, and host-level configuration are Adobe's. Plan around that rather than against it — see § 5 |
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html).</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace).</sub>
 
 ---
 
@@ -80,7 +80,7 @@ Because it is real full-stack OneAgent monitoring rather than an API-polling int
 
 The unusual part is purely operational: **the deployment step belongs to someone else.** Everything downstream of "the agent is running" behaves normally.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html). **Derived:** the "behaves normally downstream" conclusion combines the Hub's full-stack OneAgent statement with standard OneAgent behavior documented elsewhere in this corpus.</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace). **Derived:** the "behaves normally downstream" conclusion combines the Hub's full-stack OneAgent statement with standard OneAgent behavior documented elsewhere in this corpus.</sub>
 
 ---
 
@@ -98,7 +98,7 @@ Two planning consequences follow, and both are easy to miss:
 - **Lead time is Adobe's, not yours.** Enablement moves at support-ticket pace. If monitoring coverage is a gate in a migration or go-live plan, the request belongs early in the schedule, with a named owner — not in the cutover week.
 - **Adding environments later is another ticket.** If you enable production first and add staging afterwards, that is a second request. Where practical, list every environment in the initial request rather than discovering the per-environment cost later.
 
-> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html), [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/). **Derived:** the two planning consequences follow from the per-environment, ticket-based enablement both sources describe.</sub>
+> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace), [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/). **Derived:** the two planning consequences follow from the per-environment, ticket-based enablement both sources describe.</sub>
 
 ---
 
@@ -110,11 +110,28 @@ Adobe's documentation enumerates what the ticket must contain. Assemble it befor
 | Item | Detail | Required |
 |---|---|---|
 | **Dynatrace environment URL** | SaaS: `https://<your-environment-id>.live.dynatrace.com` · Managed: `https://<your-managed-url>/e/<environmentId>` | Always |
-| **Environment ID and token** | Retrieved by running the API call Adobe's documentation specifies against your environment | Always |
+| **Environment ID and token** | `tenantUUID` and `tenantToken` from the connection-info API (command below) | Always |
 | **API access token** | Scope: **`PaaS integration - Installer download`** | Always |
 | **ActiveGate port** | The port your ActiveGate listens on | **Managed only** |
 | **ActiveGate network zone** | Routes monitoring data across regions | Optional |
 | **AEM environment IDs** | Which environment(s) to monitor | Always |
+
+### Getting the environment ID and token
+
+Both values come from one call against your own environment — Adobe does not retrieve them for you:
+
+```bash
+curl -X GET "<environmentUrl>/api/v1/deployment/installer/agent/connectioninfo" \
+  -H "accept: application/json" \
+  -H "Authorization: Api-Token <accessToken>"
+```
+
+Take **`tenantUUID`** (the environment ID) and **`tenantToken`** from the response. Note that the
+`<accessToken>` used here is the same `PaaS integration - Installer download` token you will send on:
+mint it first (**Access tokens → Generate new token →** scope `PaaS integration - Installer download`),
+then use it to obtain the two values.
+
+Adobe classifies **both the environment token and the API access token** as secrets.
 
 ### Handling the token
 
@@ -125,7 +142,7 @@ Two practices worth adding on your side:
 - **Mint a token dedicated to this integration**, rather than reusing an existing PaaS token, so it can be revoked without collateral damage.
 - **Grant only the `PaaS integration - Installer download` scope.** It is the documented requirement, and a broader token in a support-ticket attachment is a materially worse exposure.
 
-> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens). **Derived:** the dedicated-token and least-scope practices apply standard Dynatrace token hygiene to Adobe's stated transmission method; neither vendor states them for this integration specifically.</sub>
+> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens). **Derived:** the dedicated-token and least-scope practices apply standard Dynatrace token hygiene to Adobe's stated transmission method; neither vendor states them for this integration specifically.</sub>
 
 ---
 
@@ -176,7 +193,7 @@ Practically, that means an AEM estate appears in Smartscape as ordinary services
 
 In community practice, the first thing worth doing after enablement is confirming that the author and publish services appear as **separate** services with sensible names, and tagging them to your own convention while the estate is small — service-level tagging is tenant-side and fully yours, so this is one of the few places where the usual **ORGNZ** guidance applies without modification.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html).</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace).</sub>
 
 ---
 
@@ -227,7 +244,7 @@ Almost every migration playbook in this corpus — **NR2DT**, **NRLC**, **S2D**,
 
 **FAQ-17** (*Planning a Migration Cutover*) covers the general invariants; this is the case where its "parallel-run window with an end date" invariant has to be replaced rather than merely shortened, because the platform does not permit the overlap.
 
-> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html) — the quoted displacement statement. **Derived:** the restructured comparison table applies FAQ-17's cutover invariants to a platform where parallel running is unavailable.</sub>
+> <sub>**Sources:** [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — the quoted displacement statement. **Derived:** the restructured comparison table applies FAQ-17's cutover invariants to a platform where parallel running is unavailable.</sub>
 
 ---
 
@@ -308,7 +325,7 @@ Being explicit about this beats a confident guess: an AEM estate has real tiers 
 ## 13. References
 
 - [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/) — the listing: publisher, support route, technology, and the licensing figures in § 7
-- [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace-oneagent.html) — Adobe's enablement procedure, the required ticket payload, token handling, and the APM-displacement statement quoted in § 8
+- [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — Adobe's enablement procedure, the required ticket payload, token handling, and the APM-displacement statement quoted in § 8
 - [Dynatrace and Adobe Experience Manager: seamless end-to-end observability (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/) — capability framing including RUM, Session Replay, and synthetic monitoring
 - [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens) — token scopes and lifecycle, for the `PaaS integration - Installer download` scope in § 4
 
