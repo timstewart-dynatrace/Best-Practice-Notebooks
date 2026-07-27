@@ -9,7 +9,7 @@ Dynatrace best-practice notebooks with matching PDF and Markdown exports. These 
 [![Start Here — Find Your Path](-START-HERE-/images/00-readme-banner.svg)](-START-HERE-/README.md)
 
 
-> **👉 New here?** Open [`-START-HERE-/`](-START-HERE-/README.md) — a navigational playbook that picks an entry path based on your situation (net-new, expand/consolidate, deployment migration), then sequences the relevant topic series in order.
+> **👉 New here?** Open [`-START-HERE-/`](-START-HERE-/README.md) — a navigational playbook that picks an entry path based on your situation (net-new, expand/consolidate, deployment migration, classic → Gen3 platform), then sequences the relevant topic series in order.
 > Already know what you need? Skip the playbook and **[browse all 32 topic series ↓](#all-series-az)**.
 
 > **🤖 Using this repo with an AI agent?** It's agent-ready: point your agent

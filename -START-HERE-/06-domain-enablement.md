@@ -21,7 +21,7 @@
 
 There are nine observability domains and three cross-cutting ingestion series. You don't need all of them — pick based on what you monitor. Each entry below lists prerequisites (what Foundation pieces must be in place first) and recommended starting points.
 
-This module is referenced from each of the three doorways. Read it after [Foundation Module](05-foundation.md) is in progress.
+This module is referenced from each of the four doorways. Read it after [Foundation Module](05-foundation.md) is in progress.
 
 ---
 
