@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 07/14/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 07/27/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -123,6 +123,7 @@ Some failures are not configuration mistakes — they are known defects in speci
 
 | First affected | Fixed / Mitigated | Issue |
 |----------------|-------------------|-------|
+| 1.10.1 (OpenShift manifests) | 1.10.1 (corrected manifests re-uploaded 07/2026) | **OpenShift only** — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at `Init:0/1` and `dynatrace-webhook` pods stay `0/1`, waiting for a `dynatrace-webhook-certs` secret that is never created (the OpenShift manifest omitted the webhook cert-generator init container). **Fix:** re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's `certgen` command as a `Job` or `oc run` pod to create the secret and patch the webhook caBundle. |
 | 1.8.0 | 1.8.1 | OpenShift OperatorHub-based install — Kubernetes API monitoring missing (1.8.1 shipped as a hotfix ten days after 1.8.0) |
 | 1.3.0 | 1.4.1 (mitigated) | CSI driver pods crash frequently — liveness-probe failures under high simultaneous mount load (see below) |
 | 1.1.0 | 1.5.1 | OneAgent pods unable to validate the SSL certificate of a containerized ActiveGate after an Operator upgrade |
@@ -134,6 +135,8 @@ kubectl -n dynatrace get deployment dynatrace-operator \
 ```
 
 > **Tip:** The [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113) maintains this known-issues list as new Operator versions ship — check it alongside the [Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) when triaging a failure that appeared right after an upgrade.
+
+> **OpenShift `Init:0/1` on 1.10.1:** a fresh-install or operator-deleted-upgrade hang where the operator sits at `Init:0/1` and the webhook waits for its cert secret is the 1.10.1 manifest defect in the table above — **re-pull the OpenShift manifests before any deeper triage.** Details and the `certgen` workaround: [Heads-up: Unable to deploy Operator 1.10.1 on fresh clusters (Dynatrace community — requires sign-in)](https://community.dynatrace.com/t5/Heads-up-from-Dynatrace/Resolved-Unable-to-deploy-Operator-1-10-1-on-fresh-clusters-or/ta-p/302391).
 
 ### CSI Driver Crash Loops Under High Mount Load
 

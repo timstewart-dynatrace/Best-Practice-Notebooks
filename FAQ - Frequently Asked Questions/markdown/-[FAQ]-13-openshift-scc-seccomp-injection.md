@@ -1,6 +1,6 @@
 # FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 07/14/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 07/27/2026
 
 ## Overview
 
@@ -211,6 +211,7 @@ Every hit on query 2 is a pod that will be rejected on its next re-creation afte
 | Pod created; Dynatrace init container fails/CrashLoops | **Injection layer** | Init container logs; CSI driver pod logs on that node |
 | Pod runs; no Dynatrace data | **Agent/connectivity layer** | OneAgent pod logs, DynaKube status, network egress |
 | Only *new* pods affected after a change | **Webhook/config layer** | What changed in the DynaKube/operator; existing pods carry the old spec |
+| Operator pod itself stuck `Init:0/1`; webhook `0/1` waiting for its cert secret (fresh install, or upgrade where the operator was deleted first) | **Operator bootstrap — not injection** — the 1.10.1 OpenShift manifest omitted the webhook cert-generator | Re-download the corrected v1.10.1 OpenShift manifests; see K8S-09 → *Known Issues by Operator Version* |
 
 The first row is the 1.9.0 case — no Dynatrace log anywhere shows an error, because Dynatrace never got to run; the evidence lives in OpenShift admission events. That asymmetry is worth internalizing: **webhook-injected fields fail as platform errors, not vendor errors.**
 

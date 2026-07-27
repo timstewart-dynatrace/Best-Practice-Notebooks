@@ -1,12 +1,12 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/27/2026
 
 ## Overview
 
 This notebook consolidates every actionable best practice for Dynatrace Kubernetes monitoring and DynaKube configuration extracted from the K8S series (notebooks 01-13). Each practice specifies the exact setting, value, priority, and category. Use this as a definitive checklist for new deployments and audits of existing environments.
 
-**Operator Version:** 1.9.0 | **DynaKube API:** `dynatrace.com/v1beta5` (baseline) or `v1beta6` (newer) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.0` (pin the version you have validated in your estate)
+**Operator Version:** 1.10.1 | **DynaKube API:** `dynatrace.com/v1beta5` (baseline) or `v1beta6` (newer) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1` — skip 1.10.0 (auto-update defect) (pin the version you have validated in your estate)
 
 > **Token currency note:** Platform Tokens (`dt0s16`) are the recommended choice for new tenants per Dynatrace SaaS sprint-1.337+; the Operator itself accepts platform tokens from **Operator 1.10.0** (July 15, 2026) — Classic API Tokens (`dt0c01`) continue to be accepted and remain the working path on earlier Operator versions. See K8S-02 §Prerequisites.
 
@@ -43,7 +43,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | **Dynatrace Environment** | SaaS with Grail and Kubernetes monitoring enabled |
 | **Kubernetes Cluster** | v1.24+ |
 | **Helm** | v3.x |
-| **Dynatrace Operator** | v1.9.0 (April 2026) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` |
+| **Dynatrace Operator** | v1.10.1 (July 2026) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` |
 | **Knowledge** | K8S-01 through K8S-13 |
 
 <a id="deployment-mode-selection"></a>
@@ -64,7 +64,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 6 | Install operator via Helm OCI | `helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.0 --namespace dynatrace --create-namespace --wait` | **Critical** | Installation |
+| 6 | Install operator via Helm OCI | `helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1 --namespace dynatrace --create-namespace --wait` | **Critical** | Installation |
 | 7 | Enable CSI driver | `csidriver.enabled: true` in Helm values | **Critical** | Installation |
 | 8 | Set platform explicitly | `platform: "kubernetes"` or `platform: "openshift"` | Recommended | Installation |
 | 9 | Create dedicated namespace | `kubectl create namespace dynatrace` | **Critical** | Installation |
@@ -251,7 +251,7 @@ spec:
 |---|---------------|-----------------|----------|----------|
 | 70 | Manage DynaKube via GitOps (ArgoCD or Flux) | Store DynaKube YAML in Git, apply via GitOps controller | Recommended | Lifecycle |
 | 71 | Use Kustomize overlays for environment-specific config | `base/dynakube.yaml` + `overlays/{dev,staging,prod}/` patches | Recommended | Lifecycle |
-| 72 | Pin operator Helm chart version in ArgoCD/Flux | `targetRevision: 1.9.0` (ArgoCD) or `version: "1.9.x"` (Flux) | **Critical** | Lifecycle |
+| 72 | Pin operator Helm chart version in ArgoCD/Flux | `targetRevision: 1.10.1` (ArgoCD) or `version: "1.10.x"` (Flux) | **Critical** | Lifecycle |
 | 73 | Set `selfHeal: true` in ArgoCD for drift correction | `syncPolicy.automated.selfHeal: true` | Recommended | Lifecycle |
 | 74 | Set `prune: false` for DynaKube in ArgoCD | Prevent accidental DynaKube deletion on Git removal | **Critical** | Lifecycle |
 | 75 | Use Flux `dependsOn` to order operator before DynaKube | `dependsOn: [{name: dynatrace-operator}]` | Recommended | Lifecycle |
