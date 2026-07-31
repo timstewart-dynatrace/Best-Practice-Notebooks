@@ -1,7 +1,7 @@
 # Overlap Map
 
 > **Purpose:** Catalog of where multiple series cover the same ground, with recommendations for which is canonical and the suggested reading order. Use this when you find yourself reading similar material across two or more series and want to dedupe.
-> **Last Updated:** 07/23/2026
+> **Last Updated:** 07/31/2026
 
 ---
 
@@ -59,6 +59,13 @@ This is reference material, not a curriculum. Use it as a lookup when reading ra
 | Logs migration architecture | [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — notebooks 02 (migration), 03 (pipeline); [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 01 | [S2D](../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/) — notebook 02 (Splunk locating); [SL2DT](../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/) — notebook 03 (Sumo ingest) | Source-tool series first for inventory; OPLOGS for ingestion design |
 | Classic Logs → OpenPipeline | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series | [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — notebook 02 (migration) | OPMIG for migration-specific; OPLOGS-02 if general |
 | Static-threshold to anomaly detection | [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) — notebook 02 (anomaly detection) | [S2D](../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/) — notebook 04 (anomaly detectors); [SL2DT](../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/) — notebook 05 | AIOPS-02 for the framework; S2D and SL2DT for tool-specific translation patterns |
+| Metric selectors → `timeseries` | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 11 (how metrics work) | [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) — notebook 99 (DQL reference) | FAQ-11 covers the Classic ↔ Grail split and the conversion; ORGNZ-99 for DQL syntax |
+| Classic entity selectors → Smartscape | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 16 | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) — notebook 04 (topology) | FAQ-16 is the migration reference; SPANS-04 for how Smartscape models services |
+| USQL → DQL | [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) — notebook 09 | [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) — notebook 07 (Gen2 vs Gen3 adoption paths) | WEBRUM-09 for the grammar and field mapping; BIZEV-07 only if the USQL you are replacing fed business-event reporting |
+| SLO Classic → platform SLOs | [SLO](../SLO%20-%20Service%20Level%20Objectives/) — notebooks 01 (fundamentals), 05 (SLOs as code) | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 02 | SLO-01 for the model; SLO-05 for the config-as-code path |
+| Classic analysis apps → Notebooks | [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) — notebook 01 (fundamentals) | [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) — notebook 04 (Davis CoPilot) | Data Explorer, Multidimensional Analysis and Reports all land in Notebooks — rebuild the question, not the screen |
+
+For the doorway that sequences all of these together, see [Doorway 4 — Classic → Gen3 Platform](04-gen2-to-gen3.md).
 
 ---
 

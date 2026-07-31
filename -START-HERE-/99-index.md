@@ -1,7 +1,7 @@
 # Series Catalog & Cross-Reference
 
 > **Purpose:** Full inventory of all 32 Dynatrace Best Practice Topic series with cross-references between them. Use this as a quick lookup when you need to find which series covers a specific topic, or to see related material across series.
-> **Last Updated:** 07/23/2026
+> **Last Updated:** 07/31/2026
 
 ![Series by Category](images/99-series-by-category.svg)
 
@@ -133,7 +133,7 @@ This table shows which doorway in the playbook uses each series and how it appea
 
 | Series | Net New | Expanding / Consolidating | Deployment Migration | Classic → Gen3 |
 |---|---|---|---|---|
-| ONBRD | Primary | Refresh as needed | Refresh as needed | Refresh as needed |
+| ONBRD | Primary | Refresh as needed | Refresh as needed | Primary (Phase 0 — ActiveGate and network prerequisites) |
 | ORGNZ | Primary | Primary (Gen3 changes) | Primary (Gen3 changes) | Primary (Phase 1) |
 | IAM | Primary | Primary (Gen3 changes) | Primary (Gen2 → Gen3) | Primary (Phase 1) |
 | NRLC | If from New Relic | If consolidating APM from NR | — | — |
@@ -144,12 +144,17 @@ This table shows which doorway in the playbook uses each series and how it appea
 | S2S | — | — | Primary (SaaS → SaaS) | — |
 | OPMIG | — | If on Classic Logs | — | Primary (Phase 2) |
 | MZ2POL | — | If migrating Gen2 access control, **or** replacing MZ-based filtering with segments (notebook 05) | If migrating Gen2 MZs | Primary (Phase 1) |
-| K8S, CLOUD, SPANS, WEBRUM, MOBL, DBMON, BIZEV, SYNTH | After Foundation | Primary for "adding a domain" | After deployment migration | Refresh as needed |
-| OTEL, OPLOGS, OPIPE | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise |
+| K8S | After Foundation | Primary for "adding a domain" | After deployment migration | Primary (Phase 0 — Operator, deployment mode, image source) |
+| CLOUD | After Foundation | Primary for "adding a domain" | After deployment migration | Primary (Phase 1 — connections and enrichment) |
+| WEBRUM, MOBL, DBMON, SYNTH | After Foundation | Primary for "adding a domain" | After deployment migration | Primary (Phase 3 — app surfaces) |
+| SPANS | After Foundation | Primary for "adding a domain" | After deployment migration | Refresh as needed (Phase 4 — service detection rules) |
+| APPSEC | After first domain | Primary for "adding security" | After deployment migration | Primary (Phase 4 — monitoring-rule cutover) |
+| OTEL | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise |
+| OPLOGS, OPIPE, BIZEV | As ingestion needs arise | As ingestion needs arise | As ingestion needs arise | Primary (Phase 2 — classic processing surfaces) |
 | DASH, WFLOW, AUTOM, AIOPS | After first domain | Primary for "maturing operations" | After deployment migration | Primary (Phases 3–5) |
 | ALERT, SLO, FINOPS | After first domain | Primary for "maturing operations" | After deployment migration | Primary (Phases 4–5) |
 | ADOPT | Ongoing | Ongoing | Ongoing | Ongoing |
-| FAQ | Reference | Reference | Reference | Reference (entries 02, 07, 11, 12) |
+| FAQ | Reference | Reference | Reference | Reference (entries 02, 04, 05, 07, 10, 11, 12, 16) |
 
 ---
 
