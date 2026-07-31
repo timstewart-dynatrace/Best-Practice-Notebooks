@@ -14,7 +14,7 @@ Defining and operating Service Level Objectives in Dynatrace — SLIs, error bud
 2. [Defining SLIs](markdown/-[SLO]-02-defining-slis.md) — The good ÷ total ratio as DQL: availability, latency, error-rate, and custom business SLIs
 3. [Composition and Error Budgets](markdown/-[SLO]-03-composition-and-error-budgets.md) — Error-budget math and burn rate, composite and weighted-global SLOs, and rolling vs calendar windows
 4. [SLO Alerting](markdown/-[SLO]-04-alerting.md) — Burn-rate alerting over threshold-on-SLI: fast-burn and slow-burn multiwindow alerts, surfacing, routing, and avoiding fatigue
-5. [SLOs as Code](markdown/-[SLO]-05-slos-as-code.md) — Promoting SLOs into version control: the `builtin:slo` schema, the `dynatrace_slo_v2` Terraform resource, Monaco, and the API/CI-CD path
+5. [SLOs as Code](markdown/-[SLO]-05-slos-as-code.md) — Promoting SLOs into version control: the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2` / `builtin:monitoring.slo` path it replaces, Monaco, and the export-known-good API pattern
 
 ## Usage
 1. Choose a format: import JSON from NOTEBOOKS/, read PDFs/ for print, or view markdown/ for lightweight browsing.

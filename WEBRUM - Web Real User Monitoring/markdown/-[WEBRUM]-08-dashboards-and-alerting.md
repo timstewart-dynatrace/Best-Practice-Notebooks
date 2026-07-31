@@ -200,9 +200,13 @@ Effective RUM alerting requires the right balance — too sensitive triggers ale
 | **Traffic anomaly** | Unexpected drop in session volume | < 50% of previous day's hourly average |
 | **CWV regression** | Core Web Vitals crossing into Poor | LCP p75 > 4s for 30 minutes |
 
-### Alert Configuration via Metrics Events
+### Alert Configuration
 
-Dynatrace metric events allow alerting on RUM metrics. Configure via:
+**Modern path (recommended for new alerting):** build these conditions as **Davis anomaly detectors** (`builtin:davis.anomaly-detectors`), configured in the Anomaly Detection app and driven by DQL. Detectors read Grail, so they work against the New RUM field vocabulary the rest of this series uses, and they carry forward past the upgrade.
+
+**Legacy path — metric events:** the classic surface below still works and is what most existing RUM alerting uses, but `builtin:anomaly-detection.metric-events` is flagged **Blocked at upgrade**, and the `builtin:apps.web.*` metric keys it alerts on are Metrics Classic keys that **DQL cannot query** (FAQ entry 11 §3.1). Both facts point the same way: do not author new RUM alerting here.
+
+Configure the legacy path via:
 
 **Settings > Anomaly detection > Metric events > Add metric event**
 

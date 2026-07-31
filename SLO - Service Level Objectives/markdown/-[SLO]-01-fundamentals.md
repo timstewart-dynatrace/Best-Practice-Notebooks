@@ -58,9 +58,12 @@ Dynatrace has two generations of SLO tooling:
 | | SLO Classic | Modern SLO app (use this) |
 |--|-------------|---------------------------|
 | SLI definition | Metric expressions, fixed indicator types | **DQL-based** — any `good ÷ total` query over metrics, spans, logs, or bizevents |
-| Backing schema | classic config | `builtin:monitoring.slo` (Settings 2.0) |
-| As code | limited | `dynatrace_slo_v2` Terraform resource (metric-based SLIs only — SLO-05 §2) / Monaco (full schema, incl. DQL-based Custom SLOs) |
+| API | Service-level Objectives API classic (`/api/v2/slo`) | **SLO Service Public API** |
+| Backing store | classic config; Settings 2.0 schema `builtin:monitoring.slo` | the SLO service itself, not a Settings schema |
+| As code | `dynatrace_slo_v2` Terraform resource (metric-selector SLIs only) | **`dynatrace_platform_slo`** Terraform resource (provider v1.78.0+) / Monaco (v2.22+) |
 | Data scope | service metrics | all Grail data types |
+
+> **A correction worth reading if you have codified SLOs already (07/31/2026).** This notebook and SLO-05 previously placed `builtin:monitoring.slo` and `dynatrace_slo_v2` in the modern column. They belong to the classic generation: `dynatrace_slo_v2` authenticates with classic `slo.read`/`slo.write` plus `settings.*` scopes and writes through `builtin:monitoring.slo`, whereas the modern app has its own **SLO Service Public API** and a separate `dynatrace_platform_slo` resource using OAuth `slo:slos:*` scopes. The readiness scan additionally flags both `/api/v2/slo` and `builtin:monitoring.slo` as blocked at upgrade. If your SLOs are in Terraform as `dynatrace_slo_v2`, they are on the classic path — see SLO-05 §2.
 
 New work should use the **modern SLO app** with DQL-based SLIs — it covers every data type and is the path that is actively developed. Dynatrace's own guidance is to still prefer a metric-based SLI over a DQL one where a suitable pre-aggregated metric exists, since metric queries are faster and cheaper to evaluate; use `makeTimeseries` for event/log-derived SLIs where no such metric exists (SLO-02). If you have SLO Classic definitions, Dynatrace publishes an upgrade path.
 

@@ -195,11 +195,17 @@ Every CI/CD pipeline that integrates with Dynatrace needs its connection paramet
 
 All Dynatrace API calls must switch from Managed format to SaaS format:
 
-| API | Managed Format | SaaS Format |
-|-----|---------------|-------------|
-| **Environment API v2** | `https://{managed}/e/{env-id}/api/v2/...` | `https://{tenant}.live.dynatrace.com/api/v2/...` |
-| **Configuration API v1** | `https://{managed}/e/{env-id}/api/config/v1/...` | `https://{tenant}.live.dynatrace.com/api/config/v1/...` |
-| **Platform API** | N/A (Managed) | `https://{tenant}.apps.dynatrace.com/platform/...` |
+| API | Managed Format | SaaS Format | Survives the Gen3 upgrade? |
+|-----|---------------|-------------|----------------------------|
+| **Environment API v2** | `https://{managed}/e/{env-id}/api/v2/...` | `https://{tenant}.live.dynatrace.com/api/v2/...` | Ingest paths yes; several read/config paths **no** — see below |
+| **Configuration API v1** | `https://{managed}/e/{env-id}/api/config/v1/...` | `https://{tenant}.live.dynatrace.com/api/config/v1/...` | **Mostly no** |
+| **Platform API** | N/A (Managed) | `https://{tenant}.apps.dynatrace.com/platform/...` | Yes |
+
+> **Repoint once, not twice.** This step is a host-and-path rewrite for the Managed → SaaS move, and on that axis the table above is correct. But a separate change is coming: when the tenant later upgrades to the latest Dynatrace, **most of `/api/config/v1` and a number of `/api/v2` read and configuration paths stop answering**, while the **ingest** endpoints (`/api/v2/logs/ingest`, `/metrics/ingest`, `/events/ingest`, `/api/v2/otlp`, `/api/bizevents/ingest`) and everything under `/platform/` carry forward.
+>
+> The narrow `/api/config/v1` carve-outs that do survive are worth knowing, because they are easy to confuse with neighbours that do not: `/service/requestAttributes`, `/service/requestNaming` and `/service/customServices` survive, while `/conditionalNaming/*` and `/calculatedMetrics/service` do not — and `/calculatedMetrics/mobile` survives while `/calculatedMetrics/service` does not.
+>
+> If a script is being rewritten anyway, check it against AUTOM-02's catalog now and move it to its Gen3 equivalent in the same pass rather than migrating it twice. See the Classic → Gen3 doorway in the `-START-HERE-` playbook for the sequence.
 
 ### CI/CD Tools to Update
 

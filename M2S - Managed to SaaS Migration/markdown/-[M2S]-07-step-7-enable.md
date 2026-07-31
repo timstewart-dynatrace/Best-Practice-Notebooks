@@ -248,6 +248,8 @@ Search all documentation for these patterns and replace:
 
 > **Important:** Do not just replace URLs. Review the surrounding context. Some procedures (e.g., cluster restarts, Cassandra maintenance) no longer apply in SaaS and should be removed entirely.
 
+> **The `/api/config/v1/` row is a stopgap, not a destination.** The rewrite above is correct for Managed → SaaS. But most of `/api/config/v1` stops answering when the tenant later upgrades to the latest Dynatrace, so documentation repointed at it will need a second pass. If you are editing these pages anyway, flag every `/api/config/v1/` reference for a Gen3 follow-up — or resolve it now against AUTOM-02's schema catalog and rewrite straight to the Settings 2.0 or platform equivalent. Same for `/api/v2/` procedures that read entities, metrics, logs, events or tags; the ingest endpoints are unaffected.
+
 <a id="self-service-resources"></a>
 
 ## 4. Self-Service Resources

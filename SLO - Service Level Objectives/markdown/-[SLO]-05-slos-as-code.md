@@ -53,13 +53,16 @@ For environments where SVG doesn't render
 <a id="schema"></a>
 ## 2. The Schema and Terraform Resource
 
-| Surface | Identifier |
-|---------|-----------|
-| Settings 2.0 schema | `builtin:monitoring.slo` |
-| Terraform resource | `dynatrace_slo_v2` |
-| Monaco | `builtin:monitoring.slo` schema via `--settings-schema` |
+| Surface | Modern SLO app | SLO Classic |
+|---------|----------------|-------------|
+| API | **SLO Service Public API** | Service-level Objectives API classic (`/api/v2/slo`) — **blocked at upgrade** |
+| Terraform resource | **`dynatrace_platform_slo`** (provider v1.78.0+; OAuth client with `slo:slos:read` / `slo:slos:write`) | `dynatrace_slo_v2` (classic `slo.*` + `settings.*` token scopes) |
+| Monaco | supported since Monaco v2.22 | `builtin:monitoring.slo` via `--settings-schema` — **blocked at upgrade** |
+| Settings 2.0 schema | none — the SLO service is the store | `builtin:monitoring.slo` |
 
-**A gap to plan around:** the `dynatrace_slo_v2` resource's SLI field (`metric_expression`) takes a **classic metric-selector expression** — e.g. `100*(builtin:service.requestCount.server:splitBy())/(...)` — not the DQL query with an `sli` field that a Custom SLO in the app uses (SLO-01 §3, SLO-02). If your SLI is built from a pre-aggregated metric, this maps over directly, and Dynatrace's own docs recommend metric-based SLOs for performance and cost where a suitable metric exists. If your SLI is genuinely DQL-only — a span-ratio or log/bizevent-derived `sli`, as in SLO-02's latency and custom examples — there is no documented Terraform field for it today; codify those via the export-a-known-good-object path in Section 5 instead of hand-writing HCL.
+> **Corrected 07/31/2026.** This section previously presented `builtin:monitoring.slo` / `dynatrace_slo_v2` as *the* config-as-code path. They are the **classic** generation. `dynatrace_slo_v2` authenticates with classic `slo.read`/`slo.write` plus `settings.read`/`settings.write` and writes through `builtin:monitoring.slo`; the modern app has its own SLO Service Public API, reached by `dynatrace_platform_slo` with OAuth `slo:slos:*` scopes. The readiness scan flags both classic surfaces as blocked at upgrade, so codifying new SLOs as `dynatrace_slo_v2` puts them on a path that stops working. Verify argument names at the provider docs before writing HCL — the note below applies to `dynatrace_platform_slo` too.
+
+**The DQL-SLI gap was a property of the classic resource, and `dynatrace_platform_slo` closes it.** Read the paragraph below as the reason to move rather than as a live constraint: the `dynatrace_slo_v2` resource's SLI field (`metric_expression`) takes a **classic metric-selector expression** — e.g. `100*(builtin:service.requestCount.server:splitBy())/(...)` — not the DQL query with an `sli` field that a Custom SLO in the app uses (SLO-01 §3, SLO-02). If your SLI is built from a pre-aggregated metric, this maps over directly, and Dynatrace's own docs recommend metric-based SLOs for performance and cost where a suitable metric exists. If your SLI is genuinely DQL-only — a span-ratio or log/bizevent-derived `sli`, as in SLO-02's latency and custom examples — there is no documented Terraform field for it today; codify those via the export-a-known-good-object path in Section 5 instead of hand-writing HCL.
 
 > **Verify the exact argument names against the provider docs before you write HCL.** The provider schema evolves between releases, and copying a stale payload is precisely how the field-authored alerting document ended up with an SLO API body that would not apply. The example below reflects the resource's documented schema as fetched at source on 07/01/2026 — treat the [resource docs](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/slo_v2) as authoritative going forward, since the schema can still change between provider releases.
 
@@ -108,7 +111,7 @@ A few things the example encodes:
 <a id="monaco"></a>
 ## 4. Monaco Alternative
 
-If your shop standardises on Monaco rather than Terraform, the same SLO is a `builtin:monitoring.slo` settings object:
+If your shop standardises on Monaco rather than Terraform, note first that **Monaco has supported the modern SLO Service Public API since v2.22** — prefer that over the classic settings object below, which targets the blocked `builtin:monitoring.slo` schema. The classic form is retained here because it is what existing Monaco projects contain, and because `monaco download` against it is how you inventory what needs moving:
 
 ```yaml
 configs:
@@ -127,7 +130,7 @@ The JSON template carries the SLI, target, warning, and window — and, unlike t
 <a id="api"></a>
 ## 5. API and CI/CD
 
-For direct API automation, use the **current SLO endpoint, not the deprecated v1 SLO API**. Rather than reproduce a request body that may drift, generate it from a working SLO:
+For direct API automation, use the **SLO Service Public API** — the modern app's own endpoint. This is not `/api/v2/slo`, which is the Service-level Objectives API *classic* and is flagged blocked at upgrade by the readiness scan; nor the older v1 SLO API. Rather than reproduce a request body that may drift, generate it from a working SLO:
 
 1. Create and validate one SLO in the app.
 2. Read it back via the API (or `monaco download` / `terraform-provider-dynatrace -export`) to capture the exact current schema.
