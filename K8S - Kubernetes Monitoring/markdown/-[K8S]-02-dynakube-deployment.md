@@ -271,7 +271,7 @@ oneAgent:
 | Best for multi-tenant clusters | Slightly more complex |
 | Independent app/infra monitoring | |
 
-### classicFullStack (Supported — Avoid for New Deployments)
+### classicFullStack (Legacy — Migrate Existing Clusters, Not Just New Ones)
 
 ```yaml
 oneAgent:
@@ -283,6 +283,11 @@ oneAgent:
 |------|------|
 | Simpler architecture | All pods share OneAgent |
 | Single component | Requires hostPath mounts |
+| | **Not a ready state for the latest Dynatrace** — see below |
+
+> **"Avoid for new deployments" understates this.** The ready-made *Check your upgrade readiness* dashboard treats a DynaKube using `classicFullStack` as **not ready** for the latest Dynatrace — the check is on the cluster's current state, not on when it was created. A cluster that has been running `classicFullStack` happily for two years is flagged exactly like a new one.
+>
+> So this is migration work with a deadline attached, not a style preference. Move existing clusters to `cloudNativeFullStack` (or `applicationMonitoring` / `hostMonitoring` where those fit) as part of upgrade preparation rather than waiting for a rebuild. The readiness check also covers Operator ≥ 1.10, the connecting ActiveGate ≥ 1.343, and the image source — see §3 and the Classic → Gen3 doorway in the `-START-HERE-` playbook.
 
 ### applicationMonitoring
 

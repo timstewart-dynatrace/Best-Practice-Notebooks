@@ -126,7 +126,7 @@ Before building an extraction rule, check whether Dynatrace already produces the
 | Log volume / ingest cost | `fetch logs \| summarize count()` over a long window | DPS consumption metrics (the `dt.billing.*` / `dt.system.events` surfaces — see FINOPS-01) |
 | Did this log source stop sending? | Counting recent records | `log.source.file_status` / `log.source.ingest_status` (see FAQ-08) |
 
-**How to check:** open the metric browser / **Data explorer** and search the entity or domain before writing a pipeline rule. If an OOTB metric answers the question, you're done — zero extraction config, zero added cardinality, and it already has historical depth.
+**How to check:** search the entity or domain in a **notebook** (the metric picker, or `metrics | filter contains(metric.key, "…")`) before writing a pipeline rule. Data Explorer does the same job on classic tenants, but it is one of the classic apps being retired — Notebooks is its named replacement, so prefer the notebook route if you have it. If an OOTB metric answers the question, you're done — zero extraction config, zero added cardinality, and it already has historical depth.
 
 Exact metric keys vary by Dynatrace version and by what's deployed in your tenant — confirm the key in your own metric browser rather than assuming it. The point stands regardless of the precise key: **the cheapest extraction is the one you don't have to do because the metric already exists.**
 

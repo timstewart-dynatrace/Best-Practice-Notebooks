@@ -147,10 +147,14 @@ The Advanced path exposes fine-grained controls. Exact UI labels evolve — veri
 | **CloudWatch Logs** | Enable log ingestion per region; toggleable post-onboard by updating the CFN stack. Delivered via Kinesis Data Firehose subscriptions — see CLOUD-07. Note the scope: this control covers logs flowing *through CloudWatch*. Logs **already resident in S3** take a separate **direct-ingestion** path (a Dynatrace-maintained Lambda forwarder, forthcoming / rolling out with SaaS 1.344) that bypasses CloudWatch and Firehose entirely — see CLOUD-07 §3 |
 | **Tag Enrichment** | All AWS tags are collected by default. This control selects which tags propagate to logs / metrics / spans / events as dimensions |
 | **Tag-Based Filtering** | Include / exclude resources from monitoring based on AWS tag predicates — scope to specific workloads or teams |
-| **Dynatrace Attribute Enrichment** | Map AWS tag values onto Dynatrace native attributes such as `dt.security_context`, `dt.cost.product`, `dt.cost.costcenter` — enables IAM segments and cost-allocation dashboards driven by AWS-side metadata |
+| **Dynatrace Attribute Enrichment** | Map AWS tag values onto Dynatrace native attributes such as `dt.security_context`, `dt.cost.product`, `dt.cost.costcenter` — enables IAM segments and cost-allocation dashboards driven by AWS-side metadata. **Enrichment configured inside a connection is moving to a central ingest-time configuration** — see the note below |
 | **EventBridge events** | Capture AWS events via EventBridge API destinations (region-availability dependent) |
 
 > **In community practice:** start with Recommended; promote to Recommended + Custom when you know the specific metric keys you need; reserve Auto-Discovery for discovery / scoping exercises, then trim back. Auto-Discovery left on indefinitely inflates DDU and CloudWatch API cost.
+
+> **Where enrichment lives is changing.** Tag and attribute enrichment rules configured *inside* a cloud connection are being replaced by a **central ingest-time enrichment configuration**, so the same rules are defined once and apply across connections rather than being embedded in each. The readiness scan reports connections still carrying embedded rules, along with how many each holds.
+>
+> This does not change what to enable — the Advanced path remains the right posture for production tenants, and `dt.security_context` / `dt.cost.*` mapping is still what makes IAM segments and cost allocation work. What changes is *where you define it*. If you are configuring a connection now, expect to recreate its enrichment rules centrally later; connections carrying no embedded rules simply opt in. Classic AWS connections themselves are recreated rather than converted when moving to the latest Dynatrace — see CLOUD-01 §2.
 
 ### Service Selection Strategy
 

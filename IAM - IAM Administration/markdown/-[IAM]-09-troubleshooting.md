@@ -322,9 +322,12 @@ When API tokens or OAuth clients don't work as expected.
 **Step 3: Test with curl**
 
 ```bash
+# Connectivity smoke test — pick an endpoint that survives the Gen3 upgrade
 curl -H "Authorization: Api-Token <TOKEN>" \
-  https://<env>.live.dynatrace.com/api/v2/entities
+  https://<env>.live.dynatrace.com/api/v2/settings/schemas
 ```
+
+> **Do not use `/api/v2/entities` for this test.** It is flagged blocked at upgrade, so on a latest-Dynatrace tenant it fails for a reason that has nothing to do with the token — sending you to debug scopes and expiry when the endpoint itself is gone. `/api/v2/settings/schemas` carries forward and needs only `settings.read`, which makes it a cleaner probe. To check an entity actually resolves, use DQL (`smartscapeNodes`) rather than the classic Entities API — see FAQ entry 16.
 
 ### OAuth Client Issues
 

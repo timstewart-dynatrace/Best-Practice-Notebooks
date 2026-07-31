@@ -293,6 +293,10 @@ ALLOW document:documents:read;
 
 > **Key distinction:** `app-engine:apps:run` controls app visibility for both Gen3 apps (e.g., `dynatrace.dashboards`) and Gen2 classic screens (e.g., `dynatrace.classic.synthetic`). `document:documents:read` lets the persona open and view dashboard/notebook content. Both are needed for a persona to use dashboards.
 
+> **The classic-screen grant is a transitional pattern.** `dynatrace.classic.*` apps are being retired — `dynatrace.classic.synthetic` is replaced by the Synthetic app — so a persona matrix built on classic app-ids has a shelf life. Grant them where a persona genuinely still works in a classic screen, and record each one as migration work rather than as a permanent entitlement.
+>
+> The same mechanism runs in reverse, and is the more durable move: a boundary of `shared:app-id not startsWith "dynatrace.classic"` restricts a group to the latest apps entirely. Dynatrace documents that as the way to [prevent classic access](https://docs.dynatrace.com/docs/shortlink/upgrade-guide-prevent-classic) after upgrading — worth adding to your matrix as the end state each persona is heading toward.
+
 #### Discovering Installed Apps
 
 To build your visibility matrix, you need to know which apps are installed. Use the **App Engine Registry API** to get a complete list of active, runnable apps in your environment:
