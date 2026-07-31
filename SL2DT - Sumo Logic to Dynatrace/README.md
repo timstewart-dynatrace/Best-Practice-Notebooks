@@ -17,7 +17,7 @@ Step-by-step migration path from Sumo Logic to Dynatrace, from strategy and inve
 5. [Monitor & Alert Conversion](markdown/-[SL2DT]-05-monitor-and-alert-conversion.md) — Rebuilding Sumo Monitors using Anomaly Detection, Workflows, or Metric Events
 6. [Dashboard Conversion](markdown/-[SL2DT]-06-dashboard-conversion.md) — Rebuilding in-scope Sumo dashboards in Dynatrace Notebooks and Dashboards
 7. [User Governance & Access](markdown/-[SL2DT]-07-user-governance-and-access.md) — Translating Sumo RBAC to Dynatrace Platform IAM groups and policies
-8. [Automation & GitOps](markdown/-[SL2DT]-08-automation-and-gitops.md) — CI/CD promotion paths for all migrated configuration via Monaco
+8. [Automation & GitOps](markdown/-[SL2DT]-08-automation-and-gitops.md) — CI/CD promotion paths for all migrated configuration, split across Terraform and Monaco
 9. [Cutover, Validation & Decommission](markdown/-[SL2DT]-09-cutover-validation-decommission.md) — Parallel validation, declaring cutover, and decommissioning Sumo
 10. [Migrating Telegraf-Collected Metrics](markdown/-[SL2DT]-10-telegraf-metric-migration.md) — Repointing a Telegraf metric estate at Dynatrace: ingest-path choice, output-plugin mechanics, key reshaping, and parity validation
 99. [Summary & Runbook Index](markdown/-[SL2DT]-99-summary-and-runbook-index.md) — Single-page index and reference card for the entire SL2DT series

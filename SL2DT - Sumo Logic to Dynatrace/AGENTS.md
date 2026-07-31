@@ -21,9 +21,9 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Grail bucket design, deploying OneAgent/OTel collectors, OpenPipeline pipeline setup, converting Field Extraction Rules to processors, ingest parity validation | `-[SL2DT]-03-log-ingest-architecture.md` |
 | Translating SumoQL (`parse`, `where`, `count by`, scheduled searches) to DQL, batch translation, confidence scoring, LOW-confidence triage | `-[SL2DT]-04-sumoql-to-dql-translation.md` |
 | Rebuilding Sumo Monitors: anomaly detection vs Metric Events vs Workflows decision, notification actions, alert-noise tuning | `-[SL2DT]-05-monitor-and-alert-conversion.md` |
-| Dashboard rebuild: Notebooks vs Dashboards target choice, panel-to-section mapping, visualization types, dashboard variables → parameters | `-[SL2DT]-06-dashboard-conversion.md` |
+| Dashboard rebuild: Notebooks vs Dashboards target choice, the seven-step conversion procedure, panel-to-section mapping, visualization types, dashboard variables → parameters | `-[SL2DT]-06-dashboard-conversion.md` |
 | Translating Sumo RBAC (roles, search filters, capabilities) to IAM groups/policies, bucket-scoped policies, SSO and user provisioning | `-[SL2DT]-07-user-governance-and-access.md` |
-| Terraform vs Monaco tool selection, CI/CD promotion pipelines, automating the Sumo-extract → Dynatrace-import flow | `-[SL2DT]-08-automation-and-gitops.md` |
+| Validating machine-translated dashboard payloads — the offline `validate_dashboard` gate, and why a `2xx` from the Documents API is not proof the dashboard renders | `-[SL2DT]-08-automation-and-gitops.md` |
 | Parallel-run validation tiers, the cutover runbook, rollback plan, decommissioning Sumo | `-[SL2DT]-09-cutover-validation-decommission.md` |
 | Migrating Telegraf-collected metrics off Sumo: inventorying the metric estate, choosing the target ingest path, Telegraf output-plugin mechanics (local OneAgent endpoint vs remote environment endpoint), metric-key reshaping at the boundary, parity validation during the parallel run | `-[SL2DT]-10-telegraf-metric-migration.md` |
 | Series index, critical-decisions checklist, failure-mode reference, engagement timeline, DQL quick reference | `-[SL2DT]-99-summary-and-runbook-index.md` |
