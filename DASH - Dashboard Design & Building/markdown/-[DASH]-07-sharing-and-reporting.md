@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -198,6 +198,20 @@ Managing dashboards as code enables version control, peer review, and automated 
 | **Dynatrace Configuration as Code** | Monaco CLI | Multi-environment deployment |
 | **Terraform Provider** | Terraform | Infrastructure-as-code workflows |
 
+### Validate the Payload Before You Merge It
+
+> **Forthcoming/rolling out (SaaS 1.344) — a dashboard that fails validation will no longer load.** SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**; verify whether it has reached your tenant before relying on the new behavior. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings. Once 1.344 reaches your tenant, it does not load at all. Dynatrace names dashboards **created externally via API or by AI tooling** as the most affected population — which is precisely what every approach in the table above produces. Treat the warning state as a grace period, not a supported state.
+>
+> **Gate every payload before you merge it:**
+>
+> 1. Deploy it to a **non-production tenant** and open the dashboard in the Dashboards app.
+> 2. Confirm **zero validation warnings** — not "warnings we have decided to live with."
+> 3. Prefer **exporting a working UI-authored dashboard** as your template over hand-writing the `tiles` / `layouts` map. The UI only emits shapes it can render.
+>
+> Note what this gate is *not*. `terraform plan`, a JSON linter, and Monaco's own config validation all check the surrounding configuration, not the dashboard document itself — to those tools the payload is an opaque blob. A `2xx` from the Documents API means the document was accepted for storage, not that it renders. The only check that answers the question is opening the dashboard.
+
+The export → modify → review → deploy workflow described in §6 remains the working path. 1.344 raises the cost of skipping its validation step; it does not replace the workflow.
+
 ### Monaco Configuration Example
 
 ```yaml
@@ -255,8 +269,11 @@ dashboards/
 | 2 | Modify in feature branch | Git |
 | 3 | Review changes in PR | GitHub/GitLab |
 | 4 | Deploy to staging | Monaco/Terraform |
-| 5 | Validate in staging | Manual review |
-| 6 | Deploy to production | Monaco/Terraform |
+| 5 | **Validate schema and render** — open the deployed dashboard in the Dashboards app on the staging tenant and confirm zero validation warnings | Dashboards app (staging tenant) |
+| 6 | Review data fidelity — do the tiles show the numbers you expect, against the entities you expect? | Manual review |
+| 7 | Deploy to production | Monaco/Terraform |
+
+Steps 5 and 6 are deliberately separate checks answering different questions. Step 5 asks *does this dashboard load and render at all* — a schema fault a human reviewer will not catch, because a tile can read perfectly in a pull request and still refuse to render. Step 6 asks *are the numbers right*, which only a person who knows the domain can judge. Collapsing them into one "validate in staging" step is how a payload with a malformed tile reaches production having passed review. See §5 for why the schema check now matters more than it used to.
 
 ### Tracking Dashboard KPI Queries
 

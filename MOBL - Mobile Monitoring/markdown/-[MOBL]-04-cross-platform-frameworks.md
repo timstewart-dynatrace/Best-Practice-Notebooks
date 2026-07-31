@@ -1,6 +1,6 @@
 # MOBL-04: Cross-Platform Frameworks
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -208,14 +208,24 @@ Query all configured mobile applications to confirm both Android and iOS entries
 
 ```dql
 // Full mobile app inventory
-fetch dt.entity.mobile_application
-| fields entity.name, id, tags
-| sort entity.name asc
+// PREFERRED -- Smartscape. For a cross-platform app, expect one FRONTEND node per
+// platform configuration (separate Application IDs for iOS and Android).
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| fields name, id, id_classic, tags
+| sort name asc
 | limit 50
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == "mobile"
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, tags
+// | sort entity.name asc
+// | limit 50
 ```
 
 You should see separate entries for your Android and iOS applications. If either is missing, revisit the configuration and ensure the Application ID and Beacon URL are correctly set for that platform.

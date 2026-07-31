@@ -1,6 +1,6 @@
 # K8S-03: GitOps for DynaKube
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Managing DynaKube with ArgoCD and Flux
 GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.
@@ -97,7 +97,7 @@ spec:
   source:
     repoURL: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
     chart: dynatrace-operator
-    targetRevision: 1.4.0  # Pin to current version — check https://github.com/Dynatrace/dynatrace-operator/releases for latest
+    targetRevision: 1.10.1  # Pin to a version you have validated — check https://github.com/Dynatrace/dynatrace-operator/releases for latest
     helm:
       releaseName: dynatrace-operator
       values: |
@@ -114,6 +114,17 @@ spec:
     syncOptions:
       - CreateNamespace=true
 ```
+
+> **Choosing the pinned version.** A GitOps pin is copy-pasted far more often than it is revisited, so pick it deliberately:
+>
+> | Constraint | Why |
+> |------------|-----|
+> | **Do not pin below 1.4.1** | Operator 1.3.0 through 1.4.0 are inside the CSI driver liveness-probe crash-loop window; 1.4.1 adjusted the probe parameters. See K8S-09 §2. |
+> | **Skip 1.10.0** | Its own release notes advise skipping it (auto-update defect), and it is now flagged `prerelease: true` on the GitHub releases page — a signal you can verify yourself before pinning. Fixed in 1.10.1. |
+> | **1.10.1 is the recommended pin** | Latest release with a published changelog. `v1.10.2` was published 07/30/2026 and is the newest tag, but its release-notes page is not yet available and the GitHub release body carries no changelog — so there is no citable statement of what changed. Verify what 1.10.2 contains before moving a GitOps pin onto it. |
+> | **Anything below 1.7.x is likely past EOL** | Standard 9-month / Enterprise 12-month support window. |
+>
+> Pin an exact version rather than a range for the operator itself — an operator upgrade can change chart *defaults* (see K8S-02 §8), and a range lets that happen without a Git commit to review.
 
 ### ArgoCD Application for DynaKube
 
@@ -187,7 +198,7 @@ spec:
   chart:
     spec:
       chart: dynatrace-operator
-      version: "1.2.x"  # SemVer range for auto-updates
+      version: "1.10.1"  # Pin exactly — see the version-choice table in §2 (do not pin below 1.4.1; skip 1.10.0)
       sourceRef:
         kind: HelmRepository
         name: dynatrace

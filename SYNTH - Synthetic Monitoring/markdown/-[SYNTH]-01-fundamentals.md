@@ -1,6 +1,6 @@
 # SYNTH-01: Synthetic Monitoring Fundamentals
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Understanding Proactive Availability and Performance Testing
 This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.
@@ -191,7 +191,29 @@ Pre-aggregated series for dashboards and trends — already scaled to millisecon
 | `result.statistics.duration` | duration | Total execution time |
 | `result.statistics.response_status_code` | long | HTTP response code |
 
-> **Entity tables** (`fetch dt.entity.synthetic_test`, `fetch dt.entity.http_check`, `fetch dt.entity.synthetic_location`) hold monitor and location *definitions* — use them to resolve names and enumerate configured monitors.
+### Path 3 — Entity definitions (classic tables and their Smartscape equivalents)
+
+**Entity tables** (`fetch dt.entity.synthetic_test`, `fetch dt.entity.http_check`, `fetch dt.entity.synthetic_location`) hold monitor and location *definitions* — use them to enumerate configured monitors and resolve names. They still exist and still return rows.
+
+Each of them now also has a **Smartscape node type**, and that is the preferred surface. SaaS 1.344 (released 07/27/2026, with a **staged tenant rollout from 07/29/2026**) moved the Digital Experience apps — Synthetic among them — so their queries and filters "primarily use `dt.smartscape.*` entities, instead of `dt.entity.*`". Verify 1.344 has reached your tenant before relying on the app-side change; the node types themselves are already queryable via DQL regardless, and cost nothing to read (Smartscape queries scan 0 bytes).
+
+| Classic entity | Smartscape node type | Smartscape model |
+|----------------|----------------------|------------------|
+| `dt.entity.synthetic_test` (browser monitors) | `BROWSER_MONITOR` **plus `BROWSER_MONITOR_STEP`** | `dt.smartscape.browser_monitor` / `..._step` |
+| `dt.entity.http_check` | `HTTP_MONITOR` **plus `HTTP_MONITOR_STEP`** | `dt.smartscape.http_monitor` / `..._step` |
+| `dt.entity.multiprotocol_monitor` | **`NETWORK_AVAILABILITY_MONITOR`** | `dt.smartscape.network_availability_monitor` |
+| `dt.entity.synthetic_location` | `SYNTHETIC_LOCATION` | `dt.smartscape.synthetic_location` |
+
+Two rows in that table cannot be guessed from the classic name, and both fail silently if you guess wrong:
+
+- **`multiprotocol_monitor` was renamed, not transliterated.** The node type is `NETWORK_AVAILABILITY_MONITOR`. `smartscapeNodes "MULTIPROTOCOL_MONITOR"` does **not** raise an error — it returns zero rows, which reads exactly like "this environment has no network monitors".
+- **`synthetic_test` splits into two node types.** Clickpath steps are their own nodes (`BROWSER_MONITOR_STEP`), joined to the monitor by a `contains` edge (or `belongs_to` from the step's side) — they are not attributes of the monitor record. Any query that treated `step.name` as a field of the test needs a `traverse` on Smartscape. The same applies to `HTTP_MONITOR_STEP`.
+
+Two smaller conveniences: the node's **`name` field is already the display name**, so the `entityName()` resolution step that classic entity queries needed disappears; and every node carries **`id_classic`** (`SYNTHETIC_TEST-*`, `HTTP_CHECK-*`, `SYNTHETIC_LOCATION-*`), which is the join key between migrated and unmigrated queries during the transition.
+
+> **Migration mechanics** — for the general rules on classifying a query before migrating it (dimension-first for mass data, `smartscapeNodes` only for entity-list queries), the type and construct mapping, `traverse`, and the `id_classic` bridge, see **FAQ-16: Migrating Classic Entity Selectors to Smartscape**.
+
+> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — "All latest Dynatrace queries and filters in the above apps now primarily use `dt.smartscape.*` entities, instead of `dt.entity.*` and `dt.rum.application.*`". **Derived:** the classic-to-node mapping table is read from `dt.semantic_dictionary.models` (`data_object == "smartscape.nodes"`, `classic_models` expanded) on a live tenant, 07/30/2026; the two "cannot be guessed" traps are the observed consequences of that mapping, not documented warnings.</sub>
 
 <a id="your-first-synthetic-query"></a>
 ## 5. Your First Synthetic Query
@@ -199,12 +221,24 @@ Let's explore synthetic monitoring data in your environment.
 
 ```dql
 // Discover configured synthetic monitors in your environment
-// Entity tables hold monitor definitions (names, IDs)
-fetch dt.entity.synthetic_test
-| fields id, entity.name
-| sort entity.name asc
+// PREFERRED -- Smartscape. Browser monitors are BROWSER_MONITOR; the node's `name`
+// field IS the display name, so no entityName() resolution is needed.
+smartscapeNodes "BROWSER_MONITOR"
+| fields name, id, id_classic, url, enabled, frequency
+| sort name asc
 | limit 50
 
+// Other monitor types:
+//   HTTP monitors                  -> smartscapeNodes "HTTP_MONITOR"
+//   Network availability monitors  -> smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
+// NOT "MULTIPROTOCOL_MONITOR" -- that node type does not exist and returns zero rows
+// rather than an error, which is indistinguishable from having no network monitors.
+
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.synthetic_test
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
 ```
 
 ```dql
@@ -217,13 +251,23 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ```dql
 // List available synthetic locations
-// Note: cloudPlatform, city, countryCode fields are not available on synthetic_location entity
-fetch dt.entity.synthetic_location
-| fields id, entity.name
-| sort entity.name asc
+// PREFERRED -- Smartscape. location_type, stage, cloud.provider and geo.* are all
+// available on the SYNTHETIC_LOCATION node. The classic entity genuinely has none of
+// them, which is why the old guidance said these fields "are not available".
+smartscapeNodes "SYNTHETIC_LOCATION"
+| fields name, location_type, stage, cloud.provider, geo.country.name, geo.city.name
+| sort name asc
 | limit 50
 
+// See SYNTH-04 for the private-vs-public breakdown and a verification caveat on the
+// exact location_type literals your tenant returns.
 
+// FALLBACK (classic surface -- still functional, but name-only: cloudPlatform, city
+// and countryCode really are absent from dt.entity.synthetic_location):
+// fetch dt.entity.synthetic_location
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
 ```
 
 ```dql

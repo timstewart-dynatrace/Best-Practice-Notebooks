@@ -1,6 +1,6 @@
 # SYNTH-03: HTTP Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Lightweight API and Endpoint Monitoring
 This notebook covers HTTP monitors for API health checks, endpoint validation, and multi-step API workflows using the latest Dynatrace platform.
@@ -94,12 +94,26 @@ User-Agent: Dynatrace Synthetic
 
 ```dql
 // List all HTTP monitors
-fetch dt.entity.http_check
-| fields id, entity.name
-| sort entity.name asc
+// PREFERRED -- Smartscape. Classic dt.entity.http_check maps to HTTP_MONITOR;
+// id_classic still carries the HTTP_CHECK-* id for joining to unmigrated queries.
+smartscapeNodes "HTTP_MONITOR"
+| fields name, id, id_classic, http_monitor.type, enabled, frequency
+| sort name asc
 | limit 50
 
+// Multi-step HTTP requests are separate nodes (HTTP_MONITOR_STEP) joined to the monitor
+// by an edge, not fields of the monitor record. Steps per monitor:
+//
+// smartscapeNodes "HTTP_MONITOR_STEP"
+// | traverse edgeTypes: {"belongs_to"}, targetTypes: {"HTTP_MONITOR"}, direction: forward
+// | summarize steps = count(), by:{monitor = name}
+// | sort steps desc
 
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.http_check
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
 ```
 
 ```dql

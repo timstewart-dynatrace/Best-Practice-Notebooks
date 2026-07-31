@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -177,6 +177,8 @@ Dynatrace collects multiple signal types from Kubernetes:
 | `builtin:kubernetes.workload.requests_memory` | Memory requests | Bytes |
 | `builtin:kubernetes.workload.limits_cpu` | CPU limits | Millicores |
 | `builtin:kubernetes.workload.limits_memory` | Memory limits | Bytes |
+
+> **Request and limit metrics changed what they count in ActiveGate 1.343** — init containers are now included in the pod-scope total, and therefore in workload roll-ups. Reserved figures step up at the upgrade with no workload change; usage metrics are unaffected. This matters whenever you compare a request/limit trend across the upgrade boundary — see K8S-08 §2 before drawing capacity conclusions from one.
 
 ### Cluster Health Metrics
 

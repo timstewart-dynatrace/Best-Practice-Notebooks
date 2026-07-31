@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -374,13 +374,18 @@ The sizing table above is keyed on **routed host count** — the right model for
 
 ```dql
 // Inventory current ActiveGates and their versions
-fetch dt.entity.active_gate
-| fieldsAdd entity.name, version = softwareVersion
-| fields entity.name, version, networkZone
-| sort entity.name asc
+smartscapeNodes "ACTIVEGATE"
+| fields name, version = dt.active_gate.version, zone = dt.network_zone.id
+| sort name asc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
 ```
 
 ![Security Model](images/03-security-model.png)
@@ -532,12 +537,18 @@ Your responsibility is ensuring no single points of failure in the agent-to-SaaS
 
 ```dql
 // Verify ActiveGate distribution across network zones
-fetch dt.entity.active_gate
-| summarize agCount = count(), by:{networkZone}
+smartscapeNodes "ACTIVEGATE"
+| summarize agCount = count(), by:{dt.network_zone.id}
 | sort agCount desc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
 ```
 
 <a id="architecture-design-checklist"></a>

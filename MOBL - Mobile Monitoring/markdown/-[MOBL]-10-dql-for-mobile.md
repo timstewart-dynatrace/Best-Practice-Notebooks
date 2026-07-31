@@ -1,6 +1,6 @@
 # MOBL-10: DQL for Mobile Analytics
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -75,14 +75,30 @@ This is typically the first query to run when onboarding a new environment — i
 
 ```dql
 // Mobile application inventory with details
-fetch dt.entity.mobile_application
-| fields entity.name, id, lifetime, tags
-| sort entity.name asc
+// PREFERRED -- Smartscape. Mobile and web applications converged onto the single
+// FRONTEND node type; frontend.type ("mobile" / "web") is the discriminator, and
+// there is no dt.smartscape.mobile_application. id_classic holds the
+// MOBILE_APPLICATION-* id for joining back to unmigrated queries.
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| fields name, id, id_classic, lifetime, tags
+| sort name asc
 | limit 50
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// Mobile-vs-web split in one pass (no filter needed):
+// smartscapeNodes "FRONTEND"
+// | summarize apps = count(), by:{frontend.type}
+
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == "mobile"
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, lifetime, tags
+// | sort entity.name asc
+// | limit 50
 ```
 
 **Expected output:** A table listing each mobile application entity with its display name, entity ID, lifetime (first seen to last seen), and any assigned tags.

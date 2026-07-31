@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -45,6 +45,9 @@ Dynatrace offers multiple integration paths for Azure, with the **Azure Native D
 | **Clouds app (direct connection)** | Connect via Entra ID app registration from Dynatrace SaaS | Existing Dynatrace SaaS environments |
 | **Classic ActiveGate polling** | ActiveGate queries Azure Monitor API every 5 min | Managed deployments, legacy setups |
 | **Azure Event Hub** | Streams metrics/logs via Event Hub | Near real-time log ingestion |
+| **OneAgent code-level tracing** | OneAgent on the VM, App Service, or container auto-instruments Azure SDK calls made **by your application processes**, producing distributed-trace spans rather than Azure Monitor resource metrics | Seeing *which code path* called *which Azure service*, and what it cost |
+
+> **Two different signal classes, not four options and a fifth.** The first four rows are **resource-metric** paths — they pull what Azure Monitor already measures *about* an Azure resource. The last row is a **code-level tracing** path — it captures your application's own calls *into* Azure services. Most Azure estates need both; §3 draws the distinction in detail.
 
 ### Azure Native Dynatrace Service
 
@@ -66,6 +69,8 @@ Azure Resources → Azure Monitor → Dynatrace SaaS (direct connection)
 ### Supported Azure Regions
 
 Dynatrace supports all Azure public regions, Azure Government, and Azure China (with separate configuration).
+
+**Region values are programmatic strings, not display names.** Azure regions surface in Dynatrace as lowercase, no-space identifiers — `eastus`, `westeurope`, `southcentralus` — not `East US` / `West Europe`. Filters, tag rules, and management-zone conditions must match the programmatic form (standardized as of OneAgent 1.337). A condition written against the display name silently matches nothing rather than erroring.
 
 ### Release Radar (April 2026): Native Azure Experience in Clouds is GA
 
@@ -130,6 +135,29 @@ Dynatrace monitors 50+ Azure services. Key services:
 | **Networking** | Load Balancer, Application Gateway, Front Door, Traffic Manager, VPN Gateway |
 | **Integration** | Service Bus, Event Hub, Event Grid, Logic Apps, API Management |
 | **AI/ML** | Cognitive Services, Machine Learning, OpenAI Service |
+
+> **What this table is — and is not.** These are the services covered by **Azure Monitor metrics** ingestion: Dynatrace polls Azure Monitor and stores the resource-level metrics Azure publishes about each service. That is coverage *of the resource*, not of your code's interaction with it. For **code-level visibility** — which application call reached Service Bus, how long a Cosmos DB read took, which span failed and why — you need **OneAgent** on the process making the call (see §1's *OneAgent code-level tracing* row). The two are complementary: Azure Monitor tells you a resource is throttling; OneAgent tells you which service and code path is being throttled. Azure's own service list and Dynatrace's coverage both move; re-check the supported-services list against your tenant's Clouds app rather than treating the table above as exhaustive.
+
+### OneAgent Azure SDK Tracing (OneAgent 1.343)
+
+Forthcoming / rolling out with [**OneAgent 1.343**](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343), released 07/28/2026. Rollout is **per agent fleet, not per tenant** — **verify the OneAgent version on the hosts concerned**. The tenant version is not the agent version, and fleets commonly lag by more than one sprint.
+
+| Azure service | Automatic tracing added for | Note |
+|---|---|---|
+| **Service Bus** | Java (1.2.31+), Node.js, Python | Covers both sending and receiving messages |
+| **Event Hub** | Java (1.2.26+), Node.js | Python is **not** part of this release |
+| **Cosmos DB** | Python | Adds to the runtimes already supported |
+
+**Azure Functions** instrumentation widened in the same release:
+
+| Plan / OS | Runtime | Trigger types |
+|---|---|---|
+| Flex Consumption Plan (Linux) | Python | HTTP/webhooks, Service Bus, Event Hubs, Timer, Blob Storage, Event Grid, Azure SQL |
+| Consumption / Premium / Dedicated (Windows) | Java, Node.js | HTTP/webhooks, Service Bus, Event Hubs, Timer |
+
+> **Re-baseline Cosmos DB request charges across this upgrade.** OneAgent 1.343 corrected how `db.cosmosdb.request_charge` values are summarized on aggregated spans. Request-charge figures collected **before** 1.343 should be re-baselined rather than compared across the upgrade — a step change at the upgrade boundary is the correction landing, not a workload change.
+
+**On OneAgent 1.342 and earlier**, the Azure Monitor resource metrics in the table above remain the only coverage for these services — the code-level spans are simply not produced.
 
 ### Entity Type Mapping
 

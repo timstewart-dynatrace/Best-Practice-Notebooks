@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -70,6 +70,21 @@ Building on the above, the Kubernetes app now surfaces a broader set of objects 
 - **Query YAML across clusters with DQL** — surface misconfigurations, missing references, or policy violations across all clusters and namespaces at once.
 
 **Prerequisite:** ActiveGate version 1.327+. Older ActiveGate versions stay in backward-compatibility mode, where an extra **Explorer (Classic)** tab appears. From June 2026, Explorer Classic transitions to *maintenance-only* support — upgrade ActiveGate to 1.327+ to move clusters to the new Explorer before automatic migration. No monitoring data is lost during the transition.
+
+#### Kubernetes Connection Lifecycle — Automatic Stale Cleanup (SaaS 1.344)
+
+Every monitored cluster has a **Kubernetes connection** on the tenant side. Its lifecycle is worth knowing in both directions, because it cuts two ways.
+
+**SaaS 1.344** (released 07/27/2026, **staged tenant rollout from 07/29/2026** — verify it has reached your tenant before relying on it) adds **automatic cleanup of stale Kubernetes connections at a 60-day threshold**:
+
+| Direction | What happens | What you should do |
+|---|---|---|
+| **Decommissioned cluster** | Its connection stops reporting and is now cleaned up automatically once it crosses 60 days stale — the connection list stops accumulating entries for clusters that no longer exist. | Nothing. This is the behavior you want; it removes a recurring housekeeping chore. |
+| **Live but long-idle cluster** | A cluster that is still real but has not reported for 60 days — a lab, a seasonal environment, a cluster whose ActiveGate has been down a long time — **can be reaped by the same rule**, and reconnecting means re-establishing the connection. | Treat "no data for weeks" as an issue to fix rather than a state to tolerate. If an environment is legitimately dormant for months, expect to re-add it and note that in your runbook. |
+
+**Until 1.344 reaches your tenant**, stale connections persist until someone removes them manually — the existing housekeeping step remains the working path, and reviewing the connection list periodically is still worth doing.
+
+SaaS 1.344 also adds **cross-app navigation with context preservation**, so a jump from the Kubernetes app into another app (for example, into logs or a dashboard) carries the cluster/namespace context with it instead of dropping you at an unfiltered start.
 
 ```dql
 // List all monitored Kubernetes clusters (smartscape topology)
@@ -158,6 +173,8 @@ timeseries avgDiskUsage = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entit
 **Key Insight:** Requested ≠ Used. Over-provisioning wastes resources. Monitor both to optimize cluster efficiency.
 For environments where SVG doesn't render
 -->
+
+> **Capacity planning across an ActiveGate 1.343 upgrade:** request and limit metrics **include init containers from ActiveGate 1.343 onward**, so the *Requested* line steps up at the upgrade while *Used* does not move. Read a trend spanning that boundary as **two series, not one** — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.
 
 ```dql
 // CPU requests by namespace (average over time period)

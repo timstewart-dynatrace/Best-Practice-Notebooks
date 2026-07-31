@@ -1,6 +1,6 @@
 # S2D-05: Alert Migration - Workflow-Based Alerts
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
 
 ## Overview
 
@@ -155,34 +155,91 @@ The final workflow step uses JavaScript to create events. Here's a template:
 
 ```javascript
 // Event Creation Template
+import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
 export default async function ({ execution_id }) {
   // Get query results from previous step
   const queryResult = await getResult('query_step_name');
   const records = queryResult.records;
-  
+
   // Configuration
   const THRESHOLD = 100;
   const ALERT_TITLE = '[AppName] High Error Count';
-  
+
   // Check each result against threshold
   for (const record of records) {
     const errorCount = record.error_count;
-    
-    if (errorCount > THRESHOLD) {
-      // Create event
-      await sendEvent({
+    const entityId = record['dt.entity.cloud_application'];
+
+    // No entity, no event. An unattributed event can never merge - see below.
+    if (errorCount <= THRESHOLD || !entityId) continue;
+
+    await eventsClient.createEvent({
+      body: {
         eventType: 'ERROR_EVENT',
         title: ALERT_TITLE,
+        // Attribution. This is the line that lets the event join an existing problem.
+        entitySelector: `entityId("${entityId}")`,
         properties: {
-          'error.count': errorCount,
-          'deployment.name': record['k8s.deployment.name']
+          'error.count': String(errorCount),
+          'deployment.name': record['k8s.deployment.name'],
+          'team': 'checkout'
         },
         timeout: 15 // minutes
-      });
-    }
+      }
+    });
   }
 }
 ```
+
+### Why `entitySelector` is the load-bearing line
+
+Davis groups alerts by the entity they are *about*. Every Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal concerns — and the documented rule is that the same-Smartscape-entity rule groups all events sharing the same `dt.smartscape_source.id` value. Events naming the same entity inside the correlation window collapse into **one** problem that updates as the condition persists.
+
+An event that leaves that field unset matches nothing, so it merges with nothing: **every single firing opens its own problem.** This is a structural failure rather than a sensitivity one — no threshold change fixes it, because those events were never candidates for merging in the first place.
+
+On the ingest API you do not set the field directly. You attribute the event with `entitySelector`, and Davis populates `dt.smartscape_source.id` from the entity it resolves. The failure mode is quiet by design: if `entitySelector` is not set, the event is associated with the environment (`dt.entity.environment`) entity — one bucket for the entire tenant. Technically attributed, useless for correlation.
+
+**The loop is what makes this expensive.** A scheduled workflow that iterates records emits one event per breaching row per run. Attributed, an hourly run against twelve breaching deployments keeps twelve problems updated. Unattributed, that same run opens twelve *brand new* problems every hour — 288 a day from one workflow. This is the single most common way a migrated Splunk alert becomes noise in Dynatrace, and it does not look like a threshold problem when you go to debug it.
+
+### Getting a usable entity ID
+
+Use an ID the query already returns; do not derive one from a display name.
+
+The dimensioned query in the previous section groups by `dt.entity.cloud_application`, which is a real entity ID (`CLOUD_APPLICATION-0DC6683CE35D5C10`) and drops straight into `entityId(...)`. **`k8s.deployment.name` is not a substitute** — on the tenant this notebook was validated against, those values come back normalized with a trailing wildcard (`"recommendationservice-*"`, `"cartservice-*"`), so matching on the name is not dependable.
+
+**Confirm your IDs actually resolve before trusting them.** The Smartscape node ID and the classic entity ID are different strings for the same workload — `K8S_DEPLOYMENT-184217F70116D1CD` and `CLOUD_APPLICATION-0DC6683CE35D5C10` — and `id_classic` is the bridge between them. Run this against your own estate:
+
+```dql
+// Do the entity IDs in your alert query resolve to real workloads?
+// A null smartscape_id means that row cannot be attributed - skip it, don't send it.
+fetch logs, from:now()-24h
+| filter loglevel == "ERROR"
+| summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
+| filter error_count > 100
+| lookup [smartscapeNodes "K8S_DEPLOYMENT" | fields id, id_classic],
+    sourceField: dt.entity.cloud_application, lookupField: id_classic, fields:{smartscape_id = id}
+| sort error_count desc
+| limit 5
+```
+
+Executed against the validation tenant over 24 hours on 07/31/2026, the top five breaching rows resolved like this:
+
+| `k8s.deployment.name` | `error_count` | resolved `smartscape_id` |
+|---|---:|---|
+| `fluent-bit` | 1,155,207 | *null* |
+| `recommendationservice-*` | 197,539 | `K8S_DEPLOYMENT-184217F70116D1CD` |
+| *(null)* | 145,032 | *null* |
+| `emailservice-*` | 42,587 | `K8S_DEPLOYMENT-2AE53064B9E3699D` |
+| `headlessloadgen-*` | 29,039 | `K8S_DEPLOYMENT-141CE4BF3FD85A16` |
+
+**Two of the top five do not resolve — including the largest, by two orders of magnitude.** The `fluent-bit` logs carry a `dt.entity.cloud_application` value with no matching Smartscape deployment node, and the 145,032-error row carries no deployment context at all.
+
+Skip those rows rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it opens a fresh problem on every run and no tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
+
+To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks them by firing count and shows which are unattributed; AIOPS-03 §1 covers the correlation rules themselves, and ALERT-99 §3 explains which Davis data object to count when you audit.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` is optional, and "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the skip-unresolvable-rows rule combines the correlation requirement with the measured resolution gap in the table above.</sub>
 
 <a id="schedule-configuration"></a>
 ## Schedule Configuration
@@ -267,10 +324,11 @@ This preserves the benefits of Dynatrace Intelligence while limiting alert times
 |------|--------|
 | 1 | Confirm workflow is appropriate (see criteria above) |
 | 2 | Create DQL query with explicit timeframe |
-| 3 | Configure schedule trigger |
-| 4 | Implement event creation logic |
-| 5 | Test workflow execution |
-| 6 | Configure notification routing |
+| 3 | Confirm the query returns a usable entity ID per row (`dt.entity.*`), not just a name |
+| 4 | Configure schedule trigger |
+| 5 | Implement event creation logic |
+| 6 | Test workflow execution |
+| 7 | Configure notification routing |
 
 ## Next Steps
 

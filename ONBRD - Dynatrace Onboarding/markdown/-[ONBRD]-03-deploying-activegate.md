@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 07/15/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -136,12 +136,20 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 ## 3. How Many ActiveGates?
 ### Sizing Guidelines
 
-| ActiveGate Size | OneAgents Supported | Memory | CPU |
-|-----------------|---------------------|--------|-----|
-| **Small** | Up to 500 | 2 GB | 2 cores |
-| **Medium** | 500-1,500 | 4 GB | 4 cores |
-| **Large** | 1,500-3,000 | 8 GB | 8 cores |
-| **Extra Large** | 3,000-5,000 | 16 GB | 16 cores |
+> **FAQ-10 owns the ActiveGate sizing decision.** *FAQ-10: How do I size and scale ActiveGates?* carries the current published per-shape capacity tables, the 50% CPU / 80% memory headroom rule, the survivor-capacity HA math for a multi-node zone, and the `dt.sfm.active_gate.*` saturation signals to watch once the fleet is running. Treat the table below as an order-of-magnitude sanity check while you plan the deployment — size the actual machines against FAQ-10 and the official requirements page.
+
+Dynatrace publishes estimated host counts per reference instance shape, with the guidance that a steady-state ActiveGate *"should not exceed 50% CPU and 80% memory"*:
+
+| Reference shape | Architecture | vCPU | RAM | Estimated hosts routed |
+|-----------------|--------------|------|-----|------------------------|
+| c6i.large | x86-64 | 2 | 3.75 GiB | ~800 |
+| c6i.xlarge | x86-64 | 4 | 7.5 GiB | ~1,800 |
+| c6i.2xlarge | x86-64 | 8 | 15 GiB | ~2,500 |
+| c7g.large | ARM64 | 2 | 3.75 GiB | ~1,300 |
+| c7g.xlarge | ARM64 | 4 | 7.5 GiB | ~2,700 |
+| c7g.2xlarge | ARM64 | 8 | 15 GiB | ~5,500 |
+
+The reference points are AWS instance shapes — for on-premises VMs, map by vCPU/RAM rather than looking for the instance name. "Estimated hosts routed" assumes typical per-host data volume; hosts pushing heavy log volume through the ActiveGate consume capacity faster. Note also that ARM64 routes materially more hosts per vCPU than x86-64 at the same shape, which is worth knowing *before* you standardize on an instance family.
 
 ### Detailed Hardware Requirements
 
@@ -157,14 +165,43 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 
 #### Operating System Support
 
+The routing/monitoring ActiveGate matrix changes every few sprints, so **the official requirements pages are the authority** — re-check them before you provision, not just when something breaks: [Linux ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) and [Windows ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements).
+
+Currently listed for routing/monitoring ActiveGates (verified 07/30/2026, ActiveGate 1.343):
+
 | OS | Supported Versions |
 |----|-------------------|
-| **RHEL/CentOS** | 7.x, 8.x, 9.x |
-| **Ubuntu** | 18.04, 20.04, 22.04, 24.04 LTS |
-| **Debian** | 10, 11, 12 |
+| **Red Hat Enterprise Linux** | 8.10, 9.4, 9.6, 9.7, 9.8, 10.0, 10.1, 10.2 |
+| **Oracle Linux** | 8.10, 9.7, 9.8, 10.1, 10.2 |
+| **Rocky Linux** | 8.10, 9.7, 9.8, 10.1, 10.2 |
+| **Ubuntu** | 16.04, 18.04, 20.04, 22.04, 24.04, 26.04 (x86-64); 20.04, 22.04, 24.04, 26.04 (ARM64 / s390) |
 | **Amazon Linux** | 2, 2023 |
-| **SUSE** | 12 SP5, 15 SPx |
-| **Windows Server** | 2016, 2019, 2022 |
+| **SUSE Linux Enterprise Server** | 15.7 |
+| **Windows Server** | 2016, 2019, 2022, 2025 |
+
+**Added in ActiveGate 1.343:** Oracle Linux 9.8 and 10.2, Rocky Linux 9.8 and 10.2. ActiveGate 1.343 was published 07/15/2026 with a staged fleet rollout from 07/28/2026 — the ActiveGates already running in your environment carry whatever version they last updated to, so check the version of the specific ActiveGate before assuming a newly added OS is installable on it.
+
+> **On CentOS and Debian:** neither CentOS Linux, CentOS Stream, nor Debian appears on the current routing/monitoring ActiveGate matrix (verified 07/30/2026). Earlier revisions of this notebook combined "RHEL/CentOS" into a single row, which reads as an endorsement of CentOS that the requirements page does not make — and CentOS Linux is end-of-life upstream regardless of what Dynatrace supports. If you are planning ActiveGates on CentOS Stream or Debian, check the requirements page directly before provisioning rather than inferring support from the RHEL row.
+
+#### Support Ending — Do Not Provision New ActiveGates on These
+
+Dynatrace de-supports an OS version *"at least 6 months after its end of life (EOL), to give you enough time to upgrade your environment."* The announced removals below all fall inside the next six months:
+
+| OS version | ActiveGate support ends |
+|------------|------------------------|
+| Red Hat Enterprise Linux 9.4 | **11/01/2026** |
+| Ubuntu 16.04 | **11/01/2026** |
+| Red Hat Enterprise Linux 9.7, 10.1 | **12/01/2026** |
+| Oracle Linux 9.7, 10.1 | **12/01/2026** |
+| Rocky Linux 9.7, 10.1 | **12/01/2026** |
+| Amazon Linux 2 | **01/01/2027** |
+
+**Existing ActiveGates on these versions keep working right up to the date** — nothing stops the moment the announcement lands. What ends is Dynatrace's commitment to fix issues and ship new ActiveGate versions for that OS. Two practical consequences for an onboarding plan:
+
+- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead.
+- **Fold the OS upgrade into the next ActiveGate update window** rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in *FAQ-05: Managing ActiveGate updates on Dynatrace SaaS*.
+
+> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026.
 
 #### Memory Sizing by Workload
 
@@ -203,12 +240,14 @@ For production environments, deploy **at least 2 ActiveGates per network zone**:
 
 ### Example Deployment
 
-| Network Zone | Hosts | ActiveGates | Sizing | Memory | CPU |
-|--------------|-------|-------------|--------|--------|-----|
-| Production DMZ | 200 | 2 | Small | 2 GB each | 2 cores |
-| Production Internal | 800 | 2 | Medium | 4 GB each | 4 cores |
-| Development | 150 | 1 | Small | 2 GB | 2 cores |
-| **Total** | **1,150** | **5** | | **14 GB** | **14 cores** |
+| Network Zone | Hosts | ActiveGates | Shape class per AG | vCPU each | RAM each |
+|--------------|-------|-------------|--------------------|-----------|----------|
+| Production DMZ | 200 | 2 | c6i.large (~800 hosts) | 2 | 3.75 GiB |
+| Production Internal | 800 | 2 | c6i.xlarge (~1,800 hosts) | 4 | 7.5 GiB |
+| Development | 150 | 1 | c6i.large (~800 hosts) | 2 | 3.75 GiB |
+| **Total** | **1,150** | **5** | | **14 vCPU** | **26.25 GiB** |
+
+Note why Production Internal is sized at c6i.xlarge for only 800 hosts across two nodes: each node must be able to carry the **whole** zone when its partner is down, so the survivor's capacity — not the average load — sets the shape. FAQ-10 works that survivor-capacity math out properly, including for zones larger than two nodes.
 
 <a id="where-to-deploy"></a>
 ## 4. Where to Deploy?
@@ -779,26 +818,38 @@ spec:
 
 <a id="verifying-deployment"></a>
 ## 7. Verifying Deployment
-After installation, verify ActiveGate is connected and healthy.
+After installation, verify ActiveGate is connected and healthy. ActiveGates surface in Grail as the **`ACTIVEGATE` Smartscape node**, so the queries below work directly in a notebook — no REST call needed.
+
+> **A note on the classic path (ActiveGate 1.343, July 2026):** ActiveGate 1.343 deprecates the classic `GET /api/v2/activeGates` endpoints in favor of this Smartscape node. Separately, ActiveGates have **never** been reachable through DQL `fetch` — there is no `dt.entity.active_gate` entity type in any spelling. Worth knowing precisely how that fails: `fetch dt.entity.active_gate` does not error — it returns **zero rows**, which is indistinguishable from "this environment has no ActiveGates." Treat an empty result from a classic entity fetch as a signal to check the entity type exists at all. `smartscapeNodes "ACTIVEGATE"` is the DQL path. The classic **Entities API v2** selector (`GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")`) is a different surface from DQL and may still respond during the deprecation period — use it if you need a REST fallback for a tenant that has not yet received 1.343, and migrate the automation on your next maintenance touch.
 
 ```dql
-// ActiveGate verification - use the Entities API v2 or Settings API
-// Note: ActiveGates are not directly queryable via DQL fetch
-// Use: GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")
-// Or check the Deployment Status → ActiveGates page in the Dynatrace UI
+// ActiveGate inventory - every ActiveGate reporting to this environment,
+// with its group, network zone, enabled modules, and host OS.
+// Live-verified 07/30/2026. Costs nothing: Smartscape nodes scan 0 bytes of Grail.
+smartscapeNodes "ACTIVEGATE"
+| fields name, dt.active_gate.id, dt.active_gate.version, dt.active_gate.group.name,
+         dt.network_zone.id, is_containerized, os.type, os.version, modules
+| sort name asc
 ```
 
 ```dql
-// ActiveGate version check - use the Entities API v2
-// GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")&fields=properties
-// The response includes version information in the properties
-// Or check Deployment Status → ActiveGates in the UI for version details
+// ActiveGate version spread - find the laggards before an update window.
+// More than one row means the fleet is not uniform; sort ascending puts the
+// oldest version first. Cross-check the OS end-of-support table in section 3
+// against the os.version values from the inventory query above.
+smartscapeNodes "ACTIVEGATE"
+| summarize {activegates = count(), names = collectDistinct(name)},
+    by:{dt.active_gate.version}
+| sort dt.active_gate.version asc
 ```
 
 ```dql
-// ActiveGate count - use the Entities API v2
-// GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")
-// Count the entities in the response, or check the ActiveGates page in UI
+// ActiveGate count per group and network zone - the HA check.
+// Any row showing 1 is a single point of failure for that zone; production
+// zones should show 2 or more (see High Availability in section 3).
+smartscapeNodes "ACTIVEGATE"
+| summarize activegates = count(), by:{dt.active_gate.group.name, dt.network_zone.id}
+| sort activegates desc
 ```
 
 ### Verification via UI
@@ -909,13 +960,13 @@ In this notebook, you learned:
 
 - What ActiveGate does and its capabilities
 - When ActiveGate is required vs. optional
-- Hardware requirements and sizing guidelines
-- How to size and plan ActiveGate deployment
+- Hardware requirements, the published per-shape capacity figures, and why FAQ-10 owns the sizing decision
+- Which operating systems are currently supported, and which ones lose support inside the next six months
 - Where to place ActiveGates in your network
 - Installation methods for Linux, Windows, and containers
 - **Kubernetes deployment** using Operator, Helm, or raw manifests
 - Platform-specific configurations for EKS, AKS, and GKE
-- How to verify successful deployment
+- How to verify successful deployment with `smartscapeNodes "ACTIVEGATE"` inventory, version, and HA queries
 
 ---
 
@@ -925,7 +976,9 @@ In this notebook, you learned:
 - [ActiveGate Overview](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate)
 - [ActiveGate Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation)
 - [Network Zones](https://docs.dynatrace.com/docs/manage/network-zones)
-- [ActiveGate Sizing](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)
+- [Linux ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)
+- [Windows ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements)
+- [End-of-support announcements](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news)
 - [Private Synthetic Locations](https://docs.dynatrace.com/docs/platform-modules/digital-experience/synthetic-monitoring/private-synthetic-locations)
 - [Clouds App](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring)
 

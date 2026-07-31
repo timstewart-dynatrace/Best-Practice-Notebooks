@@ -1,6 +1,6 @@
 # SYNTH-06: Synthetic Analytics & Alerting
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Dashboards, SLOs, and Alerting Strategies
 This notebook covers advanced analytics for synthetic monitoring, including building dashboards, configuring SLOs, and implementing effective alerting strategies using the latest Dynatrace platform.
@@ -47,8 +47,13 @@ This notebook covers advanced analytics for synthetic monitoring, including buil
 | `dt.synthetic.events` | Execution results (events) | Per-execution analysis, failures, percentiles |
 | `dt.synthetic.detailed_events` | Per-step request detail | Deep-dive on individual steps |
 | `timeseries dt.synthetic.*` | Pre-aggregated metrics | Long-term trends, dashboards |
-| `dt.entity.synthetic_test` / `dt.entity.http_check` / `dt.entity.multiprotocol_monitor` | Monitor definitions | Configuration, name resolution |
-| `dt.entity.synthetic_location` | Location info | Geographic analysis |
+| `dt.entity.synthetic_test` / `dt.entity.http_check` / `dt.entity.multiprotocol_monitor` | Monitor definitions (classic — still functional) | Configuration, name resolution |
+| `dt.entity.synthetic_location` | Location info (classic — still functional) | Geographic analysis |
+| `smartscapeNodes "BROWSER_MONITOR"` / `"HTTP_MONITOR"` / `"NETWORK_AVAILABILITY_MONITOR"` | Monitor definitions (Smartscape — **preferred**) | Configuration; `name` is already the display name, so no `entityName()` step |
+| `smartscapeNodes "BROWSER_MONITOR_STEP"` / `"HTTP_MONITOR_STEP"` | Step definitions as **separate nodes** | Per-step configuration; `traverse` the `belongs_to` edge to reach the parent monitor |
+| `smartscapeNodes "SYNTHETIC_LOCATION"` | Location info (Smartscape — **preferred**) | Geographic analysis with `location_type`, `stage`, `cloud.provider`, `geo.*` — none of which exist on the classic entity |
+
+> **Note on the entity rows.** SaaS 1.344 (released 07/27/2026, **staged tenant rollout from 07/29/2026**) makes `dt.smartscape.*` the primary entity surface for the Synthetic app. The classic tables above still work, so they remain a genuine fallback while the rollout completes. Two mapping traps: the network-monitor node is `NETWORK_AVAILABILITY_MONITOR` (**not** `MULTIPROTOCOL_MONITOR`), and classic `synthetic_test` splits into `BROWSER_MONITOR` + `BROWSER_MONITOR_STEP`. See SYNTH-01 § 4 for the full mapping table and FAQ-16 for migration mechanics.
 
 <a id="availability-analysis"></a>
 ## 2. Availability Analysis

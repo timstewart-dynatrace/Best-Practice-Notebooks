@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 07/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -103,12 +103,15 @@ export DATA_INGEST_TOKEN="dt0c01.XXXXXXXX.ZZZZZZZZZZZZZZZZ"
 
 ```bash
 helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.1 \
   --create-namespace \
   --namespace dynatrace \
   --atomic
 ```
 
 The `--atomic` flag ensures the installation is rolled back automatically if any component fails to start.
+
+> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.1** is the recommended pin as of 07/30/2026: skip **1.10.0** (auto-update defect; now flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)), and while **v1.10.2** was published 07/30/2026 and is the newest tag, it ships without a published changelog — verify what it changes before adopting it. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2).
 
 ### Step 2: Create the Token Secret
 

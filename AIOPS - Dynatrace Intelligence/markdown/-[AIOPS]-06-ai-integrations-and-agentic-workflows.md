@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 06/30/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -28,6 +28,7 @@ For environments where SVG doesn't render
 ## Table of Contents
 
 1. [Three Integration Surfaces](#surfaces)
+    - [AI Observability: Monitoring Your Own GenAI Applications](#ai-observability)
 2. [Workflow Tutorial: Optimize DQL Cost](#wf-dql-cost)
 3. [Workflow Tutorial: Summarize Open Problems](#wf-summary)
 4. [Workflow Tutorial: Forecast Resource Utilization](#wf-forecast)
@@ -61,6 +62,94 @@ These three are complementary, not exclusive. A mature observability practice us
 > **Adjacent capability — AI Observability (monitoring *your own* GenAI apps).** Distinct from the three Dynatrace-Intelligence integration surfaces above: **AI Observability** ingests GenAI / LLM telemetry from your *own* applications as OpenTelemetry spans. It reads Dynatrace's native `gen_ai.*` attributes — so native OTel, **OpenLLMetry**, and OneAgent's Python GenAI auto-instrumentation (Bedrock / OpenAI / Azure OpenAI / LangChain, OneAgent 1.339+) flow straight in. **OpenInference** (the Arize AI standard) uses its own `llm.*` attributes and **must be normalized to `gen_ai.*` first** — either with an OTel Collector `transform` processor or via Dynatrace OpenPipeline (see the OPIPE series). Prerequisites: a DPS license with Traces powered by Grail, OTLP ingestion enabled, and an API token with the `openTelemetryTrace.ingest` scope.
 
 > <sub>**Sources:** [Get started with OpenInference and AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/get-started/openinference), [AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability).</sub>
+
+<a id="ai-observability"></a>
+### 1a. AI Observability: monitoring your own GenAI applications
+
+#### Where it surfaces
+
+**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026) and adds two dedicated surfaces: a **Smartscape view** for GenAI topology, and a standalone **Evaluations** screen for prompt evaluations. Verify they have reached your tenant. Until then, prompt evaluations surface inside the general app views — that remains the working path, and the underlying span data is identical either way.
+
+#### The conversation-reconstruction problem
+
+Each turn of a conversational GenAI application is a **separate HTTP request with its own trace ID**. Traces are therefore per-turn by construction, and nothing in the default span data stitches turn 1 to turn 7. End-to-end session analysis — cost per conversation, where a multi-turn agent went wrong, which sessions got a bad answer — needs a **shared identifier carried across turns**.
+
+#### Key attributes
+
+| Attribute | Role |
+|-----------|------|
+| `gen_ai.conversation.id` | Groups every LLM span belonging to one browser session — the join key for reconstruction |
+| `session.id` | Alias for the same value within AI Observability |
+| `dt.rum.session.id` | The RUM session identifier, propagated by the RUM JavaScript in the `tracestate` header — links the conversation to the frontend session |
+| `traceparent` | W3C header injected by RUM to link browser and backend spans (see **OTEL-04 § 4**) |
+
+Supporting attributes for cost and model analysis: `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`.
+
+> **Attribute-existence note.** `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens` are present in the Dynatrace semantic dictionary (stability: *experimental*), as is `dt.rum.session.id` (stability: *stable*). **`gen_ai.conversation.id` and `session.id` are not** — they are application-set span attributes that you populate, per the implementation below, not platform-declared fields. That is expected for this pattern, but it means a typo in the attribute name fails silently: the query returns zero rows rather than an error. Confirm the attribute is arriving before you build on it.
+
+#### Implementation shape
+
+The identifier has to be created on the frontend and survive all the way to span export:
+
+1. **Frontend** generates a UUID once per conversation and stores it in `sessionStorage`.
+2. Every request to the backend **passes that UUID in the request body**.
+3. The backend holds it in a **`ContextVar`** (or the equivalent request-scoped store for your runtime) so it is reachable from code that has no access to the request object.
+4. A **span processor** stages the value under a private attribute as spans are created.
+5. An **exporter wrapper** writes it to **`gen_ai.conversation.id`** immediately before export.
+
+Steps 4 and 5 are the part people skip. Setting the attribute at span *creation* only works where you control the span; the processor-plus-exporter pair is what gets the identifier onto spans created by auto-instrumentation and SDK internals too.
+
+#### Reconstructing a conversation
+
+The queries below are the documented reconstruction pattern. **Neither was executed against a live tenant for this revision** — see the note under each cell.
+
+```dql
+// Reconstruct one conversation, turn by turn.
+// Source: Dynatrace AI Observability documentation (conversation and session tracking).
+// Executed against a live tenant 07/30/2026: the query runs, but that tenant has no
+// GenAI telemetry, so it returned 0 rows. Shape confirmed; field population is not.
+// Replace the id with one you captured from the frontend's sessionStorage.
+fetch spans, from:-24h
+| filter gen_ai.conversation.id == "1f0c4d2e-9a3b-4c71-8e55-6d2a0b7f1c34"
+| fields timestamp,
+         span.name,
+         gen_ai.request.model,
+         gen_ai.usage.input_tokens,
+         gen_ai.usage.output_tokens,
+         feedback.rating
+| sort timestamp asc
+| limit 200
+```
+
+**Reading the result:** one row per LLM span, in conversation order — the turn sequence, which model served each turn, and the token cost of each. `feedback.rating` appears only if your application writes a user-feedback attribute onto the span; it is not a platform field, so expect nulls until you add it.
+
+**Verification status:** syntax-verified **and executed** against a live tenant on 07/30/2026 — the query parses and runs. It returned **0 rows**, because that tenant ingests no GenAI telemetry. So the query *shape* is confirmed; *field population* is not, and cannot be from this environment. Note also that `gen_ai.conversation.id`, `session.id` and `feedback.rating` are **application-set attributes, not platform fields** — they exist only if your instrumentation writes them, they will not appear in the semantic dictionary, and a misspelling fails **silently** with zero rows rather than an error. Confirm the attributes are populated in your own environment before building on it.
+
+Aggregating across conversations turns the same join key into a cost view:
+
+```dql
+// Token usage per conversation — which sessions drive spend.
+// Uses the same gen_ai.conversation.id join key, aggregated.
+// Executed against a live tenant 07/30/2026: the query runs, but that tenant has no
+// GenAI telemetry, so it returned 0 rows. Shape confirmed; field population is not.
+fetch spans, from:-24h
+| filter isNotNull(gen_ai.conversation.id)
+| summarize {
+    turns = count(),
+    input_tokens = sum(gen_ai.usage.input_tokens),
+    output_tokens = sum(gen_ai.usage.output_tokens),
+    models = collectDistinct(gen_ai.request.model)
+  }, by: {gen_ai.conversation.id}
+| fieldsAdd total_tokens = input_tokens + output_tokens
+| sort total_tokens desc
+| limit 50
+```
+
+**Reading the result:** the long-tail conversations at the top of this list are where token spend concentrates — usually a small number of sessions with many turns, or one model being called where a cheaper one would do. Cross-reference **FINOPS-01** for how that translates into DPS consumption.
+
+**Verification status:** syntax-verified **and executed** 07/30/2026; returned 0 rows for the same reason as above — no GenAI telemetry on the validation tenant, not a query defect.
+
+> <sub>**Sources:** [Conversation and session tracking (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability), [Semantic Dictionary — `gen_ai` fields (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/semantic-dictionary). **Derived:** the attribute-existence note combines the documented attribute list with a live `dt.semantic_dictionary.fields` lookup performed 07/30/2026.</sub>
 
 <a id="wf-dql-cost"></a>
 ## 2. Workflow Tutorial: Optimize DQL Cost

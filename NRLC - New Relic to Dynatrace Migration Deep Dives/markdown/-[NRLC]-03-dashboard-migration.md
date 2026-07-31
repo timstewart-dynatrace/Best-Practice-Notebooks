@@ -1,6 +1,6 @@
 # NRLC-03: Dashboard Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 04/15/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -288,11 +288,15 @@ After migration, validate dashboards with a three-tier check:
 
 | Tier | Method | What It Catches |
 |------|--------|-----------------|
-| **Tier 1: Syntax** | DT API rejects malformed documents | Invalid JSON, missing required fields |
+| **Tier 1: Schema** | DT API rejects malformed documents, **plus** opening each imported dashboard in the Dashboards app | Invalid JSON, missing required fields, tiles the API stored but the app cannot render |
 | **Tier 2: Query validity** | `DQLSyntaxValidator` posts each tile's DQL | Bad DQL syntax, references to nonexistent fields |
 | **Tier 3: Visual diff** | Open NR dashboard side-by-side with DT document | Layout drift, missing data, color/axis mismatches |
 
-**Recommended:** run Tier 3 on a 10–20% sample of dashboards. Full visual review is rarely cost-justified; sampling catches systemic issues (transformer bugs) without exhaustive manual work.
+**Tier 1 needs both checks, not just the API response.** A document the API *accepts* can still fail dashboard validation at render time — API acceptance means the document was stored, not that it draws. For a bulk transformer run that distinction is the whole game: a systematic defect in the transformer produces the same malformed tile in every dashboard it touches, and if the only gate is the HTTP status code, N dashboards ship unusable with N successful `2xx` responses in the log. **Sample-open imported dashboards even when every call returned 2xx** — the failure mode is silent by construction.
+
+This got sharper with **SaaS 1.344** (published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant). Before 1.344, a dashboard failing validation still loaded and showed validation warnings, so a defect surfaced as a warning nobody read. Once 1.344 reaches your tenant it does not load at all, and Dynatrace names **API- and AI-authored** dashboards as the most affected population — which is exactly what a transformer emits. The tiered strategy below is unchanged; what changed is that a skipped Tier 1 open now produces a dead dashboard rather than a noisy one.
+
+**Recommended:** run Tier 3 on a 10–20% sample of dashboards. Full visual review is rarely cost-justified; sampling catches systemic issues (transformer bugs) without exhaustive manual work. Tier 1's open-and-check is cheaper than Tier 3's side-by-side comparison, so sample it more aggressively — or exhaustively on the first transformer run against a new dashboard family.
 
 ## Summary
 

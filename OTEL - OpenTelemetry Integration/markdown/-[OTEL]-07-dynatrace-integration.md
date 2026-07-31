@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -381,6 +381,21 @@ with tracer.start_as_current_span("checkout") as span:
     span.set_attribute("order.id", order_id)
     span.set_attribute("order.total", order_total)
 ```
+
+### Complex attribute types (SaaS 1.344)
+
+**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026): OTLP span attributes accept **complex data types** — nested arrays and maps — instead of scalars only.
+
+**Verify the release has reached your tenant before you start exporting nested attributes.** How a pre-1.344 tenant treats a nested attribute is not something to discover from production trace data; send one span from a test service and confirm the structure arrives intact.
+
+**Flat scalar attributes are not superseded.** They remain the right default for anything you filter, group, or alert on — they are cheaper to query and they keep cardinality legible (see **OTEL-04 § 8 — Attribute Guidelines**). A nested structure is opaque to a `by:{...}` clause in the way a flat key is not.
+
+| Attribute shape | Use when | Example |
+|-----------------|----------|---------|
+| **Flat scalar** | The value is a query dimension — you filter, group, sort, or alert on it | `order.tier = "gold"`, `payment.provider = "stripe"` |
+| **Nested array / map** | The structure *is* the payload — you carry it for context and read it on a single span | A validation-error list, a resolved routing table, a request body echo |
+
+Reach for nesting only in the second case. If you find yourself planning to aggregate on something inside a nested attribute, promote that value to its own flat scalar attribute alongside the structure.
 
 <a id="otlp-metric-dimensions"></a>
 ## 7. OTLP Metric Dimensions

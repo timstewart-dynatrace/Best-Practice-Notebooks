@@ -1,6 +1,6 @@
 # SL2DT-08: Automation & GitOps
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -326,17 +326,66 @@ def translate_dashboard(sumo_dashboard):
     # Returns DT notebook/dashboard JSON
     ...
 
+def validate_dashboard(dt_config) -> list[str]:
+    """Local structural preflight on a translated dashboard document.
+
+    Returns a list of problem strings; empty list means the document passed.
+    Cheap, offline, and catches the faults a machine translator actually makes.
+    """
+    problems = []
+
+    if dt_config.get("version") != 13:
+        problems.append(f"version is {dt_config.get('version')!r}, expected 13")
+
+    tiles = dt_config.get("tiles")
+    layouts = dt_config.get("layouts")
+    if not isinstance(tiles, dict):
+        problems.append("tiles is missing or not an object")
+    if not isinstance(layouts, dict):
+        problems.append("layouts is missing or not an object")
+    if not isinstance(tiles, dict) or not isinstance(layouts, dict):
+        return problems          # nothing further is checkable
+
+    for tile_id, tile in tiles.items():
+        for key in ("type", "query", "visualization"):
+            if not tile.get(key):
+                problems.append(f"tile {tile_id}: missing {key}")
+        if tile_id not in layouts:
+            problems.append(f"tile {tile_id}: no matching layouts entry")
+
+    for layout_id in layouts:
+        if layout_id not in tiles:
+            problems.append(f"layouts {layout_id}: no matching tile")
+
+    return problems
+
+
 def main():
     out = Path("./translated")
     out.mkdir(exist_ok=True)
+    skipped = []
     for dash in sumo_get("/api/v2/dashboards")["dashboards"]:
         dt_config = translate_dashboard(sumo_get(f"/api/v2/dashboards/{dash['id']}"))
         (out / f"{dash['id']}.json").write_text(json.dumps(dt_config, indent=2))
+
+        problems = validate_dashboard(dt_config)
+        if problems:
+            skipped.append((dash["id"], dash.get("title"), problems))
+            continue             # never POST a document that failed preflight
+
         # Dry-run by default; --apply flag pushes to DT
         # dt_post("/platform/document/v1/documents", dt_config)
 
+    for dash_id, title, problems in skipped:
+        print(f"SKIPPED {dash_id} ({title}):")
+        for p in problems:
+            print(f"  - {p}")
+    print(f"{len(skipped)} dashboard(s) skipped on preflight failure")
+
 main()
 ```
+
+Hook `validate_dashboard` into the **PreflightCheck** structure below as a per-document check, so a translation defect is reported in the same shape as a token or scope problem rather than as a stack trace mid-loop.
 
 ### Preflight Check (before bulk import)
 
@@ -382,6 +431,21 @@ Critical pattern — every HTTP call must pick the right header:
 | `dt0c01.` | `Authorization: Api-Token <token>` |
 
 Wrong scheme → `401 Unsupported authorization scheme`, even with every scope.
+
+### What the Local Gate Does and Does Not Cover
+
+`validate_dashboard` is a cheap offline filter, not a substitute for the platform's own validation. It catches the structural faults a machine translator actually produces — a wrong `version`, a tile the translator emitted without a `visualization`, a `tiles` entry with no matching `layouts` entry — at zero API cost and before anything reaches a tenant. It cannot tell you whether the document *renders*.
+
+Two limits to be explicit about:
+
+- **A `2xx` from the Documents API does not mean the dashboard renders.** The API confirms the document was accepted for storage. Whether the Dashboards app can draw every tile is a separate question, answered only by opening it.
+- **The local gate has no model of the dashboard schema.** It knows the handful of invariants written into it. A tile with a valid-looking but wrong `visualization` value, or a `visualizationSettings` block shaped for a different chart type, passes the local check and fails in the app.
+
+So keep the ladder: local preflight on every document → open a **sample** in the Dashboards app on a non-production tenant → then bulk-apply. The sample is what closes the gap, and on a bulk run it is the only thing that catches a systematic translator defect before it multiplies across the whole wave.
+
+> **Forthcoming/rolling out (SaaS 1.344): a dashboard that fails validation will no longer load.** Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. Before 1.344 a failing dashboard still loaded and surfaced validation warnings; after, it does not load at all, and Dynatrace names **API- and AI-authored** dashboards as the most affected population — which is exactly what this pipeline emits. This raises the stakes on a bulk loop specifically: a translator defect that used to ship N dashboards with a warning banner now ships N dashboards that do not open. Treat the warning state as a grace period, not a supported state. Full gate: **DASH-07 §5**.
+
+Keep the dry-run default. `--apply` should be an explicit, deliberate act on a wave that has already passed preflight and had a sample opened.
 
 <a id="cloud-integration"></a>
 ## 7. Ansible / CloudFormation / Cloud-Specific Handoffs

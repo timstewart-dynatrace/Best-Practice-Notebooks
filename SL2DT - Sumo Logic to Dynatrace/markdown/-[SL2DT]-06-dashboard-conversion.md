@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -286,7 +286,8 @@ Give each app team this playbook:
 **G6 — Dashboards Rebuilt**
 
 - [ ] Core team's 5 demo dashboards complete and committed to `demos/`
-- [ ] All Wave 3 (top-usage) dashboards rebuilt and validated
+- [ ] All Wave 3 (top-usage) dashboards rebuilt and validated for **fidelity** (tiles show the numbers the Sumo original showed)
+- [ ] All rebuilt dashboards pass **schema/render validation** — opened in the Dashboards app with zero validation warnings, not just accepted by the API (see **DASH-07 §5**; under SaaS 1.344 a dashboard that fails validation no longer loads at all)
 - [ ] App-team Wave 4 dashboards: ≥75% complete, others tracked in `rebuild-tracker.csv`
 - [ ] Variable/parameter mapping documented for every multi-parameter dashboard
 - [ ] Every rebuilt dashboard: owner signoff recorded

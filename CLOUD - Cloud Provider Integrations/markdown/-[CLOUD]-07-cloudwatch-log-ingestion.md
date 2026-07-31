@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 03/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -39,18 +39,20 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 | Method | Mechanism | Latency | Status |
 |---|---|---|---|
 | **Amazon Data Firehose** | CloudWatch → Firehose → Dynatrace API | 1-5 min (buffered) | **Recommended** |
-| **S3 Ingestion** | CloudWatch → S3 → Dynatrace serverless architecture | Minutes | Supported |
+| **S3 direct ingestion** | S3 event notification → **Dynatrace-maintained Lambda forwarder** → Dynatrace AWS S3 logs ingest API. Deployed by a single **CloudFormation** stack; records are **linked to their Smartscape entity**. Bypasses CloudWatch and Firehose entirely | Minutes | **Forthcoming / rolling out** (SaaS 1.344) — see §3 |
 | **Lambda Log Collection** | Direct Lambda function log forwarding | Seconds | Supported (Lambda-specific) |
-| **Lambda Forwarder (Legacy)** | CloudWatch Subscription Filter → Lambda → Dynatrace API | Seconds | **Deprecated** — migrate to Firehose |
+| **CloudWatch-subscription Lambda forwarder (legacy)** | CloudWatch Subscription Filter → `dynatrace-aws-log-forwarder` Lambda → Dynatrace API | Seconds | **Deprecated** — migrate to Firehose |
 | **OpenTelemetry Collector** | FluentBit/FluentD → OTLP → Dynatrace | Seconds | Supported (agent-based) |
 
-> **Important:** The Dynatrace AWS Log Forwarder (Lambda-based) is **deprecated** and will not receive further updates. For new deployments, use **Amazon Data Firehose**. Existing Lambda forwarder deployments should plan migration to Firehose.
+> **Important — what is deprecated, precisely:** the `dynatrace-aws-log-forwarder` Lambda function, on the **CloudWatch Subscription Filter → Lambda → Dynatrace API** path, is **deprecated** and will not receive further updates. For new **CloudWatch** log forwarding, use **Amazon Data Firehose**; existing deployments of that forwarder should plan migration to Firehose.
+>
+> **This is not a prohibition on Lambda-based log forwarding.** It retires one named component serving one source. The **S3 direct-ingestion** path is a *different*, Dynatrace-maintained Lambda forwarder reading a *different* source, and it is supported — forthcoming / rolling out with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) (published 07/27/2026, staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.
 
 ### Cross-Cloud Log Forwarding
 
 | Cloud Provider | Primary Method | Alternative |
 |---|---|---|
-| **AWS** | Amazon Data Firehose | S3 ingestion, Lambda log collection |
+| **AWS** | Amazon Data Firehose (CloudWatch logs) | S3 direct ingestion (SaaS 1.344, rolling out), Lambda Layer log collection |
 | **Azure** | Azure Event Hub / Diagnostic Settings | Azure Functions forwarder |
 | **GCP** | Pub/Sub via GKE integration | Cloud Functions + Pub/Sub |
 
@@ -130,14 +132,18 @@ CloudWatch subscription filters support pattern matching to pre-filter logs befo
 
 ### S3 Log Ingestion
 
-For logs already stored in S3 (e.g., ALB access logs, CloudTrail, VPC Flow Logs):
+For logs already stored in S3 (e.g., ALB access logs, CloudTrail, VPC Flow Logs). **The table below describes the Dynatrace-maintained forwarder introduced in SaaS 1.344** — read the rollout note beneath it for what to use until it reaches your tenant:
 
 | Feature | Description |
 |---|---|
-| **Mechanism** | S3 event notification → serverless architecture → Dynatrace API |
-| **Best for** | Historical log import, services that write directly to S3 |
+| **Mechanism** | S3 event notification → **Dynatrace-maintained Lambda forwarder**, deployed in your centralized logging account → Dynatrace **AWS S3 logs ingest API**. The forwarder parses, enriches, and forwards each new object's records |
+| **Deployment** | A **single CloudFormation stack blueprint** creates and wires every moving part; version upgrades go through standard CFN stack updates |
+| **Entity linking** | When the producing AWS account has an active AWS connection, records from supported sources are **linked to their Dynatrace Smartscape entity** — S3-resident logs land in topology context rather than as orphaned records |
+| **Best for** | Historical log import, services that write directly to S3, and bypassing the CloudWatch/Firehose layers to cut cost and operational overhead |
 | **Parsing** | Out-of-the-box parsing for common AWS log formats |
 | **Multi-region** | Supports cross-region and multi-account setups |
+
+> **Forthcoming / rolling out (SaaS 1.344):** the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — published 07/27/2026, **staged tenant rollout** from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, the **customer-deployed S3 serverless pattern** (your own Lambda or container reading S3 objects and posting to the log ingest API) remains the working path. The parsing, multi-region and multi-account guidance above applies to **both**.
 
 ### Lambda Log Collection
 
@@ -150,9 +156,11 @@ For AWS Lambda function logs specifically, Dynatrace offers direct log collectio
 | **Prerequisite** | Dynatrace Lambda Layer already deployed for tracing |
 | **Advantage** | No subscription filter or Firehose needed for Lambda logs |
 
-### Legacy: Lambda Forwarder (Deprecated)
+### Legacy: CloudWatch-Subscription Lambda Forwarder (Deprecated)
 
-> **Deprecated:** The `dynatrace-aws-log-forwarder` Lambda function is deprecated and will not receive further updates. Migrate existing deployments to Amazon Data Firehose.
+> **Deprecated:** The `dynatrace-aws-log-forwarder` Lambda function — the **CloudWatch Subscription Filter → Lambda → Dynatrace API** path — is deprecated and will not receive further updates. Migrate existing deployments to Amazon Data Firehose.
+>
+> **Scope:** this deprecation covers that one component and that one source. It does **not** apply to the **S3 direct-ingestion** forwarder described above, which is a separate, supported, Dynatrace-maintained Lambda function reading S3 rather than CloudWatch.
 
 The legacy Lambda forwarder used CloudWatch Subscription Filters to invoke a custom Lambda function that forwarded logs to Dynatrace. While it provided low-latency delivery, it required maintaining custom Lambda infrastructure.
 
@@ -163,7 +171,7 @@ The legacy Lambda forwarder used CloudWatch Subscription Filters to invoke a cus
 | **Firehose** | 1-5 min | None (managed) | Firehose + data transfer | General CloudWatch logs (recommended) |
 | **S3 ingestion** | Minutes | Low | S3 storage + transfer | Historical logs, S3-native services |
 | **Lambda log collection** | Seconds | None | Included with Lambda Layer | Lambda function logs |
-| **Lambda forwarder** | Seconds | High (deprecated) | Lambda invocations | **Do not use for new deployments** |
+| **CloudWatch-subscription Lambda forwarder** | Seconds | High (deprecated) | Lambda invocations | **Do not use for new CloudWatch forwarding** — this row says nothing about S3 direct ingestion |
 
 <a id="filtering-strategies"></a>
 
@@ -331,7 +339,7 @@ fetch logs, from:-24h
 ### Key Takeaways
 
 - **Amazon Data Firehose** is the recommended approach for AWS CloudWatch log ingestion — fully managed, auto-scaling, no custom code
-- The legacy Lambda-based log forwarder is **deprecated** — migrate existing deployments to Firehose
+- The legacy **CloudWatch-subscription** Lambda forwarder (`dynatrace-aws-log-forwarder`) is **deprecated** — migrate existing CloudWatch deployments to Firehose. This is **not** a blanket rule against Lambda-based forwarding: the **S3 direct-ingestion** forwarder (SaaS 1.344, rolling out) is a separate, supported component — see §3
 - **Filter at the source** (CloudWatch subscription filters) to reduce costs before logs reach Dynatrace
 - Use **OpenPipeline** for enrichment, routing, and fine-grained filtering within Dynatrace
 - **Monitor log volume** regularly to prevent cost surprises

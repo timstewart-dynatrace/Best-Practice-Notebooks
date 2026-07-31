@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 03/26/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -117,7 +117,8 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
 | 46 | Use Amazon Data Firehose for CloudWatch log forwarding | Fully managed, auto-scaling, no custom code. Buffer: 1 MB or 60 seconds. Enable GZIP compression | Critical | CLOUD-07 |
-| 47 | Migrate legacy Lambda log forwarder to Firehose | `dynatrace-aws-log-forwarder` is **deprecated** — do not use for new deployments | Critical | CLOUD-07 |
+| 47 | Migrate the legacy **CloudWatch-subscription** Lambda forwarder to Firehose | `dynatrace-aws-log-forwarder` — the CloudWatch Subscription Filter → Lambda → Dynatrace API path — is **deprecated**; do not use it for new *CloudWatch* log forwarding. **Scope of this row:** it retires one named component for one source. It is **not** a prohibition on Lambda-based log forwarding in general — see 47b | Critical | CLOUD-07 |
+| 47b | For logs already in **S3**, use the S3 direct-ingestion forwarder — a *different* component for a *different* source, and supported | Forthcoming / rolling out (**SaaS 1.344**, published 07/27/2026, **staged tenant rollout** from 07/29/2026 — verify it has reached your tenant): a **Dynatrace-maintained** Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a **single CloudFormation stack**, with records **linked to their Smartscape entity** when the producing account has an active AWS connection. Until it arrives, the customer-deployed S3 serverless pattern described in CLOUD-07 §3 remains the working path | Recommended | CLOUD-07 |
 | 48 | Use Lambda Layer log collection for Lambda functions | When Lambda Layer is deployed for tracing, use its built-in log collection instead of Firehose for Lambda logs | Recommended | CLOUD-07 |
 | 49 | Apply subscription filter patterns at CloudWatch level | Filter pattern examples: `?"ERROR" ?"WARN" ?"CRITICAL"` for Lambda; `""` (all) for application services | Critical | CLOUD-07 |
 | 50 | Drop debug/trace logs at source | Pre-filter: exclude DEBUG and TRACE in CloudWatch subscription filters. Estimated savings: 40–60% | Critical | CLOUD-07 |

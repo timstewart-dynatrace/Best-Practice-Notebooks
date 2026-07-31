@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -73,8 +73,13 @@ Dynatrace Intelligence does not pile every AI buzzword into one model. It separa
 | **Databases app** | Generative AI | Execution plan clarification |
 | **Workflow tasks** | All three categories | Schedule analyzer runs; summarize problems; notify |
 | **Notebooks (DQL cells)** | All three categories | Davis CoPilot side panel; DQL2NL on selected query |
+| **AI Observability** | *Your* GenAI app, not Dynatrace's AI | GenAI / LLM span analysis, token cost, prompt evaluations — plus a dedicated Smartscape view and a dedicated Evaluations screen (SaaS 1.344) |
 
 Most surfaces compose categories. The Problems app is the clearest example — Causal AI groups the events into a problem, and a Generative AI summary explains it in English.
+
+**The last row is the inverse of the other eight.** Rows 1–8 are Dynatrace applying AI to *your* data. AI Observability is *your team observing your own GenAI applications* — Dynatrace is the observability tool, not the intelligence. It earns a place in this table only because readers asking "where does AI show up in the product?" land here first and would otherwise miss it entirely. For ingest mechanics, the `gen_ai.*` attribute namespace, and the conversation-tracking pattern, see **AIOPS-06 § 1**.
+
+> **Forthcoming / rolling out (SaaS 1.344).** The dedicated Smartscape view and the standalone Evaluations screen arrive with SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026) — verify they have reached your tenant. Until then, prompt evaluations surface inside the general app views, which remains the working path.
 
 <a id="foundation"></a>
 ## 3. The Data Foundation: Smartscape + Grail

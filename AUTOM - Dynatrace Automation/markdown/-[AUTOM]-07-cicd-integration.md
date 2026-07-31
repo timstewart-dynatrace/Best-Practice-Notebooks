@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -2398,6 +2398,36 @@ Send deployment events to Dynatrace:
         }
       }'
 ```
+
+#### Scope the event to what was actually deployed
+
+The call above deliberately carries **no `entitySelector`**, and for this particular job that is defensible: it marks a *Dynatrace configuration* deployment, which has no application entity behind it. `entitySelector` is optional, and when it is omitted "the event is associated with the environment (`dt.entity.environment`) entity" — environment scope, which is the honest scope for a tenant-wide config change.
+
+**The trap is copying this shape for an application release,** which is what most teams reach for next. An environment-scoped event cannot appear in any entity-scoped view, so a release marker sent this way never lands on the timeline of the service it released, and nothing downstream can filter it to that service. Attribute those:
+
+```yaml
+- name: Send Deployment Event
+  run: |
+    curl -X POST "${{ secrets.DT_URL }}/api/v2/events/ingest" \
+      -H "Authorization: Api-Token ${{ secrets.DT_TOKEN }}" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "eventType": "CUSTOM_DEPLOYMENT",
+        "title": "Deploy checkout-service ${{ github.ref_name }}",
+        "entitySelector": "type(\"SERVICE\"),tag(\"app:checkout\")",
+        "properties": {
+          "source": "github-actions",
+          "commit": "${{ github.sha }}",
+          "branch": "${{ github.ref_name }}"
+        }
+      }'
+```
+
+Two caveats worth knowing before you build on this. Entity selectors only match entities **active within the last 24 hours** — the `entityId` filter is the documented exception for inactive entities — so a selector for a service that has just been created may match nothing on the very first deploy. And `CUSTOM_DEPLOYMENT` is an annotation event type: it does not open a problem, so the failure mode here is a marker that silently goes to the wrong place, not alert noise. The alert-noise version of this mistake — an unattributed event type that *does* open problems, opening a fresh one on every firing — is covered in S2D-05 and AIOPS-02 §4.
+
+**For application release identity, prefer the environment-variable path over an API call.** Setting `DT_RELEASE_VERSION`, `DT_RELEASE_PRODUCT`, `DT_RELEASE_STAGE`, and `DT_RELEASE_BUILD_VERSION` on the deployed process lets OneAgent attach release identity at source, so every signal from that process carries it without a pipeline step that can fail silently. FAQ-02 §3 covers these under the four-source hierarchy.
+
+> <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` optional, environment fallback, and the 24-hour-active constraint with its `entityId` exception. **Derived:** "an environment-scoped event cannot appear in an entity-scoped view" follows from the association rule plus entity-scoped filtering; it is not stated as such in the API reference.</sub>
 
 ### Continue the Series
 

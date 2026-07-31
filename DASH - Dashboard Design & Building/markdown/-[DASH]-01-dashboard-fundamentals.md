@@ -1,10 +1,16 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 05/29/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
 Dashboards are the primary visualization layer in Dynatrace, turning raw observability data into actionable insights. This notebook covers the distinction between dashboards and notebooks, when to use each, the architecture of Dynatrace dashboards (tiles, sections, variables), and core design principles that make dashboards effective. Whether you are building your first dashboard or refining an existing library, these fundamentals provide the foundation for every notebook in this series.
+
+### Sprint 1.344 (July 2026): Dashboards Failing Validation No Longer Load
+
+> **Forthcoming/rolling out (SaaS 1.344): a dashboard that fails validation will no longer load.** SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026** — verify whether it has reached your tenant before relying on the new behavior. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings. Once 1.344 reaches your tenant, it does not load at all.
+>
+> Dynatrace names dashboards **created externally via API or by AI tooling** as the most affected population. If you build dashboards only in the UI, this changes little — the UI emits shapes it can render. If you deploy dashboards as code (Documents API, Monaco, Terraform) or generate them with a script or an assistant, treat the warning state as a grace period rather than a supported state: deploy to a non-production tenant, open the dashboard in the Dashboards app, and confirm zero validation warnings before merging. **DASH-07 §5** carries the full gate, including why a `2xx` from the Documents API is not render confirmation.
 
 ### Sprint 1.337 (April 2026): New Dashboard Building Blocks
 

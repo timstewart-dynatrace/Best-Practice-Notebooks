@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -116,11 +116,18 @@ fetch dt.entity.service
 
 ```dql
 // Application count — compare to Step 1 inventory
-fetch dt.entity.application
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "web"
 | summarize appCount = count()
 
-// Note: smartscapeNodes WEB_APPLICATION is not yet available on Grail
-// Continue using fetch dt.entity.application until Smartscape coverage expands
+// Smartscape (preferred, verified 07/2026): dt.entity.application maps to the FRONTEND node,
+// filtered on frontend.type == "web" (mobile apps are the same node with frontend.type ==
+// "mobile"). This corrects an earlier note here that claimed no Smartscape equivalent existed.
+// FRONTEND also carries id_classic holding the APPLICATION-* id, for joining migrated and
+// unmigrated queries. Unlike ActiveGate, `fetch dt.entity.application` does still work and remains
+// a genuine fallback — but it reads the classic entity store, which can retain entities Smartscape
+// (live topology) no longer lists, so cross-check if the two counts disagree.
+// Classic fallback: fetch dt.entity.application | summarize appCount = count()
 ```
 
 ```dql
@@ -136,11 +143,16 @@ fetch dt.entity.process_group
 
 ```dql
 // Synthetic monitor count — compare to Step 1 inventory
-fetch dt.entity.synthetic_test
+smartscapeNodes "BROWSER_MONITOR"
 | summarize syntheticCount = count()
 
-// Note: smartscapeNodes SYNTHETIC_TEST is not yet available on Grail
-// Continue using fetch dt.entity.synthetic_test until Smartscape coverage expands
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Classic fallback: fetch dt.entity.synthetic_test | summarize syntheticCount = count()
 ```
 
 ### Entity Coverage Comparison

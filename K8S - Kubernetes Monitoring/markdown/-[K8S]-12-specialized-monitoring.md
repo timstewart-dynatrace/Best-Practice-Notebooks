@@ -1,6 +1,6 @@
 # K8S-12: Specialized Monitoring Scenarios
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 13 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## NGINX Ingress, CSI Driver, Resource Tuning, and StatsD Ingestion
 This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, CSI Driver architecture, resource sizing guidelines, and StatsD metric ingestion on Kubernetes.
@@ -114,6 +114,29 @@ fetch spans, from:-1h
 
 The CSI (Container Storage Interface) Driver provides OneAgent code modules to application pods via volumes instead of host mounts.
 
+### Code-Module Delivery Is a Choice (Operator 1.10.0+)
+
+Through Operator 1.9.x the CSI driver was effectively the only production path for `cloudNativeFullStack` and `applicationMonitoring`, so "enable the CSI driver" read as an invariant. **Operator 1.10.0 (released July 15, 2026) adds a CSI-to-ephemeral-volume migration mode**, which turns delivery into a deliberate architectural decision.
+
+| | **CSI driver** | **Ephemeral volumes** (Operator 1.10.0+) |
+|---|---|---|
+| **How modules reach the pod** | Cached once per node by the CSI DaemonSet, then mounted into each injected pod | Provisioned into each pod's own ephemeral volume |
+| **Cluster footprint** | A 5-container privileged DaemonSet per node, with a host-path CSI socket | No DaemonSet; work moves into the injection path |
+| **Sizing and monitoring burden** | Real — five containers to bound (§3), plus a mount-storm failure mode (K8S-09 §2) | Shifts to per-pod volume provisioning |
+| **Density behavior** | Efficient at high pod density — one cached copy serves every pod on the node | Costlier at high density — churn and pod-start latency scale with pod count |
+| **Choose it when** | Default. You can run a privileged DaemonSet and you want per-node caching. | A CSI DaemonSet is unacceptable: restrictive admission policy (see FAQ-13 for the OpenShift SCC surface), a managed platform that constrains CSI drivers, or a node pool where you will not run privileged workloads. |
+
+**Decision guidance:** stay on the CSI driver unless something concrete rules it out. It remains the recommended default, and the per-node cache is exactly what makes high-density nodes cheap. Reach for ephemeral volumes when platform policy — not preference — closes the CSI door.
+
+**Staged-rollout caveat.** The migration mode arrived with **Operator 1.10.0**, and estates upgrade on their own schedule. **On Operator 1.9.x and earlier the CSI driver is the only supported mode**, so `csidriver.enabled: true` remains the correct and only setting there — verify your operator version before planning a migration:
+
+```bash
+kubectl -n dynatrace get deployment dynatrace-operator \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
+
+Migration in either direction is an operator-side change (DynaKube + Helm values); application manifests are untouched. Roll it per cluster rather than fleet-wide, and re-check pod-start latency at your busiest node density before committing.
+
 ### CSI Driver Container Structure
 
 The CSI Driver DaemonSet runs **5 containers** in a sidecar pattern:
@@ -128,6 +151,9 @@ The CSI Driver DaemonSet runs **5 containers** in a sidecar pattern:
 
 <a id="csi-driver-resource-configuration"></a>
 ## 3. CSI Driver Resource Configuration
+
+> **This section applies only on the CSI path.** If you chose ephemeral volumes (Operator 1.10.0+, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. On Operator 1.9.x and earlier the CSI path is the only supported mode, so this section always applies.
+
 ### Helm Values for CSI Driver
 
 Configure resources for each CSI Driver container in your Helm `values.yaml`:

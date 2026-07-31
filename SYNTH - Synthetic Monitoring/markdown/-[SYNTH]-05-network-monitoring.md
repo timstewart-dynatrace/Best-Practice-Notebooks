@@ -1,6 +1,6 @@
 # SYNTH-05: Synthetic Network Monitoring
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Network Availability, DNS, and ICMP Monitoring
 This notebook covers Dynatrace Synthetic **Network Availability Monitors** (multi-protocol monitors), which test ICMP (ping), DNS, and TCP port reachability.
@@ -26,10 +26,13 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 - ✅ Private synthetic locations (for internal network monitoring)
 
 > **⚠️ Data model — read first:** ICMP, DNS, and TCP checks are **not** separate monitor types in Grail. They are protocols within a single **network availability monitor** (a *multi-protocol monitor*). In the data model:
-> - **Entity:** `dt.entity.multiprotocol_monitor`
+> - **Entity (classic):** `dt.entity.multiprotocol_monitor` — still functional
+> - **Entity (Smartscape, preferred):** node type **`NETWORK_AVAILABILITY_MONITOR`** (model `dt.smartscape.network_availability_monitor`) — note the **name changed**; it is *not* `MULTIPROTOCOL_MONITOR`
 > - **Events:** `fetch dt.synthetic.events | filter event.type == "multiprotocol_monitor_execution"`
 > - **Metric:** `dt.synthetic.multi_protocol.executions` (execution count, by `dt.entity.multiprotocol_monitor`)
 > - **Success/failure:** `result.state` (`SUCCESS`/`FAIL`) / `result.status.code` — same as other monitor types
+>
+> **The rename is the trap here.** Of the four synthetic classic entities, this is the one whose Smartscape node type cannot be derived from its classic name — `multiprotocol_monitor` became `NETWORK_AVAILABILITY_MONITOR`, matching the product's UI name rather than the old internal one. `smartscapeNodes "MULTIPROTOCOL_MONITOR"` raises **no error**; it returns zero rows, which is indistinguishable from an environment that has no network monitors. If a Smartscape network-monitor query comes back empty, confirm the node type spelling before concluding you have nothing to monitor. (SaaS 1.344, released 07/27/2026 with a staged tenant rollout from 07/29/2026, is what makes `dt.smartscape.*` the primary surface for the Synthetic app — verify it has reached your tenant; the node type is queryable via DQL either way. FAQ-16 covers the general migration mechanics.)
 >
 > The **protocol-specific measurement fields** (per-protocol latency, packet loss, resolved IP, DNS resolution time) are not published as stable metric keys and their exact `result.statistics.*` names vary by protocol. Run the discovery query in the next cell against your own tenant to see the fields your multi-protocol monitors actually emit before building latency/packet-loss queries.
 
@@ -71,13 +74,23 @@ Network monitors complement application-level monitoring by testing at different
 - **High Frequency**: Run every minute if needed
 
 ```python
-// DISCOVERY — list your network availability (multi-protocol) monitors,
+// DISCOVERY -- list your network availability (multi-protocol) monitors,
 // then inspect the fields a recent execution emits so you know the exact
 // protocol-specific result.statistics.* names available in YOUR tenant.
-fetch dt.entity.multiprotocol_monitor
-| fields id, entity.name
-| sort entity.name asc
+//
+// PREFERRED -- Smartscape. The node type is NETWORK_AVAILABILITY_MONITOR, NOT
+// MULTIPROTOCOL_MONITOR: the classic entity was renamed, not transliterated, and the
+// wrong spelling returns zero rows instead of an error.
+smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
+| fields name, id, id_classic, network_monitor.type, enabled, frequency
+| sort name asc
 | limit 50
+
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.multiprotocol_monitor
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
 
 // To inspect execution fields, run separately:
 // fetch dt.synthetic.events, from: now() - 24h
@@ -405,7 +418,8 @@ fetch dt.synthetic.events, from: now() - 24h
 In this notebook, you learned:
 
 ✅ **Network availability monitors** - ICMP, DNS, and TCP within one multi-protocol monitor  
-✅ **The data model** - `event.type == "multiprotocol_monitor_execution"` on `dt.synthetic.events`; entity `dt.entity.multiprotocol_monitor`; metric `dt.synthetic.multi_protocol.executions`  
+✅ **The data model** - `event.type == "multiprotocol_monitor_execution"` on `dt.synthetic.events`; metric `dt.synthetic.multi_protocol.executions`; entity `dt.entity.multiprotocol_monitor` (classic) or Smartscape node **`NETWORK_AVAILABILITY_MONITOR`** (preferred)  
+✅ **The rename trap** - the Smartscape node is `NETWORK_AVAILABILITY_MONITOR`, not `MULTIPROTOCOL_MONITOR`; a wrong node type returns zero rows, not an error  
 ✅ **Discovery first** - confirm protocol-specific `result.statistics.*` fields in your own tenant  
 ✅ **Multi-protocol patterns** - Comprehensive infrastructure monitoring  
 ✅ **Analysis queries** - Availability, duration, executions, failures, health score  

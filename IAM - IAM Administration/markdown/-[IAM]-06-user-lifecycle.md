@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -368,6 +368,23 @@ API tokens provide access for scripts, tools, and legacy integrations.
 3. Verify applications work
 4. Revoke old token
 5. Document rotation
+
+### Tenant Token Rotation — a Different Object
+
+Everything above concerns **API tokens**. The **tenant token** is a different credential: it is what OneAgents and ActiveGates use to authenticate to the cluster. It is not created, scoped, or revoked through the API-token surface, and rotating it affects **the monitored fleet**, not a script or a pipeline. Nothing in the rotation process above applies to it.
+
+| | API token | Tenant token |
+|---|---|---|
+| **Used by** | Scripts, pipelines, integrations | OneAgents and ActiveGates |
+| **Created / scoped by you** | Yes — you choose the scopes | No — issued by the environment |
+| **Rotation blast radius** | The consumers you updated | Every agent reporting to the environment |
+| **"Done" means** | Your applications still work | Every agent has picked up the new token |
+
+**Forthcoming / rolling out (API 1.344).** Dynatrace API 1.344 (published 07/15/2026, rollout from 07/29/2026) adds **`GET /tenantTokenRotation/status`** to Environment API v2 — verify it has reached your tenant before scripting against it.
+
+The point of the endpoint is that it makes a rotation **auditable rather than assumed**. Rotating a tenant token is a two-state affair: the new token is issued, and then agents pick it up on their own schedule. Without a status surface you retire the old token on faith. With it you can confirm the fleet has converged *before* treating the old token as retired — which is exactly the evidence an auditor asks for, and the check that prevents a stranded agent from going dark.
+
+**Until it reaches your tenant, the pre-1.344 working path is unchanged:** verify rotation from the deployment surface — check the Deployment Status page and confirm agents reconnect and keep reporting after the rotation, rather than inferring success from the absence of complaints. Keep that check even once the endpoint is available; it is the one that tells you an agent is *monitoring*, not merely *authenticated*.
 
 ### Monitoring Token Usage
 

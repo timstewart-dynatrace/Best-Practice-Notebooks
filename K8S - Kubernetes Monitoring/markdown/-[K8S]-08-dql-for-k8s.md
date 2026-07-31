@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -121,6 +121,20 @@ smartscapeNodes "K8S_NODE"
 | `dt.containers.cpu.throttled_time` | CPU throttle time | Nanoseconds |
 | `dt.kubernetes.node.cpu_usage` | Node CPU usage | Millicores |
 | `dt.kubernetes.node.memory_usage` | Node memory usage | Bytes |
+
+> **Reading request and limit metrics across an ActiveGate 1.343 upgrade.** **ActiveGate 1.343 changes what the CPU and memory *request* and *limit* metrics count: init containers are now included in the pod-scope total** — and therefore in any workload- or namespace-level roll-up of it. Reported reservations **step up at the upgrade with no workload change at all**, because the arithmetic changed, not the cluster.
+>
+> | Metric family | Affected by the 1.343 change? |
+> |---|---|
+> | `*.requests_cpu`, `*.requests_memory`, `*.limits_cpu`, `*.limits_memory` | **Yes** — init containers now counted |
+> | `*.cpu_usage`, `*.memory_working_set`, `*.memory_usage` | **No** — usage metrics are unchanged |
+>
+> Two practical consequences:
+>
+> 1. **A trend that spans the upgrade boundary is two series, not one.** Do not read a request/limit chart across the boundary as a single trend, and do not let a threshold alert on reserved CPU or memory fire on the discontinuity. Bound your comparison windows on one side of the upgrade or the other.
+> 2. **Pre-1.343 baselines understate reservations** relative to what the scheduler actually reserved, because init-container requests were excluded. Post-1.343 figures are the more faithful number — re-baseline rather than trying to reconcile the two.
+>
+> ActiveGate 1.343 rolls out per ActiveGate, not per tenant, and ActiveGate fleets lag tenant version — so **verify the version of the ActiveGate carrying the `kubernetes-monitoring` capability for the cluster in question** before deciding which side of the boundary a data point sits on. Until 1.343 reaches that ActiveGate, the pre-1.343 reading (init containers excluded) is what your data shows, and everything above about baselines and alert thresholds still describes it correctly.
 
 ```dql
 // Container CPU usage - top consumers

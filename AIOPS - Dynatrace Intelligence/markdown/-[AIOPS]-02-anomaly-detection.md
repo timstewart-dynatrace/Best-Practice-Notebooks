@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 07/21/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -73,6 +73,8 @@ Davis builds baselines per-dimension automatically — per region, per browser, 
 
 **Use when:** you don't — Davis chooses. Your job is to let the high-cardinality dimensions through to it (don't pre-aggregate them away).
 
+> **This is not a licence to split *your own* detectors by a high-cardinality dimension.** Davis's multi-dimensional baseline consumes the dimensions internally and still emits grouped problems. A custom detector grouped by a volatile dimension — application version, pod name, HTTP status code — emits a separate alert *per dimension value*: volume then scales with your deployment frequency, and alerts strand themselves on entities that no longer exist. Feed dimensions to Davis; do not fan your own alerting out across them. ALERT-02 §3 carries this as an anti-pattern.
+
 ### 1.5 Novelty detection and forecasting
 **Novelty** flags patterns the model has never seen — sudden new error types, never-before metric shapes. **Forecasting** projects a series forward, useful for capacity planning and trend extrapolation.
 
@@ -128,6 +130,26 @@ The detector samples a `timeseries` query on a schedule. Critically, **you do no
 
 > **Develop the query in a notebook first.** This is the notebook-as-scratchpad pattern: write and run the `timeseries` here, confirm it returns the shape you expect, then paste it into the detector. A query that returns nothing in a notebook will silently never fire as a detector.
 
+### Step 1a — Records-based detectors for sparse signals
+
+Not every signal is a metric series. For a condition that lives in raw logs or events and occurs rarely — failed logins, a specific exception, a licence error — set the detector's **Data type** to **Records** instead of a metric, and give it a deliberately large aggregation window:
+
+```dql
+fetch logs, from:now() - 60m
+| filter matchesPhrase(content, "authentication failed")
+| summarize failed_login_count = count()
+| filter failed_login_count > 500
+```
+
+With a 60-minute aggregation window, set the detector's **Delay** to **60 Minutes** so the evaluation window and the execution cadence line up. Two things improve at once:
+
+- **Noise.** A sparse signal evaluated minute by minute produces false positives from ordinary clustering. Five failed logins in one minute is nothing; 500 in an hour is something. The window *is* the tuning.
+- **Cost.** The detector runs once an hour rather than sixty times — a 60× reduction in evaluations against raw log data. Querying raw records on every evaluation is the expensive shape (FAQ-09, FINOPS-03), and widening the window is the cheapest mitigation short of extracting a metric at ingest (OPIPE).
+
+> **Prototype this one especially carefully.** The query above is syntactically valid and executes, but on the tenant it was tested against `"authentication failed"` matched nothing, so `summarize` returned a single row with `failed_login_count = 0` and the final `filter` removed even that. Zero rows is precisely the silent-detector failure described above — the detector would install cleanly and never fire. Run the query *without* the threshold filter first and confirm the count is non-zero before you trust the phrase.
+
+If the condition recurs often enough to warrant continuous watching, extract it to a metric in OpenPipeline and put an ordinary metric detector on that instead. Records-based detection is the right tool for genuinely sparse conditions, not a general substitute.
+
 ### Step 2 — The analyzer and its tuning knobs
 
 Apply one analyzer to the series:
@@ -152,6 +174,21 @@ The tuning parameters that control noise:
 
 **The `violatingSamples` / `slidingWindow` pair is your primary noise control** — requiring, say, 3 violations out of a 5-point window suppresses single-spike flapping while still catching sustained breaches.
 
+### Step 2a — Problem-event trigger delay (a different layer)
+
+**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026): **problem-event trigger delays are configurable** — how long a Davis event must persist before it opens a *problem*. Verify it has reached your tenant before you plan around it.
+
+**This is not an analyzer parameter, and it is deliberately not a row in the table above.** The two sit at different layers, and conflating them is how tuning goes wrong:
+
+| Layer | Decides | Configured in |
+|-------|---------|---------------|
+| **Analyzer parameters** (`violatingSamples`, `slidingWindow`, `dealertingSamples`, tolerance) | Whether *this series* is anomalous — i.e. whether a Davis event fires at all | Per detector, in the Anomaly Detection app or `builtin:davis.anomaly-detectors` |
+| **Problem-event trigger delay** | How long a Davis event must persist before it is promoted to a *problem* | Platform-side, applying across events |
+
+So the trigger delay **complements** `violatingSamples` / `slidingWindow` rather than replacing it. Its distinct value is reach: because it applies platform-side, it damps flapping from detectors **you do not own** — built-in detections, and detectors configured by other teams — which no amount of analyzer tuning on your own detectors can touch.
+
+**For any detector you build yourself, `violatingSamples` / `slidingWindow` remains the control to rely on and the right first lever.** Tune the detector to stop firing spurious events; reach for the trigger delay for noise arriving from events you cannot tune at source.
+
 ### Step 2b — Scoping the detector with Segments
 
 Alongside the analyzer, the Anomaly Detection app offers **Set scope** (Simple or Advanced tab) with a **Segments** field — choose one or more segments to restrict which slice of data the detector evaluates. This lets you alert on a specific subset such as a region, cluster, or environment without rewriting the query.
@@ -165,6 +202,14 @@ Alongside the analyzer, the Anomaly Detection app offers **Set scope** (Simple o
 When the detector fires it emits a Davis event whose shape *you* define: an event **name** and **description** (both support `{dims:...}` placeholders that interpolate the breaching dimensions), an event **type** (`CUSTOM_ALERT`, `ERROR_EVENT`, `PERFORMANCE_EVENT`, …), and **properties** — key/value pairs such as team, zone, or service.
 
 Those properties are the metadata a downstream workflow filters on. **Enrich here or you cannot route later** — a detector that fires a bare event with no team/zone property forces every workflow to re-derive ownership from the affected entity. Spend the effort in the template.
+
+**Attribute the event to a real entity, or it can never correlate.** Alongside name, description, type and properties, a Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal is *about*. Davis's universal correlation rule merges every event naming the same entity into a single problem (AIOPS-03 §1). Set it to an actual host, service, or workload ID, normally interpolated from a `by:{}` dimension the query already groups on.
+
+A detector that leaves this unset — or fills it with a free-text label — matches nothing, so it merges with nothing: **every firing opens its own problem.** No amount of threshold tuning fixes that, because the noise is structural rather than sensitivity-related. Section 8 has a query that finds these in your own tenant, and a real example of one firing thousands of times a week.
+
+**Two event types that never open a problem.** `CUSTOM_INFO` and `WARNING` are both severity SEV-5: they are stored in Grail, are fully queryable, and can trigger workflows, but they do not raise problems. That makes them useful for chronic issues already tracked elsewhere, for routing an observation to Slack or Jira without cluttering the Problems app, and — most valuably — for calibration:
+
+> **Shadow-deploy a new detector.** Rather than guessing a threshold, ship the detector with `event.type` set to `CUSTOM_INFO`, leave it running for two to four weeks, then measure how often it *would* have fired (Section 8). Tune against that evidence, and only then promote it to `CUSTOM_ALERT`. This turns threshold-setting from a guess into a measurement, and being wrong during the observation window costs nothing but storage.
 
 ### Step 4 — Fire, then promote
 
@@ -254,6 +299,68 @@ fetch dt.davis.problems, from:-7d
 ```
 
 **Reading the result:** A high `CUSTOM_ALERT` count means your custom-DQL detectors are firing — review whether they're noisy. A high `RESOURCE_CONTENTION` or `ERROR` count means out-of-the-box auto-adaptive / seasonal detection is doing real work.
+
+### Finding your noisiest detectors
+
+The category breakdown tells you what *kinds* of anomaly fire. This tells you which specific detectors, and — the part that matters most — whether each one is attributable and navigable:
+
+```dql
+// Noisiest non-informational detectors over 7 days.
+// The two ID columns answer different questions - see the notes below.
+fetch dt.davis.events, from:-7d
+| filter not in(event.category, {"INFO", "WARNING"})
+| summarize alerts = count(), by:{event.name, dt.settings.object_id, dt.smartscape_source.id}
+| sort alerts desc
+| limit 20
+```
+
+Real output from a demonstration tenant over seven days, abbreviated to the top rows:
+
+| `event.name` | `alerts` | `dt.settings.object_id` | `dt.smartscape_source.id` |
+|--------------|---------:|-------------------------|---------------------------|
+| `YOU ARE A PROBLEM` | 5,378 | *null* | *null* |
+| `Response time degradation` | 2,439 | *null* | `SERVICE-6C36694E683AD694` |
+| `Failure rate increase` | 1,022 | *null* | *null* |
+| `DYNATRACE USER LOGIN` | 285 | `builtin:davis.anomaly-detectors` … | *null* |
+| `Backoff event` | 254 | `builtin:anomaly-detection.kubernetes.workload` … | `K8S_DEPLOYMENT-79081F0B98463CC2` |
+
+**Read the top row first.** A custom detector firing 5,378 times in seven days with **no `dt.smartscape_source.id`** is the anti-pattern from Section 4 in its natural habitat: unattributed, therefore unable to merge, therefore one problem per firing — roughly 32 problems an hour from a single misconfiguration. Re-tuning its threshold would not help. The event template has to name a real entity.
+
+**Then read the two ID columns, which answer different questions:**
+
+| Column | Question it answers | Null means |
+|--------|--------------------|------------|
+| `dt.smartscape_source.id` | Can this alert correlate with anything? | It cannot — each firing stands alone |
+| `dt.settings.object_id` | Can I navigate to the configuration behind it? | No settings object; identify it by `event.name` instead |
+
+`dt.settings.object_id` is the Settings API `objectId`, so a populated value leads straight to the detector's configuration. A useful property: it encodes both the settings **schema** and the **scope**. The values abbreviated above resolve to `builtin:davis.anomaly-detectors` scoped to the tenant, and `builtin:anomaly-detection.kubernetes.workload` scoped to one specific `KUBERNETES_CLUSTER`. That scoping is why a single event name legitimately appears under several distinct object IDs — one per cluster — rather than indicating duplicated configuration.
+
+> **Two caveats.** `dt.settings.object_id` is marked **experimental** in the semantic dictionary (`dt.smartscape_source.id` is `stable`) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of `dt.davis.events` is not cheap: the run above scanned 12.9 GB, and the 30-day version below scanned 52.6 GB. Narrow the window for routine checks (FAQ-09, FINOPS-03).
+
+For what counts as "too noisy" in the first place, ALERT-99 §3 carries the 0.1%-of-observed-time yardstick and the audit cadence that uses it.
+
+### Measuring what a shadow-deployed detector would have done
+
+The calibration pattern in Section 4 needs evidence before promotion. This measures the firing frequency of a detector running in observation mode as `CUSTOM_INFO` or `WARNING`:
+
+```dql
+// How often would this observation-mode detector have fired?
+// Replace the event.name with your own detector's name before running.
+fetch dt.davis.events, from:-30d
+| filter in(event.category, {"INFO", "WARNING"})
+| filter event.name == "NR ALERT: Host CPU > 80% sustained 5m"
+| summarize firing_count = count(), by:{day = bin(timestamp, 24h)}
+| sort day desc
+| limit 10
+```
+
+Run against a ported static threshold held in observation mode, the ten most recent daily counts came back **236, 347, 459, 504, 470, 474, 502, 490, 480, 470** — the first of those a still-running partial day.
+
+**That detector must not be promoted.** Roughly 470 firings a day would mean up to roughly 470 problems a day from a single rule — correlation would merge some of them, but nothing like enough — against a healthy-detector expectation of one or two firings a *month* (ALERT-99 §3). The evidence says retune before promoting: widen the sliding window, raise the threshold, or — since this is CPU on hosts, a traffic-correlated signal — move it off a static threshold onto auto-adaptive entirely (Section 1).
+
+That is the whole value of the shadow deploy. Promoted straight to `CUSTOM_ALERT`, the same rule would have paged someone several hundred times a day before anyone discovered the threshold was wrong; held at `CUSTOM_INFO`, it cost nothing to learn the same thing.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration). **Derived:** the promote/retune verdict applies the 0.1% yardstick to the measured firing counts; the `dt.settings.object_id` schema-and-scope property is an observation from the returned values, not a documented contract.</sub>
 
 <a id="cross"></a>
 ## 9. Cross-Series Pointers

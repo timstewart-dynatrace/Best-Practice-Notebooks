@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -354,13 +354,23 @@ timeseries avg(dt.cloud.azure.vm.cpu_usage), from:-1h
 ### Extension Health Check
 
 ```dql
-// Check ActiveGate health — extensions run on host-based ActiveGates
-fetch dt.entity.active_gate
-| fieldsAdd entity.name
-| sort entity.name asc
+// Check ActiveGate health — extensions run on host-based ActiveGates carrying the
+// EXTENSION_CONTROLLER module, so filter to exactly those rather than listing every AG
+smartscapeNodes "ACTIVEGATE"
+| filter is_containerized == false and iAny(modules[] == "EXTENSION_CONTROLLER")
+| fields name, version = dt.active_gate.version, group = dt.active_gate.group.name, modules
+| sort name asc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// is_containerized and modules are Smartscape-only fields — the classic entity never exposed them,
+// so this host-based-AG filter was not expressible before.
 ```
 
 <a id="api-script-migration"></a>
@@ -462,22 +472,30 @@ Public locations are available in both Managed and SaaS. Simply recreate the mon
 
 ```dql
 // Count synthetic monitors in SaaS — compare to your Managed inventory
-fetch dt.entity.synthetic_test
-| fieldsAdd entity.name
+smartscapeNodes "BROWSER_MONITOR"
 | summarize monitorCount = count()
 
-// Note: smartscapeNodes SYNTHETIC_TEST is not yet available on Grail
-// Continue using fetch dt.entity.synthetic_test until Smartscape coverage expands
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Classic fallback: fetch dt.entity.synthetic_test | summarize monitorCount = count()
 ```
 
 ```dql
 // List synthetic monitors with their names — verify expected monitors are present
-fetch dt.entity.synthetic_test
-| fieldsAdd entity.name, entity.type
-| sort entity.name asc
+smartscapeNodes "BROWSER_MONITOR"
+| fields name, type
+| sort name asc
 
-// Note: smartscapeNodes SYNTHETIC_TEST is not yet available on Grail
-// Continue using fetch dt.entity.synthetic_test until Smartscape coverage expands
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
 ```
 
 ```dql

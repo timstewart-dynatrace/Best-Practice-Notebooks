@@ -1,6 +1,6 @@
 # S2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 10 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 10 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -274,13 +274,18 @@ fetch dt.entity.host
 
 ```dql
 // Verify ActiveGate connectivity in target tenant — all Environment ActiveGates should be reporting
-fetch dt.entity.active_gate
-| fieldsAdd entity.name, networkZone
-| sort entity.name asc
+smartscapeNodes "ACTIVEGATE"
+| fields name, zone = dt.network_zone.id, group = dt.active_gate.group.name
+| sort name asc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
 ```
 
 ```dql

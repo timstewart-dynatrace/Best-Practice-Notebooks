@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -106,6 +106,44 @@ For environments where SVG doesn't render
 | `user.sessions` | A complete user visit from first page to last | `sessionId`, `userType`, `duration`, `userActionCount`, `totalErrorCount` |
 | `user.events` | A single user interaction (page load, click, XHR) | `action.name`, `action.type`, `duration`, `dom.interactive.time` |
 | `user.events` | JavaScript or XHR error | `error.message`, `error.type`, `error.source` |
+| `smartscapeNodes "FRONTEND"` | The monitored application **entity** — one node per configured web or mobile app | `name`, `frontend.name`, `frontend.type`, `id_classic` |
+
+
+### The Application Entity: `FRONTEND`
+
+Everything else in the table above is *session and action data*. The last row is the **entity** — the configured application those sessions belong to. On the classic surface that was `dt.entity.application`; on Smartscape it is the `FRONTEND` node type (model `dt.smartscape.frontend`, titled *Digital Experience Frontend*), which holds web **and** mobile applications, discriminated by `frontend.type`.
+
+```dql
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "web"
+| fields name, frontend.name, id, id_classic, tags
+| sort name asc
+```
+
+SaaS 1.344 (released 07/27/2026, with a **staged tenant rollout from 07/29/2026**) is what makes this the primary entity surface: the Digital Experience apps — Experience Vitals, Users & Sessions, Error Inspector, Synthetic — moved so that their queries and filters "primarily use `dt.smartscape.*` entities, instead of `dt.entity.*` and `dt.rum.application.*`". Verify 1.344 has reached your tenant before depending on the app-side change. The node type is queryable via DQL either way, and classic `fetch dt.entity.application` still works — keep it as a genuine fallback during the rollout.
+
+Three details worth knowing before you use the node:
+
+- **`name` vs `frontend.name`.** `name` is the display name (`Beta - Elevate`); `frontend.name` is the normalized form determined at ingest (`Beta_-_Elevate`). Use `name` for reporting, `frontend.name` when matching against ingest-side configuration.
+- **`id_classic` is the join key.** It holds the `APPLICATION-*` id (or `MOBILE_APPLICATION-*` for a mobile app), so dashboards and saved queries still written against `dt.entity.application` can be reconciled with migrated ones.
+- **`frontend.type` filters correctly but is absent from the model's own `fields` array.** The Semantic Dictionary's field list is an index, not a completeness guarantee — do not conclude the field is missing because it is not enumerated.
+
+> **This is orthogonal to the vocabulary question in WEBRUM-09 — read them as answering different questions.** WEBRUM-09 asks which **session-field** vocabulary your tenant serves: classic RUM on Grail (`userActionCount`, `totalErrorCount`, `browserFamily`) or New RUM (`user_action_count`, `error.count`, `browser.name`). That answer governs every session and action query in the rest of this series. `FRONTEND` is a change to the **entity** vocabulary and is independent of it — it is how you enumerate and identify applications whichever session model your tenant serves. Answer WEBRUM-09's question for your session queries; use `FRONTEND` for your entity queries. Neither decision constrains the other.
+
+### Frontend-to-Backend Topology (SaaS 1.344)
+
+Two 1.344 changes connect this RUM data to the backend side of the platform:
+
+- **The Smartscape service dependency graph now displays `FRONTEND` nodes**, letting you "drill down the call path from user-facing applications to the services they depend on, all in one view" — frontend and service topology were previously separate pictures.
+- **Distributed tracing can explore frontend events and sessions without switching apps.**
+
+The Semantic Dictionary exposes the linkage itself as **`frontend.link`** — *"a frontend-backend tracing link that connects a span to a frontend user event and/or user session"*, explicitly distinct from a span link, which references other spans. Two cautions before building on it: the field is `frontend.link` (dotted), and its declared stability is **`experimental`** — not yet a foundation for a production dashboard or alert.
+
+**Until 1.344 reaches your tenant**, the working correlation path is unchanged — and it keeps working afterwards: the `x-dtc` header the RUM agent propagates on XHR/fetch requests links a user action to the resulting server-side trace (WEBRUM-02 covers that instrumentation), supplemented by session-level joins on the application and session identifiers.
+
+> **The topology side belongs to the tracing series.** SPANS-04 is the better home for the service-dependency-graph and trace-exploration mechanics; this note exists so a reader arriving from RUM knows the linkage exists and what it is called.
+
+> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344). **Derived:** the `frontend.link` name, type and `experimental` stability are read from `dt.semantic_dictionary.fields` on a live tenant (07/30/2026); the "until 1.344 lands" fallback combines that with the `x-dtc` propagation documented in WEBRUM-02.</sub>
 
 ### Session Types
 

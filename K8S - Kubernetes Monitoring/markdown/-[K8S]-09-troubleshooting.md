@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 07/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -123,7 +123,9 @@ Some failures are not configuration mistakes — they are known defects in speci
 
 | First affected | Fixed / Mitigated | Issue |
 |----------------|-------------------|-------|
-| 1.10.1 (OpenShift manifests) | 1.10.1 (corrected manifests re-uploaded 07/2026) | **OpenShift only** — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at `Init:0/1` and `dynatrace-webhook` pods stay `0/1`, waiting for a `dynatrace-webhook-certs` secret that is never created (the OpenShift manifest omitted the webhook cert-generator init container). **Fix:** re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's `certgen` command as a `Job` or `oc run` pod to create the secret and patch the webhook caBundle. |
+| 1.10.1 (OpenShift manifests) | 1.10.1 (corrected manifests re-uploaded 07/2026) | **OpenShift only** — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at `Init:0/1` and `dynatrace-webhook` pods stay `0/1`, waiting for a `dynatrace-webhook-certs` secret that is never created. Root cause is a bootstrap deadlock between the two Operator 1.10.x init containers: **`crd-storage-migrator`** waits for webhook readiness, the webhook waits for its cert secret, and the OpenShift manifest omitted the **`webhook-cert-generator`** init container that creates it. Vanilla-Kubernetes Helm and kubectl manifests ship it and are unaffected. **Fix:** re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's `certgen` command as a `Job` or `oc run` pod to create the secret and patch the webhook caBundle. |
+| 1.10.0 | 1.10.1 | **Auto-update failures** across ActiveGate, CodeModule, and OneAgent, plus the **OneAgent rollout integrity check hanging** — a rollout that never completes rather than one that visibly fails. The 1.10.0 release notes themselves recommend skipping the release, and it is now flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases) — a structural signal you can check yourself before pinning. **Fix:** upgrade to 1.10.1. |
+| 1.10.0 | 1.10.1 (via feature flag) | **`classicFullstack` only** — OneAgent fails TLS certificate verification when connecting through an **in-cluster ActiveGate**. **Fix:** upgrade to 1.10.1, which introduces the `feature.dynatrace.com/automatic-tls-certificate` feature flag on the DynaKube to restore automatic certificate handling. Do **not** confuse this with the 1.1.0 → 1.5.1 row below — see the note after the table. |
 | 1.8.0 | 1.8.1 | OpenShift OperatorHub-based install — Kubernetes API monitoring missing (1.8.1 shipped as a hotfix ten days after 1.8.0) |
 | 1.3.0 | 1.4.1 (mitigated) | CSI driver pods crash frequently — liveness-probe failures under high simultaneous mount load (see below) |
 | 1.1.0 | 1.5.1 | OneAgent pods unable to validate the SSL certificate of a containerized ActiveGate after an Operator upgrade |
@@ -132,7 +134,20 @@ Some failures are not configuration mistakes — they are known defects in speci
 # Which Operator version am I running?
 kubectl -n dynatrace get deployment dynatrace-operator \
   -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Which init containers does the operator pod have? (maps an Init:0/1 hang to a diagnosis)
+kubectl -n dynatrace get pod -l app.kubernetes.io/name=dynatrace-operator \
+  -o jsonpath='{.items[*].spec.initContainers[*].name}'
 ```
+
+> **Two different ActiveGate-certificate failures — pick the right row.** The table has two entries whose *symptom* is identical ("OneAgent cannot validate the certificate of a containerized ActiveGate"), and routing to the wrong one wastes a triage cycle:
+>
+> | You are on | Deployment mode | Row that applies | Fix |
+> |------------|-----------------|------------------|-----|
+> | 1.1.0 – 1.5.0 | any | 1.1.0 → 1.5.1 | Upgrade to 1.5.1 or later |
+> | 1.10.0 | `classicFullstack` with an in-cluster ActiveGate | 1.10.0 → 1.10.1 | Upgrade to 1.10.1 and set `feature.dynatrace.com/automatic-tls-certificate` |
+>
+> A reader on 1.10.x who matches on symptom alone lands on the 1.5.1 fix, which does not cover them — they are already far past 1.5.1. Check your Operator version *and* your `spec.oneAgent` mode before acting.
 
 > **Tip:** The [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113) maintains this known-issues list as new Operator versions ship — check it alongside the [Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) when triaging a failure that appeared right after an upgrade.
 

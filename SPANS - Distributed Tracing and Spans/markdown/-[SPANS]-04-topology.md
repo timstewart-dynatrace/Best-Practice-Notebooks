@@ -1,6 +1,6 @@
 # SPANS-04: Service Dependencies & Flow Analysis
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Mapping Your Distributed System
 This notebook teaches you how to use span data to understand service relationships, analyze request flows, and identify critical dependencies in your system.
@@ -49,6 +49,32 @@ This eliminates the historical "two services for one process" pattern when teams
 ### Ktor service technology now recognized
 
 Sprint 1.337 also added **`KTOR_CLIENT`** and **`KTOR_SERVER`** values to the service technology enum across request attributes and extension host availability endpoints. If you have Ktor (Kotlin async HTTP framework) services in your environment, they now appear with explicit Ktor technology in Smartscape, calculated metrics, and request-naming rules — no more `KOTLIN_GENERIC` fallback.
+
+---
+
+### Sprint 1.344 (July 2026): Frontend nodes in the service dependency graph
+
+**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026) — verify it has reached your tenant before relying on either change below.
+
+Two topology-facing changes:
+
+1. **The Smartscape service dependency graph now displays `FRONTEND` nodes.** The frontend that originates a request appears as a node in its own right rather than as an implicit off-graph caller — the topology view starts where the user does, instead of at the first server span it can see.
+2. **Distributed tracing can explore frontend events and sessions without switching apps.** A slow backend dependency and the user session that hit it can be read on one surface.
+
+**Neither change alters any DQL in this notebook.** The `span.kind == "client"` / `peer.service` / `server.address` techniques in **Section 3** remain how you *derive* dependencies from span data — and on a pre-1.344 tenant they remain the only way to do it. The graph is a reading surface layered over the same relationships; it does not replace the queries, and a dependency you need in a dashboard tile, a report, or an SLO still has to be queried.
+
+### The frontend-to-backend link in span data
+
+The linkage the graph draws on is modelled in the semantic dictionary as **`frontend_link`** and exposed on spans through the **`frontend.link`** record field:
+
+| Field | Carries |
+|-------|---------|
+| `span.id` | The backend span the frontend action links to |
+| `dt.rum.session.id` | The RUM session that originated the request |
+| `dt.rum.instance.id` | The RUM instance (page / view load) within that session |
+| `dt.rum.is_linking_candidate` | Whether the span is eligible for frontend linking |
+
+Session-side configuration of this linkage belongs to the **WEBRUM** series. For how the session identifier travels between browser and backend, see **OTEL-04 § 4 — Context Propagation**.
 
 ---
 

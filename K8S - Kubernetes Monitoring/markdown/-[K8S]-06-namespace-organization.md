@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 05/21/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -191,6 +191,8 @@ spec:
 | CPU quota usage | >80% of quota |
 | Memory quota usage | >80% of quota |
 | Pod count | Approaching limit |
+
+> **Quota tracking across an ActiveGate 1.343 upgrade:** request metrics **include init containers from ActiveGate 1.343 onward**, so reserved-CPU and reserved-memory figures step up at the upgrade with no workload change. Read a trend spanning that boundary as **two series, not one**, and re-baseline any >80%-of-quota alert afterward. Full explanation: K8S-08 §2.
 
 ```dql
 // CPU requests by namespace (quota tracking)

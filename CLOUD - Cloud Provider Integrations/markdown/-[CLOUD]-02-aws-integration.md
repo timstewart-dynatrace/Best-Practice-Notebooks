@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -144,7 +144,7 @@ The Advanced path exposes fine-grained controls. Exact UI labels evolve — veri
 | Control | What it does |
 |---|---|
 | **CloudWatch Metrics scope** | Choose ingestion mode per service: **Recommended** (DT-curated essentials), **Recommended + Custom** (essentials plus tenant-specified metric keys / dimensions), or **Auto-Discovery** (poll all available metrics, then narrow down) |
-| **CloudWatch Logs** | Enable log ingestion per region; toggleable post-onboard by updating the CFN stack. Delivered via Kinesis Data Firehose subscriptions — see CLOUD-07 |
+| **CloudWatch Logs** | Enable log ingestion per region; toggleable post-onboard by updating the CFN stack. Delivered via Kinesis Data Firehose subscriptions — see CLOUD-07. Note the scope: this control covers logs flowing *through CloudWatch*. Logs **already resident in S3** take a separate **direct-ingestion** path (a Dynatrace-maintained Lambda forwarder, forthcoming / rolling out with SaaS 1.344) that bypasses CloudWatch and Firehose entirely — see CLOUD-07 §3 |
 | **Tag Enrichment** | All AWS tags are collected by default. This control selects which tags propagate to logs / metrics / spans / events as dimensions |
 | **Tag-Based Filtering** | Include / exclude resources from monitoring based on AWS tag predicates — scope to specific workloads or teams |
 | **Dynatrace Attribute Enrichment** | Map AWS tag values onto Dynatrace native attributes such as `dt.security_context`, `dt.cost.product`, `dt.cost.costcenter` — enables IAM segments and cost-allocation dashboards driven by AWS-side metadata |

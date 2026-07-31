@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 07/31/2026
 
 ## Overview
 
@@ -192,6 +192,26 @@ NR NRQL Condition
 | `for at least 5 minutes` | `samples: 5, violatingSamples: 5` |
 
 **Confidence consideration:** the NRQL must compile to HIGH-confidence DQL. MEDIUM/LOW translations should be hand-validated before becoming production alerts.
+
+### The correlation requirement NR has no equivalent for
+
+In New Relic an alert is effectively a standalone notification: the condition fires, the policy routes it, and each firing stands on its own. Dynatrace does not work that way, and the difference is not cosmetic — it decides whether your migrated alerts consolidate or multiply.
+
+Every Davis event carries `dt.smartscape_source.id`, the Smartscape entity ID of whatever the signal is about. Events naming the same entity within the correlation window merge into a single problem. **An event that leaves it unset merges with nothing — every firing opens its own problem**, and no threshold or duration tuning changes that, because those events were never merge candidates.
+
+This lands at exactly one point in the pipeline above: the `by:{}` clause the compiled DQL inherits from the NRQL `FACET`.
+
+| Compiled detector groups by | Attribution | Consequence |
+|---|---|---|
+| An entity dimension the metric already carries (`dt.smartscape.service`, `dt.smartscape.host`, `dt.smartscape.k8s_deployment`) | **Available** — the event template interpolates the grouping dimension into the field, and entity-scoped built-in detectors populate it without extra work | Alerts consolidate per entity |
+| A bare string dimension (`appName`, a hostname label, a parsed log field) | **Not available** — there is no entity in the query to attribute to | One problem per firing |
+| Nothing — a single aggregate series with no `by:` | **Not available** | One problem per firing |
+
+`FACET appName` is the common trap. It *looks* like an entity grouping because in NR it was the unit of alerting, but it compiles to a string dimension, and a string is not an entity. The fix is to group the compiled query on the entity dimension the metric already carries, then set the detector's event template to interpolate that dimension — AIOPS-02 §4 covers the template mechanics, AIOPS-03 §1 the correlation rules.
+
+**Audit migrated detectors before the dual-alert window (§7) closes.** An unattributed detector passes NR-parity testing cleanly — the alerts do fire — and only reveals itself afterwards as problem-count inflation, by which point the parallel run is over and the NR side is gone. Measured on a validation tenant over 7 days on 07/31/2026, **36,763 of 251,792 Davis events (14.6%) carried no correlation key**, and the noisiest single unattributed detector fired **5,045 times** in that week — roughly 30 self-inflicted problems an hour from one misconfiguration. AIOPS-02 §8 carries the query that finds them.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the three-row attribution table maps the documented same-entity grouping rule onto the `FACET` → `by:{}` compilation step this section already describes.</sub>
 
 <a id="apm-conditions"></a>
 ## 5. APM / Non-NRQL Condition → Dynatrace Intelligence Adaptive Baseline

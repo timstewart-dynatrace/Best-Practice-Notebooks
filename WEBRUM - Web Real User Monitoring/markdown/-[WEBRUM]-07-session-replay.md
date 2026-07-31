@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -14,6 +14,7 @@ Session Replay allows you to visually replay a user's interaction with your web 
 2. [Data Privacy and Masking](#data-privacy)
 3. [Session Replay Configuration](#configuration)
 4. [Finding Replay-Eligible Sessions](#finding-replays)
+    - [When a Session Has No Replay](#no-replay)
 5. [Correlating Replay with Performance](#correlating-data)
 6. [Identifying UX Issues via Replay](#ux-issues)
 7. [Third-Party Replay Integration](#third-party)
@@ -172,6 +173,33 @@ fetch user.sessions, from:-24h
 | sort total_sessions desc
 ```
 
+<a id="no-replay"></a>
+
+### When a Session Has No Replay
+
+The queries above filter for `hasSessionReplay == true`. A `false` — or a null — is neither an error nor necessarily a misconfiguration. Replay is *conditional* by design, and several independent gates can each suppress it.
+
+| Cause | What actually happened | Where to check |
+|-------|------------------------|----------------|
+| **Outside the sampling rate** | By far the commonest cause. At a 2% sample rate, 98% of sessions correctly have no replay | Session Replay sampling rate for the application (§3) |
+| **Replay disabled for the application** | Session Replay is configured per application, not globally — a tenant with replay enabled can still have applications without it | Settings → Session Replay, per application |
+| **Unsupported browser** | Replay depends on DOM-mutation capture the browser must support; older and niche browsers are excluded | `browserFamily` / `browserMajorVersion` on the session |
+| **A page blocked capture** | Page- or element-level privacy rules (`data-dtrum-block`, CSS selector block rules) suppress recording — sometimes on exactly the pages you care about (§2) | Session Replay data-privacy configuration |
+| **Quota exhausted** | Replay storage counts against a quota; once consumed, subsequent eligible sessions are not recorded until the period resets | Session Replay quota / consumption |
+
+**Forthcoming — SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026): Session Replay reports the reason itself.** Users & Sessions gains specific information about why session recordings become unavailable, which collapses the elimination exercise below into a single read in the UI. Verify 1.344 has reached your tenant before relying on it; until then — and for any tenant still on an earlier sprint — the manual order below is the working path.
+
+**Eliminate in this order.** The sequence is deliberate: cheapest and most likely first, so you rarely reach the bottom.
+
+1. **Sampling rate.** Compute actual replay coverage (the third query in this section) and compare it against the configured rate. If coverage ≈ the configured rate, **nothing is broken** — you are looking at sampling, and the fix is to raise the rate, not to debug.
+2. **Application enablement.** If coverage is ~0% for one application while others are healthy, replay is off for that application. The coverage query already groups `by:{application}`, so this shows up without extra work.
+3. **Browser.** Compare `browserFamily` and `browserMajorVersion` between sessions that do and do not have replay. A cause concentrated in one browser family is a support gap, not a configuration error — and not something you can configure away.
+4. **Quota.** Check replay consumption last. A quota that ran out mid-period has a distinctive signature: replay present in earlier sessions, absent in later ones, configuration unchanged throughout.
+
+That order also sorts by what you can act on — 1 and 2 are configuration you control, 3 is a platform constraint, 4 is a budget decision.
+
+> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — Session Replay unavailability details in Users & Sessions; [Session Replay (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay). **Derived:** the four-step elimination order combines the documented ineligibility causes with their relative likelihood and remediability — verify the coverage figures against your own configured sampling rate.</sub>
+
 <a id="correlating-data"></a>
 
 ## 5. Correlating Replay with Performance
@@ -282,6 +310,7 @@ In this notebook, we covered:
 - **Data privacy** — Masking levels, HTML attributes, CSS selector rules
 - **Configuration** — Sampling rates, conditional capture, storage considerations
 - **Finding replays** — DQL queries to locate replay-eligible sessions
+- **When a session has no replay** — the five ineligibility causes, and the sampling → enablement → browser → quota elimination order (SaaS 1.344 surfaces the reason directly)
 - **Performance correlation** — Linking slow/error sessions to replay
 - **UX issue identification** — Patterns to look for in replay analysis
 - **Third-party integration** — Connecting Dynatrace with external replay tools

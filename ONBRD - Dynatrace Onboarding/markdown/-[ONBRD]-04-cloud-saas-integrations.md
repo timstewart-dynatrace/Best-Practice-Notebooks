@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -328,7 +328,11 @@ Or use quick search: **Cmd+K** → "Hub"
 |----------|-------------------|-------------|
 | **MongoDB Atlas** | Extensions 2.0 | Connections, ops/sec, replication lag |
 | **AWS DocumentDB** | AWS Integration | CloudWatch metrics |
-| **Snowflake** | Extensions 2.0 | Query performance, warehouse usage |
+| **Snowflake** | Guided configuration (SaaS 1.344+) / Extensions 2.0 | Query performance, warehouse usage |
+
+> **Snowflake monitoring is changing (SaaS 1.344, July 2026).** SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout** beginning 07/29/2026, and it replaces the legacy Snowflake extension with a **guided configuration wizard** — verify the wizard has reached your tenant before planning around it. Until it arrives, **Extensions 2.0 remains the working method**, and existing extension-based Snowflake configurations keep running; there is no need to tear one down ahead of the wizard.
+>
+> **Do not confuse this with the Snowflake *data connector*.** The connector installed from the Hub and configured under **Settings > Connections** powers Snowflake *workflow actions* (Execute Statement, Store Statement Result) — see the WFLOW series for that path. It is a different surface, serves a different purpose, and is unaffected by this change.
 
 <a id="verifying-integrations"></a>
 ## 8. Verifying Integrations
