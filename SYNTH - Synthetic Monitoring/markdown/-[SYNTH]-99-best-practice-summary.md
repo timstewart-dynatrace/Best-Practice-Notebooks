@@ -1,6 +1,6 @@
 # SYNTH-99: Best Practice Summary
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 06/09/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -49,6 +49,21 @@ Choose the right monitor type for each use case.
 | Use **TCP port monitors** for service port connectivity (databases, caches) | Monitor type: Network availability - TCP | Recommended |
 | Layer monitors: DNS + ICMP + TCP + HTTP for full-stack coverage of critical services | Deploy one monitor per OSI layer for each critical path | Recommended |
 | Prefer HTTP monitors over browser monitors when JavaScript rendering is not needed | Saves cost and runs faster (< 1s vs 3-30s) | Recommended |
+
+### Selecting Monitors in Bulk (SaaS 1.344)
+
+Monitor *selection* is a separate concern from monitor *type*, so it sits outside the table above rather than as a row in it. **SaaS 1.344** (released 07/27/2026, **staged tenant rollout from 07/29/2026**) lets a single monitor selection combine **AND and OR** operators, instead of requiring one selection per tag:
+
+| Selector form | Meaning |
+|---------------|---------|
+| `tag(tag1),tag(tag2)` | logical **AND** — the monitor must carry both tags |
+| `tag(tag1,tag2)` | logical **OR** — the monitor carries either tag |
+
+So `tag(env:prod),tag(team:payments)` selects the production payments monitors in one expression. Before 1.344 this needed separate selections per tag, then a union downstream — which is why bulk operations and tag-scoped automation tended to fragment.
+
+Verify 1.344 has reached your tenant before relying on the combined form; until it does, the per-tag selection approach remains the working path, and it keeps working afterwards.
+
+> <sub>**Sources:** [Dynatrace SaaS release notes 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — "`tag(tag1),tag(tag2)` is the logical AND", "`tag(tag1,tag2)` is the logical OR".</sub>
 
 <a id="http-monitor-configuration"></a>
 ## 2. HTTP Monitor Configuration

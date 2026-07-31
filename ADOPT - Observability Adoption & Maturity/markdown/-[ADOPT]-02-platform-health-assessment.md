@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -189,13 +189,26 @@ ActiveGates serve as routing, monitoring extension, and API endpoints. Their hea
 
 ```dql
 // List all ActiveGates with their properties
-fetch dt.entity.environment_active_gate
-| fieldsAdd entity.name
-| summarize ag_count = count()
+smartscapeNodes "ACTIVEGATE"
+| fields name, version = dt.active_gate.version, group = dt.active_gate.group.name, zone = dt.network_zone.id, is_containerized, modules
+| sort name asc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// The node also makes this cell's stated intent achievable: the previous version could only count,
+// because the classic entity exposed no properties — and in fact returned nothing at all.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
 ```
 
 ### 5.2 ActiveGate Metric Health
@@ -203,8 +216,26 @@ fetch dt.entity.environment_active_gate
 Self-monitoring metrics confirm ActiveGates are processing data. A flat or zero metric suggests the ActiveGate is unhealthy.
 
 ```dql
-// ActiveGate connection count over the last 1 hour
-timeseries connections = avg(dt.sfm.active_gate.connections), from:-1h, by:{dt.entity.environment_active_gate}
+// Connected agent modules per ActiveGate over the last 1 hour.
+// A healthy routing ActiveGate holds a steady, non-zero count; a flat zero means agents are not
+// reaching it, and a sudden drop means they stopped.
+//
+// Grouped by dt.active_gate.id — the ActiveGate identity field, and the same field the ACTIVEGATE
+// Smartscape node carries, so `smartscapeNodes "ACTIVEGATE"` resolves these hex ids (0xd54e5d57, …)
+// to names. Live-verified 07/30/2026: 4 series returned, ids matching the node exactly.
+//
+// Two corrections here, both verified 07/30/2026:
+//  1. The metric key was `dt.sfm.active_gate.connections`, which DOES NOT EXIST. No such key is in
+//     the catalogue, and `timeseries` against a non-existent key returns an EMPTY RESULT rather
+//     than an error — so the cell read as "no ActiveGate data" instead of "wrong metric name".
+//  2. The grouping was by:{dt.entity.environment_active_gate}, an entity type that does not exist
+//     in any spelling.
+//
+// Discover the real keys yourself rather than trusting a remembered name:
+//   metrics | filter startsWith(metric.key, "dt.sfm.active_gate") | fields metric.key
+// Note `metrics` takes `from:` with NO leading comma — `metrics from:now()-2h`. Writing
+// `metrics, from:…` is a PARSE_ERROR, which is easy to misread as "no such metrics exist".
+timeseries connected = avg(dt.sfm.active_gate.communication.agent_modules.connected), from:-1h, by:{dt.active_gate.id}
 ```
 
 <a id="license-consumption"></a>

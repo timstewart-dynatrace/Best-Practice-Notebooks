@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -306,14 +306,25 @@ After building and running your instrumented Android app, use the following DQL 
 
 ```dql
 // Find Android mobile applications
-fetch dt.entity.mobile_application
-| filter contains(toString(entity.name), "Android") or contains(toString(tags), "Android")
-| fields entity.name, id, tags
-| sort entity.name asc
+// PREFERRED -- Smartscape. FRONTEND carries both mobile and web apps, so the
+// frontend.type filter is what narrows this to mobile.
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| filter contains(name, "Android", caseSensitive: false)
+    or contains(toString(tags), "Android", caseSensitive: false)
+| fields name, id, id_classic, tags
+| sort name asc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == "mobile"
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | filter contains(toString(entity.name), "Android") or contains(toString(tags), "Android")
+// | fields entity.name, id, tags
+// | sort entity.name asc
 ```
 
 The query above searches for mobile application entities with "Android" in their name or tags. If your app appears in the results, the Dynatrace environment is aware of it.

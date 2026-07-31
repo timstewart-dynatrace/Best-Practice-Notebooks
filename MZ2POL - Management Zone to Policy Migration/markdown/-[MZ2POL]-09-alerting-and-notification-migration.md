@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 07/21/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 07/31/2026
 
 ## Overview
 
@@ -366,9 +366,9 @@ The only meaningful proof is that each team receives the same pages after cutove
 Establishes the baseline distribution to compare against after cutover:
 
 ```dql
-// Problem volume by security context over the parallel-run window.
-// Syntax-validated via verify_dql 07/21/2026; execution requires the
-// 'storage:events:read' scope, which was unavailable at authoring time.
+// Problem-event volume by security context over the parallel-run window.
+// Executed 07/31/2026 over 7 days; results below the cell.
+// Counts problem-EVENT records, not distinct problems - see the note that follows.
 fetch events, from: -7d
 | filter event.kind == "DAVIS_PROBLEM"
 | expand dt.security_context
@@ -383,15 +383,42 @@ fetch events, from: -7d
 
 A problem with no security context cannot be filtered for visibility and may not route as expected:
 
+Executed against a validation tenant over 7 days on 07/31/2026, the top rows were:
+
+| `dt.security_context` | problem-event records |
+|---|---:|
+| *(null)* | 2,319,333 |
+| `ENV \| Prod` | 147,055 |
+| `Elevate \| Prod \| Monitoring Team` | 77,689 |
+| `Elevate \| Prod` | 73,533 |
+| `Prod All (old)` | 73,522 |
+
+**Read the unit before you read the numbers.** `fetch events | filter event.kind == "DAVIS_PROBLEM"` returns the raw problem-event stream — many records per problem, one for each state update over its life — so these are *records*, not distinct problems. On the same tenant and window, `fetch dt.davis.problems` returned 3,318 rows against 2,480,695 problem-event records: an over-count of roughly 750×. That is fine for a *relative* comparison across contexts, which is what this baseline is for, and badly wrong if you quote it as a problem count to anyone. ALERT-99 §3 sets out all three Davis surfaces and which question each answers.
+
+Note also the shape of that top row: the largest bucket by far is the one with **no security context at all**.
+
 ```dql
-// Security-context coverage across Davis problems.
-// Syntax-validated via verify_dql 07/21/2026; execution requires the
-// 'storage:events:read' scope, which was unavailable at authoring time.
+// Security-context coverage across the problem-event stream.
+// Executed 07/31/2026 over 7 days: total 2,480,695 / with_context 161,361 / 6.5%.
 fetch events, from: -7d
 | filter event.kind == "DAVIS_PROBLEM"
 | summarize total = count(), with_context = countIf(isNotNull(dt.security_context))
 | fieldsAdd coverage_pct = round(with_context * 100.0 / total, decimals: 1)
 ```
+
+On the validation tenant, 07/31/2026, over 7 days:
+
+| `total` | `with_context` | `coverage_pct` |
+|---:|---:|---:|
+| 2,480,695 | 161,361 | **6.5** |
+
+**93.5% of the problem-event stream carries no security context at all.** That number is the argument of this notebook in a single figure.
+
+The migration story people reach for is that MZ-scoped alerting will be rebuilt on a field like `dt.security_context` — swap one scoping dimension for another and the routing follows. This measurement is what that plan collides with. A field populated on 6.5% of records is not a scoping dimension yet; it is an enrichment project that has not happened. Build routing on it today and 93.5% of the stream falls through to whatever the default is — which, for alerting, means either everyone is paged or nobody is.
+
+That is why §4 puts enrichment first and treats it as the prerequisite rather than a parallel workstream. **Run this query before you commit to a cutover date, not after.** A tenant at 6.5% has months of tagging and propagation work in front of it; a tenant already near 100% can move quickly. The number is cheap to obtain and it is the difference between a schedule and a guess.
+
+A coverage figure this low is also worth a second look before you treat it as pure bad news: check whether the contexts that *are* populated cover the entities that actually page people. Coverage weighted by alert-carrying entities is the number that matters operationally, and it is often better than the raw record-level figure — the null bucket is inflated by high-frequency events on unenriched infrastructure.
 
 ### What to check before declaring done
 

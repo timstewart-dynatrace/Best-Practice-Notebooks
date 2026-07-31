@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -315,23 +315,40 @@ After deploying each ActiveGate, verify it appears in the SaaS tenant and is hea
 
 ```dql
 // Verify ActiveGates connected to SaaS tenant
-fetch dt.entity.active_gate
-| fieldsAdd entity.name, version = toString(softwareVersion)
-| fields entity.name, version, networkZone
-| sort entity.name asc
+smartscapeNodes "ACTIVEGATE"
+| fields name, version = dt.active_gate.version, zone = dt.network_zone.id, is_containerized
+| sort name asc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
 ```
 
 ```dql
 // Verify ActiveGate distribution across network zones
-fetch dt.entity.active_gate
-| summarize agCount = count(), by:{networkZone}
+smartscapeNodes "ACTIVEGATE"
+| summarize agCount = count(), by:{dt.network_zone.id}
 | sort agCount desc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
 ```
 
 ### 4.6 Connectivity Validation Checklist
@@ -481,13 +498,18 @@ sudo systemctl restart dynatracegateway
 
 ```dql
 // Verify network zone configuration and AG assignment
-fetch dt.entity.active_gate
-| fieldsAdd entity.name, zone = networkZone
-| fields entity.name, zone
-| sort zone asc, entity.name asc
+smartscapeNodes "ACTIVEGATE"
+| fields name, zone = dt.network_zone.id
+| sort zone asc, name asc
 
-// Note: smartscapeNodes ACTIVE_GATE is not yet available on Grail
-// Continue using fetch dt.entity.active_gate until Smartscape coverage expands
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
 ```
 
 ### 6.5 Zone Topology Validation

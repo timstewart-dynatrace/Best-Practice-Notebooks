@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -55,10 +55,12 @@ The order in which you reach for detection mechanisms determines how much noise 
 
 1. **Out-of-the-box Davis first.** It already detects latency spikes, error anomalies, resource saturation, and service degradation — with seasonal baselines you do not have to tune. Most "we need an alert for X" requests are already covered. Review and adjust sensitivity before building anything custom (AIOPS-02 §1–§3).
 2. **Custom Davis anomaly detector** only when a business-specific condition is not covered. Use auto-adaptive or seasonal analyzers, not static thresholds on traffic-correlated metrics (AIOPS-02 §4).
-3. **OpenPipeline-derived metric** when the signal lives in logs or spans. Extract a metric once at ingest, then alert on the metric — querying logs/traces directly in a detector incurs query cost on every evaluation; a derived metric does not (OPIPE, FINOPS-09).
+3. **OpenPipeline-derived metric** when the signal lives in logs or spans. Extract a metric once at ingest, then alert on the metric — querying logs/traces directly in a detector incurs query cost on every evaluation; a derived metric does not (OPIPE, FINOPS-03).
 4. **SLO burn-rate** for the reliability of a user journey — the highest-signal alert of all, because it fires on "we are about to break our promise to users" (SLO-04).
 
 Each step down costs more to build and maintain. Staying as high as possible is the single biggest lever on alert noise.
+
+**Know whether the funnel is actually working.** The measure is not how many alerts you have — it is how much of the time a *healthy* service sits in an alert state. The working yardstick is 0.1% of observed time, roughly 1 to 1.5 minutes a day; ALERT-99 §3 carries the rule and the audit loop that applies it, and AIOPS-02 §8 the query that ranks your noisiest detectors. Run it against a service you believe is well-monitored before assuming the funnel is doing its job.
 
 <a id="where"></a>
 ## 3. What to Set Up, Where
@@ -74,7 +76,17 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 | Destinations | Connector per channel | workflow connectors; legacy via alerting profiles | — |
 | Closed loop | Remediation / bi-directional sync | workflow / ServiceNow-side app | — |
 
+### Forthcoming: a noise control between detection and convergence
+
+**Rolling out (SaaS 1.344):** problem-event trigger delays become configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**, so verify it has reached your tenant before designing around it.
+
+Note *where* this sits on the board, because it is easy to file in the wrong place. It is **not** an analyzer parameter. Analyzer settings such as `violatingSamples` and `slidingWindow` decide whether a metric series is anomalous at all; a trigger delay decides how long the resulting event must hold before a problem is opened. The two compose rather than substitute — and because the delay applies platform-side, it damps flapping from detectors you do not own, which no analyzer setting can do for you.
+
+Until it reaches your tenant, the sliding-window minimum on the analyzer remains the control to rely on for exactly this class of noise (ALERT-02, AIOPS-02 §4).
+
 ALERT-02 covers choosing detection; ALERT-03 covers routing and cost; ALERT-04 covers ServiceNow.
+
+> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344). **Derived:** the "different layer, composes rather than substitutes" placement follows from the trigger delay acting on the event-to-problem step while analyzer parameters act on the series.</sub>
 
 <a id="rule"></a>
 ## 4. The One Rule That Makes Routing Work

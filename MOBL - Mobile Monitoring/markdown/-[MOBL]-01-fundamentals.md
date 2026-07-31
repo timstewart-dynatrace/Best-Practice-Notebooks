@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -131,27 +131,38 @@ Dynatrace models mobile monitoring data using specific entity types and data obj
 
 | Entity Type | DQL Identifier | Description |
 |-------------|---------------|-------------|
-| Mobile Application | `dt.entity.device_application` | The configured mobile app (iOS, Android, or hybrid) |
+| Mobile Application | Classic: `dt.entity.mobile_application` — Smartscape: `smartscapeNodes "FRONTEND"` filtered on `frontend.type == "mobile"` | The configured mobile app (iOS, Android, or hybrid) |
 | User Action | N/A (bizevents) | Tap, swipe, screen load, or custom action |
 | Session | N/A (bizevents) | User session container linking all actions in a visit |
 | Network Request | N/A (bizevents) | HTTP request initiated by the mobile app |
 | Crash | N/A (events) | Native crash, ANR, or unhandled exception |
 
-> **Note:** Mobile user actions, sessions, and network requests are stored as business events (bizevents) in Grail, not as traditional entities. Crashes appear as events. The `dt.entity.device_application` entity represents the configured app itself.
+> **Note:** Mobile user actions, sessions, and network requests are stored as business events (bizevents) in Grail, not as traditional entities. Crashes appear as events. The mobile application entity represents the configured app itself.
+
+> **Correction (07/30/2026).** Earlier revisions of this notebook named the mobile application entity `dt.entity.device_application` in prose. **That entity type does not exist.** `verify_dql` reports `The entity type dt.entity.device_application wasn't found` — and then still reports the statement valid, so the query runs and returns zero rows, which is indistinguishable from "this environment has no mobile applications". The only `device_application` types that exist are `dt.entity.device_application_method` and `dt.entity.device_application_method_group` (RUM action-level types, not the app). The correct classic type is **`dt.entity.mobile_application`**, which every code cell in this notebook already used — the error was confined to the narrative. Treat a `wasn't found` warning from `verify_dql` as a blocking failure, not advice.
 
 ### Querying Mobile App Entities
+
+Two surfaces answer this question, and **Smartscape is now the preferred one**. SaaS 1.344 (released 07/27/2026, with a **staged tenant rollout from 07/29/2026**) migrated the Digital Experience apps — Experience Vitals, Users & Sessions, Error Inspector, Synthetic — so that their queries and filters "primarily use `dt.smartscape.*` entities, instead of `dt.entity.*` and `dt.rum.application.*`". Verify 1.344 has reached your tenant before relying on the UI change; the `FRONTEND` node type itself is queryable via DQL independently of it.
+
+The classic `fetch dt.entity.mobile_application` table **still exists and still returns rows** — unlike some deprecated entity types, this one has not gone hollow. It remains a genuine fallback for tenants awaiting 1.344 and for saved queries still in circulation.
 
 The following query lists all configured mobile applications in your environment:
 
 ```dql
 // List all configured mobile applications
-fetch dt.entity.mobile_application
-| fields entity.name, id, tags
-| sort entity.name asc
+// PREFERRED — Smartscape. Mobile and web applications share the FRONTEND node type;
+// frontend.type is the discriminator, so the filter is mandatory for a mobile-only list.
+// id_classic carries the MOBILE_APPLICATION-* id, which joins back to unmigrated queries.
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| fields name, id, id_classic, tags
+| sort name asc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// FALLBACK (classic surface — still functional, keep while SaaS 1.344 rolls out):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, tags
+// | sort entity.name asc
 ```
 
 <a id="beacon-data-flow"></a>
@@ -187,14 +198,18 @@ For environments where SVG doesn't render
 Use the following query to see a summary of your configured mobile applications:
 
 ```dql
-// Count mobile applications by operating system type
-fetch dt.entity.mobile_application
-| summarize app_count = count(), by:{entity.name}
+// Count mobile applications by name
+// PREFERRED — Smartscape. Grouping by name preserves the per-app breakdown; drop the
+// filter and group by frontend.type instead to see the mobile-vs-web split in one pass.
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| summarize app_count = count(), by:{name}
 | sort app_count desc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// FALLBACK (classic surface — still functional):
+// fetch dt.entity.mobile_application
+// | summarize app_count = count(), by:{entity.name}
+// | sort app_count desc
 ```
 
 <a id="mobile-vs-web-rum"></a>
@@ -205,7 +220,7 @@ Understanding the differences between mobile and web RUM helps you choose the ri
 
 | Aspect | Mobile RUM | Web RUM |
 |--------|-----------|--------|
-| **Entity type** | `dt.entity.device_application` | `dt.entity.application` |
+| **Entity type** | Classic `dt.entity.mobile_application` → Smartscape `FRONTEND` with `frontend.type == "mobile"` | Classic `dt.entity.application` → Smartscape `FRONTEND` with `frontend.type == "web"` |
 | **Instrumentation** | Native SDK embedded in app binary | JavaScript tag injected into page |
 | **Crash detection** | Native crash, ANR, unhandled exception | JavaScript errors, promise rejections |
 | **Network monitoring** | All HTTP/HTTPS calls from the app | XHR, Fetch API calls |
@@ -215,6 +230,20 @@ Understanding the differences between mobile and web RUM helps you choose the ri
 | **Update cycle** | Users must update the app | Instant (server-side deployment) |
 | **Device diversity** | Thousands of device/OS combinations | Browser/OS combinations |
 | **Performance factors** | CPU, memory, battery, network type | Browser rendering, network latency |
+
+
+### The Entity Model Converged (SaaS 1.344)
+
+On the classic surface mobile and web applications were two different entity types. On Smartscape they are **one node type**: `FRONTEND`. The distinguishing field is `frontend.type` (`"mobile"` / `"web"`) — not the node type. There is **no `dt.smartscape.mobile_application`** and no `dt.smartscape.application`; both classic types map onto the single model `dt.smartscape.frontend`, titled *Digital Experience Frontend*.
+
+SaaS 1.344 (released 07/27/2026 — **staged tenant rollout from 07/29/2026**) is what promotes this to the primary surface: the Digital Experience apps moved their queries and filters onto `dt.smartscape.*` entities. Verify 1.344 has reached your tenant before depending on that; the node type is already queryable regardless, and the classic entity tables keep working either way.
+
+What this changes in practice:
+
+- **One inventory query covers both platforms.** `smartscapeNodes "FRONTEND" | summarize apps = count(), by:{frontend.type}` returns the mobile/web split in a single pass — no union of two entity tables.
+- **Filtering on `frontend.type` is mandatory in mobile-only queries.** Omit it and a "list my mobile apps" query silently includes every web application as well. There is no error to warn you.
+- **`frontend.type` is not listed in the model's own `fields` array**, yet it exists and filters correctly. The Semantic Dictionary field list is an index, not a completeness guarantee — do not conclude a field is missing because it isn't enumerated.
+- **`id_classic` is the migration bridge.** Every `FRONTEND` node carries its classic id (`MOBILE_APPLICATION-*` or `APPLICATION-*`), so half-migrated query sets can be joined during the transition.
 
 ### Key Implications
 
@@ -254,14 +283,18 @@ Run this query to confirm your mobile applications are configured and visible in
 
 ```dql
 // Mobile app inventory overview
-fetch dt.entity.mobile_application
-| fields entity.name, id, lifetime, tags
-| sort entity.name asc
+// PREFERRED — Smartscape
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "mobile"
+| fields name, id, id_classic, lifetime, tags
+| sort name asc
 | limit 20
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// FALLBACK (classic surface — still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, lifetime, tags
+// | sort entity.name asc
+// | limit 20
 ```
 
 ---
@@ -273,7 +306,8 @@ In this notebook, you learned:
 - **What mobile RUM is** and the key metrics it captures (app launch time, crash rate, user actions per session, network error rate)
 - **Mobile monitoring architecture** -- how the SDK, beacon endpoint, cluster, and Grail work together
 - **Supported platforms** -- iOS, Android, Flutter, React Native, Cordova, and Xamarin SDKs
-- **Mobile entity types** -- `dt.entity.device_application` for apps, plus bizevents for actions, sessions, and network requests
+- **Mobile entity types** -- the `FRONTEND` Smartscape node filtered on `frontend.type == "mobile"` (preferred), or classic `dt.entity.mobile_application` (still functional) -- **never** `dt.entity.device_application`, which does not exist -- plus bizevents for actions, sessions, and network requests
+- **Why mobile and web share one node type** -- Smartscape collapsed both classic application entities into `FRONTEND`, discriminated by `frontend.type`, with `id_classic` bridging back to classic ids
 - **Beacon data flow** -- batching, offline buffering, compression, and session correlation
 - **Mobile vs Web RUM differences** -- entity types, instrumentation methods, offline capability, and platform-specific considerations
 - **Getting started steps** -- from SDK integration through dashboard creation

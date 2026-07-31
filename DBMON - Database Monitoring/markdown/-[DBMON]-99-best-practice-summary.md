@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -126,11 +126,12 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 37 | Report cache metrics in microseconds, not milliseconds | Redis and Memcached latency is sub-millisecond; use `avg(duration) / 1000.0` for microsecond precision | **Recommended** | Reporting |
 
 
-### Sprint-1.337 Update — .NET Redis coverage
+### .NET Redis Client Coverage — OneAgent 1.337 and 1.343
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 37b | Confirm StackExchange.Redis instrumentation on .NET workloads | OneAgent 1.337 added StackExchange.Redis coverage for .NET applications. Verify your .NET services produce `db.system == "redis"` spans. | **Recommended** | Coverage |
+| 37c | Confirm ServiceStack.Redis instrumentation on .NET workloads | Forthcoming / rolling out with **OneAgent 1.343** (released 07/28/2026): tracing support added for **ServiceStack.Redis** in .NET applications. Rollout is **per agent fleet, not per tenant** — **verify the OneAgent version installed on the hosts concerned** (the tenant version is not the agent version), then confirm those services produce `db.system == "redis"` spans. On **OneAgent 1.342 and earlier** only StackExchange.Redis is auto-instrumented, and ServiceStack.Redis calls produce no database spans | **Recommended** | Coverage |
 
 <a id="message-broker-monitoring"></a>
 

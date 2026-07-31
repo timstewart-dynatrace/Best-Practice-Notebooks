@@ -3,7 +3,7 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-17 standalone single-page reference entries, each answering one recurring
+20 standalone single-page reference entries, each answering one recurring
 Dynatrace question in decision-support format. Entries are independent — there
 is no reading order; match the question and read only that entry.
 
@@ -31,6 +31,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Migrating classic entity queries to Smartscape: classifying the query first (mass-data filter vs entity list), `dt.entity.*` → `smartscapeNodes` type mapping, `classicEntitySelector`/`entityName`/`entityAttr` construct migration, `traverse` and edge discovery, host/process/container groups as fields rather than nodes, and the gotchas (`getNodeField` null inside `smartscapeNodes`, uppercase node vs lowercase edge types, `id_classic` as the id bridge) | `-[FAQ]-16-entity-selectors-to-smartscape.md` |
 | Planning a migration cutover across any migration type: the eight cutover invariants (Go/No-Go gate, three-tier validation ladder, parallel-run window with an end date, T-minus runbook, rollback triggers-before-procedures, decommission gated on stabilization, stabilization window, lessons-learned), which series documents each best (SL2DT-09, S2S-09, NR2DT-08, OPMIG-09, MZ2POL-06), and live-verified entity-parity checks (`smartscapeNodes` inventory, `lifetime[end]` staleness) — orchestrates rather than restates | `-[FAQ]-17-planning-a-migration-cutover.md` |
 | Monitoring AEM as a Cloud Service (AEMaaCS): the Dynatrace-published OneAgent full-stack integration on Adobe-operated containers — enablement via Adobe customer-care ticket (not self-service) and the exact payload it requires (environment URL, `PaaS integration - Installer download` token, ActiveGate port for Managed, AEM environment IDs); the Adobe/customer control boundary and which corpus guidance it invalidates (FAQ-04 agent updates, FAQ-01 host groups) versus what still applies (ORGNZ, IAM, ALERT, SLO); per-environment licensing figures; and the rule that enabling Dynatrace stops data flowing to a previously enabled APM tool, which removes the parallel-run window from FAQ-17's cutover model | `-[FAQ]-18-monitoring-aem-cloud-service.md` |
+| Bringing a third-party SaaS platform's telemetry into Dynatrace (the reusable pattern): the three signal classes and which questions each answers, choosing an ingestion route from the vendor's transport (HTTPS direct vs collector hop vs API pull vs multi-homing an existing pipeline), signal-first extract-then-discard and the `Drop record`-vs-`No storage assignment` stage trap that silently defeats it, modeling vendor objects as `CUSTOM_*` Smartscape nodes and edges via OpenPipeline, bucket isolation, and dimension normalization | `-[FAQ]-19-third-party-saas-telemetry-integration.md` |
+| Monitoring Zscaler (ZIA / ZPA / ZDX) with Dynatrace: the absence of any Dynatrace Hub listing and what owning the integration means, the three data planes and which questions each can and cannot answer (ZIA/ZPA logs are not a substitute for ZDX), the transport split that breaks a single-route design (ZIA Cloud NSS pushes HTTPS, ZPA LSS is raw TCP/TLS and needs a collector hop, ZDX is OAuth pull with a two-hour report window), direct-vs-multi-home architectures, extract/discard posture, a five-node topology model, field mapping and metric naming, and when synthetics add anything over ZDX | `-[FAQ]-20-monitoring-zscaler.md` |
 
 ## Related series
 
@@ -38,6 +40,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 - DPS consumption and cost questions beyond FAQ-09: `../FINOPS - Cost Management & FinOps/`
 - Operator/DynaKube depth behind FAQ-04 and FAQ-13: `../K8S - Kubernetes Monitoring/`
 - Database monitoring depth behind FAQ-14: `../DBMON - Database Monitoring/`
+- OpenPipeline depth behind FAQ-19 and FAQ-20: `../OPIPE - OpenPipeline Beyond Logs/`, `../OPLOGS - OpenPipeline Logs/`
+- Bucket and retention design behind FAQ-19 § 6: `../ORGNZ - Organize Data: Buckets, Segments, Security/`
 
 ## Rules
 

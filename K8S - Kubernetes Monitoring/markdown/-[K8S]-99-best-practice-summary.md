@@ -1,16 +1,18 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
 This notebook consolidates every actionable best practice for Dynatrace Kubernetes monitoring and DynaKube configuration extracted from the K8S series (notebooks 01-13). Each practice specifies the exact setting, value, priority, and category. Use this as a definitive checklist for new deployments and audits of existing environments.
 
-**Operator Version:** 1.10.1 | **DynaKube API:** `dynatrace.com/v1beta5` (baseline) or `v1beta6` (newer) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1` — skip 1.10.0 (auto-update defect) (pin the version you have validated in your estate)
+**Operator Version:** 1.10.1 (recommended pin) | **DynaKube API:** `dynatrace.com/v1beta6` — current, use for new DynaKubes (`v1beta5` remains accepted; no rewrite required) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1` — skip 1.10.0 (pin the version you have validated in your estate)
+
+> **Operator version policy (as of 07/30/2026).** **1.10.1 is the recommendation.** **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is now flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases), a signal you can verify before pinning. **v1.10.2 exists** — published 07/30/2026 and currently the newest tag — but its release-notes page is not yet available and the GitHub release body carries no changelog, so there is no citable statement of what changed. Confirm its contents against the release notes before moving a pin onto it; until then 1.10.1 remains the validated recommendation. Do not pin below 1.4.1 in any case (CSI liveness-probe crash-loop window — K8S-09 §2).
 
 > **Token currency note:** Platform Tokens (`dt0s16`) are the recommended choice for new tenants per Dynatrace SaaS sprint-1.337+; the Operator itself accepts platform tokens from **Operator 1.10.0** (July 15, 2026) — Classic API Tokens (`dt0c01`) continue to be accepted and remain the working path on earlier Operator versions. See K8S-02 §Prerequisites.
 
-> **Operator 1.10.0 upgrade notes (July 15, 2026):** the ActiveGate `TopologySpreadConstraint` default changed from `DoNotSchedule` to `ScheduleAnyway` — expect an **ActiveGate restart on upgrade**. DynaKube `v1beta3` was removed in Operator 1.9.0 and `v1beta4` is deprecated as of 1.10.0 — target `v1beta6` for new DynaKubes (`v1beta5` remains accepted). The `gke-autopilot.yaml` release artifact is removed — GKE Autopilot deploys via Helm.
+> **Operator 1.10.0 upgrade notes (July 15, 2026):** the ActiveGate `TopologySpreadConstraint` default changed from `DoNotSchedule` to `ScheduleAnyway` — expect an **ActiveGate restart on upgrade** (an explicitly-set `whenUnsatisfiable` wins, so the recommended posture is to set it; see K8S-02 §8). DynaKube `v1beta3` was removed in Operator 1.9.0 and `v1beta4` is deprecated as of 1.10.0 — target `v1beta6` for new DynaKubes (`v1beta5` remains accepted). The `gke-autopilot.yaml` release artifact is removed — GKE Autopilot deploys via Helm. Two init containers were introduced — **`webhook-cert-generator`** and **`crd-storage-migrator`** — which is what an `Init:0/1` hang is waiting on (K8S-09 §2). 1.10.0 also adds a **CSI-to-ephemeral-volume migration mode**, which turns code-module delivery into a deliberate choice rather than a fixed default — see rule 7 and K8S-12 §2.
 
 ---
 
@@ -43,7 +45,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | **Dynatrace Environment** | SaaS with Grail and Kubernetes monitoring enabled |
 | **Kubernetes Cluster** | v1.24+ |
 | **Helm** | v3.x |
-| **Dynatrace Operator** | v1.10.1 (July 2026) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` |
+| **Dynatrace Operator** | v1.10.1 (July 2026, recommended pin) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` — skip 1.10.0; v1.10.2 exists but ships without a published changelog (see the version-policy note above) |
 | **Knowledge** | K8S-01 through K8S-13 |
 
 <a id="deployment-mode-selection"></a>
@@ -64,11 +66,20 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 6 | Install operator via Helm OCI | `helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1 --namespace dynatrace --create-namespace --wait` | **Critical** | Installation |
-| 7 | Enable CSI driver | `csidriver.enabled: true` in Helm values | **Critical** | Installation |
+| 6 | Install operator via Helm OCI, always with an explicit `--version` | `helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.1 --namespace dynatrace --create-namespace --install --atomic` | **Critical** | Installation |
+| 7 | Choose a code-module delivery mode deliberately | `csidriver.enabled: true` is the default recommendation; ephemeral volumes are a supported alternative from Operator 1.10.0 (see note) | **Critical** *(making the choice)* | Installation |
 | 8 | Set platform explicitly | `platform: "kubernetes"` or `platform: "openshift"` | Recommended | Installation |
 | 9 | Create dedicated namespace | `kubectl create namespace dynatrace` | **Critical** | Installation |
 | 10 | Create API token secret before applying DynaKube | `kubectl create secret generic dynakube --namespace dynatrace --from-literal=apiToken=<TOKEN> --from-literal=dataIngestToken=<TOKEN>` | **Critical** | Installation |
+
+> **Rule 7 — CSI driver is now a choice, not an invariant.** Through Operator 1.9.x, `csidriver.enabled: true` was effectively the only production answer, which is why earlier revisions of this checklist rated the *value* as Critical. **Operator 1.10.0 adds a CSI-to-ephemeral-volume migration mode**, so what is Critical now is *making the decision consciously* — not the specific value.
+>
+> | Delivery mode | Choose it when | Cost |
+> |---------------|----------------|------|
+> | **CSI driver** (`csidriver.enabled: true`) | Default. You want code modules cached per node and shared across pods, and you can run a privileged DaemonSet with a host-path socket. | An extra 5-container DaemonSet to size and monitor; a mount-storm failure mode (rules 57–59, K8S-09 §2). |
+> | **Ephemeral volumes** (Operator 1.10.0+) | A CSI DaemonSet is unacceptable — restrictive admission policy, a managed platform that limits CSI drivers, or a node pool where you will not run privileged workloads. | Code modules are provisioned per pod rather than shared per node, so expect more image/volume churn and slower pod starts at high density. |
+>
+> Migrating in either direction is an operator-side change to the DynaKube and Helm values, not an application change. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — **on Operator 1.9.x and earlier the CSI driver remains the only supported mode**, so `csidriver.enabled: true` stays the correct setting there. Mechanics and trade-offs: K8S-12 §2–§3.
 
 ### Required Token Scopes
 
@@ -81,7 +92,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 11 | Use API version v1beta5 or v1beta6 | `apiVersion: dynatrace.com/v1beta5` | **Critical** | Configuration |
+| 11 | Use `v1beta6` for new DynaKubes | `apiVersion: dynatrace.com/v1beta6` — `v1beta5` remains accepted (no rewrite required); `v1beta4` deprecated in 1.10.x; `v1beta3` **removed** in 1.9.0 | **Critical** | Configuration |
 | 12 | Set `apiUrl` to your SaaS tenant | `spec.apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api` | **Critical** | Configuration |
 | 13 | Add control-plane tolerations to OneAgent | `tolerations: [{effect: NoSchedule, key: node-role.kubernetes.io/master, operator: Exists}, {effect: NoSchedule, key: node-role.kubernetes.io/control-plane, operator: Exists}]` | Recommended | Configuration |
 | 14 | Set `nodeSelector` for linux-only | `nodeSelector: {kubernetes.io/os: linux}` | Recommended | Configuration |
@@ -92,7 +103,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 ### Minimal Production DynaKube
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -206,7 +217,7 @@ spec:
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 57 | Enable CSI driver in Helm values | `csidriver.enabled: true` | **Critical** | CSI |
+| 57 | Decide CSI vs. ephemeral volumes, then set it explicitly | `csidriver.enabled: true` for the CSI path (the default recommendation); ephemeral volumes are supported from Operator 1.10.0 — see rule 7 | **Critical** *(making the choice)* | CSI |
 | 58 | Set resource limits on provisioner container | `provisioner.resources.limits: {cpu: 500m, memory: 256Mi}` | **Critical** | CSI |
 | 59 | Set resource limits on all 5 CSI containers | `csiInit`, `server`, `provisioner`, `registrar`, `livenessprobe` | Recommended | CSI |
 
@@ -221,6 +232,8 @@ spec:
 | `livenessprobe` | 20m | 50m | 30Mi | 64Mi |
 
 > **Warning:** Default Helm `values.yaml` may be missing limits for the `provisioner` container. Always add them explicitly.
+
+> **Rules 58–59 apply only on the CSI path.** If you chose ephemeral volumes (Operator 1.10.0+, see rule 7) there is no CSI DaemonSet to size, and this entire section is not applicable — the corresponding work moves to per-pod volume provisioning and pod-start latency at high density. On Operator 1.9.x and earlier the CSI path is the only supported mode, so these rules always apply.
 
 <a id="resource-sizing"></a>
 ## 11. Resource Sizing
@@ -251,12 +264,12 @@ spec:
 |---|---------------|-----------------|----------|----------|
 | 70 | Manage DynaKube via GitOps (ArgoCD or Flux) | Store DynaKube YAML in Git, apply via GitOps controller | Recommended | Lifecycle |
 | 71 | Use Kustomize overlays for environment-specific config | `base/dynakube.yaml` + `overlays/{dev,staging,prod}/` patches | Recommended | Lifecycle |
-| 72 | Pin operator Helm chart version in ArgoCD/Flux | `targetRevision: 1.10.1` (ArgoCD) or `version: "1.10.x"` (Flux) | **Critical** | Lifecycle |
+| 72 | Pin an **exact** operator chart version in ArgoCD/Flux | `targetRevision: 1.10.1` (ArgoCD) or `version: "1.10.1"` (Flux) — prefer an exact pin over a `1.10.x` range, because an operator upgrade can change chart *defaults* with no Git commit to review (K8S-02 §8). Never pin below 1.4.1; skip 1.10.0 | **Critical** | Lifecycle |
 | 73 | Set `selfHeal: true` in ArgoCD for drift correction | `syncPolicy.automated.selfHeal: true` | Recommended | Lifecycle |
 | 74 | Set `prune: false` for DynaKube in ArgoCD | Prevent accidental DynaKube deletion on Git removal | **Critical** | Lifecycle |
 | 75 | Use Flux `dependsOn` to order operator before DynaKube | `dependsOn: [{name: dynatrace-operator}]` | Recommended | Lifecycle |
 | 76 | Use ArgoCD sync waves for deployment ordering | Wave 0: Namespace, Wave 1: Operator, Wave 2: DynaKube | Recommended | Lifecycle |
-| 77 | Use `helm upgrade --reuse-values` for operator upgrades | Preserves custom values during upgrade | Recommended | Lifecycle |
+| 77 | Use `helm upgrade --reuse-values` for operator upgrades — **and diff the rendered chart** | Preserves *your* values, but **not** changed chart *defaults* for values you never set. Render and diff before upgrading (`helm template ... > new.yaml` vs. `helm get manifest`) — K8S-02 §8 | Recommended | Lifecycle |
 | 78 | Deploy to dev -> staging -> prod-canary -> prod | Progressive rollout strategy | Recommended | Lifecycle |
 
 <a id="cluster-health-alerting"></a>

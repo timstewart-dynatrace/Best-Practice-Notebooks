@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 06/30/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -610,7 +610,7 @@ The DQL queries throughout §§5–9 are directly derived from this dashboard's 
 
 A workable plan for putting in-tenant consumption visibility in place:
 
-1. **Start with the DEMO dashboard** (§13). Copy it, customize it, leave it running. This is the operational view your team will look at most days.
+1. **Start with the DEMO dashboard** (§13). Copy it, customize it, and make it your team's standing consumption view — the one you open most days. Set its refresh cadence to match how often the numbers are actually acted on (daily review does not need a 1-minute refresh); FINOPS-03 §4 covers why dashboard refresh rate is itself a consumption lever on Logs, Events, and Traces.
 2. **Adopt the three mandatory patterns** (§4) — `dedup event.id`, `event.kind` filter, `billing_type == "BILLABLE"` where applicable. Audit any consumption query in your tenant against these before trusting its numbers.
 3. **Use the right surface for the question**: `dt.billing.*` for trends and Cost Monitor inputs; `dt.system.events` for attribution and chargeback.
 4. **Pre-aggregated chargeback first.** For Logs and Traces ingest, use `dt.billing.*_by_costcenter` / `_by_product` before reaching for `expand dt.cost.costcenter`. It's faster and cleaner.

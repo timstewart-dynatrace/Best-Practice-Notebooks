@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 07/31/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -310,7 +310,22 @@ processors:
 | Order completed | `order.completed` | Business analytics |
 | User signup | `user.registered` | Funnel tracking |
 | Deployment | `deployment.completed` | Change tracking |
-| Critical error | `error.critical` | Incident trigger |
+| Critical error | `error.critical` | Workflow trigger — **not** a problem; see below |
+
+### Business events do not open problems
+
+Both processors above are `type: bizevents`, and that determines what the output can do. A business event lands in Grail, is queryable, and can trigger a workflow — but it **never raises a Davis problem** and never enters problem correlation. The `error.critical` row above is the one to watch: a critical-error business event is a perfectly good workflow trigger, and it is not an incident. Nothing in the Problems app will show it, and no on-call escalation built on problem triggers will see it.
+
+That distinction decides which processor you want:
+
+| You want | Extract as | Opens a problem? | Correlation key applies? |
+|---|---|---|---|
+| Analytics, funnels, KPIs, a workflow hook | **Business event** (`bizevents`) | No | No — not part of this path |
+| An alert that participates in incident response | **Davis event** | Yes | **Yes** — `dt.smartscape_source.id` is mandatory |
+
+If you need the second, the Davis-event extraction path has one hard prerequisite: the event must be attributable to a Smartscape entity. Events sharing a `dt.smartscape_source.id` merge into a single problem; an event that leaves it unset merges with nothing and opens a fresh problem on **every** extraction — which, for a per-record processor, scales with log volume. Since extraction can only read fields already on the record, that means the source stream must be entity-enriched first (§4 above, and the OneAgent attribute-enrichment note in this notebook's prerequisites). OPMIG-07 covers the Davis-event extraction configuration and carries a coverage query for checking the source stream; AIOPS-03 §1 covers the correlation rules.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the two-row processor-choice table maps the documented correlation requirement onto the bizevents-vs-Davis-event split this section configures.</sub>
 
 ```dql
 // Discover patterns suitable for event generation

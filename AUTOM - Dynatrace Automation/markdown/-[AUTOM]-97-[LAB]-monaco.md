@@ -1,6 +1,6 @@
 # AUTOM-97 LAB: Monaco Configuration as Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 05/13/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -589,6 +589,14 @@ configs:
 ```
 
 This deploys the debug dashboard to dev and staging but skips production entirely.
+
+### Validate Dashboard Configs Before Deploying Them
+
+`monaco deploy --dry-run` is the pre-deploy gate — the same command AUTOM-01 §5 introduces as a drift check. Run it against the target environment before every real deploy; it resolves the manifest, expands variables, and reports what *would* change without writing anything, so a broken reference or an unresolved `{{ .Env.* }}` placeholder surfaces before it reaches a tenant.
+
+For dashboard configs specifically, `--dry-run` is necessary but not sufficient: it validates the Monaco configuration around the template, not the dashboard document inside `template: <file>.json`. To Monaco that file is an opaque payload.
+
+> **Forthcoming/rolling out (SaaS 1.344): a dashboard that fails validation will no longer load.** Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. Before 1.344 a failing dashboard still loaded and surfaced validation warnings; after, it does not load at all, and Dynatrace names **API- and AI-authored** dashboards as the most affected population — which is what a Monaco-templated dashboard is. So after a dry-run passes, deploy to a non-production environment and **open the dashboard in the Dashboards app to confirm zero validation warnings** before promoting to prod. Prefer exporting a working UI-authored dashboard as your template over hand-writing the tile map. Full gate: **DASH-07 §5**.
 
 ---
 

@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -214,6 +214,10 @@ The standard propagation format:
 |--------|---------|-------------|
 | `traceparent` | `00-abc123-def456-01` | Trace ID, span ID, flags |
 | `tracestate` | `dt=s:1` | Vendor-specific state |
+
+**`tracestate` is also how the browser session reaches the backend.** Dynatrace's RUM JavaScript injects `traceparent` and `tracestate` on outbound requests, and the `tracestate` entry carries the RUM session identifier — **`dt.rum.session.id`** — alongside the trace and span IDs. Same propagation mechanism described above, used for a different join: it is what lets a backend span be attributed to the browser session that caused it, rather than only to its parent span.
+
+On the span side that linkage surfaces as the `frontend.link` record (see **SPANS-04 § Sprint 1.344**). RUM-side configuration of it belongs to the **WEBRUM** series; the GenAI application — reconstructing a multi-turn LLM conversation from spans — is covered in **AIOPS-06 § 1**.
 
 ### HTTP Propagation
 
@@ -466,6 +470,7 @@ service:
 | Keep cardinality low | Query performance |
 | Don't include PII | Security |
 | Add business context | Debugging value |
+| Prefer platform-native feature-flag enrichment where available | OneAgent 1.343 adds OpenFeature SDK support for Java — verify the agent version on the hosts concerned; hand-set flag-variant attributes remain the portable fallback (SPANS-02 § 7a) |
 
 ### Performance Tips
 

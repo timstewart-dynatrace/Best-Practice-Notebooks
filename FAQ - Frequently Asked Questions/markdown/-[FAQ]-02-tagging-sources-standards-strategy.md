@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 07/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -17,6 +17,7 @@ If you read only one section, read **§5 (Standards)** and **§6 (Strategy)** �
 1. [What "Tags" Mean in Dynatrace](#what-tags-mean)
 2. [Primary Tags vs Primary Fields vs Custom Tags vs Auto-Tags](#primary-vs-others)
 3. [The Four-Source Hierarchy](#four-sources)
+    - [Release-identity environment variables (`DT_RELEASE_*`)](#four-sources)
 4. [AWS / Azure / GCP — Per-Cloud Specifics](#cloud-specifics)
 5. [Tagging Standards — Taxonomy and Naming](#standards)
 6. [Strategy Themes](#strategy)
@@ -104,7 +105,13 @@ Dynatrace's `tags-and-metadata` documentation enumerates seven categories of tag
 | **Cloud-provider tags** | AWS / Azure / GCP console / IaC tooling | `aws.tag.<key>`, `azure.tag.<key>`, `gcp.label.<key>` plus provider attributes | The **source of record** for cost-allocation and compliance data when the cloud provider is the canonical owner of that information; useful as input to OpenPipeline enrichment that normalizes them into `dt.*` primary fields |
 | **Auto-tagging rules** *(legacy)* | Settings 2.0 schema | View-time tag conditions on entities | Avoid for new work; acceptable only as a stop-gap on legacy tenants pending migration to primary fields |
 
-> **June 2026 — the tags hub formalizes which sources can emit primary tags directly.** The new [Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags) documents primary Grail tags as settable from **five sources**: OneAgent (host tags / `DT_TAGS`), Kubernetes (namespace- or pod-level `metadata.dynatrace.com/primary_tags.<key>` annotations — *"the at-source and central configuration options require minimum component versions: OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"* — Operator 1.10.0 and ActiveGate 1.341 have shipped as of July 15, 2026, OneAgent 1.343 has not (verify your components); pod-level values win over namespace-level, and Operator 1.10.0 adds cluster-scoped DynaKube resource attributes below annotations in the specificity chain), cloud-provider tags (AWS / Azure / GCP), OpenTelemetry resource attributes (`OTEL_RESOURCE_ATTRIBUTES`), and OpenPipeline (derived from any incoming field at ingest). Host/process metadata as a source is documented as *Coming soon*, and central-configuration rules that promote existing Kubernetes labels to primary tags (limited to 20 rules per scope) **ship with SaaS 1.343** as *Centralized telemetry metadata enrichment* — key-value pairs, namespace annotations, and domain tags managed centrally. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it; until it arrives, the at-source mechanisms described here remain the working path. The four-bucket model above still holds — what changes is that each bucket increasingly emits `primary_tags.*` natively instead of relying on enrichment workarounds.
+> **June 2026 — the tags hub formalizes which sources can emit primary tags directly.** The new [Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags) documents primary Grail tags as settable from **five sources**: OneAgent (host tags / `DT_TAGS`), Kubernetes (namespace- or pod-level `metadata.dynatrace.com/primary_tags.<key>` annotations — pod-level values win over namespace-level, and Operator 1.10.0 adds cluster-scoped DynaKube resource attributes below annotations in the specificity chain), cloud-provider tags (AWS / Azure / GCP), OpenTelemetry resource attributes (`OTEL_RESOURCE_ATTRIBUTES`), and OpenPipeline (derived from any incoming field at ingest). Central-configuration rules that promote existing Kubernetes labels to primary tags (limited to 20 rules per scope) ship with **SaaS 1.343** as *Centralized telemetry metadata enrichment* — key-value pairs, namespace annotations, and domain tags managed centrally. SaaS 1.343 released 07/07/2026 with a staged tenant rollout from mid-July 2026 — verify the feature has reached your tenant before relying on it; until it arrives, the at-source mechanisms described here remain the working path. The four-bucket model above still holds — what changes is that each bucket increasingly emits `primary_tags.*` natively instead of relying on enrichment workarounds.
+
+> **July 2026 — the three minimum component versions have now all shipped, but your fleet is a separate question.** The Kubernetes tag-setup page states that *"the at-source and central configuration options require minimum component versions: OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"*. All three now exist: Operator 1.10.0 and ActiveGate 1.341 shipped earlier, and **OneAgent 1.343 released 07/28/2026** — the last of the three. What that does *not* mean is that the requirement is satisfied in your environment. **Tenant version is not agent version**, and OneAgent fleets upgrade on their own schedule (auto-update rings, maintenance windows, or manual rollouts), so **verify the installed OneAgent version on the hosts concerned** rather than inferring it from the tenant. Treat any host on **1.342 or earlier as still on the prior mechanisms**, and expect a mixed fleet for weeks — a cluster where some nodes satisfy the requirement and others do not will produce partial primary-tag coverage that looks like a configuration error rather than a version skew.
+>
+> OneAgent 1.343 is also where the **host/process metadata source** starts to arrive, rather than a single switch flipping. Two 1.343 changes carry it: **Smartscape identifiers are now included in process metadata files**, and OneAgent **can ingest enrichment configuration containing conditional rules expressed as DQL matchers** — which is what lets a rule decide at source whether a given process should carry a value. Verify the agent version per host before designing around either.
+>
+> **Until fleets reach 1.343, the working mechanisms are unchanged:** Kubernetes `metadata.dynatrace.com/primary_tags.<key>` annotations for pod- and namespace-scoped dimensions, and `DT_TAGS` / `oneagentctl --set-host-tag` (or the older `--set-host-property` form for `dt.*` keys) for host- and process-level dimensions. Neither is superseded by 1.343 — both remain the documented at-source path and continue to work afterwards.
 
 ### Propagation Depth — Why the Source Matters
 
@@ -126,10 +133,50 @@ If you tag at the OneAgent layer with primary fields, the value is on every sign
 > <sub>**Sources:**</sub>
 > - <sub>[Tags and metadata (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata) — seven documented categories of tags and metadata; basis for the four operational buckets in this FAQ</sub>
 > - <sub>[Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags) — latest-Dynatrace tagging model; per-source setup pages</sub>
-> - <sub>[Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — five documented primary-tag sources; host/process metadata "Coming soon"</sub>
-> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, pod-over-namespace precedence, minimum component versions</sub>
+> - <sub>[Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — five documented primary-tag sources</sub>
+> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, pod-over-namespace precedence, and the *"OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"* minimums</sub>
+> - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; Smartscape identifiers in process metadata files, and enrichment configuration with conditional rules expressed as DQL matchers</sub>
 > - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — `--set-host-property` vs `--set-host-tag` syntax (classic reference)</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline) — enrichment processors that surface K8s and cloud tags as `dt.*` primary fields</sub>
+> - <sub>**Derived:** the "verify the agent version per host, treat ≤1.342 as prior-mechanism, expect a mixed fleet" guidance combines the documented version minimums with the fact that agent fleets upgrade independently of tenant version</sub>
+
+### 3.1 Release-identity environment variables (`DT_RELEASE_*`)
+
+One environment-variable family deserves calling out separately, because it is set like a tag, surfaces like a
+tag, and yet is easy to look for in the wrong place. Release identity is declared on the process via:
+
+| Variable | Holds | Example |
+|---|---|---|
+| `DT_RELEASE_PRODUCT` | Product / component name | `easytrade` |
+| `DT_RELEASE_VERSION` | Release version | `1.5.2` |
+| `DT_RELEASE_STAGE` | Deployment stage | `production` |
+| `DT_RELEASE_BUILD_VERSION` | Build identifier, when distinct from the version | `4471` |
+
+**Read them from the `tags` map on a Smartscape process node, with *unquoted* bracket keys:**
+
+```
+smartscapeNodes "PROCESS"
+| fieldsAdd product = tags[DT_RELEASE_PRODUCT], version = tags[DT_RELEASE_VERSION]
+| filter isNotNull(product) and isNotNull(version)
+| dedup {product, version}
+```
+
+`tags["DT_RELEASE_PRODUCT"]` — the quoted form — is a **parse error**, not an empty result.
+
+Three traps, all confirmed against a live tenant on 07/30/2026:
+
+- **Do not expect a `deployment.release_*` field on the process node.** The semantic dictionary does define
+  `deployment.release_product`, `deployment.release_version`, `deployment.release_stage`,
+  `deployment.release_build_version`, and `cicd.deployment.release_stage` — but `dt.smartscape.process`
+  declares 30 fields and **none of them is release-related**; the values arrive inside `tags`. Filtering a
+  process node on `deployment.release_version` matches nothing and returns **zero rows rather than an error**,
+  which reads as "no releases tagged" when it actually means "wrong access path."
+- **`DT_RELEASE_STAGE` is frequently unset even where product and version are.** On the validation tenant, 16
+  processes carried `easytrade` / `1.5.2` with `stage` null throughout. Treat stage as optional: filter on
+  product and version, and let stage be a display column rather than a required grouping key.
+- **Keep the values slug-safe** — lowercase, hyphenated, no spaces, quotes, `#`, or `&`. This is not
+  cosmetic: these values get concatenated into URLs for deep links into issue trackers, where an unescaped
+  separator silently truncates the target parameter. See **DASH-06 § 7** for that recipe.
 
 <a id="cloud-specifics"></a>
 ## 4. AWS / Azure / GCP — Per-Cloud Specifics

@@ -1,6 +1,6 @@
 # DASH-99: Best Practice Summary
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 03/26/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -211,15 +211,16 @@ This notebook consolidates every actionable best practice from the DASH series (
 |---|--------------|-----------------|----------|--------|
 | 94 | Follow the 6-step creation workflow | 1) Define audience/purpose, 2) Identify 5-10 key metrics, 3) Prototype in notebook, 4) Build dashboard, 5) Add variables, 6) Share and iterate | Critical | DASH-01 |
 | 95 | Manage dashboards as code | Use Monaco CLI or Terraform for multi-environment deployment, version control, and peer review | Recommended | DASH-07 |
-| 96 | Organize dashboard repo by tier | Structure: `dashboards/executive/`, `dashboards/operations/`, `dashboards/engineering/`, `dashboards/templates/` | Recommended | DASH-07 |
-| 97 | Deploy dashboard changes through PR review | Export > modify in feature branch > PR review > deploy to staging > validate > deploy to production | Recommended | DASH-07 |
-| 98 | Maintain a query registry | Track which DQL queries power which dashboard tiles. Update when DQL syntax or data sources change | Optional | DASH-07 |
-| 99 | A dashboard is never "done" | Share with target audience, collect feedback, and refine continuously. Evolve with team needs | Recommended | DASH-01 |
-| 100 | Validate dashboard data matches manual reports | Executives lose trust if dashboard numbers differ from status meeting reports. Cross-check availability and MTTR calculations | Critical | DASH-03 |
+| 96 | Validate every dashboard payload before merging it | Deploy to a non-production tenant, open the dashboard in the Dashboards app, confirm **zero** validation warnings. API acceptance (`2xx`) is not render confirmation. Under SaaS 1.344 (rolling out from 07/29/2026) a dashboard that fails validation no longer loads at all, and API- or AI-authored dashboards are the named affected population | Critical | DASH-07 |
+| 97 | Organize dashboard repo by tier | Structure: `dashboards/executive/`, `dashboards/operations/`, `dashboards/engineering/`, `dashboards/templates/` | Recommended | DASH-07 |
+| 98 | Deploy dashboard changes through PR review | Export > modify in feature branch > PR review > deploy to staging > validate schema/render > review data fidelity > deploy to production | Recommended | DASH-07 |
+| 99 | Maintain a query registry | Track which DQL queries power which dashboard tiles. Update when DQL syntax or data sources change | Optional | DASH-07 |
+| 100 | A dashboard is never "done" | Share with target audience, collect feedback, and refine continuously. Evolve with team needs | Recommended | DASH-01 |
+| 101 | Validate dashboard data matches manual reports | Executives lose trust if dashboard numbers differ from status meeting reports. Cross-check availability and MTTR calculations | Critical | DASH-03 |
 
 ## Summary
 
-This notebook contains **100 best practices** extracted from the DASH series, organized into 12 categories:
+This notebook contains **101 best practices** extracted from the DASH series, organized into 12 categories:
 
 | Category | Practices | Critical Count |
 |----------|-----------|----------------|
@@ -234,9 +235,9 @@ This notebook contains **100 best practices** extracted from the DASH series, or
 | Refresh and Performance | 72-79 | 4 |
 | Sharing and Permissions | 80-87 | 3 |
 | Reporting and Automation | 88-93 | 0 |
-| Dashboard Lifecycle | 94-100 | 2 |
+| Dashboard Lifecycle | 94-101 | 3 |
 
-**Priority breakdown:** 44 Critical, 42 Recommended, 4 Optional. Start with Critical practices first, then layer in Recommended practices for a mature dashboard strategy.
+**Priority breakdown:** 45 Critical, 42 Recommended, 4 Optional. Start with Critical practices first, then layer in Recommended practices for a mature dashboard strategy.
 
 ---
 

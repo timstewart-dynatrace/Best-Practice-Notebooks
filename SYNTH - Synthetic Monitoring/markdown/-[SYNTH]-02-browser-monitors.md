@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 07/01/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -97,12 +97,28 @@ Multi-step user journey simulation:
 | Mobile | 375x667 | iPhone 8 |
 
 ```dql
-// List browser/clickpath monitors (these are synthetic_test entities)
-fetch dt.entity.synthetic_test
-| fields id, entity.name
-| sort entity.name asc
+// List browser/clickpath monitors
+// PREFERRED -- Smartscape. Classic dt.entity.synthetic_test maps to BROWSER_MONITOR.
+// entityName() is not needed: the node's `name` field IS the display name.
+smartscapeNodes "BROWSER_MONITOR"
+| fields name, id, id_classic, url, enabled, frequency
+| sort name asc
 | limit 50
 
+// Clickpath STEPS are separate nodes (BROWSER_MONITOR_STEP), joined to the monitor by
+// an edge -- they are NOT fields of the monitor record. To count steps per monitor,
+// start from the steps and traverse belongs_to back to the monitor:
+//
+// smartscapeNodes "BROWSER_MONITOR_STEP"
+// | traverse edgeTypes: {"belongs_to"}, targetTypes: {"BROWSER_MONITOR"}, direction: forward
+// | summarize steps = count(), by:{monitor = name, url}
+// | sort steps desc
+
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.synthetic_test
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
 ```
 
 ```dql

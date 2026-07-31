@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -878,6 +878,10 @@ resource "dynatrace_document" "team_dashboard" {
         type  = "data"
         title = "Error Rate"
         query = "timeseries avg(dt.service.request.failure_rate), by:{dt.entity.service}"
+        visualization = "lineChart"
+        visualizationSettings = {
+          chartSettings = {}
+        }
       }
     }
     layouts = {
@@ -887,6 +891,18 @@ resource "dynatrace_document" "team_dashboard" {
 }
 ```
 
+**A data tile needs `visualization` and `visualizationSettings`, not just `query`.** A tile carrying only `type`/`title`/`query` is incomplete — nothing states how the result should be drawn. The full `visualizationSettings` block is large and differs per visualization type, so the reliable way to get its exact shape is to build the tile in the UI and export the document; do not hand-write it from memory. The canonical document shape is in **NRLC-03 §2**.
+
+> **Forthcoming/rolling out (SaaS 1.344) — a dashboard that fails validation will no longer load.** SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**; verify whether it has reached your tenant before relying on the new behavior. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings. Once 1.344 reaches your tenant, it does not load at all. Dynatrace names dashboards **created externally via API or by AI tooling** as the most affected population — which is exactly what a `dynatrace_document` dashboard payload is. Treat the warning state as a grace period, not a supported state.
+>
+> **Gate every payload before you merge it:**
+>
+> 1. Apply it against a **non-production tenant** and open the dashboard in the Dashboards app.
+> 2. Confirm **zero validation warnings** — not "warnings we have decided to live with."
+> 3. Prefer **exporting a working UI-authored dashboard** as your template over hand-writing the `tiles` / `layouts` map. The UI only emits shapes it can render.
+>
+> `terraform plan` and provider-side schema checks validate the *HCL*, not the dashboard document inside `jsonencode(...)` — to Terraform that payload is an opaque string. The export → modify → review → deploy workflow remains the working path; 1.344 raises the cost of skipping its validation step, it does not replace the workflow. Full gate: **DASH-07 §5**.
+
 #### Grail Notebook (Document)
 
 ```hcl
@@ -895,24 +911,29 @@ resource "dynatrace_document" "runbook" {
   name    = "Incident Runbook"
   private = false
   content = jsonencode({
-    version = "3"
+    version = "7"
     sections = [
       {
-        id    = "section-1"
-        type  = "markdown"
-        title = "Investigation Steps"
-        content = "## Step 1: Check Error Rate\nRun the query below to identify affected services."
+        id       = "section-1"
+        type     = "markdown"
+        markdown = "## Step 1: Check Error Rate\nRun the query below to identify affected services."
       },
       {
         id    = "section-2"
         type  = "dql"
         title = "Error Rate by Service"
-        content = "timeseries avg(dt.service.request.failure_rate), by:{dt.entity.service}"
+        state = {
+          input = {
+            value = "timeseries avg(dt.service.request.failure_rate), by:{dt.entity.service}"
+          }
+        }
       }
     ]
   })
 }
 ```
+
+**Notebook-document schema — two things are easy to get wrong here.** `version` is the string **`"7"`** for current notebook documents (older documents may still carry `"5"` or `"6"`; migrate on next touch). And **there is no `content` key on a section** — the two section types carry their payload under different keys: a `markdown` section carries **`markdown`**, and a `dql` section carries its query under **`state.input.value`**. A section shaped with `content` does not match the schema, so the resulting document has sections the Notebooks app cannot render.
 
 #### Segment (Gen3 Management Zone Replacement)
 

@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/31/2026
 
 ---
 
@@ -241,6 +241,37 @@ Event Description: Payment failed for order {order_id}: {error_message}
 Event Type: ERROR
 Matching: contains(content, "payment") AND contains(content, "failed")
 ```
+
+### Attribution — what the extracted event attaches to
+
+A Davis event only earns its place if Dynatrace can tell what it is *about*. Every Davis event carries `dt.smartscape_source.id`, the Smartscape entity ID of the signal's source, and the documented grouping rule merges all events sharing that value into one problem. **An extracted event with the field unset merges with nothing — it opens a separate problem on every extraction.** Since extraction fires per matching record, that is not a handful of duplicates; it scales with log volume.
+
+**Extraction reads the record; it cannot resolve an entity that is not on it.** A log OneAgent collected from a monitored process arrives already carrying `dt.entity.host`, `dt.entity.process_group_instance`, and on Kubernetes `dt.entity.cloud_application`. A log pushed through the generic ingest API or forwarded by a third-party shipper frequently arrives with none of that, and no extraction rule can conjure it. Enrichment is therefore a **prerequisite** of event extraction, not a nice-to-have alongside it.
+
+Check the source stream before you configure the extraction, not after:
+
+```dql
+// Entity-enrichment coverage on the stream you plan to extract events from.
+// Low coverage here means extracted Davis events will be unattributable.
+fetch logs, from:-2h
+| summarize total = count(),
+    with_host = countIf(isNotNull(dt.entity.host)),
+    with_pgi = countIf(isNotNull(dt.entity.process_group_instance)),
+    with_workload = countIf(isNotNull(dt.entity.cloud_application))
+| fieldsAdd host_pct = round(with_host * 100.0 / total, decimals: 1),
+            pgi_pct = round(with_pgi * 100.0 / total, decimals: 1),
+            workload_pct = round(with_workload * 100.0 / total, decimals: 1)
+```
+
+Executed on a validation tenant over 2 hours, 07/31/2026: **1,369,261 records at 97.8% host, 97.8% process-group, and 97.7% workload coverage** — the shape you expect where OneAgent collects nearly everything. The residual couple of percent is precisely where an extracted event would land unattributed.
+
+If your own figure is materially lower, the streams behind the gap are usually API-pushed or forwarder-sourced. Fix enrichment there first — OPLOGS-03 §4 covers attribute creation, and its OneAgent attribute-enrichment note covers setting primary fields at source — rather than extracting events that cannot correlate. Filter this query by `dt.openpipeline.source` or `k8s.namespace.name` to isolate the specific stream your extraction rule matches.
+
+Once extraction is live, confirm the events actually carry a key: AIOPS-02 §8 ranks detectors and extracted event sources by firing count and shows which are unattributed, and AIOPS-03 §1 covers the correlation rules themselves.
+
+**Business events are a different case entirely** — the next section. They never open problems, so none of this applies to them.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — "make sure to set the `dt.smartscape_source.id` field to an existing Smartscape entity ID". **Derived:** treating source-record enrichment as a prerequisite of event extraction follows from the correlation requirement plus the fact that an extraction rule can only read fields present on the record.</sub>
 
 ---
 

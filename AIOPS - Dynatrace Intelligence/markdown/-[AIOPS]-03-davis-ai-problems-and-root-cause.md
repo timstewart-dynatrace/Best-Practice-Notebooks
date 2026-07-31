@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 05/29/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -59,6 +59,31 @@ Davis answers using Smartscape — the dependency graph. Three signals on three 
 **This is why Smartscape coverage matters.** Causal AI's accuracy is bounded by topology completeness. Untraced services, undeclared dependencies, missing tags — all reduce the graph quality and produce worse grouping.
 
 **Causal AI is deterministic, not statistical.** It walks the topology graph; it does not run an LLM or a black-box correlation. Two operators looking at the same data get the same root cause attribution.
+
+### The correlation keys
+
+Grouping is not a black box you have to take on faith — it runs on fields you can query.
+
+**The universal rule is `dt.smartscape_source.id`.** Every Davis event carries this field, holding the Smartscape entity ID of whatever the signal is *about*. Events naming the same entity within the correlation timeframe collapse into a single problem. The semantic dictionary types it `smartscapeId` at stability `stable` — it holds an entity ID, not a display name.
+
+**This is the field a custom alert most often gets wrong, and the failure is silent.** An event whose `dt.smartscape_source.id` is empty — or set to some arbitrary string — matches nothing, so it can never merge with anything. Every single firing opens its own problem. AIOPS-02 §4 covers setting it in the detector's event template; AIOPS-02 §8 has a query that finds unattributed detectors in your own tenant.
+
+**Topology rules merge across entity types.** Beyond exact-entity matching, Davis merges signals from entities in a known structural relationship — a process and the host it runs on are not two separate incidents:
+
+| Grouping | Entity types merged into one problem |
+|----------|--------------------------------------|
+| Host | `HOST`, `PROCESS`, `CONTAINER`, `DISK`, `NETWORK_INTERFACE` |
+| Container | `CONTAINER`, `PROCESS` |
+| Process | `SERVICE`, `PROCESS` |
+| Kubernetes pod | `K8S_POD`, `CONTAINER` |
+| Kubernetes node | `K8S_NODE`, `K8S_POD`, `CONTAINER` |
+| Kubernetes deployment | `K8S_DEPLOYMENT`, `SERVICE` |
+
+**Three further deduplication layers run on top:** time-based deduplication, so the same signal recurring inside the correlation window does not re-open a problem; causal merging across the dependency graph described above; and **frequent issue detection**, where Davis recognises a chronically recurring condition and stops raising it as a new problem on the reasoning that a permanent known issue is not news.
+
+That last one is worth knowing before you conclude a detector has broken. A detector that "stopped alerting" may simply have had its condition classified as a frequent issue — check the event stream (`dt.davis.events`) rather than the problem feed to tell the two apart.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Davis AI problem detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/davis-ai). **Derived:** the "check `dt.davis.events` rather than the problem feed" diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub>
 
 <a id="lifecycle"></a>
 ## 2. Problem Lifecycle and Fields

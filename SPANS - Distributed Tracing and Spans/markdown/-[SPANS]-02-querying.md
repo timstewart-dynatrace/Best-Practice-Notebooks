@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 05/21/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 07/30/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -16,6 +16,7 @@ This notebook covers essential techniques for querying and filtering span data t
 5. [String Matching Functions](#string-matching-functions)
 6. [Finding Specific Traces](#finding-specific-traces)
 7. [HTTP Span Queries](#http-span-queries)
+    - [RPC and gRPC Span Queries](#rpc-and-grpc-span-queries)
 8. [Database Span Queries](#database-span-queries)
 9. [Working with NULL Values](#working-with-null-values)
 10. [Combining Multiple Filters](#combining-multiple-filters)
@@ -317,6 +318,92 @@ fetch spans, from:-1h
 | summarize {status_count = count()}, by: {http.response.status_code}
 | sort http.response.status_code asc
 ```
+
+---
+
+<a id="rpc-and-grpc-span-queries"></a>
+## 7a. RPC and gRPC Span Queries
+
+Not every service-to-service call is an HTTP request. RPC frameworks — gRPC above all, plus Java RMI and Apache Dubbo — carry their own span attributes, modelled in the semantic dictionary as the **`rpc`** model on the `spans` data object.
+
+### Core `rpc.*` Attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `rpc.system` | RPC framework. **Values are not a fixed enum** — see the warning below |
+| `rpc.service` | Fully-qualified service name (e.g. `checkout.v1.CheckoutService`) |
+| `rpc.method` | Method invoked on that service (e.g. `PlaceOrder`) |
+| `rpc.namespace` | Namespace the service is registered under |
+| `rpc.grpc.status_code` | gRPC-specific numeric status code (`0` = `OK`) |
+| `server.address` / `server.port` | Callee address, same as for HTTP spans |
+
+`span.kind` still tells you which side of the call you are looking at — `server` for the callee, `client` for the caller — so pair it with `rpc.service` / `rpc.method` the same way you pair it with `http.route`.
+
+> **Read `rpc.service` as the interface, not the Dynatrace service.** `rpc.service` is the gRPC service definition from the `.proto` file. It is not `service.name`, and one Dynatrace service commonly exposes several `rpc.service` values.
+
+> ⚠️ **`rpc.system` is instrumentation-supplied, so never filter it with `==`.** The value is whatever the instrumenting library wrote, not a value the platform normalizes. A single tenant surveyed on 07/30/2026 carried **`grpc` and `gRPC` simultaneously** — 110,097 and 8,391 spans in the same hour — alongside `adk`, `apache_axis`, `jersey`, and even bare `1` and `2`. Filtering `rpc.system == "grpc"` there returns a confidently wrong number, quietly missing 7% of gRPC traffic.
+>
+> Use **`matchesValue(rpc.system, "grpc")`** instead: it is an exact match but **case-insensitive**, so it catches every capitalization without also matching unrelated frameworks the way `contains()` could. Before trusting any `rpc.system` filter in your own tenant, look at what is actually there:
+>
+> ```
+> fetch spans, from:-1h
+> | filter isNotNull(rpc.system)
+> | summarize spans = count(), by:{rpc.system}
+> | sort spans desc
+> ```
+
+```dql
+// Summarize gRPC calls by service and method.
+//
+// Use matchesValue() rather than == on rpc.system. matchesValue() is an exact but
+// CASE-INSENSITIVE match, and real tenants carry more than one spelling: on the
+// validation tenant both `grpc` (110,097 spans/hr) and `gRPC` (8,391 spans/hr) are
+// present, because the value is whatever the instrumentation set. So
+// `rpc.system == "grpc"` silently drops ~7% of gRPC traffic — a wrong number, not an
+// error. Live-verified 07/30/2026: matchesValue returns 118,393 spans across both.
+fetch spans, from:-1h
+| filter matchesValue(rpc.system, "grpc")
+| summarize {
+    call_count = count(),
+    error_count = countIf(span.status_code == "error"),
+    avg_duration_ms = avg(duration) / 1ms
+  }, by: {span.kind, rpc.service, rpc.method}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / call_count
+| sort call_count desc
+| limit 50
+```
+
+### gRPC status codes and the OneAgent version
+
+**Forthcoming / rolling out (OneAgent 1.343).** OneAgent 1.343 released 07/28/2026 and adds **gRPC status-code support for .NET**. Rollout is **per fleet, not per tenant** — the tenant version is not the agent version, and agent fleets routinely lag a sprint or more. **Confirm the OneAgent version on the hosts concerned** before you build alerting on `rpc.grpc.status_code` for .NET services.
+
+Until 1.343 reaches those hosts, .NET gRPC spans are **still captured** — you filter on `span.status_code` and the `rpc.*` attributes above, exactly as this section shows. What is missing is only the gRPC-specific status code. So on a mixed fleet, treat a null `rpc.grpc.status_code` as **"not yet instrumented on this host"**, not as a healthy call: `0` means `OK`, and null means you do not know.
+
+The query below separates those two populations so you can see which is which.
+
+```dql
+// gRPC status-code coverage: populated vs. not-yet-instrumented.
+// A null rpc.grpc.status_code is NOT a healthy call — it means the gRPC-specific code
+// was not populated. Check the OneAgent version on the reporting host.
+//
+// Case-insensitive rpc.system match for the reason given in the previous cell.
+// Live-verified 07/30/2026: of 118,380 gRPC spans in one hour, only 11 carried
+// rpc.grpc.status_code — so on a real fleet the "not yet instrumented" population is
+// the overwhelming majority, and reading null as OK would be badly wrong.
+fetch spans, from:-1h
+| filter matchesValue(rpc.system, "grpc")
+| summarize calls = count(), by: {rpc.grpc.status_code, span.status_code}
+| sort calls desc
+| limit 50
+```
+
+### Feature-flag context on spans
+
+**Forthcoming / rolling out (OneAgent 1.343).** OneAgent 1.343 also adds **OpenFeature SDK support for Java**, enriching traces with feature-flag evaluation data. The value is attribution rather than novelty: a latency or error difference can be tied to the flag *variant* that produced it, instead of inferred from deploy timing and a change log. As with gRPC status codes, this ships per agent fleet — **verify the OneAgent version on the Java hosts concerned.**
+
+**The pre-1.343 working path is unchanged and stays valid:** set the flag variant yourself as a custom span attribute at instrumentation time (see **OTEL-04 § 5 — Span Attributes and Events**) and query it like any other business attribute. That approach is also the portable one — it works on any runtime and any agent version, and it is what you fall back to for languages the platform-native enrichment does not cover.
+
+Either way, keep the variant a **flat, low-cardinality scalar** (`checkout-v2`, `control`) so it works as a `by:{...}` dimension.
 
 ---
 

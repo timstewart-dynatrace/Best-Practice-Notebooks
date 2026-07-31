@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -34,6 +34,12 @@ Engineering dashboards are the deepest tier in the dashboard hierarchy. They ser
 ## 1. Span Analysis for Service Deep-Dives
 
 Engineering dashboards rely heavily on span data. Spans provide the most granular view of service behavior — individual requests, their duration, status, and attributes.
+
+Every query in this section selects a transaction kind by hand, with `filter span.kind == "server"`. That is how you write the *tile* query, and it does not change. What changed is the exploratory pass that comes before it.
+
+> **Forthcoming/rolling out (SaaS 1.344): the Services app filters by transaction kind and technology stack.** Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. The Services app gains filtering by **transaction kind** (HTTP, RPC, Messaging, Database) and by technology stack, plus support for primary Grail fields and tags as filter dimensions.
+>
+> The practical effect is on the scoping round-trip, not on the tile. Narrowing to "the messaging services in this stack" used to mean writing a query, reading it, adjusting the filter, and re-running — before you knew which services you were even building a tile for. Now that pass happens in the app: scope there interactively, confirm the shape of the result, then carry the confirmed filter into the tile query. `span.kind` remains how the tile expresses it either way, so nothing below needs rewriting — and if 1.344 has not reached your tenant, the DQL-first exploratory loop is unchanged and still works.
 
 ### Service Throughput and Latency
 
@@ -148,6 +154,8 @@ Compare service performance before and after a deployment to quantify its impact
 ### Before vs After Deployment
 
 This pattern uses `append` to compare two time windows — 1 hour before the deployment vs 1 hour after.
+
+> **Next question after "did this release hurt?" is usually "what was in it?"** Once a tile has quantified a deployment's impact, the reader wants the tickets in that release — which is a deep link, not another query. **DASH-06 §7** builds a clickable per-release link from dashboard variables (`concat()` + the Markdown column type), so the release row in a deployment-impact dashboard can jump straight to the matching Jira / GitHub / GitLab / ServiceNow view. **Prerequisite:** the release-identifying process tags (`DT_RELEASE_STAGE`, `DT_RELEASE_PRODUCT`, `DT_RELEASE_VERSION`) with slug-safe values — without them there is nothing to parameterize the URL with. See FAQ-02 for the tagging mechanics.
 
 ```dql
 // Before/after deployment comparison — last 2 hours vs preceding 2 hours

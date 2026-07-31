@@ -1,6 +1,6 @@
 # FAQ-08: How Does OneAgent Decide Which Logs to Collect?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 07/08/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -105,9 +105,16 @@ And the file must behave like a live, append-only text log:
 - It must be **opened in write mode**.
 - It must be **at least the configured size threshold** (default **500 bytes**).
 
+> **Rolling out (OneAgent 1.343) — the rapid-rotation constraint narrows on Linux.** OneAgent 1.343 (released 07/28/2026) adds support for **rapidly rotated and compressed log files on Linux**, which is precisely the case the "cannot be deleted earlier than a minute after creation" bullet and the one-minute minimum age (#2) exclude today. Two limits on that relief matter more than the headline:
+>
+> - **It is Linux-only.** On Windows the constraint above is unchanged, and a rapidly rotated file there still needs a custom log source (§6).
+> - **It depends on the agent version, not the tenant version.** Fleets upgrade on their own schedule, so **verify the OneAgent version on the hosts concerned**; anything on 1.342 or earlier behaves exactly as the table describes. Expect a mixed fleet for weeks.
+>
+> Until the hosts you care about are on 1.343, treat requirement #2 and the one-minute-deletion bullet as fully in force — they remain the working model.
+
 Two of these trip people up most often. The **7-day activity window** (#4) and the **24-hour timestamp rule** (#6) are *different* checks: #4 is about when the file was last *written*, #6 is about the *timestamps inside the records*. A file actively written today but full of records dated last week will be discovered yet have its old records dropped by the timestamp rule. And the **path/name rule** (#5) is why `/data/exports/run.out` from the Overview is invisible — it is neither under a `log`/`logs` path nor does its name carry a `log` token.
 
-> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — requirements list, encodings, 7-day activity window, 24-hour timestamp rule, 10-minute future-timestamp override, append-only constraints, and the 500-byte default size threshold (all quoted from the page).</sub>
+> <sub>**Sources:** [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — requirements list, encodings, 7-day activity window, 24-hour timestamp rule, 10-minute future-timestamp override, append-only constraints, and the 500-byte default size threshold (all quoted from the page), [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; support for rapidly rotated and compressed log files on Linux. **Derived:** the "verify the agent version per host, expect a mixed fleet" qualifier follows from agent fleets upgrading independently of tenant version.</sub>
 
 <a id="builtin-rules"></a>
 ## 4. The Built-in Include / Exclude Rules
@@ -199,13 +206,15 @@ When a file fails a gate, the fix is a **custom log source** — an explicit pat
 - The file lives outside a `log`/`logs` path and its name has no `log` token (the Overview's `/data/exports/run.out`).
 - Nothing keeps the file open, or the writing process isn't deep-monitored.
 - The file is **binary** (enable the binary-format option).
-- The file uses an unusual **rotation pattern** the detector doesn't follow cleanly.
+- The file uses an unusual **rotation pattern** the detector doesn't follow cleanly — **narrowed on Linux from OneAgent 1.343** (released 07/28/2026), which adds support for rapidly rotated files. On **Windows**, or on any host still running **1.342 or earlier**, this remains a live cause and the custom-source fix still applies. Check the agent version on the host before concluding the rotation pattern is the problem: tenant version is not agent version.
+- The file is **compressed** (`.gz` and similar). Compressed logs are not part of the ordinary auto-discovery text-file model — **from OneAgent 1.343 they are collectable on Linux**; before that version, and on Windows, a compressed file needs either a custom source with the appropriate handling or a change to the writer so an uncompressed live file exists to tail. Again, verify the agent version deployed.
 
 Because custom sources don't expand the rules, the durable fix for "we have a whole class of logs in a non-standard location" is sometimes simpler: write those logs to a `log`/`logs` directory, or give them a `*.log` name, so the built-in include rules catch them without per-host configuration.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Custom log source (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source)</sub> — config scopes and precedence, absolute-path requirement, `*`/`#` wildcard semantics, 100 paths/rule and 1000 rules/scope, `dtuser` permission requirement, "custom log sources do not expand auto-detection"
 > - <sub>[Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery)</sub> — binary-format option for binary files; rotation-pattern handling
+> - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343)</sub> — released 07/28/2026; support for rapidly rotated and compressed log files on Linux
 > - <sub>**Derived:** the "write to a log/ directory or use a .log name" recommendation combines the §4 include rules with the custom-source-doesn't-expand constraint — neither source states it as advice.</sub>
 
 <a id="scale-limits"></a>

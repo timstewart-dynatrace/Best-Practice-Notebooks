@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -16,7 +16,8 @@ Variables transform a static dashboard into a dynamic, reusable tool. Instead of
 4. [Variable-Driven DQL Queries](#variable-driven-queries)
 5. [Filter Propagation](#filter-propagation)
 6. [Template Dashboard Patterns](#template-patterns)
-7. [Summary and Next Steps](#summary-and-next-steps)
+7. [Building Deep Links from Variables](#deep-links)
+8. [Summary and Next Steps](#summary-and-next-steps)
 
 ---
 
@@ -286,9 +287,115 @@ A template dashboard that displays the four golden signals (latency, traffic, er
 
 This pattern is especially powerful because it works for every service in the environment — engineers just change the variable.
 
+<a id="deep-links"></a>
+
+## 7. Building Deep Links from Variables
+
+Variable chaining (§5) exists to parameterize something. The most useful thing to parameterize is often not another query — it is a **URL**. A dashboard that already knows which release the reader selected can hand them a one-click jump to the issue tracker view for exactly that release, with no connector, no stored credential, and no Dynatrace-side state.
+
+This is a **dashboard recipe, not an integration**. Every mechanic below is a dashboard mechanic: a DQL variable query, a `smartscapeNodes` base query, `concat()` to assemble a string, and one column setting to make it clickable. Nothing authenticates to the target tool, and nothing is written anywhere.
+
+### Prerequisite: release-identifying process tags
+
+The recipe needs three process tags carrying the release identity:
+
+| Tag | Holds | Example |
+|-----|-------|---------|
+| `DT_RELEASE_PRODUCT` | The product / component name | `easytrade` |
+| `DT_RELEASE_VERSION` | The release version | `1.5.2` |
+| `DT_RELEASE_STAGE` | The deployment stage | `production` |
+
+**Values must be slug-safe** — the whole point is that they end up inside a URL. Spaces, quotes, `#`, `&`, and `?` all break the link or silently truncate it. Constrain the values at the source (lowercase, hyphens, dots only) rather than repairing them in DQL.
+
+Setting these tags is process-metadata tagging, not a dashboard concern — see **FAQ-02** for the tagging mechanics and the sources Dynatrace reads them from. Without them, this section has nothing to parameterize and you should stop here.
+
+### Step 1: Populate the release variable
+
+The variable dropdown should list each release **once**. A `smartscapeNodes "PROCESS"` query returns one row per process, so ten processes running `easytrade 1.5.2` would produce ten identical dropdown entries — deduplicate by product × version:
+
+```dql
+// Release variable source — one entry per product x version, deduplicated
+smartscapeNodes "PROCESS"
+| fieldsAdd product = tags[DT_RELEASE_PRODUCT], version = tags[DT_RELEASE_VERSION]
+| filter isNotNull(product) and isNotNull(version)
+| dedup {product, version}
+| fieldsAdd release = concat(product, " ", version)
+| fields release
+| sort release asc
+
+```
+
+Note the tag-access syntax: on a `smartscapeNodes` result, `tags` is a map, and map keys are read with **unquoted** bracket identifiers — `tags[DT_RELEASE_PRODUCT]`, not `tags["DT_RELEASE_PRODUCT"]`. The quoted form is a parse error.
+
+### Step 2: Assemble the URL with `concat()`
+
+`concat()` builds the target URL from the selected variable values. Two rules make it survive contact with real data:
+
+- **Wrap any component that came from a tag in `encodeUrl()`.** Even with slug-safe tag values, a query string separator (`=`, `&`, a space in a JQL clause) has to be percent-encoded or the target tool receives a truncated parameter.
+- **Build the query expression first, then encode it as a unit.** Below, the JQL is assembled in one `fieldsAdd` and encoded in the next. Encoding piecemeal double-encodes the separators.
+
+### Step 3: Make it clickable with the Markdown column type
+
+`concat()` produces a *string*. A table tile renders a string as text — the reader sees the URL but cannot click it. Set the column's type to **Markdown** in the tile's column settings, and emit markdown link syntax (`[label](url)`) from the query. The tile then renders a live anchor.
+
+This is the mechanic that makes the whole recipe work, and it is reusable well beyond issue tracking — any query that can compute a URL can present it as a link:
+
+```dql
+// Per-release deep link into the issue tracker — Markdown column type on `issues`
+smartscapeNodes "PROCESS"
+| fieldsAdd stage = tags[DT_RELEASE_STAGE],
+            product = tags[DT_RELEASE_PRODUCT],
+            version = tags[DT_RELEASE_VERSION]
+| filter isNotNull(product) and isNotNull(version)
+| summarize processes = count(), by:{stage, product, version}
+| fieldsAdd jql = concat("project = ", upper(product), " AND fixVersion = ", version)
+| fieldsAdd issues = concat("[Open issues in Jira](https://your-org.atlassian.net/issues/?jql=", encodeUrl(jql), ")")
+| fields stage, product, version, processes, issues
+| sort product asc, version desc
+
+```
+
+Swap the URL pattern for the tool you run — the DQL shape does not change:
+
+| Tool | URL pattern |
+|------|-------------|
+| Jira Cloud / on-premises | `https://<host>/issues/?jql=<encoded JQL>` |
+| GitHub | `https://github.com/<org>/<repo>/releases/tag/v<version>` |
+| GitLab | `https://gitlab.com/<group>/<project>/-/releases/v<version>` |
+| ServiceNow | `https://<instance>.service-now.com/change_request_list.do?sysparm_query=<encoded query>` |
+
+### Why a Deep Link Beats a Credentialed Integration Here
+
+For a read-only jump *out of* Dynatrace, a deep link is the better engineering choice, not merely the easier one:
+
+| | Deep link | Credentialed connector |
+|---|---|---|
+| Credentials stored in Dynatrace | None | Token or OAuth app, with rotation |
+| Works against on-premises targets | Yes — it is just a URL | Often requires network egress or an EdgeConnect path |
+| Per-tool setup cost | One URL pattern | Connector config, auth, field mapping |
+| Breaks when the target's API version changes | No | Possibly |
+| Authorization model | The reader's own SSO session in the target tool | A service identity shared by all readers |
+
+That last row is the substantive one: a deep link inherits the reader's own permissions in the target tool. A user with no Jira access lands on Jira's login or permission page rather than seeing data a shared service account could read.
+
+**Reach for a real connector when you need to *write*** — open a ticket, transition an issue, post a comment — **or to read data *into* Dynatrace** so it can be queried, alerted on, or joined. Both are jobs a URL cannot do. Anything that ends with "…and then the human looks at it in the other tool" is a deep link.
+
+### Guardrails
+
+| Guardrail | Why |
+|-----------|-----|
+| **Constrain tag values to slug-safe characters** | Spaces, quotes, and `& ? #` break URLs. Fix at the tagging source; `encodeUrl()` is the second line of defence, not the first. |
+| **Deduplicate the base query** | One row per process means one dropdown entry per process. Dedup by product × version so each release appears once. |
+| **Handle the missing-tag case explicitly** | `filter isNotNull(...)` keeps untagged processes out. Without it, rows render links with `null` spliced into the URL. |
+| **Author in the UI, then validate before committing** | See below — this is the one that bites. |
+
+**On that last guardrail.** Build and test this tile in the UI, clicking the link to confirm it lands where you expect. The moment you round-trip the dashboard through `dynatrace_document` or Monaco, it *becomes* an API-authored dashboard and falls under the validation gate in **DASH-07 §5** — and the `concat()` URL patterns are the most edit-prone part of the payload, because they are long single-line strings that reviewers skim. Under SaaS 1.344 (staged rollout from 07/29/2026) a dashboard that fails validation no longer loads at all, so a payload edited by hand and merged unvalidated takes the whole dashboard down, not just the link column.
+
+A tag prerequisite that is only half-populated is the other common failure: the tile renders, the dropdown looks right, and links exist for the two products someone remembered to tag. Audit tag coverage across the estate before treating the dropdown as a complete release list.
+
 <a id="summary-and-next-steps"></a>
 
-## 7. Summary and Next Steps
+## 8. Summary and Next Steps
 
 In this notebook you learned:
 
@@ -297,6 +404,7 @@ In this notebook you learned:
 - DQL patterns for referencing variables in tile queries
 - Filter propagation mechanics and best practices
 - Template dashboard patterns: multi-environment, team-owned, and golden signals
+- How to turn variable values into clickable deep links with `concat()` and the Markdown column type
 
 **Next:** In **DASH-07: Sharing and Reporting**, we cover dashboard permissions, sharing with teams, scheduled reports via Workflows, dashboard-as-code, and version control patterns.
 

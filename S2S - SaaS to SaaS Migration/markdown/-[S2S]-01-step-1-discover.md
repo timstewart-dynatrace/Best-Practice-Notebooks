@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 10 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 10 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -204,32 +204,50 @@ fetch dt.entity.service
 
 ```dql
 // Application and synthetic monitor counts
-fetch dt.entity.application
+smartscapeNodes "FRONTEND"
+| filter frontend.type == "web"
 | summarize app_count = count()
-| append [fetch dt.entity.synthetic_test | summarize synthetic_count = count()]
+| append [smartscapeNodes "BROWSER_MONITOR" | summarize synthetic_count = count()]
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// Smartscape (preferred, verified 07/2026): dt.entity.application maps to the FRONTEND node,
+// filtered on frontend.type == "web" (mobile apps are the same node with frontend.type ==
+// "mobile"). This corrects an earlier note here that claimed no Smartscape equivalent existed.
+// FRONTEND also carries id_classic holding the APPLICATION-* id, for joining migrated and
+// unmigrated queries. Unlike ActiveGate, `fetch dt.entity.application` does still work and remains
+// a genuine fallback — but it reads the classic entity store, which can retain entities Smartscape
+// (live topology) no longer lists, so cross-check if the two counts disagree.
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
 ```
 
 ### ActiveGate Inventory
 
 ```dql
-// ActiveGate inventory — query hosts with isActiveGate property
-// Note: ActiveGate entity type name varies by deployment (active_gate or environment_active_gate)
-fetch dt.entity.host
-| fieldsAdd entity.name
+// ActiveGate inventory
+smartscapeNodes "ACTIVEGATE"
 | summarize activeGateCount = count()
 
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "HOST"
-//   | fieldsAdd name
-//   | summarize activeGateCount = count()
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
-// Field maps: entity.name -> name.
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// This cell previously fell back to counting `fetch dt.entity.host`, which returns the HOST count,
+// not the ActiveGate count — a workaround for the missing entity type that silently reported the
+// wrong number. The ACTIVEGATE node makes the workaround unnecessary.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
 ```
 
 ### Configuration Change Audit

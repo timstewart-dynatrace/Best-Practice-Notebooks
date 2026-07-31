@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 06/23/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -51,7 +51,7 @@ Best practices for installing and configuring the Dynatrace mobile SDK across iO
 | 8 | Enable hybrid monitoring for WebView apps | iOS: `DTXHybridApplication = true`; Android: `hybridMonitoring(true)` | **Recommended** | MOBL-02, MOBL-03 |
 | 9 | For Flutter: use `dynatrace.config.yaml` at project root | Provide platform-specific `applicationId` and `beaconUrl` under `android:` and `ios:` keys | **Critical** | MOBL-04 |
 | 10 | For React Native: re-run `npx instrumentDynatrace` after config changes | Changing `dynatrace.config.js` does not auto-apply; the instrument command must re-run | **Critical** | MOBL-04 |
-| 11 | Verify both platform configs exist for cross-platform apps | Query `fetch dt.entity.device_application` and confirm both Android and iOS entries appear | **Critical** | MOBL-04 |
+| 11 | Verify both platform configs exist for cross-platform apps | Query `smartscapeNodes "FRONTEND" \| filter frontend.type == "mobile"` and confirm both Android and iOS entries appear. Classic equivalent: `fetch dt.entity.mobile_application` -- **not** `dt.entity.device_application`, which does not exist and returns zero rows | **Critical** | MOBL-04 |
 
 <a id="crash-reporting-symbolication"></a>
 
@@ -231,7 +231,7 @@ Mandatory patterns and filters for querying mobile data in Grail.
 | 2 | Use `countDistinct(dt.rum.session.id)` for unique session counts | Never use `count()` for sessions -- each session generates many events | **Critical** | MOBL-10 |
 | 3 | Use conditional countDistinct for crash rate | `countDistinct(if(event.type == "com.dynatrace.crash", then:dt.rum.session.id, else:null))` | **Recommended** | MOBL-10 |
 | 4 | Add `isNotNull()` filters before grouping on optional fields | Fields like `os.type`, `device.model`, `app.version` may be null; filter first to avoid noise | **Recommended** | MOBL-10 |
-| 5 | Query mobile app entities for inventory | `fetch dt.entity.device_application` -- no time range needed; returns current state | **Recommended** | MOBL-10 |
+| 5 | Query mobile app entities for inventory | Preferred: `smartscapeNodes "FRONTEND" \| filter frontend.type == "mobile"`. Classic fallback (still functional): `fetch dt.entity.mobile_application`. No time range needed; returns current state. `dt.entity.device_application` does not exist -- it returns zero rows, not an error | **Recommended** | MOBL-10 |
 | 6 | Filter crashes with `event.type == "com.dynatrace.crash"` | Reported errors use `event.type == "com.dynatrace.error.report"` -- distinguish between the two | **Critical** | MOBL-06, MOBL-10 |
 | 7 | Always specify explicit time ranges on bizevents queries | `fetch bizevents, from:-1h` or `from:-24h` -- never rely on the default 2-hour window | **Critical** | MOBL-10 |
 | 8 | Segment by `app.version` for release monitoring | Enables crash rate and performance comparison across releases | **Recommended** | MOBL-10 |

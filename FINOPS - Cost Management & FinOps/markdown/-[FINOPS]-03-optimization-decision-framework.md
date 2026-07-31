@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 05/19/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 07/30/2026
 
 ## Overview
 
@@ -93,8 +93,11 @@ Keep the signal flowing but adjust a parameter. Examples:
 - Increase metric ingestion interval (Metrics - Ingest)
 - Move a bucket from Retain with Included Queries to standard Retain
 - Switch a synthetic monitor from 1-minute to 5-minute frequency
+- Slow a dashboard's auto-refresh from 1 minute to 5 minutes (Logs / Events / Traces - Query)
+- Narrow a dashboard tile's default time range from 30 days to 24 hours
+- Reduce session retention for a RUM application
 
-Tune preserves the signal's existence — useful for cases where the signal is load-bearing but at lower fidelity than current. Tune is the lever most often over-used because it requires no organizational conversation: the platform team can lower retention without consulting any application team.
+Note that the last three examples are **query-side**, not ingest- or storage-side: Logs, Events, and Traces bill on query execution as well as on ingest and retention, so how often a dashboard re-reads its data is a tunable parameter in exactly the same sense as retention. § 4 covers this surface in full. Tune preserves the signal's existence — useful for cases where the signal is load-bearing but at lower fidelity than current. Tune is the lever most often over-used because it requires no organizational conversation: the platform team can lower retention without consulting any application team.
 
 ### Filter
 
@@ -172,11 +175,28 @@ For metrics. Reducing metric ingest interval from 1-second to 1-minute granulari
 2. Otherwise, 1-minute or even 5-minute resolution is sufficient for trend visibility and most alerts.
 3. Apply per-metric, not globally — some metrics warrant high resolution; most do not.
 
+### Query-side tuning
+
+The three tuning categories above are all ingest- or storage-side. **Logs, Events, and Traces also bill on query execution** — a Query capability separate from Ingest and Retain (FINOPS-01 §9 documents the schema; `client.application_context == "Dashboards"` attributes the scan to a dashboard rather than a person). That makes query volume a fourth Tune surface, and on a tenant with a wall-mounted dashboard estate it is often the largest one nobody is looking at. Note the asymmetry: the **Metrics** query dimension is always included and never billed, so this lever is about dashboards and notebooks reading **logs, events, and traces**, not metric tiles.
+
+Three dials, in the order worth pulling them:
+
+**1. Refresh cadence.** A dashboard on a 1-minute auto-refresh runs every one of its tile queries roughly **1,440 times a day**. Moving it to 5 minutes cuts that by ~5× and changes nothing about what the dashboard *shows* — the same tiles, the same queries, the same data, just re-read less often. This is the cheapest consumption reduction in the platform because it costs no fidelity at all. DASH-02 §6 has the per-audience cadence table (NOC wall 1-2 min, on-call 2-5 min, executive wall 10-15 min, investigation manual); the FinOps read on that table is that anything faster than its audience needs is pure waste. Start by finding dashboards refreshing faster than their tier warrants.
+
+**2. Tile default time ranges.** A tile whose default range is 30 days scans 30 days on every refresh, even when every viewer immediately narrows to the last hour. Multiply by cadence and this dominates. Set each tile default to the range the tile is actually *read* at, and let viewers widen deliberately.
+
+**3. Dashboard count.** Duplicate near-identical dashboards multiply query volume by the number of copies. Consolidating five team-specific clones behind one `$team` variable is a **Cut**, not a Tune — it removes the queries rather than adjusting them — and it belongs in §3 with the other Cut decisions. It appears here because it is usually discovered while auditing cadence.
+
+> **Rolling out (SaaS 1.344): dashboard queries now stop automatically when the browser tab closes.** Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. This removes a small, hard-to-attribute slice of consumption from queries that outlived the tab that started them. **It is not a lever you operate**, and it does not change the arithmetic above: an **open** tab still refreshes on its interval and still bills for every scan. Cadence and tile scope remain the load-bearing controls; treat 1.344 as removing an accounting nuisance, not as a substitute for tuning.
+
+Query-side tuning has one property that makes it unusually easy to sell: unlike retention or sampling, it is **fully reversible and costs no fidelity**. If a team discovers that 5 minutes is too slow for their incident workflow, put it back. Nothing was discarded.
+
 ### When NOT to Tune
 
 - **Compliance-mandated retention:** tune *down to the minimum*, not below.
 - **Security-investigation logs:** under-sampling here is paid for during the next breach investigation. Sampling decisions on security signals merit security-team sign-off.
 - **SLO-feeder metrics:** if the metric is the foundation of an availability SLO, reducing resolution may break the SLO calculation. Verify before tuning.
+- **The dashboard that is your detection surface:** if a NOC wall dashboard is how an incident is actually noticed, slowing its refresh trades money for detection time. Tune cadence on the dashboards nobody watches in real time first, and leave the ones on the wall alone.
 
 > <sub>**Sources:** [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — retention configuration. [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces) — sampling. [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics) — ingest interval. **Derived:** the audit-then-tune workflow is engagement practice.</sub>
 
@@ -255,6 +275,22 @@ A working version of the framework for each major data type:
 1. **Cut first?** Is anyone watching this monitor? Disable monitors no one has touched in 90 days.
 2. **Tune next?** Reduce frequency (5min → 15min) for monitors that don't feed sub-15-minute SLOs.
 3. **Filter** — N/A for synthetic; synthetic actions are atomic, no subset to filter.
+
+### Real User Monitoring (RUM)
+
+RUM bills **per session** (`billed_sessions` — FINOPS-01 §7), so the unit of waste is a session nobody looks at.
+
+1. **Cut first?** Is anyone watching this RUM application? An instrumented application with no dashboard, no SLO, and no owner is pure cost — every session it produces is billed and none is read. This is the highest-yield RUM lever and the one most often missed, because RUM instrumentation is usually added once and never revisited. Audit applications against actual dashboard, SLO, and alert references before assuming any of them is load-bearing.
+2. **Tune next?** Session retention. Apply the same discipline as log retention in §4 — audit the longest lookback that actually fired against session data in the last 90 days, then add a 1.5–2× buffer, then verify the buffer covers known periodic patterns before applying. **`userSessionRetention` was added to the environment storage configuration in API 1.344** (published 07/15/2026, staged rollout from 07/29/2026) — *verify the field exists on your tenant before scripting against it*. Until it lands, set session retention through the environment storage settings UI; that path works today and is unaffected by the API addition.
+3. **Filter last?** Session Replay sampling is the main subset dial — replay is the expensive part of a session, and a sampled replay rate usually preserves the investigative value. Excluding specific user actions (health-probe clicks, synthetic-traffic paths, internal admin routes) trims the rest.
+
+### Dashboards and other query volume
+
+Cross-cutting rather than a data type — this is the consumption caused by *reading* logs, events, and traces (see the query-side tuning subsection in §4). Metric queries are always included and never billed, so metric-only dashboards are out of scope here.
+
+1. **Cut first?** Duplicate and abandoned dashboards. Five team-specific clones of one dashboard run five times the queries; consolidate them behind a `$team` variable. A dashboard nobody has opened in 90 days that is still auto-refreshing on a wall screen is the pure-waste case.
+2. **Tune next?** Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table.
+3. **Filter** — the query equivalent of a filter is scoping the tile query itself: narrow the bucket, add the filter earlier in the pipeline, drop fields you do not render. This is DQL optimization rather than a consumption lever per se, but it reduces bytes scanned on every one of those 1,440 executions.
 
 ### Host monitoring (Full-Stack / Infrastructure)
 

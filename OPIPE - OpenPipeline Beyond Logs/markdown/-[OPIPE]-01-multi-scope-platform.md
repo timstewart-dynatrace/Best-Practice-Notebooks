@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 06/10/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -392,6 +392,8 @@ Pipeline: application-logs
 | **Global processors** | Processors placed outside any group run on **all records** unconditionally — before or after groups, depending on their position. |
 | **Available in all scopes** | Processing groups work in Logs, Spans, Metrics, Events, and Business Events scopes. |
 
+> **Forthcoming / rolling out (SaaS 1.344):** the matcher gains support for **Duration**-type record fields, with the operators `=`, `!=`, `>`, `>=`, `<`, and `<=` — published 07/27/2026, [staged tenant rollout](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) from 07/29/2026, so verify it has reached your tenant before relying on it. Until it does, match on an equivalent **numeric** field instead (for example a millisecond-valued field carried alongside the record rather than the duration field itself).
+
 ### When to Use Processing Groups vs. Separate Pipelines
 
 | Scenario | Use Processing Groups | Use Separate Pipelines |
@@ -541,6 +543,20 @@ A critical design decision: should you process data in OpenPipeline (at ingestio
 | **Complex joins** | Correlating across multiple data sources is a query-time operation. |
 | **Aggregation and visualization** | Dashboard queries, trend analysis, and statistical aggregations belong in DQL. |
 
+### A Third Surface: At-Source Enrichment on OneAgent (OneAgent 1.343)
+
+The choice above is about *where inside Dynatrace* processing happens. OneAgent 1.343 adds a placement surface **upstream of both**: OneAgent ingests enrichment configuration directly and applies tags and metadata conditionally using [**DQL matcher functions**](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) (equality, phrase, and existence checks) at the point of capture — before the record reaches OpenPipeline.
+
+| Surface | Runs | Use it for |
+|---------|------|-----------|
+| **OneAgent enrichment** (1.343+) | At the source, before ingest | Attributes only knowable on the host — process, container, or host-local metadata you would otherwise reconstruct downstream |
+| **OpenPipeline** | At ingestion | Everything in the first table above: drop, mask, security context, metric extraction, bucket routing |
+| **DQL** | At query time | Everything in the second table above: exploration, ad-hoc parsing, joins, aggregation |
+
+Rollout is **per agent fleet, not per tenant** — **verify the OneAgent version on the hosts concerned**; the tenant version is not the agent version, and fleets commonly lag by more than one sprint. On OneAgent 1.342 and earlier the two-surface model above is the whole picture.
+
+> **Enriching at the source does not displace OpenPipeline.** Security context, bucket routing, and masking remain OpenPipeline responsibilities — the gain is that a field is already present *when* OpenPipeline evaluates its matchers, so pipeline logic that would otherwise derive it can just match on it.
+
 ### The Decision Framework
 
 Ask these questions in order:
@@ -580,10 +596,12 @@ Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline
 
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [OpenPipeline Processing](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [OpenPipeline Spans](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-spans)
-- [OpenPipeline Metrics](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-metrics)
-- [Grail Bucket Management](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/grail-bucket-management)
-- [Data Security Context](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/security-context)
+- [OpenPipeline ingest sources (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference) — replaces the retired per-scope `openpipeline-spans` / `openpipeline-metrics` pages
+- [OpenPipeline pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups)
+- [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Security context for access control (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)
+- [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344)
+- [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343)
 
 ---
 

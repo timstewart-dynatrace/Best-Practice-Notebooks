@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 07/30/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -423,13 +423,25 @@ Run these DQL queries on the target tenant to verify entity counts:
 ```
 
 ```dql
-// Verify synthetic monitors
-fetch dt.entity.synthetic_test
+// Verify synthetic monitors — Smartscape form (preferred for new queries)
+smartscapeNodes "BROWSER_MONITOR"
 | summarize total = count()
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this entity type is
-// not yet available on Grail Smartscape (smartscapeNodes has no equivalent node type),
-// so keep the classic dt.entity.* query above.
+// Classic form — still functional, and a genuine fallback:
+//   fetch dt.entity.synthetic_test
+//   | summarize total = count()
+//
+// dt.entity.synthetic_test maps to the BROWSER_MONITOR Smartscape node type. Both forms
+// returned the same monitor count when live-verified 07/30/2026, so either works today;
+// dt.entity.* is deprecated, so prefer the Smartscape form for anything new.
+//
+// Two things to know before porting a synthetic query:
+//   - Clickpath steps are a SEPARATE node type (BROWSER_MONITOR_STEP), not fields of the
+//     monitor. A query that reads per-step data must traverse to those nodes rather than
+//     expect step attributes on the monitor node.
+//   - The other synthetic types map too: dt.entity.http_check -> HTTP_MONITOR,
+//     dt.entity.multiprotocol_monitor -> NETWORK_AVAILABILITY_MONITOR,
+//     dt.entity.synthetic_location -> SYNTHETIC_LOCATION.
 ```
 
 ### Validation Script
