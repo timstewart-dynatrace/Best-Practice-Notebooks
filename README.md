@@ -64,7 +64,7 @@ Comprehensive guide to AIOps and Dynatrace Intelligence — Causal AI, Predictiv
 - [AIOPS-03: Davis AI — Problems and Root Cause Analysis](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-03-davis-ai-problems-and-root-cause.md) — Causal AI engine, problem grouping via Smartscape, and DQL for querying problems
 - [AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-04-davis-copilot-dynatrace-assist.md) — Generative AI surfaces, NL-to-DQL, problem summaries, and investigative patterns
 - [AIOPS-05: AI Models — Causal, Predictive, and Generative](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-05-ai-models.md) — Model inventory, responsibilities, costs, and governance considerations
-- [AIOPS-06: AI Integrations and Agentic Workflows](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-06-ai-integrations-and-agentic-workflows.md) — AI Workflow tasks, Dynatrace MCP server, and external agent integration
+- [AIOPS-06: AI Integrations and Agentic Workflows](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-06-ai-integrations-and-agentic-workflows.md) — AI Workflow tasks, Dynatrace MCP server, external agent integration, and AI Observability for your own GenAI applications
 - [AIOPS-07: Putting It Together — Detect, Investigate, Remediate](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-07-putting-it-together.md) — Composing all AI categories into the full operational AIOps pattern
 - [AIOPS-99: Series Summary](AIOPS%20-%20Dynatrace%20Intelligence/markdown/-%5BAIOPS%5D-99-series-summary.md) — DQL query index, cross-series pointers, and next steps for an AIOps initiative
 
@@ -210,7 +210,7 @@ Best practices for monitoring Kubernetes with Dynatrace.
 - [K8S-09: Troubleshooting](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-09-troubleshooting.md) — Diagnosing Kubernetes monitoring issues
 - [K8S-10: Metadata Telemetry Enrichment](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-10-metadata-telemetry-enrichment.md) — Enriching telemetry with Kubernetes metadata
 - [K8S-11: Multi-Tool Coexistence](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-11-multi-tool-coexistence.md) — Running Dynatrace alongside other monitoring tools
-- [K8S-12: Specialized Monitoring](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-12-specialized-monitoring.md) — NGINX Ingress, CSI Driver, and resource tuning
+- [K8S-12: Specialized Monitoring](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-12-specialized-monitoring.md) — NGINX Ingress, CSI driver vs ephemeral-volume code-module delivery, resource tuning, and StatsD
 - [K8S-13: Kafka Monitoring with Kpow](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-13-kafka-monitoring-with-kpow.md) — Kafka observability using Kpow Prometheus metrics
 - [K8S-14: [LAB] Kubernetes Deployment Guide](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-14-%5BLAB%5D-deployment-guide.md) — Hands-on lab: end-to-end Dynatrace Kubernetes deployment walkthrough
 - [K8S-99: Best Practice Summary](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-99-best-practice-summary.md) — Consolidated best practices from the K8S series
@@ -397,7 +397,7 @@ Step-by-step migration path from Sumo Logic to Dynatrace, from strategy and inve
 - [SL2DT-05: Monitor & Alert Conversion](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-05-monitor-and-alert-conversion.md) — Rebuilding Sumo Monitors using Anomaly Detection, Workflows, or Metric Events
 - [SL2DT-06: Dashboard Conversion](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-06-dashboard-conversion.md) — Rebuilding in-scope Sumo dashboards in Dynatrace Notebooks and Dashboards
 - [SL2DT-07: User Governance & Access](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-07-user-governance-and-access.md) — Translating Sumo RBAC to Dynatrace Platform IAM groups and policies
-- [SL2DT-08: Automation & GitOps](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-08-automation-and-gitops.md) — CI/CD promotion paths for all migrated configuration via Monaco
+- [SL2DT-08: Automation & GitOps](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-08-automation-and-gitops.md) — CI/CD promotion paths for all migrated configuration, split across Terraform and Monaco
 - [SL2DT-09: Cutover, Validation & Decommission](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-09-cutover-validation-decommission.md) — Parallel validation, declaring cutover, and decommissioning Sumo
 - [SL2DT-10: Migrating Telegraf-Collected Metrics](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-10-telegraf-metric-migration.md) — Repointing a Telegraf metric estate at Dynatrace: ingest-path choice, output-plugin mechanics, key reshaping, and parity validation
 - [SL2DT-99: Summary & Runbook Index](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-99-summary-and-runbook-index.md) — Single-page index and reference card for the entire SL2DT series
