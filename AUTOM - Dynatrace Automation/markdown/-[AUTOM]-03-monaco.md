@@ -1,6 +1,6 @@
 # AUTOM-03: Monaco Configuration-as-Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 05/13/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
 
 Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.
 
@@ -120,6 +120,8 @@ monaco download \
   --api builtin:management-zones,builtin:tags.auto-tagging
 ```
 
+> **Downloading classic schemas is the point here, not an oversight.** Both schemas above are marked **Blocked at upgrade** in AUTOM-02's Settings 2.0 catalog — they work today and stop answering once your tenant moves to the latest Dynatrace. That makes `monaco download` the fastest way to *inventory* what you still have before migrating it: every object, in version control, in one command. Keep the export as your migration worksheet; retarget the deployment. What it should not become is a template for new configuration.
+
 ---
 
 <a id="project-structure"></a>
@@ -179,6 +181,13 @@ environmentGroups:
 
 <a id="configuration-files"></a>
 ## 4. Configuration Files
+
+> **About the schemas used in these examples.** Management zones, auto-tagging and alerting profiles appear throughout §4–§6 because they are the configurations most tenants already have, which makes them the clearest illustrations of Monaco's YAML shape. All three are marked **Blocked at upgrade** in AUTOM-02's Settings 2.0 catalog.
+>
+> That matters more for Monaco than for the raw API. Monaco resolves a schema before writing objects, so once a schema is removed, `monaco deploy` fails for every config that references it — and it fails at deploy time, in your pipeline, not at edit time. Treat these as **Monaco mechanics you can apply to any schema**, and check a schema's upgrade status before building a long-lived project around it.
+>
+> The `type.settings.schema` block is schema-agnostic: swap the schema string and the matching template JSON and everything else here is unchanged. Carry-forward schemas worth practising on include `builtin:davis.anomaly-detectors`, `builtin:anomaly-detection.services`, `builtin:synthetic.http`, and the `builtin:openpipeline.<scope>.*` family.
+
 ### Basic Configuration Structure
 
 ```yaml
@@ -471,13 +480,14 @@ monaco deploy manifest.yaml --group web-application
 | **Version control** | Commit all changes with meaningful messages |
 | **Dry run first** | Always validate before applying |
 | **Document parameters** | Comment complex configurations |
+| **Check upgrade status before you invest** | Before building a long-lived project around a schema, confirm it is not marked **Blocked at upgrade** in AUTOM-02's catalog — a blocked schema takes the whole Monaco config type with it |
 
 ### Common Issues and Solutions
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | "Config already exists" | Duplicate ID | Use unique IDs or download first |
-| "Schema not found" | Typo in schema ID | Check exact schema name in API |
+| "Schema not found" | Typo in schema ID — **or** the schema was removed when the tenant upgraded to the latest Dynatrace | Check the exact schema name in the API. If it was correct and worked previously, check the schema's upgrade status in AUTOM-02's catalog before assuming a typo |
 | "Template not found" | Wrong path | Use relative path from config.yaml |
 | "Validation failed" | Invalid JSON | Check JSON syntax in template |
 
