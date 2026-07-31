@@ -1,6 +1,6 @@
 # AUTOM-02: Settings API
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
 
 The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.
 
@@ -117,20 +117,44 @@ curl -X GET "https://{tenant}.live.dynatrace.com/api/v2/settings/schemas" \
 
 This is the repo's consolidated Settings 2.0 schema catalog. **Corrected 07/01/2026:** the SLO row previously read `builtin:slo` — the actual schemaId, confirmed at the `dynatrace_slo_v2` Terraform resource docs, is `builtin:monitoring.slo`. That wrong value had propagated into the SLO series' own REFERENCE.md and SLO-05 before being fixed the same day; this table is now the single source other series should cite.
 
-| Domain | Schema ID | Configuration type |
-|--------|-----------|--------------------|
-| Classic config | `builtin:management-zones` | Management zones (see MZ2POL for the policy-migration path) |
-| Classic config | `builtin:tags.auto-tagging` | Auto-tagging rules |
-| Alerting | `builtin:alerting.profile` | Alerting profiles |
-| Alerting | `builtin:problem.notifications` | Problem notifications |
-| Alerting | `builtin:alerting.maintenance-window` | Maintenance windows |
-| Alerting | `builtin:anomaly-detection.hosts` | Host anomaly detection |
-| Alerting | `builtin:anomaly-detection.services` | Service anomaly detection |
-| Alerting | `builtin:anomaly-detection.metric-events` | Custom metric-event alerts (`dynatrace_metric_events` Terraform resource — not the singular, nonexistent `dynatrace_metric_event`) |
-| SLO | `builtin:monitoring.slo` | Service level objectives — **not** `builtin:slo` |
-| Network | `builtin:networkzones.zones` | Network zones — replaced the deprecated `/api/v2/networkZones` Configuration API (sprint 1.339); see M2S-03/04 |
-| OpenPipeline | `builtin:openpipeline.<scope>.pipelines` / `.routing` / `.ingest-sources` | Per-data-type family, e.g. `builtin:openpipeline.logs.pipelines` — **not** a single generic schema; see OPIPE, OPMIG, SL2DT-03, NRLC-09 |
-| Service detection | `builtin:enhanced-endpoints-for-sdv1` | Service detection v1: auto-detect every endpoint and emit per-endpoint metrics (added v1.329; default on for environments created at v1.333+) |
+#### Reading the Upgrade status column
+
+A schema being **available today** and a schema **surviving your upgrade to the latest Dynatrace** are two different questions, and several rows below answer them differently.
+
+| Question | What it means | Where it is answered |
+|----------|---------------|----------------------|
+| Is it deprecated? | Dynatrace has named a successor. An end-of-life date may or may not be published, and the schema keeps working meanwhile. | Product documentation, release notes |
+| Is it blocked at upgrade? | The schema stops answering once the tenant moves to the latest Dynatrace. | The ready-made *Check your upgrade readiness* dashboard |
+
+The `Upgrade status` values below are read from that dashboard, observed **07/31/2026**. Note that public documentation does not currently publish these as breaking changes — a schema can read as perfectly current in the docs and still be flagged `Blocked` here. Blocking is triggered by **your tenant's own upgrade** rather than a calendar date, so the timing is yours; the scope is not. Re-check against the dashboard in your tenant before planning around any single row.
+
+**This matters most for config-as-code.** Monaco resolves a schema before writing objects (`--settings-schema`), and the Terraform provider maps its resources onto the same schemas — so a `Blocked` row takes its Monaco config type and its Terraform resource with it. `/api/v2/settings/objects` itself is unaffected; it is the individual schema that goes away, not the endpoint.
+
+| Domain | Schema ID | Configuration type | Upgrade status |
+|--------|-----------|--------------------|----------------|
+| Classic config | `builtin:management-zones` | Management zones (see MZ2POL for the policy-migration path) | **Blocked** |
+| Classic config | `builtin:tags.auto-tagging` | Auto-tagging rules | **Blocked** |
+| Classic config | `builtin:tags.manual-tagging` | Manual tagging | **Blocked** |
+| Classic config | `builtin:naming.hosts` / `.services` / `.processes-and-containers` | Conditional naming rules | **Blocked** |
+| Alerting | `builtin:alerting.profile` | Alerting profiles | **Blocked** — successor is workflow-based notification (WFLOW, ALERT-03) |
+| Alerting | `builtin:problem.notifications` | Problem notifications | **Blocked** — same successor |
+| Alerting | `builtin:alerting.maintenance-window` | Maintenance windows | **Blocked** — successor is platform maintenance windows |
+| Alerting | `builtin:anomaly-detection.hosts` | Host anomaly detection | Carries forward |
+| Alerting | `builtin:anomaly-detection.services` | Service anomaly detection | Carries forward |
+| Alerting | `builtin:anomaly-detection.metric-events` | Custom metric-event alerts (`dynatrace_metric_events` Terraform resource — not the singular, nonexistent `dynatrace_metric_event`) | **Blocked** — recreate as DQL-based detectors on `builtin:davis.anomaly-detectors` |
+| Alerting | `builtin:anomaly-detection.infrastructure-disks` | Classic disk anomaly detection | **Blocked** — successor is the newer disk alerting |
+| Alerting | `builtin:davis.anomaly-detectors` | DQL-based anomaly detectors | Carries forward — the Gen3 target for metric-event migrations |
+| SLO | `builtin:monitoring.slo` | Service level objectives — **not** `builtin:slo` | **Blocked** — takes `dynatrace_slo_v2` and the Monaco path with it (SLO-05) |
+| Service | `builtin:settings.calculated-service-metrics` | Calculated service metrics | **Blocked** — no successor *concept*, not just a renamed schema; each metric in use needs a replacement built on pipeline extraction |
+| Logs | `builtin:logmonitoring.log-custom-attributes` / `.log-dpp-rules` / `.log-buckets-rules` / `.log-events` | Classic log processing, attributes, buckets and events | **Blocked** — successor is OpenPipeline (OPMIG); do not point new automation at these |
+| Cloud | `builtin:cloud.aws` | Classic AWS connection | **Blocked** — recreate as a Cloud Observability connection (CLOUD-02) |
+| Infrastructure | `builtin:os.services.monitoring` | OS services monitoring rules | **Blocked** |
+| Automation | `builtin:issue-tracking.integration` | Releases issue-tracking integrations | **Blocked** — the classic Releases app has no named successor; recreate in the new model |
+| Network | `builtin:networkzones.zones` | Network zones — replaced the deprecated `/api/v2/networkZones` Configuration API (sprint 1.339); see M2S-03/04 | **Verify** — the dashboard blocks `builtin:networkzones`, and prefix matching sweeps `.zones` in with it. The global toggle and the zone definitions are distinct schemas, so confirm which one is affected before acting |
+| OpenPipeline | `builtin:openpipeline.<scope>.pipelines` / `.routing` / `.ingest-sources` | Per-data-type family, e.g. `builtin:openpipeline.logs.pipelines` — **not** a single generic schema; see OPIPE, OPMIG, SL2DT-03, NRLC-09 | Carries forward |
+| Service detection | `builtin:enhanced-endpoints-for-sdv1` | Service detection v1: auto-detect every endpoint and emit per-endpoint metrics (added v1.329; default on for environments created at v1.333+) | Carries forward — but must be **enabled** on every scope; scopes with it disabled break on upgrade |
+
+**This table is not exhaustive of what is blocked.** The readiness dashboard carries roughly 70 `builtin:` schema rules; the rows above are the ones this repo teaches or that readers commonly automate. Run the scan against your own tenant rather than treating an absence here as a clean bill of health. For the full migration sequence these rows sit inside, see the **Classic → Gen3 Platform** doorway in the `-START-HERE-` navigation playbook.
 
 **Not everything is a Settings 2.0 object.** Two domains covered elsewhere in this repo deliberately have no row above because no Settings 2.0 schema exists for them: **FINOPS** (cost/budget configuration is driven by the Account Management API, not a Settings object) and **ONBRD** (OneAgent/ActiveGate deployment is driven by the Deployment API's installer endpoints, not a Settings object). If you're looking for a `builtin:` schema for either, stop — it doesn't exist; go to the API directly instead (see FINOPS/ONBRD REFERENCE.md for the specific endpoints).
 
@@ -200,6 +224,9 @@ curl -X GET "https://{tenant}.live.dynatrace.com/api/v2/settings/objects/{object
 
 <a id="common-operations"></a>
 ## 4. Common Operations
+
+> **On the two examples below.** Management zones and auto-tagging are used here because they are the clearest illustrations of the request shape — a named object with a rule list — and because most existing tenants already have them. Both schemas are marked **Blocked** in the catalog above: they work today and stop answering when the tenant upgrades to the latest Dynatrace. Read them as *API mechanics*, not as configuration to go and create. For the replacements, see MZ2POL (management zones → policies and segments) and FAQ entry 02 (tagging strategy).
+
 ### Create a Management Zone
 
 ```bash
@@ -254,6 +281,8 @@ curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/settings/objects" \
     }
   }]'
 ```
+
+The request shape is identical for any schema that carries forward — swap the `schemaId` and the `value` block. `builtin:davis.anomaly-detectors` and the `builtin:openpipeline.<scope>.*` family are good next examples to try, and both survive the upgrade.
 
 ---
 
