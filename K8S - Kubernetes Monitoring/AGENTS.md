@@ -15,7 +15,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When the question is about… | Read |
 |---|---|
 | Architecture, entity model, deployment modes, how data flows | `-[K8S]-01-fundamentals.md` |
-| Helm mechanics for the Operator — the documented OCI chart reference vs the still-served classic repo, what the install creates, pre-upgrade checks, the upgrade process | `-[K8S]-02-dynakube-deployment.md` |
+| Installing the Operator, tokens/secrets, DynaKube CR configuration; Helm mechanics — the documented OCI chart reference vs the still-served classic repo, what the install creates, pre-upgrade checks, the upgrade process | `-[K8S]-02-dynakube-deployment.md` |
 | Managing DynaKube via ArgoCD/Flux, app-of-apps, repo layout | `-[K8S]-03-gitops-dynakube.md` |
 | Node/cluster health, capacity planning, cluster alerting | `-[K8S]-04-cluster-monitoring.md` |
 | Deployment/rollout health, pod & container metrics | `-[K8S]-05-workload-monitoring.md` |
@@ -25,7 +25,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Broken monitoring: injection skips, CSI crash-loops, operator errors, support archive, symptom→fix index | `-[K8S]-09-troubleshooting.md` |
 | Enriching telemetry with K8s metadata, oneagentctl, Grail fields | `-[K8S]-10-metadata-telemetry-enrichment.md` |
 | Coexisting with Datadog/Prometheus/etc., infra-only, opt-in mode | `-[K8S]-11-multi-tool-coexistence.md` |
-| Choosing how code modules reach pods — CSI driver vs ephemeral volumes, a deliberate decision only from Operator 1.10.0+ | `-[K8S]-12-specialized-monitoring.md` |
+| NGINX Ingress, CSI driver internals, resource tuning, StatsD; choosing how code modules reach pods — CSI driver vs ephemeral volumes, a deliberate decision only from Operator 1.10.0+ | `-[K8S]-12-specialized-monitoring.md` |
 | Kafka observability via Kpow Prometheus metrics | `-[K8S]-13-kafka-monitoring-with-kpow.md` |
 | Hands-on end-to-end deployment walkthrough (lab format) | `-[K8S]-14-[LAB]-deployment-guide.md` |
 | Consolidated checklist: mode selection, token scopes, minimal prod DynaKube, ActiveGate sizing | `-[K8S]-99-best-practice-summary.md` |
