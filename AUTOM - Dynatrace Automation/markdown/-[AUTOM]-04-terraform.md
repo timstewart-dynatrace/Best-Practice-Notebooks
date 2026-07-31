@@ -592,19 +592,23 @@ terraform fmt
 ## 4. Resource Types
 This section is the repo's consolidated Terraform resource catalog, organized by domain — worked examples for each resource follow below. Series covering a domain in depth (SLO, S2S, NRLC, SL2DT, MZ2POL, OPIPE, IAM) point back here by name rather than repeating the resource shape.
 
-| Domain | Resource | Auth requirement | Notes |
-|--------|----------|-------------------|-------|
-| Classic config | `dynatrace_management_zone_v2`, `dynatrace_autotag_v2` | Classic API token (`settings.read`/`settings.write`) | Below |
-| Alerting | `dynatrace_alerting` (classic profile), `dynatrace_metric_events` (custom metric alert, `builtin:anomaly-detection.metric-events`) | Classic API token (`settings.read`/`settings.write`) | Below |
-| SLO | `dynatrace_slo_v2` (`builtin:monitoring.slo`) | Classic API token (`slo.read`/`slo.write`, `settings.read`/`settings.write`) | Below — see also SLO-05 for the full DQL-vs-metric-selector SLI gap |
-| Synthetic | `dynatrace_http_monitor`, `dynatrace_browser_monitor` | Classic API token (`ExternalSyntheticIntegration`) | Below |
-| Automation / Workflows | `dynatrace_automation_workflow` | Platform Token or OAuth client | Below |
-| Documents (dashboards, notebooks) | `dynatrace_document` | Platform Token or OAuth client | Below |
-| Segments | `dynatrace_segment` | Platform Token or OAuth client | Below — see also NRLC-06/09 for the Gen3 management-zone-replacement framing |
-| Maintenance | `dynatrace_maintenance` (provider ≤ v1.97) · `dynatrace_maintenance_windows` (v1.98+, newer schema — `dynatrace_maintenance` deprecated) | Classic API token (`settings.read`/`settings.write`) | Below |
-| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingest_sources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | OAuth client only | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
-| Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Below — see also ORGNZ for bucket strategy |
-| IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Below — full hands-on walkthrough in AUTOM-95 LAB |
+| Domain | Resource | Auth requirement | Upgrade status | Notes |
+|--------|----------|-------------------|----------------|-------|
+| Classic config | `dynatrace_management_zone_v2`, `dynatrace_autotag_v2` | Classic API token (`settings.read`/`settings.write`) | **Blocked** | Below |
+| Alerting | `dynatrace_alerting` (classic profile), `dynatrace_metric_events` (custom metric alert, `builtin:anomaly-detection.metric-events`) | Classic API token (`settings.read`/`settings.write`) | **Blocked** | Below |
+| SLO | `dynatrace_slo_v2` (`builtin:monitoring.slo`) | Classic API token (`slo.read`/`slo.write`, `settings.read`/`settings.write`) | **Blocked** | Below — see also SLO-05 for the full DQL-vs-metric-selector SLI gap |
+| Synthetic | `dynatrace_http_monitor`, `dynatrace_browser_monitor` | Classic API token (`ExternalSyntheticIntegration`) | Carries forward | Below. Third-party synthetic monitors are a separate, blocked surface — see SYNTH |
+| Automation / Workflows | `dynatrace_automation_workflow` | Platform Token or OAuth client | Carries forward | Below |
+| Documents (dashboards, notebooks) | `dynatrace_document` | Platform Token or OAuth client | Carries forward | Below |
+| Segments | `dynatrace_segment` | Platform Token or OAuth client | Carries forward | Below — see also NRLC-06/09 for the Gen3 management-zone-replacement framing |
+| Maintenance | `dynatrace_maintenance` (provider ≤ v1.97) · `dynatrace_maintenance_windows` (v1.98+, newer schema — `dynatrace_maintenance` deprecated) | Classic API token (`settings.read`/`settings.write`) | **Blocked** / Carries forward | Below. The provider-deprecation fix and the upgrade fix are the same move: `dynatrace_maintenance` → `builtin:alerting.maintenance-window` is blocked, `dynatrace_maintenance_windows` → `builtin:maintenance-windows` survives |
+| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingest_sources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | OAuth client only | Carries forward | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
+| Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Carries forward | Below — see also ORGNZ for bucket strategy |
+| IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Carries forward | Below — full hands-on walkthrough in AUTOM-95 LAB |
+
+> **Reading the Upgrade status column.** `Blocked` means the resource's underlying Settings 2.0 schema stops answering once your tenant upgrades to the latest Dynatrace — the Terraform resource goes with it, because the provider writes through that schema. Statuses are read from the ready-made *Check your upgrade readiness* dashboard, observed **07/31/2026**, and each resource-to-schema mapping was confirmed against the provider's own resource documentation. Public documentation does not currently publish these as breaking changes, so a resource can read as entirely current in the registry and still be `Blocked` here. See AUTOM-02 for the full schema catalog and the deprecated-versus-blocked distinction.
+
+> **Auth requirement is a strong predictor here, but not a rule.** Every blocked row is a **Classic API token** row, and every Platform-Token-or-OAuth row carries forward — which makes sense, since the Gen3-native resources were built on the surfaces that survive. The exception worth remembering is **Synthetic**: it authenticates with a classic token and still carries forward. Do not infer status from the auth column alone.
 
 > **The OAuth-client-only resources above are a distinct category, not a version nuance.** Unlike most Gen3 resources (which accept either a Platform Token with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` or an OAuth client), buckets and IAM objects only work with `DT_CLIENT_ID`/`DT_CLIENT_SECRET`/`DT_ACCOUNT_ID` OAuth client credentials — a Platform Token will not authenticate against these APIs regardless of scopes. This surfaced repeatedly during a 07/01/2026 cross-series audit (SL2DT-03/07, S2S) where notebooks had implied Platform-Token eligibility for these resources.
 

@@ -51,12 +51,16 @@ Sprint 1.337 SaaS announced that **many remaining Configuration API endpoints** 
 
 **Migration impact for OpenPipeline / log-monitoring config:**
 
-| Legacy area | Settings v2 schema |
-|---|---|
-| Log custom attributes | `builtin:logmonitoring.log-custom-attributes` |
-| Log storage configuration | `builtin:logmonitoring.log-storage-settings` |
-| Log dpp rules | `builtin:logmonitoring.log-dpp-rules` |
-| Log timestamp configuration | `builtin:logmonitoring.timestamp-configuration` |
+| Legacy area | Settings v2 schema | Upgrade status |
+|---|---|---|
+| Log custom attributes | `builtin:logmonitoring.log-custom-attributes` | **Blocked at upgrade** |
+| Log storage configuration | `builtin:logmonitoring.log-storage-settings` | Carries forward |
+| Log dpp rules | `builtin:logmonitoring.log-dpp-rules` | **Blocked at upgrade** |
+| Log timestamp configuration | `builtin:logmonitoring.timestamp-configuration` | Carries forward |
+
+> **Settings v2 is the right destination for the API move, but not the end of the journey for these four schemas.** The sprint-1.337 guidance above is about *which API surface* to call — and on that axis it stands. On the separate upgrade axis, two of these four schemas are flagged **Blocked at upgrade** (the other two carry forward) by the ready-made *Check your upgrade readiness* dashboard: they stop answering once the tenant moves to the latest Dynatrace. Their real successor is an OpenPipeline processor, which is what the rest of this series builds.
+>
+> So: if you are moving automation off the Configuration API *today*, Settings v2 is the correct target and this table is the mapping. If you are planning the Gen3 migration, do not stop here — retarget these four onto OpenPipeline rather than rebuilding them as Settings v2 objects you will migrate again. See AUTOM-02's catalog for status and OPMIG §5–§7 for the pipeline equivalents.
 
 If your migration tooling reaches into the Configuration API for any of these, switch to the Settings v2 endpoints in Environment API v2 (see **AUTOM-02 § Sprint 1.337** for general patterns and **AUTOM-04 (Terraform)** for `dynatrace_settings` resource usage).
 

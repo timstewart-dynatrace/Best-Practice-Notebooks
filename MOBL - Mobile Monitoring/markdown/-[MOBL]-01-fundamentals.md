@@ -275,7 +275,7 @@ Follow these steps to set up mobile monitoring for your application:
 
 9. **Define custom actions (optional)** -- Use the SDK API to report custom user actions and business events that are specific to your app's workflow.
 
-10. **Create dashboards and alerts** -- Build dashboards for crash rate, app launch time, and network errors. Set up alerting profiles for anomaly detection.
+10. **Create dashboards and alerts** -- Build dashboards for crash rate, app launch time, and network errors. For alerting, use **Davis anomaly detectors** rather than classic alerting profiles: `builtin:alerting.profile` is flagged blocked at upgrade, so a checklist that ends there leaves you building something with an expiry. See ALERT-01 for the target architecture and MOBL-11 §5 for the mobile-specific detectors.
 
 ### Verify Your Mobile App Configuration
 

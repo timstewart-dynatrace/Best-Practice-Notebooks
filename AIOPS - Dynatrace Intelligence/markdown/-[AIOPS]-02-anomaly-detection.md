@@ -250,16 +250,20 @@ timeseries {
 <a id="schemas"></a>
 ## 6. Metric Events and Settings 2.0 Schemas
 
-Not every alert needs the DQL-based detector. **Metric events** are the Settings 2.0 mechanism for threshold / baseline alerting directly on a metric key — lighter weight than a DQL detector, and the right tool when you're alerting on a single pre-existing metric.
+Not every alert needs the DQL-based detector. **Metric events** are the classic Settings 2.0 mechanism for threshold / baseline alerting directly on a metric key — lighter weight than a DQL detector when you are alerting on a single pre-existing metric.
 
-| Mechanism | Settings 2.0 schema | Reach for it when |
-|-----------|---------------------|-------------------|
-| DQL-based Davis anomaly detector | `builtin:davis.anomaly-detectors` | The signal needs a query — joins, derived fields, multi-metric logic |
-| Metric event | `builtin:anomaly-detection.metric-events` | You're alerting on one existing metric key with a threshold or baseline |
+| Mechanism | Settings 2.0 schema | Upgrade status | Reach for it when |
+|-----------|---------------------|----------------|-------------------|
+| DQL-based Davis anomaly detector | `builtin:davis.anomaly-detectors` | Carries forward | The signal needs a query — joins, derived fields, multi-metric logic. Also the migration target for metric events |
+| Metric event | `builtin:anomaly-detection.metric-events` | **Blocked at upgrade** | Only where you already have one; do not author new ones |
 
-Both are first-class config-as-code targets. Provision them with Monaco or Terraform exactly as in **AUTOM-05 / AUTOM-06**; the schema name is the `--settings-schema` / resource selector. This is how a validated detector from the app becomes a reviewed, version-controlled artifact.
+**Prefer the Davis anomaly detector for anything new.** `builtin:anomaly-detection.metric-events` is flagged **Blocked at upgrade** by the ready-made *Check your upgrade readiness* dashboard — it stops answering once the tenant moves to the latest Dynatrace, and every metric event has to be recreated as a DQL-based detector. Dynatrace publishes a transformation path, with the important limitation that **only metric *selectors* can be transformed**: metric *key* events, which put a static threshold on a single metric, have no automated conversion. The transformer also cannot tell whether the metric's data or its tags actually exist in the target, so every converted detector needs validating by hand afterwards.
 
-> <sub>**Sources:** [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events), [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration).</sub>
+That reverses the older advice in this section. A metric event is still the lighter-weight mechanism, and one you already own is fine to leave running for now — but it is a construct with an expiry, so new work should not be authored against it, and a static threshold ported as-is is in any case the main source of Gen3 alert noise (ALERT-02).
+
+The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-05 / AUTOM-06**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
+
+> <sub>**Sources:** [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events), [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/metric-alerting) — states that only metric selectors can be transformed, that metric key events cannot, and that automated verification cannot confirm the metric's data or tags are present. **Derived:** the blocked-at-upgrade status is read from the ready-made *Check your upgrade readiness* dashboard, observed 07/31/2026; public documentation does not currently publish it as a breaking change.</sub>
 
 <a id="analyzers"></a>
 ## 7. Testing Detectors with Davis Analyzers (MCP)

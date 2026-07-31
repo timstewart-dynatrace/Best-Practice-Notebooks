@@ -448,6 +448,10 @@ smartscapeNodes "BROWSER_MONITOR"
 
 Compare source and target configuration counts:
 
+> **Two things to know before running this.** The SLO schema is `builtin:monitoring.slo` — **not** `builtin:slo`, which does not exist. Querying a nonexistent schema returns `totalCount: 0` rather than an error, so a count-comparison script using the wrong ID reports `0 == 0` and a cheerful match for a domain it never actually checked. This script previously carried that bug.
+>
+> All four schemas above are also marked **Blocked at upgrade** in AUTOM-02's catalog. After a tenant upgrades to the latest Dynatrace they return zero on both sides, and this script will again report a clean match — for configuration that no longer exists. Count-parity validation is only meaningful while both tenants are on the same generation; across a Classic → Gen3 boundary you need to compare the *replacement* constructs instead.
+
 ```python
 import requests
 
@@ -466,7 +470,7 @@ def validate_migration(source_url, source_token, target_url, target_token):
         "builtin:management-zones",
         "builtin:tags.auto-tagging",
         "builtin:alerting.profile",
-        "builtin:slo"
+        "builtin:monitoring.slo"
     ]
     
     results = []
@@ -517,7 +521,7 @@ def validate_migration(source_url, source_token, target_url, target_token):
 |------|---------------|
 | Download all | `monaco download --output-folder ./export` |
 | Download specific | `monaco download --api builtin:management-zones` |
-| Validate | `monaco validate manifest.yaml` |
+| Validate | `monaco deploy manifest.yaml --dry-run` — Monaco ships no standalone `validate` subcommand (see AUTOM-03 §5) |
 | Dry run | `monaco deploy manifest.yaml --dry-run` |
 | Deploy | `monaco deploy manifest.yaml` |
 

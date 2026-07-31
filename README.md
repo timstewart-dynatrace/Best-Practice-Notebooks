@@ -408,7 +408,7 @@ Defining and operating Service Level Objectives in Dynatrace — SLIs, error bud
 - [SLO-02: Defining SLIs](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-02-defining-slis.md) — The good ÷ total ratio as DQL: availability, latency, error-rate, and custom business SLIs, validated on a live tenant
 - [SLO-03: Composition and Error Budgets](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-03-composition-and-error-budgets.md) — Error-budget math and burn rate, composite and weighted-global SLOs, and rolling vs calendar windows
 - [SLO-04: SLO Alerting](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-04-alerting.md) — Burn-rate alerting over threshold-on-SLI: fast-burn and slow-burn multiwindow alerts, surfacing, routing, and avoiding fatigue
-- [SLO-05: SLOs as Code](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-05-slos-as-code.md) — Promoting SLOs into version control: the `builtin:slo` schema, the `dynatrace_slo_v2` Terraform resource, Monaco, and the API/CI-CD path
+- [SLO-05: SLOs as Code](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-05-slos-as-code.md) — Promoting SLOs into version control: the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2` / `builtin:monitoring.slo` path it replaces, Monaco, and the export-known-good API pattern
 
 ### [SPANS - Distributed Tracing and Spans](SPANS%20-%20Distributed%20Tracing%20and%20Spans/README.md)
 Guidance for working with distributed traces and spans in Dynatrace.

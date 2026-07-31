@@ -183,6 +183,8 @@ Dashboards are for humans looking at screens. Alerts are for ensuring problems a
 
 ### Creating a Metric Event
 
+> **Prefer a Davis anomaly detector for new mobile alerting.** The metric-event procedure below is the classic surface — `builtin:anomaly-detection.metric-events` is flagged **Blocked at upgrade**, so alerts built here have to be recreated as DQL-based detectors (`builtin:davis.anomaly-detectors`) when the tenant moves to the latest Dynatrace. Existing metric events keep working until then. Note also that Dynatrace's transformation path converts metric *selectors* only — a **Type: Metric key** event like the example below, which is a static threshold on a single key, has no automated conversion and must be rebuilt by hand. See ALERT-02 for choosing between mechanisms.
+
 To create a custom alert (metric event) in Dynatrace:
 
 1. Navigate to **Settings** > **Anomaly Detection** > **Metric Events**

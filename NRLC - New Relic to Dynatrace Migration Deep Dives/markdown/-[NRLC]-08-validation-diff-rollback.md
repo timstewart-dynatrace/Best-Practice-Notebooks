@@ -92,13 +92,13 @@ The `DTEnvironmentRegistry` lazy-loads tenant inventory:
 
 | Lookup | Source API | Validates |
 |--------|------------|-----------|
-| Metric keys (`dt.host.cpu.usage`, etc.) | `GET /api/v2/metrics` | Metric exists; displayName, unit |
-| Entity types and IDs | `GET /api/v2/entities` | Entity present; resolves names ↔ IDs |
+| Metric keys (`dt.host.cpu.usage`, etc.) | `GET /api/v2/metrics` — **blocked at upgrade**; on a latest-Dynatrace tenant use the DQL `metrics` command instead | Metric exists; displayName, unit |
+| Entity types and IDs | `GET /api/v2/entities` — **blocked at upgrade**; on a latest-Dynatrace tenant use `smartscapeNodes` (FAQ entry 16) | Entity present; resolves names ↔ IDs |
 | Existing dashboards | `GET /platform/document/v1/documents` | Avoids duplicate creation |
 | OpenPipeline enrichment rules | `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `.routing`, `.ingest-sources` per scope) | Enrichment rule exists; produces expected attribute values on ingested data |
 | Buckets | `GET /platform/storage/management/v1/bucket-definitions` | Bucket exists with expected retention; routing rule targets it correctly |
 | Synthetic locations | `GET /api/v2/synthetic/locations` | NR location → DT location lookup |
-| Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` | No duplicate notification objects |
+| Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it | No duplicate notification objects |
 
 > **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints are deprecated (SaaS 1.327, EoL **June 29, 2026**). Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
 
