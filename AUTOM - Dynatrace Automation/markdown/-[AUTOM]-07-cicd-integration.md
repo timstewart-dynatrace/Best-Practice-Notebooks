@@ -437,6 +437,53 @@ deny[msg] {
 
 > **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` in the allowlist above is **deprecated** in provider v1.98+ in favor of `dynatrace_maintenance_windows`. The allowlist stays valid for older provider pins; on v1.98+ add (or substitute) `"dynatrace_maintenance_windows"` so newly-authored maintenance windows pass the policy.
 
+> **Read the allowlist above as a mechanism demonstration, not a starting allowlist.** Every one of its four entries resolves to a Settings 2.0 schema marked **Blocked at upgrade** in AUTOM-02's catalog:
+>
+> | Resource | Schema | Upgrade status |
+> |---|---|---|
+> | `dynatrace_alerting` | `builtin:alerting.profile` | Blocked |
+> | `dynatrace_autotag_v2` | `builtin:tags.auto-tagging` | Blocked |
+> | `dynatrace_management_zone_v2` | `builtin:management-zones` | Blocked |
+> | `dynatrace_maintenance` | `builtin:alerting.maintenance-window` | Blocked |
+> | `dynatrace_maintenance_windows` | `builtin:maintenance-windows` | Carries forward |
+>
+> A governance gate whose allowlist contains only blocked resource types inverts its own purpose: it permits exactly the configuration that stops working when the tenant upgrades, and denies the platform-native resources that survive. Note the useful coincidence in the last two rows — the provider-deprecation fix above (`dynatrace_maintenance` → `dynatrace_maintenance_windows`) happens to move you onto the surviving schema too, for an unrelated reason.
+>
+> Before copying this policy, replace the set with the resource types **your** teams should actually be creating, and check each one's schema against AUTOM-02's `Upgrade status` column first.
+
+#### OPA/Conftest — Blocking Resources That Do Not Survive the Upgrade
+
+The more useful policy during a Classic → Gen3 migration is the inverse: fail the build when someone adds a resource type that will stop working. This catches new classic configuration entering the repo while the migration is still in flight — the failure mode that quietly extends a migration indefinitely.
+
+**policy/blocked_at_upgrade.rego:**
+
+```rego
+package main
+
+# Terraform resource types whose Settings 2.0 schema is removed when the
+# tenant upgrades to the latest Dynatrace. Verified against the provider's
+# own resource docs; re-check against AUTOM-02's catalog before relying on it.
+blocked_at_upgrade := {
+  "dynatrace_alerting",              # builtin:alerting.profile
+  "dynatrace_autotag_v2",            # builtin:tags.auto-tagging
+  "dynatrace_management_zone_v2",    # builtin:management-zones
+  "dynatrace_maintenance",           # builtin:alerting.maintenance-window
+  "dynatrace_metric_events",         # builtin:anomaly-detection.metric-events
+  "dynatrace_slo_v2"                 # builtin:monitoring.slo
+}
+
+deny[msg] {
+  resource := input.planned_values.root_module.resources[_]
+  blocked_at_upgrade[resource.type]
+  msg := sprintf(
+    "'%s' uses a Settings schema that is removed at upgrade to the latest Dynatrace — see AUTOM-02 for the replacement path",
+    [resource.type]
+  )
+}
+```
+
+Run it as a **warning** rather than a hard failure while you still have classic configuration to maintain — `conftest test --policy policy/ --output table` reports without failing the build when the rule is named `warn` instead of `deny`. Flip it to `deny` once the migration for that domain is complete, and it becomes a ratchet that stops the classic surface coming back.
+
 #### OPA/Conftest — Mandatory Team Tagging
 
 Ensure all resources include team ownership metadata:
@@ -501,6 +548,8 @@ main = rule {
   }
 }
 ```
+
+> **The same caveat applies to the Sentinel `allowed_types` above** — all three entries are blocked at upgrade. Treat it as syntax, not as policy to adopt.
 
 > **Important — Sentinel Limitations:** Sentinel evaluates Terraform **plans** — it does not grant or restrict Dynatrace API access at runtime. It cannot reduce the permissions of a token that has broad scope. If a pipeline token can write all Synthetic monitors, Sentinel cannot narrow that. Use **Dynatrace IAM policies** (see **AUTOM-04: IAM Policy Management**) for platform-level access control, and Sentinel for pipeline-level governance. Sentinel only runs in **HCP Terraform** — it is not available in open-source Terraform, GitHub Actions, or plain CI runners. For non-HCP environments, use **OPA/Conftest** as shown above.
 
