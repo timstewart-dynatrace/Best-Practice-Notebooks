@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 07/31/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -229,7 +229,9 @@ Two things get worse. Both are cheaper to plan for than to discover.
 
 An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). Teams use it to suppress transient blips.
 
-**As of 07/2026 the workflow model has no equivalent.** The upgrade guide states there is *"currently no alternative"* for delivering problems that have been active longer than *X* minutes.
+**The workflow model does have an equivalent — the trigger's Delay option.** The problem trigger's **Delay** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"the trigger fires once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+
+> ⚠️ **Conflicting documentation.** The alert-notification upgrade guide still states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* Both pages were live 08/2026. The likely explanation is that the upgrade guide predates the Delay option and was never re-tensed — but that is inference. **Verify the Delay option behaves as documented in your tenant before relying on it**, and do not plan a wave around the upgrade guide's claim without checking.
 
 > **Read that "currently" as load-bearing.** It is the upgrade guide's own wording, and it marks this as a stated gap rather than a settled design decision. **Re-check the upgrade guide before you commit a cutover wave** — of everything in this notebook, this is the claim most likely to have changed since it was written, and a reader acting on a stale copy would accept a regression they may no longer have to.
 
@@ -245,7 +247,7 @@ Per-profile options:
 | **Express as an SLO burn-rate alert** | The concern was sustained degradation, not a threshold crossing | Best conceptual fit; requires an SLO to exist (**SLO-04**) |
 | **Retire the alert** | The delay was masking an alert nobody acts on | Free noise reduction — check usage first |
 
-**Sequence delay-dependent profiles last.** They are the only profiles whose behavior you cannot reproduce, so they are the only ones with a reason to wait. Profiles with `delayInMinutes: 0` — usually the large majority — carry no such constraint and should not be held back with them.
+**Sequence delay-dependent profiles according to what your tenant verification shows.** If the Delay option is present and behaves as documented, these profiles convert like any other and need no special wave. If verification fails, they become the only cohort whose behavior you cannot reproduce — and only then is there a reason to hold them back. Profiles with `delayInMinutes: 0` — usually the large majority — carry no such constraint either way.
 
 > **A long `delayInMinutes` is usually evidence the alert was the wrong *shape*, not merely delayed.** A profile suppressing 30 minutes of a firing condition is describing a burn-rate concern. Route those to SLO burn-rate alerts where an SLO exists, and to Davis where one does not.
 
@@ -484,7 +486,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 1. **Alerting is the third job a Management Zone does**, and it migrates to problem-triggered workflows — not to Segments. Segments scope queries and anomaly detectors; they never scope triggers, notifications, or visibility.
 2. **The real work is enrichment.** Triggers match tags carried by entities; MZ rules are computed conditions. Every computed dimension must become an auto-tag, and must propagate, before its workflow can exist.
-3. **Two capability regressions:** duration-based suppression has no equivalent, and four notification destinations have no native connector.
+3. **One confirmed capability regression:** four notification destinations have no native connector. Duration-based suppression maps onto the trigger's **Delay** option, though the upgrade guide still claims otherwise — verify in-tenant.
 4. **Visibility is a separate axis** and works only on `dt.security_context`, because it is the only field that filters correctly once events aggregate into a problem.
 5. **The deletion failure mode is undocumented.** Test it in non-prod before touching production, and never delete zones and profiles in the same change window.
 

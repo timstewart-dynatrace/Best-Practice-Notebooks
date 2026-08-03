@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -236,7 +236,7 @@ Segments are not an access-control mechanism and are not a routing mechanism. An
 
 > ⚠️ **The Management Zone filter has no successor inside the alerting model.** Dynatrace's upgrade guide states it plainly: *"Management Zone filter — No longer supported. Use Grail record-based field filters instead."* This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-05 §4 for the rule-to-dimension classification.
 
-> ⚠️ **Duration-based suppression has no successor today.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). As of 07/2026 the workflow model has **no equivalent** — the upgrade guide's wording is that there is *"currently"* no alternative, so re-check it before planning a cutover wave. Inventory this field across every profile: any team relying on it to suppress short-lived noise will see a noise increase, which makes those profiles the right candidates for the **last** migration wave rather than the first. See MZ2POL-09 §6.1.
+> ⚠️ **Duration-based suppression has a successor — verify it before assuming otherwise.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). The problem trigger's **Delay** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. Note that the alert-notification upgrade guide still states there is *"currently no alternative"* for this — the two pages conflict, and the upgrade guide appears not to have been re-tensed. **Confirm the Delay option in your own tenant**, then inventory `delayInMinutes` across every profile and map each value onto a Delay setting. See MZ2POL-09 §6.1.
 
 ### Migration Phases
 

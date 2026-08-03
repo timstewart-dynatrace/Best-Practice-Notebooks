@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -54,7 +54,7 @@ The Events API endpoint `GET /events` no longer returns the `metadata` property 
 <a id="routing-strategies"></a>
 ## 1. Routing Strategies
 
-> ⚠️ **Migrating from alerting profiles? One capability does not come across.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`) — a common way to suppress transient blips. **As of 07/2026 the workflow model has no equivalent**; Dynatrace's upgrade guide states there is *"currently"* no alternative for delivering problems active longer than *X* minutes. That word is the guide's own — re-check it before planning a cutover wave.
+> ⚠️ **Migrating from alerting profiles? Duration suppression maps onto the trigger's Delay option — but the docs conflict.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`) — a common way to suppress transient blips. The problem trigger's **Delay** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. However, Dynatrace's alert-notification upgrade guide still states there is *"currently no alternative"* for this. Both pages were live 08/2026; the upgrade guide appears stale rather than correct. **Verify the Delay option in your own tenant before planning a cutover wave.**
 >
 > Teams relying on it get *noisier* after migration, which reads as "the migration broke alerting." Treat a long delay as evidence the alert was the wrong *shape* rather than merely delayed: a profile suppressing 30 minutes of a firing condition is usually describing a burn-rate concern, which belongs in an SLO burn-rate alert (**SLO-04**) or a Davis anomaly detector (**AIOPS-02**). Inventory `delayInMinutes` across every profile before cutover, and sequence the profiles that use it into the **last** migration wave — they are the only ones whose behavior you cannot yet reproduce. See **MZ2POL-09** §6.1.
 ### Why Route Alerts?
