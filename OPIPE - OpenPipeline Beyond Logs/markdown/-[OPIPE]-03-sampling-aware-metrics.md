@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 05/06/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -286,8 +286,8 @@ Continue to **OPIPE-04: Cardinality Management** for strategies to control dimen
 <a id="references"></a>
 ## References
 
-- [OpenPipeline Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-spans/span-metric-extraction)
-- [Distributed Traces Sampling](https://docs.dynatrace.com/docs/observe-and-explore/distributed-traces/analysis/trace-sampling)
+- [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
+- [Data storage and retention for Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/storage)
 - [RED Method](https://www.weave.works/blog/the-red-method-key-metrics-for-microservices-architecture/)
 - [Metric Cardinality](https://docs.dynatrace.com/docs/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)
 
