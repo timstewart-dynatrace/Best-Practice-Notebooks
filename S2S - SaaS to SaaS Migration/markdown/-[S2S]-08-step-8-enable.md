@@ -1,6 +1,6 @@
 # S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -315,9 +315,9 @@ In Step 8, you:
 ### Additional Resources
 
 - [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/platform/davis-ai/anomaly-detection)
-- [SLO Configuration](https://docs.dynatrace.com/docs/observe-and-explore/service-level-objectives)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
 - [Dynatrace Notifications and Alerting](https://docs.dynatrace.com/docs/observe-and-explore/notifications-and-alerting)
-- [DPS Licensing](https://docs.dynatrace.com/docs/manage/subscription)
+- [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/manage/dynatrace-platform-subscription)
 
 ---
 

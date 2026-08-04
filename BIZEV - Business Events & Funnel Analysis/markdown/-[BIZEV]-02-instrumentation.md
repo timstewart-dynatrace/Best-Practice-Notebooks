@@ -1,6 +1,6 @@
 # BIZEV-02: Instrumentation
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -348,7 +348,7 @@ In this notebook, you learned:
 
 ### References
 
-- [Business Events API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/business-events)
+- [Environment API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api)
 - [OneAgent SDK for Business Events](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing)
 - [OpenPipeline Processing](https://docs.dynatrace.com/docs/platform/openpipeline)
 

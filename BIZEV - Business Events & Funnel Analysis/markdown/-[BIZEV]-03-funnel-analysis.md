@@ -1,6 +1,6 @@
 # BIZEV-03: Funnel Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -228,7 +228,7 @@ In this notebook, you learned:
 ### References
 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
-- [DQL summarize Command](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/summarize-command)
+- [DQL structuring commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/structuring-commands)
 
 ---
 

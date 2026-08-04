@@ -1,6 +1,6 @@
 # BIZEV-01: Business Events Fundamentals
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -292,7 +292,7 @@ In this notebook, you learned:
 ### References
 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
-- [Business Events API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/business-events)
+- [Environment API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api)
 - [CloudEvents Specification](https://cloudevents.io/)
 
 ---

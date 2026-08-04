@@ -1,6 +1,6 @@
 # S2D-08: Dashboard Migration Best Practices
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 01/30/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -260,8 +260,8 @@ fetch logs, from:-1h
 ## References
 
 - [Dynatrace Dashboards](https://docs.dynatrace.com/docs/shortlink/dashboards)
-- [Dashboard Variables](https://docs.dynatrace.com/docs/shortlink/dashboard-variables)
-- [Visualization Types](https://docs.dynatrace.com/docs/shortlink/dashboard-tiles)
+- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 
 ---
 

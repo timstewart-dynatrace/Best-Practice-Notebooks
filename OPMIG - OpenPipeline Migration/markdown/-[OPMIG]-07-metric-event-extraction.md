@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/31/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/04/2026
 
 ---
 
@@ -721,8 +721,8 @@ Now that you can extract metrics and events, continue with:
 ## References
 
 - [OpenPipeline Data Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/metric-extraction)
-- [Business Event Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/bizevent-extraction)
+- [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
+- [OpenPipeline use cases (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases)
 - [Dynatrace Intelligence Events](https://docs.dynatrace.com/docs/platform/davis-ai/basics/events)
 
 ---

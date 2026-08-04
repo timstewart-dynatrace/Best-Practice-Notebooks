@@ -1,6 +1,6 @@
 # BIZEV-04: Revenue Impact Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -262,7 +262,7 @@ In this notebook, you learned:
 
 ### References
 
-- [Dynatrace Intelligence Problems](https://docs.dynatrace.com/docs/platform/davis-ai/basics/davis-ai-problems)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
 
 ---

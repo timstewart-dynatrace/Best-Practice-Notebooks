@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 10 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 07/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 10 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -373,8 +373,8 @@ In Step 7, you:
 ### Additional Resources
 
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/grail-buckets)
-- [SLO Configuration](https://docs.dynatrace.com/docs/observe-and-explore/service-level-objectives)
+- [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
 - [Alerting and Notifications](https://docs.dynatrace.com/docs/observe-and-explore/notifications-and-alerting)
 - [Monaco Configuration as Code](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 

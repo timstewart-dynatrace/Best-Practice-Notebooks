@@ -1,6 +1,6 @@
 # S2D-03: SPL to DQL Translation
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 04/03/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -324,7 +324,7 @@ With your queries translated, proceed to **S2D-04: Alert Migration - Anomaly Det
 
 - [DQL Reference](https://docs.dynatrace.com/docs/shortlink/dql-reference)
 - [DQL Functions](https://docs.dynatrace.com/docs/shortlink/dql-functions)
-- [Parse Command](https://docs.dynatrace.com/docs/shortlink/dql-parse)
+- [DQL extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands)
 
 ---
 
