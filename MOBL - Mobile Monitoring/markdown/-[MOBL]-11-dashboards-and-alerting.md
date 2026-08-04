@@ -1,6 +1,6 @@
 # MOBL-11: Dashboards & Alerting
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 06/23/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -329,11 +329,11 @@ Continue to **MOBL-12** to explore:
 
 ## References
 
-- [Dynatrace Dashboards](https://docs.dynatrace.com/docs/observe-and-explore/dashboards-and-notebooks/dashboards)
-- [Metric Events for Alerting](https://docs.dynatrace.com/docs/observe-and-explore/davis-ai/anomaly-detection/metric-events-for-alerting)
+- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
 - [Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [Dynatrace Intelligence Problems](https://docs.dynatrace.com/docs/observe-and-explore/davis-ai/davis-ai-problems)
-- [Workflows for Alerting](https://docs.dynatrace.com/docs/platform/workflows)
+- [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 
 ---
 

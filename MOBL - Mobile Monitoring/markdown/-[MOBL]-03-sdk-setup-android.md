@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -107,7 +107,7 @@ plugins {
 }
 ```
 
-> **Important:** Replace `8.x.x` with the latest stable version from the [Dynatrace Android instrumentation release notes](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring). Always pin to a specific version to ensure reproducible builds.
+> **Important:** Replace `8.x.x` with the latest stable version from the [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app). Always pin to a specific version to ensure reproducible builds.
 
 <a id="build-gradle-config"></a>
 ## 3. build.gradle Configuration
@@ -406,9 +406,9 @@ In this notebook, you learned:
 
 ## References
 
-- [Dynatrace Android Instrumentation](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring)
+- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app)
 - [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [Dynatrace Android Agent API](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-mobile-platforms/android-monitoring/android-manual-instrumentation)
+- [Manual instrumentation with OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation)
 
 ---
 

@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -76,7 +76,7 @@ SPM is Apple's native dependency manager and requires no additional tooling.
 ```swift
 // Package.swift (if using a Package.swift-based project)
 dependencies: [
-    .package(url: "https://github.com/nickkaczmarek/dynatrace-ios-spm", from: "8.0.0")
+    .package(url: "https://github.com/Dynatrace/swift-mobile-sdk", from: "8.0.0")
 ]
 ```
 
