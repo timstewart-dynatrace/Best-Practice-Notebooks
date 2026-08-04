@@ -1,9 +1,9 @@
 # SPANS-08: Cost-Efficient DQL Queries
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 08/04/2026
 
 ## Optimizing Span Queries for Performance and Cost Efficiency
-This notebook covers best practices for writing cost-efficient DQL queries, minimizing DDU consumption while maintaining effective observability.
+This notebook covers best practices for writing cost-efficient DQL queries, minimizing query consumption while maintaining effective observability.
 
 ---
 
@@ -33,7 +33,7 @@ Before starting this notebook, ensure you have:
 
 <a id="understanding-query-costs"></a>
 ## 1. Understanding Query Costs
-DQL queries consume resources measured in DPS (Dynatrace Intelligence Processing Seconds) on current licensing, or DDUs (Dynatrace Intelligence Data Units) on classic contracts based on several factors:
+Query cost is driven by how much data a query scans. Under the **Dynatrace Platform Subscription (DPS)**, span queries bill under the **Traces - Query** capability, metered in bytes scanned; on classic contracts the equivalent consumption is metered in **Davis Data Units (DDUs)**. Either way, the same factors drive it:
 
 ![Query Cost Optimization](images/08-query-cost-optimization.png)
 
