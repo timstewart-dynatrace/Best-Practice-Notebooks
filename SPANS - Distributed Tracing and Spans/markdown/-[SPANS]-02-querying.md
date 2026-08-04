@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 07/30/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/04/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -20,6 +20,7 @@ This notebook covers essential techniques for querying and filtering span data t
 8. [Database Span Queries](#database-span-queries)
 9. [Working with NULL Values](#working-with-null-values)
 10. [Combining Multiple Filters](#combining-multiple-filters)
+11. [Request Attributes on Spans](#request-attributes-on-spans)
 
 ---
 
@@ -553,6 +554,40 @@ fetch spans, from:-1h
 
 ---
 
+<a id="request-attributes-on-spans"></a>
+## 11. Request Attributes on Spans
+
+Request attributes configured in your environment surface on spans under two templated field families. Both are `stable` in the semantic dictionary, and the difference between them is not visible in the name:
+
+| Field | Scope | Values | Type |
+|-------|-------|--------|------|
+| `request_attribute.<name>` | Request | Reconciled for the request as a whole | **array** |
+| `captured_attribute.<name>` | Span | Raw, as captured on that span | **array** |
+
+Use `request_attribute.<name>` when you want the attribute's settled value for a request; use `captured_attribute.<name>` when you need what an individual span actually captured before reconciliation.
+
+> ⚠️ **Both are arrays.** `filter request_attribute.order_id == "A-1"` matches **nothing** — and fails silently, with no error. Use `matchesValue()` for membership, or an array function to reach an element.
+
+Two further traps:
+
+- **Mixed capture types collapse to string.** If the captured values have mixed types, all of them are converted to string and stored as a string array — so a numeric comparison that works in one environment can stop matching in another.
+- **The field name is yours.** `<name>` is whatever you called the request attribute in its configuration, so these fields are not discoverable by browsing the dictionary. Read them from the request-attribute configuration, or from a span that carries them.
+
+For the request-attribute question in its wider context — including what happened to the classic PurePath sub-timings and why external calls carry no endpoint — see **FAQ-22**.
+
+> <sub>**Sources:** [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes), [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). Field names, `stable` levels, array typing, and the mixed-type-to-string rule read from `dt.semantic_dictionary.fields` on a live SaaS tenant, 08/04/2026.</sub>
+
+```dql
+// Confirm the contract for both request-attribute field families
+// before writing a filter. Scans zero billable bytes.
+fetch dt.semantic_dictionary.fields
+| filter contains(name, "request_attribute")
+    or contains(name, "captured_attribute")
+| fields name, stability, type, description
+```
+
+---
+
 ## Summary
 
 In this notebook, you learned:
@@ -567,6 +602,7 @@ In this notebook, you learned:
 ✅ **Handle NULL values** with `isNull()` / `isNotNull()`  
 ✅ **Use `dedup`** to see unique values  
 ✅ **Combine filters** for complex, precise queries  
+✅ **Query request attributes** — `request_attribute.<name>` and `captured_attribute.<name>` are arrays, not scalars  
 
 ---
 

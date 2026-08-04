@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -484,6 +484,10 @@ fetch dt.system.events, from:-7d
 ```
 
 Apply the same shape for Events (`event.type == "Events - Query" or event.type == "Events - Query - SaaS"`) and Traces (`event.type == "Traces - Query"`). The field schema is identical across all three.
+
+**Reading `client.application_context`.** The value is the app identifier in reverse-DNS form — `dynatrace.dashboards`, `dynatrace.davis.problems`, and custom apps such as `my.smartscape.lookup` all appear this way. A **null** value is not an error: it marks a query with no app context behind it, typically API or automation traffic, and on a lightly-read tenant it can be the largest single row.
+
+This is also how you settle the question *"does the Distributed Tracing or Services app consume Query DPS?"* for your own estate — swap the filter to `Traces - Query` and group by `client.application_context`. Two cautions before you read the result as an answer: query-side records are written **only when the capability is actually read**, so an empty result means nobody queried traces in the window, not that the app is free; and a tenant with little trace-query traffic can return nothing at all over 30 days. Widen the timeframe and confirm the capability is in use before drawing a conclusion either way.
 
 > <sub>**Sources:** Pattern from the [DPS Usage Details DEMO dashboard](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription) Log-Query, Events-Query, and Traces-Query tiles. [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Events (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-events), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces). Query-side billing fires only when the capability is in active use — on validation tenants with light read traffic, these queries may return zero rows. Verify in your tenant before relying on them for chargeback reporting.</sub>
 
