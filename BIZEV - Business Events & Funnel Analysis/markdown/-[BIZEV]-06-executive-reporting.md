@@ -1,6 +1,6 @@
 # BIZEV-06: Executive Reporting
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -330,8 +330,8 @@ This is the last of the core analysis notebooks in the BIZEV series. Across the 
 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
 - [Dynatrace Dashboards](https://docs.dynatrace.com/docs/observe-and-explore/dashboards)
-- [Dynatrace Workflows](https://docs.dynatrace.com/docs/platform/workflows)
-- [SLO in Dynatrace](https://docs.dynatrace.com/docs/observe-and-explore/service-level-objectives)
+- [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
 
 ---
 

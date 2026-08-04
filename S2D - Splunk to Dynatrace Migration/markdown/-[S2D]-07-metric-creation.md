@@ -1,6 +1,6 @@
 # S2D-07: Metric Creation from Logs
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -227,7 +227,7 @@ Metric extraction is typically managed by a platform or DevOps team through Open
 ## References
 
 - [tutorial-log-processing-pipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline)
-- [Log Metrics](https://docs.dynatrace.com/docs/shortlink/log-metrics)
+- [Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics)
 - [DQL Matcher Functions](https://docs.dynatrace.com/docs/shortlink/dql-matcher-openpipeline)
 
 ---

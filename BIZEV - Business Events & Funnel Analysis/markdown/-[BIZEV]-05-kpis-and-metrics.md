@@ -1,6 +1,6 @@
 # BIZEV-05: KPIs and Metrics
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -295,7 +295,7 @@ In this notebook, you learned:
 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
 - [OpenPipeline Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [DQL makeTimeseries Command](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/make-timeseries-command)
+- [DQL structuring commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/structuring-commands)
 
 ---
 

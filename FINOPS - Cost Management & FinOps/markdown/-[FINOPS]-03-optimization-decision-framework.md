@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -112,7 +112,7 @@ Examples:
 
 Filter is the most targeted lever — keep the load-bearing subset, drop the noise. It is also the most likely to drift over time: a filter that was correct in 2024 may suppress a signal that became load-bearing in 2026. Filters need ownership and periodic review.
 
-> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/grail/openpipeline), [DPS Hosts (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-hosts) — synthetic monitor frequency configuration. Examples are illustrative; the underlying mechanisms are documented per-capability. **Derived:** the three-lever taxonomy is engagement-level synthesis.</sub>
+> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline), [DPS Hosts (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-hosts) — synthetic monitor frequency configuration. Examples are illustrative; the underlying mechanisms are documented per-capability. **Derived:** the three-lever taxonomy is engagement-level synthesis.</sub>
 
 <a id="when-to-cut"></a>
 ## 3. When to Cut
@@ -245,7 +245,7 @@ Filters drift. A filter rule that was correct in 2024 may suppress a signal that
 
 Filters without owners become invisible cost optimization that no one can safely change.
 
-> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/grail/openpipeline), [OPLOGS topic series](../../oplogs/) — full filter-syntax depth. **Derived:** the filter-vs-tune distinction and the ownership-and-review pattern are engagement practice.</sub>
+> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline), [OPLOGS topic series](../../oplogs/) — full filter-syntax depth. **Derived:** the filter-vs-tune distinction and the ownership-and-review pattern are engagement practice.</sub>
 
 <a id="decision-tree"></a>
 ## 6. Decision Tree by Data Type
@@ -386,7 +386,7 @@ Implementation depth lives in OPLOGS. The filter spec at the framework level:
 
 After deploying the filter, the FINOPS-02 daily burn-rate alert should show the bucket returning to baseline within 24-48 hours. If it doesn't, the spike has a different root cause (volume from non-DEBUG levels) and the framework loops back to Step 1 with a sharper question.
 
-> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/grail/openpipeline). **Derived:** the diagnose → frame → coordinate → implement → verify loop is engagement practice; verify against your team's actual change-management process.</sub>
+> <sub>**Sources:** [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline). **Derived:** the diagnose → frame → coordinate → implement → verify loop is engagement practice; verify against your team's actual change-management process.</sub>
 
 <a id="wx-metrics"></a>
 ## 9. Worked Example — High-Cardinality Metric

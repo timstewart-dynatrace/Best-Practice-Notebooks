@@ -1,6 +1,6 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -176,7 +176,7 @@ Continue to **S2D-02: Locating Logs in Dynatrace** to learn the complete process
 - [Dynatrace DQL Reference](https://docs.dynatrace.com/docs/shortlink/dql-reference)
 - [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Dynatrace Workflows](https://docs.dynatrace.com/docs/shortlink/workflows)
-- [Log Management](https://docs.dynatrace.com/docs/shortlink/log-management)
+- [Logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs)
 
 ---
 
