@@ -1,6 +1,6 @@
 # IAM-08: Multi-Environment IAM
 
-> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Scaling IAM Across Multiple Environments
 Enterprise organizations typically have multiple Dynatrace environments (development, staging, production). This notebook covers strategies for managing IAM consistently across environments while maintaining security boundaries.
@@ -416,8 +416,8 @@ In this notebook, you learned:
 
 ## References
 
-- [Account Management](https://docs.dynatrace.com/docs/manage/identity-access-management/account-management)
-- [Environment Management](https://docs.dynatrace.com/docs/manage/identity-access-management/account-management/account-management-hub)
+- [Account Management](https://docs.dynatrace.com/docs/manage/account-management)
+- [Account Management (DT docs)](https://docs.dynatrace.com/docs/manage/account-management)
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
 
 ---

@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -345,7 +345,7 @@ In this notebook, we covered:
 
 - [Apdex Standard](https://www.apdex.org/)
 - [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use)
-- [Metric Events for Alerting](https://docs.dynatrace.com/docs/platform-modules/davis-ai/anomaly-detection/metric-events)
+- [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
 
 ---
 

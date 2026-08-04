@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -490,11 +490,11 @@ In this notebook, we covered:
 
 ### References
 
-- [SPA Monitoring](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/rum-javascript/spa-monitoring)
-- [Hybrid App Monitoring (Android)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/mobile-frontends/android/hybrid-app-monitoring)
-- [Application Detection Rules](https://docs.dynatrace.com/docs/observe/digital-experience/web-applications/setup-and-configuration/application-detection)
-- [Custom Action Naming](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/user-action-naming)
-- [RUM JavaScript API](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/rum-javascript/rum-javascript-api)
+- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/rum-concepts/user-actions)
+- [Android mobile frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/mobile-frontends/android)
+- [Web applications in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications)
+- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/customize-rum)
+- [Customize RUM with the JavaScript API (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/customize-rum)
 
 ---
 

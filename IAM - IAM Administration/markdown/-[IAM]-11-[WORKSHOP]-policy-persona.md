@@ -1,6 +1,6 @@
 # IAM-11: Policy Persona Workshop
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 04/27/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -678,7 +678,7 @@ ALLOW storage:fieldsets:read
 
 - [Identity and Access Management](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Policy Overview](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management/identity-and-access-management)
+- [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---
 

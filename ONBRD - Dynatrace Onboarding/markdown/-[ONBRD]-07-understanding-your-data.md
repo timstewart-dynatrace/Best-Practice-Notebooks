@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -461,10 +461,10 @@ In this notebook, you learned:
 
 ## References
 
-- [Entities](https://docs.dynatrace.com/docs/discover-dynatrace/explore-data/entities)
-- [Topology and Dependencies](https://docs.dynatrace.com/docs/observe-and-explore/services/service-analysis/service-flow)
+- [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail/smartscape-on-grail)
+- [Service entity in Smartscape (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-smartscape)
 - [Grail Data Model](https://docs.dynatrace.com/docs/platform/grail)
-- [Entity Types Reference](https://docs.dynatrace.com/docs/discover-dynatrace/references/entity-types)
+- [Smartscape core entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape/core)
 - [Davis Problems App](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 
 ---

@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -279,8 +279,8 @@ In this notebook, we covered:
 ### References
 
 - [Dynatrace RUM Overview](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration)
-- [RUM JavaScript Agent](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/rum-javascript)
-- [DQL for RUM Data](https://docs.dynatrace.com/docs/observe-and-explore/query-data/dql-guide)
+- [RUM JavaScript version (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/web-frontends/additional-configuration/rum-javascript-version)
+- [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/analyze-and-alert/rum-dql-web-performance)
 
 ---
 

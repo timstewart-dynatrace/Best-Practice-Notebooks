@@ -1,6 +1,6 @@
 # IAM-02: SSO and Authentication Configuration
 
-> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Setting Up Enterprise Authentication
 Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.
@@ -431,10 +431,10 @@ In this notebook, you learned:
 
 ## References
 
-- [Single Sign-On](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/single-sign-on)
-- [SAML 2.0 Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/single-sign-on/saml-2)
-- [Okta Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/single-sign-on/okta)
-- [Azure AD Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/single-sign-on/azure-ad)
+- [Single Sign-On](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
+- [SAML 2.0 Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations)
+- [Okta Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-okta)
+- [Azure AD Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-azure)
 
 ---
 
