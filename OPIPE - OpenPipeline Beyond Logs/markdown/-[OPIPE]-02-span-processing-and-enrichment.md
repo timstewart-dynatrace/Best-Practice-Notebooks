@@ -1,6 +1,6 @@
 # OPIPE-02: Span Processing & Enrichment
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 05/06/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Filtering, Enriching, and Routing Distributed Traces at Ingestion
 
@@ -251,9 +251,9 @@ Continue to **OPIPE-03: Sampling-Aware Metrics** to learn how to extract accurat
 <a id="references"></a>
 ## References
 
-- [OpenPipeline Spans](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-spans)
-- [Span Processing Rules](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-spans/span-processing)
-- [Grail Bucket Management](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/grail-bucket-management)
+- [Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction)
+- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 
 ---
 

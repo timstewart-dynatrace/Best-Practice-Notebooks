@@ -1,6 +1,6 @@
 # OPIPE-05: Business & Security Event Pipelines
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 05/06/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Processing Business Transactions and Security Events at Ingestion
 
@@ -231,10 +231,10 @@ Continue to **OPIPE-06: Cross-Scope Design Patterns** to learn how to correlate 
 <a id="references"></a>
 ## References
 
-- [Business Events](https://docs.dynatrace.com/docs/platform/business-analytics/ba-events-capturing)
-- [OpenPipeline Business Events](https://docs.dynatrace.com/docs/platform/openpipeline/openpipeline-business-events)
-- [Application Security](https://docs.dynatrace.com/docs/platform/application-security)
-- [Data Retention Management](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-management/data-retention)
+- [Get business events from logs and spans (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans)
+- [Business event bucket assignment via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment-openpipeline)
+- [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security)
+- [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 
 ---
 
