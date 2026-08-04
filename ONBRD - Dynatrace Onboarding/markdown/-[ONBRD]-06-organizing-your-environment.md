@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -437,8 +437,8 @@ In this notebook, you learned:
 ## References
 
 - [Host Properties](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/installation-and-operation/linux/installation/customize-oneagent-installation-on-linux)
-- [Segments](https://docs.dynatrace.com/docs/observe-and-explore/segments)
-- [Cloud Tags](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-cloud-platforms)
+- [Segments](https://docs.dynatrace.com/docs/manage/segments)
+- [Cloud platform monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
 - [Kubernetes Labels](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [OneAgent Attribute Enrichment](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)

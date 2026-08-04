@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/01/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -352,10 +352,10 @@ In this notebook, you learned:
 
 - [Identity and Access Management](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Platform Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)
-- [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/single-sign-on/saml-configuration)
-- [OIDC Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/single-sign-on/configure-oidc)
+- [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations)
+- [Identity management — SSO and federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management)
 - [Access Tokens](https://docs.dynatrace.com/docs/manage/access-control/access-tokens)
-- [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/oauth-clients)
+- [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 
 ---
 

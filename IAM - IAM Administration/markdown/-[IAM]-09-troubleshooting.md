@@ -1,6 +1,6 @@
 # IAM-09: Troubleshooting Access Issues
 
-> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Systematic Diagnosis of IAM Problems
 Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.
@@ -512,7 +512,7 @@ In this notebook, you learned:
 ## References
 
 - [IAM Troubleshooting](https://docs.dynatrace.com/docs/manage/identity-access-management)
-- [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/single-sign-on)
+- [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [API Authentication](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients)
 
 ---

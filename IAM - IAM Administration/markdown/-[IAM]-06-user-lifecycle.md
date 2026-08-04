@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -549,11 +549,11 @@ In this notebook, you learned:
 ## References
 
 - [Manage Users, Groups, and Permissions](https://docs.dynatrace.com/docs/manage/account-management/identity-access-management)
-- [SCIM Provisioning](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/scim)
+- [SCIM Provisioning](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim)
 - [SAML Federation](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
-- [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/account-management/oauth-clients)
+- [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 - [API Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
-- [Account Management API](https://docs.dynatrace.com/docs/manage/access-control/account-management-api)
+- [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---
 

@@ -1,6 +1,6 @@
 # WEBRUM-04: Session Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -287,8 +287,8 @@ In this notebook, we covered:
 
 ### References
 
-- [Session Properties](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/session-properties)
-- [User Session Query](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/usql-query)
+- [Define user action and session properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/web-applications/additional-configuration/define-user-action-and-session-properties)
+- [USQL — custom session queries (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)
 
 ---
 

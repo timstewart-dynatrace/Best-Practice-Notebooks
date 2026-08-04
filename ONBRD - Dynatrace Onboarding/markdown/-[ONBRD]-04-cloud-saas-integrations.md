@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -454,7 +454,7 @@ In this notebook, you learned:
 - [Clouds App](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring)
 - [AWS Monitoring](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring/aws-monitoring)
 - [Azure Monitoring](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring/azure-monitoring)
-- [Google Cloud Monitoring](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring/google-cloud-monitoring)
+- [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-cloud-platforms/google-cloud-platform)
 - [Extensions Framework](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)
 

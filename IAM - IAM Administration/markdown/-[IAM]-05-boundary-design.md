@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 07/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies.
@@ -811,10 +811,10 @@ In this notebook, you learned:
 
 ## References
 
-- [Permission Boundaries](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/permission-boundaries)
-- [Security Context](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/security-context)
+- [Permission Boundaries](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
+- [Security Context](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)
 - [Primary Tags](https://docs.dynatrace.com/docs/manage/tags/primary-tags)
-- [Host Properties](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/host-properties)
+- [Host properties and tags via OneAgent (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent)
 
 ---
 

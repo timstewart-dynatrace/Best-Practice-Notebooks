@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -287,7 +287,7 @@ In this notebook, we covered:
 ### References
 
 - [Google Core Web Vitals](https://web.dev/vitals/)
-- [Dynatrace Web Vitals](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/core-web-vitals)
+- [Experience Vitals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/experience-vitals)
 - [INP Documentation](https://web.dev/inp/)
 
 ---

@@ -1,6 +1,6 @@
 # IAM-03: Group Architecture and Design
 
-> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Designing Scalable Group Structures
 Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.
@@ -456,8 +456,8 @@ In this notebook, you learned:
 
 ## References
 
-- [User Groups](https://docs.dynatrace.com/docs/manage/identity-access-management/user-management/user-groups)
-- [SAML 2.0 Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/single-sign-on/saml-2-0)
+- [User Groups](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management)
+- [SAML 2.0 Integration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [Manage User Permissions](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
 
 ---

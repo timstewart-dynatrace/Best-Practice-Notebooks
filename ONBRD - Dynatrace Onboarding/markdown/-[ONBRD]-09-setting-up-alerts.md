@@ -1,6 +1,6 @@
 # ONBRD-09: Setting Up Alerts
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
 
 ## Getting Notified When Things Go Wrong
 Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.
@@ -382,7 +382,7 @@ In this notebook, you learned:
 
 ## References
 
-- [Problem Detection](https://docs.dynatrace.com/docs/platform/davis-ai/basics/problem-detection)
+- [Root cause analysis (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis)
 - [Workflows](https://docs.dynatrace.com/docs/platform-modules/automations/workflows)
 - [Workflow Actions](https://docs.dynatrace.com/docs/platform-modules/automations/workflows/actions)
 - [Slack Integration](https://docs.dynatrace.com/docs/platform-modules/automations/workflows/actions/slack)

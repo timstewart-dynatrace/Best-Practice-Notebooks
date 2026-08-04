@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -321,9 +321,9 @@ In this notebook, we covered:
 
 ### References
 
-- [Session Replay](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/session-replay)
-- [Session Replay Privacy](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/session-replay/data-privacy)
-- [Session Replay Masking](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration/session-replay/masking-rules)
+- [Session Replay (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
+- [Session Replay with strong privacy requirements (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-web/session-replay-strong-privacy-req-web)
+- [Configure Session Replay for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay/configure-session-replay-web)
 
 ---
 

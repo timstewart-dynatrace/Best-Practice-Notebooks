@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 04/25/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -453,9 +453,9 @@ In this notebook, you learned:
 
 ## References
 
-- [Audit Logs](https://docs.dynatrace.com/docs/manage/identity-access-management/audit-logs)
+- [Audit Logs](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)
 - [DQL Reference](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
-- [SOC2 Trust Principles](https://www.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome)
+- [SOC2 Trust Principles](https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2)
 
 ---
 

@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
 
 ## Overview
 
@@ -265,8 +265,8 @@ In this notebook, we covered:
 
 ### References
 
-- [JavaScript Error Tracking](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/javascript-errors)
-- [Rage Click Detection](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/rage-clicks)
+- [Configure error detection for web applications (DT docs)](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/additional-configuration/configure-errors)
+- [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/rum-concepts/user-actions)
 
 ---
 
