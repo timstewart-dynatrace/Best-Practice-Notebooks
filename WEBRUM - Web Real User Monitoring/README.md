@@ -12,7 +12,7 @@ Client-side monitoring and observability for web applications with session repla
 ## Notebook Lineup
 1. [Web RUM Fundamentals](markdown/-[WEBRUM]-01-rum-fundamentals.md) — RUM architecture, JavaScript agent, and data collection model
 2. [SPA Instrumentation](markdown/-[WEBRUM]-02-spa-instrumentation.md) — Monitoring single-page applications and JavaScript frameworks
-3. [Core Web Vitals](markdown/-[WEBRUM]-03-core-web-vitals.md) — LCP, FID, CLS metrics, thresholds, and optimization
+3. [Core Web Vitals](markdown/-[WEBRUM]-03-core-web-vitals.md) — LCP, INP, CLS metrics, thresholds, and optimization
 4. [Session Analysis](markdown/-[WEBRUM]-04-session-analysis.md) — User session insights, funnels, and user journey analysis
 5. [Error Analysis](markdown/-[WEBRUM]-05-error-analysis.md) — JavaScript errors, crash detection, and error categorization
 6. [Performance Analysis](markdown/-[WEBRUM]-06-performance-analysis.md) — Page load analysis, runtime performance, and bottleneck identification

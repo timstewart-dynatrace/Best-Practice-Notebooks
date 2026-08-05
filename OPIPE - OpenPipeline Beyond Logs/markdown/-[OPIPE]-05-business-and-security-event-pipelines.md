@@ -1,6 +1,6 @@
 # OPIPE-05: Business & Security Event Pipelines
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Processing Business Transactions and Security Events at Ingestion
 

@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 10 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 

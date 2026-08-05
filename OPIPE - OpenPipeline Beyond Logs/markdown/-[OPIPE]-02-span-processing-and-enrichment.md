@@ -1,6 +1,6 @@
 # OPIPE-02: Span Processing & Enrichment
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Filtering, Enriching, and Routing Distributed Traces at Ingestion
 

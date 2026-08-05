@@ -1,12 +1,12 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 07/21/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 08/04/2026
 
 ## Overview
 
-Management Zones do two different jobs. Most migration guidance — including the rest of this series — covers the **access-control** job, which becomes IAM policies, boundaries, and `dt.security_context`. This notebook covers the other job: **filtering and scoping what people see**, which becomes **Segments**.
+Management Zones do three jobs: **access control**, **filtering**, and **alerting** (see MZ2POL-09 for the third). Most migration guidance — including the rest of this series — covers the **access-control** job, which becomes IAM policies, boundaries, and `dt.security_context`. This notebook covers the second job: **filtering and scoping what people see**, which becomes **Segments**.
 
-If your Management Zones are mostly used to scope dashboards, filter views, and give teams a "my stuff only" lens — rather than to enforce who may read what — this notebook is the one you need, and you can read it without working through the access-control notebooks first.
+If your Management Zones are mostly used to scope dashboards, filter views, and give teams a "my stuff only" lens — rather than to enforce who may read what or who gets paged — this notebook is the one you need, and you can read it without working through the access-control notebooks first.
 
 The work is **manual**. There is no button that turns a Management Zone into a segment. What this notebook gives you is the mapping: for each way an MZ is commonly defined, the corresponding way to get the same scope in Grail — plus the four constraints that make some MZs impossible to reproduce exactly.
 
@@ -50,17 +50,18 @@ Before mapping anything, classify each Management Zone by what it is actually be
 |---|---|---|
 | Restricting **who may read** which data | IAM policy + boundary on `dt.security_context` | MZ2POL-04 |
 | Scoping **what a user sees** in apps and dashboards | **Segment** | This notebook |
-| Both | Both — they are independent layers | MZ2POL-04 + this notebook |
+| Deciding **who gets paged** — alerting profile scope | Routing dimensions on a problem-triggered workflow | MZ2POL-09 |
+| More than one of the above | Each job migrates independently — they are separate layers | The matching notebook(s) above |
 
-The two are not alternatives and they do not substitute for each other:
+The three are not alternatives and they do not substitute for each other:
 
-> **Segments are not access control.** A segment changes what is *shown*, not what is *permitted*. Anyone with `storage:filter-segments:read` can apply any segment, and a segment never widens what a user is allowed to query — the IAM policy still decides that. If the MZ was load-bearing for security, a segment alone does **not** replace it.
+> **Segments are not access control.** A segment changes what is *shown*, not what is *permitted*. Anyone with `storage:filter-segments:read` can apply any segment, and a segment never widens what a user is allowed to query — the IAM policy still decides that. If the MZ was load-bearing for security, a segment alone does **not** replace it. Segments also do not replace alerting-profile scoping — see MZ2POL-09.
 
 ### A useful heuristic
 
-If removing the Management Zone would let someone see data they are **not allowed** to see, it is doing the access-control job — go to MZ2POL-04. If removing it would only make their dashboards noisy, it is doing the filtering job, and this notebook covers it.
+If removing the Management Zone would let someone see data they are **not allowed** to see, it is doing the access-control job — go to MZ2POL-04. If removing it would only make their dashboards noisy, it is doing the filtering job, and this notebook covers it. If removing it would change who gets paged, it is doing the alerting job — go to MZ2POL-09.
 
-Most MZ estates contain far more of the second kind than teams expect. Run the inventory in MZ2POL-00 and MZ2POL-03 first; it classifies the estate for you.
+Most MZ estates contain far more of the filtering kind than teams expect. Run the inventory in MZ2POL-00 and MZ2POL-03 first; it classifies the estate for you.
 
 ---
 
@@ -567,7 +568,7 @@ ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the go
 
 ## Summary
 
-1. **Classify first** — Management Zones do an access-control job and a filtering job. Only the filtering job becomes a segment; the other becomes IAM policy and boundary.
+1. **Classify first** — Management Zones do three jobs: access control, filtering, and alerting. Only the filtering job becomes a segment; access control becomes IAM policy and boundary (MZ2POL-04), and alerting becomes routing dimensions on a problem-triggered workflow (MZ2POL-09).
 2. **There is no automatic conversion** — every segment is hand-authored. Consolidate the estate before converting it.
 3. **Match the zone to a scenario** — how the MZ was *defined* determines the approach, from free (host group, Kubernetes) to tagging work (name-based auto-tagging) to the `Segment` tag fallback.
 4. **Check the blockers** — exclusions cannot be expressed, custom tags do not reach derived data, entity includes lack `contains`, and problems need an `events` include.
@@ -576,7 +577,7 @@ ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the go
 
 ## Next Steps
 
-Continue to **MZ2POL-06: Migration Execution** for the phased rollout, parallel-running period, cutover, and rollback procedures. For segment mechanics in depth, read **ORGNZ-08** and **ORGNZ-10**; for managing segments as code, **AUTOM-04**.
+Continue to **MZ2POL-06: Migration Execution** for the phased rollout, parallel-running period, cutover, and rollback procedures. For segment mechanics in depth, read **ORGNZ-08** and **ORGNZ-10**; for managing segments as code, **AUTOM-04**. For the alerting job, see **MZ2POL-09**.
 
 <a id="additional-resources"></a>
 ## Additional Resources

@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 10 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 

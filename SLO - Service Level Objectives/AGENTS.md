@@ -19,7 +19,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Writing the SLI query — availability, latency (percentile-threshold metric vs good/total span ratio), error-rate, and custom/business SLIs as good ÷ total DQL | `-[SLO]-02-defining-slis.md` |
 | Error-budget math (allowed downtime per target), burn-rate calculation, composite/weighted-global SLOs, rolling vs calendar windows | `-[SLO]-03-composition-and-error-budgets.md` |
 | Alerting on SLOs — why burn-rate beats threshold-on-SLI, fast-burn/slow-burn multiwindow alerts, configuring SLO alerts, routing breaches, avoiding fatigue | `-[SLO]-04-alerting.md` |
-| Provisioning SLOs from version control — the `builtin:monitoring.slo` schema, the `dynatrace_slo_v2` Terraform resource, Monaco, the export-known-good API/CI-CD path | `-[SLO]-05-slos-as-code.md` |
+| Provisioning SLOs from version control — the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2`/`builtin:monitoring.slo` path it replaces (blocked at upgrade), Monaco, the export-known-good API/CI-CD path | `-[SLO]-05-slos-as-code.md` |
 
 ## Related series
 

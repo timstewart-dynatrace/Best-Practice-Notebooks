@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/05/2026
 
 ## Overview
 
@@ -89,6 +89,12 @@ fetch spans, from:-1h
 | sort call_count desc
 | limit 10
 ```
+
+### Health Score as a Prioritization Signal
+
+The queries above build a custom health overview from spans. If the **Dynatrace Database App** is enabled (GA as of August 2026 for PostgreSQL and MySQL), each monitored database instance also carries a built-in **Health Score** (0–100, combining availability, performance, configuration, and resource-usage signals) — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row.
+
+Use the two together rather than choosing one: the Health Score triages *which* instance to look at, and the span-based queries in this section remain the way to build custom dashboard tiles, thresholds, and SLOs the app's UI doesn't expose.
 
 <a id="response-time-monitoring"></a>
 
