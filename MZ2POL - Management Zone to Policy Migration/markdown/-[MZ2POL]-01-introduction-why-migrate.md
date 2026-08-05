@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ By the end of this notebook, you will:
 1. Understand why Management Zones are being deprecated
 2. Know the key differences between MZs and the new model
 3. Recognize the benefits of Policies, Boundaries, and Segments
-4. Distinguish the three axes an MZ conflates — routing, visibility, and filtering — and where each one lands
+4. Distinguish the three jobs a Management Zone conflates — access control, filtering, and alerting — and see how each fans out to a different construct (Policies + Boundaries, Segments, and problem-triggered workflows, respectively)
 5. Identify your current MZ usage patterns for migration planning
 
 ### Sprint 1.337 (April 2026): Migration Urgency Confirmed by API

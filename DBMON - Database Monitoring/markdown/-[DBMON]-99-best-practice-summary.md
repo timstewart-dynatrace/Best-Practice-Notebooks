@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/05/2026
 
 ## Overview
 
@@ -65,6 +65,14 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 11 | Install Oracle extension | Captures: sessions, tablespace usage, SGA/PGA memory, redo log waits, library cache hit ratio | **Recommended** | Extension |
 | 12 | Install MongoDB extension | Captures: connections, operations/sec, document metrics, replica set health, storage engine stats | **Recommended** | Extension |
 | 13 | Set extension polling interval to 60 seconds | Default polling; do not exceed 300s or real-time visibility degrades | **Recommended** | Configuration |
+
+### Dynatrace Database App (GA August 2026)
+
+| # | Best Practice | Recommended Setting/Value | Priority | Category |
+|---|--------------|----------------|----------|----------|
+| 13b | Use the Database App Health Score for first-pass triage | GA as of 08/2026 for **PostgreSQL and MySQL** (additional technologies planned); each instance gets a 0-100 score combining availability, performance, configuration, and resource usage — check it before running manual DQL analysis | **Recommended** | Triage |
+| 13c | Use the app's execution-plan visualization as a first pass, not a replacement | Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover | **Recommended** | Diagnostics |
+</cell id="cell-activegate">
 
 <a id="span-attribute-coverage"></a>
 

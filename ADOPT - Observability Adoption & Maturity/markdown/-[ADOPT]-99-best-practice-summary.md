@@ -1,10 +1,10 @@
 # ADOPT-99: Best Practice Summary
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 03/26/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
-This notebook consolidates every actionable best practice from the ADOPT series (notebooks 01 through 05) into definitive, categorized guidance. Each practice specifies exactly what to set, the priority level, and the source notebook. Use this as a checklist for platform maturity and adoption readiness.
+This notebook consolidates every actionable best practice from the ADOPT series (notebooks 01 through 06) into definitive, categorized guidance. Each practice specifies exactly what to set, the priority level, and the source notebook. Use this as a checklist for platform maturity and adoption readiness.
 
 ---
 
@@ -22,6 +22,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 10. [Configuration Management](#config-management)
 11. [Distributed Tracing and Spans](#tracing-spans)
 12. [Business Observability](#business-observability)
+13. [Coverage Audit and Staged Enablement](#coverage-enablement)
 
 ---
 
@@ -31,7 +32,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 |-------------|----------|
 | **Dynatrace Environment** | SaaS or Managed with Grail enabled |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read`, `storage:events:read`, `storage:buckets:read` |
-| **Context** | Familiarity with ADOPT-01 through ADOPT-05 |
+| **Context** | Familiarity with ADOPT-01 through ADOPT-06 |
 | **Audience** | Platform engineers, SREs, engineering managers, leadership |
 
 <a id="agent-deployment"></a>
@@ -193,6 +194,19 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | 12.2 | **Business-context alerting** | Create alerts that trigger on business metric thresholds (e.g., revenue drop, conversion rate decline), not just technical metrics | Recommended | ADOPT-05 |
 | 12.3 | **Correlate technical health with business KPIs** | Build dashboards that show service latency/error rate alongside business metrics (conversion, revenue) on the same view | Optional | ADOPT-05 |
 | 12.4 | **Entity ownership assignment** | Assign an owning team to every monitored service and application entity in Dynatrace | Recommended | ADOPT-01, ADOPT-04 |
+
+<a id="coverage-enablement"></a>
+
+## 13. Coverage Audit and Staged Enablement
+
+| # | Best Practice | Recommended Setting/Value | Priority | Source |
+|---|--------------|----------------|----------|--------|
+| 13.1 | **Run a Wave-0 coverage audit** | Measure hosts by monitoring mode, log coverage, consumption by mode, and deep-monitoring exceptions; record as the enablement baseline | Critical | ADOPT-06 |
+| 13.2 | **Segment the estate before enabling** | Match mode to segment: revenue-path apps → Full-Stack, backing services → Infrastructure, long-tail fleet → Discovery | Critical | ADOPT-06 |
+| 13.3 | **Enable in connected segments, not layers** | Bring one application's full path (Full-Stack + logs + RUM) online before spreading a single layer estate-wide | Recommended | ADOPT-06 |
+| 13.4 | **Sequence Waves 1–4 in order** | Core apps to Full-Stack → logs → RUM/synthetic → AppSec and optimization; each wave rides the modules the prior wave already enabled | Recommended | ADOPT-06 |
+| 13.5 | **Gate each wave on a moved metric** | Use ADOPT-03's success metrics as value gates (MTTR delta, log-evidence rate, user-impact rate, vulnerability-backlog trend) before funding the next wave | Critical | ADOPT-06 |
+| 13.6 | **Re-run the Wave-0 audit at every gate** | Coverage decays between waves as new hosts land in default modes and exclusion rules outlive their incidents; re-audit quarterly | Recommended | ADOPT-06 |
 
 ---
 

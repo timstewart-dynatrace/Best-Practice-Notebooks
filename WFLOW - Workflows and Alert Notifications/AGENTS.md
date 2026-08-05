@@ -19,10 +19,10 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When a workflow fires — Detected Problem trigger, metric-event trigger, cron schedules, on-demand, custom/business event triggers, the Davis problem payload (`event()` fields) | `-[WFLOW]-02-triggers.md` |
 | Sending Slack, Microsoft Teams, or email notifications — connections, notification tasks, message formatting | `-[WFLOW]-03-notification-basics.md` |
 | Conditional routing — by severity, team/service ownership (Smartscape `ownership.team`), time of day, escalation, multi-channel strategy | `-[WFLOW]-04-notification-routing.md` |
-| PagerDuty and ServiceNow integration — setup, workflow tasks, bi-directional sync, incident lifecycle | `-[WFLOW]-05-incident-management.md` |
+| PagerDuty and ServiceNow integration — setup, workflow tasks, bi-directional sync, incident lifecycle, production hardening (retry/backoff by failure class, dead-letter queue, link-back pattern, monitoring the integration itself) | `-[WFLOW]-05-incident-management.md` |
 | Rich message templates — Jinja2 expressions, Slack Block Kit, Teams Adaptive Cards, data enrichment | `-[WFLOW]-06-custom-templates.md` |
 | Auto-remediation — safety guardrails, Kubernetes/cloud resource remediation, runbooks, approval workflows | `-[WFLOW]-07-remediation.md` |
-| Custom code — JavaScript actions, `fetch()` HTTP requests, SDK usage, error handling, `result()`/`withItems` data passing, task timeouts | `-[WFLOW]-08-javascript-http.md` |
+| Custom code — JavaScript actions, `fetch()` HTTP requests, SDK usage, error handling, `result()`/`withItems` data passing, task timeouts, workflow-level failure branching (predecessor-state conditions, Skip/Stop else-behavior, custom Jinja conditions) | `-[WFLOW]-08-javascript-http.md` |
 | Production hardening — secrets/Credential Vault, third-party connections, RBAC, workflow observability, alerting on workflows, change management | `-[WFLOW]-09-governance.md` |
 | Hands-on lab: static egress IP for IP-allow-listed connector targets — EdgeConnect on AWS ECS Fargate behind a NAT Gateway (Snowflake worked example) | `-[WFLOW]-94-[LAB]-edgeconnect-static-egress-snowflake.md` |
 | Hands-on lab: CMDB-driven bulk host tagging — lookup tables, `set hostTag` via the OneAgent Remote Configuration Management API, dry-run/idempotent pattern | `-[WFLOW]-95-[LAB]-cmdb-host-tag-enrichment.md` |

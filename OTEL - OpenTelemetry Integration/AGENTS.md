@@ -21,7 +21,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Metric instrumentation: counter/histogram/gauge selection, views and aggregation, histogram bucket boundaries, Prometheus scrape-to-OTLP bridging | `-[OTEL]-05-metrics-instrumentation.md` |
 | Log instrumentation: log bridge pattern, trace-log correlation (`trace_id`/`span_id`), `file_log` receiver, structured logging | `-[OTEL]-06-logs-instrumentation.md` |
 | Sending data to Dynatrace: OTLP endpoints and tokens, exporter config, `service.name`/`dt.service.name` entity enrichment, metric dimensions, OneAgent + DynaKube coexistence | `-[OTEL]-07-dynatrace-integration.md` |
-| Data not arriving or wrong: SDK/collector/connectivity diagnostics, data quality and performance issues, `otelcol_*` self-metrics, common fixes | `-[OTEL]-08-troubleshooting.md` |
+| Data not arriving or wrong: SDK/collector/connectivity diagnostics, data quality and performance issues, zpages/health_check/pprof diagnostic tools, common fixes | `-[OTEL]-08-troubleshooting.md` |
 | Consolidated checklist: collector config values, deployment sizing, OTLP integration settings, semantic-convention rules | `-[OTEL]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[OTEL]-99-best-practice-summary.md`

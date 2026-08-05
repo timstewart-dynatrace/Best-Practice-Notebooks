@@ -21,7 +21,7 @@
 
 | Code | Series | Notebooks | Focus |
 |---|---|---|---|
-| **ADOPT** | [Observability Adoption & Maturity](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) | 7 | Maturity model, success metrics, optimization roadmap, FinOps |
+| **ADOPT** | [Observability Adoption & Maturity](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) | 7 | Maturity model, success metrics, optimization roadmap, coverage audit & staged enablement |
 | **AIOPS** | [Dynatrace Intelligence](../AIOPS%20-%20Dynatrace%20Intelligence/) | 8 | Davis problems, anomaly detection, generative AI, agentic workflows |
 | **ALERT** | [Alerting Strategy and Design](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) | 5 | End-to-end alerting architecture, detection choices, routing, ServiceNow |
 | **APPSEC** | [Application Security](../APPSEC%20—%20Application%20Security/) | 10 | RVA, RAP, SPM; security.events; dual-surface IAM; Security Investigator |

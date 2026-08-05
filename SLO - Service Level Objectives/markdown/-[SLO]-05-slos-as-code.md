@@ -1,10 +1,10 @@
 # SLO-05: SLOs as Code
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 5 | **Created:** June 2026 | **Last Updated:** 07/01/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 5 | **Created:** June 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
-A validated SLO that lives only in the UI is one accidental click from gone, and impossible to reproduce across environments. This notebook covers promoting SLOs into version control: the `builtin:monitoring.slo` schema, the `dynatrace_slo_v2` Terraform resource, the Monaco alternative, and the API path — with a deliberate emphasis on verifying field names at the source rather than copying a payload that may be stale.
+A validated SLO that lives only in the UI is one accidental click from gone, and impossible to reproduce across environments. This notebook covers promoting SLOs into version control: the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2`/`builtin:monitoring.slo` path it replaces (blocked at upgrade), the Monaco alternative, and the API path — with a deliberate emphasis on verifying field names at the source rather than copying a payload that may be stale.
 
 ---
 

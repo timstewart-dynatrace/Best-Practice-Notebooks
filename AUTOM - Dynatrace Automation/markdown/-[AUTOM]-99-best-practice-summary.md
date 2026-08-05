@@ -1,8 +1,8 @@
 # AUTOM-99: Best Practice Summary
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/04/2026
 
-This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-08) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.
+This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-09) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.
 
 Use this as a checklist when designing, implementing, or auditing Dynatrace configuration automation.
 
@@ -28,7 +28,7 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 
 | Requirement | Details |
 |-------------|----------|
-| **AUTOM Series** | Familiarity with AUTOM-01 through AUTOM-08 |
+| **AUTOM Series** | Familiarity with AUTOM-01 through AUTOM-09 |
 | **Dynatrace Environment** | SaaS tenant with admin access |
 | **Automation Tooling** | Monaco CLI, Terraform CLI, or both installed |
 

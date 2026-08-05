@@ -12,7 +12,7 @@ End-to-end application security observability with Dynatrace — covering Runtim
 ## Notebook Lineup
 1. [Fundamentals and the Three Pillars of Application Security](markdown/-[APPSEC]-01-fundamentals.md) — RVA, RAP, and SPM architecture; the Gen3 Grail foundation for security findings
 2. [Runtime Vulnerability Analytics](markdown/-[APPSEC]-02-runtime-vulnerability-analytics.md) — Third-party library CVE detection, reachability analysis, and risk prioritization
-3. [Code-Level Vulnerability Analytics](markdown/-[APPSEC]-03-code-level-vulnerability-analytics.md) — First-party code vulnerability detection: patterns, taint analysis, and remediation guidance
+3. [Code-Level Vulnerability Analytics](markdown/-[APPSEC]-03-code-level-vulnerability-analytics.md) — First-party vs. third-party detection, supported runtimes, vulnerable-function information, and process-group scoping
 4. [Runtime Application Protection](markdown/-[APPSEC]-04-runtime-application-protection.md) — Detection-to-blocking promotion, protection rules, and attack class coverage
 5. [Security Posture Management](markdown/-[APPSEC]-05-security-posture-management.md) — Compliance baseline evaluation (CIS, PCI, NIST) and misconfiguration findings
 6. [Kubernetes and Container Security](markdown/-[APPSEC]-06-kubernetes-and-container-security.md) — Cross-pillar AppSec coverage for Kubernetes workloads and container images
