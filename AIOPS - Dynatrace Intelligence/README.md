@@ -11,8 +11,8 @@ Comprehensive guide to AIOps and Dynatrace Intelligence — Causal AI, Predictiv
 
 ## Notebook Lineup
 1. [Dynatrace Intelligence Overview](markdown/-[AIOPS]-01-dynatrace-intelligence-overview.md) — Causal, Predictive, and Generative AI categories and where they appear in the product
-2. [Anomaly Detection](markdown/-[AIOPS]-02-anomaly-detection.md) — Static thresholds, auto-adaptive, seasonal baselines, and multi-dimensional detection
-3. [Davis AI — Problems and Root Cause Analysis](markdown/-[AIOPS]-03-davis-ai-problems-and-root-cause.md) — Causal AI engine, problem grouping via Smartscape, and DQL for querying problems
+2. [Anomaly Detection](markdown/-[AIOPS]-02-anomaly-detection.md) — Static thresholds, auto-adaptive, seasonal baselines, and multi-dimensional detection, including how much history a baseline needs and a pre-publish checklist for custom detectors
+3. [Davis AI — Problems and Root Cause Analysis](markdown/-[AIOPS]-03-davis-ai-problems-and-root-cause.md) — Causal AI engine, problem grouping via Smartscape, DQL for querying problems, and when an empty root cause is expected vs. worth auditing
 4. [Davis CoPilot — Dynatrace Assist for Investigation](markdown/-[AIOPS]-04-davis-copilot-dynatrace-assist.md) — Generative AI surfaces, NL-to-DQL, problem summaries, and investigative patterns
 5. [AI Models — Causal, Predictive, and Generative](markdown/-[AIOPS]-05-ai-models.md) — Model inventory, responsibilities, costs, and governance considerations
 6. [AI Integrations and Agentic Workflows](markdown/-[AIOPS]-06-ai-integrations-and-agentic-workflows.md) — AI Workflow tasks, Dynatrace MCP server, external agent integration, and AI Observability for your own GenAI applications
