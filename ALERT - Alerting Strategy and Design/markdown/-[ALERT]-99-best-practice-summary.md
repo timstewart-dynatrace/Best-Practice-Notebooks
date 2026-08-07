@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 07/30/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 08/07/2026
 
 ## Overview
 
@@ -129,7 +129,39 @@ Express these as recurring queries, and pick the data object deliberately — th
 
 The trap worth naming: **`fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"` returns exactly zero** — `dt.davis.events` carries only `DAVIS_EVENT` (AIOPS-03 §3). That is a filter on the wrong table, not a deprecated form, and it fails silently. The superficially similar `fetch events | filter event.kind == "DAVIS_PROBLEM"` is a different query against a different table and works fine. AIOPS-03 and ORGNZ-10 carry validated problem-feed patterns to build on.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the audit signals table extends the documented review targets with the correlation-coverage and problem-age checks implied by the correlation-key and long-running-alert guidance.</sub>
+Two of the signals above are worth turning into standing trend queries rather than one-off checks, both built from the two-data-object model in AIOPS-03 §3.
+
+**Denoising ratio (events → problems).** How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging, the same symptom "Correlation coverage" above is meant to catch. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.
+
+```dql
+// Denoising ratio — problem-worthy events divided by resulting problems, trended daily
+fetch dt.davis.events, from:-30d
+| filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN"})
+| fieldsAdd kind = "event", day = bin(timestamp, 24h)
+| append [
+    fetch dt.davis.problems, from:-30d
+    | filter not(dt.davis.is_duplicate)
+    | fieldsAdd kind = "problem", day = bin(event.start, 24h)
+  ]
+| summarize {event_count = countIf(kind == "event"), problem_count = countIf(kind == "problem")}, by:{day}
+| filter problem_count > 0
+| fieldsAdd denoising_ratio = toDouble(event_count) / problem_count
+| sort day asc
+```
+
+**Correlation coverage.** "Correlation coverage" in the table above names the mechanism: an event with no `dt.smartscape_source.id` cannot merge with anything (AIOPS-03 §1). Trended directly, it is the share of non-informational Davis events that even carry the field a chain needs to form:
+
+```dql
+// Correlation coverage — share of non-informational Davis events carrying a source-entity reference, trended daily
+fetch dt.davis.events, from:-30d
+| filter not(in(event.category, {"INFO","WARNING"}))
+| fieldsAdd attributed_flag = if(isNotNull(dt.smartscape_source.id), 100.0, else: 0.0)
+| makeTimeseries correlation_coverage_pct = avg(attributed_flag), interval:1d
+```
+
+**Reading the two together.** A falling correlation-coverage trend is a config problem — trace it to the event templates behind it (the Enrichment block of Section 2's checklist). A falling denoising ratio *despite* stable correlation coverage points the other way, at scoping or tuning rather than attribution.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the audit signals table extends the documented review targets with the correlation-coverage and problem-age checks implied by the correlation-key and long-running-alert guidance; the denoising-ratio and correlation-coverage trend queries apply the two-data-object model (AIOPS-03 §3) and the `dt.smartscape_source.id` correlation key (AIOPS-03 §1) to already-documented fields as standing metrics.</sub>
 
 <a id="map"></a>
 ## 4. Cross-Series Map

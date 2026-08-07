@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/04/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/07/2026
 
 ## Overview
 
@@ -36,7 +36,8 @@ For environments where SVG doesn't render
 5. [Problem Severity and Category Rollups](#rollups)
 6. [MTTR by Category and Service](#mttr)
 7. [Root Cause Entity Distribution](#root-cause)
-8. [Cross-Series Pointers](#cross)
+8. [When No Root Cause Is Expected](#no-root-cause-expected)
+9. [Cross-Series Pointers](#cross)
 
 ---
 
@@ -231,8 +232,49 @@ fetch dt.davis.problems, from:-7d
 | limit 20
 ```
 
+<a id="no-root-cause-expected"></a>
+## 8. When No Root Cause Is Expected
+
+`root_cause_entity_name` empty on a problem is not automatically a detection gap. §1 already establishes the mechanism: Causal AI is a deterministic graph walk over Smartscape topology — it explains one signal by finding another signal, on a *connected* entity, that a dependency edge plausibly links to it. When there's no second signal to reach, or no edge connecting the signals that did fire, the walk has nothing to traverse. An empty root cause is that walk terminating correctly, not failing.
+
+In community troubleshooting experience, three conditions account for most "expected empty" cases:
+
+- **Single-event problems.** The constituent-event count is one. With nothing else in the window to correlate against, there's no second point for a chain to reach — Davis still names the affected entity, but there is nothing to name as its cause.
+- **No topology edge between co-occurring failures.** Multiple signals fired in the same window, but Smartscape has no dependency relationship between the entities they're on — common with custom entities, unmodeled network paths, or topology that hasn't finished discovering a newer service. Multiple events without a connecting edge still produce no chain, because the walk needs both a second event *and* a path to it.
+- **Infrastructure-level, single-entity impact.** The failing entity and the affected entity are the same node — a workload stuck in a bad state with nothing upstream feeding it. The fault is the entity itself, not something that happened to it, so there's nothing else in the graph to name.
+
+None of these three call for action. They're worth distinguishing from a fourth case that does:
+
+- **A real topology gap.** Multiple related entities were affected and a dependency chain plausibly exists between them, but Smartscape's model doesn't capture the edge — an undeclared dependency, a missing trace-context propagation hop, an entity type Smartscape doesn't yet model relationships for. This is the case where the topology-completeness work §1 already calls out genuinely improves the next problem's RCA.
+
+**A practical way to tell them apart in your own data:** a null-root-cause problem with a single affected entity sits in the "expected empty" population; a null-root-cause problem with *multiple* affected entities is the one worth auditing for a topology gap.
+
+Setting this expectation with stakeholders matters as much as the mechanism itself — a target of 100% RCA coverage treats every empty field as a miss, when a meaningful share of them are Causal AI doing exactly what it's designed to do.
+
+> <sub>**Derived:** the "expected empty" categories above follow from applying §1's deterministic graph-walk mechanism (no chain forms without a second event *and* a connecting Smartscape edge) to the null-root-cause case — not a single-source Dynatrace claim.</sub>
+
+**Track this as a trend, not a snapshot.** The bucketing query above characterizes a point in time; the same `root_cause_entity_id` field trended daily shows whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.
+
+```dql
+// Characterize your own null-root-cause problems: single-entity (expected) vs multi-entity (audit for topology gap)
+fetch dt.davis.problems, from:-30d
+| filter isNull(root_cause_entity_name)
+| fieldsAdd affected_count = arraySize(affected_entity_ids)
+| fieldsAdd bucket = if(affected_count <= 1, "single-entity (expected)", else: "multi-entity (audit for topology gap)")
+| summarize problem_count = count(), by:{bucket}
+| sort problem_count desc
+```
+
+```dql
+// RCA attachment rate — % of non-duplicate problems with a populated root cause, trended daily
+fetch dt.davis.problems, from:-30d
+| filter not(dt.davis.is_duplicate)
+| fieldsAdd rca_flag = if(isNotNull(root_cause_entity_id), 100.0, else: 0.0)
+| makeTimeseries rca_attachment_pct = avg(rca_flag), interval:1d
+```
+
 <a id="cross"></a>
-## 8. Cross-Series Pointers
+## 9. Cross-Series Pointers
 
 - **WFLOW-04** — wire active problems into notification workflows
 - **DASH-05** — problem-driven SLO and executive dashboards
