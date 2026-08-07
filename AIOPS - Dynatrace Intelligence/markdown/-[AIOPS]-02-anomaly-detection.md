@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 08/07/2026
 
 ## Overview
 
@@ -61,12 +61,12 @@ Hard limit: *response time must be < 1 s*. Trips when the metric crosses the lin
 ### 1.2 Auto-adaptive threshold
 Davis learns the metric's baseline and shifts the detection threshold as the baseline moves. No seasonal awareness — purely adaptive to recent trend.
 
-**Use when:** the metric trends over time but doesn't have weekly / daily seasonality. Service throughput on a steadily-growing app is a classic fit.
+**Use when:** the metric trends over time but doesn't have weekly / daily seasonality. Service throughput on a steadily-growing app is a classic fit. Newly deployed or newly changed traffic needs about a week to produce a representative baseline — see the history-window note below.
 
 ### 1.3 Seasonal baseline
 Davis learns the metric's daily, weekly, and (where it has data) yearly seasonality. Detection considers the *expected* pattern — Tuesday at 3 AM and Friday at noon get different thresholds.
 
-**Use when:** the metric has obvious recurrence — business hours, weekday/weekend differences, monthly billing cycles.
+**Use when:** the metric has obvious recurrence — business hours, weekday/weekend differences, monthly billing cycles. Give it roughly two weeks before trusting day-of-week distinctions — see below.
 
 ### 1.4 Multi-dimensional (automated) baseline
 Davis builds baselines per-dimension automatically — per region, per browser, per OS, per user-action. You don't configure this; the platform does it under the hood for RUM-like metrics.
@@ -79,6 +79,10 @@ Davis builds baselines per-dimension automatically — per region, per browser, 
 **Novelty** flags patterns the model has never seen — sudden new error types, never-before metric shapes. **Forecasting** projects a series forward, useful for capacity planning and trend extrapolation.
 
 **Use when:** you're hunting for *unknown unknowns* (novelty) or projecting growth (forecast). Both available as Davis analyzers — see Section 5.
+
+**How much history before you can trust it.** Auto-adaptive detection calculates its threshold from a trailing **7-day** reference window; seasonal baseline uses a trailing **14-day** window. A service that was just deployed, or whose traffic pattern just changed, won't have a representative auto-adaptive baseline for about a week, and won't have enough history to distinguish weekday from weekend behavior for about two — a detector built on either mechanism before then is judging against an incomplete picture, not a wrong one.
+
+> <sub>**Sources:** [Auto-adaptive thresholds for anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/auto-adaptive-threshold), [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/ai-models/seasonal-baseline), [Adjust the sensitivity of anomaly detection for services (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/adjust-sensitivity-anomaly-detection/adjust-sensitivity-services).</sub>
 
 <a id="picking"></a>
 ## 2. Picking the Right Detector
@@ -214,6 +218,25 @@ A detector that leaves this unset — or fills it with a free-text label — mat
 ### Step 4 — Fire, then promote
 
 On breach the event surfaces as a Davis problem and flows into routing (WFLOW series) and SLO error budgets. Once a detector matters in production, move it out of the app and into config-as-code (`builtin:davis.anomaly-detectors` — see Section 6) so it is versioned and reviewable.
+
+
+### Step 5 — Pre-Publish Checklist
+
+Three checks, run before a detector leaves the notebook-as-scratchpad stage — each one closes a failure mode this section already describes, so this is packaging, not new material:
+
+- **Cardinality.** Does the `by:{}` grouping include a volatile dimension — pod name, application version, HTTP status code? Section 1.4's anti-pattern applies directly: a detector grouped by a high-cardinality field opens one alert per value, and volume then tracks deployment frequency rather than incident rate. Count the distinct values the grouping would produce before publishing, not after:
+
+  ```dql
+  // Cardinality check — how many distinct alert identities would this grouping produce?
+  // Swap in whatever by:{} dimension the detector will use.
+  timeseries avg(dt.kubernetes.container.cpu_usage), by:{dt.entity.cloud_application_instance}, from:-7d
+  | summarize distinct_entities = countDistinct(dt.entity.cloud_application_instance)
+  ```
+
+- **Attribution.** Does the event template set `dt.smartscape_source.id` to a real entity ID (Step 3)? Unset or free-text, the detector cannot correlate — Section 8 shows what that looks like once it's already in production, at a cost of thousands of extra problems.
+- **Cost.** Was the query prototyped in a notebook first (Step 1), and — for a records-based detector — is the aggregation window wide enough to avoid a per-minute scan of raw data (Step 1a)? A detector that scans expensively on every evaluation compounds the cost of every firing, noisy or not.
+
+None of these three are analyzer tuning — they're structural, and a mistuned analyzer sitting on a structurally broken detector still fires wrong.
 
 > <sub>**Sources:** [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Set up anomaly detectors via API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api).</sub>
 
