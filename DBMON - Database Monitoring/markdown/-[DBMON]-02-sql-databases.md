@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 07/15/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -52,11 +52,11 @@ Let's start by identifying which SQL databases are active in your environment.
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | summarize {
-|     call_count = count(),
-|     avg_duration_ms = avg(duration) / 1ms,
-|     p95_duration_ms = percentile(duration, 95) / 1ms,
-|     unique_queries = countDistinct(db.statement)
-| }, by:{db.system, db.namespace, server.address}
+    call_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms,
+    unique_queries = countDistinct(db.statement)
+}, by:{db.system, db.namespace, server.address}
 | sort call_count desc
 ```
 
@@ -72,11 +72,11 @@ fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter isNotNull(db.statement)
 | summarize {
-|     total_time_ms = sum(duration) / 1ms,
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms
-| }, by:{db.system, db.statement}
+    total_time_ms = sum(duration) / 1ms,
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.system, db.statement}
 | sort total_time_ms desc
 | limit 20
 ```
@@ -122,11 +122,11 @@ fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter isNotNull(db.statement)
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     max_ms = max(duration) / 1ms
-| }, by:{db.statement, db.system}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    max_ms = max(duration) / 1ms
+}, by:{db.statement, db.system}
 | filter call_count >= 10
 | sort p95_ms desc
 | limit 15
@@ -154,10 +154,10 @@ fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter isNotNull(db.operation)
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms
-| }, by:{db.operation, db.system}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.operation, db.system}
 | sort db.system asc, avg_ms desc
 ```
 
@@ -172,10 +172,10 @@ Connection pool exhaustion is a common source of application errors. While Dynat
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     error_count = countIf(otel.status_code == "ERROR")
-| }, by:{dt.entity.service, db.system, server.address}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    error_count = countIf(span.status_code == "error")
+}, by:{dt.entity.service, db.system, server.address}
 | fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
 | sort call_count desc
 | limit 20
@@ -185,9 +185,9 @@ fetch spans, from:-1h
 // Database error patterns — connection refused, timeout, deadlock
 fetch spans, from:-6h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter otel.status_code == "ERROR"
+| filter span.status_code == "error"
 | summarize error_count = count(),
-           by:{db.system, server.address, otel.status_message}
+           by:{db.system, server.address, span.status_message}
 | sort error_count desc
 | limit 20
 ```
@@ -207,11 +207,11 @@ PostgreSQL is commonly used in cloud-native applications. Key concerns: vacuum o
 fetch spans, from:-1h
 | filter db.system == "postgresql"
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     errors = countIf(otel.status_code == "ERROR")
-| }, by:{db.namespace, db.operation}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == "error")
+}, by:{db.namespace, db.operation}
 | sort call_count desc
 ```
 
@@ -223,8 +223,8 @@ MySQL monitoring focuses on query cache effectiveness, InnoDB buffer pool usage,
 // MySQL — response time trend over 6 hours
 fetch spans, from:-6h
 | filter db.system == "mysql"
-| makeTimeseries avg_ms = avg(duration) / 1ms,
-                 p95_ms = percentile(duration, 95) / 1ms,
+| makeTimeseries avg_ms = avg(duration / 1ms),
+                 p95_ms = percentile(duration / 1ms, 95),
                  call_count = count(),
                  interval:10m
 ```
@@ -288,13 +288,13 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | summarize {
-|     p50_ms = percentile(duration, 50) / 1ms,
-|     p90_ms = percentile(duration, 90) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     p99_ms = percentile(duration, 99) / 1ms,
-|     max_ms = max(duration) / 1ms,
-|     total_calls = count()
-| }, by:{db.system}
+    p50_ms = percentile(duration, 50) / 1ms,
+    p90_ms = percentile(duration, 90) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms,
+    max_ms = max(duration) / 1ms,
+    total_calls = count()
+}, by:{db.system}
 | sort total_calls desc
 ```
 

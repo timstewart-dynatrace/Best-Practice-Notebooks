@@ -1,6 +1,6 @@
 # K8S-03: GitOps for DynaKube
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Managing DynaKube with ArgoCD and Flux
 GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.
@@ -97,7 +97,7 @@ spec:
   source:
     repoURL: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
     chart: dynatrace-operator
-    targetRevision: 1.10.1  # Pin to a version you have validated — check https://github.com/Dynatrace/dynatrace-operator/releases for latest
+    targetRevision: 1.10.2  # Pin to a version you have validated — check https://github.com/Dynatrace/dynatrace-operator/releases for latest
     helm:
       releaseName: dynatrace-operator
       values: |
@@ -121,7 +121,8 @@ spec:
 > |------------|-----|
 > | **Do not pin below 1.4.1** | Operator 1.3.0 through 1.4.0 are inside the CSI driver liveness-probe crash-loop window; 1.4.1 adjusted the probe parameters. See K8S-09 §2. |
 > | **Skip 1.10.0** | Its own release notes advise skipping it (auto-update defect), and it is now flagged `prerelease: true` on the GitHub releases page — a signal you can verify yourself before pinning. Fixed in 1.10.1. |
-> | **1.10.1 is the recommended pin** | Latest release with a published changelog. `v1.10.2` was published 07/30/2026 and is the newest tag, but its release-notes page is not yet available and the GitHub release body carries no changelog — so there is no citable statement of what changed. Verify what 1.10.2 contains before moving a GitOps pin onto it. |
+> | **1.10.2 is the recommended pin** | Released July 30, 2026 with a published changelog. It fixes a workload/namespace **tagging-precedence regression** (subsequent matching rules used to overwrite earlier ones; now only the *first* matching rule per key applies — a behaviour change, see K8S-10), a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and it now logs metadata-enrichment rules it cannot apply instead of dropping them silently. |
+> | **1.10.1 remains a working pin** | Estates move GitOps pins on their own cadence. Until you upgrade, 1.10.1 is still supported and still the fix for the 1.10.0 defects — subject to the OpenShift-manifest caveat in K8S-09 §2. Read the K8S-10 tagging note before bumping a cluster whose enrichment relies on last-rule-wins ordering. |
 > | **Anything below 1.7.x is likely past EOL** | Standard 9-month / Enterprise 12-month support window. |
 >
 > Pin an exact version rather than a range for the operator itself — an operator upgrade can change chart *defaults* (see K8S-02 §8), and a range lets that happen without a Git commit to review.
@@ -198,7 +199,7 @@ spec:
   chart:
     spec:
       chart: dynatrace-operator
-      version: "1.10.1"  # Pin exactly — see the version-choice table in §2 (do not pin below 1.4.1; skip 1.10.0)
+      version: "1.10.2"  # Pin exactly — see the version-choice table in §2 (do not pin below 1.4.1; skip 1.10.0)
       sourceRef:
         kind: HelmRepository
         name: dynatrace

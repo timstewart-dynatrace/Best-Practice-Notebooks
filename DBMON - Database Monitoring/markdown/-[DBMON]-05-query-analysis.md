@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -60,10 +60,10 @@ For environments where SVG doesn't render
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | summarize {
-|     calls_per_trace = count(),
-|     total_ms = sum(duration) / 1ms,
-|     avg_ms = avg(duration) / 1ms
-| }, by:{trace.id, db.statement, db.system}
+    calls_per_trace = count(),
+    total_ms = sum(duration) / 1ms,
+    avg_ms = avg(duration) / 1ms
+}, by:{trace.id, db.statement, db.system}
 | filter calls_per_trace >= 10
 | sort calls_per_trace desc
 | limit 25
@@ -80,10 +80,10 @@ fetch spans, from:-1h
 | summarize calls_per_trace = count(), by:{trace.id, db.statement, db.system}
 | filter calls_per_trace >= 10
 | summarize {
-|     affected_traces = count(),
-|     avg_calls_per_trace = avg(calls_per_trace),
-|     max_calls_per_trace = max(calls_per_trace)
-| }, by:{db.statement, db.system}
+    affected_traces = count(),
+    avg_calls_per_trace = avg(calls_per_trace),
+    max_calls_per_trace = max(calls_per_trace)
+}, by:{db.statement, db.system}
 | sort affected_traces desc
 | limit 15
 ```
@@ -99,11 +99,11 @@ Understanding which queries run most often helps prioritize optimization. A quer
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | summarize {
-|     call_count = count(),
-|     total_time_ms = sum(duration) / 1ms,
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms
-| }, by:{db.statement, db.system}
+    call_count = count(),
+    total_time_ms = sum(duration) / 1ms,
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.statement, db.system}
 | sort call_count desc
 | limit 20
 ```
@@ -122,10 +122,10 @@ fetch spans, from:-6h
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | summarize {
-|     call_count = count(),
-|     calling_services = countDistinct(dt.entity.service),
-|     avg_ms = avg(duration) / 1ms
-| }, by:{db.statement, db.system}
+    call_count = count(),
+    calling_services = countDistinct(dt.entity.service),
+    avg_ms = avg(duration) / 1ms
+}, by:{db.statement, db.system}
 | filter calling_services >= 2
 | sort calling_services desc
 | limit 15
@@ -142,13 +142,13 @@ Analyzing how query durations are distributed reveals bimodal patterns (e.g., ca
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     p50_ms = percentile(duration, 50) / 1ms,
-|     p90_ms = percentile(duration, 90) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     p99_ms = percentile(duration, 99) / 1ms,
-|     max_ms = max(duration) / 1ms,
-|     total = count()
-| }, by:{db.system}
+    p50_ms = percentile(duration, 50) / 1ms,
+    p90_ms = percentile(duration, 90) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms,
+    max_ms = max(duration) / 1ms,
+    total = count()
+}, by:{db.system}
 | fieldsAdd tail_ratio = round(p99_ms / p50_ms, decimals:1)
 | sort total desc
 ```
@@ -191,12 +191,12 @@ fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | filter isNotNull(db.operation) and db.operation == "SELECT"
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p50_ms = percentile(duration, 50) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     stddev_ms = stddev(duration) / 1ms
-| }, by:{db.statement, db.system}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p50_ms = percentile(duration, 50) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    stddev_ms = stddev(duration / 1ms)
+}, by:{db.statement, db.system}
 | filter call_count >= 50 and avg_ms > 10
 | fieldsAdd variance_ratio = round(stddev_ms / avg_ms, decimals:2)
 | sort avg_ms desc
@@ -208,7 +208,7 @@ fetch spans, from:-1h
 fetch spans, from:-24h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | filter isNotNull(db.operation) and db.operation == "SELECT"
-| makeTimeseries avg_ms = avg(duration) / 1ms,
+| makeTimeseries avg_ms = avg(duration / 1ms),
                  call_count = count(),
                  by:{db.system},
                  interval:1h
@@ -225,10 +225,10 @@ Connection pool exhaustion causes application threads to wait for available conn
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     concurrent_calls = count(),
-|     unique_db_targets = countDistinct(server.address),
-|     avg_ms = avg(duration) / 1ms
-| }, by:{dt.entity.service, db.system}
+    concurrent_calls = count(),
+    unique_db_targets = countDistinct(server.address),
+    avg_ms = avg(duration) / 1ms
+}, by:{dt.entity.service, db.system}
 | fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
 | sort concurrent_calls desc
 | limit 20
@@ -237,9 +237,9 @@ fetch spans, from:-1h
 ```dql
 // Database connection errors — timeout and connection refused patterns
 fetch spans, from:-6h
-| filter isNotNull(db.system) and otel.status_code == "ERROR"
+| filter isNotNull(db.system) and span.status_code == "error"
 | summarize error_count = count(),
-           by:{db.system, server.address, otel.status_message}
+           by:{db.system, server.address, span.status_message}
 | sort error_count desc
 | limit 20
 ```
@@ -249,7 +249,7 @@ fetch spans, from:-6h
 fetch spans, from:-6h
 | filter isNotNull(db.system)
 | makeTimeseries total = count(),
-                 errors = countIf(otel.status_code == "ERROR", default:0),
+                 errors = countIf(span.status_code == "error", default:0),
                  interval:5m
 ```
 
@@ -272,9 +272,9 @@ Dynatrace automatically normalizes SQL queries by replacing literal values with 
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | summarize {
-|     unique_patterns = countDistinct(db.statement),
-|     total_calls = count()
-| }, by:{db.system, db.namespace}
+    unique_patterns = countDistinct(db.statement),
+    total_calls = count()
+}, by:{db.system, db.namespace}
 | fieldsAdd avg_calls_per_pattern = round(toDouble(total_calls) / toDouble(unique_patterns), decimals:1)
 | sort total_calls desc
 ```
@@ -302,12 +302,12 @@ Not all slow queries are worth optimizing. Use the **impact score** to prioritiz
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.statement)
 | summarize {
-|     call_count = count(),
-|     total_time_ms = sum(duration) / 1ms,
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     error_count = countIf(otel.status_code == "ERROR")
-| }, by:{db.statement, db.system}
+    call_count = count(),
+    total_time_ms = sum(duration) / 1ms,
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    error_count = countIf(span.status_code == "error")
+}, by:{db.statement, db.system}
 | fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(call_count)) * 100, decimals:2)
 | sort total_time_ms desc
 | limit 20

@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 04/04/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -83,11 +83,31 @@ fetch dt.davis.problems, from:-7d
 
 Calculate availability as the percentage of successful server-side requests.
 
+> **Count the failures and subtract — never count the successes.** This is the one tile in the executive set where a plausible-looking query is catastrophically wrong, and the failure mode is a *credible number*, not an error:
+>
+> | Written as | Reads on a healthy estate |
+> |---|---|
+> | `countIf(otel.status_code != "ERROR")` | **0** — the field does not exist at all (no row in `dt.semantic_dictionary.fields`; the real field is `span.status_code`) |
+> | `countIf(span.status_code != "ERROR")` | **0** — right field, wrong case. Grail values are lowercase `"error"` |
+> | `countIf(span.status_code != "error")` | **≈0** — right field, right case, wrong logic. `span.status_code` is **null on successful spans**, and `!=` against null yields null, not true |
+> | **`total - countIf(span.status_code == "error")`** | **99.598%** — the correct figure for the same 24 h window, tenant `yhu28601`, 08/11/2026 |
+>
+> All three wrong forms put **0% availability** in front of an executive audience while the platform is running normally — the fastest possible way to destroy trust in the dashboard, and precisely the outcome the storytelling warning in §7 is about.
+
 ```dql
 // Service-level availability based on span success rate
+//
+// Successes are DERIVED, not counted. span.status_code is null on successful spans
+// ("ok" is written vanishingly rarely), so countIf(span.status_code != "error")
+// counts almost nothing and this tile would read ~0% availability on a healthy
+// estate — with no error to warn you. total - errors is the only correct form.
 fetch spans, from:-24h
 | filter span.kind == "server"
-| summarize total = count(), successes = countIf(otel.status_code != "ERROR")
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == "error")
+  }
+| fieldsAdd successes = total - errors
 | fieldsAdd availability_pct = round(100.0 * successes / total, decimals: 3)
 ```
 
@@ -166,7 +186,7 @@ Health = 100 - (error_rate_penalty + latency_penalty)
 // Service health score — composite metric for executive dashboard
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(otel.status_code == "ERROR"), p95_ns = percentile(duration, 95), by:{dt.entity.service}
+| summarize total = count(), errors = countIf(span.status_code == "error"), p95_ns = percentile(duration, 95), by:{dt.entity.service}
 | fieldsAdd error_rate = 100.0 * errors / total
 | fieldsAdd p95_ms = p95_ns / 1ms
 | fieldsAdd error_penalty = if(error_rate > 5, then: 50, else: if(error_rate > 1, then: 20, else: 0))

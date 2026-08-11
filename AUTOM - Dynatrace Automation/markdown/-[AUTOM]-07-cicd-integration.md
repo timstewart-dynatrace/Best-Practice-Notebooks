@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -2472,7 +2472,7 @@ The call above deliberately carries **no `entitySelector`**, and for this partic
       }'
 ```
 
-Two caveats worth knowing before you build on this. Entity selectors only match entities **active within the last 24 hours** — the `entityId` filter is the documented exception for inactive entities — so a selector for a service that has just been created may match nothing on the very first deploy. And `CUSTOM_DEPLOYMENT` is an annotation event type: it does not open a problem, so the failure mode here is a marker that silently goes to the wrong place, not alert noise. The alert-noise version of this mistake — an unattributed event type that *does* open problems, opening a fresh one on every firing — is covered in S2D-05 and AIOPS-02 §4.
+Two caveats worth knowing before you build on this. Entity selectors only match entities **active within the last 24 hours** — the `entityId` filter is the documented exception for inactive entities — so a selector for a service that has just been created may match nothing on the very first deploy. And `CUSTOM_DEPLOYMENT` is an annotation event type: it does not open a problem, so the failure mode here is a marker that silently goes to the wrong place, not alert noise. The alerting version of this mistake — an unattributed event type that *does* open problems, where the environment fallback instead merges unrelated alerts into one unactionable problem — is covered in S2D-05 and AIOPS-02 §4.
 
 **For application release identity, prefer the environment-variable path over an API call.** Setting `DT_RELEASE_VERSION`, `DT_RELEASE_PRODUCT`, `DT_RELEASE_STAGE`, and `DT_RELEASE_BUILD_VERSION` on the deployed process lets OneAgent attach release identity at source, so every signal from that process carries it without a pipeline step that can fail silently. FAQ-02 §3 covers these under the four-source hierarchy.
 

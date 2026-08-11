@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -282,7 +282,7 @@ A template dashboard that displays the four golden signals (latency, traffic, er
 |---------|--------------|------------|
 | **Latency** | `percentile(duration, 95)` filtered by `$service` | Line chart |
 | **Traffic** | `count()` of server spans filtered by `$service` | Line chart |
-| **Errors** | `countIf(otel.status_code == "ERROR")` filtered by `$service` | Line chart |
+| **Errors** | `countIf(span.status_code == "error")` filtered by `$service` | Line chart |
 | **Saturation** | CPU/memory metrics for the service's host | Line chart |
 
 This pattern is especially powerful because it works for every service in the environment — engineers just change the variable.

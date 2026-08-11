@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -484,10 +484,24 @@ Install from: **Dynatrace Hub > Apache Kafka**
 ```dql
 // Combine: Kpow consumer lag with OneAgent service traces
 // Step 1: Check service-level error rates for Kafka consumers
+//
+// Field notes — all three fail silently if you get them wrong:
+//   span.status_code is the real field (otel.status_code does not exist),
+//   its values are lowercase ("error", never "ERROR"),
+//   and it is null on successful spans, so derive successes as total - errors.
+//
+// If this returns nothing, check span.kind before assuming a healthy fleet:
+//   fetch spans, from:-1h | summarize c = count(), by:{span.kind}
+// A cluster whose Kafka clients are not instrumented emits no "consumer" spans at
+// all — which is a coverage gap, not a clean bill of health.
 fetch spans, from:-1h
 | filter span.kind == "consumer"
-| summarize total = count(), errors = countIf(otel.status_code == "ERROR"), by:{service.name}
-| fieldsAdd errorRate = 100.0 * toDouble(errors) / toDouble(total)
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == "error")
+  }, by:{service.name}
+| fieldsAdd successes = total - errors
+| fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
 | sort errorRate desc
 | limit 10
 ```

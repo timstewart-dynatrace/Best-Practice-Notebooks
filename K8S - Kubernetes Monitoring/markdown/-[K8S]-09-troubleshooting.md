@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -123,6 +123,7 @@ Some failures are not configuration mistakes — they are known defects in speci
 
 | First affected | Fixed / Mitigated | Issue |
 |----------------|-------------------|-------|
+| 1.10.1 and earlier | **1.10.2** (released July 30, 2026 — staged adoption; upgrade on your own schedule) | Four defects fixed at once: (1) **Kubernetes workload and namespace tagging regression** — where several rules matched the same key, each later rule overwrote the previous one; from 1.10.2 **only the first matching rule for a key applies**, which is a *behaviour change*, not just a fix (see K8S-10). (2) **`dynatrace-webhook` `CrashLoopBackOff` on gVisor** runtime-class nodes. (3) **Injected pods hanging at startup** when the OneAgent-binary download init container timed out — the timeout is now 15 minutes. (4) **Metadata-enrichment rules that cannot be applied are now logged** instead of being silently disregarded, so a rule that never took effect is finally visible. |
 | 1.10.1 (OpenShift manifests) | 1.10.1 (corrected manifests re-uploaded 07/2026) | **OpenShift only** — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at `Init:0/1` and `dynatrace-webhook` pods stay `0/1`, waiting for a `dynatrace-webhook-certs` secret that is never created. Root cause is a bootstrap deadlock between the two Operator 1.10.x init containers: **`crd-storage-migrator`** waits for webhook readiness, the webhook waits for its cert secret, and the OpenShift manifest omitted the **`webhook-cert-generator`** init container that creates it. Vanilla-Kubernetes Helm and kubectl manifests ship it and are unaffected. **Fix:** re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's `certgen` command as a `Job` or `oc run` pod to create the secret and patch the webhook caBundle. |
 | 1.10.0 | 1.10.1 | **Auto-update failures** across ActiveGate, CodeModule, and OneAgent, plus the **OneAgent rollout integrity check hanging** — a rollout that never completes rather than one that visibly fails. The 1.10.0 release notes themselves recommend skipping the release, and it is now flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases) — a structural signal you can check yourself before pinning. **Fix:** upgrade to 1.10.1. |
 | 1.10.0 | 1.10.1 (via feature flag) | **`classicFullstack` only** — OneAgent fails TLS certificate verification when connecting through an **in-cluster ActiveGate**. **Fix:** upgrade to 1.10.1, which introduces the `feature.dynatrace.com/automatic-tls-certificate` feature flag on the DynaKube to restore automatic certificate handling. Do **not** confuse this with the 1.1.0 → 1.5.1 row below — see the note after the table. |
@@ -518,27 +519,33 @@ tar -czf dynatrace-debug.tar.gz dynatrace-debug/
 
 Complement kubectl diagnostics with DQL queries that detect Dynatrace component issues across your cluster fleet.
 
+> **Query Kubernetes events on `event.provider`, not `event.kind`.** Kubernetes events land in the `events` object carrying `event.kind == "DAVIS_EVENT"` — the same kind as everything else Davis emits — so *kind* cannot discriminate them. The working discriminator is **`event.provider == "KUBERNETES_EVENT"`**, and the reason lives in **`dt.kubernetes.event.reason`** (`k8s.event.reason` resolves but is null on every record). A filter on `event.kind == "K8S_EVENT"` is syntactically valid, executes, and returns nothing — which during triage reads as "no failures," the most expensive possible wrong answer. Verified against a live tenant 08/11/2026.
+
 ### Common Failure Patterns
 
 | Pattern | Symptoms | Detection Method |
 |---------|----------|------------------|
-| **CSI Volume Timeout** | Pods stuck in ContainerCreating | Events with `MountVolume` + `timeout` |
-| **Injection Failure** | Missing init container | Events with `Failed` + `dynatrace` |
-| **ActiveGate OOM** | AG restarts, data gaps | Events with `OOMKilled` + `activegate` |
-| **OneAgent CrashLoop** | Incomplete monitoring | Events with `CrashLoopBackOff` + `oneagent` |
-| **Connection Loss** | Stale data, no updates | detected events with `AGENT_CONNECTION` |
+| **CSI Volume Timeout** | Pods stuck in ContainerCreating | `dt.kubernetes.event.reason == "FailedMount"` |
+| **Injection Failure** | Missing init container | `dt.kubernetes.event.reason` in `Failed` / `InspectFailed`, namespace `dynatrace` |
+| **ActiveGate scheduling failure** | AG never starts, data gaps | `dt.kubernetes.event.reason == "FailedScheduling"` |
+| **OneAgent CrashLoop** | Incomplete monitoring | `dt.kubernetes.event.reason == "BackOff"` (`CrashLoopBackOff` appears in `.message`) |
+| **OOM kill** | AG/OA restarts, data gaps | `dt.kubernetes.container.oom_kills` metric — no reliable event reason |
+| **Connection Loss** | Stale data, no updates | `fetch dt.davis.events` with `AGENT_CONNECTION` event types |
 
 ```dql
-// Detect Dynatrace pod failures in the last 24h
+// Detect Dynatrace component failures in the last 24h
+// Discriminator is event.provider == "KUBERNETES_EVENT" — NOT event.kind, which
+// carries "DAVIS_EVENT" on these records and never takes a "K8S_EVENT" value.
+// The reason field is dt.kubernetes.event.reason; k8s.event.reason is null throughout.
 fetch events, from:-24h
-| filter event.kind == "K8S_EVENT"
-| filter matchesPhrase(event.description, "dynatrace")
-| filter matchesPhrase(event.description, "Failed") OR
-        matchesPhrase(event.description, "Error") OR
-        matchesPhrase(event.description, "BackOff") OR
-        matchesPhrase(event.description, "OOMKilled") OR
-        matchesPhrase(event.description, "CrashLoopBackOff")
-| fields timestamp, event.description
+| filter event.provider == "KUBERNETES_EVENT"
+| filter k8s.namespace.name == "dynatrace"
+| filter in(dt.kubernetes.event.reason,
+    {"Failed", "FailedMount", "FailedScheduling", "BackOff", "Killing", "Unhealthy", "InspectFailed"})
+| fields timestamp, k8s.cluster.name, k8s.workload.name,
+         dt.kubernetes.event.reason,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
 | sort timestamp desc
 | limit 50
 ```
@@ -650,6 +657,7 @@ In this notebook, you learned:
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Kubernetes/OpenShift troubleshooting map (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Openshift-troubleshooting-map/ta-p/264113)
 - [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)
+- [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
 - [Kubernetes Operator CSI driver crashes frequently (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Operator-CSI-driver-crashes-frequently/ta-p/272021)
 - [Cloud Native Full-Stack pod injection validation (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Operator-Cloud-Native-Full-Stack-Pod-Injection/ta-p/264697)
 

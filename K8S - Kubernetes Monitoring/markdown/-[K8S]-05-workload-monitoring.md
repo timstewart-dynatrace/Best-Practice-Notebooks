@@ -1,6 +1,6 @@
 # K8S-05: Workload Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 13 | **Created:** January 2026 | **Last Updated:** 05/09/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Application-Level Observability in Kubernetes
 Workload monitoring focuses on the application layer: deployments, pods, containers, and the services they provide. This notebook covers monitoring Kubernetes workloads from deployment health to service performance.
@@ -166,8 +166,18 @@ timeseries avgThrottled = avg(dt.containers.cpu.throttled_time), from:-1h, by:{d
 |--------|-----------------|---------------|
 | **Latency** | Response time distribution | Timeseries with percentiles |
 | **Traffic** | Request rate | Count over time |
-| **Errors** | Error rate, types | Filter by status code |
+| **Errors** | Error rate, types | `countIf(span.status_code == "error")` |
 | **Saturation** | Resource utilization | CPU, memory, connections |
+
+> **Span failure status: three traps, all silent.** Getting error rate right on spans depends on three facts, and each of them fails by returning a plausible number rather than an error.
+>
+> | Trap | What happens |
+> |---|---|
+> | `otel.status_code` | **The field does not exist** — it has no row in `dt.semantic_dictionary.fields`. The real field is **`span.status_code`** (`stable`). Likewise `otel.status_message` → `span.status_message` (`experimental`, and frequently null even on failing spans). |
+> | `== "ERROR"` | Values are **lowercase**. On a live tenant `span.status_code == "ERROR"` matched **0** spans against **18,630** for `"error"` in the same two-hour window (08/11/2026). A rename without the case fix converts a hard failure into a silent zero. |
+> | `countIf(span.status_code != "error")` | **`span.status_code` is null on virtually every successful span** — `"ok"` is written so rarely it is noise (9 spans out of ~659,000 in that window). A `!=` comparison against null yields null, not true, so this counts almost nothing. Derive successes as **`total - errors`**. |
+>
+> The third trap is the expensive one: an availability SLO built on `countIf(… != "error")` reads **0% available** on a healthy service, and nothing in the query errors to tell you.
 
 ```dql
 // Service response time (spans)
@@ -184,13 +194,17 @@ fetch spans, from:-1h
 
 ```dql
 // Service error rates
+// The field is span.status_code (stable). otel.status_code does not exist.
+// Values are lowercase ("error"), and the field is NULL on successful spans —
+// so successes must be derived as total - errors, never counted directly.
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize 
+| summarize {
     total = count(),
-    errors = countIf(otel.status_code == "ERROR"),
-    by:{dt.entity.service}
-| fieldsAdd errorRate = 100.0 * toDouble(errors) / toDouble(total)
+    errors = countIf(span.status_code == "error")
+  }, by:{dt.entity.service}
+| fieldsAdd successes = total - errors
+| fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
 | filter errors > 0
 | sort errorRate desc
 | limit 15

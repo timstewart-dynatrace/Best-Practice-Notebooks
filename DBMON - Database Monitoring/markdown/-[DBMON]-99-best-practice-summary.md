@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/05/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -98,7 +98,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 22 | Monitor response time distribution using latency tiers | Bucket into: `<1ms`, `1-10ms`, `10-100ms`, `100ms-1s`, `>1s` — track tier distribution over time | **Recommended** | Analysis |
 | 23 | Baseline P50, P95, P99 over 24 hours | Run hourly percentile query on `duration` for each `db.system`; this is your performance reference point | **Critical** | Baseline |
 | 24 | Monitor vendor-specific patterns | PostgreSQL: vacuum/lock contention; MySQL: buffer pool/replication lag; MSSQL: page life expectancy/deadlocks; Oracle: tablespace/SGA | **Recommended** | Vendor |
-| 25 | Track errors by `otel.status_message` | Group `otel.status_code == "ERROR"` by `otel.status_message` to distinguish connection timeouts, deadlocks, and constraint violations | **Critical** | Error Handling |
+| 25 | Track errors by `span.status_message` | Group `span.status_code == "error"` by `span.status_message` to distinguish connection timeouts, deadlocks, and constraint violations | **Critical** | Error Handling |
 
 
 ### Sprint-1.338 Update (May 2026)
@@ -149,7 +149,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |---|--------------|----------------|----------|----------|
 | 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation` (`publish` vs `process`) at 5m intervals | **Critical** | Kafka |
 | 39 | Monitor Kafka consumer group processing latency | Group by `messaging.kafka.consumer.group` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
-| 40 | Detect Kafka consumer errors | Filter `otel.status_code == "ERROR"` on `messaging.operation == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
+| 40 | Detect Kafka consumer errors | Filter `span.status_code == "error"` on `messaging.operation == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
 | 41 | Track RabbitMQ publish/consume rate per queue | Group by `messaging.destination.name` and `messaging.operation`; a publish rate exceeding consume rate signals backpressure | **Critical** | RabbitMQ |
 | 42 | Monitor RabbitMQ message throughput trend | Use `makeTimeseries` at 5m intervals grouped by `messaging.operation` to detect throughput drops | **Recommended** | RabbitMQ |
 
@@ -176,7 +176,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 50 | Flag dynamic SQL / poor parameterization | Count one-off query patterns (`call_count == 1`); high count per `db.system` means queries are not parameterized, preventing plan caching | **Recommended** | Anti-Pattern |
 | 51 | Prioritize optimization by total time impact | Sort query patterns by `total_time_ms = sum(duration)`, not by `avg_ms` — a fast query called 1M times has more impact than a slow query called once | **Critical** | Optimization |
 | 52 | Use the tail ratio to detect outliers | Calculate `p99_ms / p50_ms`; a ratio above 10 indicates severe tail latency requiring investigation | **Recommended** | Analysis |
-| 53 | Monitor connection pool pressure | Track `countIf(otel.status_code == "ERROR")` grouped by `dt.entity.service` and `server.address`; connection refused or timeout errors indicate pool exhaustion | **Critical** | Connection Pool |
+| 53 | Monitor connection pool pressure | Track `countIf(span.status_code == "error")` grouped by `dt.entity.service` and `server.address`; connection refused or timeout errors indicate pool exhaustion | **Critical** | Connection Pool |
 | 54 | Track error rate trend over 6h at 5m intervals | Use `makeTimeseries` with `total` and `errors` counts; a rising error trend within 30 minutes demands immediate action | **Critical** | Error Handling |
 
 <a id="dashboards-and-kpis"></a>
@@ -233,7 +233,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 77 | Define availability SLO | **99.9%** of database calls succeed (`otel.status_code != "ERROR"`) measured over 24h rolling window | **Critical** | SLO |
+| 77 | Define availability SLO | **99.9%** of database calls succeed, measured over a 24h rolling window as `count() - countIf(span.status_code == "error")` — `span.status_code` is null on successful spans, so a `!= "error"` comparison counts nothing | **Critical** | SLO |
 | 78 | Define latency SLO | **95%** of calls complete under the vendor-specific P95 threshold (SQL: 500ms, NoSQL: 300ms, Cache: 20ms, Search: 2000ms) | **Critical** | SLO |
 | 79 | Define throughput SLO | No more than **50% drop** from 7-day baseline queries/min | **Recommended** | SLO |
 | 80 | Measure SLO compliance hourly | Run `makeTimeseries` at 1h intervals with `total` and `errors`/`under_threshold` counts per `db.system` | **Critical** | SLO |
@@ -252,7 +252,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 86 | Use duration arithmetic (NOT nanosecond constants) | Write `duration / 1ms`, `duration / 1s`, `(t2-t1) / 1m` — divide a duration by another duration to get a unitless number. Never `duration / 1000000.0`; never `toLong(duration) / 1ms` (long/duration fails type-check). Per `dt-dql-essentials`. | **Critical** | DQL |
 | 87 | Use `entityName()` (or `getNodeName()` on smartscape) to resolve service IDs | `fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")` for the legacy form; `fieldsAdd service_name = getNodeName(dt.smartscape.service)` for the modern Smartscape form. Never show raw entity IDs in dashboards. | **Recommended** | DQL |
 | 88 | Filter early, sort last | Apply `filter` immediately after `fetch`; apply `sort` only after `summarize`; never `sort` right after `fetch` | **Critical** | DQL |
-| 89 | Use `countIf()` for conditional aggregation | `errors = countIf(otel.status_code == "ERROR")` inside `summarize` — do not use separate filter + count | **Recommended** | DQL |
+| 89 | Use `countIf()` for conditional aggregation | `errors = countIf(span.status_code == "error")` inside `summarize` — do not use separate filter + count | **Recommended** | DQL |
 | 90 | Calculate error rate with safe division | `error_rate_pct = round((toDouble(error_count) / toDouble(total_calls)) * 100, decimals: 2)` — use `toDouble()` to avoid integer truncation | **Recommended** | DQL |
 
 

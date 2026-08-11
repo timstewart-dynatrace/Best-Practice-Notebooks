@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -47,7 +47,7 @@ Every query in this section selects a transaction kind by hand, with `filter spa
 // Service throughput and latency — engineering overview
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize request_count = count(), avg_ms = avg(duration) / 1ms, p50_ms = percentile(duration, 50) / 1ms, p95_ms = percentile(duration, 95) / 1ms, p99_ms = percentile(duration, 99) / 1ms, error_count = countIf(otel.status_code == "ERROR"), by:{dt.entity.service}
+| summarize request_count = count(), avg_ms = avg(duration) / 1ms, p50_ms = percentile(duration, 50) / 1ms, p95_ms = percentile(duration, 95) / 1ms, p99_ms = percentile(duration, 99) / 1ms, error_count = countIf(span.status_code == "error"), by:{dt.entity.service}
 | fieldsAdd error_rate_pct = round(100.0 * error_count / request_count, decimals: 2)
 | sort p95_ms desc
 ```
@@ -59,8 +59,8 @@ When investigating errors, engineers need the actual span attributes — status 
 ```dql
 // Recent error spans with details — engineering investigation table
 fetch spans, from:-1h
-| filter span.kind == "server" and otel.status_code == "ERROR"
-| fieldsKeep timestamp, trace.id, dt.entity.service, http.route, http.response.status_code, otel.status_message, duration
+| filter span.kind == "server" and span.status_code == "error"
+| fieldsKeep timestamp, trace.id, dt.entity.service, http.route, http.response.status_code, span.status_message, duration
 | fieldsAdd duration_ms = duration / 1ms
 | fieldsRemove duration
 | sort timestamp desc
@@ -93,7 +93,7 @@ Database spans reveal query performance, connection issues, and which databases 
 // Database response time by system and namespace
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
-| summarize avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), errors = countIf(otel.status_code == "ERROR"), by:{db.system, db.namespace}
+| summarize avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), errors = countIf(span.status_code == "error"), by:{db.system, db.namespace}
 | fieldsAdd error_rate = round(100.0 * errors / query_count, decimals: 2)
 | sort p95_ms desc
 ```
@@ -130,7 +130,7 @@ Endpoint-level analysis lets engineers identify which specific API routes are pr
 // Endpoint performance breakdown — engineering detail table
 fetch spans, from:-1h
 | filter span.kind == "server" and isNotNull(http.route)
-| summarize requests = count(), avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, errors = countIf(otel.status_code == "ERROR"), by:{http.route, http.request.method}
+| summarize requests = count(), avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, errors = countIf(span.status_code == "error"), by:{http.route, http.request.method}
 | fieldsAdd error_rate = round(100.0 * errors / requests, decimals: 2)
 | sort p95_ms desc
 | limit 20
@@ -161,11 +161,11 @@ This pattern uses `append` to compare two time windows — 1 hour before the dep
 // Before/after deployment comparison — last 2 hours vs preceding 2 hours
 fetch spans, from:-2h
 | filter span.kind == "server"
-| summarize after_avg_ms = avg(duration) / 1ms, after_p95_ms = percentile(duration, 95) / 1ms, after_error_rate = 100.0 * countIf(otel.status_code == "ERROR") / count()
+| summarize after_avg_ms = avg(duration) / 1ms, after_p95_ms = percentile(duration, 95) / 1ms, after_error_rate = 100.0 * countIf(span.status_code == "error") / count()
 | append [
     fetch spans, from:-4h, to:-2h
     | filter span.kind == "server"
-    | summarize before_avg_ms = avg(duration) / 1ms, before_p95_ms = percentile(duration, 95) / 1ms, before_error_rate = 100.0 * countIf(otel.status_code == "ERROR") / count()
+    | summarize before_avg_ms = avg(duration) / 1ms, before_p95_ms = percentile(duration, 95) / 1ms, before_error_rate = 100.0 * countIf(span.status_code == "error") / count()
   ]
 ```
 

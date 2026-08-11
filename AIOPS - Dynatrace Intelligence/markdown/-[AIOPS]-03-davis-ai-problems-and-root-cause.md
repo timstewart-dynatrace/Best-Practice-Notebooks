@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/07/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -65,9 +65,13 @@ Davis answers using Smartscape — the dependency graph. Three signals on three 
 
 Grouping is not a black box you have to take on faith — it runs on fields you can query.
 
-**The universal rule is `dt.smartscape_source.id`.** Every Davis event carries this field, holding the Smartscape entity ID of whatever the signal is *about*. Events naming the same entity within the correlation timeframe collapse into a single problem. The semantic dictionary types it `smartscapeId` at stability `stable` — it holds an entity ID, not a display name.
+**The universal rule is `dt.smartscape_source.id`.** Most Davis events carry this field — **84.9% on a validation tenant over 7 days, 08/11/2026** (186,914 of 220,206) — holding the Smartscape entity ID of whatever the signal is *about*. It is the rule that is universal, not the field's presence: the remaining share is exactly the population this section is about. Events naming the same entity within the correlation timeframe collapse into a single problem. The semantic dictionary types it `smartscapeId` at stability `stable` — it holds an entity ID, not a display name.
 
-**This is the field a custom alert most often gets wrong, and the failure is silent.** An event whose `dt.smartscape_source.id` is empty — or set to some arbitrary string — matches nothing, so it can never merge with anything. Every single firing opens its own problem. AIOPS-02 §4 covers setting it in the detector's event template; AIOPS-02 §8 has a query that finds unattributed detectors in your own tenant.
+**This is the field a custom alert most often gets wrong, and the failure is silent — but the symptom is the opposite of the one usually expected.** Leaving it unset does *not* leave the event unattributed. The events ingest API is explicit: when `entitySelector` is not set, "the event is associated with the environment (`dt.entity.environment`) entity." The event still arrives carrying `affected_entity_ids`; that array just names the environment instead of the thing that broke.
+
+So these events do not fail to merge. **They over-merge.** Because every one of them names the same single entity, the grouping rule above does exactly what it is designed to do and collapses them together — gluing unrelated alerts into one problem. Measured on a validation tenant over 7 days on 08/11/2026: events falling back to the environment entity produced **28,004 firings across just 48 correlations — 583 firings per correlation, all naming one entity**. Every other event in the same window — 192,199 firings naming 1,207 real entities — ran at **1.1 firings per correlation**. That is the contrast: correctly attributed signals stay roughly one-to-one with the problems they raise, while the environment-fallback population collapses by more than five hundred to one. One detector alone fired 8,005 times and landed in a **single** correlation.
+
+The cost is therefore lost attribution and unrelated alerts welded together, not an inflated problem count. The symptom to hunt is a problem with an implausibly broad, unrelated blast radius and no usable root cause — not a problem-count spike. The remedy is unchanged: set the event template's entity to a real host, service, or workload ID. AIOPS-02 §4 covers setting it in the detector's event template; AIOPS-02 §8 has a query that finds these detectors in your own tenant.
 
 **Topology rules merge across entity types.** Beyond exact-entity matching, Davis merges signals from entities in a known structural relationship — a process and the host it runs on are not two separate incidents:
 
@@ -84,7 +88,7 @@ Grouping is not a black box you have to take on faith — it runs on fields you 
 
 That last one is worth knowing before you conclude a detector has broken. A detector that "stopped alerting" may simply have had its condition classified as a frequent issue — check the event stream (`dt.davis.events`) rather than the problem feed to tell the two apart.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence). **Derived:** the "check `dt.davis.events` rather than the problem feed" diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the over-merge characterization combines that documented environment fallback with the same-entity grouping rule and the 08/11/2026 tenant measurement; the "check `dt.davis.events` rather than the problem feed" diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub>
 
 <a id="lifecycle"></a>
 ## 2. Problem Lifecycle and Fields

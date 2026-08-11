@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -186,25 +186,33 @@ spec:
 
 ### Quota Utilization Metrics
 
-| Metric | Alert When |
-|--------|------------|
-| CPU quota usage | >80% of quota |
-| Memory quota usage | >80% of quota |
-| Pod count | Approaching limit |
+| Metric | Grail key | Alert When |
+|--------|-----------|------------|
+| CPU quota usage | `dt.kubernetes.container.requests_cpu` (sum by namespace) | >80% of quota |
+| Memory quota usage | `dt.kubernetes.container.requests_memory` (sum by namespace) | >80% of quota |
+| Pod count | `dt.kubernetes.pods` | Approaching limit |
+
+> **Requests are container-grain.** A ResourceQuota is enforced per namespace, but Dynatrace emits requests per **container** — there is no `dt.kubernetes.workload.requests_cpu` or `.requests_memory`. Sum the `dt.kubernetes.container.*` series across `k8s.namespace.name` to get the figure the quota is measured against. Confirm what your tenant carries with `metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key}` — note `metrics` takes `from:` with **no leading comma**.
 
 > **Quota tracking across an ActiveGate 1.343 upgrade:** request metrics **include init containers from ActiveGate 1.343 onward**, so reserved-CPU and reserved-memory figures step up at the upgrade with no workload change. Read a trend spanning that boundary as **two series, not one**, and re-baseline any >80%-of-quota alert afterward. Full explanation: K8S-08 §2.
 
 ```dql
 // CPU requests by namespace (quota tracking)
-timeseries avgCpuRequests = avg(dt.kubernetes.workload.requests_cpu), from:-1h, by:{k8s.namespace.name}
-| sort avgCpuRequests desc
+// Requests are emitted at container grain — there is no dt.kubernetes.workload.requests_cpu.
+// Sum across containers to get the namespace reservation a ResourceQuota is measured against.
+timeseries cpuReq = sum(dt.kubernetes.container.requests_cpu), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqMillicores = round(arrayAvg(cpuReq), decimals: 0)
+| fields k8s.namespace.name, avgReqMillicores
+| sort avgReqMillicores desc
 | limit 15
 ```
 
 ```dql
-// Memory requests by namespace
-timeseries avgMemRequests = avg(dt.kubernetes.workload.requests_memory), from:-1h, by:{k8s.namespace.name}
-| sort avgMemRequests desc
+// Memory requests by namespace (GiB, quota tracking)
+timeseries memReq = sum(dt.kubernetes.container.requests_memory), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqGiB = round(arrayAvg(memReq) / 1073741824, decimals: 2)
+| fields k8s.namespace.name, avgReqGiB
+| sort avgReqGiB desc
 | limit 15
 ```
 

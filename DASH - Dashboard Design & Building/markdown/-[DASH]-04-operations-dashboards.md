@@ -1,6 +1,6 @@
 # DASH-04: Operations Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -68,7 +68,7 @@ Error rate as a percentage shows which services are degraded. Display as a bar c
 // Error rate by service — operations bar chart
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(otel.status_code == "ERROR"), by:{dt.entity.service}
+| summarize total = count(), errors = countIf(span.status_code == "error"), by:{dt.entity.service}
 | fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
 | sort error_rate_pct desc
 | limit 15
@@ -80,7 +80,7 @@ fetch spans, from:-1h
 // Overall error rate trend — operations line chart
 fetch spans, from:-2h
 | filter span.kind == "server"
-| makeTimeseries total = count(), errors = countIf(otel.status_code == "ERROR"), interval:5m
+| makeTimeseries total = count(), errors = countIf(span.status_code == "error"), interval:5m
 | fieldsAdd error_rate = arrayAvg(errors) / arrayAvg(total) * 100
 ```
 

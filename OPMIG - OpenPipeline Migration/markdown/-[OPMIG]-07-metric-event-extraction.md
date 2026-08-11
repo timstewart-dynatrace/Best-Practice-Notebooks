@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/04/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/11/2026
 
 ---
 
@@ -244,7 +244,7 @@ Matching: contains(content, "payment") AND contains(content, "failed")
 
 ### Attribution — what the extracted event attaches to
 
-A Davis event only earns its place if Dynatrace can tell what it is *about*. Every Davis event carries `dt.smartscape_source.id`, the Smartscape entity ID of the signal's source, and the documented grouping rule merges all events sharing that value into one problem. **An extracted event with the field unset merges with nothing — it opens a separate problem on every extraction.** Since extraction fires per matching record, that is not a handful of duplicates; it scales with log volume.
+A Davis event only earns its place if Dynatrace can tell what it is *about*. Most Davis events carry `dt.smartscape_source.id`, the Smartscape entity ID of the signal's source — 84.9% on a validation tenant over 7 days, 08/11/2026 — and the documented grouping rule merges all events sharing that value into one problem. **An extracted event with the field unset is not exempt from that rule — it is attributed to the environment entity, so every such extraction merges into the same problem.** Since extraction fires per matching record, the result is not a flood of duplicate problems but a single problem of unbounded scope: unrelated log conditions from across the estate welded together, with no root cause and nothing to route on.
 
 **Extraction reads the record; it cannot resolve an entity that is not on it.** A log OneAgent collected from a monitored process arrives already carrying `dt.entity.host`, `dt.entity.process_group_instance`, and on Kubernetes `dt.entity.cloud_application`. A log pushed through the generic ingest API or forwarded by a third-party shipper frequently arrives with none of that, and no extraction rule can conjure it. Enrichment is therefore a **prerequisite** of event extraction, not a nice-to-have alongside it.
 

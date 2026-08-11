@@ -1,6 +1,6 @@
 # DASH-02: Dashboard Hierarchy
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -132,7 +132,7 @@ Operations dashboards answer: **"What needs attention right now?"**
 // Error rate by service — operations bar chart
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(otel.status_code == "ERROR"), by:{dt.entity.service}
+| summarize total = count(), errors = countIf(span.status_code == "error"), by:{dt.entity.service}
 | fieldsAdd error_rate = 100.0 * errors / total
 | sort error_rate desc
 | limit 10

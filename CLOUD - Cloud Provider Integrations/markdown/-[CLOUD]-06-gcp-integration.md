@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -229,20 +229,38 @@ timeseries containerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{
 ### GKE Node Utilization
 
 ```dql
-// Node CPU utilization across GKE nodes in the last hour
-timeseries nodeCpu = avg(dt.kubernetes.node.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
-| fieldsAdd avgNodeCpu = arrayAvg(nodeCpu)
-| sort avgNodeCpu desc
+// Node CPU utilization across GKE nodes over the last hour, derived at container grain.
+//
+// Corrected 08/11/2026. This cell used `dt.kubernetes.node.cpu_usage`, which DOES NOT
+// EXIST — Grail consolidated node and workload metrics into `dt.kubernetes.container.*`.
+// A timeseries against a non-existent key returns an empty result rather than an error,
+// so the tile simply drew nothing. Enumerate what your tenant really has with:
+//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize by:{metric.key}
+// (note `metrics` takes `from:` with NO leading comma).
+timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
+| fieldsAdd avgCpu = arrayAvg(used)
+| sort avgCpu desc
 | limit 10
 ```
 
 ### GKE Pod Events
 
 ```dql
-// Kubernetes warning events in the last 6 hours
+// Kubernetes events by reason over the last 6 hours.
+//
+// Corrected 08/11/2026 — this cell previously carried three separate filters that each
+// matched nothing, so it returned zero rows against an estate emitting thousands:
+//   1. `event.kind == "K8S_EVENT"` — event.kind never takes that value. Verified over 24h
+//      the only values are DAVIS_EVENT, SYNTHETIC_EVENT, FLEET_EVENT and DAVIS_PROBLEM.
+//      Kubernetes events arrive as DAVIS_EVENT; the discriminator is event.provider.
+//   2. `event.type == "Warning"` — every KUBERNETES_EVENT record carries CUSTOM_INFO
+//      (3,571 of 3,571 checked). Severity lives in dt.kubernetes.event.important.
+//   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
+// Each filter was valid syntax that executed cleanly, which is why this survived review.
 fetch events, from:-6h
-| filter event.kind == "K8S_EVENT" and event.type == "Warning"
-| summarize event_count = count(), by:{event.reason}
+| filter event.provider == "KUBERNETES_EVENT"
+| filter dt.kubernetes.event.important == "true"
+| summarize event_count = count(), by:{dt.kubernetes.event.reason}
 | sort event_count desc
 | limit 10
 ```
