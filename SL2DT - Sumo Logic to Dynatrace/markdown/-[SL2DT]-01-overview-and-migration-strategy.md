@@ -1,6 +1,6 @@
 # SL2DT-01: Overview & Migration Strategy
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -256,7 +256,7 @@ If you're just here for a specific question:
 
 ### Companion assets
 
-- [sumoql-to-dql skill](/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/sumoql-to-dql/SKILL.md) — translation tables
+- `sumoql-to-dql` skill — translation tables (internal authoring aid, not a published asset)
 - [SL2DT AGENT-TASKS.md](../docs/AGENT-TASKS.md) — brief for building the `Dynatrace-SumoLogic` migration tool
 - [NR2DT series](../../nr2dt/) — parallel pattern for New Relic migrations
 - [S2D series](../../s2d/) — parallel pattern for Splunk migrations

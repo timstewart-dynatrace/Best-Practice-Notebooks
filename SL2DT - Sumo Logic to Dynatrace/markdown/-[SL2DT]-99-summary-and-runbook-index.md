@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 08/04/2026
 
 ## Overview
 
@@ -245,7 +245,7 @@ For environments where SVG doesn't render
 
 ### Skill
 
-- [sumoql-to-dql](/Users/Shared/GitHub/CLAUDE/Claude-AI-Template/SKILLS/sumoql-to-dql/SKILL.md) — translation tables, confidence scoring
+- `sumoql-to-dql` skill — translation tables, confidence scoring (internal authoring aid, not a published asset)
   - `references/mapping-tables.md` — complete operator/function/field maps
   - `references/examples.md` — 15 worked translations
   - `references/out-of-scope.md` — features not covered in v1
