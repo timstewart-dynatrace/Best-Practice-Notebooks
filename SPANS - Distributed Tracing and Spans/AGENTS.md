@@ -15,7 +15,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When the question is about… | Read |
 |---|---|
 | What spans/traces are, span anatomy, span kinds (server/client/producer/consumer), trace structure, first `fetch spans` query | `-[SPANS]-01-fundamentals.md` |
-| Filtering spans by service/kind/operation, string matching, finding a trace by `trace.id`, HTTP and database span queries, NULL handling, DQL-is-not-SQL pitfalls | `-[SPANS]-02-querying.md` |
+| Filtering spans by service/kind/operation, string matching, finding a trace by `trace.id`, HTTP and database span queries, NULL handling, DQL-is-not-SQL pitfalls; querying request attributes — `request_attribute.<name>` (request-scoped, reconciled) vs `captured_attribute.<name>` (span-scoped, raw), both **arrays**, so `==` against either matches nothing and fails silently; use `matchesValue()`. `<name>` is your own configured attribute name, so these fields cannot be found by browsing the semantic dictionary | `-[SPANS]-02-querying.md` |
 | Root cause analysis: finding error spans, error patterns, latency analysis, slow requests, reconstructing full traces, downstream dependency and DB query troubleshooting | `-[SPANS]-03-troubleshooting.md` |
 | Service topology from spans: discovering services, mapping dependencies, client-server call patterns, async messaging flows, W3C `traceparent` propagation across message brokers (Kafka/RabbitMQ auto-instrumented vs Pub/Sub manual) and root consumer spans, critical path analysis, `dt.service.name` / OTel `service.name` enrichment | `-[SPANS]-04-topology.md` |
 | `makeTimeseries` on spans, trend detection, complex aggregations, comparison queries, dashboard-ready span queries | `-[SPANS]-05-analytics.md` |
