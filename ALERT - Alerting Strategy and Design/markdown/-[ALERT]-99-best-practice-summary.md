@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 08/07/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 - [ ] Detector event templates carry team / zone / service properties
 - [ ] Entity tags and Smartscape ownership populated for OOTB problems
 - [ ] `event.severity` used to drive priority
-- [ ] Custom detector event templates set `dt.smartscape_source.id` to a real entity ID, so alerts can correlate instead of opening one problem per firing
+- [ ] Custom detector event templates set `dt.smartscape_source.id` to a real entity ID, so alerts correlate against the thing that broke instead of falling back to the environment entity and merging with unrelated alerts
 
 **Routing**
 - [ ] Problem-trigger workflows filter on enriched metadata
@@ -102,7 +102,7 @@ Every FP must trace back to a concrete cause — the analyzer type, the entity s
 | **Runbook link** | An alert with no runbook attached has no possible action |
 | **Owner / area property** | Present, so the alert maps to a team — also catches copy-paste clones that never set it |
 | **Problem age** | A problem open for weeks is not a long incident — it is a misconfigured detector or an entity that no longer exists |
-| **Correlation coverage** | Alerts with no `dt.smartscape_source.id` cannot merge, so they inflate problem counts one firing at a time |
+| **Correlation coverage** | Alerts with no `dt.smartscape_source.id` fall back to the environment entity, so they merge with unrelated alerts into problems with no usable root cause |
 
 **Remove, do not only tune.** A review that only ever adjusts thresholds accumulates configuration. Each quarter, actively delete:
 
@@ -131,7 +131,7 @@ The trap worth naming: **`fetch dt.davis.events | filter event.kind == "DAVIS_PR
 
 Two of the signals above are worth turning into standing trend queries rather than one-off checks, both built from the two-data-object model in AIOPS-03 §3.
 
-**Denoising ratio (events → problems).** How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging, the same symptom "Correlation coverage" above is meant to catch. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.
+**Denoising ratio (events → problems).** How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging. Read it alongside "Correlation coverage" above rather than as the same signal: poor correlation coverage pushes the ratio the *other* way, since environment-fallback events over-merge. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.
 
 ```dql
 // Denoising ratio — problem-worthy events divided by resulting problems, trended daily
@@ -149,7 +149,7 @@ fetch dt.davis.events, from:-30d
 | sort day asc
 ```
 
-**Correlation coverage.** "Correlation coverage" in the table above names the mechanism: an event with no `dt.smartscape_source.id` cannot merge with anything (AIOPS-03 §1). Trended directly, it is the share of non-informational Davis events that even carry the field a chain needs to form:
+**Correlation coverage.** "Correlation coverage" in the table above names the mechanism: an event with no `dt.smartscape_source.id` is not unattributed but *mis*-attributed, falling back to the environment entity and merging with everything else that did the same (AIOPS-03 §1). Trended directly, it is the share of non-informational Davis events that carry the entity a meaningful chain needs:
 
 ```dql
 // Correlation coverage — share of non-informational Davis events carrying a source-entity reference, trended daily

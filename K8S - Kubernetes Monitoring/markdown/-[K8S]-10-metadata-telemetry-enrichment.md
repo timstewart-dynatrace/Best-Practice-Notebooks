@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 07/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -246,7 +246,45 @@ Constraints documented with the feature:
 
 > **Running an earlier Operator?** These spec fields require Operator 1.10.0+ — on earlier versions the DynaKube rejects them at admission. The namespace/pod annotation path and the settings-based enrichment described in this notebook remain the working paths until your clusters upgrade.
 
-> **See:** [Metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment), [Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0)
+### Tagging Rule Precedence Changed in Operator 1.10.2
+
+**Operator 1.10.2** (released July 30, 2026) fixed a regression in Kubernetes workload and namespace tagging where, when several rules matched the same key, **each subsequent matching rule overwrote the previous one**. From 1.10.2, **only the first matching rule for a given key applies**.
+
+This is a **behaviour change, not only a defect fix**, and it is the one thing to check before upgrading:
+
+| Your rule set | Effect of upgrading to 1.10.2 |
+|---|---|
+| At most one rule per key | None. The fix is invisible to you. |
+| Several rules matching the same key, and you relied on the **last** one winning | **Tag values change.** The first matching rule now wins instead. Audit and reorder before you upgrade. |
+| Several rules matching the same key, ordering incidental | Values may change; confirm the winner is the one you want. |
+
+Because these tags flow into `dt.security_context`, cost fields and primary tags, a silent flip changes what IAM boundaries admit and how cost is attributed — the failure is in *routing and access*, not in an error message. Audit first:
+
+```bash
+# List the enrichment/tagging rules currently configured
+kubectl -n dynatrace get dynakube -o yaml | grep -A20 "resourceAttributes"
+
+# After upgrading, confirm the resulting values on live telemetry
+```
+
+```dql
+// Which security contexts and primary tags are actually landing on telemetry?
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize recordCount = count(), by:{k8s.cluster.name, k8s.namespace.name, dt.security_context}
+| sort recordCount desc
+| limit 50
+```
+
+The same release also **starts logging metadata-enrichment rules the Operator cannot apply** instead of disregarding them silently — so after upgrading, the operator log is worth reading once for rules that were never taking effect:
+
+```bash
+kubectl -n dynatrace logs -l app.kubernetes.io/name=dynatrace-operator --tail=200 | grep -i enrich
+```
+
+> **Adopting on your own schedule.** Operator upgrades roll out per estate, not per tenant. Until 1.10.2 reaches a given cluster, the previous last-rule-wins behaviour is what that cluster exhibits — and everything else in this notebook describes it correctly. Plan the rule audit as part of the upgrade, not after it.
+
+> **See:** [Metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment), [Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0), [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
 
 <a id="configuring-settings-based-enrichment"></a>
 ## 4. Configuring Settings-Based Enrichment

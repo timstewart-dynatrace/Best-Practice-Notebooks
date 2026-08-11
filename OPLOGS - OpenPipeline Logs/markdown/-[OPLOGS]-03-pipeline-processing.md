@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 07/31/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 08/11/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -323,7 +323,7 @@ That distinction decides which processor you want:
 | Analytics, funnels, KPIs, a workflow hook | **Business event** (`bizevents`) | No | No — not part of this path |
 | An alert that participates in incident response | **Davis event** | Yes | **Yes** — `dt.smartscape_source.id` is mandatory |
 
-If you need the second, the Davis-event extraction path has one hard prerequisite: the event must be attributable to a Smartscape entity. Events sharing a `dt.smartscape_source.id` merge into a single problem; an event that leaves it unset merges with nothing and opens a fresh problem on **every** extraction — which, for a per-record processor, scales with log volume. Since extraction can only read fields already on the record, that means the source stream must be entity-enriched first (§4 above, and the OneAgent attribute-enrichment note in this notebook's prerequisites). OPMIG-07 covers the Davis-event extraction configuration and carries a coverage query for checking the source stream; AIOPS-03 §1 covers the correlation rules.
+If you need the second, the Davis-event extraction path has one hard prerequisite: the event must be attributable to a Smartscape entity. Events sharing a `dt.smartscape_source.id` merge into a single problem; an event that leaves it unset is attributed to the environment entity instead, so **every** extraction across the tenant names that same entity and collapses into one problem — which, for a per-record processor firing at log volume, produces a permanently-open problem that names nothing you can act on. Since extraction can only read fields already on the record, that means the source stream must be entity-enriched first (§4 above, and the OneAgent attribute-enrichment note in this notebook's prerequisites). OPMIG-07 covers the Davis-event extraction configuration and carries a coverage query for checking the source stream; AIOPS-03 §1 covers the correlation rules.
 
 > <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the two-row processor-choice table maps the documented correlation requirement onto the bizevents-vs-Davis-event split this section configures.</sub>
 

@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 07/30/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 - **Static thresholds on traffic-correlated metrics.** They alert every off-peak hour and every traffic spike. Use auto-adaptive or seasonal (AIOPS-02 §1). Reserve static thresholds for true hard limits (SLO/contract/capacity).
 - **Duplicating Davis.** Before building a custom detector, confirm OOTB Davis or an existing metric event does not already cover the condition. Duplicate detection means duplicate alerts.
 - **Querying logs/traces directly in a recurring detector.** Pays query cost on every evaluation, forever. Extract a metric first (FAQ-09, OPIPE).
-- **A detector with a bare event template.** No team/zone property means nothing to route on (ALERT-01 §4). Worse, an event template that leaves `dt.smartscape_source.id` unset cannot correlate at all — every firing opens its own problem, and no threshold change fixes it (AIOPS-02 §4, AIOPS-03 §1).
+- **A detector with a bare event template.** No team/zone property means nothing to route on (ALERT-01 §4). Worse, an event template that leaves `dt.smartscape_source.id` unset correlates against the environment entity instead of the thing that broke — so those alerts merge with every other unattributed alert in the tenant into problems with no usable root cause, and no threshold change fixes it (AIOPS-02 §4, AIOPS-03 §1).
 - **Splitting the alert on a high-cardinality dimension.** Grouping a detector by application version, pod name, or HTTP status code turns one condition into one alert per dimension value. Alert volume then scales with your deployment frequency, and alerts strand themselves on entities that no longer exist — a pod replaced an hour ago still carries an open problem. Alert on the aggregate; working out *which* version or pod caused it is a downstream investigation step, not an alerting dimension. (Davis's own multi-dimensional baselining is a different mechanism and does want the dimensions — AIOPS-02 §1.4.)
 - **The cloned detector.** In a fast rollout the dominant noise source is not one badly-tuned alert — it is a base detector template copied across teams with its threshold, sensitivity, and routing left unchanged. Two weeks later that team has muted the channel. You cannot review your way out of this one clone at a time; defend at the template, not at each copy.
 

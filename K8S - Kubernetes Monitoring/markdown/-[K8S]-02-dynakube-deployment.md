@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -109,7 +109,7 @@ Dynatrace documents the operator chart as an **OCI reference** on a public regis
 ```bash
 # Documented form — OCI registry, version pinned explicitly
 helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --create-namespace \
   --namespace dynatrace \
   --install \
@@ -180,7 +180,7 @@ EOF
 
 # Install with values
 helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --namespace dynatrace \
   --create-namespace \
   --values dt-values.yaml \
@@ -541,7 +541,7 @@ An operator upgrade is not only a version bump — it can change **chart default
 helm get values dynatrace-operator -n dynatrace > current-values.yaml
 
 helm template dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --namespace dynatrace \
   --values current-values.yaml > new.yaml
 
@@ -578,7 +578,7 @@ helm list -n dynatrace
 
 # Upgrade to a specific, validated version (OCI — documented form)
 helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --namespace dynatrace \
   --reuse-values \
   --atomic \
@@ -587,7 +587,7 @@ helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
 # Classic-repo equivalent (still functional)
 helm repo update
 helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --namespace dynatrace \
   --reuse-values \
   --wait
@@ -602,7 +602,7 @@ helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
 | 1.7.x | 1.23 | 1.29 | Supported (verify against your environment) |
 | 1.8.x | 1.24 | 1.30 | Supported |
 | 1.9.x | 1.25 | 1.31 | Supported |
-| 1.10.x | — | — | **Current line.** **Recommended: v1.10.1** (July 2026). **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is now flagged `prerelease: true` on the GitHub releases page. **v1.10.2** was published 07/30/2026 and is the newest tag, but its release-notes page is not yet available and the GitHub release body carries no changelog, so there is no citable statement of what it changes — confirm its contents before adopting it. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
+| 1.10.x | — | — | **Current line.** **Recommended: v1.10.2** (July 30, 2026) — fixes a workload/namespace **tagging-precedence regression** (now only the first matching rule per key applies — a behaviour change, see K8S-10), `dynatrace-webhook` `CrashLoopBackOff` on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. **v1.10.1 remains a working pin** until you upgrade — estates adopt on their own schedule — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged `prerelease: true` on the GitHub releases page. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
 
 > **Operator support window:** the Standard 9-month / Enterprise 12-month support policy means versions older than v1.7 are likely past EOL. Plan upgrades accordingly. Older versions may still function but will not receive security or compatibility fixes.
 
@@ -649,7 +649,8 @@ In this notebook, you learned:
 - [DynaKube parameters reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — full CRD spec (renamed from `dynakube-crd`)
 - [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — reference list of supported feature-flag annotations
 - [Helm chart values.yaml (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml) — every Helm install option
-- [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — recommended pin is **v1.10.1** (July 2026). Skip 1.10.0 (auto-update defect; now flagged `prerelease: true`). **v1.10.2** is the newest tag as of 07/30/2026 but ships without a published changelog — verify its contents before adopting. Check before each install
+- [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — recommended pin is **v1.10.2** (July 30, 2026); v1.10.1 remains a working pin until you upgrade. Skip 1.10.0 (auto-update defect; flagged `prerelease: true`). Check before each install
+- [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
 
 ---
 

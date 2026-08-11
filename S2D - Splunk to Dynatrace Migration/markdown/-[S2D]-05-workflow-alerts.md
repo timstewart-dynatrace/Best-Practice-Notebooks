@@ -1,6 +1,6 @@
 # S2D-05: Alert Migration - Workflow-Based Alerts
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -171,7 +171,7 @@ export default async function ({ execution_id }) {
     const errorCount = record.error_count;
     const entityId = record['dt.entity.cloud_application'];
 
-    // No entity, no event. An unattributed event can never merge - see below.
+    // No entity, no event. An unattributed event lands on the environment - see below.
     if (errorCount <= THRESHOLD || !entityId) continue;
 
     await eventsClient.createEvent({
@@ -194,13 +194,13 @@ export default async function ({ execution_id }) {
 
 ### Why `entitySelector` is the load-bearing line
 
-Davis groups alerts by the entity they are *about*. Every Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal concerns — and the documented rule is that the same-Smartscape-entity rule groups all events sharing the same `dt.smartscape_source.id` value. Events naming the same entity inside the correlation window collapse into **one** problem that updates as the condition persists.
+Davis groups alerts by the entity they are *about*. Most Davis events carry `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal concerns; 84.9% did on a validation tenant over 7 days, 08/11/2026 — and the documented rule is that the same-Smartscape-entity rule groups all events sharing the same `dt.smartscape_source.id` value. Events naming the same entity inside the correlation window collapse into **one** problem that updates as the condition persists.
 
-An event that leaves that field unset matches nothing, so it merges with nothing: **every single firing opens its own problem.** This is a structural failure rather than a sensitivity one — no threshold change fixes it, because those events were never candidates for merging in the first place.
+On the ingest API you do not set that field directly. You attribute the event with `entitySelector`, and Davis populates `dt.smartscape_source.id` from the entity it resolves. The failure mode is quiet by design: if `entitySelector` is not set, the event is associated with the environment (`dt.entity.environment`) entity — one bucket for the entire tenant. Technically attributed, useless for correlation.
 
-On the ingest API you do not set the field directly. You attribute the event with `entitySelector`, and Davis populates `dt.smartscape_source.id` from the entity it resolves. The failure mode is quiet by design: if `entitySelector` is not set, the event is associated with the environment (`dt.entity.environment`) entity — one bucket for the entire tenant. Technically attributed, useless for correlation.
+**That fallback is the whole failure, and it runs in the opposite direction from the one people expect.** An event with no `entitySelector` does not become unmergeable — it becomes maximally mergeable, because one bucket for the entire tenant means every such alert names the same entity and the correlation rule welds them into the same problem. Measured on a validation tenant over 7 days on 08/11/2026, events that fell back to the environment entity ran at **596 firings per correlation against that single entity** — 28,003 firings in 47 correlations — while events naming a real entity ran at 11. This is a structural failure rather than a sensitivity one, and no threshold change fixes it.
 
-**The loop is what makes this expensive.** A scheduled workflow that iterates records emits one event per breaching row per run. Attributed, an hourly run against twelve breaching deployments keeps twelve problems updated. Unattributed, that same run opens twelve *brand new* problems every hour — 288 a day from one workflow. This is the single most common way a migrated Splunk alert becomes noise in Dynatrace, and it does not look like a threshold problem when you go to debug it.
+**The loop is what makes this destructive.** A scheduled workflow that iterates records emits one event per breaching row per run. Attributed, an hourly run against twelve breaching deployments keeps twelve problems updated — one per deployment, each naming the workload that broke. Unattributed, that same run folds all twelve into **one** problem on the environment entity, and every subsequent run folds into it too. You do not get an alert storm; you get a single permanently-open problem that names the whole tenant, cannot be routed to an owner, and no longer tells you which deployment is failing. This is the single most common way a migrated Splunk alert stops being useful in Dynatrace, and it does not look like a threshold problem when you go to debug it.
 
 ### Getting a usable entity ID
 
@@ -235,7 +235,7 @@ Executed against the validation tenant over 24 hours on 07/31/2026, the top five
 
 **Two of the top five do not resolve — including the largest, by two orders of magnitude.** The `fluent-bit` logs carry a `dt.entity.cloud_application` value with no matching Smartscape deployment node, and the 145,032-error row carries no deployment context at all.
 
-Skip those rows rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it opens a fresh problem on every run and no tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
+Skip those rows rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it lands on the environment entity, merges with every other unattributable alert into a problem that names nothing actionable, and no tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
 
 To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks them by firing count and shows which are unattributed; AIOPS-03 §1 covers the correlation rules themselves, and ALERT-99 §3 explains which Davis data object to count when you audit.
 

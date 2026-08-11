@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -128,10 +128,14 @@ Measures how many requests a service handles per unit of time.
 
 Measures the proportion of requests that fail.
 
-- **Source**: Server spans where `http.response.status_code >= 500` or `otel.status_code == "ERROR"`
+- **Source**: Server spans where `http.response.status_code >= 500` or `span.status_code == "error"`
 - **Aggregation**: Count of errors / count of total requests
 - **Dimensions**: `service.name`, `http.route`, `http.response.status_code`
 - **Sampling-aware**: Error rate (ratio) is naturally sampling-tolerant; absolute error count is not
+
+> **The failure field is `span.status_code`, and it is lowercase.** `otel.status_code` does not exist in Grail — it has no row in `dt.semantic_dictionary.fields` — and the value is `"error"`, not the SDK's uppercase `ERROR`. Both mistakes return **zero rows without an error**, which on a sampling notebook is doubly dangerous: a zero error count reads as "sampling is discarding my errors" and sends you tuning the sampler instead of fixing the field name.
+>
+> A third trap compounds it: **`span.status_code` is null on successful spans** (`"ok"` is written vanishingly rarely). So `countIf(span.status_code != "error")` counts almost nothing — derive successes as **`total - errors`**. A sampling-compensation factor applied to a zero is still zero, so this error survives every downstream correction.
 
 ### Duration (Latency)
 
@@ -151,12 +155,17 @@ fetch spans, from:-1h
 
 ```dql
 // RED: Error rate by service
+// Counts both HTTP 5xx and spans the instrumentation marked failed.
+// span.status_code is the real field (not otel.status_code) and its value is
+// lowercase "error"; it is null on successful spans, so successes = total - errors.
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(),
-    errors = countIf(http.response.status_code >= 500),
-    by:{service.name}
-| fieldsAdd error_rate_pct = round(toDouble(errors) / toDouble(total) * 100, decimals: 2)
+| summarize {
+    total = count(),
+    errors = countIf(http.response.status_code >= 500 or span.status_code == "error")
+  }, by:{service.name}
+| fieldsAdd successes = total - errors
+| fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
 | sort error_rate_pct desc
 ```
 

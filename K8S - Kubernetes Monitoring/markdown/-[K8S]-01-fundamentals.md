@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -177,6 +177,10 @@ Dynatrace collects multiple signal types from Kubernetes:
 | `builtin:kubernetes.workload.requests_memory` | Memory requests | Bytes |
 | `builtin:kubernetes.workload.limits_cpu` | CPU limits | Millicores |
 | `builtin:kubernetes.workload.limits_memory` | Memory limits | Bytes |
+
+> **These are `builtin:` keys — the classic Metrics namespace, not Grail.** They are correct for the classic Metrics API, Data Explorer and classic dashboards, but **DQL reads Grail only**: `metrics | filter startsWith(metric.key, "builtin:")` returns **zero rows over 7 days** on a live tenant (08/11/2026), while `startsWith(metric.key, "dt.kubernetes")` returns 27 keys in the same command. A `timeseries avg(builtin:kubernetes.workload.requests_cpu)` therefore charts nothing and reports no error.
+>
+> For DQL, use the Grail equivalents — and note the **grain differs, not just the prefix**: Grail emits requests and limits at **container** grain (`dt.kubernetes.container.requests_cpu`, `.requests_memory`, `.limits_cpu`, `.limits_memory`), summed by you across `k8s.workload.name` to reach a workload figure. There is no `dt.kubernetes.workload.requests_*`. Full Grail key list and the derivation pattern: **K8S-08 §2**.
 
 > **Request and limit metrics changed what they count in ActiveGate 1.343** — init containers are now included in the pod-scope total, and therefore in workload roll-ups. Reserved figures step up at the upgrade with no workload change; usage metrics are unaffected. This matters whenever you compare a request/limit trend across the upgrade boundary — see K8S-08 §2 before drawing capacity conclusions from one.
 

@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -131,7 +131,7 @@ fetch dt.davis.problems, from:-7d
 // Daily error rate by service — automated operations report
 fetch spans, from:-24h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(otel.status_code == "ERROR"), by:{dt.entity.service}
+| summarize total = count(), errors = countIf(span.status_code == "error"), by:{dt.entity.service}
 | fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
 | filter error_rate_pct > 1.0
 | sort error_rate_pct desc

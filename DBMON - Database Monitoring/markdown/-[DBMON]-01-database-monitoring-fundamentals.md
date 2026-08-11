@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/05/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -97,19 +97,21 @@ The query above returns the key attributes of each database span:
 Dynatrace automatically creates **database service entities** when it detects database calls. These entities represent the logical database endpoint, not the host. Let's discover what database services exist in your environment.
 
 ```dql
-// Discover all database service entities (modern Smartscape topology query)
-smartscapeNodes "SERVICE"
-| filter serviceType == "DATABASE_SERVICE"
-| fields name, databaseHostNames, databaseVendor, softwareTechnologies
-| sort name asc
+// Discover which services call databases, and what they call.
+// Note: `serviceType`, `databaseVendor`, `databaseHostNames` and `softwareTechnologies` are
+// CLASSIC dt.entity.service attributes — the Smartscape SERVICE node does not carry them
+// (its model is id / id_classic / name / type / tags / lifetime / references), so filtering
+// a Smartscape node on serviceType == "DATABASE_SERVICE" matches nothing. Under service
+// detection v2 there is no separate DATABASE_SERVICE entity at all: a database call is a
+// CLIENT span on the calling service, described by db.* attributes. Start from the spans
+// and resolve the service identity from there.
+fetch spans, from:-24h
+| filter isNotNull(db.system)
+| summarize call_count = count(), by:{dt.entity.service, db.system, server.address}
+| fieldsAdd calling_service = entityName(dt.entity.service, type:"dt.entity.service")
+| fieldsKeep calling_service, db.system, server.address, call_count
+| sort call_count desc
 | limit 50
-
-// Legacy alternative (deprecated dt.entity.* — still works on hybrid tenants):
-// fetch dt.entity.service
-// | filter serviceType == "DATABASE_SERVICE"
-// | fields entity.name, databaseHostNames, databaseVendor, softwareTechnologies
-// | sort entity.name asc
-// | limit 50
 ```
 
 You can also discover databases through the spans themselves, which is useful when entity detection hasn't yet completed or when you want to see databases called from specific services.
@@ -119,10 +121,10 @@ You can also discover databases through the spans themselves, which is useful wh
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     call_count = count(),
-|     avg_duration_ms = avg(duration) / 1ms,
-|     distinct_statements = countDistinct(db.statement)
-| }, by:{db.system, db.namespace, server.address}
+    call_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    distinct_statements = countDistinct(db.statement)
+}, by:{db.system, db.namespace, server.address}
 | sort call_count desc
 | limit 20
 ```
@@ -138,11 +140,11 @@ Understanding the distribution of database calls helps identify which databases 
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     total_calls = count(),
-|     avg_duration_ms = avg(duration) / 1ms,
-|     p95_duration_ms = percentile(duration, 95) / 1ms,
-|     max_duration_ms = max(duration) / 1ms
-| }, by:{db.system}
+    total_calls = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms,
+    max_duration_ms = max(duration) / 1ms
+}, by:{db.system}
 | sort total_calls desc
 ```
 
@@ -165,7 +167,14 @@ fetch spans, from:-1h
 
 ## 5. Database Types and Technologies
 
-Dynatrace supports a broad range of database technologies through OneAgent auto-instrumentation:
+Dynatrace supports a broad range of database technologies through OneAgent auto-instrumentation.
+
+> **Coverage is per client library, not per database.** "Auto-instrumented" describes the *driver* the
+> application uses, so support arrives library by library and OneAgent version by OneAgent version. Redis on
+> .NET is the clearest example: **StackExchange.Redis** is auto-instrumented from **OneAgent 1.337** and
+> **ServiceStack.Redis** only from **OneAgent 1.343** — the same database, two client libraries, six sprints
+> apart. Where a `db.system` value below is missing from your spans, check the client library and the OneAgent
+> version on the calling host before concluding the database is unmonitored.
 
 | Category | Technologies | `db.system` Values |
 |----------|-------------|-------------------|
@@ -179,7 +188,7 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 > **Important:** The `db.system` field follows the OpenTelemetry semantic conventions. The exact values may vary depending on the database driver and instrumentation version.
 
-> **Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.** The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — 19 models in total, each with `belongs_to` / `runs_on` / `is_part_of` / `same_as` / `uses` relationship properties. As these roll out, expect database topology to surface as typed Smartscape nodes rather than only the generic `DATABASE_SERVICE` shape used in §3. The span-level `db.system` analysis in this series is unaffected.
+> **Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.** The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — **21 models** in total, each with `belongs_to` / `runs_on` / `is_part_of` / `same_as` / `uses` relationship properties. (Verified against the live Semantic Dictionary: `fetch dt.semantic_dictionary.models | filter startsWith(name, "dt.smartscape.db_")` returns 21.) As these roll out, expect database topology to surface as typed Smartscape nodes rather than only the generic `DATABASE_SERVICE` shape used in §3. The span-level `db.system` analysis in this series is unaffected.
 
 > **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Db2 database naming switched to mixed case, so saved DQL or filters that match Db2 *entity or database names* case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
 
@@ -188,10 +197,10 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | summarize {
-|     call_count = count(),
-|     unique_databases = countDistinct(db.namespace),
-|     unique_servers = countDistinct(server.address)
-| }, by:{db.system}
+    call_count = count(),
+    unique_databases = countDistinct(db.namespace),
+    unique_servers = countDistinct(server.address)
+}, by:{db.system}
 | sort call_count desc
 ```
 
@@ -271,9 +280,9 @@ Establishing a performance baseline is essential for detecting anomalies. The fo
 // Database response time baseline — hourly P50, P95, P99 over the last 24 hours
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| makeTimeseries p50_ms = percentile(duration, 50) / 1ms,
-                 p95_ms = percentile(duration, 95) / 1ms,
-                 p99_ms = percentile(duration, 99) / 1ms,
+| makeTimeseries p50_ms = percentile(duration / 1ms, 50),
+                 p95_ms = percentile(duration / 1ms, 95),
+                 p99_ms = percentile(duration / 1ms, 99),
                  interval:1h
 ```
 
@@ -282,7 +291,7 @@ fetch spans, from:-24h
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | makeTimeseries total = count(),
-                 errors = countIf(otel.status_code == "ERROR", default:0),
+                 errors = countIf(span.status_code == "error", default:0),
                  interval:1h
 | fieldsAdd error_rate_pct = round(arraySum(errors) / arraySum(total) * 100, decimals:2)
 ```

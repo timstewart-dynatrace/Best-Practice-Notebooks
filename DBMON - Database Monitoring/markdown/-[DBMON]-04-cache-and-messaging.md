@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 05/07/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -61,10 +61,10 @@ For environments where SVG doesn't render
 fetch spans, from:-1h
 | filter in(db.system, {"redis", "memcached", "kafka", "rabbitmq", "elasticsearch", "opensearch"})
 | summarize {
-|     call_count = count(),
-|     avg_us = avg(duration) / 1000.0,
-|     p95_us = percentile(duration, 95) / 1000.0
-| }, by:{db.system, server.address}
+    call_count = count(),
+    avg_us = avg(duration) / 1000.0,
+    p95_us = percentile(duration, 95) / 1000.0
+}, by:{db.system, server.address}
 | sort call_count desc
 ```
 
@@ -80,11 +80,11 @@ fetch spans, from:-1h
 | filter db.system == "redis"
 | filter isNotNull(db.operation)
 | summarize {
-|     call_count = count(),
-|     avg_us = avg(duration) / 1000.0,
-|     p95_us = percentile(duration, 95) / 1000.0,
-|     max_us = max(duration) / 1000.0
-| }, by:{db.operation}
+    call_count = count(),
+    avg_us = avg(duration) / 1000.0,
+    p95_us = percentile(duration, 95) / 1000.0,
+    max_us = max(duration) / 1000.0
+}, by:{db.operation}
 | sort call_count desc
 ```
 
@@ -108,8 +108,8 @@ fetch spans, from:-1h
 // Redis latency over time — detect performance degradation
 fetch spans, from:-6h
 | filter db.system == "redis"
-| makeTimeseries avg_us = avg(duration) / 1000.0,
-                 p95_us = percentile(duration, 95) / 1000.0,
+| makeTimeseries avg_us = avg(duration / 1us),
+                 p95_us = percentile(duration / 1us, 95),
                  call_count = count(),
                  interval:5m
 ```
@@ -151,9 +151,9 @@ fetch spans, from:-1h
 | filter db.system == "kafka" or messaging.system == "kafka"
 | filter isNotNull(messaging.destination.name)
 | summarize {
-|     msg_count = count(),
-|     avg_ms = avg(duration) / 1ms
-| }, by:{messaging.destination.name, messaging.operation}
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms
+}, by:{messaging.destination.name, messaging.operation}
 | sort msg_count desc
 ```
 
@@ -163,7 +163,7 @@ fetch spans, from:-6h
 | filter messaging.system == "kafka" and messaging.operation == "process"
 | filter isNotNull(messaging.destination.name)
 | makeTimeseries msg_count = count(),
-                 avg_process_ms = avg(duration) / 1ms,
+                 avg_process_ms = avg(duration / 1ms),
                  by:{messaging.destination.name},
                  interval:5m
 ```
@@ -174,11 +174,11 @@ fetch spans, from:-1h
 | filter messaging.system == "kafka" and messaging.operation == "process"
 | filter isNotNull(messaging.kafka.consumer.group)
 | summarize {
-|     msg_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     errors = countIf(otel.status_code == "ERROR")
-| }, by:{messaging.kafka.consumer.group, messaging.destination.name}
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == "error")
+}, by:{messaging.kafka.consumer.group, messaging.destination.name}
 | sort msg_count desc
 ```
 
@@ -194,10 +194,10 @@ fetch spans, from:-1h
 | filter db.system == "rabbitmq" or messaging.system == "rabbitmq"
 | filter isNotNull(messaging.destination.name)
 | summarize {
-|     msg_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     errors = countIf(otel.status_code == "ERROR")
-| }, by:{messaging.destination.name, messaging.operation}
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    errors = countIf(span.status_code == "error")
+}, by:{messaging.destination.name, messaging.operation}
 | sort msg_count desc
 ```
 
@@ -221,10 +221,10 @@ fetch spans, from:-1h
 | filter in(db.system, {"elasticsearch", "opensearch"})
 | filter isNotNull(db.operation)
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms
-| }, by:{db.system, db.operation}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.system, db.operation}
 | sort call_count desc
 ```
 
@@ -252,11 +252,11 @@ fetch spans, from:-1h
         or in(messaging.system, {"kafka", "rabbitmq"})
 | fieldsAdd system = coalesce(db.system, messaging.system)
 | summarize {
-|     total_ops = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     error_count = countIf(otel.status_code == "ERROR")
-| }, by:{system}
+    total_ops = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    error_count = countIf(span.status_code == "error")
+}, by:{system}
 | fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(total_ops)) * 100, decimals:2)
 | sort total_ops desc
 ```

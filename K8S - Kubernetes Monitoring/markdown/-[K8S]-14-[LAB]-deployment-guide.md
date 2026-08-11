@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -103,7 +103,7 @@ export DATA_INGEST_TOKEN="dt0c01.XXXXXXXX.ZZZZZZZZZZZZZZZZ"
 
 ```bash
 helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
-  --version 1.10.1 \
+  --version 1.10.2 \
   --create-namespace \
   --namespace dynatrace \
   --atomic
@@ -111,7 +111,7 @@ helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
 
 The `--atomic` flag ensures the installation is rolled back automatically if any component fails to start.
 
-> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.1** is the recommended pin as of 07/30/2026: skip **1.10.0** (auto-update defect; now flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)), and while **v1.10.2** was published 07/30/2026 and is the newest tag, it ships without a published changelog — verify what it changes before adopting it. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2).
+> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.2** (released July 30, 2026) is the recommended pin: it fixes a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, and injected pods hanging on the OneAgent-binary download, and it starts logging metadata-enrichment rules it cannot apply. The tagging fix is a **behaviour change** if you have several rules for one key — see K8S-10 before upgrading a cluster that relies on the old ordering. **Skip 1.10.0** (auto-update defect; flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)). Estates adopt operator releases on their own schedule — **1.10.1 remains a working pin** until you upgrade, with the OpenShift-manifest caveat in K8S-09 §2. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2).
 
 ### Step 2: Create the Token Secret
 
@@ -545,16 +545,31 @@ Healthy range: 300-800 MB per OneAgent pod. If consistently above 1 GB, check fo
 ### 10.2 Dynatrace Component Failures
 
 ```dql
-// K8s events for OOMKilled, CrashLoopBackOff in dynatrace namespace
+// Kubernetes events for Dynatrace components — restarts, back-offs, mount and scheduling failures
+// event.provider is the discriminator. event.kind never takes a "K8S_EVENT" value: these
+// records carry "DAVIS_EVENT", so filtering on kind returns zero rows and looks like health.
 fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
 | filter k8s.namespace.name == "dynatrace"
-| filter event.kind == "K8S_EVENT"
-| fields timestamp, event.name, event.kind, k8s.pod.name
+| fields timestamp, k8s.cluster.name, k8s.workload.name,
+         dt.kubernetes.event.reason,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
 | sort timestamp desc
 | limit 30
 ```
 
-Expected: No `OOMKilled` or `CrashLoopBackOff` events. If present, increase resource limits in the DynaKube CR.
+Expected: no `Failed`, `FailedMount`, `FailedScheduling` or `BackOff` reasons. If present, increase resource limits in the DynaKube CR or follow the matching row in K8S-09 §9.
+
+**OOM kills are not an event** — Dynatrace emits them as a counter derived from container status, so check the metric separately:
+
+```dql
+timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
+  by:{k8s.cluster.name, k8s.workload.name}
+| fieldsAdd oomTotal = arraySum(oom)
+| filter oomTotal > 0
+| sort oomTotal desc
+```
 
 ### 10.3 Metric Data Gaps
 

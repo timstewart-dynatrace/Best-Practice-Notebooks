@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -24,7 +24,7 @@ Cluster health monitoring provides visibility into the infrastructure layer of K
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
 | **DynaKube** | ActiveGate with `kubernetes-monitoring` capability |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Permissions** | `metrics.read`, `entities.read`, `logs.read`, `events.read` |
 | **Data** | At least 24 hours of cluster data |
 
 ## 1. Cluster Health Overview
@@ -125,17 +125,30 @@ smartscapeNodes "K8S_NODE"
 ```
 
 ```dql
-// Node CPU utilization over time (top 10 by name)
-timeseries nodeCpu = avg(dt.kubernetes.node.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
+// Node CPU utilization — container usage summed per node, against node allocatable
+// There is no dt.kubernetes.node.cpu_usage metric: node-level usage is derived
+// by summing the per-container metric. Allocatable is a genuine node-grain metric.
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage),
+    allocatable = avg(dt.kubernetes.node.cpu_allocatable)
+  }, from:-1h, by:{k8s.cluster.name, k8s.node.name}
+| fieldsAdd cpuPercent = round(100 * arrayAvg(used) / arrayAvg(allocatable), decimals: 1)
+| fields k8s.cluster.name, k8s.node.name, cpuPercent
+| sort cpuPercent desc
 | limit 10
 ```
 
 ```dql
-// Node memory utilization - average over time period
-timeseries avgMemory = avg(dt.kubernetes.node.memory_usage), from:-1h, by:{dt.entity.kubernetes_node}
-| fieldsAdd avgMemoryValue = arrayAvg(avgMemory)
-| filter avgMemoryValue > 80
-| sort avgMemoryValue desc
+// Node memory utilization — working-set memory summed per node, against node allocatable
+// Same derivation as CPU above: no dt.kubernetes.node.memory_usage metric exists.
+timeseries {
+    used = sum(dt.kubernetes.container.memory_working_set),
+    allocatable = avg(dt.kubernetes.node.memory_allocatable)
+  }, from:-1h, by:{k8s.cluster.name, k8s.node.name}
+| fieldsAdd memPercent = round(100 * arrayAvg(used) / arrayAvg(allocatable), decimals: 1)
+| filter memPercent > 80
+| fields k8s.cluster.name, k8s.node.name, memPercent
+| sort memPercent desc
 ```
 
 ```dql
@@ -150,12 +163,23 @@ timeseries avgDiskUsage = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entit
 ## 3. Resource Capacity Planning
 ### Capacity Metrics
 
-| Metric | Description | Use Case |
-|--------|-------------|----------|
-| **Allocatable** | Resources available for pods | Scheduling decisions |
-| **Requested** | Sum of pod requests | Capacity planning |
-| **Used** | Actual consumption | Right-sizing |
-| **Limits** | Maximum allowed | Burst capacity |
+| Metric | Description | Use Case | Grail metric key |
+|--------|-------------|----------|------------------|
+| **Allocatable** | Resources available for pods | Scheduling decisions | `dt.kubernetes.node.cpu_allocatable`, `dt.kubernetes.node.memory_allocatable` |
+| **Requested** | Sum of pod requests | Capacity planning | `dt.kubernetes.container.requests_cpu`, `dt.kubernetes.container.requests_memory` |
+| **Used** | Actual consumption | Right-sizing | `dt.kubernetes.container.cpu_usage`, `dt.kubernetes.container.memory_working_set` |
+| **Limits** | Maximum allowed | Burst capacity | `dt.kubernetes.container.limits_cpu`, `dt.kubernetes.container.limits_memory` |
+
+> **Grain matters more than the label.** *Allocatable* is the only genuinely node-grain family — everything else is emitted **per container** and rolled up by you. There is no `dt.kubernetes.node.cpu_usage`, no `dt.kubernetes.node.memory_usage`, and no `dt.kubernetes.workload.requests_*`; node and workload views are derived by summing the `dt.kubernetes.container.*` series across the dimensions you group by. Enumerate what your tenant actually carries before writing a query:
+>
+> ```dql
+> metrics
+> | filter startsWith(metric.key, "dt.kubernetes")
+> | summarize n = count(), by:{metric.key}
+> | sort metric.key asc
+> ```
+>
+> Note the `metrics` command takes `from:` with **no leading comma** (`metrics from:-2h | …`). Writing `metrics, from:-2h` is a parse error, and a parse error read only for its record count looks exactly like "this tenant has no such metrics."
 
 ### Utilization vs. Allocation
 
@@ -174,19 +198,24 @@ timeseries avgDiskUsage = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entit
 For environments where SVG doesn't render
 -->
 
-> **Capacity planning across an ActiveGate 1.343 upgrade:** request and limit metrics **include init containers from ActiveGate 1.343 onward**, so the *Requested* line steps up at the upgrade while *Used* does not move. Read a trend spanning that boundary as **two series, not one** — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.
+> **Capacity planning across an ActiveGate 1.343 upgrade:** the request and limit metrics — `dt.kubernetes.container.requests_cpu` / `requests_memory` and `limits_cpu` / `limits_memory` — **include init containers from ActiveGate 1.343 onward**, so the *Requested* line steps up at the upgrade while *Used* (`dt.kubernetes.container.cpu_usage`, `memory_working_set`) does not move. Read a trend spanning that boundary as **two series, not one** — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.
 
 ```dql
-// CPU requests by namespace (average over time period)
-timeseries avgCpuRequests = avg(dt.kubernetes.workload.requests_cpu), from:-1h, by:{k8s.namespace.name}
-| sort avgCpuRequests desc
+// CPU requests by namespace — requests are a container-grain metric, summed to namespace
+// (there is no dt.kubernetes.workload.requests_cpu; requests live under container.*)
+timeseries cpuReq = sum(dt.kubernetes.container.requests_cpu), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqMillicores = round(arrayAvg(cpuReq), decimals: 0)
+| fields k8s.namespace.name, avgReqMillicores
+| sort avgReqMillicores desc
 | limit 15
 ```
 
 ```dql
-// Memory requests by namespace (average over time period)
-timeseries avgMemRequests = avg(dt.kubernetes.workload.requests_memory), from:-1h, by:{k8s.namespace.name}
-| sort avgMemRequests desc
+// Memory requests by namespace (GiB) — container-grain metric summed to namespace
+timeseries memReq = sum(dt.kubernetes.container.requests_memory), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqGiB = round(arrayAvg(memReq) / 1073741824, decimals: 2)
+| fields k8s.namespace.name, avgReqGiB
+| sort avgReqGiB desc
 | limit 15
 ```
 
@@ -228,51 +257,74 @@ fetch logs, from:-1h
 
 <a id="cluster-wide-events"></a>
 ## 5. Cluster-Wide Events
-### Event Types to Monitor
 
-| Event Type | Reason | Action |
-|------------|--------|--------|
-| **Warning** | FailedScheduling | Check resource constraints |
-| **Warning** | FailedMount | Check PV/PVC configuration |
-| **Warning** | OOMKilled | Increase memory limits |
-| **Warning** | Evicted | Node under pressure |
-| **Normal** | Pulling/Pulled | Image operations |
-| **Normal** | Scheduled | Pod placement |
+### Where Kubernetes events actually live
+
+Kubernetes events are ingested into the **`events`** object, not into `logs`. Two discriminators are easy to get wrong, and both fail silently:
+
+| Getting it wrong | What actually happens |
+|---|---|
+| `fetch events \| filter event.kind == "K8S_EVENT"` | **`event.kind` never takes that value.** Over 24 h on a live tenant (08/11/2026) the only values present were `DAVIS_EVENT`, `SYNTHETIC_EVENT`, `FLEET_EVENT` and `DAVIS_PROBLEM`. Kubernetes events carry `event.kind == "DAVIS_EVENT"`, so *kind* cannot discriminate them. Zero rows, no error. |
+| `fetch logs \| filter matchesPhrase(log.source, "kubernetes")` | Zero rows **after scanning 46.5 GB** (same tenant, same window). Expensive and empty — the worst combination. |
+| `k8s.event.reason` | The field resolves but is **null on every Kubernetes event record**. Another silent zero. |
+
+**The correct discriminator is `event.provider == "KUBERNETES_EVENT"`**, and the reason field is **`dt.kubernetes.event.reason`**. Companion fields on the same records: `dt.kubernetes.event.message`, `.count`, `.first_seen`, `.last_seen`, `.involved_object.kind`, `.involved_object.name`, plus the standard `k8s.cluster.name` / `k8s.namespace.name` / `k8s.pod.name` / `k8s.workload.name` / `k8s.node.name` dimensions.
+
+### Event Reasons to Monitor
+
+Reasons observed on tenant `yhu28601` over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:
+
+| Reason | Count (24 h) | Action |
+|--------|-------------:|--------|
+| **Unhealthy** | 2,084 | Readiness/liveness probe failing — check the probe and the container |
+| **BackOff** | 586 | Container restart loop — check logs and exit codes |
+| **FailedScheduling** | 433 | No node satisfies requests/affinity/taints |
+| **Killing** | 250 | Normal termination during rollout, or eviction |
+| **KernelReady** | 136 | Node lifecycle, informational |
+| **Failed** / **FailedMount** / **BackoffLimitExceeded** | tens | Image pull, volume, and Job failures |
 
 ```dql
-// Kubernetes warning events
-fetch logs, from:-1h
-| filter matchesPhrase(content, "Warning") and (matchesPhrase(log.source, "kubernetes") or matchesPhrase(log.source, "k8s"))
-| fields timestamp, content
-| sort timestamp desc
-| limit 50
+// Event summary by reason — run this first to see what your estate actually emits
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| summarize eventCount = count(), by:{dt.kubernetes.event.reason}
+| sort eventCount desc
+| limit 25
 ```
 
 ```dql
-// Failed scheduling events
-fetch logs, from:-1h
-| filter matchesPhrase(content, "FailedScheduling") or matchesPhrase(content, "Insufficient")
-| fields timestamp, content
+// Scheduling and placement failures — the pods that could not be placed
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter dt.kubernetes.event.reason == "FailedScheduling"
+| fields timestamp, k8s.cluster.name, k8s.namespace.name,
+         dt.kubernetes.event.involved_object.kind,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
 | sort timestamp desc
 | limit 30
 ```
 
 ```dql
-// OOMKilled events - memory issues
-fetch logs, from:-1h
-| filter matchesPhrase(content, "OOMKilled") or matchesPhrase(content, "Out of memory")
-| fields timestamp, content
-| sort timestamp desc
+// OOM kills by workload — the metric, not an event
+// OOMKilled has no reliable Kubernetes event reason; Dynatrace emits it as a counter
+// derived from the container status, written only when at least one kill occurred.
+timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd oomTotal = arraySum(oom)
+| filter oomTotal > 0
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, oomTotal
+| sort oomTotal desc
 | limit 30
 ```
 
 ```dql
-// Event summary by type
-fetch logs, from: now() - 24h
-| filter matchesPhrase(log.source, "kubernetes") or matchesPhrase(log.source, "k8s")
-| parse content, "LD:eventType ' ' LD"
-| summarize count = count(), by:{eventType}
-| sort count desc
+// Which namespaces and workloads generate the most event noise
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| summarize eventCount = count(),
+    by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name, dt.kubernetes.event.reason}
+| sort eventCount desc
 | limit 20
 ```
 
@@ -341,16 +393,13 @@ timeseries by:{k8s.cluster.name}, from:-1h,
 ```
 
 ```dql
-// Dynatrace component restarts and OOM events (last 24h)
+// Dynatrace component events (last 24h) — restarts, back-offs, scheduling failures
+// Discriminator is event.provider, NOT event.kind (these records carry event.kind == "DAVIS_EVENT").
 fetch events, from:-24h
-| filter event.kind == "K8S_EVENT"
-| filter matchesPhrase(event.description, "dynatrace") AND (
-    matchesPhrase(event.description, "restart") OR
-    matchesPhrase(event.description, "OOMKilled") OR
-    matchesPhrase(event.description, "BackOff")
-  )
-| fields timestamp, event.description
-| sort timestamp desc
+| filter event.provider == "KUBERNETES_EVENT"
+| filter k8s.namespace.name == "dynatrace"
+| summarize eventCount = count(), by:{k8s.cluster.name, k8s.workload.name, dt.kubernetes.event.reason}
+| sort eventCount desc
 | limit 50
 ```
 

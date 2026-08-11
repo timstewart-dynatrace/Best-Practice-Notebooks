@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -25,7 +25,7 @@ This notebook provides a comprehensive reference of DQL queries for Kubernetes m
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Permissions** | `metrics.read`, `entities.read`, `logs.read`, `events.read` |
 | **Knowledge** | K8S-01 through K8S-07 |
 | **Data** | Active Kubernetes cluster monitored |
 
@@ -110,29 +110,56 @@ smartscapeNodes "K8S_NODE"
 ## 2. Metric Queries
 ### Common Kubernetes Metrics
 
-| Metric | Description | Unit |
-|--------|-------------|------|
-| `dt.kubernetes.container.cpu_usage` | Container CPU usage | Millicores |
-| `dt.kubernetes.container.memory_working_set` | Container memory (active) | Bytes |
-| `dt.kubernetes.container.requests_cpu` | CPU requests | Millicores |
-| `dt.kubernetes.container.requests_memory` | Memory requests | Bytes |
-| `dt.kubernetes.container.limits_cpu` | CPU limits | Millicores |
-| `dt.kubernetes.container.limits_memory` | Memory limits | Bytes |
-| `dt.containers.cpu.throttled_time` | CPU throttle time | Nanoseconds |
-| `dt.kubernetes.node.cpu_usage` | Node CPU usage | Millicores |
-| `dt.kubernetes.node.memory_usage` | Node memory usage | Bytes |
+The table below lists keys verified present on a live tenant (`yhu28601`, 08/11/2026). Enumerate your own before writing a query — this is what exists there, not a guarantee for every estate:
+
+```dql
+metrics
+| filter startsWith(metric.key, "dt.kubernetes")
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
+```
+
+> Two mechanics that bite here. **`metrics` takes `from:` with no leading comma** — `metrics from:-2h | …`. Writing `metrics, from:-2h` is a `PARSE_ERROR`, and a parse error read only for its record count is indistinguishable from "this tenant carries no such metrics." And **`metrics` returns one row per dimension tuple**, not one per key, so `summarize by:{metric.key}` is what collapses the result into a key list.
+
+| Metric | Description | Unit | Grain |
+|--------|-------------|------|-------|
+| `dt.kubernetes.container.cpu_usage` | Container CPU usage | Millicores | container |
+| `dt.kubernetes.container.memory_working_set` | Container memory (active) | Bytes | container |
+| `dt.kubernetes.container.requests_cpu` | CPU requests | Millicores | container |
+| `dt.kubernetes.container.requests_memory` | Memory requests | Bytes | container |
+| `dt.kubernetes.container.limits_cpu` | CPU limits | Millicores | container |
+| `dt.kubernetes.container.limits_memory` | Memory limits | Bytes | container |
+| `dt.kubernetes.container.cpu_throttled` | CPU throttling | — | container |
+| `dt.kubernetes.container.restarts` | Restart count (delta) | Count | container |
+| `dt.kubernetes.container.oom_kills` | OOMKilled count | Count | container |
+| `dt.containers.cpu.throttled_time` | CPU throttle time | Nanoseconds | container |
+| `dt.kubernetes.node.cpu_allocatable` | Node allocatable CPU | Millicores | node |
+| `dt.kubernetes.node.memory_allocatable` | Node allocatable memory | Bytes | node |
+| `dt.kubernetes.node.pods_allocatable` | Node allocatable pod slots | Count | node |
+| `dt.kubernetes.node.conditions` | Node condition status | — | node |
+| `dt.kubernetes.pod.containers_desired` | Desired containers per pod | Count | pod |
+| `dt.kubernetes.pod.network_received_data` / `.network_transmitted_data` | Pod network throughput | Bytes | pod |
+| `dt.kubernetes.workload.pods_desired` | Desired pods per workload | Count | workload |
+| `dt.kubernetes.workload.conditions` | Workload condition status | — | workload |
+| `dt.kubernetes.nodes` / `.pods` / `.containers` / `.workloads` / `.events` | Object counts | Count | cluster |
+
+> **There is no node- or workload-grain *usage* or *requests* metric.** `dt.kubernetes.node.cpu_usage`, `dt.kubernetes.node.memory_usage`, `dt.kubernetes.workload.requests_cpu` and `dt.kubernetes.workload.requests_memory` **do not exist** — each returns zero rows from `metrics | filter metric.key == "…"` (checked 08/11/2026). Node and workload views are **derived**: sum the `dt.kubernetes.container.*` series across `k8s.node.name` or `k8s.workload.name`. Only the `*_allocatable` family is genuinely node-grain.
+>
+> This is worth stating plainly because a `timeseries` against a key that does not exist is syntactically valid, executes without error, and returns nothing — the same shape as a correct query against an idle cluster. §5 below shows the derivation for nodes.
 
 > **Reading request and limit metrics across an ActiveGate 1.343 upgrade.** **ActiveGate 1.343 changes what the CPU and memory *request* and *limit* metrics count: init containers are now included in the pod-scope total** — and therefore in any workload- or namespace-level roll-up of it. Reported reservations **step up at the upgrade with no workload change at all**, because the arithmetic changed, not the cluster.
 >
 > | Metric family | Affected by the 1.343 change? |
 > |---|---|
-> | `*.requests_cpu`, `*.requests_memory`, `*.limits_cpu`, `*.limits_memory` | **Yes** — init containers now counted |
-> | `*.cpu_usage`, `*.memory_working_set`, `*.memory_usage` | **No** — usage metrics are unchanged |
+> | `dt.kubernetes.container.requests_cpu`, `.requests_memory`, `.limits_cpu`, `.limits_memory` | **Yes** — init containers now counted |
+> | `dt.kubernetes.container.cpu_usage`, `.memory_working_set` | **No** — usage metrics are unchanged |
 >
 > Two practical consequences:
 >
 > 1. **A trend that spans the upgrade boundary is two series, not one.** Do not read a request/limit chart across the boundary as a single trend, and do not let a threshold alert on reserved CPU or memory fire on the discontinuity. Bound your comparison windows on one side of the upgrade or the other.
 > 2. **Pre-1.343 baselines understate reservations** relative to what the scheduler actually reserved, because init-container requests were excluded. Post-1.343 figures are the more faithful number — re-baseline rather than trying to reconcile the two.
+>
+> Because node and namespace roll-ups are *derived* from these container-grain series (see the note above), the step-up propagates to every level you aggregate to — there is no unaffected roll-up to fall back on.
 >
 > ActiveGate 1.343 rolls out per ActiveGate, not per tenant, and ActiveGate fleets lag tenant version — so **verify the version of the ActiveGate carrying the `kubernetes-monitoring` capability for the cluster in question** before deciding which side of the boundary a data point sits on. Until 1.343 reaches that ActiveGate, the pre-1.343 reading (init containers excluded) is what your data shows, and everything above about baselines and alert thresholds still describes it correctly.
 
@@ -168,13 +195,29 @@ timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:
 
 ```dql
 // Resource requests by namespace (capacity planning)
-timeseries avgCpuRequests = avg(dt.kubernetes.workload.requests_cpu), from:-1h, by:{k8s.namespace.name}
-| sort avgCpuRequests desc
+// Requests are container-grain; sum them to reach the namespace figure.
+timeseries cpuReq = sum(dt.kubernetes.container.requests_cpu), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgReqMillicores = round(arrayAvg(cpuReq), decimals: 0)
+| fields k8s.namespace.name, avgReqMillicores
+| sort avgReqMillicores desc
 | limit 15
 ```
 
 <a id="log-and-event-queries"></a>
 ## 3. Log and Event Queries
+
+**Logs and Kubernetes events are two different objects, and the split is not optional.** Application output written to stdout/stderr lands in `logs`. Kubernetes events — `FailedScheduling`, `BackOff`, `Unhealthy`, `Killing` — land in `events`, and are **not** searchable through `logs`.
+
+Getting this wrong is expensive in both directions:
+
+| Anti-pattern | Result on a live tenant (08/11/2026) |
+|---|---|
+| `fetch logs \| filter matchesPhrase(log.source, "kubernetes")` | **0 rows after scanning 46.5 GB.** Empty *and* billed. |
+| `fetch events \| filter event.kind == "K8S_EVENT"` | **0 rows.** `event.kind` never takes that value — over 24 h the only values present were `DAVIS_EVENT`, `SYNTHETIC_EVENT`, `FLEET_EVENT`, `DAVIS_PROBLEM`. Kubernetes events carry `DAVIS_EVENT`, so *kind* cannot discriminate them. |
+| `k8s.event.reason` | Field resolves, **null on every record**. |
+
+**The working pair is `event.provider == "KUBERNETES_EVENT"` plus `dt.kubernetes.event.reason`.** Companion fields: `dt.kubernetes.event.message`, `.count`, `.first_seen`, `.last_seen`, `.involved_object.kind`, `.involved_object.name`, alongside `k8s.cluster.name` / `k8s.namespace.name` / `k8s.pod.name` / `k8s.workload.name` / `k8s.node.name`.
+
 ### Log Query Patterns
 
 ```dql
@@ -188,30 +231,36 @@ fetch logs, from:-1h
 ```
 
 ```dql
-// Kubernetes events - warnings only
-fetch logs, from:-1h
-| filter matchesPhrase(content, "Warning")
-| filter matchesPhrase(log.source, "kubernetes") or matchesPhrase(log.source, "k8s")
-| fields timestamp, content
-| sort timestamp desc
+// Kubernetes events — what your estate actually emits, by reason
+fetch events, from:-1h
+| filter event.provider == "KUBERNETES_EVENT"
+| summarize eventCount = count(), by:{dt.kubernetes.event.reason}
+| sort eventCount desc
 | limit 30
 ```
 
 ```dql
-// Pod crashes and restarts
-fetch logs, from:-1h
-| filter matchesPhrase(content, "CrashLoopBackOff") or matchesPhrase(content, "BackOff")
-| fields timestamp, content
+// Pod crash / restart loops — the BackOff event carries the pod and the reason
+fetch events, from:-1h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter dt.kubernetes.event.reason == "BackOff"
+| fields timestamp, k8s.cluster.name, k8s.namespace.name,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
 | sort timestamp desc
 | limit 20
 ```
 
 ```dql
-// OOM events
-fetch logs, from:-1h
-| filter matchesPhrase(content, "OOMKilled") or matchesPhrase(content, "Out of memory")
-| fields timestamp, content
-| sort timestamp desc
+// OOM kills — a metric, not an event
+// Dynatrace derives this counter from the container status and writes it only
+// when at least one kill occurred, so any non-null value is a real OOM.
+timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd oomTotal = arraySum(oom)
+| filter oomTotal > 0
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, oomTotal
+| sort oomTotal desc
 | limit 20
 ```
 
@@ -244,14 +293,20 @@ fetch spans, from:-1h
 
 ```dql
 // Error rate by service
+// Three things to get right here, each of which fails silently:
+//   1. The field is span.status_code (stable). otel.status_code does not exist.
+//   2. Values are LOWERCASE — "error", not "ERROR".
+//   3. span.status_code is NULL on almost every successful span, so derive
+//      successes as total - errors rather than counting a non-error value.
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(k8s.namespace.name)
-| summarize 
+| summarize {
     total = count(),
-    errors = countIf(otel.status_code == "ERROR"),
-    by:{k8s.namespace.name, dt.entity.service}
-| fieldsAdd errorRate = 100.0 * toDouble(errors) / toDouble(total)
+    errors = countIf(span.status_code == "error")
+  }, by:{k8s.namespace.name, dt.entity.service}
+| fieldsAdd successes = total - errors
+| fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
 | filter errors > 0
 | sort errorRate desc
 | limit 15
@@ -292,14 +347,17 @@ timeseries avgCpuMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, 
 ```
 
 ```dql
-// Nodes with high utilization
-timeseries avgNodeCpu = avg(dt.kubernetes.node.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
-| fieldsAdd avgNodeCpuValue = arrayAvg(avgNodeCpu)
-| filter avgNodeCpuValue > 70
-| lookup [fetch dt.entity.kubernetes_node | fields id, entity.name], sourceField:dt.entity.kubernetes_node, lookupField:id
-| fieldsRename nodeName = lookup.entity.name
-| fields nodeName, avgNodeCpuValue
-| sort avgNodeCpuValue desc
+// Nodes with high utilization — derived, because no node-grain usage metric exists
+// used  = container CPU summed across every container on the node
+// alloc = the one genuinely node-grain family
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage),
+    allocatable = avg(dt.kubernetes.node.cpu_allocatable)
+  }, from:-1h, by:{k8s.cluster.name, k8s.node.name}
+| fieldsAdd cpuPercent = round(100 * arrayAvg(used) / arrayAvg(allocatable), decimals: 1)
+| filter cpuPercent > 70
+| fields k8s.cluster.name, k8s.node.name, cpuPercent
+| sort cpuPercent desc
 ```
 
 <a id="dashboard-queries"></a>
@@ -345,10 +403,14 @@ timeseries avgMemBytes = avg(dt.kubernetes.container.memory_working_set), from:-
 ```
 
 ```dql
-// CrashLoop detection (last hour)
-fetch logs, from: now() - 1h
-| filter matchesPhrase(content, "CrashLoopBackOff")
-| summarize crashCount = count()
+// CrashLoop detection (last hour) — alerting condition
+// The event reason is "BackOff"; "CrashLoopBackOff" appears in the message text,
+// so filter on the reason and read the message for detail.
+fetch events, from:-1h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter dt.kubernetes.event.reason == "BackOff"
+| summarize crashLoopEvents = count(),
+    affectedPods = countDistinctExact(dt.kubernetes.event.involved_object.name)
 ```
 
 ```dql

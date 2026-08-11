@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 08/11/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -312,6 +312,29 @@ with tracer.start_as_current_span("operation") as span:
         raise
 ```
 
+### Querying that status back out of Grail
+
+**The SDK constant and the Grail value are not the same string**, and the mismatch is the single most common reason an error-rate query returns zero on a healthy pipeline:
+
+| Layer | Field | Value |
+|---|---|---|
+| OTel SDK (Python/Java/Go/JS) | `StatusCode.ERROR` | `ERROR` — uppercase, this is the spec |
+| OTel Collector config (`tail_sampling` `status_code` policy) | `status_codes: [ERROR, UNSET]` | `ERROR` — uppercase, also correct |
+| **Grail / DQL** | **`span.status_code`** | **`error`** — **lowercase** |
+
+Two further Grail facts to carry into any DQL you write against span status:
+
+- **`otel.status_code` and `otel.status_message` do not exist.** Neither has a row in `dt.semantic_dictionary.fields`. The real fields are `span.status_code` (`stable`) and `span.status_message` (`experimental` — and null on many failing spans, so do not depend on it for the failure reason).
+- **`span.status_code` is null on successful spans.** `"ok"` is written vanishingly rarely — 9 spans out of roughly 659,000 in a two-hour window on a live tenant, 08/11/2026. So `countIf(span.status_code != "error")` counts almost nothing (a `!=` against null is null, not true). **Derive successes as `total - errors`.** An availability SLO built the other way reads 0% on a perfectly healthy service and reports no error while doing it.
+
+Settle any such question against the dictionary rather than against a span sample — an empty span result is ambiguous, an empty dictionary result is not:
+
+```dql
+fetch dt.semantic_dictionary.fields
+| filter startsWith(name, "span.status") or startsWith(name, "otel.status")
+| fields name, stability, type
+```
+
 <a id="language-specific-examples"></a>
 ## 6. Language-Specific Examples
 ### Complete Python Example
@@ -367,9 +390,12 @@ fetch spans, from:-1h
 
 ```dql
 // Find spans with errors
+// The Grail field is span.status_code — NOT otel.status_code, which does not exist
+// (no row in dt.semantic_dictionary.fields). Likewise span.status_message, not
+// otel.status_message. Values are LOWERCASE in Grail: "error", never "ERROR".
 fetch spans, from:-1h
-| filter otel.status_code == "ERROR"
-| fields timestamp, trace.id, span.name, otel.status_message
+| filter span.status_code == "error"
+| fields timestamp, trace.id, span.id, span.name, span.kind, span.status_message
 | sort timestamp desc
 | limit 20
 ```

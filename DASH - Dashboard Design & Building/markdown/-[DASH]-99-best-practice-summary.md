@@ -1,6 +1,6 @@
 # DASH-99: Best Practice Summary
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -138,11 +138,16 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 55 | Convert span duration to milliseconds | `duration / 1ms` for display. Duration is stored in nanoseconds | Critical | DASH-04, DASH-05 |
 | 56 | Convert detected problem duration to hours | `resolved_problem_duration / 1h`. Duration is in nanoseconds | Critical | DASH-03 |
 | 57 | Use `arrayAvg()` on timeseries results before filter/sort | Timeseries returns arrays, not scalars. Use `fieldsAdd val = arrayAvg(ts)` then `filter val > X` | Critical | DASH-04 |
-| 58 | Use `countIf()` for conditional counts | `errors = countIf(otel.status_code == "ERROR")` instead of separate filter + count | Recommended | DASH-03 |
+| 58 | Use `countIf()` for conditional counts | `errors = countIf(span.status_code == "error")` instead of separate filter + count | Recommended | DASH-03 |
 | 59 | Calculate error rate as percentage | `100.0 * errors / total`. Always multiply by 100.0 (float), not 100 (int) | Recommended | DASH-04 |
 | 60 | Filter out duplicate detected problems | Always include `filter dt.davis.is_duplicate == false` in problem queries | Critical | DASH-03 |
 | 61 | Use `round()` with named `decimals:` parameter | `round(value, decimals: 2)` not `round(value, 2)` | Critical | All |
 | 62 | Prototype all queries in a notebook first | Validate DQL in a notebook before transferring to dashboard tiles | Recommended | DASH-01 |
+| 63 | Use `span.status_code` for span failure — never `otel.status_code` | `otel.status_code` and `otel.status_message` **do not exist** (no row in `dt.semantic_dictionary.fields`). The real fields are `span.status_code` (`stable`) and `span.status_message` (`experimental`) | Critical | DASH-03, DASH-04, DASH-05 |
+| 64 | Match `span.status_code` in **lowercase** | `== "error"`, never `== "ERROR"`. The OTel SDK constant is uppercase; the Grail value is not. On a live tenant `"ERROR"` matched 0 spans against 18,630 for `"error"` (08/11/2026) | Critical | DASH-03, DASH-04, DASH-05 |
+| 65 | Derive span successes as `total - errors` | `span.status_code` is **null on successful spans** — `"ok"` is written vanishingly rarely — so `countIf(span.status_code != "error")` counts almost nothing and an availability tile reads ~0% on a healthy estate | Critical | DASH-03 |
+
+> **Rules 63–65 are one bug, caught three ways.** Each of the three mistakes returns a *plausible number* rather than an error, so nothing in the tile, the query, or the dashboard tells you it is wrong. The order in which they bite matters: fixing only the field name (63) turns a hard failure into a silent zero (64), and fixing the name and the case but not the null-handling (65) turns a correct-looking rename into a **0% availability** executive tile on a service that is actually running at 99.6%. Verified end to end against a live tenant, 08/11/2026.
 
 <a id="variables-and-filters"></a>
 

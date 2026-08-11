@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/05/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
 
 ## Overview
 
@@ -57,13 +57,13 @@ The health overview provides a single-pane summary of all database systems. Use 
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     total_calls = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     error_count = countIf(otel.status_code == "ERROR"),
-|     slow_count = countIf(duration > 500ms),
-|     unique_databases = countDistinct(db.namespace)
-| }, by:{db.system}
+    total_calls = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    error_count = countIf(span.status_code == "error"),
+    slow_count = countIf(duration > 500ms),
+    unique_databases = countDistinct(db.namespace)
+}, by:{db.system}
 | fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(total_calls)) * 100, decimals:2)
 | fieldsAdd slow_rate_pct = round((toDouble(slow_count) / toDouble(total_calls)) * 100, decimals:2)
 | sort total_calls desc
@@ -81,10 +81,10 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     error_count = countIf(otel.status_code == "ERROR")
-| }, by:{dt.entity.service}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    error_count = countIf(span.status_code == "error")
+}, by:{dt.entity.service}
 | fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
 | sort call_count desc
 | limit 10
@@ -106,7 +106,7 @@ Response time monitoring is the most critical aspect of database dashboards. The
 // Dashboard tile: Database response time trend by system (6-hour view)
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries p95_ms = percentile(duration, 95) / 1ms,
+| makeTimeseries p95_ms = percentile(duration / 1ms, 95),
                  by:{db.system},
                  interval:5m
 ```
@@ -116,11 +116,11 @@ fetch spans, from:-6h
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(server.address)
 | summarize {
-|     call_count = count(),
-|     avg_ms = avg(duration) / 1ms,
-|     p95_ms = percentile(duration, 95) / 1ms,
-|     p99_ms = percentile(duration, 99) / 1ms
-| }, by:{db.system, server.address, db.namespace}
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+}, by:{db.system, server.address, db.namespace}
 | sort p95_ms desc
 | limit 15
 ```
@@ -129,9 +129,9 @@ fetch spans, from:-1h
 // Dashboard tile: P50 vs P95 vs P99 comparison — all databases combined
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries p50_ms = percentile(duration, 50) / 1ms,
-                 p95_ms = percentile(duration, 95) / 1ms,
-                 p99_ms = percentile(duration, 99) / 1ms,
+| makeTimeseries p50_ms = percentile(duration / 1ms, 50),
+                 p95_ms = percentile(duration / 1ms, 95),
+                 p99_ms = percentile(duration / 1ms, 99),
                  interval:5m
 ```
 
@@ -146,7 +146,7 @@ Database errors (connection timeouts, deadlocks, constraint violations) should t
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | makeTimeseries total = count(),
-                 errors = countIf(otel.status_code == "ERROR", default:0),
+                 errors = countIf(span.status_code == "error", default:0),
                  by:{db.system},
                  interval:5m
 ```
@@ -154,9 +154,9 @@ fetch spans, from:-1h
 ```dql
 // Alert query: Error breakdown by type — classify error categories
 fetch spans, from:-1h
-| filter isNotNull(db.system) and otel.status_code == "ERROR"
+| filter isNotNull(db.system) and span.status_code == "error"
 | summarize error_count = count(),
-           by:{db.system, server.address, otel.status_message}
+           by:{db.system, server.address, span.status_message}
 | sort error_count desc
 | limit 20
 ```
@@ -166,7 +166,7 @@ fetch spans, from:-1h
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | makeTimeseries total = count(),
-                 errors = countIf(otel.status_code == "ERROR", default:0),
+                 errors = countIf(span.status_code == "error", default:0),
                  interval:30m
 ```
 
@@ -285,7 +285,7 @@ fetch spans, from:-15m
 // Alert query: P95 response time exceeding SLO threshold
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries p95_ms = percentile(duration, 95) / 1ms,
+| makeTimeseries p95_ms = percentile(duration / 1ms, 95),
                  by:{db.system, server.address},
                  interval:5m
 ```
@@ -315,12 +315,16 @@ Service Level Objectives (SLOs) for databases define the expected performance co
 
 ```dql
 // SLO measurement: Database availability — success rate over 24 hours
+// span.status_code is set only on FAILED database spans (value "error"); a successful call
+// leaves it null. `!= "error"` therefore evaluates to null, not true, and counts nothing —
+// so successes are derived by subtraction rather than by a negative comparison.
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | summarize {
-|     total = count(),
-|     successful = countIf(otel.status_code != "ERROR")
-| }, by:{db.system}
+    total = count(),
+    errors = countIf(span.status_code == "error")
+}, by:{db.system}
+| fieldsAdd successful = total - errors
 | fieldsAdd availability_pct = round((toDouble(successful) / toDouble(total)) * 100, decimals:3)
 | sort availability_pct asc
 ```
@@ -330,9 +334,9 @@ fetch spans, from:-24h
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | summarize {
-|     total = count(),
-|     under_threshold = countIf(duration < 500ms)
-| }, by:{db.system}
+    total = count(),
+    under_threshold = countIf(duration < 500ms)
+}, by:{db.system}
 | fieldsAdd latency_slo_pct = round((toDouble(under_threshold) / toDouble(total)) * 100, decimals:2)
 | sort latency_slo_pct asc
 ```
@@ -342,7 +346,7 @@ fetch spans, from:-24h
 fetch spans, from:-24h
 | filter isNotNull(db.system)
 | makeTimeseries total = count(),
-                 errors = countIf(otel.status_code == "ERROR", default:0),
+                 errors = countIf(span.status_code == "error", default:0),
                  by:{db.system},
                  interval:1h
 ```
