@@ -1,6 +1,6 @@
 # S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -438,8 +438,12 @@ fetch logs, from:-15m
 
 ```dql
 // Target tenant: check for detected problems generated during migration
+//
+// Corrected 08/12/2026: the cell sorted by `timestamp` AFTER a `fields` projection that dropped it,
+// so it failed with FIELD_DOES_NOT_EXIST. dt.davis.problems does carry `timestamp` — `fields` had
+// simply removed it. Keep the sort key in the projection.
 fetch dt.davis.problems, from:-1h
-| fields display_id, event.name, event.status, event.category
+| fields timestamp, display_id, event.name, event.status, event.category
 | sort timestamp desc
 | limit 20
 ```

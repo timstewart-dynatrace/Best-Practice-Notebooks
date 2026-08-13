@@ -1,6 +1,6 @@
 # ADOPT-05: Optimization Roadmap
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -126,12 +126,18 @@ fetch dt.davis.problems, from:-30d
 
 ```dql
 // Agent version distribution — identify outdated versions
-fetch dt.entity.host
-| summarize host_count = count(), by:{agentVersion}
+//
+// Corrected 08/12/2026: `agentVersion` is NOT a field on dt.entity.host — the cell failed outright
+// with FIELD_DOES_NOT_EXIST. The host model carries `installerVersion` (the OneAgent installer build,
+// e.g. 1.343.90.20260806-093919); `agentVersion` exists only on dt.entity.process_group_instance.
+// Time range added because dt.entity.* returns only entities seen in the query window.
+fetch dt.entity.host, from:-7d
+| summarize host_count = count(), by:{installerVersion}
 | sort host_count desc
+| limit 20
 
-// No Smartscape equivalent: agentVersion / installerVersion (OneAgent version) is not a
-// Smartscape node field. Keep the classic query above for agent-version distribution.
+// No Smartscape equivalent: OneAgent version is not a Smartscape node field. Keep the classic
+// query above for agent-version distribution.
 ```
 
 ### 2.3 Dashboard Consolidation

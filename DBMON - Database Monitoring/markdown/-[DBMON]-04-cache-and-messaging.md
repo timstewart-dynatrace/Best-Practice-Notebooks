@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -75,16 +75,26 @@ fetch spans, from:-1h
 Redis is the most commonly used in-memory data store. Monitoring Redis involves tracking operation types (GET, SET, DEL, HGET, etc.), latency distribution, and error rates. Since Redis operations should complete in microseconds, even small latency increases warrant investigation.
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Redis operation breakdown — which commands are most used?
 fetch spans, from:-1h
 | filter db.system == "redis"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_us = avg(duration) / 1000.0,
     p95_us = percentile(duration, 95) / 1000.0,
     max_us = max(duration) / 1000.0
-}, by:{db.operation}
+}, by:{db.operation.name}
 | sort call_count desc
 ```
 
@@ -92,12 +102,12 @@ fetch spans, from:-1h
 // Redis GET vs SET ratio — understand cache read/write balance
 fetch spans, from:-1h
 | filter db.system == "redis"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | fieldsAdd op_type = if(
-    in(db.operation, {"GET", "MGET", "HGET", "HGETALL", "LRANGE", "SMEMBERS", "ZRANGE"}),
+    in(db.operation.name, {"GET", "MGET", "HGET", "HGETALL", "LRANGE", "SMEMBERS", "ZRANGE"}),
     then:"READ",
     else:if(
-      in(db.operation, {"SET", "MSET", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL"}),
+      in(db.operation.name, {"SET", "MSET", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL"}),
       then:"WRITE",
       else:"OTHER"))
 | summarize op_count = count(), by:{op_type}
@@ -119,7 +129,7 @@ fetch spans, from:-6h
 fetch spans, from:-1h
 | filter db.system == "redis"
 | filter duration > 5ms
-| fields timestamp, db.operation, db.statement, server.address,
+| fields timestamp, db.operation.name, db.query.text, server.address,
         duration_ms = duration / 1ms, dt.entity.service
 | sort duration_ms desc
 | limit 20
@@ -219,12 +229,12 @@ Elasticsearch is used for full-text search, log aggregation, and analytics. Moni
 // Elasticsearch operation breakdown
 fetch spans, from:-1h
 | filter in(db.system, {"elasticsearch", "opensearch"})
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.system, db.operation}
+}, by:{db.system, db.operation.name}
 | sort call_count desc
 ```
 
@@ -233,7 +243,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter in(db.system, {"elasticsearch", "opensearch"})
 | filter duration > 200ms
-| fields timestamp, db.operation, db.statement, server.address,
+| fields timestamp, db.operation.name, db.query.text, server.address,
         duration_ms = duration / 1ms
 | sort duration_ms desc
 | limit 15

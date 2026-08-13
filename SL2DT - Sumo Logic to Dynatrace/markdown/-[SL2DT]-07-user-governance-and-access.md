@@ -1,6 +1,6 @@
 # SL2DT-07: User Governance & Access
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -167,12 +167,22 @@ After applying, verify a test user in the group can (and cannot) do what the pol
 > **For teams spanning multiple source categories by component type** (e.g., a database team needing access to `_sourceCategory=*/db/*` regardless of application), a structured `comp:<component>/bu:<business-unit>/app:<application>` security context format enables a single `MATCH('comp:db*')` boundary to work across all applications. See **IAM-04: Policy Authoring** and **ORGNZ-06: Security Context** for the design pattern.
 
 ```dql
-// Verify group members' effective policies
-fetch dt.iam.policies, from:-5m
-| filter name startsWith "p_prod"
-| fields name, statementQuery
-| sort name asc
+// Verify recent IAM / policy activity from the audit log
+//
+// Corrected 08/12/2026 — the old cell had two defects. `dt.iam.policies` is NOT a Grail data object
+// at all (UNKNOWN_DATA_OBJECT): IAM policies live in Account Management and are reachable only via
+// the Account Management API, not DQL. And `filter name startsWith "p_prod"` used an infix form that
+// does not exist — startsWith is a FUNCTION, startsWith(name, "p_prod").
+//
+// What IS queryable is the audit trail of IAM activity, as AUDIT_EVENT records:
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| summarize calls = count(), by:{event.type, user.email}
+| sort calls desc
+| limit 20
 
+// For the policy definitions themselves, use the Account Management API — the IAM series covers
+// enumerating policies, bindings and groups programmatically.
 ```
 
 <a id="sso"></a>

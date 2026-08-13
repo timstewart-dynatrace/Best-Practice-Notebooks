@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -101,10 +101,20 @@ fetch spans, from:-1h
 ### Slowest Database Operations
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Slowest database operations — engineering deep-dive
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
-| summarize avg_ms = avg(duration) / 1ms, max_ms = max(duration) / 1ms, call_count = count(), by:{db.system, db.statement}
+| summarize avg_ms = avg(duration) / 1ms, max_ms = max(duration) / 1ms, call_count = count(), by:{db.system, db.query.text}
 | sort max_ms desc
 | limit 15
 ```
@@ -113,9 +123,17 @@ fetch spans, from:-1h
 
 ```dql
 // Database query volume and latency trend
+//
+// Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
+// (`percentile(duration, 50) / 1ms`) fails with "the parameter has to be an expression-based
+// timeseries aggregation". Aggregate first, convert afterwards in `fieldsAdd`. Note the unit
+// conversion also changes: makeTimeseries yields a numeric array in NANOSECONDS, not a duration,
+// so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
 fetch spans, from:-2h
 | filter span.kind == "client" and isNotNull(db.system)
-| makeTimeseries avg_ms = avg(duration) / 1ms, query_count = count(), interval:5m, by:{db.system}
+| makeTimeseries avg_dur = avg(duration), query_count = count(), interval:5m, by:{db.system}
+| fieldsAdd avg_ms = avg_dur[] / 1000000.0
+| fieldsRemove avg_dur
 ```
 
 <a id="endpoint-metrics"></a>
@@ -140,9 +158,17 @@ fetch spans, from:-1h
 
 ```dql
 // Endpoint latency trend — line chart for top 5 routes
+//
+// Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
+// (`percentile(duration, 50) / 1ms`) fails with "the parameter has to be an expression-based
+// timeseries aggregation". Aggregate first, convert afterwards in `fieldsAdd`. Note the unit
+// conversion also changes: makeTimeseries yields a numeric array in NANOSECONDS, not a duration,
+// so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
 fetch spans, from:-2h
 | filter span.kind == "server" and isNotNull(http.route)
-| makeTimeseries p95_ms = percentile(duration, 95) / 1ms, interval:5m, by:{http.route}
+| makeTimeseries p95 = percentile(duration, 95), interval:5m, by:{http.route}
+| fieldsAdd p95_ms = p95[] / 1000000.0
+| fieldsRemove p95
 ```
 
 <a id="deployment-impact"></a>

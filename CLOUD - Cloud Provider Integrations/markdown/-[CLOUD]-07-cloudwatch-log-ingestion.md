@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -242,9 +242,14 @@ Incoming cloud logs
 
 ```dql
 // Recent logs from AWS (last hour)
+//
+// Corrected 08/12/2026: `contains(log.source, "aws")` returned nothing while 262,723 AWS log
+// records sat in the window — CloudWatch-forwarded logs carry the log GROUP in aws.log_group and
+// log.source holds the OneAgent/stream name, which does not contain "aws". Select on the
+// provider field instead.
 fetch logs, from:-1h
-| filter isNotNull(log.source) and contains(log.source, "aws")
-| fieldsKeep timestamp, content, log.source, loglevel
+| filter cloud.provider == "aws"
+| fieldsKeep timestamp, content, aws.log_group, log.source, loglevel
 | sort timestamp desc
 | limit 20
 ```

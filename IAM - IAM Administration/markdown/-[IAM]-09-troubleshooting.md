@@ -1,6 +1,6 @@
 # IAM-09: Troubleshooting Access Issues
 
-> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Systematic Diagnosis of IAM Problems
 Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.
@@ -342,63 +342,128 @@ curl -H "Authorization: Api-Token <TOKEN>" \
 DQL queries to help diagnose IAM issues.
 
 ```dql
-// Find recent access denied events for specific user
-fetch logs, from: now() - 24h
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "denied") or matchesPhrase(content, "forbidden")
-| fields timestamp, content
+// Find recent access denied events
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "AUDIT_EVENT"
+| filter event.outcome == "403"
+| fields timestamp, user.id, resource, event.type, origin.address
+| sort timestamp desc
+| limit 25
+```
+
+```dql
+// Recent authentication events
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter isNotNull(authentication.type)
+| fields timestamp, user.id, authentication.type, authentication.grant.type, event.outcome
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// User's recent authentication events
-fetch logs, from: now() - 7d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "login") or matchesPhrase(content, "authentication")
-| fields timestamp, content
-| sort timestamp desc
-| limit 100
-```
-
-```dql
 // Failed authentication attempts
-fetch logs, from: now() - 7d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "failed") and (matchesPhrase(content, "login") or matchesPhrase(content, "authentication"))
-| fields timestamp, content
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter not startsWith(event.outcome, "2") and event.outcome != "success"
+| fields timestamp, user.id, event.type, event.outcome, resource
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
 // Recent policy or group changes that might affect access
-fetch logs, from: now() - 7d
-| filter matchesPhrase(log.source, "audit")
-| filter (matchesPhrase(content, "policy") or matchesPhrase(content, "group") or matchesPhrase(content, "boundary"))
-| filter matchesPhrase(content, "modified") or matchesPhrase(content, "created") or matchesPhrase(content, "deleted")
-| fields timestamp, content
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| fields timestamp, user.id, event.type, resource
 | sort timestamp desc
-| limit 50
+| limit 25
 ```
 
 ```dql
 // Token-related events
-fetch logs, from: now() - 7d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "token")
-| fields timestamp, content
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter authentication.type == "TOKEN" or contains(resource, "token")
+| fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
-| limit 50
+| limit 25
 ```
 
 ```dql
-// All audit events in last getHour(for immediate troubleshooting)
-fetch logs, from: now() - 1h
-| filter matchesPhrase(log.source, "audit")
-| fields timestamp, content
+// All audit events in the last hour (immediate troubleshooting)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-1h
+| filter event.kind == "AUDIT_EVENT"
+| fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
-| limit 200
+| limit 50
 ```
 
 <a id="troubleshooting-checklist"></a>

@@ -1,6 +1,6 @@
 # SPANS-03: Trace Analysis & Troubleshooting
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 08/12/2026
 
 ## Root Cause Analysis with Distributed Traces
 This notebook teaches systematic approaches to troubleshoot issues using span data. You'll learn to identify error patterns, analyze latency, and trace problems to their root cause.
@@ -411,6 +411,16 @@ fetch spans, from:-1h
 Analyze database operations for performance issues:
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Find slow database queries
 fetch spans, from:-1h
 | filter isNotNull(db.system)
@@ -420,7 +430,7 @@ fetch spans, from:-1h
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     max_ms = max(duration) / 1ms
-  }, by: {db.system, db.name, span.name}
+  }, by: {db.system, db.namespace, span.name}
 | sort p95_ms desc
 | limit 20
 ```
@@ -432,7 +442,7 @@ fetch spans, from:-1h
 | summarize {
     error_count = count(),
     sample_error = takeFirst(span.status_message)
-  }, by: {db.system, db.name, span.name}
+  }, by: {db.system, db.namespace, span.name}
 | sort error_count desc
 | limit 20
 ```

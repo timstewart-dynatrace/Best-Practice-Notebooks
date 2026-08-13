@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -256,11 +256,16 @@ Understanding what has been actively changed in the last 30 days helps prioritiz
 
 ```dql
 // Audit log: recent configuration changes (last 30 days)
+//
+// Corrected 08/12/2026: a parsed JSON field is indexed with BACKTICKS — json[`schemaId`]. The
+// double-quoted form json["schemaId"] is read as a string literal and fails with
+// 'A string like "schemaId" isn't allowed here'.
 fetch logs, from:-30d
 | filter matchesPhrase(log.source, "audit")
 | filter contains(content, "settings")
 | parse content, "JSON:json"
-| fieldsAdd schemaId = json["schemaId"]
+| fieldsAdd schemaId = json[`schemaId`]
+| filter isNotNull(schemaId)
 | summarize changes = count(), by:{schemaId}
 | sort changes desc
 | limit 20

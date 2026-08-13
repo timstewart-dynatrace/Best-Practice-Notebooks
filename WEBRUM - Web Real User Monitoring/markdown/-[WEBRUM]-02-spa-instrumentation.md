@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -113,10 +113,34 @@ Each detected route change generates a **Route change** user action in Dynatrace
 Let's query route change actions to validate detection:
 
 ```dql
+// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -> error.reason
+//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
+//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
+//   connection.type         -> network.protocol.name
+// CLASSIFIER MATTERS AS MUCH AS THE FIELD: navigation-timing fields (performance.dom_interactive,
+// performance.load_event_end) live on classifier "navigation" and are 0 on "page_summary", so a
+// page_summary filter silently empties them. ttfb.* is the opposite — it lives on page_summary.
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "page_summary"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Route change actions in the last hour — verify SPA detection is working
 fetch user.events, from:-1h
-| filter action.type == "RouteChange"
-| summarize route_count = count(), avg_duration = avg(duration), by:{action.name, app.name}
+| filter user_action.type == "same_view"
+| summarize route_count = count(), avg_duration = avg(duration), by:{page.detected_name, dt.rum.application.id}
 | sort route_count desc
 | limit 20
 ```
@@ -167,8 +191,8 @@ Vue applications use Vue Router with `history.pushState` or hash mode:
 ```dql
 // Compare action types across applications — identify SPA vs traditional apps
 fetch user.events, from:-24h
-| summarize action_count = count(), by:{app.name, action.type}
-| sort app.name asc, action_count desc
+| summarize action_count = count(), by:{dt.rum.application.id, user_action.type}
+| sort dt.rum.application.id asc, action_count desc
 ```
 
 If an application shows only `Load` actions and no `RouteChange` or `Xhr` actions, SPA instrumentation may not be configured correctly.
@@ -209,8 +233,8 @@ Let's check for custom actions in our environment:
 ```dql
 // Find custom user actions — these indicate manual RUM API usage
 fetch user.events, from:-24h
-| filter action.type == "Custom"
-| summarize custom_count = count(), by:{action.name, app.name}
+| filter user_action.type == "Custom"
+| summarize custom_count = count(), by:{page.detected_name, dt.rum.application.id}
 | sort custom_count desc
 | limit 15
 ```
@@ -233,13 +257,16 @@ By default, Dynatrace monitors `XMLHttpRequest`. For modern SPAs using `fetch()`
 **Settings > Web and mobile monitoring > Async web requests and SPAs > Fetch requests**
 
 ```dql
+// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.waiting_duration
+// are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
+// silently, so a chart of nulls looks like "no data". Compare and aggregate them directly.
 // XHR action performance — identify slow API calls impacting user experience
 fetch user.events, from:-1h
-| filter action.type == "Xhr"
+| filter characteristics.has_request == true
 | summarize xhr_count = count(),
     avg_duration = avg(duration),
     p95_duration = percentile(duration, 95),
-    by:{action.name}
+    by:{page.detected_name}
 | sort p95_duration desc
 | limit 15
 ```
@@ -247,10 +274,10 @@ fetch user.events, from:-1h
 ```dql
 // XHR error rate by action — find failing API calls
 fetch user.events, from:-24h
-| filter action.type == "Xhr"
+| filter characteristics.has_request == true
 | summarize total = count(),
     errors = countIf(isNotNull(error.count) and error.count > 0),
-    by:{action.name}
+    by:{page.detected_name}
 | fieldsAdd error_rate_pct = round(toDouble(errors) / toDouble(total) * 100.0, decimals: 2)
 | filter total > 10
 | sort error_rate_pct desc
@@ -274,8 +301,8 @@ After configuring SPA monitoring, validate that instrumentation is working corre
 ```dql
 // Instrumentation health check — action type distribution per app
 fetch user.events, from:-24h
-| summarize total_actions = count(), by:{app.name, action.type}
-| sort app.name asc, total_actions desc
+| summarize total_actions = count(), by:{dt.rum.application.id, user_action.type}
+| sort dt.rum.application.id asc, total_actions desc
 ```
 
 <a id="hybrid-apps"></a>
@@ -424,15 +451,31 @@ After deploying both applications, verify that:
 4. **Distributed traces** connect WebView XHR calls to server-side services
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Compare user action metrics between mobile WebView and desktop browser apps
 fetch user.events, from:-24h
-| filter application.name == "MyApp Desktop" or application.name == "MyApp Mobile"
+| filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
 | summarize
     actions = count(),
     avg_duration = avg(duration),
     error_rate = toDouble(countIf(error.count > 0)) / toDouble(count()) * 100,
-    by:{application.name, action.type}
-| sort application.name asc, actions desc
+    by:{dt.rum.application.id, user_action.type}
+| sort dt.rum.application.id asc, actions desc
 ```
 
 ### WebView Session Analysis
@@ -442,11 +485,11 @@ Identify sessions in the mobile app that include WebView activity — these are 
 ```dql
 // Identify WebView sessions in the mobile app — these have both native and web actions
 fetch user.events, from:-24h
-| filter application.name == "MyApp Mobile"
+| filter dt.rum.application.id == "MyApp Mobile"
 | summarize
-    native_actions = countIf(action.type == "Custom" or action.type == "UserAction"),
-    web_actions = countIf(in(action.type, {"Load", "RouteChange", "Xhr"})),
-    by:{user.session.id}
+    native_actions = countIf(user_action.type == "Custom" or user_action.type == "UserAction"),
+    web_actions = countIf(in(user_action.type, {"Load", "RouteChange", "Xhr"})),
+    by:{dt.rum.session.id}
 | filter web_actions > 0
 | sort web_actions desc
 | limit 20
@@ -459,14 +502,14 @@ WebView performance typically differs from desktop browsers due to device constr
 ```dql
 // Compare page load performance: mobile WebView vs desktop browser
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter application.name == "MyApp Desktop" or application.name == "MyApp Mobile"
+| filter characteristics.classifier == "navigation"
+| filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
 | summarize
     p50_duration = percentile(duration, 50),
     p95_duration = percentile(duration, 95),
-    avg_dom_interactive = avg(dom.interactive.time),
+    avg_dom_interactive = avg(performance.dom_interactive),
     actions = count(),
-    by:{application.name}
+    by:{dt.rum.application.id}
 ```
 
 <a id="summary"></a>

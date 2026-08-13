@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -246,13 +246,29 @@ For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus
 - Cloud provider metrics for control plane health
 
 ```dql
-// API server events and errors
-fetch logs, from:-1h
-| filter matchesPhrase(content, "kube-apiserver") or matchesPhrase(content, "api-server")
-| filter matchesPhrase(content, "error") or matchesPhrase(content, "failed")
-| fields timestamp, content
-| sort timestamp desc
-| limit 20
+// Node-level and control-plane events
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes events in the same window.
+// They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
+// dt.kubernetes.event.important. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
+//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+fetch events, from:-6h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter isNotNull(k8s.node.name)
+| summarize events = count(), by:{k8s.node.name, dt.kubernetes.event.reason}
+| sort events desc
+| limit 25
 ```
 
 <a id="cluster-wide-events"></a>

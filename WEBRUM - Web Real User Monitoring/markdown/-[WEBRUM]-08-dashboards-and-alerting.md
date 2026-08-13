@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -46,16 +46,32 @@ Executive dashboards should be simple, business-focused, and actionable. Key met
 | **Avg session duration** | User engagement level | Varies by app type |
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Executive KPI summary — single-query dashboard tile
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize
     total_sessions = count(),
-    error_sessions = countIf(totalErrorCount > 0),
-    bounce_sessions = countIf(userActionCount == 1),
-    avg_actions = avg(userActionCount),
+    error_sessions = countIf(error.count > 0),
+    bounce_sessions = countIf(user_action_count == 1),
+    avg_actions = avg(user_action_count),
     avg_duration_min = avg(duration / 1m),
-    by:{application}
+    by:{primary_tags.application}
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
     bounce_rate_pct = round(toDouble(bounce_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
     avg_duration_min = round(avg_duration_min, decimals: 1)
@@ -65,8 +81,8 @@ fetch user.sessions, from:-24h
 ```dql
 // Session volume trend — 7-day daily session counts
 fetch user.sessions, from:-7d
-| filter userType == "REAL_USER"
-| makeTimeseries session_count = count(), interval:1d, by:{application}
+| filter dt.rum.user_type == "real_user"
+| makeTimeseries session_count = count(), interval:1d, by:{primary_tags.application}
 ```
 
 <a id="apdex"></a>
@@ -96,15 +112,29 @@ The threshold T is configurable per application. Common defaults:
 | Route change | 2.5 seconds |
 
 ```dql
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "page_summary"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Apdex calculation with T = 3 seconds for page loads
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_sec = duration / 1s
 | summarize total = count(),
     satisfied = countIf(duration_sec <= 3),
     tolerating = countIf(duration_sec > 3 and duration_sec <= 12),
     frustrated = countIf(duration_sec > 12),
-    by:{application}
+    by:{primary_tags.application}
 | fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
 | sort apdex asc
 ```
@@ -112,7 +142,7 @@ fetch user.events, from:-24h
 ```dql
 // Apdex trend over 7 days — daily Apdex score
 fetch user.events, from:-7d
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_sec = duration / 1s
 | fieldsAdd is_satisfied = if(duration_sec <= 3, 1.0, else: 0.0),
     is_tolerating = if(duration_sec > 3 and duration_sec <= 12, 0.5, else: 0.0)
@@ -126,12 +156,12 @@ fetch user.events, from:-7d
 ```dql
 // Apdex by page — which pages have the worst user satisfaction?
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_sec = duration / 1s
 | summarize total = count(),
     satisfied = countIf(duration_sec <= 3),
     tolerating = countIf(duration_sec > 3 and duration_sec <= 12),
-    by:{action.name}
+    by:{page.detected_name}
 | filter total > 20
 | fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
 | sort apdex asc
@@ -155,19 +185,29 @@ fetch user.events, from:-24h
 Operations teams need real-time visibility into errors, performance anomalies, and traffic patterns.
 
 ```dql
+// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -> error.reason
+//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
+//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
+//   connection.type         -> network.protocol.name
+// CLASSIFIER MATTERS AS MUCH AS THE FIELD: navigation-timing fields (performance.dom_interactive,
+// performance.load_event_end) live on classifier "navigation" and are 0 on "page_summary", so a
+// page_summary filter silently empties them. ttfb.* is the opposite — it lives on page_summary.
 // Real-time error rate — errors per 15 minutes over the last 6 hours
 fetch user.events, from:-6h
-| filter type == "Error"
+| filter characteristics.has_error == true
 | makeTimeseries error_count = count(), interval:15m, by:{error.type}
 ```
 
 ```dql
 // Active error summary — current top errors in the last hour
 fetch user.events, from:-1h
-| filter type == "Error"
+| filter characteristics.has_error == true
 | summarize error_count = count(),
-    affected_sessions = countDistinct(sessionId),
-    by:{error.message, error.type, application}
+    affected_sessions = countDistinct(dt.rum.session.id),
+    by:{error.reason, error.type, primary_tags.application}
 | sort affected_sessions desc
 | limit 10
 ```
@@ -175,11 +215,11 @@ fetch user.events, from:-1h
 ```dql
 // Performance SLA — percentage of page loads under 3 seconds
 fetch user.events, from:-1h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_sec = duration / 1s
 | summarize total = count(),
     under_3s = countIf(duration_sec <= 3),
-    by:{application}
+    by:{primary_tags.application}
 | fieldsAdd sla_pct = round(toDouble(under_3s) / toDouble(total) * 100.0, decimals: 1)
 | sort sla_pct asc
 ```
@@ -226,23 +266,23 @@ The following queries provide the data foundation for error rate alerting. Use t
 ```dql
 // Error rate per 15-minute window — alert threshold data
 fetch user.sessions, from:-6h
-| filter userType == "REAL_USER"
-| fieldsAdd has_error = if(totalErrorCount > 0, 1.0, else: 0.0)
+| filter dt.rum.user_type == "real_user"
+| fieldsAdd has_error = if(error.count > 0, 1.0, else: 0.0)
 | makeTimeseries
     total_sessions = count(),
     error_sessions = sum(has_error),
     interval:15m,
-    by:{application}
+    by:{primary_tags.application}
 ```
 
 ```dql
 // New errors — errors first seen in the last getHour(potential deployment issue)
 fetch user.events, from:-1h
-| filter type == "Error"
+| filter characteristics.has_error == true
 | summarize first_seen = min(timestamp),
     error_count = count(),
-    affected_sessions = countDistinct(sessionId),
-    by:{error.message, application}
+    affected_sessions = countDistinct(dt.rum.session.id),
+    by:{error.reason, primary_tags.application}
 | sort first_seen desc
 | limit 10
 ```
@@ -256,20 +296,20 @@ Detect when page load performance degrades beyond acceptable thresholds.
 ```dql
 // p75 page load duration per 15-minute window — performance alert data
 fetch user.events, from:-6h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_ms = duration / 1ms
-| makeTimeseries p75_duration = percentile(duration_ms, 75), interval:15m, by:{application}
+| makeTimeseries p75_duration = percentile(duration_ms, 75), interval:15m, by:{primary_tags.application}
 ```
 
 ```dql
 // Apdex per 15-minute window — satisfaction alert data
 fetch user.events, from:-6h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_sec = duration / 1s
 | fieldsAdd apdex_score = if(duration_sec <= 3, 1.0,
     else: if(duration_sec <= 12, 0.5,
     else: 0.0))
-| makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{application}
+| makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{primary_tags.application}
 ```
 
 > **Tip:** For production alerting, use Dynatrace Intelligence anomaly detection rather than static thresholds. Dynatrace Intelligence automatically baselines normal behavior and detects deviations, reducing false positives from seasonal traffic patterns.
@@ -295,11 +335,11 @@ Use `append` to compare RUM and synthetic performance for the same application:
 ```dql
 // RUM session summary — real user experience
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize rum_sessions = count(),
-    rum_error_sessions = countIf(totalErrorCount > 0),
-    rum_avg_actions = avg(userActionCount),
-    by:{application}
+    rum_error_sessions = countIf(error.count > 0),
+    rum_avg_actions = avg(user_action_count),
+    by:{primary_tags.application}
 | fieldsAdd monitoring_type = "RUM",
     error_rate_pct = round(toDouble(rum_error_sessions) / toDouble(rum_sessions) * 100.0, decimals: 1)
 ```
@@ -309,11 +349,11 @@ fetch user.sessions, from:-24h
 fetch user.sessions, from:-24h
 | summarize session_count = count(),
     avg_duration_sec = avg(duration / 1s),
-    error_sessions = countIf(totalErrorCount > 0),
-    by:{application, userType}
-| filter userType == "REAL_USER" or userType == "SYNTHETIC"
+    error_sessions = countIf(error.count > 0),
+    by:{primary_tags.application, dt.rum.user_type}
+| filter dt.rum.user_type == "real_user" or dt.rum.user_type == "SYNTHETIC"
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(session_count) * 100.0, decimals: 1)
-| sort application asc, userType asc
+| sort primary_tags.application asc, dt.rum.user_type asc
 ```
 
 <a id="summary"></a>

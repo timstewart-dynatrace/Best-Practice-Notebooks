@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 08/04/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -206,13 +206,19 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 
 ```dql
 // Lookup for enrichment
+//
+// Corrected 08/12/2026: `dt.tags.<name>` is not a field. Entity tags are a single `tags` field
+// holding an ARRAY of "key:value" strings, so a tag is matched with an iterative expression —
+// iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
+// FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
 fetch logs, from:-1h
 | filter dt.source_entity == "prod/api"
 | summarize c = count(), by:{host.name}
-| lookup [fetch dt.entity.host | fieldsAdd hostname = entity.name | fields hostname, `dt.tags.team`],
+| lookup [fetch dt.entity.host, from:-7d
+         | fieldsAdd hostname = entity.name
+         | fields hostname, tags],
     sourceField:host.name, lookupField:hostname,
-    fields:{`dt.tags.team`}
-
+    fields:{tags}
 ```
 
 <a id="timeline"></a>

@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/12/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -149,7 +149,7 @@ Retention is **bucket-scoped and customer-configurable** — there is no univers
 ```dql
 // List configured Grail buckets and their retention (use Bucket Management UI for full detail)
 fetch dt.system.buckets
-| fields name, table, retention
+| fields name, display_name, dt.system.table, retention_days
 | sort name asc
 ```
 

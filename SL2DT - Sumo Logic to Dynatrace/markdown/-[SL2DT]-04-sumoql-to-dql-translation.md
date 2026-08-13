@@ -1,6 +1,6 @@
 # SL2DT-04: SumoQL → DQL Translation
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -366,15 +366,19 @@ DQL (requires entity attributes or a Grail lookup table):
 
 ```dql
 // Example 4 — Lookup enrichment (MEDIUM 75%)
+//
+// Corrected 08/12/2026: `dt.tags.<name>` is not a field. Entity tags are a single `tags` field
+// holding an ARRAY of "key:value" strings, so a tag is matched with an iterative expression —
+// iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
+// FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
 fetch logs, from:-1h
 | filter startsWith(dt.source_entity, "prod/")
 | summarize c = count(), by:{host.name}
-| lookup [fetch dt.entity.host
+| lookup [fetch dt.entity.host, from:-7d
          | fieldsAdd hostname = entity.name
-         | fields hostname, environment = `dt.tags.environment`, owner = `dt.tags.team`],
+         | fields hostname, tags],
     sourceField:host.name, lookupField:hostname,
-    fields:{environment, owner}
-
+    fields:{tags}
 ```
 
 ### Example 5 — Outlier (LOW — Dynatrace Intelligence redirect)
@@ -387,14 +391,16 @@ _sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 thres
 **Action:** configure anomaly detector. DQL baseline is a fallback only if Dynatrace Intelligence can't be used (rare):
 
 ```dql
-// LOW CONFIDENCE: prefer anomaly detector.
+// LOW CONFIDENCE: prefer an anomaly detector.
 // Fallback baseline calc (for reference, not production):
+//
+// Corrected 08/12/2026: there is no `arrayStdDev` function (UNKNOWN_FUNCTION). Standard deviation is
+// an AGGREGATION, `stdDev()`, so bin the counts and aggregate rather than building an array first.
 fetch logs, from:-1h
 | filter dt.source_entity == "prod/api"
-| makeTimeseries c = count(), interval:1m
-| fieldsAdd mean = arrayAvg(c), sd = arrayStdDev(c)
+| summarize c = count(), by:{minute = bin(timestamp, 1m)}
+| summarize mean = avg(c), sd = stdDev(c)
 | fieldsAdd upper = mean + 3 * sd
-
 ```
 
 <a id="gate"></a>

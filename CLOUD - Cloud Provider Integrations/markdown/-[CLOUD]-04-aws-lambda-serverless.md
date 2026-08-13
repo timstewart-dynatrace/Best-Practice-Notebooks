@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -20,9 +20,17 @@ Sprint 1.337 SaaS introduced **Service Detection v2 (SDv2) for AWS Lambda** in E
 **Sample DQL — Lambda failure rate by trigger type:**
 
 ```dql
-timeseries failures = sum(dt.faas.failures), invocations = sum(dt.faas.invocations),
-  by:{dt.faas.trigger.type}, from:-1h
-| fieldsAdd failure_rate_pct = arraySum(failures) / arraySum(invocations) * 100
+// dt.faas.failures / dt.faas.invocations / dt.faas.trigger.type do not exist (corrected
+// 08/12/2026). The OneAgent FaaS series is dt.service.faas_invoke.count, split by faas.trigger
+// with a boolean `failed` dimension — so the failure/total split is a dimension filter, not two
+// separate metrics.
+timeseries invocations = sum(dt.service.faas_invoke.count), from:-1h, by:{faas.trigger, failed}
+| fieldsAdd total = arraySum(invocations)
+| summarize {
+    failures = sum(if(failed == true, total, else: 0)),
+    invocations = sum(total)
+  }, by:{faas.trigger}
+| fieldsAdd failure_rate_pct = round(failures * 100.0 / invocations, decimals: 2)
 | sort failure_rate_pct desc
 ```
 
@@ -81,22 +89,34 @@ Dynatrace monitors Lambda functions through two complementary approaches:
 
 ```dql
 // List all monitored Lambda functions with runtime and code size
-fetch dt.entity.aws_lambda_function
-| fieldsKeep id, entity.name, awsLambdaFunctionRuntime, awsCodeSize, tags
+//
+// Corrected 08/12/2026: the runtime attribute is awsRuntime, not awsLambdaFunctionRuntime — the
+// latter does not exist and failed the whole cell with FIELD_DOES_NOT_EXIST. Time range added
+// because dt.entity.* returns only entities seen in the query window, not the standing inventory.
+fetch dt.entity.aws_lambda_function, from:-7d
+| fieldsKeep id, entity.name, awsRuntime, awsCodeSize, awsMemorySize, awsTimeout, tags
 | sort entity.name asc
 | limit 25
 
 // Smartscape note (dt.entity.* is deprecated but still functional): AWS Lambda functions ARE
 // modeled on Smartscape as smartscapeNodes "AWS_LAMBDA_FUNCTION", but the classic aws* attribute
-// fields (e.g. awsLambdaFunctionRuntime) differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION"
-// | limit 1 for the node field names. Keep the classic query above until the fields are mapped.
+// fields differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION" | limit 1 for the node
+// field names. Keep the classic query above until the fields are mapped.
 ```
 
 ### Lambda Execution Time Over Time
 
 ```dql
 // Lambda average execution duration over the last 6 hours
-timeseries avgDuration = avg(dt.cloud.aws.lambda.duration), from:-6h, by:{dt.entity.aws_lambda_function}
+//
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
+// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
+// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
+// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd avgDurationValue = arrayAvg(avgDuration)
 | sort avgDurationValue desc
 | limit 10
@@ -124,21 +144,40 @@ CloudWatch provides an `InitDuration` metric for cold starts. With Dynatrace Lam
 
 ```dql
 // Detect Lambda cold starts from spans (init phase)
+//
+// Corrected 08/12/2026. The old cell filtered `contains(span.name, "lambda")`, but a Lambda span
+// is named for the FUNCTION, not the word "lambda" — so the filter discarded every matching span
+// and the cell reported cold_start_count = 0 while 14 real cold starts (avg 2.45 s) sat in the
+// window. A zero inside a summarize row is the easiest kind of wrong answer to miss: the cell
+// returns a row, it just returns a false one. faas.coldstart alone is the correct discriminator.
+// Also dropped faas.invocation_id, which is not a field (faas.* has no invocation_id).
 fetch spans, from:-6h
-| filter contains(span.name, "lambda") and isNotNull(faas.coldstart)
-| fieldsKeep timestamp, span.name, duration, faas.coldstart, faas.invocation_id
 | filter faas.coldstart == true
-| summarize {cold_start_count = count(), avg_duration_ms = avg(duration) / 1ms}
-
+| summarize {cold_start_count = count(), avg_duration_ms = avg(duration) / 1ms}, by:{faas.name}
+| sort cold_start_count desc
+| limit 20
 ```
 
 ### Lambda Invocations with Duration Percentiles
 
 ```dql
-// Lambda duration percentiles over the last 6 hours
-timeseries p50 = percentile(dt.cloud.aws.lambda.duration, 50), from:-6h, by:{dt.entity.aws_lambda_function}
-| fieldsAdd p50Value = arrayAvg(p50)
-| sort p50Value desc
+// Lambda duration percentiles over the last 6 hours — computed from spans, not the metric.
+//
+// Corrected 08/12/2026 (two defects). The old cell called
+// percentile(dt.cloud.aws.lambda.duration, 50): the key does not exist, AND percentile() does not
+// work on the real CloudWatch Duration metric either — cloud.aws.lambda.Duration.By.FunctionName
+// is a pre-aggregated gauge, so percentile() over it returns an empty result even when the key is
+// spelled correctly. Only avg/min/max/sum are meaningful there. Real percentiles need the
+// underlying distribution, which lives on the spans.
+fetch spans, from:-6h
+| filter isNotNull(faas.name)
+| summarize {
+    p50 = percentile(duration, 50) / 1ms,
+    p90 = percentile(duration, 90) / 1ms,
+    p99 = percentile(duration, 99) / 1ms,
+    invocations = count()
+  }, by:{faas.name}
+| sort p99 desc
 | limit 10
 ```
 
@@ -157,7 +196,15 @@ Lambda errors fall into two categories:
 
 ```dql
 // Lambda error count by function over the last 24 hours
-timeseries errors = sum(dt.cloud.aws.lambda.errors), from:-24h, by:{dt.entity.aws_lambda_function}
+//
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
+// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
+// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
+// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:{FunctionName}
 | fieldsAdd totalErrors = arraySum(errors)
 | filter totalErrors > 0
 | sort totalErrors desc
@@ -168,13 +215,27 @@ timeseries errors = sum(dt.cloud.aws.lambda.errors), from:-24h, by:{dt.entity.aw
 
 ```dql
 // Error rate percentage by function over the last 24 hours
-timeseries errors = sum(dt.cloud.aws.lambda.errors, default:0), from:-24h, by:{dt.entity.aws_lambda_function}
-| append [
-    timeseries invocations = sum(dt.cloud.aws.lambda.invocations, default:1), from:-24h, by:{dt.entity.aws_lambda_function}
-  ]
-| fieldsAdd totalErrors = arraySum(errors), totalInvocations = arraySum(invocations)
-| fieldsAdd error_pct = totalErrors / totalInvocations * 100.0
-| filter totalErrors > 0
+//
+// Corrected 08/12/2026 (two defects). Besides the non-existent metric keys, the old cell used
+// `append [ ... ]` to bring invocations alongside errors. append STACKS ROWS — it does not join
+// columns — so totalErrors and totalInvocations never landed on the same row and error_pct was
+// null for every row even with valid keys. Request both series inside ONE timeseries block, which
+// is what actually aligns them on a shared timeline and grouping.
+//
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
+// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
+// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
+// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries {
+  invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName),
+  errors = sum(cloud.aws.lambda.Errors.By.FunctionName)
+}, from:-24h, by:{FunctionName}
+| fieldsAdd totalInvocations = arraySum(invocations), totalErrors = arraySum(errors)
+| filter totalInvocations > 0
+| fieldsAdd error_pct = round((totalErrors / totalInvocations) * 100, decimals: 2)
 | sort error_pct desc
 | limit 10
 ```
@@ -192,17 +253,41 @@ Throttling occurs when Lambda cannot allocate an execution environment, typicall
 
 ```dql
 // Lambda throttles over the last 24 hours by function
-timeseries throttles = sum(dt.cloud.aws.lambda.throttlers), from:-24h, by:{dt.entity.aws_lambda_function}
+//
+// Corrected 08/12/2026: the key is Throttles, not `throttlers`.
+// The `filter totalThrottles > 0` guard was also dropped — on a healthy estate every function
+// throttles zero times, so the guard emptied the table and made a correct result look like a
+// broken query. Seeing the zeros is the point.
+//
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
+// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
+// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
+// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24h, by:{FunctionName}
 | fieldsAdd totalThrottles = arraySum(throttles)
-| filter totalThrottles > 0
+| fields FunctionName, totalThrottles
 | sort totalThrottles desc
+| limit 20
 ```
 
 ### Concurrent Executions Trend
 
 ```dql
 // Concurrent Lambda executions over the last 6 hours
-timeseries concurrency = max(dt.cloud.aws.lambda.conc_executions), from:-6h, by:{dt.entity.aws_lambda_function}
+//
+// Corrected 08/12/2026: the key is ConcurrentExecutions, not `conc_executions`.
+//
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
+// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
+// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
+// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries concurrency = max(cloud.aws.lambda.ConcurrentExecutions.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd peakConcurrency = arrayMax(concurrency)
 | sort peakConcurrency desc
 | limit 10
@@ -238,10 +323,13 @@ Client → API Gateway → Lambda Function → DynamoDB / SQS / etc.
 
 ```dql
 // Trace spans from API Gateway and Lambda in the last hour
+//
+// Corrected 08/12/2026: the old `contains(span.name, "lambda") or contains(span.name,
+// "api-gateway")` name-guessing filter matched nothing, because spans are named for the function
+// or route. Select on the semantic field instead — faas.name is present on every FaaS span.
 fetch spans, from:-1h
-| filter span.kind == "server"
-| filter contains(span.name, "lambda") or contains(span.name, "api-gateway")
-| fieldsKeep timestamp, trace.id, span.name, duration, span.status_code
+| filter span.kind == "server" and isNotNull(faas.name)
+| fieldsKeep timestamp, trace.id, span.name, duration, span.status_code, faas.name
 | sort timestamp desc
 | limit 20
 ```
@@ -288,11 +376,16 @@ DynamoDB is frequently used with Lambda for serverless data storage. Key monitor
 ### DynamoDB Span Analysis
 
 ```dql
-// DynamoDB call duration from Lambda spans in the last 6 hours
+// Database call duration from Lambda spans in the last 6 hours
+//
+// Corrected 08/12/2026: `db.operation` is not a field — the stable name is `db.operation.name`.
+// It went unnoticed because the preceding `db.system == "dynamodb"` filter already emptied the
+// stream, so the bad field in the summarize was never evaluated. The hard-coded dynamodb filter
+// is also removed: it returns nothing unless that engine is present. Group by db.system and read
+// what your estate actually calls.
 fetch spans, from:-6h
 | filter span.kind == "client" and isNotNull(db.system)
-| filter db.system == "dynamodb"
-| summarize {avg_duration_ms = avg(duration) / 1ms, call_count = count()}, by:{db.namespace, db.operation}
+| summarize {avg_duration_ms = avg(duration) / 1ms, call_count = count()}, by:{db.system, db.namespace, db.operation.name}
 | sort avg_duration_ms desc
 | limit 15
 ```

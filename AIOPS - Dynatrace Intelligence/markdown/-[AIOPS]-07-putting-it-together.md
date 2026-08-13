@@ -1,6 +1,6 @@
 # AIOPS-07: Putting It Together — Detect, Investigate, Remediate
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -114,13 +114,16 @@ Subtler than incident response — slow drift, not sudden spike.
 
 ```dql
 // Weekly error rate trend by service — last 8 weeks
+//
+// Corrected 08/12/2026: `interval:1w` is a CALENDAR duration and `interval` does not accept them
+// (NAMED_PARAMETER_MUST_NOT_BE_CALENDAR_DURATION). Use the fixed-length equivalent, `interval:7d`.
 timeseries {
     failures = sum(dt.service.request.failure_count),
     total    = sum(dt.service.request.count)
   },
   by:{dt.entity.service},
   from:-8w,
-  interval:1w
+  interval:7d
 | fieldsAdd error_rate = (failures[] / total[]) * 100
 | fieldsAdd avg_error_rate = arrayAvg(error_rate)
 | sort avg_error_rate desc

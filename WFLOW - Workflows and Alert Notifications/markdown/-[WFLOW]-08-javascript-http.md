@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -921,28 +921,66 @@ When a DQL or JavaScript task hits a timeout, the right move depends on **which*
 
 ```dql
 // JavaScript task execution times
-fetch events, from: now() - 7d
-| filter event.type == "automation.task.execution"
-| filter contains(task.type, "javascript")
-| summarize 
-    avg_duration = avg(task.duration),
-    max_duration = max(task.duration),
-    p95_duration = percentile(task.duration, 95),
-    total = count(),
-    by:{workflow.name, task.name}
-| sort avg_duration desc
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "ACTION_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| filter dt.automation_engine.action.function == "run-javascript"
+| summarize {executions = count(), avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms}, by:{dt.automation_engine.workflow.title}
+| sort p95_ms desc
 | limit 20
 ```
 
 ```dql
+// An empty result here is the HEALTHY answer: on the validation tenant http-function ran 49
+// times over 7 days with 0 ERROR states. Rows appearing means real HTTP task failures.
 // HTTP request task errors
-fetch events, from: now() - 24h
-| filter event.type == "automation.task.execution"
-| filter contains(task.type, "http") or contains(task.type, "javascript")
-| filter task.status == "FAILED"
-| fields timestamp, workflow.name, task.name, task.error
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "ACTION_EXECUTION"
+| filter dt.automation_engine.action.function == "http-function"
+| filter dt.automation_engine.state == "ERROR"
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info
 | sort timestamp desc
-| limit 20
+| limit 25
 ```
 
 <a id="cmdb-host-tag-enrichment"></a>

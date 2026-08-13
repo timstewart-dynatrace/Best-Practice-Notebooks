@@ -1,6 +1,6 @@
 # S2D-08: Dashboard Migration Best Practices
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -148,11 +148,15 @@ Dynatrace dashboards support variables for interactive filtering:
 
 ```dql
 // Using dashboard variables in DQL
-// Variables: $cluster, $namespace, $deployment
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter matchesPhrase(k8s.cluster.name, $cluster)
-| filter matchesPhrase(k8s.namespace.name, $namespace)
-| filter matchesPhrase(k8s.deployment.name, $deployment)
+// dashboard tile: | filter matchesPhrase(k8s.cluster.name, $cluster)
+| filter isNotNull(k8s.cluster.name)
+// dashboard tile: | filter matchesPhrase(k8s.namespace.name, $namespace)
+| filter isNotNull(k8s.namespace.name)
 | summarize count = count(), by:{loglevel}
 ```
 
@@ -200,20 +204,34 @@ Variables: `host_name`, `log_source`
 
 ```dql
 // VM Log Searcher - Log count by host
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter matchesPhrase(host.name, $host_name)
-| filter matchesPhrase(log.source, $log_source)
+// dashboard tile: | filter matchesPhrase(host.name, $host_name)
+| filter isNotNull(host.name)
+// dashboard tile: | filter matchesPhrase(log.source, $log_source)
+| filter isNotNull(log.source)
 | summarize count = count(), by:{host.name}
-| fields count, host.name
+| sort count desc
+| limit 20
 ```
 
 ```dql
 // VM Log Searcher - Log count by source
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter matchesPhrase(host.name, $host_name)
-| filter matchesPhrase(log.source, $log_source)
+// dashboard tile: | filter matchesPhrase(host.name, $host_name)
+| filter isNotNull(host.name)
+// dashboard tile: | filter matchesPhrase(log.source, $log_source)
+| filter isNotNull(log.source)
 | summarize count = count(), by:{host.name, log.source}
-| fields count, host.name, log.source
+| sort count desc
+| limit 20
 ```
 
 ### Kubernetes Log Searcher
@@ -222,22 +240,29 @@ Variables: `k8s_cluster`, `k8s_namespace`, `k8s_deployment`
 
 ```dql
 // K8s Log Searcher - Log count by cluster
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter matchesPhrase(k8s.cluster.name, $k8s_cluster)
-| filter matchesPhrase(k8s.namespace.name, $k8s_namespace)
-| filter matchesPhrase(k8s.deployment.name, $k8s_deployment)
+// dashboard tile: | filter matchesPhrase(k8s.cluster.name, $k8s_cluster)
+| filter isNotNull(k8s.cluster.name)
 | summarize count = count(), by:{k8s.cluster.name}
-| fields count, k8s.cluster.name
+| sort count desc
 ```
 
 ```dql
 // K8s Log Searcher - Log count by deployment
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter matchesPhrase(k8s.cluster.name, $k8s_cluster)
-| filter matchesPhrase(k8s.namespace.name, $k8s_namespace)
-| filter matchesPhrase(k8s.deployment.name, $k8s_deployment)
+// dashboard tile: | filter matchesPhrase(k8s.deployment.name, $k8s_deployment)
+| filter isNotNull(k8s.deployment.name)
 | summarize count = count(), by:{k8s.cluster.name, k8s.namespace.name, k8s.deployment.name}
-| fields count, k8s.cluster.name, k8s.namespace.name, k8s.deployment.name
+| sort count desc
+| limit 20
 ```
 
 <a id="migration-checklist"></a>

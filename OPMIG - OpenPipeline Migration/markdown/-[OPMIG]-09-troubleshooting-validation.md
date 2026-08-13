@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 07/08/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 08/12/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -349,8 +349,8 @@ fetch logs
    data record(
      content = "Payment processed: card=4111-1111-1111-1111, cvv=123"
    )
-   | fieldsAdd content = replacePattern(content, "\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b", "[PAN_REDACTED]")
-   | fieldsAdd content = replacePattern(content, "cvv[=:]?\\s*\\d{3,4}", "cvv=[REDACTED]")
+   | fieldsAdd content = replacePattern(content, "DIGIT{4} '-' DIGIT{4} '-' DIGIT{4} '-' DIGIT{4}", "[PAN_REDACTED]")
+   | fieldsAdd content = replacePattern(content, "'cvv=' DIGIT{3,4}", "cvv=[REDACTED]")
    | fields content
    
    // Expected: "Payment processed: card=[PAN_REDACTED], cvv=[REDACTED]"

@@ -1,6 +1,6 @@
 # WFLOW-07: Problem-Triggered Remediation
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 05/15/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Auto-Remediation with Workflows
 Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.
@@ -498,27 +498,43 @@ tasks:
 
 ```dql
 // Remediation workflow success rates
-fetch events, from: now() - 7d
-| filter event.type == "automation.workflow.execution"
-| filter contains(workflow.name, "remediation") or contains(workflow.name, "auto-heal")
-| summarize 
-    total = count(),
-    succeeded = countIf(execution.status == "SUCCEEDED"),
-    failed = countIf(execution.status == "FAILED"),
-    by:{workflow.name}
-| fieldsAdd success_rate = round(100.0 * succeeded / total, decimals: 2)
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == "SUCCESS")}, by:{dt.automation_engine.workflow.title}
+| fieldsAdd success_pct = round(succeeded * 100.0 / total, decimals: 1)
 | sort total desc
+| limit 20
 ```
 
 ```dql
-// Problems closed - track how many had associated remediation workflow executions
-// Note: Dynatrace problems don't have a native auto_remediation_id field.
-// Correlate by comparing problem close times with remediation workflow execution times.
-fetch events, from: now() - 30d
-| filter event.kind == "DAVIS_PROBLEM" and status == "CLOSED"
-| summarize 
-    total_closed = count(),
-    by:{time_bucket = bin(timestamp, 24h)}
+// Problems closed per day
+// Field names corrected 08/12/2026: on `events`, a Davis problem carries `event.status` and
+// `event.category` — there are no bare `status` / `severity` fields, so those filters matched
+// nothing. `event.status` values are ACTIVE / CLOSED — "OPEN" is not one of them.
+fetch events, from:-30d
+| filter event.kind == "DAVIS_PROBLEM" and event.status == "CLOSED"
+| summarize total_closed = count(), by:{time_bucket = bin(timestamp, 24h)}
 | sort time_bucket asc
 ```
 

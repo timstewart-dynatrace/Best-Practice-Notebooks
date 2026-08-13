@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -223,11 +223,21 @@ fetch spans, from:-6h
 ```
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Dashboard tile: Operation mix over time — read vs write trend
 fetch spans, from:-6h
-| filter isNotNull(db.system) and isNotNull(db.operation)
+| filter isNotNull(db.system) and isNotNull(db.operation.name)
 | fieldsAdd op_type = if(
-    in(db.operation, {"SELECT", "find", "Query", "GetItem", "ReadItem", "GET", "HGET", "get", "search"}),
+    in(db.operation.name, {"SELECT", "find", "Query", "GetItem", "ReadItem", "GET", "HGET", "get", "search"}),
     then:"READ",
     else:"WRITE")
 | makeTimeseries op_count = count(), by:{op_type}, interval:5m
@@ -272,8 +282,8 @@ fetch spans, from:-1h
 fetch spans, from:-15m
 | filter isNotNull(db.system)
 | filter duration > 500ms
-| fields timestamp, db.system, db.namespace, db.operation,
-        db.statement, server.address,
+| fields timestamp, db.system, db.namespace, db.operation.name,
+        db.query.text, server.address,
         duration_ms = duration / 1ms,
         dt.entity.service
 | fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")

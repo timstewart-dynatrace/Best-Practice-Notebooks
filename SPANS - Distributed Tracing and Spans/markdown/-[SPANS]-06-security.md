@@ -1,6 +1,6 @@
 # SPANS-06: Security Analysis with Spans
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 08/12/2026
 
 ## Protecting Distributed Traces and Ensuring Compliance
 This notebook demonstrates how to use span data for security analysis, audit for sensitive data exposure, and ensure compliance with regulations.
@@ -120,18 +120,28 @@ fetch spans, from:-1h
 ### Step 4: Audit Database Queries for PII
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Find database queries that might contain sensitive data
 fetch spans, from:-1h
-| filter isNotNull(db.statement)
-| filter contains(db.statement, "password") or
-        contains(db.statement, "ssn") or
-        contains(db.statement, "credit") or
-        contains(db.statement, "email") or
-        contains(db.statement, "phone")
+| filter isNotNull(db.query.text)
+| filter contains(db.query.text, "password") or
+        contains(db.query.text, "ssn") or
+        contains(db.query.text, "credit") or
+        contains(db.query.text, "email") or
+        contains(db.query.text, "phone")
 | fields dt.entity.service,
          db.system,
-         db.name,
-         db.statement
+         db.namespace,
+         db.query.text
 | limit 20
 ```
 
@@ -156,7 +166,7 @@ fetch spans, from:-1h
 | summarize {
     total_spans = count(),
     has_url = countIf(isNotNull(url.path)),
-    has_db_statement = countIf(isNotNull(db.statement)),
+    has_db_statement = countIf(isNotNull(db.query.text)),
     has_exception = countIf(isNotNull(exception.stacktrace))
   }
 | fieldsAdd url_percent = (has_url * 100.0) / total_spans
@@ -580,7 +590,7 @@ fetch spans, from:-1h
 | summarize {
     total_spans = count(),
     spans_with_url = countIf(isNotNull(url.path)),
-    spans_with_db_query = countIf(isNotNull(db.statement)),
+    spans_with_db_query = countIf(isNotNull(db.query.text)),
     spans_with_errors = countIf(span.status_code == "error"),
     auth_failures = countIf(
         (contains(span.name, "auth") or contains(span.name, "login")) and

@@ -1,6 +1,6 @@
 # WEBRUM-09: Migrating USQL to DQL
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -244,12 +244,28 @@ fetch user.sessions, from:-24h
 ```
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // USQL: SELECT AVG(duration) FROM usersession WHERE browserFamily = 'Chrome'
 // Note the two changes: = becomes ==, and the aggregation gets an alias.
 
 // --- Classic RUM on Grail ---
 fetch user.sessions, from:-24h
-| filter browserFamily == "Chrome"
+| filter browser.name == "Chrome"
 | summarize avg_duration = avg(duration)
 
 // --- New RUM ---

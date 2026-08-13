@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies.
@@ -716,8 +716,12 @@ fetch dt.entity.service
 ```
 
 ```dql
+// An empty result here is the HEALTHY answer, not a broken query (verified 08/12/2026: 0 of 37
+// services lacked a security context on the validation tenant). Rows appearing means governance
+// gaps exist. Do not "fix" this cell because it returns nothing — confirm with:
+//   fetch dt.entity.service, from:-7d | summarize {total = count(), no_context = countIf(isNull(dt.security_context))}
 // Find entities without security context (boundary gaps)
-fetch dt.entity.service
+fetch dt.entity.service, from:-7d
 | filter isNull(dt.security_context)
 | fields entity.name, tags
 | sort entity.name

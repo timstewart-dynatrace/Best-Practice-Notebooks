@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -221,11 +221,19 @@ A common operational pattern: identify AWS resources that haven't been onboarded
 
 ```dql
 // List all EC2 instances with their names and instance types
-fetch dt.entity.ec2_instance
-| fieldsKeep id, entity.name, tags, awsInstanceType, awsAvailabilityZone
+//
+// Corrected 08/12/2026: awsAvailabilityZone DOES NOT EXIST on dt.entity.ec2_instance and made the
+// whole cell fail with FIELD_DOES_NOT_EXIST. The model carries awsVpcName / awsInstanceId / amiId /
+// awsSecurityGroup / publicIp / localIp — there is no availability-zone attribute. Confirm with:
+//   fetch dt.semantic_dictionary.models | filter name == "dt.entity.ec2_instance" | fields fields
+fetch dt.entity.ec2_instance, from:-7d
+| fieldsKeep id, entity.name, tags, awsInstanceType, awsVpcName, awsInstanceId
 | sort entity.name asc
 | limit 20
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -236,10 +244,13 @@ fetch dt.entity.ec2_instance
 
 ```dql
 // Count EC2 instances grouped by instance type
-fetch dt.entity.ec2_instance
+fetch dt.entity.ec2_instance, from:-7d
 | summarize instance_count = count(), by:{awsInstanceType}
 | sort instance_count desc
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -250,25 +261,36 @@ fetch dt.entity.ec2_instance
 
 ```dql
 // List all monitored Lambda functions
-fetch dt.entity.aws_lambda_function
-| fieldsKeep id, entity.name, tags, awsLambdaFunctionRuntime
+//
+// Corrected 08/12/2026: the runtime attribute is awsRuntime, not awsLambdaFunctionRuntime — the
+// latter does not exist and failed the cell with FIELD_DOES_NOT_EXIST.
+fetch dt.entity.aws_lambda_function, from:-7d
+| fieldsKeep id, entity.name, tags, awsRuntime, awsMemorySize, awsTimeout
 | sort entity.name asc
 | limit 20
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
+
 // Smartscape note (dt.entity.* is deprecated but still functional): AWS Lambda functions ARE
 // modeled on Smartscape as smartscapeNodes "AWS_LAMBDA_FUNCTION", but the classic aws* attribute
-// fields (e.g. awsLambdaFunctionRuntime) differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION"
-// | limit 1 for the node field names. Keep the classic query above until the fields are mapped.
+// fields differ there — inspect smartscapeNodes "AWS_LAMBDA_FUNCTION" | limit 1 for the node
+// field names. Keep the classic query above until the fields are mapped.
 ```
 
 ### List RDS Instances
 
 ```dql
 // List all monitored RDS instances
-fetch dt.entity.relational_database_service
+fetch dt.entity.relational_database_service, from:-30d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 | limit 20
+
+// Returns no rows unless the AWS integration has RDS enabled — an empty result here means no RDS
+// instance was seen in the window, NOT that the query is wrong. Distinguish the two by widening
+// the window before concluding anything.
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
@@ -278,13 +300,21 @@ fetch dt.entity.relational_database_service
 
 ```dql
 // Find EC2 instances missing the required cost-allocation tag
-fetch dt.entity.ec2_instance
-| fieldsAdd hasCostTag = isNotNull(tags[`dt.cost.product`])
-| filter hasCostTag == false
-| fieldsKeep id, entity.name, awsAvailabilityZone, tags
+//
+// Corrected 08/12/2026. Two defects: (1) tags is an ARRAY of "key:value" strings, not a map, so
+// tags[`dt.cost.product`] failed with INNER_FIELD_OF_FIELD_DOES_NOT_EXIST; (2) the null-safe half
+// matters — an entity with NO tags at all has tags == null, and iAny(...) over null yields null,
+// which `not` leaves null and the filter silently drops. Without the isNull() arm this reported
+// 0 untagged instances while all 13 were in fact untagged.
+fetch dt.entity.ec2_instance, from:-7d
+| filter isNull(tags) or not iAny(startsWith(tags[], "dt.cost.product:"))
+| fieldsKeep id, entity.name, awsVpcName, tags
 | sort entity.name asc
 | limit 50
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -311,7 +341,16 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
 
 ```dql
 // Lambda invocations over the last 6 hours by function
-timeseries invocations = sum(cloud.aws.lambda.invocations), from:-6h, by:{dt.entity.aws_lambda_function}
+
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
+// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
+// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
+// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
+// Enumerate what your tenant has with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd totalInvocations = arraySum(invocations)
 | sort totalInvocations desc
 | limit 10
@@ -321,7 +360,16 @@ timeseries invocations = sum(cloud.aws.lambda.invocations), from:-6h, by:{dt.ent
 
 ```dql
 // Lambda error count over the last 6 hours by function
-timeseries errors = sum(cloud.aws.lambda.errors), from:-6h, by:{dt.entity.aws_lambda_function}
+
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
+// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
+// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
+// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
+// Enumerate what your tenant has with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd totalErrors = arraySum(errors)
 | filter totalErrors > 0
 | sort totalErrors desc
@@ -333,11 +381,20 @@ timeseries errors = sum(cloud.aws.lambda.errors), from:-6h, by:{dt.entity.aws_la
 Inspired by the [Cost Allocation Dashboard (Dynatrace community-examples)](https://github.com/Dynatrace/community-examples/tree/main/dashboards/cost-allocation) pattern of joining two metrics by a shared dimension. Useful as a single-tile signal for SRE dashboards. Community-derived — adapt to your tenant's metric availability.
 
 ```dql
-// Lambda error rate (errors/invocations) over 24h by function — community-inspired pattern
+// Lambda error rate (errors/invocations) over 24h by function
+
+// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
+// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
+// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
+// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
+// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
+// Enumerate what your tenant has with:
+//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
 timeseries {
-  invocations = sum(cloud.aws.lambda.invocations),
-  errors = sum(cloud.aws.lambda.errors)
-}, from:-24h, by:{dt.entity.aws_lambda_function}
+  invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName),
+  errors = sum(cloud.aws.lambda.Errors.By.FunctionName)
+}, from:-24h, by:{FunctionName}
 | fieldsAdd totalInv = arraySum(invocations), totalErr = arraySum(errors)
 | filter totalInv > 0
 | fieldsAdd errorRatePct = round((totalErr / totalInv) * 100, decimals: 2)

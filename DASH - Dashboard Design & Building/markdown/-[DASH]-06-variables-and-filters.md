@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -158,11 +158,19 @@ In a dashboard tile, this query would use the `$service` variable. In a notebook
 
 ```dql
 // Service latency filtered by entity — dashboard would use $service variable
-// In a dashboard tile: filter dt.entity.service == $service
+//
+// Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
+// (`percentile(duration, 50) / 1ms`) fails with "the parameter has to be an expression-based
+// timeseries aggregation". Aggregate first, convert afterwards in `fieldsAdd`. Note the unit
+// conversion also changes: makeTimeseries yields a numeric array in NANOSECONDS, not a duration,
+// so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
+// In a dashboard tile the filter becomes: filter dt.entity.service == $service
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(dt.entity.service)
-| makeTimeseries p50_ms = percentile(duration, 50) / 1ms, p95_ms = percentile(duration, 95) / 1ms, interval:5m, by:{dt.entity.service}
+| makeTimeseries p50 = percentile(duration, 50), p95 = percentile(duration, 95), interval:5m, by:{dt.entity.service}
+| fieldsAdd p50_ms = p50[] / 1000000.0, p95_ms = p95[] / 1000000.0
+| fieldsRemove p50, p95
 ```
 
 ### Example: Log Analysis with Namespace and Level Variables
