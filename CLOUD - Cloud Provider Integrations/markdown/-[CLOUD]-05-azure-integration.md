@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -178,11 +178,14 @@ Forthcoming / rolling out with [**OneAgent 1.343**](https://docs.dynatrace.com/d
 
 ```dql
 // List all monitored Azure VMs
-fetch dt.entity.azure_vm
+fetch dt.entity.azure_vm, from:-7d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 | limit 20
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -193,21 +196,24 @@ fetch dt.entity.azure_vm
 
 ```dql
 // Count Azure VMs and Web Apps
-fetch dt.entity.azure_vm
+fetch dt.entity.azure_vm, from:-7d
 | summarize resource_count = count()
 | fieldsAdd provider = "Azure", resource_type = "Virtual Machine"
 | append [
-    fetch dt.entity.azure_web_app
+    fetch dt.entity.azure_web_app, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "Azure", resource_type = "Web App"
   ]
 | append [
-    fetch dt.entity.azure_sql_database
+    fetch dt.entity.azure_sql_database, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "Azure", resource_type = "SQL Database"
   ]
 | sort resource_count desc
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -218,10 +224,13 @@ fetch dt.entity.azure_vm
 
 ```dql
 // List monitored Azure App Service instances
-fetch dt.entity.azure_web_app
+fetch dt.entity.azure_web_app, from:-30d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 | limit 20
+
+// Returns no rows unless the Azure integration has App Service enabled — an empty result here
+// means no Web App was seen in the window, NOT that the query is wrong.
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such

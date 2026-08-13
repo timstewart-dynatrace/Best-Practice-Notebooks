@@ -1,6 +1,6 @@
 # S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -122,9 +122,13 @@ After configuring cloud integrations in the target tenant, verify data is flowin
 
 ```dql
 // Target tenant: check for detected problems indicating integration issues
+//
+// Corrected 08/12/2026: the cell sorted by `timestamp` AFTER a `fields` projection that dropped it,
+// so it failed with FIELD_DOES_NOT_EXIST. dt.davis.problems does carry `timestamp` — `fields` had
+// simply removed it. Keep the sort key in the projection.
 fetch dt.davis.problems, from:-2h
 | filter contains(event.name, "cloud") or contains(event.name, "integration") or contains(event.name, "AWS") or contains(event.name, "Azure") or contains(event.name, "GCP")
-| fields display_id, event.name, event.status, event.category
+| fields timestamp, display_id, event.name, event.status, event.category
 | sort timestamp desc
 | limit 10
 ```

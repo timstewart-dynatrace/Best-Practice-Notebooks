@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 08/04/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -398,12 +398,22 @@ After deploying the filter, the FINOPS-02 daily burn-rate alert should show the 
 Query the metric's dimensions to find the high-cardinality one:
 
 ```dql
-// Find unique dimension values per dimension on a metric — cardinality audit
+// Cardinality audit — how many distinct series a metric is producing
+//
+// Corrected 08/12/2026: `describe` is a STANDALONE command taking a data object
+// (`describe metric.series`), not a pipeline stage — appending `| describe` failed with
+// "1 mandatory parameter is missing: dataObject". It also reports the SCHEMA, not per-dimension
+// cardinality, so it cannot answer this question. Count distinct dimension values directly.
 fetch metric.series, from:-1d
-| filter metric.key == "app.request.processed"
-| describe
-// describe returns one row per dimension with the unique-value count;
-// look for dimensions with cardinality in the thousands or millions
+| filter metric.key == "dt.sfm.active_gate.thread_pool.queue_size"
+| summarize {
+    series          = count(),
+    distinct_gates  = countDistinctExact(dt.active_gate.id),
+    distinct_pools  = countDistinctExact(thread_pool_name)
+  }
+
+// Read it as: `series` is the metric's cardinality. A dimension whose distinct count runs to
+// thousands or millions is the one multiplying your series count — that is the cost driver.
 ```
 
 Suppose the result shows: `app.name` (12 values), `endpoint` (47 values), `request.id` (8.4M values). `request.id` is the runaway dimension — every request creates a new time series.

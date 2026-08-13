@@ -1,6 +1,6 @@
 # WEBRUM-04: Session Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -65,9 +65,25 @@ Define custom properties via **Settings > Web and mobile monitoring > Session an
 - `session.ab_variant` — A/B test variant
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Explore session data — view available fields
 fetch user.sessions, from:-1h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | limit 5
 ```
 
@@ -80,14 +96,14 @@ Segmenting sessions helps identify patterns across different user groups. Common
 ```dql
 // Engagement segmentation — bucket sessions by number of actions
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| fieldsAdd engagement = if(userActionCount == 1, "Bounce",
-    else: if(userActionCount <= 3, "Low (2-3 actions)",
-    else: if(userActionCount <= 10, "Medium (4-10 actions)",
+| filter dt.rum.user_type == "real_user"
+| fieldsAdd engagement = if(user_action_count == 1, "Bounce",
+    else: if(user_action_count <= 3, "Low (2-3 actions)",
+    else: if(user_action_count <= 10, "Medium (4-10 actions)",
     else: "High (10+ actions)")))
 | summarize session_count = count(),
     avg_duration = avg(duration),
-    avg_errors = avg(totalErrorCount),
+    avg_errors = avg(error.count),
     by:{engagement}
 | sort session_count desc
 ```
@@ -95,10 +111,10 @@ fetch user.sessions, from:-24h
 ```dql
 // Error-impacted sessions — how many sessions had errors?
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize total_sessions = count(),
-    error_sessions = countIf(totalErrorCount > 0),
-    by:{application}
+    error_sessions = countIf(error.count > 0),
+    by:{primary_tags.application}
 | fieldsAdd error_session_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort error_session_pct desc
 ```
@@ -110,10 +126,24 @@ fetch user.sessions, from:-24h
 Understanding the sequence of actions within sessions reveals common navigation paths, dead ends, and drop-off points.
 
 ```dql
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "page_summary"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Top entry pages — where do users start their journey?
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| summarize first_action = takeFirst(action.name), by:{sessionId}
+| filter characteristics.classifier == "page_summary"
+| summarize first_action = takeFirst(page.detected_name), by:{dt.rum.session.id}
 | summarize entry_count = count(), by:{first_action}
 | sort entry_count desc
 | limit 10
@@ -122,8 +152,8 @@ fetch user.events, from:-24h
 ```dql
 // Top exit pages — where do users leave?
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| summarize last_action = takeLast(action.name), by:{sessionId}
+| filter characteristics.classifier == "page_summary"
+| summarize last_action = takeLast(page.detected_name), by:{dt.rum.session.id}
 | summarize exit_count = count(), by:{last_action}
 | sort exit_count desc
 | limit 10
@@ -132,7 +162,7 @@ fetch user.events, from:-24h
 ```dql
 // Session duration distribution by hour of day — when are users most active?
 fetch user.sessions, from:-7d
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | fieldsAdd hour = getHour(timestamp)
 | summarize session_count = count(),
     avg_duration_sec = avg(duration / 1s),
@@ -157,14 +187,14 @@ If your conversion page has a recognizable URL pattern, you can detect conversio
 // Conversion rate — sessions that reached a checkout/confirmation page
 // Adapt the filter to match your conversion page URL pattern
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize total_sessions = count(),
-    by:{application}
+    by:{primary_tags.application}
 | append [
     fetch user.events, from:-24h
-    | filter action.type == "Load"
-    | filter contains(action.name, "confirmation") or contains(action.name, "thank-you") or contains(action.name, "checkout-success")
-    | summarize converted_sessions = countDistinct(sessionId), by:{application}
+    | filter characteristics.classifier == "page_summary"
+    | filter contains(page.detected_name, "confirmation") or contains(page.detected_name, "thank-you") or contains(page.detected_name, "checkout-success")
+    | summarize converted_sessions = countDistinct(dt.rum.session.id), by:{primary_tags.application}
   ]
 ```
 
@@ -179,10 +209,10 @@ A "bounce" is a session with only one user action — the user loaded one page a
 ```dql
 // Bounce rate by application
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize total_sessions = count(),
-    bounced_sessions = countIf(userActionCount == 1),
-    by:{application}
+    bounced_sessions = countIf(user_action_count == 1),
+    by:{primary_tags.application}
 | fieldsAdd bounce_rate_pct = round(toDouble(bounced_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort bounce_rate_pct desc
 ```
@@ -190,8 +220,8 @@ fetch user.sessions, from:-24h
 ```dql
 // Bounce rate trend over 7 days — track improvement over time
 fetch user.sessions, from:-7d
-| filter userType == "REAL_USER"
-| fieldsAdd is_bounce = if(userActionCount == 1, 1, else: 0)
+| filter dt.rum.user_type == "real_user"
+| fieldsAdd is_bounce = if(user_action_count == 1, 1, else: 0)
 | makeTimeseries total = count(), bounces = sum(is_bounce), interval:1d
 | fieldsAdd bounce_rate = arrayAvg(bounces) / arrayAvg(total) * 100.0
 ```
@@ -205,13 +235,13 @@ RUM data includes geographic information derived from the user's IP address. Thi
 ```dql
 // Sessions by country — top 15 countries by volume
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(country)
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(geo.country.name)
 | summarize session_count = count(),
-    avg_actions = avg(userActionCount),
-    avg_errors = avg(totalErrorCount),
+    avg_actions = avg(user_action_count),
+    avg_errors = avg(error.count),
     avg_duration_sec = avg(duration / 1s),
-    by:{country}
+    by:{geo.country.name}
 | sort session_count desc
 | limit 15
 ```
@@ -219,9 +249,9 @@ fetch user.sessions, from:-24h
 ```dql
 // Top 10 cities by session count with average performance
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(city) and isNotNull(country)
-| summarize session_count = count(), by:{city, country}
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(geo.city.name) and isNotNull(geo.country.name)
+| summarize session_count = count(), by:{geo.city.name, geo.country.name}
 | sort session_count desc
 | limit 10
 ```
@@ -235,11 +265,11 @@ Understanding the device and browser mix helps prioritize testing and optimizati
 ```dql
 // Session distribution by browser
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(browserFamily)
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(browser.name)
 | summarize session_count = count(),
-    avg_errors = avg(totalErrorCount),
-    by:{browserFamily}
+    avg_errors = avg(error.count),
+    by:{browser.name}
 | sort session_count desc
 | limit 10
 ```
@@ -247,20 +277,20 @@ fetch user.sessions, from:-24h
 ```dql
 // Session distribution by operating system
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(osFamily)
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(os.name)
 | summarize session_count = count(),
     avg_duration_sec = avg(duration / 1s),
-    by:{osFamily}
+    by:{os.name}
 | sort session_count desc
 ```
 
 ```dql
 // Screen resolution distribution — identify common viewport sizes
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(screen.width) and isNotNull(screen.height)
-| fieldsAdd resolution = concat(toString(screen.width), "x", toString(screen.height))
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(browser.window.width) and isNotNull(browser.window.height)
+| fieldsAdd resolution = concat(toString(browser.window.width), "x", toString(browser.window.height))
 | summarize session_count = count(), by:{resolution}
 | sort session_count desc
 | limit 10

@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -347,14 +347,32 @@ After reconfiguring cloud integrations, verify metrics are flowing:
 
 ```dql
 // Verify AWS cloud metrics are flowing after integration reconfiguration
-timeseries avg(dt.cloud.aws.ec2.cpu.usage), from:-1h
+//
+// The `dt.cloud.aws.*` metric namespace DOES NOT EXIST in any spelling (verified 08/12/2026).
+// AWS CloudWatch metrics are published as cloud.aws.<service>.<CloudWatchName>.By.<Dimension> —
+// the CloudWatch name keeps its PascalCase and the split dimension is part of the key. A
+// timeseries against a missing key returns an EMPTY result rather than an error, so this cell
+// silently drew nothing. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws") | fields metric.key | sort metric.key asc
+timeseries cpu = avg(cloud.aws.ec2.CPUUtilization.By.InstanceId), from:-1h, by:{InstanceId}
+| fieldsAdd avg_cpu = arrayAvg(cpu)
+| fields InstanceId, avg_cpu
+| sort avg_cpu desc
 | limit 5
 ```
 
 ```dql
 // Verify Azure cloud metrics are flowing
-timeseries avg(dt.cloud.azure.vm.cpu_usage), from:-1h
-| limit 5
+//
+// Corrected 08/12/2026: `dt.cloud.azure.vm.cpu_usage` does not exist. The `dt.cloud.azure.*`
+// namespace is real but carries only VM *counts* (running / stopped / initializing, by region and
+// scale set) — there is no CPU metric in it. Azure Monitor resource metrics are published as
+// cloud.azure.<provider_namespace>.<resource_type>.<MetricName>, so VM CPU is PercentageCPU.
+// (For OneAgent-monitored Azure VMs, dt.host.cpu.usage is the host-level equivalent.) Enumerate:
+//   metrics | filter startsWith(metric.key, "cloud.azure") | fields metric.key | sort metric.key asc
+timeseries cpu = avg(cloud.azure.microsoft_compute.virtualmachines.PercentageCPU), from:-1h
+| fieldsAdd avg_cpu = arrayAvg(cpu)
+| fields avg_cpu
 ```
 
 ### Extension Health Check

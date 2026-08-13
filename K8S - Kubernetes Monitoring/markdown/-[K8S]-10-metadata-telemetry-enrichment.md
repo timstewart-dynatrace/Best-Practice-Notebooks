@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -463,7 +463,7 @@ kubectl label namespace shared cost-center=platform
 Create enrichment rule for `cost-center` label, then query:
 
 ```dql
-timeseries totalCpu = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.cost-center}
+timeseries totalCpu = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{`k8s.cost-center`}   // backticks required — the hyphen is not a valid bare identifier
 ```
 
 ### Pipeline Routing

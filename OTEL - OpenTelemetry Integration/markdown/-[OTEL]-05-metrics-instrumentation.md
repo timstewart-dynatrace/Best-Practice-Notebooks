@@ -1,6 +1,6 @@
 # OTEL-05: Metrics Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Creating Custom Metrics with OpenTelemetry
 OpenTelemetry metrics provide quantitative measurements of your application's behavior over time. This notebook covers metric types, instrumentation patterns, and integration with Dynatrace.
@@ -522,7 +522,19 @@ timeseries avg(http.server.request.duration), from:-1h, by:{http.method}
 
 ```dql
 // Request rate by status
-timeseries rate = sum(http.server.request.count), from:-1h, by:{http.status_code}
+//
+// Corrected 08/12/2026 — two defects, each of which alone returned an empty result:
+//   1. `http.server.request.count` does not exist. OpenTelemetry publishes the server-side request
+//      signal as the HISTOGRAM `http.server.request.duration`; the request count is the histogram's
+//      count, reached with count() — there is no separate counter metric.
+//   2. `http.status_code` is the pre-1.0 semconv attribute name. The stable name is
+//      `http.response.status_code`, and grouping by the old one yields a single null bucket.
+// Enumerate the real dimensions with:
+//   metrics | filter metric.key == "http.server.request.duration" | limit 1
+timeseries requests = count(http.server.request.duration), from:-1h, by:{http.response.status_code}
+| fieldsAdd total = arraySum(requests)
+| fields http.response.status_code, total
+| sort total desc
 | limit 10
 ```
 

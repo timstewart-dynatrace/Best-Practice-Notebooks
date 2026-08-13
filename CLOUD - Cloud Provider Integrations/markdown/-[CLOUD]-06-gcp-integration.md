@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -231,12 +231,16 @@ timeseries containerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{
 ```dql
 // Node CPU utilization across GKE nodes over the last hour, derived at container grain.
 //
-// Corrected 08/11/2026. This cell used `dt.kubernetes.node.cpu_usage`, which DOES NOT
-// EXIST — Grail consolidated node and workload metrics into `dt.kubernetes.container.*`.
-// A timeseries against a non-existent key returns an empty result rather than an error,
-// so the tile simply drew nothing. Enumerate what your tenant really has with:
-//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize by:{metric.key}
-// (note `metrics` takes `from:` with NO leading comma).
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
 timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgCpu = arrayAvg(used)
 | sort avgCpu desc
@@ -311,9 +315,14 @@ OneAgent monitoring of Cloud Run managed is **limited to Java and Node.js**. Clo
 
 ```dql
 // Cloud Run service spans in the last hour
+//
+// Corrected 08/12/2026: `cloud.platform` is DEPRECATED in the semantic dictionary and carried no
+// value on any span in the validation tenant, so `cloud.platform == "gcp_cloud_run"` could only
+// ever return nothing. `cloud.provider` is the stable replacement (aws / azure / gcp / ...).
+// Note this narrows to provider, not service — add a service.name or faas.name filter to isolate
+// Cloud Run specifically. On a tenant with no GCP workloads this correctly returns no rows.
 fetch spans, from:-1h
-| filter span.kind == "server"
-| filter isNotNull(cloud.platform) and cloud.platform == "gcp_cloud_run"
+| filter span.kind == "server" and cloud.provider == "gcp"
 | summarize {avg_duration_ms = avg(duration) / 1ms, request_count = count()}, by:{service.name}
 | sort request_count desc
 | limit 10

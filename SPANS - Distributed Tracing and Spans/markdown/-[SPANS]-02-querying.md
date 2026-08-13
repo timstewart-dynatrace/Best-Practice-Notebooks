@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/04/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/12/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -420,14 +420,24 @@ Analyze database operations captured as spans:
 | `db.statement` | The database query (may contain sensitive data) |
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Find all database spans
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | fields start_time,
          service.name,
          db.system,
-         db.name,
-         db.operation,
+         db.namespace,
+         db.operation.name,
          duration
 | sort duration desc
 | limit 50
@@ -442,8 +452,8 @@ fetch spans, from:-1h
 | fields start_time,
          service.name,
          db.system,
-         db.operation,
-         db.statement,
+         db.operation.name,
+         db.query.text,
          duration_ms
 | sort duration_ms desc
 | limit 50
@@ -456,7 +466,7 @@ fetch spans, from:-1h
 | summarize {
     db_span_count = count(),
     avg_duration_ms = avg(duration) / 1ms
-  }, by: {db.system, db.name}
+  }, by: {db.system, db.namespace}
 | sort db_span_count desc
 ```
 
@@ -481,7 +491,7 @@ fetch spans, from:-1h
 // Find spans that have database information
 fetch spans, from:-1h
 | filter isNotNull(db.system)
-| summarize {db_span_count = count()}, by: {db.system, db.name}
+| summarize {db_span_count = count()}, by: {db.system, db.namespace}
 | sort db_span_count desc
 ```
 

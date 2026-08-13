@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Production Best Practices
 This final notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -235,16 +235,23 @@ This pattern adds one day of dual-credential window, but no workflow ever runs a
 Before rotating, find every workflow that uses the connection — both to scope the migration and to be sure step 3 of the rotation pattern is exhaustive. Workflow execution events carry the connection name in task input, so a connection-name search across recent executions is the most reliable inventory:
 
 ```dql
-// Workflows that have used a specific connection in the last 30 days
-// Replace <connection-name> with the connection you're rotating
-fetch events, from: now() - 30d
-| filter event.type == "automation.task.execution"
-| filter contains(task.input, "<connection-name>")
-| summarize
-    last_execution = max(timestamp),
-    execution_count = count(),
-    by:{workflow.name, task.name, task.type}
+// Inventory: which workflows invoke a given connector — replace the literal below
+//
+// Data object corrected 08/12/2026 along with the rest of this series: workflow executions live in
+// `dt.system.events` with `event.kind == "WORKFLOW_EVENT"`, not in `events` under a non-existent
+// `automation.task.execution` type. `task.input` is not a field either — the connector actually
+// invoked is `dt.automation_engine.action.app` / `.action.function`, which is a better key than
+// scraping an input payload for a connection name.
+fetch dt.system.events, from:-30d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "ACTION_EXECUTION"
+| filter contains(dt.automation_engine.action.app, "servicenow")
+| summarize {
+    last_execution  = takeMax(timestamp),
+    execution_count = count()
+  }, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name, dt.automation_engine.action.function}
 | sort last_execution desc
+| limit 25
 ```
 
 If a workflow shows up here, it references the connection — migrate it before revoking the old credential. If a workflow you expected to see *doesn't* show up, it either hasn't executed in 30 days (extend the lookback) or references the connection only in a code path that hasn't been hit.
@@ -252,23 +259,32 @@ If a workflow shows up here, it references the connection — migrate it before 
 **For a wider sweep across all external connections:**
 
 ```dql
-// Inventory: which external connection types are workflows using, and how often?
-fetch events, from: now() - 30d
-| filter event.type == "automation.task.execution"
-| filter in(task.type, {"dynatrace.slack:message",
-                        "dynatrace.msteams:message",
-                        "dynatrace.pagerduty:create-event",
-                        "dynatrace.pagerduty:resolve-event",
-                        "dynatrace.servicenow:create-incident",
-                        "dynatrace.servicenow:update-incident",
-                        "dynatrace.jira:create-issue",
-                        "dynatrace.http:request"})
-| summarize
-    executions = count(),
-    failures = countIf(task.status == "FAILED"),
-    by:{task.type}
-| fieldsAdd failure_rate = round(100.0 * failures / executions, decimals: 2)
+// Inventory: which connector apps workflows actually invoke
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "ACTION_EXECUTION"
+| summarize {executions = count(), workflows = countDistinctExact(dt.automation_engine.workflow.id)}, by:{dt.automation_engine.action.app}
 | sort executions desc
+| limit 25
 ```
 
 Failure rates per connection type surface a soon-to-expire credential before the rotation deadline — a Slack token approaching expiry typically manifests as a rising 401 rate days before the token's nominal expiration.
@@ -349,58 +365,121 @@ fetch events, from: now() - 24h
 
 ```dql
 // Per-workflow success rates
-fetch events, from: now() - 7d
-| filter event.type == "automation.workflow.execution"
-| summarize 
-    total = count(),
-    succeeded = countIf(execution.status == "SUCCEEDED"),
-    failed = countIf(execution.status == "FAILED"),
-    avg_duration = avg(execution.duration),
-    by:{workflow.name}
-| fieldsAdd success_rate = round(100.0 * succeeded / total, decimals: 2)
-| filter total > 10
-| sort success_rate asc
-| limit 20
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == "SUCCESS"), failed = countIf(dt.automation_engine.state == "ERROR")}, by:{dt.automation_engine.workflow.title}
+| fieldsAdd success_pct = round(succeeded * 100.0 / total, decimals: 1)
+| sort failed desc
+| limit 25
 ```
 
 ```dql
 // Execution trend over time
-fetch events, from: now() - 7d
-| filter event.type == "automation.workflow.execution"
-| summarize 
-    total = count(),
-    failed = countIf(execution.status == "FAILED"),
-    by:{time_bucket = bin(timestamp, 1h)}
-| fieldsAdd failure_rate = round(100.0 * failed / total, decimals: 2)
-| sort time_bucket asc
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| makeTimeseries executions = count(), interval:1h, by:{dt.automation_engine.state}
 ```
 
 ```dql
 // Recent failures with error details
-fetch events, from: now() - 24h
-| filter event.type == "automation.workflow.execution"
-| filter execution.status == "FAILED"
-| fields timestamp, 
-         workflow.name, 
-         execution.id,
-         execution.error,
-         trigger.type
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state == "ERROR"
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info, dt.automation_engine.workflow_execution.id
 | sort timestamp desc
-| limit 20
+| limit 25
 ```
 
 ```dql
 // Task-level performance
-fetch events, from: now() - 24h
-| filter event.type == "automation.task.execution"
-| summarize 
-    executions = count(),
-    failures = countIf(task.status == "FAILED"),
-    avg_duration = avg(task.duration),
-    max_duration = max(task.duration),
-    by:{task.type}
-| fieldsAdd failure_rate = round(100.0 * failures / executions, decimals: 2)
-| sort executions desc
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "TASK_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| summarize {executions = count(), avg_ms = avg(duration) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| sort avg_ms desc
+| limit 25
 ```
 
 ### 4.1 Deeper debugging patterns
@@ -423,14 +502,33 @@ Workflow Automation emits two event types in Grail:
 When a workflow shows `FAILED`, the actionable question is *which task in the run failed and what was the error?* This goes one level below cell 8 (workflow-level failures) by filtering on `automation.task.execution` and surfacing `task.error`.
 
 ```dql
-// Failed task executions in the last 24h — joins workflow context with task-level detail
-fetch events, from:-24h
-| filter event.type == "automation.task.execution"
-| filter task.status == "FAILED"
-| fields timestamp, workflow.name, execution.id, task.name, task.type, task.status, task.duration, task.error
-| sort timestamp desc
-| limit 50
-
+// Failed task executions in the last 24h, with their workflow
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "TASK_EXECUTION"
+| filter dt.automation_engine.state == "ERROR"
+| summarize failures = count(), by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| sort failures desc
+| limit 25
 ```
 
 ### 4.3 Slowest tasks across all workflows (duration percentiles)
@@ -439,18 +537,33 @@ fetch events, from:-24h
 
 ```dql
 // Slowest tasks across all workflows (last 7d) by p95
-fetch events, from:-7d
-| filter event.type == "automation.task.execution"
-| summarize {
-    runs = count(),
-    p50 = percentile(task.duration, 50),
-    p95 = percentile(task.duration, 95),
-    p99 = percentile(task.duration, 99)
-  }, by:{workflow.name, task.name, task.type}
-| filter runs >= 5
-| sort p95 desc
-| limit 25
-
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "TASK_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| summarize {executions = count(), p95_ms = percentile(duration, 95) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| filter executions > 5
+| sort p95_ms desc
+| limit 20
 ```
 
 ### 4.4 Filter by workflow ID, task name, status
@@ -458,16 +571,33 @@ fetch events, from:-7d
 Targeted lookup for a single workflow + task combination. Adapt the literals to the workflow and task you are debugging — useful when a specific notification keeps failing and you need the error history for just that step.
 
 ```dql
-// Targeted lookup — replace the literals with the workflow and task you are debugging
-fetch events, from:-24h
-| filter event.type == "automation.task.execution"
-| filter workflow.name == "my-workflow"
-| filter task.name == "send-slack"
-| filter task.status == "FAILED"
-| fields timestamp, execution.id, workflow.name, task.name, task.status, task.error
+// Targeted lookup — replace the literal with a workflow title from your tenant
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "TASK_EXECUTION"
+| filter contains(dt.automation_engine.workflow.title, "Alert")
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.task.name, dt.automation_engine.state, duration
 | sort timestamp desc
 | limit 25
-
 ```
 
 ### 4.5 Correlate workflow failures to downstream logs
@@ -477,20 +607,33 @@ When a workflow run emits logs (HTTP-action target service, JavaScript-action `c
 > The `lookupField` in the join below assumes logs carry the workflow execution ID in the `dt.execution.id` attribute. If your downstream service writes the ID into the log body instead, swap the lookup subquery to `parse content, "...'execution_id=' DATA:exec_id"` and join on `exec_id`.
 
 ```dql
-// Workflow failures correlated with logs that reference the same execution.id
-fetch events, from:-1h
-| filter event.type == "automation.workflow.execution"
-| filter execution.status == "FAILED"
-| fields fail_ts = timestamp, workflow.name, execution.id
-| lookup [
-    fetch logs, from:-1h
-    | filter isNotNull(dt.execution.id)
-    | fields log_ts = timestamp, content, dt.execution.id
-  ],
-  sourceField:execution.id, lookupField:dt.execution.id
-| sort fail_ts desc
+// Workflow failures in the last hour
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == "WORKFLOW_EVENT"` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note "FAILED" is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "WORKFLOW_EVENT" | limit 1
+fetch dt.system.events, from:-1h
+| filter event.kind == "WORKFLOW_EVENT"
+| filter event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state == "ERROR"
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info
+| sort timestamp desc
 | limit 25
-
 ```
 
 ### 4.6 Promoting these queries to a dashboard

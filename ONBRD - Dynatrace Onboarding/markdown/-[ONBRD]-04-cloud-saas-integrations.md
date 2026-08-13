@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -366,9 +366,19 @@ smartscapeNodes "AZURE_VM"
 
 ```dql
 // Check for cloud-sourced metrics
-// Note: There is no "metrics" starting command in DQL.
-// Use timeseries to query a specific cloud metric, for example:
-timeseries avg(dt.cloud.aws.lambda.duration), from:-24h
+//
+// The `dt.cloud.aws.*` metric namespace DOES NOT EXIST in any spelling (verified 08/12/2026).
+// AWS CloudWatch metrics are published as cloud.aws.<service>.<CloudWatchName>.By.<Dimension> —
+// the CloudWatch name keeps its PascalCase and the split dimension is part of the key. A
+// timeseries against a missing key returns an EMPTY result rather than an error, so this cell
+// silently drew nothing. Enumerate with:
+//   metrics | filter startsWith(metric.key, "cloud.aws") | fields metric.key | sort metric.key asc
+timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-24h, by:{FunctionName}
+| fieldsAdd avg_duration_ms = arrayAvg(avgDuration)
+| fields FunctionName, avg_duration_ms
+| sort avg_duration_ms desc
+| limit 10
+
 // Or browse available cloud metrics in the Dynatrace Metrics browser:
 // Observe & Explore → Metrics → search for "cloud" or "aws" / "azure" / "gcp"
 ```

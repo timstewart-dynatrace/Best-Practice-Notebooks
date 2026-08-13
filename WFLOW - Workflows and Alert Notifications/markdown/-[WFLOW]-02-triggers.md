@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, metric events, schedules, and custom event triggers.
@@ -518,11 +518,14 @@ fetch events, from: now() - 24h
 ```
 
 ```dql
-// Problem count by severity (last 7 days)
-fetch events, from: now() - 7d
+// Problem count by category (last 7 days)
+// Field names corrected 08/12/2026: on `events`, a Davis problem carries `event.status` and
+// `event.category` — there are no bare `status` / `severity` fields, so those filters matched
+// nothing. `event.status` values are ACTIVE / CLOSED — "OPEN" is not one of them.
+fetch events, from:-7d
 | filter event.kind == "DAVIS_PROBLEM"
-| filter status == "OPEN"
-| summarize problem_count = count(), by:{severity}
+| filter event.status == "ACTIVE"
+| summarize problem_count = count(), by:{event.category}
 | sort problem_count desc
 ```
 

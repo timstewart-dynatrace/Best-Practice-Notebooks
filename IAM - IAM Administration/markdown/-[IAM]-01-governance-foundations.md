@@ -1,6 +1,6 @@
 # IAM-01: IAM Governance Foundations
 
-> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Building a Strong Foundation for Identity Management
 Effective IAM governance is the cornerstone of enterprise security. This notebook establishes the framework for managing identities, groups, policies, and access controls in Dynatrace's Gen3 IAM system.
@@ -317,8 +317,12 @@ fetch dt.entity.service
 ```
 
 ```dql
+// An empty result here is the HEALTHY answer, not a broken query (verified 08/12/2026: 0 of 37
+// services lacked a security context on the validation tenant). Rows appearing means governance
+// gaps exist. Do not "fix" this cell because it returns nothing — confirm with:
+//   fetch dt.entity.service, from:-7d | summarize {total = count(), no_context = countIf(isNull(dt.security_context))}
 // List services without security context (governance gaps)
-fetch dt.entity.service
+fetch dt.entity.service, from:-7d
 | filter isNull(dt.security_context)
 | fields entity.name, tags
 | sort entity.name

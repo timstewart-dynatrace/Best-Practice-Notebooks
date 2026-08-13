@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -48,6 +48,16 @@ Relational databases share a common monitoring model: they all execute SQL state
 Let's start by identifying which SQL databases are active in your environment.
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Discover active SQL databases in the environment
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
@@ -55,7 +65,7 @@ fetch spans, from:-1h
     call_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms,
-    unique_queries = countDistinct(db.statement)
+    unique_queries = countDistinct(db.query.text)
 }, by:{db.system, db.namespace, server.address}
 | sort call_count desc
 ```
@@ -70,13 +80,13 @@ The most important aspect of SQL database monitoring is understanding query perf
 // Top 20 SQL queries by total execution time (highest impact)
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter isNotNull(db.statement)
+| filter isNotNull(db.query.text)
 | summarize {
     total_time_ms = sum(duration) / 1ms,
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.system, db.statement}
+}, by:{db.system, db.query.text}
 | sort total_time_ms desc
 | limit 20
 ```
@@ -99,8 +109,8 @@ Slow queries are the most common cause of database-related performance problems.
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter duration > 500ms
-| fields timestamp, db.system, db.namespace, db.operation,
-        db.statement, server.address,
+| fields timestamp, db.system, db.namespace, db.operation.name,
+        db.query.text, server.address,
         duration_ms = duration / 1ms,
         dt.entity.service
 | sort duration_ms desc
@@ -120,13 +130,13 @@ fetch spans, from:-6h
 // Identify query patterns with the highest P95 — potential optimization candidates
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter isNotNull(db.statement)
+| filter isNotNull(db.query.text)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     max_ms = max(duration) / 1ms
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | filter call_count >= 10
 | sort p95_ms desc
 | limit 15
@@ -142,8 +152,8 @@ Understanding which tables receive the most read and write traffic helps identif
 // Operation mix by database — read vs write ratio
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter isNotNull(db.operation)
-| fieldsAdd op_type = if(db.operation == "SELECT", then:"READ", else:"WRITE")
+| filter isNotNull(db.operation.name)
+| fieldsAdd op_type = if(db.operation.name == "SELECT", then:"READ", else:"WRITE")
 | summarize op_count = count(), by:{db.system, db.namespace, op_type}
 | sort db.system asc, op_count desc
 ```
@@ -152,12 +162,12 @@ fetch spans, from:-1h
 // Average response time by operation type — are writes slower than reads?
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.operation, db.system}
+}, by:{db.operation.name, db.system}
 | sort db.system asc, avg_ms desc
 ```
 
@@ -211,7 +221,7 @@ fetch spans, from:-1h
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{db.namespace, db.operation}
+}, by:{db.namespace, db.operation.name}
 | sort call_count desc
 ```
 

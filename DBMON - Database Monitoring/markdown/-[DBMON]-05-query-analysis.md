@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -56,14 +56,24 @@ For environments where SVG doesn't render
 -->
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Detect N+1 patterns — query patterns with high repetition per trace
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
+| filter isNotNull(db.system) and isNotNull(db.query.text)
 | summarize {
     calls_per_trace = count(),
     total_ms = sum(duration) / 1ms,
     avg_ms = avg(duration) / 1ms
-}, by:{trace.id, db.statement, db.system}
+}, by:{trace.id, db.query.text, db.system}
 | filter calls_per_trace >= 10
 | sort calls_per_trace desc
 | limit 25
@@ -76,14 +86,14 @@ The query above shows query patterns that are repeated 10 or more times within a
 ```dql
 // Aggregate N+1 candidates — which query patterns are most frequently repeated?
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
-| summarize calls_per_trace = count(), by:{trace.id, db.statement, db.system}
+| filter isNotNull(db.system) and isNotNull(db.query.text)
+| summarize calls_per_trace = count(), by:{trace.id, db.query.text, db.system}
 | filter calls_per_trace >= 10
 | summarize {
     affected_traces = count(),
     avg_calls_per_trace = avg(calls_per_trace),
     max_calls_per_trace = max(calls_per_trace)
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | sort affected_traces desc
 | limit 15
 ```
@@ -97,13 +107,13 @@ Understanding which queries run most often helps prioritize optimization. A quer
 ```dql
 // Top 20 most frequent queries — highest call volume
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
+| filter isNotNull(db.system) and isNotNull(db.query.text)
 | summarize {
     call_count = count(),
     total_time_ms = sum(duration) / 1ms,
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | sort call_count desc
 | limit 20
 ```
@@ -113,19 +123,19 @@ fetch spans, from:-1h
 fetch spans, from:-6h
 | filter isNotNull(db.system)
 | makeTimeseries total_queries = count(),
-                 unique_patterns = countDistinct(db.statement),
+                 unique_patterns = countDistinct(db.query.text),
                  interval:15m
 ```
 
 ```dql
 // Queries called by the most services — shared queries are high-impact optimization targets
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
+| filter isNotNull(db.system) and isNotNull(db.query.text)
 | summarize {
     call_count = count(),
     calling_services = countDistinct(dt.entity.service),
     avg_ms = avg(duration) / 1ms
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | filter calling_services >= 2
 | sort calling_services desc
 | limit 15
@@ -188,15 +198,15 @@ Queries that consistently have high latency and high call count may indicate mis
 ```dql
 // Index candidate detection — high-volume queries with high latency and variance
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
-| filter isNotNull(db.operation) and db.operation == "SELECT"
+| filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter isNotNull(db.operation.name) and db.operation.name == "SELECT"
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p50_ms = percentile(duration, 50) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     stddev_ms = stddev(duration / 1ms)
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | filter call_count >= 50 and avg_ms > 10
 | fieldsAdd variance_ratio = round(stddev_ms / avg_ms, decimals:2)
 | sort avg_ms desc
@@ -206,8 +216,8 @@ fetch spans, from:-1h
 ```dql
 // Detect queries getting slower over time — potential index degradation
 fetch spans, from:-24h
-| filter isNotNull(db.system) and isNotNull(db.statement)
-| filter isNotNull(db.operation) and db.operation == "SELECT"
+| filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter isNotNull(db.operation.name) and db.operation.name == "SELECT"
 | makeTimeseries avg_ms = avg(duration / 1ms),
                  call_count = count(),
                  by:{db.system},
@@ -270,9 +280,9 @@ Dynatrace automatically normalizes SQL queries by replacing literal values with 
 ```dql
 // Query pattern diversity — how many unique normalized patterns per database?
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
+| filter isNotNull(db.system) and isNotNull(db.query.text)
 | summarize {
-    unique_patterns = countDistinct(db.statement),
+    unique_patterns = countDistinct(db.query.text),
     total_calls = count()
 }, by:{db.system, db.namespace}
 | fieldsAdd avg_calls_per_pattern = round(toDouble(total_calls) / toDouble(unique_patterns), decimals:1)
@@ -282,8 +292,8 @@ fetch spans, from:-1h
 ```dql
 // Identify one-off queries — patterns called only once (may indicate dynamic SQL)
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
-| summarize call_count = count(), by:{db.statement, db.system}
+| filter isNotNull(db.system) and isNotNull(db.query.text)
+| summarize call_count = count(), by:{db.query.text, db.system}
 | filter call_count == 1
 | summarize one_off_count = count(), by:{db.system}
 | sort one_off_count desc
@@ -300,14 +310,14 @@ Not all slow queries are worth optimizing. Use the **impact score** to prioritiz
 ```dql
 // Query optimization priority — ranked by total time impact
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.statement)
+| filter isNotNull(db.system) and isNotNull(db.query.text)
 | summarize {
     call_count = count(),
     total_time_ms = sum(duration) / 1ms,
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     error_count = countIf(span.status_code == "error")
-}, by:{db.statement, db.system}
+}, by:{db.query.text, db.system}
 | fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(call_count)) * 100, decimals:2)
 | sort total_time_ms desc
 | limit 20

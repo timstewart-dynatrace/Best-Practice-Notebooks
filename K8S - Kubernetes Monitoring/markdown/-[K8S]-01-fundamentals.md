@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -251,20 +251,54 @@ timeseries avgMemBytes = avg(dt.kubernetes.container.memory_working_set), from:-
 
 ```dql
 // Kubernetes events - recent warnings and errors
-fetch logs, from:-1h
-| filter matchesPhrase(log.source, "kubernetes") or matchesPhrase(log.source, "k8s")
-| filter matchesPhrase(content, "Warning") or matchesPhrase(content, "Error")
-| fields timestamp, content
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes events in the same window.
+// They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
+// dt.kubernetes.event.important. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
+//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+fetch events, from:-1h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter dt.kubernetes.event.important == "true"
+| fields timestamp, k8s.cluster.name, k8s.namespace.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
 | sort timestamp desc
-| limit 50
+| limit 25
 ```
 
 ```dql
 // Pod restarts - find crashlooping workloads
-fetch logs, from:-1h
-| filter matchesPhrase(content, "BackOff") or matchesPhrase(content, "CrashLoopBackOff")
-| summarize restartCount = count(), by:{timeBucket = bin(timestamp, 1h)}
-| sort timeBucket desc
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes events in the same window.
+// They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
+// dt.kubernetes.event.important. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
+//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter in(dt.kubernetes.event.reason, {"BackOff", "BackoffLimitExceeded", "Killing"})
+| summarize events = count(), by:{k8s.namespace.name, k8s.pod.name, dt.kubernetes.event.reason}
+| sort events desc
+| limit 25
 ```
 
 ## 7. Next Steps

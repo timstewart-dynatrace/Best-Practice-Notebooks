@@ -1,6 +1,6 @@
 # IAM-03: Group Architecture and Design
 
-> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 08/03/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
 
 ## Designing Scalable Group Structures
 Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.
@@ -387,32 +387,65 @@ Use these queries to understand your current group usage.
 
 ```dql
 // Review recent group membership changes
-fetch logs, from: now() - 30d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "group") and matchesPhrase(content, "member")
-| fields timestamp, content
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT"
+| filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
-| limit 100
+| limit 50
 ```
 
 ```dql
 // Audit group creation events
-fetch logs, from: now() - 90d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "group") and matchesPhrase(content, "created")
-| fields timestamp, content
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-90d
+| filter event.kind == "AUDIT_EVENT"
+| filter event.type == "CREATE" and contains(resource, "iam")
+| fields timestamp, user.id, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
 // Find group-related changes by admin user
-fetch logs, from: now() - 7d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "group")
-| summarize changeCount = count(), by:{content}
-| sort changeCount desc
-| limit 20
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
+// contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == "AUDIT_EVENT"` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or "success"), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| summarize changes = count(), by:{user.id, event.type}
+| sort changes desc
+| limit 25
 ```
 
 ## Next Steps

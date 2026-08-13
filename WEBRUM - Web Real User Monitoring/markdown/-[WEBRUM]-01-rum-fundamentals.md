@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -162,10 +162,26 @@ The Semantic Dictionary exposes the linkage itself as **`frontend.link`** — *"
 Let's start by examining what a user session looks like in Grail. A session represents a single visit — from the first page load to when the user closes the tab or the session times out (30 minutes of inactivity by default).
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Explore recent user sessions — sample 10 sessions to see available fields
 fetch user.sessions, from:-1h
-| filter userType == "REAL_USER"
-| fieldsKeep sessionId, application, userType, duration, userActionCount, totalErrorCount, city, country, osFamily, browserFamily
+| filter dt.rum.user_type == "real_user"
+| fieldsKeep dt.rum.session.id, primary_tags.application, dt.rum.user_type, duration, user_action_count, error.count, geo.city.name, geo.country.name, os.name, browser.name
 | sort duration desc
 | limit 10
 ```
@@ -179,7 +195,7 @@ Understanding how long sessions last helps identify engagement patterns:
 ```dql
 // Session duration distribution — bucket sessions by duration range
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | fieldsAdd duration_sec = duration / 1s
 | fieldsAdd duration_bucket = if(duration_sec < 10, "< 10s",
     else: if(duration_sec < 30, "10-30s",
@@ -205,9 +221,23 @@ User actions represent individual interactions within a session. Dynatrace autom
 Let's explore the most common user actions:
 
 ```dql
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "page_summary"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Top 20 user actions by count in the last hour
 fetch user.events, from:-1h
-| summarize action_count = count(), avg_duration = avg(duration), by:{action.name, action.type}
+| summarize action_count = count(), avg_duration = avg(duration), by:{page.detected_name, user_action.type}
 | sort action_count desc
 | limit 20
 ```
@@ -217,14 +247,24 @@ fetch user.events, from:-1h
 For load-type actions, Dynatrace captures detailed timing milestones:
 
 ```dql
+// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -> error.reason
+//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
+//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
+//   connection.type         -> network.protocol.name
+// CLASSIFIER MATTERS AS MUCH AS THE FIELD: navigation-timing fields (performance.dom_interactive,
+// performance.load_event_end) live on classifier "navigation" and are 0 on "page_summary", so a
+// page_summary filter silently empties them. ttfb.* is the opposite — it lives on page_summary.
 // Page load timing breakdown — average timings for the top 10 pages
 fetch user.events, from:-1h
-| filter action.type == "Load"
+| filter characteristics.classifier == "navigation"
 | summarize action_count = count(),
     avg_duration = avg(duration),
-    avg_dom_interactive = avg(dom.interactive.time),
-    avg_load_event = avg(load.event.time),
-    by:{action.name}
+    avg_dom_interactive = avg(performance.dom_interactive),
+    avg_load_event = avg(performance.load_event_end),
+    by:{page.detected_name}
 | sort action_count desc
 | limit 10
 ```
@@ -238,25 +278,25 @@ Tracking session and action volume over time reveals traffic patterns, peak hour
 ```dql
 // Session count over the last 24 hours, bucketed by hour
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | makeTimeseries session_count = count(), interval:1h
 ```
 
 ```dql
 // Action volume by type over the last 24 hours
 fetch user.events, from:-24h
-| makeTimeseries action_count = count(), interval:1h, by:{action.type}
+| makeTimeseries action_count = count(), interval:1h, by:{user_action.type}
 ```
 
 ```dql
 // Sessions and actions per application — high-level overview
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize session_count = count(),
-    total_actions = sum(userActionCount),
-    total_errors = sum(totalErrorCount),
+    total_actions = sum(user_action_count),
+    total_errors = sum(error.count),
     avg_duration = avg(duration),
-    by:{application}
+    by:{primary_tags.application}
 | sort session_count desc
 ```
 

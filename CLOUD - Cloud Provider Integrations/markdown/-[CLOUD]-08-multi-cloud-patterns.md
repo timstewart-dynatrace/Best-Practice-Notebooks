@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -92,33 +92,33 @@ Some entities are provider-specific and require separate queries:
 
 ```dql
 // Compare compute resource counts across cloud providers
-fetch dt.entity.ec2_instance
+fetch dt.entity.ec2_instance, from:-7d
 | summarize resource_count = count()
 | fieldsAdd provider = "AWS", resource_type = "EC2 Instance"
 | append [
-    fetch dt.entity.azure_vm
+    fetch dt.entity.azure_vm, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "Azure", resource_type = "Virtual Machine"
   ]
 | append [
-    fetch dt.entity.aws_lambda_function
+    fetch dt.entity.aws_lambda_function, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "AWS", resource_type = "Lambda Function"
   ]
 | append [
-    fetch dt.entity.azure_web_app
+    fetch dt.entity.azure_web_app, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "Azure", resource_type = "Web App"
   ]
 | sort provider asc, resource_count desc
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
+
 // Note: Smartscape node types cover infrastructure/service topology
 // (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
 // (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
-
-// Keep classic: this is a multi-cloud completeness inventory. Most of these resource types
-// (EC2, Azure VM, RDS, Web App) are not Smartscape nodes — only some (AWS Lambda) are — so keep
-// the classic entity-store query for a complete cross-provider count.
 ```
 
 ### Unified Host CPU Usage (All Providers)
@@ -135,10 +135,13 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 
 ```dql
 // List all Kubernetes clusters (EKS, AKS, GKE)
-fetch dt.entity.kubernetes_cluster
+fetch dt.entity.kubernetes_cluster, from:-7d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
 //   smartscapeNodes "K8S_CLUSTER"
 //   | fieldsKeep id, name, tags
@@ -314,18 +317,25 @@ timeseries nsCpu = avg(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.na
 
 ```dql
 // Find hosts with no tags (potential compliance issue)
-fetch dt.entity.host
+//
+// Corrected 08/12/2026: `tags == ""` compares an ARRAY to a string and is never true, so the
+// clause was dead weight — the query only ever tested isNull(tags). Use arraySize() for the
+// "present but empty" case. tags is an array of "key:value" strings; to test for a SPECIFIC tag
+// use iAny(), e.g. `filter not iAny(startsWith(tags[], "Team:"))`, and remember to pair it with
+// isNull(tags) because iAny() over a null array yields null, which `not` does not turn true.
+fetch dt.entity.host, from:-7d
 | fieldsKeep id, entity.name, tags
-| filter isNull(tags) or tags == ""
+| filter isNull(tags) or arraySize(tags) == 0
 | sort entity.name asc
 | limit 20
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
+
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
 //   smartscapeNodes "HOST"
-//   | fieldsKeep id, name, tags
-//   | filter isNull(tags) or tags == ""
-//   | sort name asc
-//   | limit 20
+//   | fieldsKeep id, name
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
 // the classic entity store; for a pre-migration inventory keep the classic query above.
 // Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
@@ -334,11 +344,17 @@ fetch dt.entity.host
 ### Vulnerability Overview
 
 ```dql
-// Dynatrace Intelligence security problems in the last 7 days
+// Problem breakdown by category and status over the last 7 days
+//
+// Corrected 08/12/2026: the old cell filtered `event.category == "SECURITY"`, a value
+// dt.davis.problems never carries — the categories are ERROR, AVAILABILITY, CUSTOM_ALERT,
+// RESOURCE_CONTENTION and SLOWDOWN. It returned zero rows on a tenant holding 3,800+ problems and
+// read as "no security problems", which is a much more reassuring statement than "this query can
+// never match". Application-security findings are NOT Davis problems: they live in the
+// security.events / vulnerability data objects and are covered by the APPSEC series.
 fetch dt.davis.problems, from:-7d
-| filter event.category == "SECURITY"
-| summarize security_count = countDistinct(event.id), by:{event.status}
-| sort security_count desc
+| summarize problem_count = countDistinct(event.id), by:{event.category, event.status}
+| sort problem_count desc
 ```
 
 ### Multi-Cloud Governance Best Practices

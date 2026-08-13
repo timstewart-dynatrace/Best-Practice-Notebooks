@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 07/30/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -201,10 +201,16 @@ Sumo dashboards use variables (e.g., `{{environment}}`, `{{host}}`). Dynatrace e
 
 ```dql
 // 5. Dashboard Variables → Parameters
+//
+// Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
+// notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
+// cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-| filter startsWith(dt.source_entity, concat($environment, "/"))
+// dashboard tile: | filter startsWith(dt.source_entity, concat($environment, "/"))
+| filter isNotNull(dt.source_entity)
 | summarize c = count(), by:{service.name}
-
+| sort c desc
+| limit 20
 ```
 
 ### Dependent Variables

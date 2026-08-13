@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -68,11 +68,21 @@ For environments where SVG doesn't render
 Let's examine the structure of a database span by querying for recent database calls and inspecting the available fields.
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Inspect database span fields — sample 10 recent DB calls
 fetch spans, from:-1h
 | filter isNotNull(db.system)
-| fields timestamp, db.system, db.operation, db.namespace,
-        db.statement, server.address, server.port,
+| fields timestamp, db.system, db.operation.name, db.namespace,
+        db.query.text, server.address, server.port,
         duration, span.kind, dt.entity.service
 | sort timestamp desc
 | limit 10
@@ -123,7 +133,7 @@ fetch spans, from:-1h
 | summarize {
     call_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
-    distinct_statements = countDistinct(db.statement)
+    distinct_statements = countDistinct(db.query.text)
 }, by:{db.system, db.namespace, server.address}
 | sort call_count desc
 | limit 20
@@ -158,8 +168,8 @@ fetch spans, from:-6h
 ```dql
 // Distribution of database operations (SELECT vs INSERT vs UPDATE vs DELETE)
 fetch spans, from:-1h
-| filter isNotNull(db.system) and isNotNull(db.operation)
-| summarize op_count = count(), by:{db.system, db.operation}
+| filter isNotNull(db.system) and isNotNull(db.operation.name)
+| summarize op_count = count(), by:{db.system, db.operation.name}
 | sort db.system asc, op_count desc
 ```
 

@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -140,35 +140,51 @@ Use capture rules to record specific session types:
 Use DQL to identify sessions that have replay data available, then navigate to them in the Dynatrace UI.
 
 ```dql
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Sessions with replay data available in the last 24 hours
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(hasSessionReplay) and hasSessionReplay == true
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
 | summarize replay_sessions = count(),
-    avg_actions = avg(userActionCount),
-    avg_errors = avg(totalErrorCount),
-    by:{application}
+    avg_actions = avg(user_action_count),
+    avg_errors = avg(error.count),
+    by:{primary_tags.application}
 | sort replay_sessions desc
 ```
 
 ```dql
 // Find replay sessions with errors — prioritize these for review
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(hasSessionReplay) and hasSessionReplay == true
-| filter totalErrorCount > 0
-| fieldsKeep sessionId, application, duration, userActionCount, totalErrorCount, country, browserFamily
-| sort totalErrorCount desc
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| filter error.count > 0
+| fieldsKeep dt.rum.session.id, primary_tags.application, duration, user_action_count, error.count, geo.country.name, browser.name
+| sort error.count desc
 | limit 20
 ```
 
 ```dql
 // Replay coverage — what percentage of sessions have replay?
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
+| filter dt.rum.user_type == "real_user"
 | summarize total_sessions = count(),
-    replay_sessions = countIf(isNotNull(hasSessionReplay) and hasSessionReplay == true),
-    by:{application}
+    replay_sessions = countIf(isNotNull(characteristics.has_replay) and characteristics.has_replay == true),
+    by:{primary_tags.application}
 | fieldsAdd replay_coverage_pct = round(toDouble(replay_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort total_sessions desc
 ```
@@ -209,11 +225,11 @@ Session Replay is most powerful when correlated with performance data. Use DQL t
 ```dql
 // Slow sessions with replay — sessions with poor page load times
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(hasSessionReplay) and hasSessionReplay == true
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
 | fieldsAdd duration_sec = duration / 1s
 | filter duration_sec > 120
-| fieldsKeep sessionId, application, duration_sec, userActionCount, totalErrorCount, country
+| fieldsKeep dt.rum.session.id, primary_tags.application, duration_sec, user_action_count, error.count, geo.country.name
 | sort duration_sec desc
 | limit 10
 ```
@@ -222,7 +238,7 @@ fetch user.sessions, from:-24h
 // Sessions with rage clicks that have replay — top candidates for UX review
 fetch user.events, from:-24h
 | filter type == "RageClick"
-| summarize rage_clicks = count(), by:{sessionId, application}
+| summarize rage_clicks = count(), by:{dt.rum.session.id, primary_tags.application}
 | sort rage_clicks desc
 | limit 10
 ```
@@ -255,12 +271,12 @@ Session Replay helps identify qualitative UX issues that metrics alone cannot re
 ```dql
 // Abandoned sessions with replay — users who started but did not finish
 fetch user.sessions, from:-24h
-| filter userType == "REAL_USER"
-| filter isNotNull(hasSessionReplay) and hasSessionReplay == true
-| filter userActionCount >= 3 and userActionCount <= 5
-| filter totalErrorCount > 0
-| fieldsKeep sessionId, application, userActionCount, totalErrorCount, duration, country
-| sort totalErrorCount desc
+| filter dt.rum.user_type == "real_user"
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| filter user_action_count >= 3 and user_action_count <= 5
+| filter error.count > 0
+| fieldsKeep dt.rum.session.id, primary_tags.application, user_action_count, error.count, duration, geo.country.name
+| sort error.count desc
 | limit 15
 ```
 

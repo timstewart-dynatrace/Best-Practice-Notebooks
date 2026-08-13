@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -170,10 +170,12 @@ resource "dynatrace_platform_bucket" "audit_logs" {
 
 ```dql
 // Confirm bucket inventory
-fetch dt.system.buckets, from:-5m
-| fields name = `name`, displayName = `displayName`, retention = `retention`
+//
+// Corrected 08/12/2026: the field is `display_name` (snake_case), not `displayName`, and the
+// retention field is `retention_days`. The old cell failed with FIELD_DOES_NOT_EXIST.
+fetch dt.system.buckets
+| fields name, display_name, retention_days, dt.system.table, records
 | sort name asc
-
 ```
 
 <a id="sourcecat"></a>

@@ -1,6 +1,6 @@
 # DBMON-03: NoSQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -48,6 +48,16 @@ NoSQL databases use different data models and operations than SQL databases. Dyn
 Let's discover which NoSQL databases are active in your environment.
 
 ```dql
+// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -> db.query.text        (stable; 33,463)
+//   db.mongodb.collection-> db.collection.name   (stable; 6,912)
+//   db.name              -> db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Discover active NoSQL databases
 fetch spans, from:-1h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb", "couchbase", "hbase"})
@@ -55,7 +65,7 @@ fetch spans, from:-1h
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
-    unique_operations = countDistinct(db.operation)
+    unique_operations = countDistinct(db.operation.name)
 }, by:{db.system, server.address}
 | sort call_count desc
 ```
@@ -80,12 +90,12 @@ MongoDB is the most widely used document database. Dynatrace captures MongoDB op
 // MongoDB operation breakdown by collection
 fetch spans, from:-1h
 | filter db.system == "mongodb"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.namespace, db.mongodb.collection, db.operation}
+}, by:{db.namespace, db.collection.name, db.operation.name}
 | sort call_count desc
 | limit 25
 ```
@@ -95,8 +105,8 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter db.system == "mongodb"
 | filter duration > 100ms
-| fields timestamp, db.namespace, db.mongodb.collection, db.operation,
-        db.statement, duration_ms = duration / 1ms
+| fields timestamp, db.namespace, db.collection.name, db.operation.name,
+        db.query.text, duration_ms = duration / 1ms
 | sort duration_ms desc
 | limit 20
 ```
@@ -105,8 +115,8 @@ fetch spans, from:-1h
 // MongoDB operation volume over time
 fetch spans, from:-6h
 | filter db.system == "mongodb"
-| filter isNotNull(db.operation)
-| makeTimeseries ops = count(), by:{db.operation}, interval:5m
+| filter isNotNull(db.operation.name)
+| makeTimeseries ops = count(), by:{db.operation.name}, interval:5m
 ```
 
 <a id="dynamodb-monitoring"></a>
@@ -119,13 +129,13 @@ Amazon DynamoDB is a fully managed key-value and document database. Monitoring f
 // DynamoDB operation performance by table
 fetch spans, from:-1h
 | filter db.system == "dynamodb"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{db.namespace, db.operation}
+}, by:{db.namespace, db.operation.name}
 | sort call_count desc
 ```
 
@@ -133,11 +143,11 @@ fetch spans, from:-1h
 // DynamoDB Scan vs Query ratio — Scans are expensive and should be minimized
 fetch spans, from:-1h
 | filter db.system == "dynamodb"
-| filter in(db.operation, {"Query", "Scan"})
+| filter in(db.operation.name, {"Query", "Scan"})
 | summarize {
     op_count = count(),
     avg_ms = avg(duration) / 1ms
-}, by:{db.operation}
+}, by:{db.operation.name}
 | sort op_count desc
 ```
 
@@ -153,12 +163,12 @@ Apache Cassandra uses CQL (Cassandra Query Language), which looks similar to SQL
 // Cassandra operation breakdown by keyspace
 fetch spans, from:-1h
 | filter db.system == "cassandra"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p99_ms = percentile(duration, 99) / 1ms
-}, by:{db.namespace, db.operation}
+}, by:{db.namespace, db.operation.name}
 | sort call_count desc
 ```
 
@@ -181,13 +191,13 @@ Azure Cosmos DB is a globally distributed multi-model database. Performance is m
 // Cosmos DB operation analysis
 fetch spans, from:-1h
 | filter db.system == "cosmosdb"
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{db.namespace, db.operation}
+}, by:{db.namespace, db.operation.name}
 | sort call_count desc
 ```
 
@@ -201,9 +211,9 @@ Understanding the read/write ratio is critical for NoSQL database tuning. Read-h
 // Read vs Write ratio across all NoSQL databases
 fetch spans, from:-1h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb", "couchbase"})
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | fieldsAdd rw_type = if(
-    in(db.operation, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get", "search"}),
+    in(db.operation.name, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get", "search"}),
     then:"READ",
     else:"WRITE")
 | summarize {
@@ -217,9 +227,9 @@ fetch spans, from:-1h
 // Read/Write ratio trend over time — detect shifting workload patterns
 fetch spans, from:-6h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb"})
-| filter isNotNull(db.operation)
+| filter isNotNull(db.operation.name)
 | fieldsAdd rw_type = if(
-    in(db.operation, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get"}),
+    in(db.operation.name, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get"}),
     then:"READ",
     else:"WRITE")
 | makeTimeseries op_count = count(), by:{rw_type}, interval:15m

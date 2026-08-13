@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 08/03/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -78,30 +78,53 @@ LCP measures the time from when the user initiates navigation to when the larges
 - Client-side rendering delays
 
 ```dql
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "page_summary"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Average LCP across all applications in the last 24 hours
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.largest_contentful_paint)
-| summarize avg_lcp = avg(web_vitals.largest_contentful_paint),
-    p75_lcp = percentile(web_vitals.largest_contentful_paint, 75),
-    p95_lcp = percentile(web_vitals.largest_contentful_paint, 95),
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(lcp.start_time)
+| summarize avg_lcp = avg(lcp.start_time),
+    p75_lcp = percentile(lcp.start_time, 75),
+    p95_lcp = percentile(lcp.start_time, 95),
     sample_size = count(),
-    by:{app.name}
+    by:{dt.rum.application.id}
 | sort avg_lcp desc
 ```
 
 ```dql
 // LCP distribution — classify into Good / Needs Improvement / Poor
+//
+// Corrected 08/12/2026: `fieldsAdd total = sum(action_count)` put an AGGREGATION in a row-wise
+// stage, which fails with "Aggregations aren't allowed here". A percentage-of-total needs the
+// grand total on every row, which means collapsing to one row, keeping the per-category rows in an
+// array, and expanding back out.
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.largest_contentful_paint)
-| fieldsAdd lcp_ms = web_vitals.largest_contentful_paint / 1ms
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(lcp.start_time)
+| fieldsAdd lcp_ms = lcp.start_time
 | fieldsAdd lcp_category = if(lcp_ms <= 2500, "Good",
     else: if(lcp_ms <= 4000, "Needs Improvement",
     else: "Poor"))
 | summarize action_count = count(), by:{lcp_category}
-| fieldsAdd total = sum(action_count)
-| fieldsAdd percentage = round(toDouble(action_count) / toDouble(total) * 100.0, decimals: 1)
+| summarize rows = collectArray(record(lcp_category, action_count)), total = sum(action_count)
+| expand rows
+| fieldsAdd lcp_category = rows[lcp_category], action_count = rows[action_count]
+| fieldsAdd percentage = round(action_count * 100.0 / total, decimals: 1)
+| fieldsRemove rows
+| sort action_count desc
 ```
 
 <a id="inp"></a>
@@ -125,29 +148,39 @@ INP measures the time from when a user interacts (click, tap, keypress) to when 
 | Forced layout/reflow | High presentation delay | Batch DOM reads/writes |
 
 ```dql
-// INP percentile analysis by application
+// INP reshaped 08/12/2026 — New RUM publishes NO numeric INP on this schema. The only INP field
+// is `inp.status`, a category: `below_threshold` (the interaction was fast enough that no INP value
+// is reported — the healthy case, 369,268 events), `reported` (an INP value was actually recorded,
+// i.e. a slow interaction), `not_reported`. There is nothing to average or take a percentile of, so
+// an INP query is a RATE over statuses, not a latency distribution. Confirm on your own tenant with:
+//   fetch user.events, from:-24h | filter isNotNull(inp.status) | summarize n = count(), by:{inp.status}
 fetch user.events, from:-24h
-| filter isNotNull(web_vitals.interaction_to_next_paint)
-| fieldsAdd inp_ms = web_vitals.interaction_to_next_paint / 1ms
-| summarize avg_inp = avg(inp_ms),
-    p75_inp = percentile(inp_ms, 75),
-    p95_inp = percentile(inp_ms, 95),
-    sample_size = count(),
-    by:{app.name}
-| sort p75_inp desc
+| filter isNotNull(inp.status)
+| summarize {
+    interactions          = count(),
+    slow_interactions     = countIf(inp.status == "reported"),
+    below_threshold       = countIf(inp.status == "below_threshold")
+  }, by:{dt.rum.application.id}
+| fieldsAdd slow_pct = round(slow_interactions * 100.0 / interactions, decimals: 3)
+| sort slow_pct desc
 ```
 
 ```dql
-// INP by page — identify the slowest-responding pages
+// INP reshaped 08/12/2026 — New RUM publishes NO numeric INP on this schema. The only INP field
+// is `inp.status`, a category: `below_threshold` (the interaction was fast enough that no INP value
+// is reported — the healthy case, 369,268 events), `reported` (an INP value was actually recorded,
+// i.e. a slow interaction), `not_reported`. There is nothing to average or take a percentile of, so
+// an INP query is a RATE over statuses, not a latency distribution. Confirm on your own tenant with:
+//   fetch user.events, from:-24h | filter isNotNull(inp.status) | summarize n = count(), by:{inp.status}
 fetch user.events, from:-24h
-| filter isNotNull(web_vitals.interaction_to_next_paint)
-| fieldsAdd inp_ms = web_vitals.interaction_to_next_paint / 1ms
-| summarize avg_inp = avg(inp_ms),
-    p75_inp = percentile(inp_ms, 75),
-    action_count = count(),
-    by:{action.name}
-| filter action_count > 10
-| sort p75_inp desc
+| filter isNotNull(inp.status)
+| summarize {
+    interactions      = count(),
+    slow_interactions = countIf(inp.status == "reported")
+  }, by:{page.detected_name}
+| filter interactions > 10
+| fieldsAdd slow_pct = round(slow_interactions * 100.0 / interactions, decimals: 3)
+| sort slow_pct desc
 | limit 10
 ```
 
@@ -169,10 +202,10 @@ CLS measures unexpected layout shifts during the entire lifespan of a page. A la
 ```dql
 // CLS distribution — classify into Good / Needs Improvement / Poor
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.cumulative_layout_shift)
-| fieldsAdd cls_category = if(web_vitals.cumulative_layout_shift <= 0.1, "Good",
-    else: if(web_vitals.cumulative_layout_shift <= 0.25, "Needs Improvement",
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(cls.value)
+| fieldsAdd cls_category = if(cls.value <= 0.1, "Good",
+    else: if(cls.value <= 0.25, "Needs Improvement",
     else: "Poor"))
 | summarize action_count = count(), by:{cls_category}
 ```
@@ -180,12 +213,12 @@ fetch user.events, from:-24h
 ```dql
 // Worst CLS pages — pages with the most layout shifting
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.cumulative_layout_shift)
-| summarize avg_cls = avg(web_vitals.cumulative_layout_shift),
-    p75_cls = percentile(web_vitals.cumulative_layout_shift, 75),
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(cls.value)
+| summarize avg_cls = avg(cls.value),
+    p75_cls = percentile(cls.value, 75),
     action_count = count(),
-    by:{action.name}
+    by:{page.detected_name}
 | filter action_count > 10
 | sort p75_cls desc
 | limit 10
@@ -198,19 +231,21 @@ fetch user.events, from:-24h
 Aggregate Core Web Vitals by page to identify which pages need optimization:
 
 ```dql
-// All three CWV metrics by page — comprehensive page health view
+// INP note (08/12/2026): New RUM publishes no numeric INP on this schema — only `inp.status`
+// (`below_threshold` = fast enough that no value is reported, the healthy case; `reported` = a slow
+// interaction was actually measured). So INP enters a scorecard as a RATE, not a percentile.
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| summarize
-    p75_lcp_ms = percentile(web_vitals.largest_contentful_paint / 1ms, 75),
-    p75_cls = percentile(web_vitals.cumulative_layout_shift, 75),
-    p75_inp_ms = percentile(web_vitals.interaction_to_next_paint / 1ms, 75),
-    page_views = count(),
-    by:{action.name}
+| filter characteristics.classifier == "page_summary"
+| summarize {
+    p75_lcp_ms   = percentile(lcp.start_time, 75),
+    p75_cls      = percentile(cls.value, 75),
+    slow_inp_pct = round(countIf(inp.status == "reported") * 100.0 / count(), decimals: 3),
+    page_views   = count()
+  }, by:{page.detected_name}
 | filter page_views > 20
 | fieldsAdd lcp_status = if(p75_lcp_ms <= 2500, "Good", else: if(p75_lcp_ms <= 4000, "NI", else: "Poor")),
     cls_status = if(p75_cls <= 0.1, "Good", else: if(p75_cls <= 0.25, "NI", else: "Poor")),
-    inp_status = if(p75_inp_ms <= 200, "Good", else: if(p75_inp_ms <= 500, "NI", else: "Poor"))
+    inp_status = if(slow_inp_pct <= 1.0, "Good", else: if(slow_inp_pct <= 5.0, "NI", else: "Poor"))
 | sort page_views desc
 | limit 15
 ```
@@ -224,18 +259,18 @@ Tracking CWV over time helps identify regressions after deployments, seasonal pa
 ```dql
 // LCP trend over the last 7 days — hourly p75
 fetch user.events, from:-7d
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.largest_contentful_paint)
-| fieldsAdd lcp_ms = web_vitals.largest_contentful_paint / 1ms
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(lcp.start_time)
+| fieldsAdd lcp_ms = lcp.start_time
 | makeTimeseries p75_lcp = percentile(lcp_ms, 75), interval:1h
 ```
 
 ```dql
 // CLS trend over the last 7 days — daily p75
 fetch user.events, from:-7d
-| filter action.type == "Load"
-| filter isNotNull(web_vitals.cumulative_layout_shift)
-| makeTimeseries p75_cls = percentile(web_vitals.cumulative_layout_shift, 75), interval:1d
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(cls.value)
+| makeTimeseries p75_cls = percentile(cls.value, 75), interval:1d
 ```
 
 <a id="cwv-scoring"></a>
@@ -245,24 +280,26 @@ fetch user.events, from:-7d
 Create a single-query CWV scorecard showing the percentage of page loads in each category:
 
 ```dql
-// CWV scorecard — percentage of Good / NI / Poor for each metric
+// INP note (08/12/2026): New RUM publishes no numeric INP on this schema — only `inp.status`
+// (`below_threshold` = fast enough that no value is reported, the healthy case; `reported` = a slow
+// interaction was actually measured). So INP enters a scorecard as a RATE, not a percentile.
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| fieldsAdd lcp_ms = web_vitals.largest_contentful_paint / 1ms,
-    inp_ms = web_vitals.interaction_to_next_paint / 1ms
-| summarize total = count(),
-    lcp_good = countIf(lcp_ms <= 2500),
-    lcp_poor = countIf(lcp_ms > 4000),
-    cls_good = countIf(web_vitals.cumulative_layout_shift <= 0.1),
-    cls_poor = countIf(web_vitals.cumulative_layout_shift > 0.25),
-    inp_good = countIf(inp_ms <= 200),
-    inp_poor = countIf(inp_ms > 500)
-| fieldsAdd lcp_good_pct = round(toDouble(lcp_good) / toDouble(total) * 100.0, decimals: 1),
-    lcp_poor_pct = round(toDouble(lcp_poor) / toDouble(total) * 100.0, decimals: 1),
-    cls_good_pct = round(toDouble(cls_good) / toDouble(total) * 100.0, decimals: 1),
-    cls_poor_pct = round(toDouble(cls_poor) / toDouble(total) * 100.0, decimals: 1),
-    inp_good_pct = round(toDouble(inp_good) / toDouble(total) * 100.0, decimals: 1),
-    inp_poor_pct = round(toDouble(inp_poor) / toDouble(total) * 100.0, decimals: 1)
+| filter characteristics.classifier == "page_summary"
+| summarize {
+    total     = count(),
+    lcp_good  = countIf(lcp.start_time <= 2500),
+    lcp_poor  = countIf(lcp.start_time > 4000),
+    cls_good  = countIf(cls.value <= 0.1),
+    cls_poor  = countIf(cls.value > 0.25),
+    inp_fast  = countIf(inp.status == "below_threshold"),
+    inp_slow  = countIf(inp.status == "reported")
+  }
+| fieldsAdd lcp_good_pct = round(lcp_good * 100.0 / total, decimals: 1),
+    lcp_poor_pct = round(lcp_poor * 100.0 / total, decimals: 1),
+    cls_good_pct = round(cls_good * 100.0 / total, decimals: 1),
+    cls_poor_pct = round(cls_poor * 100.0 / total, decimals: 1),
+    inp_fast_pct = round(inp_fast * 100.0 / total, decimals: 1),
+    inp_slow_pct = round(inp_slow * 100.0 / total, decimals: 3)
 ```
 
 <a id="summary"></a>

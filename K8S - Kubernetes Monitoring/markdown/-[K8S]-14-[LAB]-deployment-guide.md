@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -456,13 +456,20 @@ Expected: You should see pods for `dynatrace-operator`, `dynatrace-webhook`, `dy
 
 ```dql
 // Check all monitored hosts
-fetch dt.entity.host
-| fieldsKeep entity.name, host_group, state
-| sort entity.name asc
+//
+// Corrected 08/12/2026: `host_group` is not a field on dt.entity.host (FIELD_DOES_NOT_EXIST).
+// The host group lives on the Smartscape HOST node as `dt.host_group.id`; on the classic entity it
+// appears only inside the `tags` array as "Host Group:<name>".
+smartscapeNodes "HOST"
+| fieldsKeep name, dt.host_group.id
+| sort name asc
 
-// Smartscape note (dt.entity.* is deprecated but still functional): state is a classic-only
-// field with no Smartscape node equivalent (Smartscape expresses liveness via node lifetime).
-// Keep the classic query above; host_group maps to the dt.host_group.id field on HOST nodes.
+// Classic equivalent (no host-group column available):
+//   fetch dt.entity.host, from:-7d
+//   | fieldsKeep entity.name, state, tags
+//   | sort entity.name asc
+// `state` is a classic-only field with no Smartscape node equivalent (Smartscape expresses
+// liveness via node lifetime).
 ```
 
 Expected: Every node in your cluster should appear with the `host_group` matching your `<cluster-name>` value from the DynaKube.
@@ -495,18 +502,17 @@ Expected: Logs grouped by the `team` label you assigned to namespaces. If empty,
 
 ```dql
 // Check Release Inventory population
-fetch dt.entity.process_group_instance
-| filter isNotNull(softwareVersion)
-| fieldsKeep entity.name, softwareVersion
+//
+// Corrected 08/12/2026: `softwareVersion` does not exist on dt.entity.process_group_instance
+// (FIELD_DOES_NOT_EXIST). The Release Inventory fields are `releasesVersion`, `releasesProduct`
+// and `releasesStage`. Time range added — dt.entity.* returns only entities seen in the window.
+fetch dt.entity.process_group_instance, from:-7d
+| filter isNotNull(releasesVersion)
+| fieldsKeep entity.name, releasesVersion, releasesProduct, releasesStage
 | limit 10
 
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "PROCESS"
-//   | filter isNotNull(softwareVersion)
-//   | fieldsKeep name, softwareVersion
-//   | limit 10
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: releasesVersion renders as a structured value, e.g.
+//   ReleaseVersionInfo{version='1.5.2', source=AGENT_REGISTRY, timestamp=0}
 ```
 
 Expected: Process groups with version information from `app.kubernetes.io/version` labels. If empty, verify your pods carry the required labels (Section 7).

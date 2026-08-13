@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -175,9 +175,12 @@ The following queries demonstrate how to explore cloud entities in your Dynatrac
 
 ```dql
 // Count all monitored EC2 instances
-fetch dt.entity.ec2_instance
+fetch dt.entity.ec2_instance, from:-7d
 | summarize instance_count = count()
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -188,9 +191,12 @@ fetch dt.entity.ec2_instance
 
 ```dql
 // Count all monitored Azure VMs
-fetch dt.entity.azure_vm
+fetch dt.entity.azure_vm, from:-7d
 | summarize vm_count = count()
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 // Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
 // (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
 // hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
@@ -203,28 +209,28 @@ This query uses `append` to combine entity counts from multiple cloud providers 
 
 ```dql
 // Compare cloud resource counts across providers
-fetch dt.entity.ec2_instance
+fetch dt.entity.ec2_instance, from:-7d
 | summarize resource_count = count()
 | fieldsAdd provider = "AWS", resource_type = "Compute (EC2)"
 | append [
-    fetch dt.entity.azure_vm
+    fetch dt.entity.azure_vm, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "Azure", resource_type = "Compute (VM)"
   ]
 | append [
-    fetch dt.entity.aws_lambda_function
+    fetch dt.entity.aws_lambda_function, from:-7d
     | summarize resource_count = count()
     | fieldsAdd provider = "AWS", resource_type = "Serverless (Lambda)"
   ]
 | sort provider asc
 
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
+
 // Note: Smartscape node types cover infrastructure/service topology
 // (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
 // (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
-
-// Keep classic: this is a multi-cloud completeness inventory. Most of these resource types
-// (EC2, Azure VM, RDS, Web App) are not Smartscape nodes — only some (AWS Lambda) are — so keep
-// the classic entity-store query for a complete cross-provider count.
 ```
 
 ### Host CPU Usage Across Cloud Hosts

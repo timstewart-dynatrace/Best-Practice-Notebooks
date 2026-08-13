@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -132,12 +132,16 @@ fetch dt.entity.kubernetes_cluster
 ```dql
 // Node-level CPU usage over the last hour, derived at container grain.
 //
-// Corrected 08/11/2026. This cell used `dt.kubernetes.node.cpu_usage`, which DOES NOT
-// EXIST — Grail consolidated node and workload metrics into `dt.kubernetes.container.*`.
-// A timeseries against a non-existent key returns an empty result rather than an error,
-// so the tile simply drew nothing. Enumerate what your tenant really has with:
-//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize by:{metric.key}
-// (note `metrics` takes `from:` with NO leading comma).
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
 timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgCpu = arrayAvg(used)
 | sort avgCpu desc
@@ -145,8 +149,22 @@ timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entit
 ```
 
 ```dql
-// Node memory working set over the last hour
-timeseries nodeMemory = avg(dt.kubernetes.node.memory_working_set), from:-1h, by:{dt.entity.kubernetes_node}
+// Node memory working set over the last hour, derived at container grain.
+//
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
+//
+// The node-CPU sibling was corrected on 08/11/2026 and this cell was missed, so it kept drawing
+// an empty tile for a further day — when a key turns out not to exist, sweep the whole namespace.
+timeseries nodeMemory = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgMemory = arrayAvg(nodeMemory)
 | sort avgMemory desc
 | limit 15

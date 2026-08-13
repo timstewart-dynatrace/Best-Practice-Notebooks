@@ -1,6 +1,6 @@
 # WEBRUM-06: Performance Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
 
 ## Overview
 
@@ -66,15 +66,55 @@ For environments where SVG doesn't render
 | **Load event** | `window.onload` fires | Final milestone; all resources ready |
 
 ```dql
+// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -> error.reason
+//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
+//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
+//   connection.type         -> network.protocol.name
+// CLASSIFIER MATTERS AS MUCH AS THE FIELD: navigation-timing fields (performance.dom_interactive,
+// performance.load_event_end) live on classifier "navigation" and are 0 on "page_summary", so a
+// page_summary filter silently empties them. ttfb.* is the opposite — it lives on page_summary.
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -> dt.rum.user_type      userActionCount -> user_action_count
+//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
+//   hasSessionReplay -> characteristics.has_replay
+//   browserFamily -> browser.name     osFamily -> os.name
+//   application -> primary_tags.application
+//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -> browser.window.width|height
+//   dom.interactive.time -> performance.dom_interactive
+//   load.event.time -> performance.load_event_end
+//   server.time -> ttfb.waiting_duration
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
+//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == "Load"              -> characteristics.classifier == "navigation"
+//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.name                        -> page.detected_name
+//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
+//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
+//   app.name                           -> dt.rum.application.id
+// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
+// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
+// null. Compare it against the 2500/4000 ms thresholds directly.
+// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
+// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
 // Page load waterfall — average timing breakdown for top 10 pages
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "navigation"
 | summarize page_views = count(),
     avg_duration = avg(duration),
-    avg_dom_interactive = avg(dom.interactive.time),
-    avg_load_event = avg(load.event.time),
-    avg_server_time = avg(server.time),
-    by:{action.name}
+    avg_dom_interactive = avg(performance.dom_interactive),
+    avg_load_event = avg(performance.load_event_end),
+    avg_server_time = avg(ttfb.waiting_duration),
+    by:{page.detected_name}
 | sort page_views desc
 | limit 10
 ```
@@ -94,24 +134,27 @@ Google recommends a TTFB of **≤ 800ms** for a good user experience.
 ```dql
 // TTFB analysis by page — identify pages with slow server response
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(server.time)
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(ttfb.waiting_duration)
 | summarize page_views = count(),
-    avg_ttfb = avg(server.time),
-    p75_ttfb = percentile(server.time, 75),
-    p95_ttfb = percentile(server.time, 95),
-    by:{action.name}
+    avg_ttfb = avg(ttfb.waiting_duration),
+    p75_ttfb = percentile(ttfb.waiting_duration, 75),
+    p95_ttfb = percentile(ttfb.waiting_duration, 95),
+    by:{page.detected_name}
 | filter page_views > 10
 | sort p75_ttfb desc
 | limit 10
 ```
 
 ```dql
+// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.waiting_duration
+// are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
+// silently, so a chart of nulls looks like "no data". Compare and aggregate them directly.
 // TTFB distribution — classify into Good / Needs Improvement / Poor
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(server.time)
-| fieldsAdd ttfb_ms = server.time / 1ms
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(ttfb.waiting_duration)
+| fieldsAdd ttfb_ms = ttfb.waiting_duration
 | fieldsAdd ttfb_category = if(ttfb_ms <= 800, "Good",
     else: if(ttfb_ms <= 1800, "Needs Improvement",
     else: "Poor"))
@@ -130,12 +173,12 @@ fetch user.events, from:-24h
 ```dql
 // DOM Interactive vs Load Event — identify resource-heavy pages
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(dom.interactive.time) and isNotNull(load.event.time)
+| filter characteristics.classifier == "navigation"
+| filter isNotNull(performance.dom_interactive) and isNotNull(performance.load_event_end)
 | summarize page_views = count(),
-    avg_dom_interactive = avg(dom.interactive.time),
-    avg_load_event = avg(load.event.time),
-    by:{action.name}
+    avg_dom_interactive = avg(performance.dom_interactive),
+    avg_load_event = avg(performance.load_event_end),
+    by:{page.detected_name}
 | fieldsAdd resource_load_gap = avg_load_event - avg_dom_interactive
 | filter page_views > 10
 | sort resource_load_gap desc
@@ -153,13 +196,13 @@ Performance varies significantly by user location due to network latency, CDN co
 ```dql
 // Page load performance by country — identify slow regions
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(country)
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(geo.country.name)
 | summarize page_views = count(),
     avg_duration_ms = avg(duration / 1ms),
     p75_duration_ms = percentile(duration / 1ms, 75),
-    avg_ttfb_ms = avg(server.time / 1ms),
-    by:{country}
+    avg_ttfb_ms = avg(ttfb.waiting_duration),
+    by:{geo.country.name}
 | filter page_views > 20
 | sort p75_duration_ms desc
 | limit 15
@@ -168,12 +211,12 @@ fetch user.events, from:-24h
 ```dql
 // Compare TTFB across regions — CDN effectiveness indicator
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(continent)
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(geo.continent.name)
 | summarize page_views = count(),
-    avg_ttfb_ms = avg(server.time / 1ms),
-    p75_ttfb_ms = percentile(server.time / 1ms, 75),
-    by:{continent}
+    avg_ttfb_ms = avg(ttfb.waiting_duration),
+    p75_ttfb_ms = percentile(ttfb.waiting_duration, 75),
+    by:{geo.continent.name}
 | sort p75_ttfb_ms desc
 ```
 
@@ -188,24 +231,24 @@ Network connection type and device capability significantly impact perceived per
 ```dql
 // Performance by connection type — wifi vs cellular vs wired
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(connection.type)
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(network.protocol.name)
 | summarize page_views = count(),
     avg_duration_ms = avg(duration / 1ms),
     p75_duration_ms = percentile(duration / 1ms, 75),
-    by:{connection.type}
+    by:{network.protocol.name}
 | sort p75_duration_ms desc
 ```
 
 ```dql
 // Performance by browser — which browsers are slowest?
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(browser.family)
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(browser.name)
 | summarize page_views = count(),
     avg_duration_ms = avg(duration / 1ms),
     p75_duration_ms = percentile(duration / 1ms, 75),
-    by:{browser.family}
+    by:{browser.name}
 | filter page_views > 20
 | sort p75_duration_ms desc
 | limit 10
@@ -214,7 +257,7 @@ fetch user.events, from:-24h
 ```dql
 // Performance by OS — desktop vs mobile operating systems
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | filter isNotNull(os.family)
 | summarize page_views = count(),
     avg_duration_ms = avg(duration / 1ms),
@@ -233,12 +276,12 @@ Find the pages that need optimization attention — ranked by the impact of thei
 ```dql
 // Slowest pages by p95 duration — worst-case performance
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | summarize page_views = count(),
     avg_ms = avg(duration / 1ms),
     p75_ms = percentile(duration / 1ms, 75),
     p95_ms = percentile(duration / 1ms, 95),
-    by:{action.name}
+    by:{page.detected_name}
 | filter page_views > 20
 | sort p95_ms desc
 | limit 10
@@ -247,10 +290,10 @@ fetch user.events, from:-24h
 ```dql
 // Weighted impact score — pages with high traffic AND high duration
 fetch user.events, from:-24h
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | summarize page_views = count(),
     avg_ms = avg(duration / 1ms),
-    by:{action.name}
+    by:{page.detected_name}
 | fieldsAdd impact_score = page_views * avg_ms
 | sort impact_score desc
 | limit 10
@@ -267,7 +310,7 @@ Track performance over time to detect regressions and measure the impact of opti
 ```dql
 // Page load duration trend — daily p75 over the last 7 days
 fetch user.events, from:-7d
-| filter action.type == "Load"
+| filter characteristics.classifier == "page_summary"
 | fieldsAdd duration_ms = duration / 1ms
 | makeTimeseries p75_duration = percentile(duration_ms, 75), interval:1d
 ```
@@ -275,9 +318,9 @@ fetch user.events, from:-7d
 ```dql
 // TTFB trend — hourly p75 over the last 24 hours
 fetch user.events, from:-24h
-| filter action.type == "Load"
-| filter isNotNull(server.time)
-| fieldsAdd ttfb_ms = server.time / 1ms
+| filter characteristics.classifier == "page_summary"
+| filter isNotNull(ttfb.waiting_duration)
+| fieldsAdd ttfb_ms = ttfb.waiting_duration
 | makeTimeseries p75_ttfb = percentile(ttfb_ms, 75), interval:1h
 ```
 
