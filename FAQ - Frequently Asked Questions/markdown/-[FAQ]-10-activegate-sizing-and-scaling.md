@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 07/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -52,7 +52,7 @@ The capability-to-dimension map:
 |----------------|------------------------|----------|
 | **Routing OneAgent traffic** | Number of connected OneAgents (hosts) and their data volume | §3 |
 | **Kubernetes monitoring** | Pod count (primary), node count (secondary), Prometheus-annotated pods | §4 |
-| **Cloud & remote API monitoring** (AWS, Azure, VMware, SNMP, Prometheus…) | Number of monitored endpoints/entities polled per cycle | §3 + extension notes |
+| **Cloud & remote API monitoring** (AWS, Azure, VMware, SNMP, Prometheus…) | Number of monitored endpoints/entities polled per cycle | §3 + extension notes — see the 1.345 module note in §2 |
 | **Extensions (EEC)** | Extension instances and monitored devices; adds disk requirements | §3 |
 | **Private synthetic** | Browser monitors per hour (HTTP monitors are far cheaper) | §5 |
 | **z/OS routing** | Mainframe traffic via the zRemote module | Size with Dynatrace guidance for your mainframe volume |
@@ -79,6 +79,9 @@ One rule sits above all the tables: **sizing numbers are starting points, not gu
 
 The ActiveGate hub enumerates its jobs: routing OneAgent traffic as a secure proxy, monitoring cloud environments and remote technologies via API (AWS, VMware, Azure, Kubernetes, OpenShift, Google Cloud, SNMP, Prometheus, and more), running synthetic monitors from private locations, routing z/OS traffic, and providing Dynatrace API access. Each job consumes a different resource profile:
 
+> **Classic-only modules on Latest Dynatrace — breaking (ActiveGate 1.345):** ActiveGate 1.345 **disallows modules that exclusively serve Dynatrace Classic monitoring pages** on ActiveGates connected to a *Latest Dynatrace* environment — **AWS, Azure, Cloud Foundry, VMware, memory dumps, and database insights**. Disable or uninstall those modules *before* upgrading such an ActiveGate; the upgrade does not complete cleanly while they remain enabled. ActiveGate 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — check which version your ActiveGates are actually on before planning the work, and note this changes *what an ActiveGate may run*, not the sizing math below. Classic-operated environments are unaffected. The release note does not name replacement modules for AWS/Azure/VMware on Latest Dynatrace; confirm the supported ingest path for those technologies against the ActiveGate capabilities page before you remove a working module.
+
+
 - **Routing** is network- and CPU-bound: load scales with the number of OneAgents connected and the volume of data they send. Memory matters for the outgoing message queue when the uplink is slow.
 - **Kubernetes monitoring** is memory- and CPU-bound on the *monitored workload count*: Dynatrace's Kubernetes sizing guide is explicit that consumption *"scales with the number of pods primarily due to increased data processing and storage needs,"* with node count a secondary driver and Prometheus metric collection adding CPU as annotated-pod counts rise.
 - **Extensions (EEC)** add per-instance polling work plus disk: the Extension Execution Controller wants ~2.1 GB of free disk for its persistence mechanism, and the extensions module claims its own installation and log/cache space.
@@ -86,7 +89,7 @@ The ActiveGate hub enumerates its jobs: routing OneAgent traffic as a secure pro
 
 Two placement consequences follow. First, Dynatrace recommends a **dedicated system**: running ActiveGate alone on its machine is both a performance and a security recommendation. Second, **don't stack demanding capabilities on one ActiveGate** — the Kubernetes guide's recommended production pattern is itself a split (one ActiveGate for platform monitoring, separate replicas for OneAgent routing, §4), and synthetic locations can't share an ActiveGate with other locations at all (§5). A routing-only ActiveGate plus purpose-built ActiveGates for heavy jobs is easier to size, easier to diagnose, and safer to update (FAQ-05's update-ring guidance assumes the same separation).
 
-> <sub>**Sources:** [Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate), [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits), [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic), [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements). **Derived:** the per-capability resource-profile characterizations combine the cited sizing drivers with the deployment-separation recommendations.</sub>
+> <sub>**Sources:** [Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate), [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits), [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic), [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements). [What's new in ActiveGate 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — classic-only modules disallowed on Latest Dynatrace. **Derived:** the per-capability resource-profile characterizations combine the cited sizing drivers with the deployment-separation recommendations.</sub>
 
 <a id="host-sizing"></a>
 ## 3. Baseline Sizing — Host-Based ActiveGates

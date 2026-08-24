@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 08/24/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -29,7 +29,7 @@ The DynaKube operator is the recommended way to deploy Dynatrace monitoring in K
 | **kubectl** | Configured for your cluster |
 | **API Tokens** | Operator token (Platform Token recommended) + Data ingest token |
 
-> **Operator token type:** new automation should use **Platform Tokens** (`dt0s16`) with `Authorization: Bearer` for the Operator token — note that **the Operator itself accepts platform tokens only from Operator 1.10.0** (released July 15, 2026): *"No immediate action is required and existing access tokens continue to be accepted."* On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (`dt0c01` with `Authorization: Api-Token`); this is expected and supported. See the [IAM series](../../iam/) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.
+> **Operator token type:** new automation should use **Platform Tokens** (`dt0s16`) with `Authorization: Bearer` for the Operator token — note that **the Operator itself accepts platform tokens only from Operator 1.10.0** (released July 15, 2026): *"No immediate action is required and existing access tokens continue to be accepted."* ([Dynatrace Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0)) On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (`dt0c01` with `Authorization: Api-Token`); this is expected and supported. See the [IAM series](../../iam/) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.
 
 > **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)**. Third-party technologies are supported for 6 months beyond vendor EOL. See [Support Policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/).
 
@@ -65,6 +65,8 @@ For environments where SVG doesn't render
 <a id="prerequisites-setup"></a>
 ## 2. Prerequisites Setup
 ### Required API Tokens
+
+> **Platform tokens — available now (Dynatrace Operator 1.10.0, released 07/15/2026):** the Operator accepts a **platform token** in the `apiToken` field as the successor to the classic access token. Platform tokens carry fine-grained, user-permission-based scoping, can be rotated or temporarily disabled without deletion, and support configurable expiry. Supplying one also makes the Operator default to the **public registry** for ActiveGate, OneAgent, code modules, log monitoring, EEC, and SQL extension executors — no private-registry pull secret needed. **Access tokens remain fully supported**; Dynatrace has committed to lead time before platform tokens become mandatory, so the access-token scopes below stay the working path. Separately, `spec.tokens.paasToken` is deprecated in favour of `apiToken` — new deployments should not set it.
 
 Create two tokens in Dynatrace with these scopes:
 

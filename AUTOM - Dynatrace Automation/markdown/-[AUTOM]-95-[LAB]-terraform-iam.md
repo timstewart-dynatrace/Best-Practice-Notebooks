@@ -1,6 +1,6 @@
 # AUTOM-95 LAB: Terraform IAM Management
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 95 — Terraform IAM Management LAB | **Created:** May 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 95 — Terraform IAM Management LAB | **Created:** May 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -591,7 +591,7 @@ resource "dynatrace_iam_policy_bindings_v2" "dashboard_readers" {
 
 ### ⚠️ Critical: `bindings_v2` re-assigns **all** policies on each apply
 
-Per the [`dynatrace_iam_policy_bindings_v2` resource docs (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2): *"re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."*
+Per the [`dynatrace_iam_policy_bindings_v2` resource docs (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2) ([same page in the provider repo (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md), which renders without JavaScript): *"This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* The same page adds the consequence in its own words: *"During this process, there is a brief window where the group has no policies assigned, which may temporarily cause permission issues for users in that group."*
 
 Three consequences:
 
@@ -617,7 +617,7 @@ A successful apply against a fresh account leaves these 8 resources in state:
 
 For accounts with existing IAM you want to bring under Terraform management, the `dynatrace-oss/dynatrace` provider ships with a built-in **export utility**. It's invoked by running the provider's compiled binary directly — not via `terraform <subcommand>`.
 
-**IAM is excluded from the default export** — per the provider's own `-list-exclusions` output: *"Account management requires OAuth2 client and is specific to SaaS."* To export IAM you must name the resources explicitly.
+**IAM is excluded from the default export** — per the provider's own `-list-exclusions` output: *"Account management requires OAuth2 client and is specific to SaaS."* The string is defined in the provider source at [`dynatrace/export/resource_descriptor.go` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/export/resource_descriptor.go); there is no docs page carrying it. To export IAM you must name the resources explicitly.
 
 ### Step-by-step
 

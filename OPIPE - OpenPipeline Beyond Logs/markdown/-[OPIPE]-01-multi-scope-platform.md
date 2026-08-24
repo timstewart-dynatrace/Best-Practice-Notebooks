@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/24/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -119,6 +119,20 @@ fetch bizevents, from:-1h
 
 <a id="shared-architecture-across-scopes"></a>
 ## 2. Shared Architecture Across Scopes
+
+### Sprint 1.345 (August 2026): Temporary Fields (`dt.temp*`)
+
+A field whose name is prefixed **`dt.temp`** lives for the duration of pipeline processing and is **discarded before the record is written to Grail**. That closes a long-standing gap in the extraction pattern this series teaches: previously, an intermediate value needed for metric, event, or bizevent extraction had to be written onto the record — where it persisted, consumed storage, and changed the shape of the stored data for every downstream consumer.
+
+| Property | Behaviour |
+|---|---|
+| Lifetime | Available across all processing stages; dropped at storage |
+| Persistence | Never written to Grail — invisible to `fetch` |
+| Cost | Not persisted, so it adds no ingest or retention charge |
+| Enablement | None — the `dt.temp` prefix alone marks the field temporary |
+| Scope support | Every scope with a Processing stage |
+
+Use it for intermediate calculations feeding extraction. Do **not** use it for enrichment you intend to query later — the field will not be there. SaaS 1.345 released 08/11/2026 with a **staged tenant rollout**; verify availability in your tenant before relying on the prefix, and note that a `dt.temp` field written on a tenant that does not yet support the semantics would simply persist as an ordinary attribute.
 
 ![Multi-Scope Architecture](images/01-multi-scope-architecture.png)
 

@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 08/03/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -229,7 +229,7 @@ Two things get worse. Both are cheaper to plan for than to discover.
 
 An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). Teams use it to suppress transient blips.
 
-**The workflow model does have an equivalent — the trigger's Delay option.** The problem trigger's **Delay** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"the trigger fires once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+**The workflow model does have an equivalent — the trigger's Delay option.** The problem trigger's **Delay** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
 
 > ⚠️ **Conflicting documentation.** The alert-notification upgrade guide still states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* Both pages were live 08/2026. The likely explanation is that the upgrade guide predates the Delay option and was never re-tensed — but that is inference. **Verify the Delay option behaves as documented in your tenant before relying on it**, and do not plan a wave around the upgrade guide's claim without checking.
 

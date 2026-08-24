@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 08/03/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -264,7 +264,7 @@ For anything ownership does not express, the additional custom filter query take
 
 **Pair every open-notification with a close-notification.** The problem state option takes *active* or *active and closed*. Responders need the all-clear as much as the alarm, and on the ITSM side it is what resolves the ticket rather than leaving a queue of incidents describing conditions that ended days ago.
 
-**Duration suppression is a documented trigger option.** The **Delay** setting postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"the trigger fires once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+**Duration suppression is a documented trigger option.** The **Delay** setting postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
 
 This is the mechanism for suppressing transient blips: a problem that resolves inside the delay window never notifies.
 

@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 08/24/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -792,6 +792,10 @@ spec:
 
 <a id="security-considerations"></a>
 ## 9. Security Considerations
+
+> **Workload Identity Federation — credential-free auth (SaaS 1.346 — staged rollout from 08/25/2026).** Verbatim: *"Workload Identity Federation (WIF) enables secure, credential-free authentication when exporting telemetry to external services and APIs. It removes the need for long-lived credentials in Dynatrace OpenTelemetry Collector deployments, following modern cloud-native security practices."* Where it applies, this removes the long-lived API token from the Collector's configuration and secret store entirely — the failure mode this section otherwise has to mitigate with rotation and secret management. Treat the token-based patterns shown here as the working path until WIF reaches your tenant and you have confirmed your export targets support it.
+>
+> <sub>Source: [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 ### Token Management
 
 Store Dynatrace API tokens in Kubernetes Secrets:

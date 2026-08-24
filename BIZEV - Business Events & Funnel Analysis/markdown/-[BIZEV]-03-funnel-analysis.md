@@ -1,6 +1,6 @@
 # BIZEV-03: Funnel Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -33,6 +33,10 @@ Conversion funnel analysis is one of the most powerful applications of business 
 <a id="funnel-analysis-concepts"></a>
 
 ## 1. Funnel Analysis Concepts
+
+> **Restrict Business Flow to specific buckets (SaaS 1.346 — staged rollout from 08/25/2026).** Verbatim: *"in the Business Flow edit mode, it's possible to restrict business flow analysis to one or more specific business event buckets (up to 10 selected buckets), so all DQL queries will scan a smaller amount of bytes, increasing performance in the queries and reducing DPS license consumption on every run."* This matters more than a performance tweak: a Business Flow re-runs its DQL on **every** view, so an unrestricted flow scanning all bizevent buckets bills that scan repeatedly. If your bizevents are already partitioned into buckets — the ORGNZ pattern — selecting the relevant ones (max 10) cuts both latency and per-run DPS. The funnel DQL below is unchanged; the restriction applies at the Business Flow configuration level, not in the query text.
+>
+> <sub>Source: [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 
 A **conversion funnel** models a sequence of steps that users take to complete a desired outcome. Each step represents a business event type.
 

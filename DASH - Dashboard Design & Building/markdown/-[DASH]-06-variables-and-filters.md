@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -33,6 +33,8 @@ Variables transform a static dashboard into a dynamic, reusable tool. Instead of
 <a id="variable-types"></a>
 
 ## 1. Variable Types
+
+> **Variables gain a separate display name and key (SaaS 1.346 — staged rollout from 08/25/2026).** A variable now carries two fields: a **Name**, the human-readable label shown in the UI with no symbol restrictions, and a **Key**, the code identifier used in DQL. Keys are auto-generated from names, and **existing variables migrate automatically — no manual action**. The rule that matters for everything below: **DQL references the key, not the name.** So `$myVar` in a query continues to resolve against the key, and renaming a variable for readability no longer breaks the queries that use it — which is precisely the coupling that made variable names awkward before. Until 1.346 reaches your tenant, name and identifier remain the same single field.
 
 Dynatrace dashboards support several variable types, each suited for different filtering needs.
 

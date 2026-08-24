@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 08/24/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -457,6 +457,8 @@ Each pipeline has these configuration sections:
 | **Event extraction** | Generate events | Create platform events |
 | **Bizevent extraction** | Create business events | Generate bizevents |
 | **Storage** | Configure bucket routing | Set target bucket |
+
+> **Two additions in SaaS 1.345 (August 2026 — staged tenant rollout).** The **Inline lookup** processor maps an attribute to a new value from a lookup table defined inside the processor, with no external system — useful for error-code descriptions, app-ID-to-cost-centre mapping, and deriving `dt.security_context`. Separately, any field named with the **`dt.temp`** prefix is available throughout processing but is **not persisted to Grail**, so intermediate values feeding metric/event/bizevent extraction no longer have to be stored on the record. Both apply across every scope with a Processing stage. Verify each has reached your tenant before designing against it.
 
 ### Processor Configuration Panel
 

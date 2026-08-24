@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 08/24/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -332,7 +332,7 @@ Two paths, picked by target:
 **Don't use Monaco-download-as-Terraform-bootstrap.** Monaco's YAML and the Terraform provider's HCL don't share a converter (no Dynatrace-supplied tool, no community OSS bridge as of May 2026). Hand-authoring HCL from Monaco YAML loses to running `-export` directly.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export [options] [resourcename[=id]]"*; module-structure vs `-flat`; `.flawed` / `.required_attention` triage dirs; default exclusions.</sub>
+> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [<resourcename>[=<id>]]"*; module-structure vs `-flat`; `.flawed` / `.required_attention` triage dirs; default exclusions.</sub>
 > - <sub>[Monaco repo README (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code) — confirms Monaco and Terraform provider are separate tools; no built-in conversion. **Derived:** the "no community OSS bridge" claim is from GitHub searches (`monaco to terraform`, `dynatrace monaco convert/migration`) returning zero converter repos as of 2026-05-12.</sub>
 
 ---

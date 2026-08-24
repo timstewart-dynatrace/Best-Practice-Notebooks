@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 07/30/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -215,6 +215,10 @@ smartscapeNodes "FRONTEND"
 <a id="mobile-vs-web-rum"></a>
 
 ## 6. Mobile vs Web RUM
+
+> **Mobile sessions gain bounce classification (SaaS 1.346 — staged rollout from 08/25/2026).** Mobile sessions are now classified as bounces using the **same definition already applied to web sessions**, which removes one of the mobile-vs-web asymmetries this section documents: bounce rate becomes comparable across both surfaces rather than web-only. It carries a hard floor — **Mobile agent 8.343+** — so an app on an older agent will not produce the classification regardless of tenant version. Check your app's shipped agent version, not just the tenant, before reporting on it.
+>
+> <sub>Source: [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 
 Understanding the differences between mobile and web RUM helps you choose the right approach and set correct expectations for each platform:
 

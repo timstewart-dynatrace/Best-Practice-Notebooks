@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 08/04/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -493,6 +493,10 @@ This is also how you settle the question *"does the Distributed Tracing or Servi
 
 <a id="attribution"></a>
 ## 10. Per-Bucket and Per-Cost-Center Attribution
+
+> **Davis AI events in custom buckets are now usage-tracked (SaaS 1.345, 08/11/2026 — staged rollout).** Verbatim: *"Davis AI events are now usage tracked if they're routed to a bucket other than `default_davis_events`."* If you route Davis events to a custom bucket — a common move for retention or access-scoping — that traffic previously escaped ingest usage tracking and now appears in it. **Expect reported usage to rise without ingest volume changing**; the events were always being ingested, they just were not being counted. Budget alerts and month-over-month comparisons calibrated before the rollout will read as a step change, so re-baseline rather than investigating a phantom spike. The release note also warns of a transient accounting artifact while tracking updates — *"one 15-min timeframe has less usage, and the next 15-min interval has more usage. The total usage stays the same."* Davis events left in `default_davis_events` are unaffected.
+>
+> <sub>Source: [What's new in Dynatrace SaaS 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-345)</sub>
 
 Three attribution surfaces exist, in increasing order of attribution power:
 
