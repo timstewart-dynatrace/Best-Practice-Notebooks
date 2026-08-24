@@ -1,6 +1,6 @@
 # IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API
 
-> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 07/18/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
+> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 08/24/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
 
 ## Overview
 
@@ -413,7 +413,7 @@ print(r1.status_code, r2.status_code, r3.status_code)
 
 - **IAM-04** Policy Authoring (verified statement syntax) · **IAM-05** Boundary Design · **IAM-10** Templated Policy Assignments · **IAM-12** API Provisioning scripts (curl flavor) · **IAM-95** Terraform lab (same pattern as IaC)
 - **MZ2POL series** — migrating off Management Zones onto this pattern
-- Productionized version of exactly these calls (dry-run CLI, idempotent re-runs, delete helpers): [Python-IAM-Group-Policy-MZ-Boundry](https://github.com/timstewart-dynatrace/Python-IAM-Group-Policy-MZ-Boundry) · Full-featured utility: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-IAM-Utility-3.0)
+- Full-featured utility built on exactly these calls — dry-run CLI, idempotent re-runs, delete helpers: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-IAM-Utility-3.0)
 
 ---
 
