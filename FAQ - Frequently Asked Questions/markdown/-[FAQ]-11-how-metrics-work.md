@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 07/08/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -163,7 +163,7 @@ Built-in metrics exist under **two names**: the Classic key (`builtin:host.cpu.u
 - **DQL cannot query `builtin:` keys.** A `timeseries` on a `builtin:` key either fails to parse (the colon reads as parameter syntax) or, backtick-quoted, returns nothing — the Grail store has no such key. Query the `dt.*` twin instead. We confirmed this live: on a current tenant, the DQL `metrics` command lists hundreds of `dt.*` keys and zero `builtin:` keys.
 - **Metric selectors cannot query `dt.*` keys** — they read Classic.
 
-The Grail catalog is also consolidated, not 1:1: per the upgrade guide, *"over 100 service metrics have been consolidated to just a handful"* (the `dt.service.*` family, split by dimensions instead of key proliferation). Some Classic families have no Grail twin — *"calculated RUM metrics (metrics with the prefix `calc:apps`) are not supported on Grail"* and security metrics were replaced by security events.
+The Grail catalog is also consolidated, not 1:1. The built-in-metrics page states that Dynatrace *"modified the availability of service metrics in Grail, which might affect the direct relation between Metrics Classic and Grail metric keys"*, and frames the change as dimensional rather than additive — endpoint request metrics are *"produced automatically for every detected endpoint"*, with out-of-the-box dimensions replacing calculated metrics for common splits. In practice that is the `dt.service.*` family split by dimensions instead of key proliferation. (Re-verified 08/24/2026: an earlier revision quoted *"over 100 service metrics have been consolidated to just a handful"* as being from the upgrade guide; that sentence is not on the upgrade guide, the FAQ, or the built-in-metrics page today, so the sourced wording above replaces it.) Some Classic families have no Grail twin — *"calculated RUM metrics (metrics with the prefix `calc:apps`) are not supported on Grail"* and security metrics were replaced by security events.
 
 ### 3.2 Which tool reads which backend
 
@@ -174,7 +174,7 @@ The Grail catalog is also consolidated, not 1:1: per the upgrade guide, *"over 1
 | Data Explorer, Dashboards Classic | Classic | Metric selector |
 | Metrics API v2 (`/api/v2/metrics/query`) | Classic | Metric selector |
 
-The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others *"planned but not yet available."* Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets, with the honest caveat that *"there isn't an exact, one-to-one mapping between Classic metric selectors and DQL"* — Classic's "Auto" pseudo-aggregation, notably, has no DQL equivalent.
+The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as *"planned for a future release."* Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets, with the honest caveat that *"there isn't an exact, one-to-one mapping between Classic metric selectors and DQL"* — Classic's "Auto" pseudo-aggregation, notably, has no DQL equivalent.
 
 **Practical rule:** author every *new* chart, alert, and automation in DQL against `dt.*` keys; treat metric selectors as the maintenance language for existing Classic assets until you migrate them (§8.4).
 

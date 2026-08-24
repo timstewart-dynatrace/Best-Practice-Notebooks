@@ -1,6 +1,6 @@
 # SL2DT-07: User Governance & Access
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -94,7 +94,7 @@ resource "dynatrace_iam_policy_bindings_v2" "b_prod_readers" {
 }
 ```
 
-> **Critical — `dynatrace_iam_policy_bindings_v2` re-assigns all policies bound to a group on every apply.** Per the [`dynatrace_iam_policy_bindings_v2` resource docs (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2): *"This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* The single-policy example above is illustrative — if `g_prod_readers` already has other policies bound (in Dynatrace itself or in a separate Terraform resource), applying this block with only `p_prod_readers` listed will **unbind those other policies**. List every policy that should remain bound to the group in the same `policy = [...]` array.
+> **Critical — `dynatrace_iam_policy_bindings_v2` re-assigns all policies bound to a group on every apply.** Per the [`dynatrace_iam_policy_bindings_v2` resource docs (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2) — also mirrored, JavaScript-free, at [the provider repo (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md): *"This resource re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* The single-policy example above is illustrative — if `g_prod_readers` already has other policies bound (in Dynatrace itself or in a separate Terraform resource), applying this block with only `p_prod_readers` listed will **unbind those other policies**. List every policy that should remain bound to the group in the same `policy = [...]` array.
 
 ### Policy Language
 

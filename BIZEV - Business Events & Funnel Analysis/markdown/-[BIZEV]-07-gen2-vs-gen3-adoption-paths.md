@@ -1,6 +1,6 @@
 # BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 07/15/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -197,7 +197,7 @@ On Dynatrace Managed (or a SaaS tenant that truly has no Grail), business outcom
 Two currency warnings baked into that table:
 
 - **Calculated service metrics are soft-superseded.** The docs state *"OpenPipeline metric extraction now replaces calculated service metrics"* — existing customers continue, but **new customers cannot create them**, and *"currently, no deprecation date is set."* On Managed — where the OpenPipeline successor doesn't exist — they remain the working path; treat the supersession as a signal about where new SaaS-side investment should go, and verify what your environment allows before designing around them.
-- **Log Monitoring Classic has a dated SaaS end-of-life:** *"Starting with January 2027, Log Monitoring Classic will reach end of life. All Dynatrace SaaS environments with Log Monitoring Classic will be automatically upgraded to Log Management and Analytics powered by Grail"* (idle environments auto-upgrade from April 2026). The announcement scopes itself to SaaS environments; on Managed, Log Monitoring Classic remains the log stack.
+- **Log Monitoring Classic has a dated SaaS end-of-life:** *"Starting with January 2027, Log Monitoring Classic will reach end of life. All Dynatrace SaaS environments with Log Monitoring Classic will be automatically upgraded to Log Management and Analytics powered by Grail"* — announced in the [SaaS 1.328 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-328), which also scopes the earlier wave: *"Starting with April 2026, Log Monitoring Classic will be automatically upgraded ... in environments that have not ingested logs in the prior 90 days. Environments actively ingesting data to Log Monitoring Classic are not impacted at this time."* (Re-verified at source 08/24/2026.) The announcement scopes itself to SaaS environments; on Managed, Log Monitoring Classic remains the log stack.
 
 ### 6.2 A classic funnel, for comparison
 

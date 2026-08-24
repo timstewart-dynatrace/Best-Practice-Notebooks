@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -260,6 +260,10 @@ Auth and IAM bind the MCP integration to your IAM policy — same `davis:analyze
 ## 6. Agentic Patterns: AutomationEngine and Approval-Based Remediation
 
 Agentic workflows are an emerging area in 2026. The intent: detect a problem (Causal AI), propose a remediation (Generative AI), execute under policy guardrails (workflow + AutomationEngine), surface the human approval / post-action audit.
+
+> **Two platform moves in this space (SaaS 1.344 and 1.346 — staged rollouts).** An **SRE Agent workflow template** ships with 1.344 (released 07/29/2026): production problems trigger automated root-cause analysis and impact annotations. It is a worked instance of exactly the pattern below — detect, analyse, annotate — and lands on the *suggest* side of the line, annotating rather than acting, which is why it is a reasonable first agentic workflow to adopt. Separately, **Dynatrace Assist gains an agentic mode** in 1.346, where embedded conversation starters perform live environment analysis rather than answering from documentation; 1.344 added role, expertise-level, language, and tone personalisation. Assist moving from answering to analysing puts it inside the guardrail model below — the Scope, Policy and Audit questions now apply to it, not just to workflows you author. Verify both have reached your tenant before designing against them; the suggest-mode posture below is unchanged by either.
+>
+> <sub>Sources: [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 
 **Three guardrails to enforce:**
 

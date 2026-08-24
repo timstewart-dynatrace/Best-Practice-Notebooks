@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ This notebook consolidates every actionable best practice from the ORGNZ series 
 | 3 | Use consistent naming convention | Format: `<provider>_<type>_<retention>` or `<team>_<type>_<retention>` (e.g., `aws_logs_35d`, `team_platform_logs`) | Critical | Naming |
 | 4 | Bucket names: lowercase, letter-first, underscores/hyphens only | Regex: `^[a-z][a-z0-9_-]*$`; never use `default_*` prefix | Critical | Naming |
 | 5 | Plan bucket names before creation | Bucket names are immutable after creation; display names can be changed | Critical | Planning |
-| 6 | Stay within the 80-bucket environment limit | Budget buckets across teams; request increase only if justified | Recommended | Planning |
+| 6 | Stay within the 80-bucket environment default (250 from SaaS 1.346 — staged rollout from 08/25/2026) | Budget buckets across teams; request increase only if justified | Recommended | Planning |
 | 7 | Create dedicated buckets per cost center | One bucket per business unit/LOB for direct GiB/day cost attribution | Recommended | Cost |
 | 8 | Create separate buckets for compliance data | Dedicated bucket (e.g., `compliance_audit_logs`) with extended retention for regulatory requirements | Recommended | Compliance |
 | 9 | Create short-retention buckets for debug logs | Bucket: `debug_logs_7d` with 7-day retention for high-volume verbose logs | Recommended | Cost |
@@ -167,7 +167,7 @@ fetch logs, from:-1h
 | 35 | Use hierarchical encoding in security context values | Format: `<org>/<department>/<team>` (e.g., `acme/engineering/platform`); enables department-level access with `MATCH ('acme/engineering/*')` | Critical | Scalability |
 | 36 | Use type prefixes for security context values | Prefix with `team:`, `lob:`, `env:`, `cloud:` (e.g., `team:checkout`, `lob:finance`, `env:production`) | Recommended | Naming |
 | 37 | Plan security context hierarchy before implementation | Context values are assigned to records at ingest time; changing schema requires re-ingesting data | Critical | Planning |
-| 38 | Use security context instead of additional buckets when at 80-bucket limit | Security context enables multi-team isolation within shared buckets without consuming bucket quota | Recommended | Scalability |
+| 38 | Use security context instead of additional buckets when at the bucket-count limit | Security context enables multi-team isolation within shared buckets without consuming bucket quota | Recommended | Scalability |
 | 39 | Set security context on entities via Grail Security Context settings | Settings → Topology model → Grail Security Context; entities inherit context to related records | Recommended | Security |
 | 40 | Always use MATCH for array-valued security context in IAM policies | `ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("team-a*")` | Critical | Security |
 
@@ -289,7 +289,8 @@ fetch logs, from:-1h
 | 57 | Use `DT_TAGS` environment variable for shared infrastructure | Set `DT_TAGS=primary_tags.team=<team>` per process when multiple apps share the same host | Recommended | Architecture |
 | 58 | Restart applications after enrichment changes for spans | Logs: no restart needed (OneAgent auto-enriches); Spans: application restart required; Metrics: OneAgent restart applies automatically | Critical | Operations |
 | 59 | Verify enrichment coverage before building segments | Run DQL audit query to check field coverage percentage across signal types; fields with 0% coverage need enrichment | Critical | Operations |
-| 60 | Use Primary Grail Tags (`primary_tags.*`) when standard fields do not match your organization | Set via host properties or `DT_TAGS` environment variable; propagates across logs, spans, and topology | Recommended | Architecture |
+| 60 | Use Primary Grail Tags (`primary_tags.*`) when standard fields do not match your organization | Set via **host tags** (`hostautotag.conf` / `oneagentctl --set-host-tag`) or the `DT_TAGS` environment variable; propagates across logs, spans, and topology. **Host properties no longer work for this** — see row 60a | Recommended | Architecture |
+| 60a | Do not set host-level `primary_tags.*` via `hostcustomproperties.conf` | **Breaking, OneAgent 1.345:** *"the OS Agent promotes `primary_tags` from host tags (`hostautotag.conf`) and no longer from host properties (`hostcustomproperties.conf`) at the host level."* Existing primary tags configured through host properties silently stop being promoted once a host reaches 1.345 — audit before the fleet upgrades, and migrate them to host tags | Critical | Migration |
 
 ### Validation Queries — Metadata Enrichment
 

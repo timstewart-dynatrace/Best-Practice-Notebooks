@@ -1,6 +1,6 @@
 # ORGNZ-05: Bucket-Level Access Control
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -205,7 +205,7 @@ ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;
 | Document all policies | Audit trail and governance |
 | Test policies with sample users | Prevent access issues |
 | Use STARTSWITH for team prefixes | Future-proof for new buckets |
-| Combine with record-level for scale | Bucket limits (80) may not suffice |
+| Combine with record-level for scale | Bucket limits (80 by default) may not suffice |
 
 <a id="when-bucket-level-isnt-enough"></a>
 ## When Bucket-Level Isn't Enough
@@ -213,10 +213,12 @@ Bucket-level access has limitations:
 
 | Limitation | Alternative |
 |------------|-------------|
-| 80 bucket limit | Use security context for finer granularity |
+| 80-bucket default limit | Use security context for finer granularity |
 | Shared data needs | Use record-level permissions |
 | Dynamic team membership | Use security context mapped to tags |
 | Field-level masking | Use field-level permissions |
+
+> **Bucket limit — rolling out (SaaS 1.346):** the default custom-bucket limit per environment rises from **80 to 250**. SaaS 1.346 began its **staged tenant rollout on 08/25/2026** — verify the new default has reached your tenant before planning against it. Until it does, 80 remains the working default, and the increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support.
 
 See **ORGNZ-06** and **ORGNZ-07** for advanced permission patterns.
 

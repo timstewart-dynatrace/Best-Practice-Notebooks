@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -96,6 +96,10 @@ Per Gen3-first guidance: tag at source via primary fields/tags, not at view time
 <a id="four-sources"></a>
 ## 3. The Four-Source Hierarchy
 
+> **Breaking (OneAgent 1.345): host `primary_tags` are promoted only from host tags.** Verbatim: *"Starting with OneAgent version 1.345, the OS Agent promotes `primary_tags` from host tags (`hostautotag.conf`) and no longer from host properties (`hostcustomproperties.conf`) at the host level."* This is a silent failure mode, which is what makes it worth auditing rather than noting: a host that reaches 1.345 simply stops promoting any `primary_tags.*` configured through the properties file, and nothing errors — the dimension just disappears from that host's signals, and every segment, bucket rule, and dashboard keyed on it quietly loses those records. Audit `hostcustomproperties.conf` across the fleet **before** it upgrades and migrate those entries to `hostautotag.conf` (or `oneagentctl --set-host-tag=`). Note the narrow scope: this is about *promotion to primary tags at the host level*, and the `oneagentctl` reference still documents `--set-host-property=` for `dt.*` reserved keys. OneAgent 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — tenant version is not agent version, so check the fleet, not the tenant.
+>
+> <sub>Source: [What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345)</sub>
+
 Dynatrace's `tags-and-metadata` documentation enumerates seven categories of tags and metadata (auto-detected attributes, manually defined tags, automatically generated tags, cloud-imported tags, Kubernetes / OpenShift labels, Cloud Foundry organization names, and environment-variable-based tags). For practical strategy, this FAQ collapses them to **four operational source buckets** that map cleanly onto where the tag is *set* and how it *propagates* — each bucket appropriate for some dimensions and inappropriate for others.
 
 | Source | Where set | Field surface in DQL | Best for |
@@ -142,7 +146,7 @@ If you tag at the OneAgent layer with primary fields, the value is on every sign
 > - <sub>[Tags and metadata (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata) — seven documented categories of tags and metadata; basis for the four operational buckets in this FAQ</sub>
 > - <sub>[Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags) — latest-Dynatrace tagging model; per-source setup pages</sub>
 > - <sub>[Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — five documented primary-tag sources</sub>
-> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, pod-over-namespace precedence, and the *"OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"* minimums</sub>
+> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, pod-over-namespace precedence, and the minimum component versions, re-read at source 08/24/2026 as **Dynatrace Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+** (the *"OneAgent 1.343+ / ActiveGate 1.341+"* pairing quoted in earlier revisions of this entry is superseded — see the corrected floors above)</sub>
 > - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; Smartscape identifiers in process metadata files, and enrichment configuration with conditional rules expressed as DQL matchers</sub>
 > - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — `--set-host-property` vs `--set-host-tag` syntax (classic reference)</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline) — enrichment processors that surface K8s and cloud tags as `dt.*` primary fields</sub>

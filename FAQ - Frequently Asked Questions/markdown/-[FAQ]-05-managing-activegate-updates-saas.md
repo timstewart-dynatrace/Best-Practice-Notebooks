@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/24/2026
 
 ## Overview
 
@@ -60,7 +60,7 @@ The practical consequences:
 
 In community practice, the most consistent benefit teams report from disciplined AG update management is "we stopped having synthetic monitors flake mysteriously after sprint updates" — the symptom that surfaces when bundled engine changes happen invisibly. Verify against your own monitor history.
 
-> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — *"when a new version of ActiveGate becomes available, a new installation package will be downloaded to the particular host, and the new version of ActiveGate will be installed"*; availability check runs at ~30-minute intervals.</sub>
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — *"When a new version is available, the installation package is downloaded and installed automatically"* (re-read at source 08/24/2026; the page has been reworded since this entry was written, and the longer sentence previously quoted here no longer appears on it — the behaviour described is unchanged); availability check runs at ~30-minute intervals.</sub>
 
 <a id="mechanism"></a>
 ## 2. How ActiveGate Updates Work on SaaS
