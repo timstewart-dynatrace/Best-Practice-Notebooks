@@ -3,7 +3,7 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-22 standalone single-page reference entries, each answering one recurring
+23 standalone single-page reference entries, each answering one recurring
 Dynatrace question in decision-support format. Entries are independent — there
 is no reading order; match the question and read only that entry.
 
