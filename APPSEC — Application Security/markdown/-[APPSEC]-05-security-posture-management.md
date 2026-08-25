@@ -1,6 +1,6 @@
 # APPSEC-05: Security Posture Management
 
-> **Series:** APPSEC — Application Security | **Notebook:** 5 of 10 | **Created:** June 2026 | **Last Updated:** 06/04/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 5 of 10 | **Created:** June 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -76,15 +76,15 @@ A single finding (e.g., "S3 bucket without encryption") often maps to controls i
 Filter security events to SPM findings only. As with code-level findings, the exact event-type literal depends on your tenant's vocabulary — run `summarize count() by:{event.type}` first to discover.
 
 ```dql
-// SPM findings (open) by framework, last 7 days
+// SPM compliance findings by standard and severity, last 7 days
 fetch security.events, from:-7d
-| filter event.type == "POSTURE_FINDING"
-| summarize count = count(), by:{compliance.framework, finding.severity}
+| filter event.type == "COMPLIANCE_FINDING"
+| summarize count = count(), by:{compliance.standard.short_name, compliance.rule.severity.level}
 | sort count desc
 
 ```
 
-> <sub>**Sources:** field names (`event.type`, `compliance.framework`, `finding.severity`) inferred from the AppSec events shape; verified for DQL syntax only. **Softened:** the literal `"POSTURE_FINDING"` is a placeholder — run a discovery query first to find your tenant's actual event-type vocabulary.</sub>
+> <sub>**Sources:** [Compliance (Semantic Dictionary) (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance). **Live-verified 08/25/2026** against a tenant with SPM enabled: the query above returns CIS findings grouped by severity (MEDIUM 83,077 · CRITICAL 67,675 · HIGH 22,750 · LOW 4,894 across 178,396 findings). An earlier revision of this entry filtered `event.type == "POSTURE_FINDING"` and grouped by `compliance.framework` / `finding.severity`. **All three identifiers were wrong** — `POSTURE_FINDING` returns nothing over 90 days and is not a documented event type; `compliance.framework` and `finding.severity` are populated on **0** of 178,396 findings. The corrected names are `COMPLIANCE_FINDING`, `compliance.standard.short_name` and `compliance.rule.severity.level`. This is the failure mode SPM queries are most prone to: a wrong identifier is valid DQL, executes cleanly, and returns an empty result that looks exactly like a compliant environment.</sub>
 
 <a id="lifecycle"></a>
 ## 4. Finding Lifecycle

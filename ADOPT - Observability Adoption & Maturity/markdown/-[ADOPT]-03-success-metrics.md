@@ -1,6 +1,6 @@
 # ADOPT-03: Success Metrics
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 07/08/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -60,12 +60,18 @@ MTTD measures how long it takes from when a problem begins to when it is detecte
 
 ### 2.1 MTTD Over the Last 7 Days
 
-Dynatrace Intelligence problems have an `event.start` timestamp (when the underlying condition began). By comparing this against the record timestamp, we can estimate detection lag.
+Dynatrace Intelligence problems have an `event.start` timestamp — the beginning of the analysed anomaly window — and each problem emits a record per **status transition**. Detection lag is the gap between `event.start` and the timestamp of the **`CREATED`** transition specifically.
+
+> **The trap this query exists to avoid.** Every transition record carries the same `event.start`, so `timestamp - event.start` means something different on each one. On a `CLOSED` record it is the problem's **total duration**; only on the `CREATED` record is it detection lag. Filtering by `event.status == "CLOSED"` and subtracting therefore reports duration while looking exactly like an MTTD query — it returns plausible numbers, just for the wrong quantity. Measured on a live tenant 08/25/2026, the two differ by roughly **35×** (152 min vs 4.3 min average over the same 7 days).
+>
+> This also dictates the data object: **`dt.davis.problems` carries no `CREATED` records at all** (0 over 7 days on the verification tenant), so MTTD cannot be computed from it under any filter. Use `fetch events` with `event.kind == "DAVIS_PROBLEM"`.
 
 ```dql
-// Estimate MTTD: gap between problem start and Dynatrace Intelligence detection
-fetch dt.davis.problems, from:-7d
-| filter event.status == "CLOSED"
+// MTTD: gap between the start of the analysed window and problem CREATION.
+// The CREATED transition is what makes this detection lag rather than duration.
+fetch events, from:-7d
+| filter event.kind == "DAVIS_PROBLEM"
+| filter event.status_transition == "CREATED"
 | filter dt.davis.is_frequent_event == false and dt.davis.is_duplicate == false
 | fieldsAdd detection_lag_minutes = (timestamp - event.start) / 1m
 | summarize
@@ -73,12 +79,15 @@ fetch dt.davis.problems, from:-7d
     median_mttd_minutes = median(detection_lag_minutes),
     p95_mttd_minutes = percentile(detection_lag_minutes, 95),
     problem_count = count()
+
 ```
 
 > **Interpreting MTTD Results:**
 > - **< 5 minutes** — Excellent. Dynatrace Intelligence is detecting issues rapidly.
 > - **5-15 minutes** — Good. Typical for most environments.
 > - **> 15 minutes** — Review alert configurations and instrumentation coverage.
+>
+> These bands were validated against the corrected query on a live tenant (08/25/2026): avg **4.3 min**, median **2.5 min**, p95 **7.9 min** across 1,877 problems in 7 days — comfortably inside the "excellent" band, and consistent with the `< 5 minutes` target in ADOPT-99 § 4.3. If your result lands in the hundreds of minutes, suspect the query before the environment: that is the signature of measuring duration instead of detection lag.
 
 <a id="mttr"></a>
 

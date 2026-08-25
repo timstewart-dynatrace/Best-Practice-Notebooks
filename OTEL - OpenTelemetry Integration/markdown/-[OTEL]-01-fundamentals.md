@@ -1,6 +1,6 @@
 # OTEL-01: OpenTelemetry Fundamentals
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 06/29/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 08/25/2026
 
 ## Introduction to OpenTelemetry and Dynatrace
 OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics.
@@ -273,8 +273,8 @@ OpenTelemetry data is billed exactly like any other ingested data under the Dyna
 ```dql
 // View OpenTelemetry traces in Dynatrace
 fetch spans, from:-1h
-| filter isNotNull(otel.library.name)
-| fields timestamp, trace.id, span.name, otel.library.name, duration
+| filter isNotNull(otel.scope.name)
+| fields timestamp, trace.id, span.name, otel.scope.name, duration
 | sort timestamp desc
 | limit 20
 ```
@@ -282,8 +282,8 @@ fetch spans, from:-1h
 ```dql
 // OTel instrumentation libraries in use
 fetch spans, from:-1h
-| filter isNotNull(otel.library.name)
-| summarize count = count(), by:{otel.library.name, otel.library.version}
+| filter isNotNull(otel.scope.name)
+| summarize count = count(), by:{otel.scope.name, otel.scope.version}
 | sort count desc
 | limit 20
 ```
