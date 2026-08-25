@@ -1,6 +1,6 @@
 # OTEL-08: Troubleshooting OTel Pipelines
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 08/25/2026
 
 ## Debugging OpenTelemetry Data Flows
 When telemetry data doesn't arrive as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic techniques, and resolution steps for OpenTelemetry pipelines.
@@ -359,7 +359,7 @@ go tool pprof http://collector:1777/debug/pprof/heap
 ```dql
 // Check OTel data arrival
 fetch spans, from: now() - 1h
-| filter isNotNull(otel.library.name)
+| filter isNotNull(otel.scope.name)
 | summarize count = count(), by:{time_bucket = bin(timestamp, 5m)}
 | sort time_bucket asc
 ```
@@ -368,7 +368,7 @@ fetch spans, from: now() - 1h
 // Find services without service.name
 fetch spans, from: now() - 1h
 | filter isNull(service.name) or service.name == ""
-| summarize count = count(), by:{otel.library.name}
+| summarize count = count(), by:{otel.scope.name}
 | sort count desc
 ```
 
