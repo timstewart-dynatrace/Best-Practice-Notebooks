@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -64,19 +64,35 @@ Selecting the right KPIs is the most important decision in executive dashboard d
 
 Availability is the most commonly requested executive metric. There are several ways to calculate it depending on what "availability" means in your organization.
 
-### Approach 1: Based on Detected Problem Downtime
+### Approach 1: Problem Impact — *not* an availability percentage
 
-Calculate the percentage of time with no AVAILABILITY-category problems.
+This is the tile most often asked for and most often wrong. Detected problems tell you **how much impact** occurred, not **what fraction of time** the estate was up.
+> **Why a sum of problem durations is not downtime.** Problems overlap — Dynatrace opens one per
+> affected entity, and many run concurrently. Measured on a live tenant over 7 days (08/25/2026):
+> **319** AVAILABILITY problems across **254** entities summing to **714.7 hours** against a
+> **168-hour** window — *4.3x the entire period*, with a peak of **73** problems open at once.
+> Subtracting that from wall-clock time yields a negative availability, which is what this cell
+> reported before it was corrected (**-325%**).
+>
+> The sum is a real and useful quantity — **entity-hours of impact** — but it is not elapsed
+> downtime, and no filter makes it so. Elapsed downtime needs the *union* of the problem intervals,
+> which this shape cannot express. For a real availability number use **Approach 2** below
+> (success-rate, which measures requests rather than problems) or an **SLO** — see the SLO series,
+> which exists for exactly this.
 
 ```dql
-// Availability based on detected problem downtime over 7 days
+// Problem impact over 7 days. NOTE: this is entity-hours of impact, NOT downtime —
+// problems overlap, so the sum exceeds wall-clock time. See the note above.
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter event.category == "AVAILABILITY"
 | filter dt.davis.is_duplicate == false
-| summarize total_downtime_ns = sum(toLong(resolved_problem_duration))
-| fieldsAdd total_period_ns = 7.0 * 24 * 3600 * 1000000000
-| fieldsAdd availability_pct = round((1 - total_downtime_ns / total_period_ns) * 100, decimals: 3)
+| summarize
+    impact_hours = sum(resolved_problem_duration / 1h),
+    problem_count = count(),
+    affected_entities = countDistinctExact(affected_entity_ids),
+    longest_problem_hours = max(resolved_problem_duration / 1h)
+
 ```
 
 ### Approach 2: Based on Service Success Rate
@@ -210,18 +226,29 @@ Error budgets quantify how much failure is acceptable before an SLA breach. For 
 | 99.5% | 3.6 hours |
 | 99.0% | 7.2 hours |
 
-### Error Budget Remaining
+> **An error budget cannot be computed from summed problem durations.** The 43.2-minute figure is
+> *wall-clock* downtime, while summing problem durations counts overlapping problems repeatedly. On the
+> verification tenant that produced a budget-remaining of **-6,824,364%** — 2,948,168 minutes of
+> "downtime" claimed inside a 30-day window. Error budgets are an SLO construct: define the SLO, and the
+> burn rate follows from it. See **SLO-03** (composition and error budgets) and **SLO-04** (burn-rate
+> alerting). The query below reports the impact figures this data *can* support.
+
+### Problem Impact Against the Budget Reference
 
 ```dql
-// Error budget remaining for 99.9% SLA target — 30-day window
+// Problem impact over 30 days, against the 99.9% budget reference.
+// impact_minutes is entity-minutes of impact, NOT wall-clock downtime — it is shown
+// beside the budget for scale, not subtracted from it. Use an SLO for a real budget.
 fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
 | filter event.category == "AVAILABILITY"
 | filter dt.davis.is_duplicate == false
-| summarize total_downtime_min = sum(resolved_problem_duration) / 1m
-| fieldsAdd budget_total_min = 43.2
-| fieldsAdd budget_remaining_min = budget_total_min - total_downtime_min
-| fieldsAdd budget_remaining_pct = round(100.0 * budget_remaining_min / budget_total_min, decimals: 1)
+| summarize
+    impact_minutes = sum(resolved_problem_duration / 1m),
+    problem_count = count(),
+    affected_entities = countDistinctExact(affected_entity_ids)
+| fieldsAdd budget_reference_min_999 = 43.2
+
 ```
 
 <a id="storytelling"></a>

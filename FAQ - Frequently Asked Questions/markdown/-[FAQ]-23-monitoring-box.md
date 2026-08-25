@@ -160,7 +160,7 @@ If that returns rows, you already have Box performance telemetry and can build a
 
 The common mistake is expecting audit events to answer performance questions. They are an access record, not a latency record. Box does not publish per-request timing for its own service; if you need Box performance, it comes from signal 1 (your calls) or signal 4 (synthetics), never from the audit feed.
 
-> <sub>**Sources:** [Semantic dictionary fields (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-semantic-dictionary), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events). **Derived:** § 3.1's field-name caution comes from executing both forms against a live tenant on 08/25/2026 — `http.url` returned zero rows while scanning 9.8M records.</sub>
+> <sub>**Sources:** [Global field reference (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/fields), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events). **Derived:** § 3.1's field-name caution comes from executing both forms against a live tenant on 08/25/2026 — `http.url` returned zero rows while scanning 9.8M records.</sub>
 
 ---
 
