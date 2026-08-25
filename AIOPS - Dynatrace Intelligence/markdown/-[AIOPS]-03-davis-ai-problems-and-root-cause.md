@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/11/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -212,10 +212,10 @@ Reporting principle: prefer **median** and **p95** over arithmetic mean. A singl
 // MTTR by category over last 30 days
 fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
-| fieldsAdd duration = event.end - event.start
+| fieldsAdd duration_hours = (event.end - event.start) / 1h
 | summarize {
-    median_mttr = percentile(duration, 50),
-    p95_mttr    = percentile(duration, 95),
+    median_mttr_hours = percentile(duration_hours, 50),
+    p95_mttr_hours    = percentile(duration_hours, 95),
     problem_count = count()
   },
   by:{event.category}

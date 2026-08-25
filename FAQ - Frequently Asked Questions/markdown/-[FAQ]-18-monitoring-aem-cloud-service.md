@@ -1,6 +1,6 @@
 # FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 07/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -74,13 +74,13 @@ It is worth being precise, because "plug-in" undersells it and invites the wrong
 | **Support route** | Dynatrace support — the [Dynatrace support center](https://support.dynatrace.com/) |
 | **Technology** | **OneAgent, full-stack**, on the Kubernetes containers Adobe operates |
 | **Enablement owner** | **Adobe** (customer-care ticket) |
-| **Detected automatically** | AEM **author** and **publish** services, their endpoints, and container memory sizes |
+| **Detected automatically** | AEM applications and their dependencies, from the website through the container to the cloud service, plus the container **memory sizes** of the **author** and **publish** services |
 
 Because it is real full-stack OneAgent monitoring rather than an API-polling integration, you get the things that follow from having an agent in the process: automatic service detection, distributed tracing through the AEM tiers, code-level visibility, dependency topology, and Davis root-cause analysis — the same machinery documented throughout the rest of this corpus, on infrastructure you do not own.
 
 The unusual part is purely operational: **the deployment step belongs to someone else.** Everything downstream of "the agent is running" behaves normally.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace). **Derived:** the "behaves normally downstream" conclusion combines the Hub's full-stack OneAgent statement with standard OneAgent behavior documented elsewhere in this corpus.</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace). **Derived:** the "behaves normally downstream" conclusion — and the service and endpoint detection that follows from it, which neither vendor states for this integration — combines the Hub's full-stack OneAgent statement with standard OneAgent behavior documented elsewhere in this corpus.</sub>
 
 ---
 
@@ -185,15 +185,15 @@ The useful reframing: **everything to the left of the agent is Adobe's, everythi
 
 Once the agent is reporting, detection is automatic:
 
-- **A unified service per detected AEM author and publish instance**, including their endpoints.
-- **Container memory sizes detected automatically** — which is also the basis of licensing (§ 7).
+- **AEM applications and their dependencies detected automatically**, from the website through the container to the cloud service.
+- **Container memory sizes of the author and publish services detected automatically** — which is also the basis of licensing (§ 7).
 - **Standard full-stack telemetry** on those containers: traces, service metrics, process and container resource data, and the dependency topology that follows from them.
 
-Practically, that means an AEM estate appears in Smartscape as ordinary services with ordinary relationships, and every downstream Dynatrace capability treats them as such. There is no AEM-specific query surface to learn: the services behave like any other in `fetch spans`, `timeseries`, and Davis problem analysis.
+Because this is full-stack OneAgent rather than an API integration, ordinary service and endpoint detection follows — neither vendor documents that step for AEM specifically, so treat it as the expected behavior to verify rather than a published guarantee. Practically, an AEM estate appears in Smartscape as ordinary services with ordinary relationships, and every downstream Dynatrace capability treats them as such. There is no AEM-specific query surface to learn: the services behave like any other in `fetch spans`, `timeseries`, and Davis problem analysis.
 
 In community practice, the first thing worth doing after enablement is confirming that the author and publish services appear as **separate** services with sensible names, and tagging them to your own convention while the estate is small — service-level tagging is tenant-side and fully yours, so this is one of the few places where the usual **ORGNZ** guidance applies without modification.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace).</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — both state that container memory sizes are automatically detected for the author and publish services. **Derived:** service-level and endpoint detection follows from full-stack OneAgent behavior, not from either vendor's AEM material.</sub>
 
 ---
 
@@ -221,7 +221,7 @@ Two forecasting notes:
 - **Multiply by environments, not by applications.** The figures above are *per AEM environment*. A team running production, stage, and a development environment is forecasting three of these, and the non-production ones are not free.
 - **The numbers are Adobe's stated averages, not a contractual cap.** They are the right basis for a first estimate and the wrong basis for a commitment — confirm actual allocation for your environments before finalising licensing.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/). **Derived:** the per-environment multiplication note follows from the Hub's figures being stated per environment.</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — both publish the deployment specification and the licensing figures. **Derived:** the per-environment multiplication note follows from those figures being stated per environment.</sub>
 
 ---
 
@@ -279,14 +279,14 @@ Beyond that, several reasonable questions are **not settled by either vendor's p
 | Question | Status |
 |---|---|
 | Is the **Preview** service monitored alongside author and publish? | Not stated publicly — confirm with Adobe |
-| Are **Dispatcher** and the **CDN tier** in scope? | Not stated publicly. Dynatrace's own AEM material describes end-to-end coverage without naming these tiers |
+| Are **Dispatcher** and the **CDN tier** in scope? | Not stated publicly. Both vendors' AEM material describes end-to-end coverage without naming these tiers |
 | Do **AEM logs** flow into Grail through this integration? | Not stated publicly. Adobe provides its own log-access mechanisms; whether they connect here is unconfirmed |
 | Is **RUM** included, or configured separately? | Dynatrace describes RUM, Session Replay, and synthetic monitoring as part of the broader AEM story, but these are tenant-side capabilities you configure — treat them as **separate from** the container agent enablement |
 | Can you influence **OneAgent version**? | Not stated publicly; § 5 assumes not |
 
 Being explicit about this beats a confident guess: an AEM estate has real tiers in front of the author and publish services, and a monitoring plan that silently assumes they are covered will have a gap exactly where customer-facing latency lives.
 
-> <sub>**Sources:** [Dynatrace and Adobe Experience Manager (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/) — the RUM / Session Replay / synthetic framing. The remaining rows record the *absence* of a public statement and are therefore uncited by construction.</sub>
+> <sub>**Sources:** [Dynatrace and Adobe Experience Manager (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/) — the RUM / Session Replay / synthetic framing, [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — whose introduction promises "end-to-end tracing across every tier and Real User Monitoring" without naming a tier. The remaining rows record the *absence* of a public statement and are therefore uncited by construction.</sub>
 
 ---
 

@@ -1,6 +1,6 @@
 # BIZEV-04: Revenue Impact Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/25/2026
 
 ## Overview
 
@@ -197,6 +197,15 @@ fetch bizevents, from:-14d
 
 Service Level Agreements (SLAs) often include business availability targets. By correlating problem duration with business event volume, you can measure whether SLAs were met.
 
+> **Impact-hours are not downtime, and cannot become an SLA percentage.** Problems overlap — Dynatrace
+> opens one per affected entity and many run concurrently — so summing their durations counts the same
+> wall-clock minutes many times over. On a live tenant over 7 days (08/25/2026) the sum reached **3,748
+> hours** against a 40-hour business week; the SLA formula that previously lived here returned
+> **-9,271% availability**. The sum is genuinely useful as *entity-hours of impact* — it is what the
+> next query reports — but an availability or SLA figure has to come from an **SLO**, which measures a
+> good-events ÷ total-events ratio rather than subtracting problem time. See **SLO-02** for defining the
+> SLI and **SLO-03** for error budgets.
+
 ```dql
 // Total problem duration this week (hours of impact)
 fetch dt.davis.problems, from:-7d
@@ -209,15 +218,19 @@ fetch dt.davis.problems, from:-7d
 ```
 
 ```dql
-// SLA calculation: percentage of time without problems in business hours
-// Assumes 8 business hours * 5 days = 40 hours per week
+// Problem impact in business terms. NOTE: impact_hours counts overlapping problems
+// separately, so it is entity-hours of impact, NOT wall-clock downtime — it cannot be
+// subtracted from a business-hours window to yield an SLA percentage.
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
-| summarize total_downtime_hours = sum(duration_hours)
-| fieldsAdd total_business_hours = 40.0
-| fieldsAdd availability_pct = round((total_business_hours - total_downtime_hours) / total_business_hours * 100, decimals: 2)
+| summarize
+    impact_hours = sum(duration_hours),
+    problem_count = count(),
+    affected_entities = countDistinctExact(affected_entity_ids),
+    avg_problem_hours = avg(duration_hours)
+
 ```
 
 <a id="building-an-impact-timeline"></a>
