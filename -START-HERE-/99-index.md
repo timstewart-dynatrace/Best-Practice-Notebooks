@@ -1,7 +1,7 @@
 # Series Catalog & Cross-Reference
 
 > **Purpose:** Full inventory of all 32 Dynatrace Best Practice Topic series with cross-references between them. Use this as a quick lookup when you need to find which series covers a specific topic, or to see related material across series.
-> **Last Updated:** 07/31/2026
+> **Last Updated:** 08/26/2026
 
 ![Series by Category](images/99-series-by-category.svg)
 
@@ -30,7 +30,7 @@
 | **CLOUD** | [Cloud Provider Integrations](../CLOUD%20-%20Cloud%20Provider%20Integrations/) | 9 | AWS, Azure, GCP integrations; Lambda, EKS, multi-cloud patterns |
 | **DASH** | [Dashboard Design & Building](../DASH%20-%20Dashboard%20Design%20&%20Building/) | 8 | Dashboard hierarchy, executive/operations/engineering audiences, sharing and reporting |
 | **DBMON** | [Database Monitoring](../DBMON%20-%20Database%20Monitoring/) | 7 | SQL, NoSQL, cache, messaging, query analysis |
-| **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 20+ | Standalone single-page reference docs (host groups, tagging, OneAgent vs OTel, updates, sizing, troubleshooting, third-party SaaS telemetry) — growing |
+| **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 23+ | Standalone single-page reference docs (host groups, tagging, OneAgent vs OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail) — growing |
 | **FINOPS** | [Cost Management & FinOps](../FINOPS%20-%20Cost%20Management%20&%20FinOps/) | 3+ | DPS consumption, forecasting, anomaly detection, optimization framework — growing |
 | **IAM** | [IAM Administration](../IAM%20-%20IAM%20Administration/) | 15 | Policies, boundaries, groups, SSO, audit, parameterized assignments |
 | **K8S** | [Kubernetes Monitoring](../K8S%20-%20Kubernetes%20Monitoring/) | 15 | DynaKube, GitOps deployment, cluster + workload monitoring, troubleshooting |

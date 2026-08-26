@@ -3,7 +3,7 @@
 Guidance for AI agents consuming this repository. Humans: see [README.md](README.md).
 
 This is a **content-only** repository: 32 series of Dynatrace best-practice
-notebooks (~320 documents, ~875k words). There is no build system, no tests,
+notebooks (320 documents, ~880k words). There is no build system, no tests,
 and no application code.
 
 ## How to navigate (important — do not crawl)
@@ -33,9 +33,10 @@ Every series has the same layout. Only one format is for you:
 | `notebooks/` | Dynatrace notebook JSON for tenant import | Only when the user asks to import |
 | `pdfs/`, `markdown/images/` | Print/visual duplicates | Ignore |
 
-Subdirectory casing varies: three series (ALERT, APPSEC, SLO) use `NOTEBOOKS/`
-and `PDFs/` instead of lowercase. `markdown/` — the one directory you read — is
-lowercase in every series.
+Every series uses these exact lowercase directory names — `markdown/`,
+`notebooks/`, `pdfs/`. Series directory *names* do vary: they contain spaces, so
+quote them in shell commands, and `APPSEC — Application Security` uses an em
+dash where every other series uses a hyphen.
 
 ## Series map
 
@@ -110,8 +111,11 @@ Disambiguation for the overlapping clusters:
 
 ## Conventions and rules
 
-- **Read-only.** Never edit, "fix", or reformat content files. If you find an
-  error, report it to the user as a suggestion for the upstream author.
+- **Read-only.** Never edit, "fix", or reformat content files. This repository
+  is generated output — anything changed here is overwritten by the next build.
+  If you find an error, report it to the user as a suggestion, and note that
+  corrections belong upstream in
+  [Best-Practice-Notebooks-Generator](https://github.com/timstewart-dynatrace/Best-Practice-Notebooks-Generator).
 - Notebook filenames follow `-[PREFIX]-NN-name.md` — the literal brackets and
   leading dash require quoting in shell commands.
 - Entity queries prefer `smartscapeNodes` over legacy `fetch dt.entity.*`;
