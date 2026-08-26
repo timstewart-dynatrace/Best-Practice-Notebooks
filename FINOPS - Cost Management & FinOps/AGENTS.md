@@ -13,7 +13,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| Where consumption data lives and how to query it: `dt.system.events` `BILLING_USAGE_EVENT` vs `dt.billing.*` metrics, per-capability unit fields (`billed_gibibyte_hours`, `billed_bytes`, `data_points`, `billed_sessions`), chargeback/attribution, reconciling with Account Management | `-[FINOPS]-01-dps-capability-units-querying-consumption.md` |
+| Where consumption data lives and how to query it: `dt.system.events` `BILLING_USAGE_EVENT` vs `dt.billing.*` metrics, per-capability unit fields (`billed_gibibyte_hours`, `billed_bytes`, `data_points`, `billed_sessions`), chargeback/attribution, reconciling with Account Management, and attributing query consumption per app via `client.application_context` (reverse-DNS app ids such as `dynatrace.dashboards`; a null value means the query did not come from an app) — the way to settle "does this app consume Query DPS?" for your own estate | `-[FINOPS]-01-dps-capability-units-querying-consumption.md` |
 | Projecting spend and catching runaways: Cost Monitors and Budget Alerts, Davis Predictive AI forecasts on `dt.billing.*`, Workflow burn-rate alerts, end-of-month projection | `-[FINOPS]-02-forecasting-anomaly-detection-consumption.md` |
 | Reducing consumption: the cut / tune / filter decision tree, per-capability optimization levers and their trade-offs | `-[FINOPS]-03-optimization-decision-framework.md` |
 

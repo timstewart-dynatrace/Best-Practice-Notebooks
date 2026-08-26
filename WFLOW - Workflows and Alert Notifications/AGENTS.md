@@ -16,7 +16,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When the question is about… | Read |
 |---|---|
 | What Workflows are, execution model, permissions (`automation:workflows:*`), building/running a first workflow, execution history | `-[WFLOW]-01-fundamentals.md` |
-| When a workflow fires — Detected Problem trigger, metric-event trigger, cron schedules, on-demand, custom/business event triggers, the Davis problem payload (`event()` fields) | `-[WFLOW]-02-triggers.md` |
+| When a workflow fires — Detected Problem trigger, metric-event trigger, cron schedules, on-demand, custom/business event triggers, the Davis problem payload (`event()` fields); and how the entity fields reach that payload — `affected_entity_ids`, `root_cause_entity_id` and `impacted_entities` come from the Davis events Dynatrace grouped, so a problem built from mis-attributed events arrives with them populated but wrong; custom *Davis* events go to `/api/v2/events/ingest` with an `entitySelector`, which is a different API from custom events | `-[WFLOW]-02-triggers.md` |
 | Sending Slack, Microsoft Teams, or email notifications — connections, notification tasks, message formatting | `-[WFLOW]-03-notification-basics.md` |
 | Conditional routing — by severity, team/service ownership (Smartscape `ownership.team`), time of day, escalation, multi-channel strategy | `-[WFLOW]-04-notification-routing.md` |
 | PagerDuty and ServiceNow integration — setup, workflow tasks, bi-directional sync, incident lifecycle, production hardening (retry/backoff by failure class, dead-letter queue, link-back pattern, monitoring the integration itself) | `-[WFLOW]-05-incident-management.md` |

@@ -16,7 +16,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 |---|---|
 | The five maturity levels (Reactive → Autonomous), assessing your current level, mapping features to levels | `-[ADOPT]-01-maturity-model.md` |
 | OneAgent deployment coverage, ingestion rates, ActiveGate health, license consumption, building a health scorecard | `-[ADOPT]-02-platform-health-assessment.md` |
-| MTTD/MTTR baselines, problem-count trends, alert noise ratio, change failure rate, proving value to leadership | `-[ADOPT]-03-success-metrics.md` |
+| MTTD/MTTR baselines, problem-count trends, alert noise ratio, change failure rate, proving value to leadership, computing detection lag from a problem's `event.start` (the start of the analysed anomaly window) against its status-transition records, since each problem emits one record per transition | `-[ADOPT]-03-success-metrics.md` |
 | Role-based learning paths, the "hero problem", skill assessment, internal champions, training roadmaps | `-[ADOPT]-04-team-enablement.md` |
 | Quick wins vs strategic investments, monthly milestones, cost-optimization candidates, version support policy / EOL tiers | `-[ADOPT]-05-optimization-roadmap.md` |
 | Coverage-audit DQL (`monitoringMode`), estate segmentation, enablement Waves 1–4, value gates before each wave | `-[ADOPT]-06-maximizing-value-staged-enablement.md` |
