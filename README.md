@@ -26,7 +26,7 @@ Each topic follows the same structure:
 - README.md — Topic overview and usage guide
 - AGENTS.md — Routing table for AI agents (present in every series)
 
-A few series use uppercase NOTEBOOKS/ and PDFs/ directory names; markdown/ is lowercase everywhere.
+Every series uses these exact lowercase directory names. Series directory names contain spaces, so quote them in shell commands.
 
 ## Categories
 
