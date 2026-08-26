@@ -21,7 +21,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Browser-side errors: JavaScript exceptions, XHR/fetch errors (HTTP 4xx/5xx), `dtrum.reportError()`, error grouping, impact analysis, rage clicks | `-[WEBRUM]-05-error-analysis.md` |
 | Slow pages: page load waterfall, TTFB, DOM interactive/load event timing, performance by geography/network/device, bottleneck identification | `-[WEBRUM]-06-performance-analysis.md` |
 | Session replay for web: DOM mutation recording (not video), privacy masking, finding replay-eligible sessions, correlating replay with performance, third-party replay tools | `-[WEBRUM]-07-session-replay.md` |
-| Dashboards and alerts: executive vs operational views, Apdex calculation in DQL, error-rate and performance-degradation alerts, combined RUM + synthetic view | `-[WEBRUM]-08-dashboards-and-alerting.md` |
+| Dashboards and alerts: executive vs operational views, Apdex calculation in DQL, error-rate and performance-degradation alerts, combined RUM + synthetic view, and choosing Davis anomaly detectors over metric events (`builtin:anomaly-detection.metric-events` is blocked at upgrade, and the `builtin:apps.web.*` keys it alerts on are not DQL-queryable) | `-[WEBRUM]-08-dashboards-and-alerting.md` |
 | Migrating USQL to DQL: grammar mapping (SELECT/WHERE/GROUP BY → fetch/filter/summarize), `usersession`/`useraction`/`userevent`/`usererror` table mapping, session and user-action field tables, and the classic-RUM-on-Grail vs New RUM split that decides which field names apply | `-[WEBRUM]-09-usql-to-dql-migration.md` |
 | Consolidated checklist: injection method, bot filtering, CWV thresholds, replay/privacy settings, alerting values, DQL patterns | `-[WEBRUM]-99-best-practice-summary.md` |
 

@@ -16,7 +16,7 @@ Comprehensive guide to identity and access management in Dynatrace.
 4. [Policy Authoring](markdown/-[IAM]-04-policy-authoring.md) — Writing and managing policies
 5. [Boundary Design](markdown/-[IAM]-05-boundary-design.md) — Defining access boundaries
 6. [User Lifecycle](markdown/-[IAM]-06-user-lifecycle.md) — Managing user provisioning and deprovisioning
-7. [Audit & Compliance](markdown/-[IAM]-07-audit-compliance.md) — Auditing access and ensuring compliance
+7. [Audit & Compliance](markdown/-[IAM]-07-audit-compliance.md) — Auditing access and ensuring compliance using the `dt.system.events` audit trail (`AUDIT_EVENT`), with failed-access, off-hours, and compliance-report queries
 8. [Multi-Environment](markdown/-[IAM]-08-multi-environment.md) — IAM across multiple environments
 9. [Troubleshooting](markdown/-[IAM]-09-troubleshooting.md) — Diagnosing and resolving IAM issues
 10. [Templated Policy Assignments](markdown/-[IAM]-10-templated-policy-assignments.md) — Policy templates and bulk assignments

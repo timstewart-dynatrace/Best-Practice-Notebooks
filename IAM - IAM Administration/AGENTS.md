@@ -21,13 +21,13 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Policy statement syntax (`ALLOW service:resource:action WHERE …`), condition expressions, `environment:roles:*`, managed vs custom policies, GitOps for policies | `-[IAM]-04-policy-authoring.md` |
 | Boundaries vs policies, the three-domain model, `dt.security_context` partitioning, multi-tenant isolation | `-[IAM]-05-boundary-design.md` |
 | SCIM provisioning, JIT access, onboarding/offboarding, service accounts and OAuth clients, token management, external users | `-[IAM]-06-user-lifecycle.md` |
-| Audit log queries, authentication/authorization events, SOC2/SOX/HIPAA compliance reports, access reviews | `-[IAM]-07-audit-compliance.md` |
+| Audit-trail queries against `dt.system.events` (`event.kind == "AUDIT_EVENT"` — platform audit records are **not** in `logs`), authentication/authorization events, failed-access and off-hours review, SOC2/SOX/HIPAA compliance reports, access reviews | `-[IAM]-07-audit-compliance.md` |
 | IAM across dev/staging/prod, account vs environment level, break-glass procedures, syncing IAM config | `-[IAM]-08-multi-environment.md` |
 | Permission-denied debugging, policy conflict resolution, boundary issues, token 401s, diagnostic queries, escalation | `-[IAM]-09-troubleshooting.md` |
 | Parameterized policies with `${bindParam:…}`, binding via IAM API, Monaco policy-as-code, template patterns | `-[IAM]-10-templated-policy-assignments.md` |
 | Hands-on workshop: designing a persona-based permissions model (personas, AD alignment, schema/app audits, data boundaries) | `-[IAM]-11-[WORKSHOP]-policy-persona.md` |
 | curl/jq provisioning scripts against the Account Management API, OAuth client setup, policy/binding reports, cleanup, validation DQL | `-[IAM]-12-api-provisioning-validation.md` |
-| Hands-on lab: provisioning groups, policies, boundaries, and bindings as code with Terraform modules | `-[IAM]-95-[LAB]-terraform-iam-provisioning.md` |
+| Hands-on lab: provisioning groups, policies, boundaries, and bindings as code — complete inline module source (policy templates, groups, policies, boundaries, bindings) with schemas verified against `dynatrace-oss/dynatrace` v1.100.0, and onboarding a team by adding one tfvars entry | `-[IAM]-95-[LAB]-terraform-iam-provisioning.md` |
 | Hands-on lab: provisioning a group, parameterized policy, boundary, and binding step by step against the raw Account Management API in Python — OAuth token exchange, per-step verification, idempotent re-runs, and cleanup | `-[IAM]-96-[LAB]-python-iam-provisioning.md` |
 | Consolidated checklist: SSO, groups, policies, boundaries, lifecycle, tokens, audit, governance | `-[IAM]-99-best-practice-summary.md` |
 

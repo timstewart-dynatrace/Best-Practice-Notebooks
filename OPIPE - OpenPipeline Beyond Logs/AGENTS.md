@@ -14,7 +14,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| The six OpenPipeline scopes, default-pipeline anti-pattern, processing groups, security context, ingestion-time vs query-time processing, primary fields/tags as routing keys | `-[OPIPE]-01-multi-scope-platform.md` |
+| The six OpenPipeline scopes, default-pipeline anti-pattern, processing groups, security context, ingestion-time vs query-time processing, primary fields/tags as routing keys, and `dt.temp*` temporary fields that live only for the duration of processing and are discarded before write (SaaS 1.345, staged tenant rollout) | `-[OPIPE]-01-multi-scope-platform.md` |
 | Dropping health-check/noise spans at ingestion, span attribute enrichment, span-to-log/event generation, routing spans to buckets, span pipeline monitoring | `-[OPIPE]-02-span-processing-and-enrichment.md` |
 | Extracting accurate RED metrics from sampled traces, why naive `count()` undercounts, sampling-ratio multiplication, standard vs sampling-aware metric comparison | `-[OPIPE]-03-sampling-aware-metrics.md` |
 | Dimension explosion, detecting high-cardinality fields, reduction strategies (attribute removal, value normalization, bucketing, hashing), metric dimension guardrails | `-[OPIPE]-04-cardinality-management.md` |
