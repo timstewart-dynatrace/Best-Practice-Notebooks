@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 07/08/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -105,10 +105,7 @@ For environments where SVG doesn't render
 
 **Where this lives operationally:** the host-group setting is the right granularity for almost every real-world policy. Per-host overrides are escape hatches. If you find yourself setting per-host overrides repeatedly across the same group of hosts, that group is telling you it wants to be its own host group.
 
-> <sub>**Sources:**</sub>
-> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — three-level precedence: environment / host group / individual host.</sub>
-> - <sub>[Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group as the canonical scoping boundary for update settings, alerting overrides, and thresholds.</sub>
-> - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — `--set-host-group` and related auto-update CLI controls, persistent across reinstalls.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — three-level precedence: environment / host group / individual host., [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group as the canonical scoping boundary for update settings, alerting overrides, and thresholds., [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — `--set-host-group` and related auto-update CLI controls, persistent across reinstalls.</sub>
 
 <a id="modes"></a>
 ## 4. The Three Update Modes — Decision Framework
@@ -159,9 +156,7 @@ A useful pairing: schedule update windows during your normal maintenance cadence
 
 **Recurrence patterns** for update windows: one-time, daily (every N days), weekly (specific weekdays), monthly (specific day-of-month). Pick the pattern that matches your existing change calendar — there is no built-in advantage to weekly over monthly, just operational fit.
 
-> <sub>**Sources:**</sub>
-> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"OneAgent update windows are used to schedule automatic OneAgent updates when the Automatic updates during update windows option is selected."*</sub>
-> - <sub>[Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows) — maintenance windows suppress alerting; they do not delay or govern OneAgent updates.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"OneAgent update windows are used to schedule automatic OneAgent updates when the Automatic updates during update windows option is selected."*, [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows) — maintenance windows suppress alerting; they do not delay or govern OneAgent updates.</sub>
 
 <a id="k8s"></a>
 ## 6. Containerized OneAgent — The DynaKube Special Case
@@ -182,9 +177,7 @@ In practice this means: for Kubernetes workloads, the policy choice is not "auto
 
 For deeper coverage of DynaKube modes (`classicFullStack`, `cloudNativeFullStack`, `applicationMonitoring`, `hostMonitoring`), see the **K8S** topic series. This FAQ stays at the update-policy level.
 
-> <sub>**Sources:**</sub>
-> - <sub>[DynaKube parameters for Dynatrace Operator (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update."*</sub>
-> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Update windows currently do not apply in Kubernetes environments."*</sub>
+> <sub>**Sources:** [DynaKube parameters for Dynatrace Operator (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update."*, [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Update windows currently do not apply in Kubernetes environments."*.</sub>
 
 <a id="sequencing"></a>
 ## 7. Sequencing Relative to ActiveGate
@@ -249,10 +242,9 @@ In community practice, the right time to plan rollback is *before* enabling a br
 | **No post-update validation discipline.** | "It auto-updated, so it must be fine." | Spot-check version, deep monitoring re-injection, and topology integrity after any non-routine update. Most fleets need this only for major versions. |
 | **Treating OneAgent update like an OS patch.** | OS patch programs assume "all hosts patched on Tuesday." OneAgent updates run on Dynatrace's release cadence, not your OS calendar. | Decouple OneAgent update policy from OS patch policy. Update windows can align the two if needed, but they are not the same process. |
 
-> <sub>**Sources:**</sub>
-> - <sub>[OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — mechanics of the three update modes and the "Update now" controls.</sub>
-> - <sub>[DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — `autoUpdate` is deprecated; pin version on tenant is the supported path.</sub>
-> - <sub>The remaining items are community / engagement-derived patterns — observed enough times across fleets to be worth flagging, not formally documented as anti-patterns by Dynatrace.</sub>
+*In community practice the remaining items below are observed often enough across fleets to be worth flagging; Dynatrace does not document them as anti-patterns, so weigh them against your own fleet.*
+
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — mechanics of the three update modes and the "Update now" controls., [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — `autoUpdate` is deprecated; pin version on tenant is the supported path.</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

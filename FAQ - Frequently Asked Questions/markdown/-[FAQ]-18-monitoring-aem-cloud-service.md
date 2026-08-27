@@ -1,6 +1,6 @@
 # FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 08/25/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -28,7 +28,6 @@ This entry covers **what the integration is, how to get it turned on, exactly wh
 10. [Scope Boundaries and Open Questions](#scope-boundaries)
 11. [Recommended Approach](#recommended-approach)
 12. [Common Gotchas](#common-gotchas)
-13. [References](#references)
 
 ---
 
@@ -80,7 +79,7 @@ Because it is real full-stack OneAgent monitoring rather than an API-polling int
 
 The unusual part is purely operational: **the deployment step belongs to someone else.** Everything downstream of "the agent is running" behaves normally.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace). **Derived:** the "behaves normally downstream" conclusion — and the service and endpoint detection that follows from it, which neither vendor states for this integration — combines the Hub's full-stack OneAgent statement with standard OneAgent behavior documented elsewhere in this corpus.</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace). **Derived:** the "behaves normally downstream" conclusion combines the Hub's full-stack OneAgent statement with standard OneAgent behavior — neither vendor states it for this integration</sub>
 
 ---
 
@@ -176,7 +175,7 @@ For environments where SVG doesn't render
 
 The useful reframing: **everything to the left of the agent is Adobe's, everything to the right of the data is yours.** Your investment goes into what you do with the telemetry, not into how it gets there.
 
-> <sub>**Derived:** the boundary table combines Adobe's documented ownership of enablement and the container platform with the Dynatrace-side capabilities that remain wholly tenant-side. Neither vendor publishes this split as a single statement; it is inferred and should be confirmed against your own contract.</sub>
+> <sub>**Derived:** the boundary table combines Adobe's documented ownership with the tenant-side Dynatrace capabilities — neither vendor publishes the split, so confirm it against your own contract</sub>
 
 ---
 
@@ -265,7 +264,7 @@ Several pieces of guidance elsewhere in this corpus assume host and agent contro
 
 The pattern is consistent: **anything about getting the agent in place is Adobe's; anything about what you do with the resulting data is yours and unchanged.**
 
-> <sub>**Derived:** this table maps the documented Adobe/customer control split onto the guidance in the referenced series. It is an editorial mapping, not a vendor statement.</sub>
+> <sub>**Derived:** this table is an editorial mapping of the documented Adobe/customer control split onto the referenced series, not a vendor statement</sub>
 
 ---
 
@@ -286,7 +285,7 @@ Beyond that, several reasonable questions are **not settled by either vendor's p
 
 Being explicit about this beats a confident guess: an AEM estate has real tiers in front of the author and publish services, and a monitoring plan that silently assumes they are covered will have a gap exactly where customer-facing latency lives.
 
-> <sub>**Sources:** [Dynatrace and Adobe Experience Manager (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/) — the RUM / Session Replay / synthetic framing, [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — whose introduction promises "end-to-end tracing across every tier and Real User Monitoring" without naming a tier. The remaining rows record the *absence* of a public statement and are therefore uncited by construction.</sub>
+> <sub>**Sources:** [Dynatrace and Adobe Experience Manager (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/), [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — whose introduction promises "end-to-end tracing across every tier and Real User Monitoring" without naming a tier. The remaining rows record the *absence* of a public statement and are therefore uncited by construction.</sub>
 
 ---
 
@@ -320,14 +319,6 @@ Being explicit about this beats a confident guess: an AEM estate has real tiers 
 | **Requesting one environment at a time** | Each addition is a separate ticket with its own lead time |
 
 ---
-
-<a id="references"></a>
-## 13. References
-
-- [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/) — the listing: publisher, support route, technology, and the licensing figures in § 7
-- [Dynatrace OneAgent for AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — Adobe's enablement procedure, the required ticket payload, token handling, and the APM-displacement statement quoted in § 8
-- [Dynatrace and Adobe Experience Manager: seamless end-to-end observability (Dynatrace blog)](https://www.dynatrace.com/news/blog/dynatrace-and-adobe-experience-manager-seamless-end-to-end-observability/) — capability framing including RUM, Session Replay, and synthetic monitoring
-- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens) — token scopes and lifecycle, for the `PaaS integration - Installer download` scope in § 4
 
 ---
 

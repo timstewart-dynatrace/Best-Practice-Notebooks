@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 07/30/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -76,9 +76,9 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 | Destinations | Connector per channel | workflow connectors; legacy via alerting profiles | — |
 | Closed loop | Remediation / bi-directional sync | workflow / ServiceNow-side app | — |
 
-### Forthcoming: a noise control between detection and convergence
+### A noise control between detection and convergence
 
-**Rolling out (SaaS 1.344):** problem-event trigger delays become configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**, so verify it has reached your tenant before designing around it.
+**Available (SaaS 1.344):** problem-event trigger delays are configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344's rollout started **07/29/2026** and two later sprints have shipped since, so it has reached tenants broadly; verify in yours before designing around it.
 
 Note *where* this sits on the board, because it is easy to file in the wrong place. It is **not** an analyzer parameter. Analyzer settings such as `violatingSamples` and `slidingWindow` decide whether a metric series is anomalous at all; a trigger delay decides how long the resulting event must hold before a problem is opened. The two compose rather than substitute — and because the delay applies platform-side, it damps flapping from detectors you do not own, which no analyzer setting can do for you.
 

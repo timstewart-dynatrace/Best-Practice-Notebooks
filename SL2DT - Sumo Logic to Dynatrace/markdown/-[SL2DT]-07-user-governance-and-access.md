@@ -345,12 +345,12 @@ Bucket read/write permissions are evaluated per-query. Audit events must include
 ### Dynatrace IAM
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/access-control/access-tokens)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
 - [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
 
 ### Sumo Logic users and roles (source)
-- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/users-roles/)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

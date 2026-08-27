@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 08/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -16,6 +16,7 @@ The DynaKube operator is the recommended way to deploy Dynatrace monitoring in K
 5. [Configuration Options](#configuration-options)
 6. [Verification and Validation](#verification-and-validation)
 7. [Upgrading the Operator](#upgrading-the-operator)
+8. [Upgrading the Operator](#upgrading-the-operator)
 
 ---
 
@@ -227,16 +228,23 @@ spec:
       - dynatrace-api
 ```
 
-> **API Version Note.** `v1beta6` is the current DynaKube API version (introduced in Operator 1.8.0) and is what **new DynaKubes should use** — the production CR in K8S-14 is written against it. `v1beta5` remains accepted, so **existing manifests need no emergency rewrite**; the minimal example above is deliberately left on `v1beta5` to demonstrate that an older-version manifest still applies cleanly.
+> **API Version Note.** `v1beta6` is the current DynaKube API version (introduced in Operator 1.8.0) and is what **new DynaKubes should use** — the production CR in K8S-14 is written against it. `v1beta5` is still *served*, so the minimal example above applies cleanly, but as of Operator 1.10.0 it is itself flagged `deprecated: true` in the CRD — so treat it as the next migration, not a resting place.
 >
 > The deprecation train is what makes this load-bearing at upgrade time:
 >
-> | API version | Status |
-> |-------------|--------|
-> | `v1beta6` | Current — use for new DynaKubes |
-> | `v1beta5` | Accepted — no rewrite required |
-> | `v1beta4` | **Deprecated** as of Operator 1.10.x — migrate at your convenience, before it follows `v1beta3` |
-> | `v1beta3` | **Removed in Operator 1.9.0** — an apply against it fails outright on 1.9.0 and later |
+> Read from the shipped CRDs rather than from prose (verified 08/27/2026 against the `kubernetes.yaml`
+> released with each version):
+>
+> | API version | 1.9.0 | 1.10.0 – 1.10.2 | What it means |
+> |---|---|---|---|
+> | `v1beta6` | served, **storage** | served, **storage** | Current — use for new DynaKubes |
+> | `v1beta5` | served | served, **deprecated** | Still applies, but now on the deprecation train |
+> | `v1beta4` | served, deprecated | **NOT served** | **Breaking at 1.10.0** — `kubectl apply` fails |
+> | `v1beta3` | absent | absent | Removed in 1.9.0 |
+>
+> **`v1beta4` is not a "migrate at your convenience" case.** It was deprecated in **1.9.0** (not 1.10.x) and
+> **stopped being served in 1.10.0** — so a cluster still applying `v1beta4` manifests breaks on the 1.10.x
+> upgrade exactly as `v1beta3` broke on 1.9.0. Migrate off it *before* the upgrade, not after.
 >
 > Audit before crossing a version that removes one. Check what the cluster currently serves:
 >
@@ -566,7 +574,7 @@ kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'
 grep -r "apiVersion: dynatrace.com/" .
 ```
 
-`v1beta3` was **removed in Operator 1.9.0** — after that upgrade an apply against it fails outright. `v1beta4` is **deprecated in 1.10.x**, so treat it as the next one to migrate off. Target `v1beta6` for anything you are rewriting anyway; `v1beta5` remains accepted. Full table in §4.
+`v1beta3` was **removed in Operator 1.9.0** and `v1beta4` **stopped being served in 1.10.0** — against either, an apply fails outright once you cross that version. `v1beta4` was deprecated back in 1.9.0, so a cluster that took the deprecation as advisory is the one that breaks here. `v1beta5` is still served but is flagged deprecated from 1.10.0. Target `v1beta6` for anything you are rewriting anyway. Full table in §4.
 
 **3. Will the new injected pod spec still be admitted?**
 

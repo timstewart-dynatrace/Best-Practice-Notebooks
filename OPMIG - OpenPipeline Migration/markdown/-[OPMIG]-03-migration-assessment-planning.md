@@ -827,7 +827,7 @@ With your assessment complete, continue with:
 
 ## References
 
-- [OpenPipeline Configuration Tutorial](https://docs.dynatrace.com/docs/platform/openpipeline/getting-started/tutorial-configure-processing)
+- [OpenPipeline Configuration Tutorial](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/tutorial-configure-processing)
 - [Log Management Limits](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits)
 - [organize-data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 

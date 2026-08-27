@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -75,17 +75,42 @@ Dynatrace monitors Lambda functions through two complementary approaches:
 | **Cloud Integration** | CloudWatch metrics via ActiveGate | Invocations, duration, errors, throttles, concurrent executions |
 | **Dynatrace Lambda Layer** | OneAgent in Lambda runtime | Distributed traces, code-level visibility, custom metrics |
 
-### Key Lambda Metrics
+### Key Lambda Metrics — the key name depends on how the metrics arrive
 
-| Metric | Description | Healthy Range |
+**Check which ingestion path your environment uses before copying any key from this section.** AWS metrics
+reach Grail by two routes and they use *different key schemes*. A key from the wrong scheme returns an empty
+result, not an error, so it reads as "this function has no traffic".
+
+| Ingestion path | Key scheme | Example |
 |---|---|---|
-| `dt.cloud.aws.lambda.invocations` | Total invocations | Application-dependent |
-| `dt.cloud.aws.lambda.duration` | Execution time (ms) | < function timeout |
-| `dt.cloud.aws.lambda.errors` | Execution errors | 0 (ideally) |
-| `dt.cloud.aws.lambda.throttlers` | Throttled invocations | 0 |
-| `dt.cloud.aws.lambda.conc_executions` | Concurrent runs | < reserved concurrency |
+| **AWS integration (polling)** | lowercase, `dt.`-prefixed | `dt.cloud.aws.lambda.invocations` |
+| **CloudWatch Metric Streams** | CamelCase, no `dt.` prefix, `.By.<Dimension>` suffix | `cloud.aws.lambda.Invocations.By.FunctionName` |
+
+| Measure | Polling key | Metric Streams key | Healthy range |
+|---|---|---|---|
+| Invocations | `dt.cloud.aws.lambda.invocations` | `cloud.aws.lambda.Invocations.By.FunctionName` | Application-dependent |
+| Duration (ms) | `dt.cloud.aws.lambda.duration` | `cloud.aws.lambda.Duration.By.FunctionName` | < function timeout |
+| Errors | `dt.cloud.aws.lambda.errors` | `cloud.aws.lambda.Errors.By.FunctionName` | 0 (ideally) |
+| Throttles | `dt.cloud.aws.lambda.throttlers` | `cloud.aws.lambda.Throttles.By.FunctionName` | 0 |
+| Concurrent executions | `dt.cloud.aws.lambda.conc_executions` | `cloud.aws.lambda.ConcurrentExecutions.By.FunctionName` | < reserved concurrency |
+
+**The DQL cells in this notebook use the Metric Streams scheme**, which is what the validation tenant ingests
+(08/27/2026: 25 `cloud.aws.lambda.*` keys present, **0** `dt.cloud.aws.lambda.*`). If your environment polls
+instead, substitute the left-hand column throughout. Settle it in one query rather than guessing:
+
+```dql
+metrics
+| filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda")
+| fields metric.key
+| sort metric.key asc
+```
+
+An empty result from *both* prefixes means no Lambda metrics are arriving at all — a different problem from
+picking the wrong scheme, and worth separating before you debug either.
 
 ### List Monitored Lambda Functions
+
+> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the polling key scheme, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the streaming path that produces the CamelCase `.By.<Dimension>` keys, [AWS metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest) — the two ingestion routes. Key presence measured on the validation tenant 08/27/2026: 25 Metric Streams keys, 0 polling keys. **Derived:** the side-by-side key mapping is this entry's reconciliation of the two schemes — no page tabulates them together.</sub>
 
 ```dql
 // List all monitored Lambda functions with runtime and code size

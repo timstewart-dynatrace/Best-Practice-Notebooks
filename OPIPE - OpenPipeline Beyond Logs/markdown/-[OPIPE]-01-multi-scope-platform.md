@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/24/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -218,7 +218,7 @@ DT_TAGS="primary_tags.team=platform primary_tags.environment=production"
 | Cost allocation | Not supported | `dt.cost.costcenter`, `dt.cost.product` fields |
 | Security context | Not supported | `dt.security_context` for data governance |
 
-> **See:** [Primary Grail fields and tags enrichment through OneAgent](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)
+> **See:** [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)
 
 <a id="the-default-pipeline-anti-pattern"></a>
 ## 3. The Default Pipeline Anti-Pattern
@@ -266,10 +266,21 @@ fetch logs, from:-1h
 
 ```dql
 // Visualize: Volume distribution across buckets (are they balanced?)
+//
+// The grand total must be computed BEFORE the rows are split apart. After a grouped
+// summarize, log_count is a scalar per row — not an array — so arraySum(log_count) is
+// a type mismatch. The query still returns ok:true and rows, and every pct_of_total
+// reads null, with only a DATATYPE_MISMATCH warning to signal it. Collect the rows
+// into one array, total them there, then expand back to one row per bucket.
 fetch logs, from:-1h
 | summarize log_count = count(), by:{dt.system.bucket}
+| summarize rows = collectArray(record(bucket = dt.system.bucket, log_count = log_count)),
+            grand_total = sum(log_count)
+| expand rows
+| fieldsAdd bucket = rows[bucket], log_count = rows[log_count]
+| fieldsAdd pct_of_total = round(100.0 * log_count / grand_total, decimals: 1)
+| fields bucket, log_count, pct_of_total
 | sort log_count desc
-| fieldsAdd pct_of_total = round(toDouble(log_count) / toDouble(arraySum(log_count)) * 100, decimals: 1)
 ```
 
 ```dql
@@ -608,8 +619,8 @@ Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline
 <a id="references"></a>
 ## References
 
-- [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [OpenPipeline Processing](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
 - [OpenPipeline ingest sources (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference) — replaces the retired per-scope `openpipeline-spans` / `openpipeline-metrics` pages
 - [OpenPipeline pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups)
 - [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)

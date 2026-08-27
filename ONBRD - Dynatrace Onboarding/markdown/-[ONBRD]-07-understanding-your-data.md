@@ -461,7 +461,7 @@ In this notebook, you learned:
 
 ## References
 
-- [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail/smartscape-on-grail)
+- [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
 - [Service entity in Smartscape (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-smartscape)
 - [Grail Data Model](https://docs.dynatrace.com/docs/platform/grail)
 - [Smartscape core entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape/core)

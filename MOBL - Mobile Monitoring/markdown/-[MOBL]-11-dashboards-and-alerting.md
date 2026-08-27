@@ -331,7 +331,7 @@ Continue to **MOBL-12** to explore:
 
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 - [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
-- [Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
+- [Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 

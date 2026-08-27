@@ -323,9 +323,9 @@ In this notebook, we covered:
 
 ### References
 
-- [Google Core Web Vitals](https://web.dev/vitals/)
-- [Experience Vitals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/experience-vitals)
-- [INP Documentation](https://web.dev/inp/)
+- [Google Core Web Vitals](https://web.dev/articles/vitals)
+- [Experience Vitals (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/experience-vitals)
+- [INP Documentation](https://web.dev/articles/inp)
 
 ---
 

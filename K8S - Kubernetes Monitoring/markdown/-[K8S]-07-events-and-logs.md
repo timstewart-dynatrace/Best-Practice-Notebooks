@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -15,6 +15,7 @@ Kubernetes events and container logs provide crucial insights for debugging and 
 4. [Event Analysis Patterns](#event-analysis-patterns)
 5. [Log Analysis Patterns](#log-analysis-patterns)
 6. [Alerting on Events and Logs](#alerting-on-events-and-logs)
+7. [Alerting on Events and Logs](#alerting-on-events-and-logs)
 
 ---
 

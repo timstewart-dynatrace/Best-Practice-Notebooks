@@ -892,7 +892,7 @@ In this notebook, you learned:
 
 ## References
 
-- [Collector Deployment](https://opentelemetry.io/docs/collector/deployment/)
+- [Collector Deployment](https://opentelemetry.io/docs/collector/deploy/)
 - [Helm Chart](https://github.com/open-telemetry/opentelemetry-helm-charts)
 - [Docker Images](https://hub.docker.com/r/otel/opentelemetry-collector-contrib)
 

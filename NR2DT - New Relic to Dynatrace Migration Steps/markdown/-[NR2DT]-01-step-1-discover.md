@@ -1,6 +1,6 @@
 # NR2DT-01: Step 1 — Discover
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 04/17/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -111,7 +111,7 @@ python3 migrate.py preflight
 Clone the migration framework:
 
 ```bash
-git clone https://github.com/timstewart-dynatrace/Dynatrace-NewRelic
+git clone https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities
 cd Dynatrace-NewRelic
 pip install -r requirements.txt
 cp .env.example .env  # populate NR_* vars
@@ -288,4 +288,4 @@ If any check fails, do not proceed to Step 2. Fix the gap first.
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [Dynatrace-NewRelic](https://github.com/timstewart-dynatrace/Dynatrace-NewRelic), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [NewRelic-to-Dynatrace-Migration-Utilities](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>

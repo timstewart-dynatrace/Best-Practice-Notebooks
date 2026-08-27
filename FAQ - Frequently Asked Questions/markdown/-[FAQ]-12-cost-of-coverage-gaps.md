@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 07/08/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -76,7 +76,7 @@ Three load-bearing details behind the checkmarks:
 - **Infrastructure mode still injects — but only for limited purposes:** it *"automatically injects into processes to be able to monitor backing services written in Java and runtime metrics for supported languages."* Injection in this mode does **not** produce distributed traces or service detection.
 - **Discovery mode** provides *"basic metrics enabling you to discover your hosts and processes and learn the potential to extend your monitoring"* — inventory, not observability. It is available only on DPS (billed under Foundation & Discovery), and its purpose is deliberate: cover the long tail of the estate cheaply so you can see what deserves an upgrade.
 
-> <sub>**Sources:** [OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes) — capability matrix and all quoted phrases; [Enable OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/enable-monitoring-modes); [Host Monitoring modes overview — DPS (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/host-monitoring) — Full-Stack / Infrastructure / Foundation & Discovery billing split.</sub>
+> <sub>**Sources:** [OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes) — capability matrix and all quoted phrases; [Enable OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/enable-monitoring-modes); [Host Monitoring modes overview — DPS (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability) — Full-Stack / Infrastructure / Foundation & Discovery billing split.</sub>
 
 <a id="cascade"></a>
 ## 3. The Dependency Cascade — Why Layers Multiply
@@ -148,7 +148,7 @@ Naming-convention semantics don't survive contact with Kubernetes, autoscaling, 
 
 The scanner sees what *could* be vulnerable; RVA sees what is **loaded and reachable in running processes**, RAP blocks attacks in-flight — both ride the Full-Stack code modules. **The prerequisite trap:** an estate that stayed Infrastructure-only "for now" cannot switch AppSec on later without first re-basing coverage and restarting processes. Decide it *inside* the Full-Stack decision (§8), even if activation comes later.
 
-> <sub>**Sources:** [Process deep monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring) — quoted deep-monitoring scope; [OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes); [Application Security monitoring modes (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/getting-started/monitoring-modes). **Derived:** the habit framing per item and the silent-degradation calls are engagement-level synthesis — grounded in the documented per-capability prerequisites plus the repo's migration series (NR2DT/S2D/SL2DT) experience. Alerting-model contrast defers to ALERT-02/AIOPS-02 for mechanics.</sub>
+> <sub>**Sources:** [Process deep monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring) — quoted deep-monitoring scope; [OneAgent monitoring modes (DT docs)](https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes); [Application Security monitoring modes (DT docs)](https://docs.dynatrace.com/docs/secure/application-security). **Derived:** the habit framing and silent-degradation calls are synthesis over the documented per-capability prerequisites; mechanics defer to ALERT-02 / AIOPS-02</sub>
 
 <a id="coverage-audit"></a>
 ## 5. Auditing Your Current Coverage with DQL
@@ -222,7 +222,9 @@ Two rules keep reduced modes honest:
 | *"RUM is a privacy problem."* | Masking levels, opt-in mode, and per-app privacy settings exist for exactly this (WEBRUM/MOBL). Running blind on user impact is also a risk posture — it just never gets a compliance review. |
 | *"We'll enable the rest after we've settled in."* | Some of "later" is cheap (logs, RUM: config + snippet). Some is not: AppSec needs the code modules already in place, and baselines/experience SLOs start their history at enablement. Every month of "settled in" is a month of history and runtime security you don't get back. |
 
-> <sub>**Sources:** [Process deep monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring) — injection-at-start and per-PG rule mechanics. **Softened:** the steady-state overhead characterization is community practice — Dynatrace does not publish a universal overhead number; validate on a canary host group. **Derived:** the objection/response table is engagement-level synthesis from migration engagements (NR2DT/S2D/SL2DT patterns).</sub>
+*In community practice the steady-state overhead lands in the range described above; Dynatrace publishes no universal overhead number, so validate on a canary host group before quoting a figure.*
+
+> <sub>**Sources:** [Process deep monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/configuration/pg-monitoring) — injection-at-start and per-PG rule mechanics. **Derived:** the objection/response table is engagement-level synthesis from migration engagements (NR2DT/S2D/SL2DT patterns).</sub>
 
 <a id="recommendation"></a>
 ## 8. Recommended Approach

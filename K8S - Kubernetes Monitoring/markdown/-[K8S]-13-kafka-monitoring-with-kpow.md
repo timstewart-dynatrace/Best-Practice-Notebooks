@@ -552,11 +552,11 @@ In this notebook, you learned:
 ## References
 
 - [Kpow documentation (Factor House)](https://docs.factorhouse.io)
-- [Kpow Prometheus integration (Factor House)](https://docs.factorhouse.io/kpow-ee/features/prometheus/)
+- [Kpow Prometheus integration (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/overview)
 - [Kpow metrics glossary (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary)
 - [Kpow Helm charts (Factor House)](https://charts.factorhouse.io)
 - [Monitor Prometheus metrics on K8s (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring/kubernetes-monitoring/monitor-prometheus-metrics)
-- [Apache Kafka technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/dynatrace-extensions/supported-out-of-the-box/kafka)
+- [Apache Kafka technology support (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/confluent-cloud-kafka)
 - [Apache Kafka extension (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/apache-kafka/)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 

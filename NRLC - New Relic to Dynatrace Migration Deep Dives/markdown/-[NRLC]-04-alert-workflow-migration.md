@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 08/11/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -211,7 +211,7 @@ This lands at exactly one point in the pipeline above: the `by:{}` clause the co
 
 **Audit migrated detectors before the dual-alert window (§7) closes.** An unattributed detector passes NR-parity testing cleanly — the alerts do fire, on time, at the right threshold — and the damage only shows up afterwards, by which point the parallel run is over and the NR side is gone. Watch for the right symptom: **not a problem-count spike, but problems whose blast radius makes no sense** — a single problem naming unrelated services with no usable root cause, because every mis-attributed alert landed on the same environment entity. Measured on a validation tenant over 7 days on 07/31/2026, **36,763 of 251,792 Davis events (14.6%) carried no correlation key**. Re-measured on the same tenant over 7 days on 08/11/2026, the events that had fallen back to the environment entity ran at **583 firings per correlation across a single entity** — 28,004 firings collapsed into 48 correlations — against **1.1 firings per correlation** for the 192,199 events that named a real entity, and one migrated detector fired 8,005 times into a **single** correlation. AIOPS-02 §8 carries the query that finds them.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the three-row attribution table maps the documented same-entity grouping rule plus that environment fallback onto the `FACET` → `by:{}` compilation step this section already describes.</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the three-row attribution table maps the documented same-entity grouping rule plus that environment fallback onto the `FACET` → `by:{}` compilation step this section already describes.</sub>
 
 <a id="apm-conditions"></a>
 ## 5. APM / Non-NRQL Condition → Dynatrace Intelligence Adaptive Baseline
@@ -338,4 +338,4 @@ python3 migrate.py migrate --diff --components alerts,notifications
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [Dynatrace-NewRelic](https://github.com/timstewart-dynatrace/Dynatrace-NewRelic), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine) (planned future home: the [`dynatrace-dma`](https://github.com/dynatrace-dma) Dynatrace Migration Assistant organization), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [NewRelic-to-Dynatrace-Migration-Utilities](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine) (planned future home: the [`dynatrace-dma`](https://github.com/dynatrace-dma) Dynatrace Migration Assistant organization), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>

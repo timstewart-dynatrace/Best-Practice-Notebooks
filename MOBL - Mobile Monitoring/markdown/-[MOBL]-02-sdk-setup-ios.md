@@ -388,10 +388,10 @@ Continue to **MOBL-03** to learn about custom user actions, manual instrumentati
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
-- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls)
-- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/customization/configuration-settings)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
+- [SwiftUI Instrumentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/instrument-swiftui-controls)
+- [Mobile App Configuration Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/configuration-settings)
 
 ---
 

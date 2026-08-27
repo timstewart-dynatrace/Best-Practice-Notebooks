@@ -806,7 +806,7 @@ Bitbucket Cloud (bitbucket.org) ships **Bitbucket Pipelines** as the integrated 
 > The Terraform-provider landscape for Bitbucket Cloud is in active transition:
 >
 > - **`DrFaust92/bitbucket`** — the long-standing community provider — entered **maintenance mode** in March 2026. The maintainer is no longer using Bitbucket and has limited bandwidth for substantive changes.
-> - **Bitbucket App Passwords are being retired by Atlassian** in favor of API tokens (see [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/) and [API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/)). Check the current Atlassian deprecation notice for the exact cutover date — once it lands, `DrFaust92` users need to swap their `BITBUCKET_PASSWORD` from an App Password to an API token (workaround community-validated: use the Atlassian-account email as `BITBUCKET_USERNAME` + an API token as `BITBUCKET_PASSWORD`, with `-parallelism=2` to avoid throttling).
+> - **Bitbucket App Passwords are being retired by Atlassian** in favor of API tokens (see [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/)). Check the current Atlassian deprecation notice for the exact cutover date — once it lands, `DrFaust92` users need to swap their `BITBUCKET_PASSWORD` from an App Password to an API token (workaround community-validated: use the Atlassian-account email as `BITBUCKET_USERNAME` + an API token as `BITBUCKET_PASSWORD`, with `-parallelism=2` to avoid throttling).
 > - **`FabianSchurig/bitbucket`** — a newer, actively-maintained provider — is the going-forward recommendation. It uses a "generic resources" architecture (resources expose Bitbucket Cloud API endpoints directly via typed core fields plus `request_body` for full API flexibility) and a simplified API-token-only auth. As of May 2026 it is at v0.15.x — **pre-1.0, with schema flux possible** — so the examples below should be verified against the [provider docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) at use time.
 >
 > The examples in this section use **`FabianSchurig/bitbucket`**. For teams with existing `DrFaust92` code, the [migration guide](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) covers resource-name mapping, auth changes, and path-parameter renames (`owner` → `workspace`, `repository` → `repo_slug`).
@@ -1146,7 +1146,7 @@ If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC �
 > - <sub>[Migration guide DrFaust92 → FabianSchurig](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) — resource-name mapping, auth changes, path-parameter renames.</sub>
 > - <sub>[DrFaust92/terraform-provider-bitbucket](https://github.com/DrFaust92/terraform-provider-bitbucket) — long-standing provider, now in maintenance mode (issue #242, March 2026).</sub>
 > - <sub>[Get started with Bitbucket Pipelines (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) — Pipelines overview.</sub>
-> - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/) — auth-token landscape; App Passwords are being retired in favor of API tokens.</sub>
+> - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) — auth-token landscape; App Passwords are being retired in favor of API tokens.</sub>
 > - <sub>[Integrate Pipelines with resource servers using OIDC (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/) — Bitbucket OIDC for AWS/GCP/Vault.</sub>
 
 ---
@@ -1538,7 +1538,7 @@ Key elements:
 <a id="azuredevops-environments"></a>
 ### Environments and Approval Gates (configured in UI, not YAML)
 
-Per the [Azure DevOps approvals docs](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals): *"Approvals and other checks aren't defined in the yaml file. Users modifying the pipeline yaml file can't modify the checks performed before start of a stage. Administrators of resources manage checks using the web interface of Azure Pipelines."*
+Per the [Azure DevOps approvals docs](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops): *"Approvals and other checks aren't defined in the yaml file. Users modifying the pipeline yaml file can't modify the checks performed before start of a stage. Administrators of resources manage checks using the web interface of Azure Pipelines."*
 
 The implication: production safety is enforced **outside** the repo. Even a developer with write access to the YAML cannot remove the gate — only the Environment's administrator can.
 
@@ -1589,9 +1589,9 @@ The `pr:` trigger at the top of the YAML causes Azure DevOps to run the pipeline
 The "Plan twice" property (once on PR, once on merge) is intentional — the merge commit can resolve conflicts and produce a different plan than the PR did. Treating the post-merge plan as the source of truth (and what the approver sees) closes the gap.
 
 > <sub>**Sources:**</sub>
-> - <sub>[YAML schema reference (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema/) — top-level structure (`trigger`, `pr`, `stages`, `jobs`, `jobs.deployment`, `variables`, `pool`, `resources`).</sub>
-> - <sub>[Pipeline deployment approvals (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals) — *"Approvals and other checks aren't defined in the yaml file."* Five check categories (Static → Pre-check approvals → Dynamic → Post-check approvals → Exclusive lock). Manual Approval, Branch control, Business hours, Required template, Invoke REST API/Azure Function, Query Azure Monitor, Evaluate artifact.</sub>
-> - <sub>[Variable groups (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups) — Library variable groups, Key Vault linkage, per-group security/permissions.</sub>
+> - <sub>[YAML schema reference (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema/?view=azure-pipelines) — top-level structure (`trigger`, `pr`, `stages`, `jobs`, `jobs.deployment`, `variables`, `pool`, `resources`).</sub>
+> - <sub>[Pipeline deployment approvals (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops) — *"Approvals and other checks aren't defined in the yaml file."* Five check categories (Static → Pre-check approvals → Dynamic → Post-check approvals → Exclusive lock). Manual Approval, Branch control, Business hours, Required template, Invoke REST API/Azure Function, Query Azure Monitor, Evaluate artifact.</sub>
+> - <sub>[Variable groups (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups?view=azure-devops) — Library variable groups, Key Vault linkage, per-group security/permissions.</sub>
 > - <sub>**Community context:** [Looking for Best Practices on using Terraform for Dynatrace automated through Azure DevOps (Dynatrace Guild)](https://community.dynatrace.com/t5/Dynatrace-Guild/Looking-for-Best-Practices-on-using-Terraform-for-Dynatrace/td-p/299276) — May 2026 community thread where a guild member asks exactly this question; this section's structure mirrors the practitioner reply that emerged on the thread (two-layer repo model + state-key-derivation + plan-artifact reuse + manual-approval gates).</sub>
 
 ---
@@ -2476,7 +2476,7 @@ Two caveats worth knowing before you build on this. Entity selectors only match 
 
 **For application release identity, prefer the environment-variable path over an API call.** Setting `DT_RELEASE_VERSION`, `DT_RELEASE_PRODUCT`, `DT_RELEASE_STAGE`, and `DT_RELEASE_BUILD_VERSION` on the deployed process lets OneAgent attach release identity at source, so every signal from that process carries it without a pipeline step that can fail silently. FAQ-02 §3 covers these under the four-source hierarchy.
 
-> <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` optional, environment fallback, and the 24-hour-active constraint with its `entityId` exception. **Derived:** "an environment-scoped event cannot appear in an entity-scoped view" follows from the association rule plus entity-scoped filtering; it is not stated as such in the API reference.</sub>
+> <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` optional, environment fallback, and the 24-hour-active constraint with its `entityId` exception. **Derived:** "an environment-scoped event cannot appear in an entity-scoped view" follows from the association rule plus entity-scoped filtering; it is not stated as such in the API reference.</sub>
 
 ### Continue the Series
 
@@ -2487,16 +2487,16 @@ Two caveats worth knowing before you build on this. Entity selectors only match 
 ### Additional Resources
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [GitLab CI/CD Documentation](https://docs.gitlab.com/ee/ci/)
-- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
-- [FluxCD Documentation](https://fluxcd.io/docs/)
+- [GitLab CI/CD Documentation](https://docs.gitlab.com/ci/)
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/en/stable/)
+- [FluxCD Documentation](https://fluxcd.io/flux/)
 - [Dynatrace Operator](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Monaco GitHub Repository](https://github.com/dynatrace/dynatrace-configuration-as-code)
 - [External Secrets Operator](https://external-secrets.io/)
 - [OPA/Conftest](https://www.conftest.dev/)
 - [Sentinel Documentation](https://developer.hashicorp.com/sentinel)
 - [HashiCorp Vault Action](https://github.com/hashicorp/vault-action)
-- [Dynatrace OAuth Client Guide](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/guides/create-oauth-client)
+- [Dynatrace OAuth Client Guide](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-api-support-access-permission-handling)
 
 ---
 

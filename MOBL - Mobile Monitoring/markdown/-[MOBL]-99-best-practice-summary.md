@@ -257,11 +257,11 @@ Mandatory patterns and filters for querying mobile data in Grail.
 
 ## References
 
-- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
-- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app)
+- [Dynatrace Mobile Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
+- [iOS SDK Integration Guide](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/instrumentation/get-started-with-ios-monitoring)
+- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app)
 - [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
 
 ---
 

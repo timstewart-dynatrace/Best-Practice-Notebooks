@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -124,10 +124,22 @@ If anything looks wrong, report it in #dynatrace-migration-support immediately.
 Before sending the post-migration announcement, confirm that users can actually log in and see data:
 
 ```dql
-// Verify IAM groups are configured — users need group membership to access SaaS
-fetch dt.entity.user_session_synthetic, from:-24h
+// Verify real user traffic is arriving on the SaaS tenant after cutover.
+//
+// Corrected 08/27/2026. This cell previously queried `dt.entity.user_session_synthetic`,
+// which DOES NOT EXIST — it raises ENTITY_DATA_OBJECT_UNDEFINED, returns ok:true with
+// zero rows, and so always printed "No user sessions — verify IAM configuration" on
+// every environment. Controls at the time: synthetic_test 117, multiprotocol_monitor 4,
+// user.sessions 3,262 — so the zero was the identifier, not an empty tenant.
+//
+// It also conflated two questions. User sessions are RUM data; they cannot tell you
+// whether IAM groups are configured. Group membership is an Account Management concern
+// — see IAM-04 and IAM-05 for that check.
+fetch user.sessions, from:-24h
 | summarize sessionCount = count()
-| fieldsAdd status = if(sessionCount > 0, then: "User sessions detected", else: "No user sessions — verify IAM configuration")
+| fieldsAdd status = if(sessionCount > 0,
+                        then: "Real user sessions arriving on SaaS",
+                        else: "No user sessions — check RUM enablement and OneAgent/RUM JS injection")
 
 ```
 
@@ -473,11 +485,11 @@ Do not proceed to Step 8 (Expand) until all items are confirmed.
 
 ### Additional Resources
 
-- [Dynatrace University](https://university.dynatrace.com/) — Self-paced learning and certifications
+- [Dynatrace University](https://university.dynatrace.com/learn) — Self-paced learning and certifications
 - [Dynatrace Community](https://community.dynatrace.com/) — Peer support and shared best practices
 - [DQL Documentation](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language) — Full DQL reference
-- [Notebooks Documentation](https://docs.dynatrace.com/docs/observe-and-explore/dashboards-and-notebooks/notebooks) — Interactive data exploration
-- [Workflows Documentation](https://docs.dynatrace.com/docs/platform-modules/automations) — AutomationEngine for alerting and remediation
+- [Notebooks Documentation](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks) — Interactive data exploration
+- [Workflows Documentation](https://docs.dynatrace.com/docs/deliver) — AutomationEngine for alerting and remediation
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management) — User and access management in SaaS
 
 ---

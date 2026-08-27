@@ -338,8 +338,8 @@ Continue to **MOBL-08** to explore crash analysis and error tracking for mobile 
 
 ## References
 
-- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-hybrid-app)
+- [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
+- [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-hybrid-app)
 - [Distributed tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing)
 - [DQL Business Events Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 

@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -55,6 +55,8 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 17 | Combine cloud integration with OneAgent on compute | Cloud integration = cloud context (tags, AZ, instance type); OneAgent = deep observability (traces, code-level). Use both | Critical | CLOUD-01 |
 | 18 | Review CloudWatch billing dashboard monthly | Correlate API cost spikes with Dynatrace service additions | Recommended | CLOUD-02 |
 
+> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
+
 <a id="azure-integration"></a>
 
 ## 3. Azure Integration
@@ -65,6 +67,8 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 20 | Propagate Azure tags to Dynatrace | Tags must flow through automatically; verify `environment`, `team`, `cost-center` appear in Dynatrace | Recommended | CLOUD-05 |
 | 21 | Use naming convention for resource groups | Pattern: `rg-<application>-<environment>-<region>` (e.g., `rg-myapp-prod-eastus`) | Recommended | CLOUD-05 |
 | 22 | Forward Azure logs via Event Hub or Diagnostic Settings | Use Azure Diagnostic Settings to stream to Dynatrace; Event Hub for high-volume | Recommended | CLOUD-07 |
+
+> <sub>**Sources:** [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
 <a id="gcp-integration"></a>
 
@@ -78,6 +82,8 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 26 | Create Dynatrace Segments per GCP project | One Segment per project for access control, cost attribution, and scoped dashboards | Recommended | CLOUD-06 |
 | 27 | Monitor Pub/Sub message volume for cost control | Filter logs at Cloud Logging export to reduce Pub/Sub throughput and costs | Recommended | CLOUD-06 |
 | 28 | Use Cloud Monitoring metrics scope for multi-project | Aggregate metrics from multiple projects into a single metrics scope rather than separate integrations | Optional | CLOUD-06 |
+
+> <sub>**Sources:** [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
 <a id="kubernetes"></a>
 
@@ -118,7 +124,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 |---|---|---|---|---|
 | 46 | Use Amazon Data Firehose for CloudWatch log forwarding | Fully managed, auto-scaling, no custom code. Buffer: 1 MB or 60 seconds. Enable GZIP compression | Critical | CLOUD-07 |
 | 47 | Migrate the legacy **CloudWatch-subscription** Lambda forwarder to Firehose | `dynatrace-aws-log-forwarder` — the CloudWatch Subscription Filter → Lambda → Dynatrace API path — is **deprecated**; do not use it for new *CloudWatch* log forwarding. **Scope of this row:** it retires one named component for one source. It is **not** a prohibition on Lambda-based log forwarding in general — see 47b | Critical | CLOUD-07 |
-| 47b | For logs already in **S3**, use the S3 direct-ingestion forwarder — a *different* component for a *different* source, and supported | Forthcoming / rolling out (**SaaS 1.344**, published 07/27/2026, **staged tenant rollout** from 07/29/2026 — verify it has reached your tenant): a **Dynatrace-maintained** Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a **single CloudFormation stack**, with records **linked to their Smartscape entity** when the producing account has an active AWS connection. Until it arrives, the customer-deployed S3 serverless pattern described in CLOUD-07 §3 remains the working path | Recommended | CLOUD-07 |
+| 47b | For logs already in **S3**, use the S3 direct-ingestion forwarder — a *different* component for a *different* source, and supported | Forthcoming / rolling out (**SaaS 1.344**, **staged tenant rollout** from 07/29/2026 — verify it has reached your tenant): a **Dynatrace-maintained** Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a **single CloudFormation stack**, with records **linked to their Smartscape entity** when the producing account has an active AWS connection. Until it arrives, the customer-deployed S3 serverless pattern described in CLOUD-07 §3 remains the working path | Recommended | CLOUD-07 |
 | 48 | Use Lambda Layer log collection for Lambda functions | When Lambda Layer is deployed for tracing, use its built-in log collection instead of Firehose for Lambda logs | Recommended | CLOUD-07 |
 | 49 | Apply subscription filter patterns at CloudWatch level | Filter pattern examples: `?"ERROR" ?"WARN" ?"CRITICAL"` for Lambda; `""` (all) for application services | Critical | CLOUD-07 |
 | 50 | Drop debug/trace logs at source | Pre-filter: exclude DEBUG and TRACE in CloudWatch subscription filters. Estimated savings: 40–60% | Critical | CLOUD-07 |

@@ -228,7 +228,7 @@ Two trust relationships need to exist before the workflow can run:
 1. **GitHub -> AWS** — so that the workflow can assume an AWS IAM role to access S3 (state) without a static AWS access key.
 2. **AWS -> Vault** — so that the workflow, having assumed an AWS role, can authenticate to Vault and pull the Dynatrace Platform Token.
 
-Equivalently you can do **GitHub -> Vault directly** via Vault's `jwt` auth method bound to GitHub's OIDC issuer, skipping the AWS hop entirely. Both shapes are recommended in the [GitHub OIDC docs (GitHub docs)](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect). This LAB uses the AWS hop because it (a) is the most common shape in enterprises and (b) gets you AWS access for the state backend in the same step.
+Equivalently you can do **GitHub -> Vault directly** via Vault's `jwt` auth method bound to GitHub's OIDC issuer, skipping the AWS hop entirely. Both shapes are recommended in the [GitHub OIDC docs (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect). This LAB uses the AWS hop because it (a) is the most common shape in enterprises and (b) gets you AWS access for the state backend in the same step.
 
 ### 5.1 — Create the GitHub OIDC identity provider in AWS
 
@@ -242,7 +242,7 @@ aws iam create-open-id-connect-provider \
   --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 ```
 
-> **Thumbprint note.** AWS no longer strictly verifies the thumbprint when the provider URL host is `token.actions.githubusercontent.com`, but the API still requires the field. The value above is the one GitHub's docs reference; check the [Configuring OpenID Connect in AWS (GitHub docs)](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) page for the current guidance.
+> **Thumbprint note.** AWS no longer strictly verifies the thumbprint when the provider URL host is `token.actions.githubusercontent.com`, but the API still requires the field. The value above is the one GitHub's docs reference; check the [Configuring OpenID Connect in AWS (GitHub docs)](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws) page for the current guidance.
 
 ### 5.2 — Create the AWS IAM role the workflow assumes
 
@@ -670,10 +670,10 @@ Tick off each item to confirm a working LAB:
 
 ### GitHub Actions
 
-- [About security hardening with OpenID Connect (GitHub docs)](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
-- [Configuring OpenID Connect in Amazon Web Services (GitHub docs)](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
-- [Using secrets in GitHub Actions (GitHub docs)](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
-- [Using environments for deployment (GitHub docs)](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)
+- [About security hardening with OpenID Connect (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect)
+- [Configuring OpenID Connect in Amazon Web Services (GitHub docs)](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)
+- [Using secrets in GitHub Actions (GitHub docs)](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)
+- [Using environments for deployment (GitHub docs)](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)
 
 ### Actions used in the workflow
 
@@ -685,7 +685,7 @@ Tick off each item to confirm a working LAB:
 ### Terraform / Vault
 
 - [S3 backend (Terraform docs)](https://developer.hashicorp.com/terraform/language/backend/s3) — current S3-lockfile locking model
-- [Sensitive data in state (Terraform docs)](https://developer.hashicorp.com/terraform/language/state/sensitive-data)
+- [Sensitive data in state (Terraform docs)](https://developer.hashicorp.com/terraform/language/manage-sensitive-data)
 - [JWT auth method (Vault docs)](https://developer.hashicorp.com/vault/docs/auth/jwt)
 
 ---

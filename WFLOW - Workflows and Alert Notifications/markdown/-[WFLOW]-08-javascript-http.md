@@ -1044,7 +1044,7 @@ In this notebook, you learned:
 - [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job)
 - [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data)
 - [Dynatrace SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/)
-- [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop)
+- [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop/)
 
 ---
 

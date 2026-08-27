@@ -417,7 +417,7 @@ In this notebook, you learned:
 - [Manage user permissions / boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
 - [Kubernetes Namespaces (kubernetes.io)](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
 - [Resource Quotas (kubernetes.io)](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
-- [smartscapeNodes command (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
+- [smartscapeNodes command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 
 ---
 

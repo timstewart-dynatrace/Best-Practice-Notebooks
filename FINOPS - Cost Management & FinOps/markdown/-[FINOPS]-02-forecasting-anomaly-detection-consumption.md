@@ -51,11 +51,11 @@ Knowing *current* consumption (covered in FINOPS-01) is operational. Knowing *pr
 | Forecast per-bucket / per-team consumption | DIY — `timeseries dt.billing.*` + Davis `timeseries-forecast` analyzer. |
 | Alert when per-bucket burn exceeds threshold | DIY — Workflow with scheduled DQL trigger + Davis anomaly analyzer or static threshold. |
 | 7-day / 30-day trend visualization | DIY — `timeseries dt.billing.<capability>.usage` for host-based; `fetch dt.system.events \| makeTimeseries` for byte/count-based. |
-| Day-over-day or week-over-week comparison | DIY — DQL with two parallel time ranges; pattern in [`dt-dql-essentials`](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language) skill. |
+| Day-over-day or week-over-week comparison | DIY — DQL with two parallel time ranges; pattern in [`dt-dql-essentials`](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language) skill. |
 
 **The headline:** native surfaces (Cost Monitors, Budget Alerts) cover commitment-level visibility automatically. DIY surfaces (DQL + Davis analyzers + Workflows) cover the operational cut native doesn't yet do — per-bucket, per-team, per-capability projections that pre-empt the monthly Cost Overview surprise.
 
-> <sub>**Sources:** [Account Management portal (DT docs)](https://docs.dynatrace.com/docs/shortlink/account-management), [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription), [DQL reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language). **Derived:** the native-vs-DIY decision framing is engagement-level guidance — the underlying surfaces are documented separately; the consolidated routing table is the synthesis.</sub>
+> <sub>**Sources:** [Account Management portal (DT docs)](https://docs.dynatrace.com/docs/shortlink/account-management), [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription), [DQL reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). **Derived:** the native-vs-DIY decision framing is engagement-level guidance — the underlying surfaces are documented separately; the consolidated routing table is the synthesis.</sub>
 
 <a id="three-layers"></a>
 ## 2. Three Layers of Cost Visibility
@@ -180,7 +180,7 @@ fetch dt.system.events, from:-14d, to:-7d
 
 Buckets with high positive `delta_pct` are growing fast and merit a closer look. The pattern generalizes to month-over-month (`from:-60d, to:-30d` and `from:-30d`), day-over-day (1d), or any other comparison window.
 
-> <sub>**Sources:** [DQL `makeTimeseries` (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language). The week-over-week `lookup` pattern is canonical in [`dynatrace-dql-examples`](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language) (parameter-level optimization recipes). Both queries are syntactically valid; execution-dependent on having ≥14 days of tenant history.</sub>
+> <sub>**Sources:** [DQL `makeTimeseries` (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). The week-over-week `lookup` pattern is canonical in [`dynatrace-dql-examples`](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language) (parameter-level optimization recipes). Both queries are syntactically valid; execution-dependent on having ≥14 days of tenant history.</sub>
 
 <a id="davis-forecast"></a>
 ## 6. DIY — Davis Predictive AI on `dt.billing.*`
@@ -220,7 +220,7 @@ For "is *this* hour unusual given the seasonal pattern," use the `seasonal-basel
 
 Forecasting assumes stationary or seasonally-stationary input. Consumption time series are *not* stationary during onboarding phases — a new tenant ramps up over weeks, adoption changes the baseline, new buckets get created. Treat the first 2-4 weeks of any new tenant or major rollout as too-noisy-to-forecast; let the baseline stabilize before relying on forecast outputs.
 
-> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai), [Workflows actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the application of Davis Predictive AI to `dt.billing.*` specifically is community practice — Davis analyzers are documented as general-purpose; their applicability to billing series is the synthesis. **Softened:** the "2-4 week stabilization" guidance is engagement-level observation, not a Dynatrace-published threshold.</sub>
+> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Workflows actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the application of Davis Predictive AI to `dt.billing.*` specifically is community practice — Davis analyzers are documented as general-purpose; their applicability to billing series is the synthesis. **Softened:** the "2-4 week stabilization" guidance is engagement-level observation, not a Dynatrace-published threshold.</sub>
 
 <a id="workflow-alerts"></a>
 ## 7. DIY — Workflow Burn-Rate Alerts
@@ -246,7 +246,7 @@ Forecasting assumes stationary or seasonally-stationary input. Consumption time 
 
 Native Cost Monitors and Budget Alerts cover the *strategic* layer. Workflow alerts cover the *tactical* layer — finer cuts, faster cadence, your-team's-own-action-handoff. The two should not duplicate; if a Cost Monitor already catches "Logs ingest is way up," don't build a workflow that re-detects the same condition. Build the workflow at the cut native is silent on (per-bucket, per-team, per-cost-center).
 
-> <sub>**Sources:** [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Davis analyzers (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai). **Derived:** the workflow-recipe patterns are engagement-level guidance; the underlying Workflow surface and Davis analyzers are documented separately.</sub>
+> <sub>**Sources:** [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Davis analyzers (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence). **Derived:** the workflow-recipe patterns are engagement-level guidance; the underlying Workflow surface and Davis analyzers are documented separately.</sub>
 
 <a id="wx-projection"></a>
 ## 8. Worked Example — End-of-Month Projection
@@ -288,7 +288,7 @@ Run the 28-day input through the `timeseries-forecast` analyzer for a 12-day hor
 
 If both projections agree the budget will be exceeded: act now. The Cut / Tune / Filter framework in FINOPS-03 covers what to do. If they disagree: investigate the forecast confidence bands — wide bands suggest the recent history is too noisy to forecast reliably (re-baseline after 1-2 more weeks; until then, manage tactically week-over-week).
 
-> <sub>**Sources:** [Davis AI forecast (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai). The naive linear projection and the forecast-vs-naive decision pattern are engagement-level synthesis (**Derived**).</sub>
+> <sub>**Sources:** [Davis AI forecast (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence). The naive linear projection and the forecast-vs-naive decision pattern are engagement-level synthesis (**Derived**).</sub>
 
 <a id="wx-anomaly"></a>
 ## 9. Worked Example — Capability-Level Anomaly Alert
@@ -335,7 +335,7 @@ Start with the analyzer default. After the first 2-4 alerts, judge whether each 
 
 Capability-level anomaly tells you something is up; FINOPS-01 §10 (per-cost-center attribution) tells you *which* bucket or team is driving it. The two-step diagnosis is the typical pattern: anomaly fires → operator runs the attribution query → conversation with the team behind the spike.
 
-> <sub>**Sources:** [Davis AI (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the two-step capability-then-bucket diagnosis pattern is engagement practice — both surfaces are documented; the consolidated diagnostic flow is the synthesis.</sub>
+> <sub>**Sources:** [Davis AI (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the two-step capability-then-bucket diagnosis pattern is engagement practice — both surfaces are documented; the consolidated diagnostic flow is the synthesis.</sub>
 
 <a id="native-vs-diy"></a>
 ## 10. When to Use Native vs DIY

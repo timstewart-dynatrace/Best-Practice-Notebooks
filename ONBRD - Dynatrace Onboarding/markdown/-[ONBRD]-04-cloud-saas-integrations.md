@@ -266,7 +266,7 @@ For SaaS platforms without a pre-built extension, you can build a custom extensi
 3. Write the polling logic
 4. Package and upload to Dynatrace
 
-**SDK Documentation:** [Extensions Development](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
+**SDK Documentation:** [Extensions Development](https://docs.dynatrace.com/docs/ingest-from/extensions)
 
 <a id="dynatrace-hub"></a>
 ## 6. Dynatrace Hub
@@ -460,12 +460,12 @@ In this notebook, you learned:
 
 ## References
 
-- [Cloud Platforms](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring)
-- [Clouds App](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring)
-- [AWS Monitoring](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring/aws-monitoring)
-- [Azure Monitoring](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring/azure-monitoring)
-- [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-cloud-platforms/google-cloud-platform)
-- [Extensions Framework](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
+- [Cloud Platforms](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
+- [Clouds App](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
+- [AWS Monitoring](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/aws-monitoring)
+- [Azure Monitoring](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/azure-monitoring)
+- [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)
+- [Extensions Framework](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)
 
 ---

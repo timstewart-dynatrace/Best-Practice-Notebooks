@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -76,7 +76,7 @@ The **Clouds app** provides a streamlined, fully managed experience for connecti
 **Supported Providers:**
 | Provider | Status | Onboarding Method |
 |---|---|---|
-| **AWS** | Generally Available | CloudFormation template via Clouds app |
+| **AWS** | Available | CloudFormation template via Clouds app |
 | **Azure** | Available | Azure Native Dynatrace Service or Entra ID app |
 | **GCP** | Available | Helm deployment on GKE with Pub/Sub |
 
@@ -105,6 +105,8 @@ For Managed deployments or environments with specific network constraints, the c
 | Serverless workloads (Lambda, Functions) | Clouds app + Lambda Layer for tracing |
 | Strict network isolation | Classic ActiveGate (outbound-only) |
 | Large-scale environments (1000+ resources) | Clouds app + selective streaming for critical metrics |
+
+> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — CloudFormation onboarding and the connection model, [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration) — the Azure onboarding path, [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the Helm/Pub-Sub deployment. **Derived:** the Clouds-app-vs-classic advantages list is this entry's comparison; no page frames them as a trade-off table. *(The AWS row previously read "Generally Available" — no source applies that lifecycle term, so it now reads "Available", matching CLOUD-05 § 4 and DBMON-01 § 7.)*</sub>
 
 <a id="cloud-entity-model"></a>
 
@@ -135,11 +137,34 @@ Dynatrace maps cloud resources to its entity model. Each cloud resource becomes 
 
 ### GCP Entity Types
 
+GCP is the one provider whose classic entity types do **not** follow the `dt.entity.<service>` shape the AWS
+and Azure tables above use. Managed GCP services are modelled under a colon-delimited namespace —
+`dt.entity.cloud:gcp:<service>` — which is not guessable from the AWS/Azure pattern:
+
 | Entity Type | Description |
 |---|---|
 | `dt.entity.cloud_application` | GKE workloads, Cloud Run services |
 | `dt.entity.cloud_application_instance` | Individual pods/instances |
-| `dt.entity.google_cloud_platform_service` | GCP managed services |
+| `dt.entity.cloud:gcp:gce_instance` | Compute Engine VMs |
+| `dt.entity.cloud:gcp:cloud_function` | Cloud Functions |
+| `dt.entity.cloud:gcp:cloud_run_revision` | Cloud Run revisions |
+| `dt.entity.cloud:gcp:cloudsql_database` | Cloud SQL databases |
+| `dt.entity.cloud:gcp:gcs_bucket` | Cloud Storage buckets |
+| `dt.entity.cloud:gcp:pubsub_topic` / `…:pubsub_subscription` | Pub/Sub |
+| `dt.entity.cloud:gcp:k8s_cluster` / `…:k8s_pod` / `…:k8s_node` | GKE topology |
+| `dt.entity.gcp_zone`, `dt.entity.google_compute_engine` | Zone and GCE roll-ups |
+
+> ⚠️ **`dt.entity.google_cloud_platform_service` does not exist**, and a query against it does not error —
+> it returns zero rows behind a *"The entity type … wasn't found"* warning, which reads as an empty
+> environment. Corrected 08/27/2026. This is a partial list: **56** GCP entity models exist. Enumerate the
+> real set rather than guessing a name:
+>
+> ```dql
+> fetch dt.semantic_dictionary.models
+> | filter startsWith(name, "dt.entity.") and contains(name, "gcp")
+> | fields name
+> | sort name asc
+> ```
 
 <a id="cloud-vs-host-metrics"></a>
 
@@ -162,6 +187,8 @@ For compute resources (EC2, Azure VMs, GCE), use **both** cloud integration and 
 - Cloud integration provides the **cloud context** (instance type, availability zone, tags)
 - OneAgent provides **deep observability** (processes, traces, code-level diagnostics)
 - Dynatrace automatically correlates both data sources via the entity model
+
+> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` naming transformation, which is what decides whether a metric key from a classic example still resolves, [AWS metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest) — the polling ingestion path and its granularity, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the streaming path, which uses a **different key scheme** (see CLOUD-04 § 1). **Derived:** the use-both recommendation for compute resources combines the two coverage models; no page states it as a recommendation.</sub>
 
 Let's query the cloud entities currently monitored in your environment.
 

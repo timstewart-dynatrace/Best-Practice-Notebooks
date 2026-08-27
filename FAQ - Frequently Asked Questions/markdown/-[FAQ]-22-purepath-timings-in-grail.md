@@ -1,6 +1,6 @@
 # FAQ-22: What Happened to My PurePath Timings in Grail?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 08/04/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -54,7 +54,7 @@ This entry answers the three field-model questions directly, and then shows how 
 - **Yes — external calls are client spans, with no service and no endpoint.** `endpoint.name` is `stable` and, per its own definition, *"exclusively detected on request root spans."* A client span is not a request root span, so `endpoint.name` is null on it and the `dt.service.request.*` metric family — which is dimensioned by service and endpoint — has no series for outbound calls. You characterize outbound dependencies from the client spans themselves, using `server.address` and `peer.service`.
 - **`request_attribute.<name>` is `stable` — with two traps.** It is a registered field in the span model as `request_attribute.__attribute_name__`. But its type is **array**, not scalar, and it is *request-scoped reconciled* values. Its lesser-known sibling `captured_attribute.<name>` (also `stable`) holds the *span-scoped raw* values. Picking the wrong one, or comparing an array with `==`, are the two ways this goes wrong.
 
-> <sub>**Sources:** [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary), [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes), [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1). Field names, stability levels, and the quoted `endpoint.name` definition read from `dt.semantic_dictionary.fields` on a live SaaS tenant, 08/04/2026.</sub>
+> <sub>**Sources:** [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary), [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes), [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `span.timing.cpu` (`stable`), `span.timing.cpu_self` (`stable`); quoted definitions and stability levels read 08/04/2026, re-read 08/27/2026 unchanged.</sub>
 
 <a id="the-span-model-is-a-queryable-contract"></a>
 ## 2. The Span Model Is a Queryable Contract
@@ -76,7 +76,7 @@ The `fields` table carries a **`stability`** column, and it is the single most u
 
 A field that is absent from `dt.semantic_dictionary.fields` entirely is a fourth case, and it is the one that matters for the PurePath timings: not experimental, not deprecated — **not modeled**.
 
-> <sub>**Sources:** [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). The three `stability` values and the zero-bytes-scanned property were observed directly on a live SaaS tenant, 08/04/2026.</sub>
+> <sub>**Sources:** [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** the `stable` / `experimental` / `deprecated` ladder and the zero-bytes-scanned property observed directly, read 08/04/2026, re-read 08/27/2026 unchanged.</sub>
 
 **The whole span field list, in one query.** Run this first — it is the ground truth for every "does field X exist?" argument:
 
@@ -112,7 +112,7 @@ Two of those rows deserve care.
 
 **What to do about the gap.** There is no reconstruction of IO or lock time from the fields that do exist — `duration` minus `span.timing.cpu` is elapsed-minus-CPU, which lumps IO, lock, queueing, and downstream wait into one undifferentiated number. It can be a useful *triage* signal ("this span is not CPU-bound"), but do not present it as IO time. Where the distinction genuinely drives a decision, the durable path is the child spans themselves: a database call, an outbound HTTP call, and a queue wait each appear as their own span with their own `duration`.
 
-> <sub>**Sources:** [Distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe-and-explore/purepath-distributed-traces), [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). All quoted field definitions and stability levels read from `dt.semantic_dictionary.fields`, 08/04/2026; the absence of IO / lock / suspension timing fields was confirmed by a dictionary-wide search, not by an empty span query. **Derived:** the `duration - span.timing.cpu` triage caveat follows from the two published CPU definitions plus the absence of any wait-time field — no source endorses it as a substitute.</sub>
+> <sub>**Sources:** [Distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces), [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** `span.timing.cpu` (`stable`), `span.timing.cpu_self` (`stable`); no row for IO time, disk IO time, lock/sync time or suspension under `filter contains(name, "timing") or contains(name, "io.time") or contains(name, "lock") or contains(name, "suspension") or contains(name, "wait")`, which returns exactly five fields — `compilation_timings.*` ×3 plus the two CPU fields — so the query surface works and the absence is meaningful, not an empty result. Read 08/04/2026, re-verified 08/27/2026 unchanged. **Derived:** the `duration - span.timing.cpu` triage caveat follows from the two published CPU definitions plus the absence of any wait-time field — no source endorses it as a substitute.</sub>
 
 **Confirm the timing inventory yourself.** This searches the entire dictionary — not just spans — so an empty result for lock/wait/suspension is a statement about the platform, not about your tenant's data:
 
@@ -149,7 +149,7 @@ That last row is the one with real consequences. The `dt.service.request.*` fami
 1. **Characterize dependencies from the client spans.** `server.address` (and `peer.service` where the instrumentation supplies it) is the grouping key. **SPANS-04** §3–4 is the full treatment — service dependency mapping, inbound/outbound ratios, slowest-dependency queries.
 2. **`request.is_failed` is not your failure signal here — and is deprecated anyway.** The dictionary marks it `deprecated`, describing it as *"considered failed according to the failure detection rules. Only present on the request root span."* The successor namespace `dt.failure_detection.verdict` / `.results` is `experimental`. For client spans the `stable` answer is `span.status_code` plus the protocol status field (`http.response.status_code`, `rpc.grpc.status_code`) — which is exactly what **SPANS-03** already teaches. Do not build alerting on the failure-detection namespace while it is experimental.
 
-> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — Enhanced Endpoints explicitly does not create endpoints for external services. [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). The quoted `endpoint.name`, `request.is_failed`, and `dt.failure_detection.verdict` definitions and stability levels read from `dt.semantic_dictionary.fields`, 08/04/2026; the null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
+> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — Enhanced Endpoints explicitly does not create endpoints for external services. [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `dt.failure_detection.verdict` (`experimental`), `span.status_code` (`stable`); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged. The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
 
 **Reproduce the contrast in your own tenant.** Two queries, run back to back — the first returns nulls in the endpoint and failure columns, the second does not:
 
@@ -191,7 +191,7 @@ The useful part is the distinction between the two, because nothing in the name 
 2. **Mixed capture types collapse to string.** The dictionary is explicit for `captured_attribute`: if the captured values have mixed types, *"all attributes are converted to string and stored as string array."* A numeric comparison that worked in one environment can silently stop matching in another where a stray string value appeared.
 3. **The name is yours, so the field is not discoverable by browsing.** `request_attribute.__attribute_name__` is a template. Nothing lists your tenant's actual request-attribute fields from the dictionary — you have to read them from the request-attribute configuration, or from a span that carries them.
 
-> <sub>**Sources:** [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes). Both field definitions, the `stable` levels, the array typing, and the mixed-type-to-string rule quoted from `dt.semantic_dictionary.fields`, 08/04/2026. **Derived:** the trap ordering in the numbered list reflects how the array typing interacts with ordinary DQL equality — no source ranks them.</sub>
+> <sub>**Sources:** [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes). **Dictionary:** `request_attribute.__attribute_name__` (`stable`) and `captured_attribute.__attribute_name__` (`stable`) — the dictionary names them with the `__attribute_name__` placeholder; definitions, array typing and the mixed-type-to-string rule quoted, read 08/04/2026, re-read 08/27/2026 unchanged. **Derived:** the trap ordering in the numbered list reflects how the array typing interacts with ordinary DQL equality — no source ranks them.</sub>
 
 **Check both fields' contract before you write the filter:**
 

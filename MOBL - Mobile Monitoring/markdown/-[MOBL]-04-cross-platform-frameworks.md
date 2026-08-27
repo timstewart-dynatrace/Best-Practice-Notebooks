@@ -316,7 +316,7 @@ dotnet add package Dynatrace.Xamarin
 
 .NET MAUI is the successor to Xamarin.Forms. Dynatrace support for .NET MAUI is in preview. Instrumentation follows a similar pattern to Xamarin, with a NuGet package and platform-specific configuration.
 
-Check the [Dynatrace documentation](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications) for the latest .NET MAUI support status.
+Check the [Dynatrace documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications) for the latest .NET MAUI support status.
 
 ### Platform Distribution
 

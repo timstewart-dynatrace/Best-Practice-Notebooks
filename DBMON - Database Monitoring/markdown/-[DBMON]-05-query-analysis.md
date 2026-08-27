@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -54,6 +54,8 @@ We detect this by looking for query patterns with unusually high call counts per
 | ✅ Batched (good) | 1 outer span + 1 batched DB span (SELECT ... WHERE id IN (...)) | ~38ms | single span per trace |
 For environments where SVG doesn't render
 -->
+
+*In community practice the thresholds in this notebook are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.*
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been

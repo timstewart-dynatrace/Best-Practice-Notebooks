@@ -107,7 +107,7 @@ Two notation systems for AWS entities coexist in Dynatrace today:
 
 Both work today. The DQL examples in §4 and §5 show the classic form with the Smartscape 2.0 alternative commented out — pick the one that matches your tenant's preferred query style.
 
-> <sub>**Sources:** [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services), [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology) — verbatim: *"Smartscape node types for AWS follow the CloudFormation resource type notation, making all letters uppercase and substituting :: with _"*, [AWS supported services API (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/configuration-api/aws-supported-services). **Softened:** the "80+ services" count varies by Dynatrace release as new services are added — check the Hub or the all-services page for the current catalog rather than treating any fixed number as authoritative.</sub>
+> <sub>**Sources:** [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services), [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology) — verbatim: *"Smartscape node types for AWS follow the CloudFormation resource type notation, making all letters uppercase and substituting :: with _"*, [AWS supported services API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/aws-supported-services). **Softened:** the "80+ services" count varies by Dynatrace release as new services are added — check the Hub or the all-services page for the current catalog rather than treating any fixed number as authoritative.</sub>
 
 <a id="enabling-monitoring"></a>
 
@@ -327,7 +327,7 @@ fetch dt.entity.ec2_instance, from:-7d
 
 ### EC2 CPU Usage
 
-> <sub>**Sources:** [timeseries command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands#timeseries), [Semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/semantic-dictionary) — `dt.host.cpu.usage`, `cloud.aws.lambda.*` metric definitions, [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology). **Derived:** the `arrayAvg` / `arraySum` post-aggregation pattern is the canonical idiom for sorting a `timeseries` result by total / mean per dimension — see the DQL examples skill for variants.</sub>
+> <sub>**Sources:** [timeseries command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands#timeseries), [Semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary) — `dt.host.cpu.usage`, `cloud.aws.lambda.*` metric definitions, [AWS topology (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/ingest-telemetry/aws-topology). **Derived:** the `arrayAvg` / `arraySum` post-aggregation pattern is the canonical idiom for sorting a `timeseries` result by total / mean per dimension — see the DQL examples skill for variants.</sub>
 
 ```dql
 // EC2 CPU usage over the last 6 hours, top 10 busiest instances

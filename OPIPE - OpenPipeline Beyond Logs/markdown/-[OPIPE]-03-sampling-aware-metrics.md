@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -74,12 +74,27 @@ When you extract metrics from sampled spans, the raw numbers are wrong:
 
 ```dql
 // Check: Is your environment using span sampling?
-// Look for the sampling.ratio or sampling.probability fields
+//
+// The field is `dt.system.sampling_ratio` (stable). `sampling.ratio` and
+// `sampling.probability` DO NOT EXIST — neither has a row in the semantic
+// dictionary, so filtering on either returns null with no error and gives you
+// no way to tell "not sampled" from "wrong field name". Verified 08/27/2026:
+// dt.system.sampling_ratio was populated on all 642,584 spans in a 2h window,
+// while sampling.threshold was null on every one of them.
+// `supportability.atm_sampling_ratio` (experimental) carries the Adaptive
+// Traffic Management ratio specifically, on 99.8% of those spans.
 fetch spans, from:-1h
 | fieldsKeep trace.id, span.kind, service.name
 | summarize span_count = count(), by:{service.name}
 | sort span_count desc
 | limit 10
+```
+
+```dql
+// Is sampling actually in effect? A ratio of 1 means every span is kept.
+fetch spans, from:-1h
+| summarize spans = count(), by:{dt.system.sampling_ratio}
+| sort spans desc
 ```
 
 <a id="what-makes-a-metric-sampling-aware"></a>
@@ -296,9 +311,9 @@ Continue to **OPIPE-04: Cardinality Management** for strategies to control dimen
 ## References
 
 - [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
-- [Data storage and retention for Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/storage)
-- [RED Method](https://www.weave.works/blog/the-red-method-key-metrics-for-microservices-architecture/)
-- [Metric Cardinality](https://docs.dynatrace.com/docs/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)
+- [Data storage and retention for Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps)
+- [The RED Method (Grafana)](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/)
+- [Metric limits and cardinality (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)
 
 ---
 

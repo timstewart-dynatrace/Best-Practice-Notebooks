@@ -697,7 +697,7 @@ For promoting across environments, extend the workflow with separate jobs:
           DT_STAGING_TOKEN: ${{ secrets.DT_STAGING_TOKEN }}
 ```
 
-Use GitHub [Environments](https://docs.github.com/en/actions/deployment/targeting-different-environments) with required reviewers to gate production deployments.
+Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) with required reviewers to gate production deployments.
 
 ---
 

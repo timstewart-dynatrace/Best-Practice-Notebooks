@@ -723,7 +723,7 @@ Now that you can extract metrics and events, continue with:
 - [OpenPipeline Data Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
 - [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
 - [OpenPipeline use cases (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases)
-- [Dynatrace Intelligence Events](https://docs.dynatrace.com/docs/platform/davis-ai/basics/events)
+- [Dynatrace Intelligence Events](https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis/event-analysis-and-correlation)
 
 ---
 

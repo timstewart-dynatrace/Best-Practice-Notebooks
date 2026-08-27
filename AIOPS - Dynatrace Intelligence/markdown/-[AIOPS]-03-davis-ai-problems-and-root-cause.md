@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/25/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -75,20 +75,26 @@ The cost is therefore lost attribution and unrelated alerts welded together, not
 
 **Topology rules merge across entity types.** Beyond exact-entity matching, Davis merges signals from entities in a known structural relationship — a process and the host it runs on are not two separate incidents:
 
-| Grouping | Entity types merged into one problem |
+| Grouping field | Entity types merged into one problem |
 |----------|--------------------------------------|
-| Host | `HOST`, `PROCESS`, `CONTAINER`, `DISK`, `NETWORK_INTERFACE` |
-| Container | `CONTAINER`, `PROCESS` |
-| Process | `SERVICE`, `PROCESS` |
-| Kubernetes pod | `K8S_POD`, `CONTAINER` |
-| Kubernetes node | `K8S_NODE`, `K8S_POD`, `CONTAINER` |
-| Kubernetes deployment | `K8S_DEPLOYMENT`, `SERVICE` |
+| `dt.smartscape.host` | `HOST`, `PROCESS`, `CONTAINER`, `DISK`, `NETWORK_INTERFACE` |
+| `dt.smartscape.container` | `CONTAINER`, `PROCESS` |
+| `dt.smartscape.process` | `SERVICE`, `PROCESS` |
+| `dt.smartscape.k8s_pod` | `K8S_POD`, `CONTAINER` |
+| `dt.smartscape.k8s_node` | `K8S_NODE`, `K8S_POD`, `CONTAINER` |
+| `dt.smartscape.k8s_deployment` | `K8S_DEPLOYMENT`, `SERVICE` |
+| `dt.smartscape.k8s_replicaset` | `K8S_REPLICASET`, `SERVICE` |
+| `dt.smartscape.k8s_statefulset` | `K8S_STATEFULSET`, `SERVICE` |
+| `dt.smartscape.k8s_daemonset` | `K8S_DAEMONSET`, `SERVICE` |
+| `dt.smartscape.k8s_job` | `K8S_JOB`, `SERVICE` |
+
+The table names the **grouping field**, not just a label, because that is what you filter on when you are working out why two alerts merged. Note the documentation introduces these as *"some of the examples of the grouping fields and potential entity types that can be merged"* — it is not an exhaustive list, so treat an unlisted merge as plausible rather than as a bug.
 
 **Three further deduplication layers run on top:** time-based deduplication, so the same signal recurring inside the correlation window does not re-open a problem; causal merging across the dependency graph described above; and **frequent issue detection**, where Davis recognises a chronically recurring condition and stops raising it as a new problem on the reasoning that a permanent known issue is not news.
 
 That last one is worth knowing before you conclude a detector has broken. A detector that "stopped alerting" may simply have had its condition classified as a frequent issue — check the event stream (`dt.davis.events`) rather than the problem feed to tell the two apart.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the over-merge characterization combines that documented environment fallback with the same-entity grouping rule and the 08/11/2026 tenant measurement; the "check `dt.davis.events` rather than the problem feed" diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — all ten grouping fields, introduced as examples rather than an exhaustive list, [Dynatrace Intelligence (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the over-merge characterization combines that documented environment fallback with the same-entity grouping rule and the 08/11/2026 tenant measurement; the "check `dt.davis.events` rather than the problem feed" diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub>
 
 <a id="lifecycle"></a>
 ## 2. Problem Lifecycle and Fields
@@ -97,7 +103,7 @@ That last one is worth knowing before you conclude a detector has broken. A dete
 
 **Categories:** `ERROR`, `RESOURCE_CONTENTION`, `AVAILABILITY`, `SLOWDOWN`, `CUSTOM_ALERT`. Categories are stable; counts vary widely by environment.
 
-**Severity** is a separate axis from category. The unified `event.severity` field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below.
+**Severity** is a separate axis from category. The unified `event.severity` field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below. **It is typed `experimental` in the semantic dictionary** (verified 08/27/2026), while `event.category` and `event.kind` are `stable`: fine for triage and reporting, but do not hard-code an integration or an SLA contract against it without a fallback.
 
 **Key fields on a problem record:**
 
@@ -127,7 +133,7 @@ Sibling streams in Grail. **Use the right one.**
 | `dt.davis.problems` | Causal-AI-grouped problems | `DAVIS_PROBLEM` | The problem feed, MTTR, severity rollups |
 | `dt.davis.events` | Raw, ungrouped signals | `DAVIS_EVENT` | Signal-level investigation, custom alert volume |
 
-> ⚠️ Some older docs and tutorials show `fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"`. On modern tenants this returns zero rows — `dt.davis.events` carries only `DAVIS_EVENT`. Always use `fetch dt.davis.problems` for problems.
+> ⚠️ Some docs and tutorials show `fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"`. It returns zero rows — and the reason matters: this is a **filter on the wrong table, not a deprecated form**. `dt.davis.events` has only ever carried `DAVIS_EVENT`, so there is no older behavior to migrate from and nothing in your tenant to fix. Use `fetch dt.davis.problems` for problems. Verified 08/27/2026 (7 days): 206,023 rows in `dt.davis.events`, all `DAVIS_EVENT`; 0 when filtered to `DAVIS_PROBLEM`; control `dt.davis.problems` → 2,774.
 
 <a id="active-feed"></a>
 ## 4. Active Problem Feed
@@ -171,7 +177,7 @@ fetch dt.davis.problems, from:-2h
 
 Two different axes, both useful in weekly operational reviews and for trending detection volume month over month:
 
-- **Severity** (`event.severity`, integer 1–5) — *how bad* — for prioritization, SLA reporting, and routing. 1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational (ITIL-aligned).
+- **Severity** (`event.severity`, integer 1–5) — *how bad* — for prioritization, SLA reporting, and routing. 1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational (ITIL-aligned). **`experimental` stability** (08/27/2026) — usable, but pin a fallback before routing on it. Expect a narrow spread in practice: on the validation tenant 2,773 of 2,774 problems over 7 days were severity 3, so a one- or two-row rollup is the normal result, not a broken query.
 - **Category** (`event.category`) — *what kind* — for spotting which failure modes dominate.
 
 Start with the severity rollup, then break down by category.

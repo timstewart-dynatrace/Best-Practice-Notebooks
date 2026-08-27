@@ -345,9 +345,9 @@ In this notebook, we covered:
 
 ### References
 
-- [Dynatrace Performance Analysis](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use/waterfall-analysis)
-- [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_timing_API)
-- [TTFB Best Practices](https://web.dev/ttfb/)
+- [Dynatrace Performance Analysis](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use/waterfall-analysis)
+- [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Navigation_timing)
+- [TTFB Best Practices](https://web.dev/articles/ttfb)
 
 ---
 

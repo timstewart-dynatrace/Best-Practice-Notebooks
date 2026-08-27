@@ -429,9 +429,9 @@ fetch logs, from:-1h
 - [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 
 ### Sumo Logic source-language reference
-- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
-- [Sumo Logic parse operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/parse-operators/)
+- [Sumo Logic search operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/)
+- [Sumo Logic parse operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/parse-operators/)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

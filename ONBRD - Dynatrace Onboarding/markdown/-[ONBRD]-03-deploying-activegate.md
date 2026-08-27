@@ -106,7 +106,7 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 > | **Azure** | Preview — direct connection supported | No (when using Clouds app preview) |
 > | **GCP** | Not yet available in Clouds app | **Yes — AG-based polling** |
 >
-> ActiveGate is still required for **Extensions 2.0**, **private synthetic locations**, **GCP monitoring**, and any environment without Clouds app access. See [Clouds app documentation](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring) and the **CLOUD series** for per-provider deep dives.
+> ActiveGate is still required for **Extensions 2.0**, **private synthetic locations**, **GCP monitoring**, and any environment without Clouds app access. See [Clouds app documentation](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring) and the **CLOUD series** for per-provider deep dives.
 
 ### Optional but Recommended
 
@@ -979,11 +979,11 @@ In this notebook, you learned:
 - [Linux ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)
 - [Windows ActiveGate hardware and system requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-activegate-hardware-and-system-requirements)
 - [End-of-support announcements](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news)
-- [Private Synthetic Locations](https://docs.dynatrace.com/docs/platform-modules/digital-experience/synthetic-monitoring/private-synthetic-locations)
-- [Clouds App](https://docs.dynatrace.com/docs/platform-modules/infrastructure-monitoring/cloud-platform-monitoring)
+- [Private Synthetic Locations](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations)
+- [Clouds App](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
 
 ### Kubernetes
-- [Dynatrace Operator](https://docs.dynatrace.com/docs/setup-and-configuration/setup-on-k8s/installation)
+- [Dynatrace Operator](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment)
 - [Dynatrace Operator GitHub](https://github.com/Dynatrace/dynatrace-operator)
 - [DynaKube parameters — ActiveGate configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters)
 - [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters)

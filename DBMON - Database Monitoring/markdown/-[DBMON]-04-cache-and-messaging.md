@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -55,6 +55,8 @@ Caches and message brokers serve fundamentally different purposes from databases
 Note: messaging.system is canonical OTel; db.system == "kafka" is legacy compat
 For environments where SVG doesn't render
 -->
+
+*In community practice the thresholds in this notebook are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.*
 
 ```dql
 // Discover active cache and messaging systems

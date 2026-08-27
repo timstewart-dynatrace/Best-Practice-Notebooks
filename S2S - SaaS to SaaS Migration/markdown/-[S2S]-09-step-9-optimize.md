@@ -395,7 +395,7 @@ In Step 9 — the final step — you:
 ### Additional Resources
 
 - [Dynatrace Grail Data Lakehouse](https://docs.dynatrace.com/docs/platform/grail)
-- [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/platform/davis-ai/anomaly-detection)
+- [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Monaco Configuration as Code](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)

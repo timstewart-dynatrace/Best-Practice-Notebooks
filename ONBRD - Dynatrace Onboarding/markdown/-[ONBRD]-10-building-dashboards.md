@@ -385,9 +385,9 @@ In this notebook, you learned:
 
 ## References
 
-- [Dashboards](https://docs.dynatrace.com/docs/observe-and-explore/dashboards)
+- [Dashboards](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic)
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
-- [Notebooks](https://docs.dynatrace.com/docs/observe-and-explore/dashboards-and-notebooks/notebooks)
+- [Notebooks](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
 - [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 - [Dynatrace Community](https://community.dynatrace.com/)

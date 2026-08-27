@@ -362,9 +362,9 @@ aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
 - [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
 
 ### Sumo Logic decommission references (source)
-- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
-- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+- [Sumo Logic API (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/api/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/users-roles/)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

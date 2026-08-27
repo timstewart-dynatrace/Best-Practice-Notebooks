@@ -107,7 +107,7 @@ plugins {
 }
 ```
 
-> **Important:** Replace `8.x.x` with the latest stable version from the [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app). Always pin to a specific version to ensure reproducible builds.
+> **Important:** Replace `8.x.x` with the latest stable version from the [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app). Always pin to a specific version to ensure reproducible builds.
 
 <a id="build-gradle-config"></a>
 ## 3. build.gradle Configuration
@@ -406,9 +406,9 @@ In this notebook, you learned:
 
 ## References
 
-- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app)
-- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications)
-- [Manual instrumentation with OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation)
+- [Instrument Android apps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app)
+- [Dynatrace Mobile RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
+- [Manual instrumentation with OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation)
 
 ---
 

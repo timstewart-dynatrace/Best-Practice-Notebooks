@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 08/25/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -39,7 +39,6 @@ This entry is a **worked example of FAQ-19**. The generic decisions — signal c
 16. [Implementation Sequence and Checklist](#sequence)
 17. [Common Gotchas](#gotchas)
 18. [Recommended Approach](#recommended-approach)
-19. [References](#references)
 
 ---
 
@@ -107,7 +106,12 @@ Enterprise audit events are reachable only through `GET /events` with `stream_ty
 
 **If someone has recommended a webhook for this, they have answered a different question.** Webhooks are the right tool for reacting to changes in a specific high-value folder — a contract repository, a regulated dataset. They are structurally incapable of carrying the audit trail.
 
-> <sub>**Sources:** [Webhooks (Box Dev Docs)](https://developer.box.com/guides/webhooks/), [Webhook limitations V2 (Box Dev Docs)](https://developer.box.com/guides/webhooks/v2/limitations-v2), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/), [Box Hub catalog (Dynatrace)](https://www.dynatrace.com/hub/). **Derived:** § 2.1's no-listing claim is the result of three independent catalog checks on 08/25/2026, not a single search.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Webhooks (Box Dev Docs)](https://developer.box.com/guides/webhooks)</sub>
+> - <sub>[Webhook limitations V2 (Box Dev Docs)](https://developer.box.com/guides/webhooks/v2/limitations-v2)</sub>
+> - <sub>[Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise)</sub>
+> - <sub>[Box Hub catalog (Dynatrace)](https://www.dynatrace.com/hub/)</sub>
+> - <sub>**Derived:** § 2.1's no-listing claim is the result of three independent catalog checks on 08/25/2026, not a single search</sub>
 
 ---
 
@@ -137,11 +141,12 @@ Run this before you build anything:
 // Signal 1 — your own services calling Box. Requires no Box integration at all.
 // Note the field names: server.address and url.full are the stable fields.
 // http.url does NOT exist in the semantic dictionary and returns zero rows
-// silently — see § 17.
+// silently — see § 17. Same shape, different field: span.status_code values are
+// LOWERCASE, so `== "ERROR"` reports a 0% failure rate for every address.
 fetch spans, from:-24h
 | filter span.kind == "client" and endsWith(server.address, "box.com")
 | summarize {calls = count(),
-             failures = countIf(span.status_code == "ERROR"),
+             failures = countIf(span.status_code == "error"),
              p90_ms = percentile(duration, 90) / 1000000},
             by:{server.address}
 | fieldsAdd failure_rate_pct = round(100.0 * failures / calls, decimals: 2)
@@ -195,7 +200,11 @@ Everything difficult about this collector reduces to one question: *where did I 
 
 Because `admin_logs_streaming` retains only two weeks, a lost cursor is not always recoverable. This is the single highest-consequence property of the integration and it drives § 13.
 
-> <sub>**Sources:** [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events), [Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits), [New Enterprise Event Stream API (Box Support)](https://support.box.com/hc/en-us/articles/4412894211475-New-Enterprise-Event-Stream-API).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise)</sub>
+> - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events)</sub>
+> - <sub>[Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits)</sub>
+> - <sub>[New Enterprise Event Stream API (Box Support)](https://support.box.com/hc/en-us/articles/4412894211475-New-Enterprise-Event-Stream-API)</sub>
 
 ---
 
@@ -241,7 +250,7 @@ That is a real DPS line item, and it arrives whether or not anyone budgeted for 
 
 Decide retention *before* you turn the collector on. Reducing retention later does not refund what you already ingested.
 
-> <sub>**Sources:** [Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits), [Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/). **Derived:** § 5.1–5.3 combine the documented per-side limits with a 1M/day rate and a ~1.5 KB average event size; the per-page latency and event size are estimates to verify locally.</sub>
+> <sub>**Sources:** [Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits), [Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** § 5.1–5.3 combine the documented per-side limits with a 1M/day rate and a ~1.5 KB average event size; the per-page latency and event size are estimates to verify locally.</sub>
 
 ---
 
@@ -282,7 +291,7 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 
 A common and sensible split: **Python for the one-time historical backfill, Workflow for steady state.** They write to the same `log.source` and the same bucket, and the backfill runs once.
 
-> <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/). **Derived:** the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub>
+> <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub>
 
 ---
 
@@ -433,7 +442,13 @@ export default async function () {
 
 A Workflow that stops running produces no logs — and no logs looks exactly like no activity. Add a second workflow that runs the § 13 staleness query and pages someone when it goes stale. **This is not optional at a two-week retention window.**
 
-> <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [client-state SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-state/), [Credential vault client (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/), [Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials/), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events). **Derived:** § 7.3's write-cursor-last rule combines the documented two-week streaming retention with the absence of any replay mechanism once a cursor advances.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/)</sub>
+> - <sub>[client-state SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-state/)</sub>
+> - <sub>[Credential vault client (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/)</sub>
+> - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
+> - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events)</sub>
+> - <sub>**Derived:** § 7.3's write-cursor-last rule combines the documented two-week streaming retention with the absence of any replay mechanism once a cursor advances</sub>
 
 ---
 
@@ -628,7 +643,13 @@ if __name__ == "__main__":
 
 Whatever runs it needs monitoring of its own — see § 13.
 
-> <sub>**Sources:** [boxsdk on PyPI](https://pypi.org/project/boxsdk/), [Deprecated Box Next Gen Python SDK (Box Dev Docs)](https://developer.box.com/guides/tooling/sdks/python-gen), [Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials/), [POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs), [Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits). **Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates checked 08/25/2026 against Box's deprecation notice.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[boxsdk on PyPI](https://pypi.org/project/boxsdk/)</sub>
+> - <sub>[Deprecated Box Next Gen Python SDK (Box Dev Docs)](https://developer.box.com/guides/tooling/sdks/python-gen)</sub>
+> - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
+> - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits)</sub>
+> - <sub>**Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates checked 08/25/2026 against Box's deprecation notice</sub>
 
 ---
 
@@ -687,7 +708,11 @@ Put Box events in a **dedicated bucket**. Two independent reasons, either suffic
 - **Retention differs.** An audit trail is typically kept far longer than application logs, and paying application-log retention across 45 GB/month of Box events is expensive.
 - **Access differs.** This feed names individuals and the documents they touched. It should be readable by security and compliance, not by everyone who can read application logs. A bucket is the boundary that makes that enforceable — see **ORGNZ**.
 
-> <sub>**Sources:** [Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing), [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits)</sub>
+> - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
+> - <sub>[Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)</sub>
+> - <sub>[Log ingestion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion) — the ingestion-route overview this section's API choice sits inside</sub>
 
 ---
 
@@ -895,7 +920,7 @@ fetch logs, from:-24h
 
 The existence of a one-year `admin_logs` backfill path is exactly why § 8's Python collector is worth having even in a Workflow-first design. **Build it before you need it** — writing a backfill tool during an active compliance gap is not when you want to be learning the API.
 
-> <sub>**Sources:** [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/). **Derived:** § 13.1's null-comparison behaviour was observed directly by executing both query forms against a live tenant on 08/25/2026.</sub>
+> <sub>**Sources:** [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** § 13.1's null-comparison behaviour was observed directly by executing both query forms against a live tenant on 08/25/2026.</sub>
 
 ---
 
@@ -1062,32 +1087,6 @@ Gotchas 1, 7, and 8 share a shape worth naming: **each produces a confident, pla
 **What "done" looks like:** Shield alerts routed to security with a working console link; a security dashboard whose freshness you can vouch for; audit records in a bucket with retention and access someone signed; and a staleness alert that has been tested by breaking it on purpose.
 
 ---
-
-<a id="references"></a>
-## 19. References
-
-**Box — API, authentication, and limits**
-
-- [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — the endpoint, stream types, and pagination
-- [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise/) — *"the enterprise event feed does not support long polling"*; the two-week vs one-year retention split
-- [New Enterprise Event Stream API (Box Support)](https://support.box.com/hc/en-us/articles/4412894211475-New-Enterprise-Event-Stream-API)
-- [Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits) — 1,000 requests/min per user; `retry-after` on 429
-- [Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials/)
-- [Webhooks (Box Dev Docs)](https://developer.box.com/guides/webhooks/) and [Webhook limitations V2 (Box Dev Docs)](https://developer.box.com/guides/webhooks/v2/limitations-v2) — why webhooks cannot carry this feed
-- [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events)
-- [boxsdk on PyPI](https://pypi.org/project/boxsdk/) and [Deprecated Box Next Gen Python SDK (Box Dev Docs)](https://developer.box.com/guides/tooling/sdks/python-gen) — which SDK is current
-- [Box status page (Box)](https://status.box.com)
-
-**Dynatrace — ingestion, runtime, processing**
-
-- [Log ingestion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion)
-- [POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)
-- [Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — no events/min cap; 10 MB / 50,000 records; the 16 MB post-processing ceiling
-- [JavaScript runtime reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/) — the 120 s / 256 MB / 5 MB limits
-- [client-state SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-state/) — cursor persistence and the 90-day TTL ceiling
-- [client-classic-environment-v2 SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/) — credential vault and `logsClient.storeLog`
-- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
 
 ---
 

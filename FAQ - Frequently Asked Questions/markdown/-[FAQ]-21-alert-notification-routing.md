@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 08/24/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -63,7 +63,11 @@ Everything below is written for a Gen3 / Grail tenant on its own terms. If you a
 - **Look up contact details at run time** with the Ownership app's `get_owners` workflow action — it returns *"ownership team info with contact details for Slack/Teams/Email/JIRA."* One workflow can then route dynamically instead of one workflow per team.
 - **"Available" is not "populated."** The keys exist in every environment; that says nothing about whether a single entity carries an owner, whether team records exist, or whether contact details are filled in. Measure coverage before designing around it — on the tenant used to write this entry, the answer was zero.
 
-> <sub>**Sources:** [Assign team ownership (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/assign-team-ownership) — *"Ownership assignment is based on tags. Tags are key-value pairs stored in Smartscape nodes"*; the `owner` / `dt.owner` default keys. [Ownership app (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app) — the `get_owners` action and its contact details. [Problem fields mapping (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples). [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Assign team ownership (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/assign-team-ownership) — *"Ownership assignment is based on tags. Tags are key-value pairs stored in Smartscape nodes"*; the `owner` / `dt.owner` default keys</sub>
+> - <sub>[Ownership app (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app) — the `get_owners` action and its contact details</sub>
+> - <sub>[Problem fields mapping (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples)</sub>
+> - <sub>[Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)</sub>
 
 <a id="the-four-axes-of-alert-scoping"></a>
 ## 2. The Four Axes of Alert Scoping
@@ -96,7 +100,7 @@ Getting routing right does nothing for visibility. They are configured in differ
 
 > **If you are migrating from management zones.** A management zone did all four of these jobs through a single object, which is why the migration feels like one thing being replaced when it is really four things being separated. The upgrade guide states the **Management Zone** filter is *"No longer supported. Use Grail record-based field filters instead."* **MZ2POL-09** carries the per-profile disposition detail. The four-axis model above does not depend on any of this history.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger) — the documented trigger option list, which contains no segment field. [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — *"We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim.</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the documented trigger option list, which contains no segment field. [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — *"We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim.</sub>
 
 <a id="where-each-element-is-documented"></a>
 ## 3. Where Each Element Is Documented
@@ -130,7 +134,7 @@ Routing a noisy stream more precisely just distributes the noise more precisely.
 
 The two queries below tell you where the volume comes from, which is rarely where people assume. Compare the totals: a large gap between event count and problem count means correlation is doing real work; a small gap means alerts are arriving uncorrelated, which is a detector-configuration problem rather than a routing problem.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — correlation rules, the 30-short-lived-alerts framing, and the alert-library pruning guidance, all quoted verbatim. [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — `dt.davis.event_ids` and the array-combining behavior on merge. [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger).</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — correlation rules, the 30-short-lived-alerts framing, and the alert-library pruning guidance, all quoted verbatim. [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — `dt.davis.event_ids` and the array-combining behavior on merge. [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger).</sub>
 
 ```dql
 // Which problems dominate the last week, deduplicated.
@@ -165,7 +169,7 @@ Start from what the trigger exposes. A problem trigger is configured with:
 | **Event category** | Which Davis categories activate the workflow |
 | **Severity** | Filters by level threshold |
 | **Affected entities** | Tag-based — all entities, all defined tags, or any defined tag |
-| **Delay** *(advanced)* | Postpone until the problem has been open a set duration — see [section 6](#right-time) |
+| **Minimum duration** *(advanced)* | Postpone until the problem has been open a set duration — see [section 6](#right-time) |
 | **Updates** *(advanced)* | Re-trigger when selected fields change |
 | **Additional custom filter query** *(advanced)* | A DQL matcher over the problem record |
 
@@ -252,10 +256,10 @@ For anything ownership does not express, the additional custom filter query take
 > - <sub>[Ownership app (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app) — `get_owners` and `import_teams`, and the contact-detail channels</sub>
 > - <sub>[Manage access to problem records (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records) — record-permission fields are mapped onto problems automatically</sub>
 > - <sub>[Custom problem field examples (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app/problems-app-custom-problem-field-examples) — the `dt.owner` event property and the Problem fields mapping path</sub>
-> - <sub>[Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger) — the trigger option list</sub>
+> - <sub>[Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)</sub>
 > - <sub>[Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — *"We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes."*</sub>
-> - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — matcher functions</sub>
-> - <sub>**Derived:** the one-workflow-per-destination-versus-dynamic-lookup trade-off combines the trigger surface with the `get_owners` action; no single source frames it as a choice.</sub>
+> - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline)</sub>
+> - <sub>**Derived:** the one-workflow-per-destination-versus-dynamic-lookup trade-off combines the trigger surface with the `get_owners` action; no single source frames it as a choice</sub>
 
 <a id="right-time"></a>
 ## 6. Right Time
@@ -264,13 +268,13 @@ For anything ownership does not express, the additional custom filter query take
 
 **Pair every open-notification with a close-notification.** The problem state option takes *active* or *active and closed*. Responders need the all-clear as much as the alarm, and on the ITSM side it is what resolves the ticket rather than leaving a queue of incidents describing conditions that ended days ago.
 
-**Duration suppression is a documented trigger option.** The **Delay** setting postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+**Duration suppression is a documented trigger option.** The **Minimum duration** setting (formerly **Delay**) postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
 
 This is the mechanism for suppressing transient blips: a problem that resolves inside the delay window never notifies.
 
-> **A documented conflict, unresolved.** The alert-notification upgrade guide states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* The current trigger documentation describes the **Delay** option above, which does exactly that. Both pages are live as of 08/03/2026. The most likely reading is that the upgrade guide predates the Delay option and has not been re-tensed, but that is inference rather than a documented statement — **verify the Delay option in your own tenant before relying on it**, and do not plan a migration around the upgrade guide's "no alternative" claim without checking first. This entry does not resolve the conflict; it records it.
+> **A documented conflict, unresolved.** The alert-notification upgrade guide states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* The current trigger documentation describes the **Minimum duration** option above, which does exactly that. Both pages are live as of 08/03/2026. The most likely reading is that the upgrade guide predates this option and has not been re-tensed, but that is inference rather than a documented statement — **verify the Minimum duration option in your own tenant before relying on it**, and do not plan a migration around the upgrade guide's "no alternative" claim without checking first. This entry does not resolve the conflict; it records it.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger) — the Delay option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim. [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the conflicting Duration-filter statement, quoted verbatim.</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the Minimum duration option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from **Delay**, and the docs still use the lowercase word "delay" in the `dt.duration_marker` sentence, which is how the rename went unnoticed). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the conflicting Duration-filter statement, quoted verbatim.</sub>
 
 <a id="three-ways-this-goes-wrong"></a>
 ## 7. Three Ways This Goes Wrong
@@ -313,7 +317,11 @@ A workflow trigger's affected-entity filter operates on **tags**, and a custom-a
 
 A related trap for migrating estates: rebuilding every legacy profile as its own workflow recreates an object count that reflected the constraints of the old model rather than any current requirement. Ask what each cluster of profiles was working around before reproducing it.
 
-> <sub>**Sources:** [Manage access to problem records (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records) — the automatic record-permission mapping and the `storage:dt.security_context` boundary, quoted verbatim. [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger) — the complete documented option list, which contains no segment field. [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — security context as a filter attribute. [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Manage access to problem records (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records) — the automatic record-permission mapping and the `storage:dt.security_context` boundary, quoted verbatim</sub>
+> - <sub>[Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the complete documented option list, which contains no segment field</sub>
+> - <sub>[Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)</sub>
+> - <sub>[Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim</sub>
 
 <a id="recommended-approach"></a>
 ## 8. Recommended Approach
@@ -322,13 +330,13 @@ Sequenced, because the dependencies are real:
 
 1. **Enrich first.** Establish the tagging standard and confirm propagation before designing routing. Every dimension you intend to filter on must already exist as a tag or an attribute.
 2. **Decide the visibility model separately, and early.** If problems need access restriction, that is IAM work (**ORGNZ-06**, **IAM-05**) — settle it before workflows are built on top of it.
-3. **Standardize one custom attribute for team ownership** — something like `alert_group` — and set it wherever events are raised. This is the field the trigger will match; the platform does not supply one, so confirm it is populated on real records before building on it.
+3. **Route on the ownership tags first.** `owner` and `dt.owner` are default tag keys in every monitoring environment and affected-entity tags are a first-class trigger filter, so this needs no custom field and no DQL matcher (§ 1, § 9). Measure coverage before relying on it — *available* is not *populated*; on the validation tenant `dt.owner` resolved on 1 of 12 hosts (08/27/2026). **Only where ownership cannot be populated** for a given signal, standardize one custom attribute (e.g. `alert_group`), set it wherever those events are raised, and match it with a DQL matcher.
 4. **Build one workflow per destination.** Filter on affected-entity tags and severity where those suffice, and put anything finer in the additional custom filter query as a DQL matcher.
-5. **Set the Delay option** where transient problems should not page, rather than filtering them out downstream — but verify it behaves as documented in your tenant first (see [section 6](#right-time)).
+5. **Set the Minimum duration option** where transient problems should not page, rather than filtering them out downstream — but verify it behaves as documented in your tenant first (see [section 6](#right-time)).
 6. **Pair every open-notification with a close-notification.**
 7. **Cut over on evidence.** Prove per-team volume parity across an agreed window before retiring whatever the workflows replace. **FAQ-17** covers the cutover discipline.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/trigger/event-trigger), [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications), [DQL matcher (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline).</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger), [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications), [DQL matcher (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline).</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 9. Summary and Next Steps
@@ -338,7 +346,7 @@ Sequenced, because the dependencies are real:
 1. **Four axes, not one.** Fires, routes, sees, filters — each a different mechanism and a different failure mode.
 2. **Ownership is the built-in answer.** `owner` and `dt.owner` are default tag keys in every environment, and affected-entity tags are a first-class trigger filter — so routing on ownership needs no custom field and no DQL. Reach for a custom attribute only where ownership genuinely does not fit.
 3. **The custom filter is a DQL matcher, not DQL.** `matchesPhrase`, `matchesValue`, `isNotNull`, `isNull` plus logical operators — and the exact surface differs per matcher context, so verify what the trigger accepts rather than assuming. Anything needing aggregation belongs upstream in enrichment.
-4. **Duration suppression exists** as the trigger's **Delay** option — with a live documentation conflict against the upgrade guide that you should verify in your own tenant.
+4. **Duration suppression exists** as the trigger's **Minimum duration** option — with a live documentation conflict against the upgrade guide that you should verify in your own tenant.
 5. **Enrichment gates everything.** You cannot filter on a tag or attribute that does not exist yet.
 
 | If you need… | Read |

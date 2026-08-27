@@ -1,6 +1,6 @@
 # FAQ-01: Why you need a good Host Group naming strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 07/08/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -106,10 +106,7 @@ For environments where SVG doesn't render
 
 This rollup is also why retroactive restructuring is disruptive: changing a host's group recomputes topology context for every process group, service, and SLO downstream of it. The concrete cost — per the `oneagentctl` reference, *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"* — means moving a host between groups is not just a metadata change; the agent and every monitored service on that host restart. Defining good host groups up front means the entire entity tree is correctly scoped from day one.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — *"When the same process is running in two different host groups, Dynatrace will create one process group for each host group"*; basis for per-host-group thresholds, alerting overrides, OneAgent update settings, and management-zone integration</sub>
-> - <sub>[Process groups and process group instances (DT docs)](https://docs.dynatrace.com/docs/shortlink/process-groups) — PG / PGI distinction; default detection rules</sub>
-> - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"*</sub>
+> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — *"When the same process is running in two different host groups, Dynatrace will create one process group for each host group"*; basis for per-host-group thresholds, alerting overrides, OneAgent update settings, and management-zone integration, [Process groups and process group instances (DT docs)](https://docs.dynatrace.com/docs/shortlink/process-groups), [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"*.</sub>
 
 <a id="ownership"></a>
 ## 2. Consideration #1: Clear Ownership and Operational Accountability
@@ -128,7 +125,7 @@ This rollup is also why retroactive restructuring is disruptive: changing a host
 
 **Impact:** In community practice, the most consistent benefit teams report after moving off a single host group is faster incident triage and fewer ownership disputes — verify against your own MTTR data.
 
-> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group as the documented boundary for ownership and operational scoping.</sub>
+> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups).</sub>
 
 <a id="access-control"></a>
 ## 3. Consideration #2: Access Control and Visibility Boundaries
@@ -151,9 +148,7 @@ Dynatrace supports role-based visibility controls, but those controls require **
 
 > **Note on scoping mechanism choice:** For data-access ABAC, modern Gen3 Dynatrace tenants standardize on `dt.security_context` as the primary boundary field (see the IAM topic series). Host groups are still load-bearing for *operational* scoping — process detection, threshold tuning, alert routing, automation blast radius — even when `dt.security_context` is the boundary used for record-level data access. The two work together rather than competing.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Identity & access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management) — IAM umbrella; subpages for individual policy / permission topics</sub>
-> - <sub>[Permission management — management zones (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones) — host-group-driven management zones as IAM scope</sub>
+> <sub>**Sources:** [Identity & access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management), [Permission management — management zones (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones).</sub>
 
 <a id="alerting"></a>
 ## 4. Consideration #3: Alerting Accuracy and Notification Routing
@@ -186,9 +181,7 @@ Alerting effectiveness depends on correctly scoping **who owns what**.
 For environments where SVG doesn't render
 -->
 
-> <sub>**Sources:**</sub>
-> - <sub>[Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles) — alerting profile scope is management-zone filter + severity-rule tag matching</sub>
-> - <sub>[Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group structure underlying management-zone definitions</sub>
+> <sub>**Sources:** [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles) — alerting profile scope is management-zone filter + severity-rule tag matching, [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups).</sub>
 
 <a id="operations"></a>
 ## 5. Consideration #4: Operational Efficiency and Troubleshooting

@@ -272,7 +272,7 @@ For environments where SVG doesn't render
 
 ### Official documentation
 
-- [Sumo Logic Docs](https://help.sumologic.com/docs/)
+- [Sumo Logic Docs](https://www.sumologic.com:443/help/docs/)
 - [Dynatrace Docs](https://docs.dynatrace.com/docs/)
 
 ---
@@ -309,7 +309,7 @@ For environments where SVG doesn't render
 **Access and tokens**
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/access-control/access-tokens)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
 - [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
 - [API authentication (DT docs)](https://docs.dynatrace.com/docs/shortlink/api-authentication)
 
@@ -318,17 +318,17 @@ For environments where SVG doesn't render
 - [Terraform configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform)
 - [Monaco configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 - [Dynatrace Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
-- [Monaco (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-monitoring-as-code)
+- [Monaco (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code)
 
 ### Sumo Logic — by topic
-- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
-- [Sumo Logic parse operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/parse-operators/)
-- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
-- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
-- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
-- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
+- [Sumo Logic search operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/)
+- [Sumo Logic parse operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/parse-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/users-roles/)
+- [Sumo Logic API (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/api/)
 - [Sumo Logic Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/SumoLogic/sumologic/latest/docs)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

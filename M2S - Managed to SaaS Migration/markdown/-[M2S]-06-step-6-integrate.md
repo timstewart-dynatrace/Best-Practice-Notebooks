@@ -564,11 +564,11 @@ Do not proceed to Step 7 (Enable) until all items are confirmed.
 
 ### Additional Resources
 
-- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
-- [Automations (Workflows) Documentation](https://docs.dynatrace.com/docs/platform-modules/automations)
-- [Extensions 2.0 Documentation](https://docs.dynatrace.com/docs/extend-dynatrace/extensions20)
+- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
+- [Automations (Workflows) Documentation](https://docs.dynatrace.com/docs/deliver)
+- [Extensions 2.0 Documentation](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Cloud Integrations Overview](https://docs.dynatrace.com/docs/ingest-from)
-- [Synthetic Monitoring Documentation](https://docs.dynatrace.com/docs/platform-modules/digital-experience/synthetic-monitoring)
+- [Synthetic Monitoring Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring)
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---

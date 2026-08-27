@@ -314,10 +314,10 @@ In Step 8, you:
 
 ### Additional Resources
 
-- [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/platform/davis-ai/anomaly-detection)
+- [Dynatrace Intelligence Anomaly Detection](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
-- [Dynatrace Notifications and Alerting](https://docs.dynatrace.com/docs/observe-and-explore/notifications-and-alerting)
-- [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/manage/dynatrace-platform-subscription)
+- [Dynatrace Notifications and Alerting](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
+- [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/license)
 
 ---
 

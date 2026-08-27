@@ -1,6 +1,6 @@
 # FAQ-08: How Does OneAgent Decide Which Logs to Collect?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 07/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -175,9 +175,9 @@ And several things are deliberately **not** auto-collected, each with a specific
 The per-technology auto-detection toggles and the network-filesystem option live under **Settings → Log Monitoring → OneAgent settings**. Container and Kubernetes specifics (the container-log path, namespace scoping, masking) are covered in depth in the K8S series rather than here.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log ingestion via OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa)</sub> — default-detected sources (system logs, IIS, Windows Event Log, containers)
-> - <sub>[Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery)</sub> — binaries not auto-detected, network-filesystem default-off, "Allow OneAgent to monitor Dynatrace logs"
-> - <sub>[Advanced log settings (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/advanced-log-settings)</sub> — per-technology toggles (e.g., turning off IIS log detection)
+> - <sub>[Log ingestion via OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa) — default-detected sources (system logs, IIS, Windows Event Log, containers)</sub>
+> - <sub>[Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — binaries not auto-detected, network-filesystem default-off, "Allow OneAgent to monitor Dynatrace logs"</sub>
+> - <sub>[Advanced log settings (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/advanced-log-settings) — per-technology toggles (e.g., turning off IIS log detection)</sub>
 > - <sub>[Windows event logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-windows-event-logs)</sub> — System / Application / Security channel collection</sub>
 
 <a id="custom-sources"></a>
@@ -211,11 +211,7 @@ When a file fails a gate, the fix is a **custom log source** — an explicit pat
 
 Because custom sources don't expand the rules, the durable fix for "we have a whole class of logs in a non-standard location" is sometimes simpler: write those logs to a `log`/`logs` directory, or give them a `*.log` name, so the built-in include rules catch them without per-host configuration.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Custom log source (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source)</sub> — config scopes and precedence, absolute-path requirement, `*`/`#` wildcard semantics, 100 paths/rule and 1000 rules/scope, `dtuser` permission requirement, "custom log sources do not expand auto-detection"
-> - <sub>[Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery)</sub> — binary-format option for binary files; rotation-pattern handling
-> - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343)</sub> — released 07/28/2026; support for rapidly rotated and compressed log files on Linux
-> - <sub>**Derived:** the "write to a log/ directory or use a .log name" recommendation combines the §4 include rules with the custom-source-doesn't-expand constraint — neither source states it as advice.</sub>
+> <sub>**Sources:** [Custom log source (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source) — config scopes and precedence, absolute-path requirement, `*`/`#` wildcard semantics, 100 paths/rule and 1000 rules/scope, `dtuser` permission requirement, "custom log sources do not expand auto-detection", [Log autodiscovery (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery) — binary-format option for binary files; rotation-pattern handling, [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; support for rapidly rotated and compressed log files on Linux. **Derived:** the "write to a log/ directory or use a .log name" recommendation combines the §4 include rules with the custom-source-doesn't-expand constraint — neither source states it as advice.</sub>
 
 <a id="scale-limits"></a>
 ## 7. Scale and Limits

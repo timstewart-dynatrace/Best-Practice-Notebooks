@@ -181,7 +181,7 @@ Regardless of which approach you choose, the migration must follow this exact 11
 | **10** | **Cutover** — Full switch to SaaS | Formal declaration that SaaS is the primary platform | Step 9: Optimize |
 | **11** | **Decommission** — Managed environment | Only after full validation and parallel observation period | Step 9: Optimize |
 
-> **Important:** Steps 4 and 5 are where the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/) does the heavy lifting. Export from Managed, upload to SaaS, review, and deploy — most configurations migrate automatically.
+> **Important:** Steps 4 and 5 are where the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) does the heavy lifting. Export from Managed, upload to SaaS, review, and deploy — most configurations migrate automatically.
 
 ### Critical Dependencies
 
@@ -426,7 +426,7 @@ When building your high-level migration plan, ensure these items are addressed:
 
 Based on hundreds of successful migrations, a consistent pattern emerges:
 
-> **90% of configurations migrate automatically** via the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/). The remaining **10% takes 90% of the manual effort**.
+> **90% of configurations migrate automatically** via the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant). The remaining **10% takes 90% of the manual effort**.
 
 ### What Migrates Automatically (the 90%)
 

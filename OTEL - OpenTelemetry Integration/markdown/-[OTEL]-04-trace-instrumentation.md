@@ -525,10 +525,10 @@ In this notebook, you learned:
 
 ## References
 
-- [OTel Python](https://opentelemetry.io/docs/instrumentation/python/)
-- [OTel Java](https://opentelemetry.io/docs/instrumentation/java/)
-- [OTel Go](https://opentelemetry.io/docs/instrumentation/go/)
-- [OTel Node.js](https://opentelemetry.io/docs/instrumentation/js/)
+- [OTel Python](https://opentelemetry.io/docs/languages/python/)
+- [OTel Java](https://opentelemetry.io/docs/languages/java/)
+- [OTel Go](https://opentelemetry.io/docs/languages/go/)
+- [OTel Node.js](https://opentelemetry.io/docs/languages/js/)
 
 ---
 

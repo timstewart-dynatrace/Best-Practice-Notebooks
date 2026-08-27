@@ -1,6 +1,6 @@
 # NRLC-02: NRQL → DQL Translation
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 07/01/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ The TypeScript `nrql-engine` and the Python compiler in `Dynatrace-NewRelic/comp
 |-------------|----------|
 | **Audience** | Engineers translating NRQL queries; reviewers of automated translations |
 | **Recommended** | NRLC-01 (platform comparison); familiarity with both NRQL and DQL syntax |
-| **Companion projects** | [`nrql-engine`](https://github.com/timstewart-dynatrace/nrql-engine), [`nrql-translator`](https://github.com/timstewart-dynatrace/nrql-translator), [`Dynatrace-NewRelic`](https://github.com/timstewart-dynatrace/Dynatrace-NewRelic) |
+| **Companion projects** | [`nrql-engine`](https://github.com/timstewart-dynatrace/nrql-engine), [`nrql-translator`](https://github.com/timstewart-dynatrace/nrql-translator), [`NewRelic-to-Dynatrace-Migration-Utilities`](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities) |
 
 ## Engine Support (Phase 19b)
 
@@ -342,7 +342,7 @@ Three projects expose the same compiler in different shapes:
 |------|------|----------|
 | **[`nrql-engine`](https://github.com/timstewart-dynatrace/nrql-engine)** | TypeScript library (`npm install @timstewart-dynatrace/nrql-engine`) | Embed in your own tool, web app, or CI — **planned future home: [`dynatrace-dma`](https://github.com/dynatrace-dma) (Dynatrace Migration Assistant)** |
 | **[`nrql-translator`](https://github.com/timstewart-dynatrace/nrql-translator)** | Thin CLI around the engine | Single query, batch Excel, validation, notebook generation |
-| **[`Dynatrace-NewRelic`](https://github.com/timstewart-dynatrace/Dynatrace-NewRelic)** | Python CLI orchestrating full migration | End-to-end NR→DT including all entity transformers |
+| **[`NewRelic-to-Dynatrace-Migration-Utilities`](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities)** | Python CLI orchestrating full migration | End-to-end NR→DT including all entity transformers |
 
 ### Single-query CLI
 
@@ -413,4 +413,4 @@ Continue to **NRLC-03 Dashboard Migration** to see how translated queries flow i
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [Dynatrace-NewRelic](https://github.com/timstewart-dynatrace/Dynatrace-NewRelic), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine) (planned future home: the [`dynatrace-dma`](https://github.com/dynatrace-dma) Dynatrace Migration Assistant organization), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources, including the open-source [NewRelic-to-Dynatrace-Migration-Utilities](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities), [nrql-engine](https://github.com/timstewart-dynatrace/nrql-engine) (planned future home: the [`dynatrace-dma`](https://github.com/dynatrace-dma) Dynatrace Migration Assistant organization), and [nrql-translator](https://github.com/timstewart-dynatrace/nrql-translator) projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [New Relic documentation](https://docs.newrelic.com).*</sub>

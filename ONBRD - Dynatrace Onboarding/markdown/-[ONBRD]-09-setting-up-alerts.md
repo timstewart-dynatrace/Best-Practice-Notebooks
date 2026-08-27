@@ -383,10 +383,10 @@ In this notebook, you learned:
 ## References
 
 - [Root cause analysis (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis)
-- [Workflows](https://docs.dynatrace.com/docs/platform-modules/automations/workflows)
-- [Workflow Actions](https://docs.dynatrace.com/docs/platform-modules/automations/workflows/actions)
-- [Slack Integration](https://docs.dynatrace.com/docs/platform-modules/automations/workflows/actions/slack)
-- [PagerDuty Integration](https://docs.dynatrace.com/docs/platform-modules/automations/workflows/actions/pagerduty)
+- [Workflows](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
+- [Workflow Actions](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
+- [Slack Integration](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack)
+- [PagerDuty Integration](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty)
 
 ---
 

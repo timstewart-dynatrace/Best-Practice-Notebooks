@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 08/11/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -82,7 +82,7 @@ Davis builds baselines per-dimension automatically — per region, per browser, 
 
 **How much history before you can trust it.** Auto-adaptive detection calculates its threshold from a trailing **7-day** reference window; seasonal baseline uses a trailing **14-day** window. A service that was just deployed, or whose traffic pattern just changed, won't have a representative auto-adaptive baseline for about a week, and won't have enough history to distinguish weekday from weekend behavior for about two — a detector built on either mechanism before then is judging against an incomplete picture, not a wrong one.
 
-> <sub>**Sources:** [Auto-adaptive thresholds for anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/auto-adaptive-threshold), [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/ai-models/seasonal-baseline), [Adjust the sensitivity of anomaly detection for services (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/adjust-sensitivity-anomaly-detection/adjust-sensitivity-services).</sub>
+> <sub>**Sources:** [Auto-adaptive thresholds for anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/auto-adaptive-threshold), [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline), [Adjust the sensitivity of anomaly detection for services (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/adjust-sensitivity-anomaly-detection/adjust-sensitivity-services).</sub>
 
 <a id="picking"></a>
 ## 2. Picking the Right Detector
@@ -169,7 +169,7 @@ The tuning parameters that control noise:
 | Parameter | What it does |
 |-----------|--------------|
 | `tolerance` (seasonal) / sensitivity | Width of the confidence band — higher = fewer alerts |
-| `alertCondition` | Direction that trips: `ABOVE`, `BELOW`, or `OUTSIDE` |
+| `alertCondition` | Direction that trips: `ABOVE`, `BELOW`, or `OUTSIDE`. `ABOVE`/`BELOW` apply to every model; **`OUTSIDE` is a baselining concept** and community guidance is that it is accepted only by auto-adaptive and seasonal models — confirm against the settings schema for your tenant before scripting it onto a static-threshold detector |
 | `violatingSamples` | How many points in the window must violate to fire (max 60) |
 | `slidingWindow` | How many points are evaluated together (max 60; ≥ `violatingSamples`) |
 | `dealertingSamples` | Consecutive clean points required to close the alert (max 60) |
@@ -341,7 +341,7 @@ fetch dt.davis.events, from:-7d
 | limit 20
 ```
 
-Real output from a demonstration tenant over seven days, abbreviated to the top rows:
+Real output from a demonstration tenant over seven days, **measured 08/11/2026**, abbreviated to the top rows. Treat the absolute counts as a snapshot, not a constant — they move with what the tenant is doing; the *shape* (a high-volume detector with a null `dt.smartscape_source.id`) is the durable part:
 
 | `event.name` | `alerts` | `dt.settings.object_id` | `dt.smartscape_source.id` |
 |--------------|---------:|-------------------------|---------------------------|

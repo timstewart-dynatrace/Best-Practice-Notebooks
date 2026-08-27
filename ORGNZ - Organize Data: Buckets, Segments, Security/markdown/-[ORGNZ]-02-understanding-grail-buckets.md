@@ -92,7 +92,7 @@ fetch dt.system.buckets
 | `default_application_snapshots` | application.snapshots | 10 days |
 | `dt_system_events` | dt.system.events | 1 year |
 
-> **Note:** The `default_securityevents` table was recently migrated to a new Grail security events schema. If you use security events, follow the [Grail security table migration guide](https://docs.dynatrace.com/docs/secure/threat-observability/migration) to complete any required actions.
+> **Note:** The `default_securityevents` table was recently migrated to a new Grail security events schema. If you use security events, follow the [Grail security table migration guide](https://docs.dynatrace.com/docs/secure/threat-observability/concepts) to complete any required actions.
 
 > **Extended retention:** You can extend bucket retention beyond the defaults by joining the Dynatrace preview program. See [Preview releases](https://docs.dynatrace.com/docs/whats-new/preview-releases#extended-retention-for-rum-and-synthetic) for details.
 

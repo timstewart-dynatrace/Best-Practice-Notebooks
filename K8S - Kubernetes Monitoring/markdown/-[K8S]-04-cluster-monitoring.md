@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -15,6 +15,8 @@ Cluster health monitoring provides visibility into the infrastructure layer of K
 4. [Cluster-Wide Events](#cluster-wide-events)
 5. [Cost Optimization Queries](#cost-optimization-queries)
 6. [Alerting Strategies](#alerting-strategies)
+7. [Dynatrace Component Health](#dynatrace-component-health)
+8. [Alerting Strategies](#alerting-strategies)
 
 ---
 

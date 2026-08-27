@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/24/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -71,8 +71,8 @@ If you remember one thing: **metrics are shaped at ingest, not at query time.** 
 > - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)</sub>
 > - <sub>[Metric API FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq) — "The finest granularity of a time slot is one minute."</sub>
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq)</sub>
-> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/manage/dynatrace-platform-subscription/capabilities/metrics-powered-by-grail) — "Querying metrics using the `timeseries` command is always included."</sub>
-> - <sub>**Derived:** the five-layer framing is an authoring synthesis of the cited pages; the docs describe each layer separately.</sub>
+> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — "Querying metrics using the `timeseries` command is always included."</sub>
+> - <sub>**Derived:** the five-layer framing is an authoring synthesis of the cited pages; the docs describe each layer separately</sub>
 
 <a id="data-model"></a>
 ## 2. The Metric Data Model
@@ -131,7 +131,7 @@ One documented limitation to plan around: *"You cannot provide metadata for buil
 > <sub>**Sources:**</sub>
 > - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — key/dimension rules, gauge summary expansion, count deltas, timestamp window</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — `dt.` prefix reserved for Dynatrace</sub>
-> - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — Grail naming conventions</sub>
+> - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail)</sub>
 > - <sub>[Built-in classic metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/built-in-metrics) — `builtin:` / `ext:` / `calc:` prefix semantics</sub>
 > - <sub>[Custom metric metadata (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/custom-metric-metadata) — metadata mechanisms and the built-in/calculated limitation</sub>
 
@@ -182,9 +182,9 @@ The migration state, per the docs: *"most but not all metrics are already suppor
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — separate databases, dual-write, tool-to-backend mapping</sub>
 > - <sub>[Metrics on Grail upgrade guide (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade) — migration state, service-metric consolidation</sub>
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — `builtin:` ↔ `dt.` key mapping tables</sub>
-> - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — side-by-side capability comparison</sub>
-> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion) — converter and its caveats</sub>
-> - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer) — Classic surface and upgrade guidance</sub>
+> - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
+> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion)</sub>
+> - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer)</sub>
 
 <a id="ingest-paths"></a>
 ## 4. How a Data Point Is Born: The Ingest Paths
@@ -249,10 +249,10 @@ For technology you cannot instrument directly, an extension is a **declarative Y
 > - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126</sub>
 > - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only</sub>
 > - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping</sub>
-> - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics) — attribute-to-dimension rules</sub>
-> - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started/metrics/limitations) — size/length limits, 63-character unit cap</sub>
+> - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
+> - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — size/length limits, 63-character unit cap</sub>
 > - <sub>[Collector configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/configuration) — `cumulativetodelta` + `max_staleness` guidance</sub>
-> - <sub>[Extensions 2.0 concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions20/extensions-concepts)</sub>
+> - <sub>[Extensions 2.0 concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/concepts)</sub>
 > - <sub>[Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources)</sub>
 
 <a id="record-extraction"></a>
@@ -281,7 +281,7 @@ Calculated service metrics are the classic way to derive request-scoped metrics 
 
 > <sub>**Sources:**</sub>
 > - <sub>[OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — counter/value processors, supported scopes, Grail-only routing</sub>
-> - <sub>[Extract metrics from spans (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans) — sampling-aware processors</sub>
+> - <sub>[Extract metrics from spans (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)</sub>
 > - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics) — classic `log.*` extraction modes</sub>
 > - <sub>[Calculated service metrics upgrade (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/calculated-service-metrics-upgrade) — deprecation posture, top-100 vs full cardinality</sub>
 
@@ -314,7 +314,7 @@ The Grail design also removed a classic artifact: Classic kept separate pre-aggr
 > <sub>**Sources:**</sub>
 > - <sub>[Metric API FAQ (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq) — one-minute finest slot</sub>
 > - <sub>[Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods) — classic downsampling tiers, Grail 15-month default</sub>
-> - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — granularity/retention comparison</sub>
+> - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
 > - <sub>[Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — 462 days included, 10-year ceiling</sub>
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — custom metric buckets planned</sub>
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — pre-aggregated/detail split removed</sub>
@@ -345,10 +345,7 @@ Metrics powered by Grail advertises *"limitless dimensions (excluding highly vol
 
 Dimensions do not bill directly — per the DPS docs, *"metric data points are not billed based on an increase in dimensions, but rather by the increased number of metric data points."* The catch is the second clause: every new tuple is a new series, and every series emits data points per interval. Splitting one metric into 1,000 series multiplies ingested data points by up to 1,000. Cardinality discipline is therefore simultaneously a reliability practice (Classic limits) and a cost practice (DPS ingest) — OPIPE-04 and FINOPS-03 §9 cover remediation patterns.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard</sub>
-> - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys</sub>
-> - <sub>[Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — dimensions-vs-data-points billing rule</sub>
+> <sub>**Sources:** [Metrics API best practices (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices) — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — Grail limitless-dimensions posture, 100,000 custom keys, [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — dimensions-vs-data-points billing rule.</sub>
 
 <a id="querying"></a>
 ## 8. Querying Metrics
@@ -407,9 +404,9 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > - <sub>[Aggregation commands — makeTimeseries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands)</sub>
 > - <sub>[Metric selector (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector) — transformations, 10-metric cap</sub>
 > - <sub>[Metrics API v2 (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2)</sub>
-> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion) — selector-to-DQL mappings</sub>
+> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion)</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — 20M vs 500M query ceilings</sub>
-> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/manage/dynatrace-platform-subscription/capabilities/metrics-powered-by-grail) — timeseries queries always included</sub>
+> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — timeseries queries always included</sub>
 
 <a id="cost"></a>
 ## 9. What Metrics Cost Under DPS
@@ -440,10 +437,7 @@ Retain's unit is *"the gibibyte-day (GiB-day)"* — storage volume, not data poi
 
 For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt.system.events` billing-event schema; FINOPS-02/03 cover forecasting and optimization levers.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — data-point definition, counting rules, non-billable keys, included allotment</sub>
-> - <sub>[Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — GiB-day unit, 462 days included, worked example</sub>
-> - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/manage/dynatrace-platform-subscription/capabilities/metrics-powered-by-grail) — capability structure, query always included</sub>
+> <sub>**Sources:** [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — data-point definition, counting rules, non-billable keys, included allotment, [Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — GiB-day unit, 462 days included, worked example, [Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — capability structure, query always included.</sub>
 
 <a id="recommended-approach"></a>
 ## 10. Recommended Approach

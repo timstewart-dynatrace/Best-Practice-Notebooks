@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -256,20 +256,39 @@ Deployment notes that matter:
 - **Always On clusters need two monitoring configurations** — the Always On feature set pointed at **primary replicas only**, everything else at all instances. Mixing primaries and secondaries in one Always On config duplicates metrics (documented as discouraged).
 - **Job outcomes arrive as log streams, not metrics** — alert with a DQL log alert or an OpenPipeline log-to-metric rule; the failure text is queryable in Grail.
 - Logs from official database extensions land in the dedicated `default_database_monitoring` Grail bucket (see DBMON-01 §6).
-- The extension accepts **no user-defined SQL**; true gaps (e.g., tempdb version-store pressure) go in a small custom Extensions 2.0 `sqlServer`-datasource extension on the same ActiveGate.
+- **Minimum ActiveGate version 1.303.** The extension docs are explicit: *"If you're not on ActiveGate 1.303 and newer, your monitoring configurations will error upon running."* This is a hard-failure prerequisite, not a recommendation — check the ActiveGate group's version before creating the monitoring configuration.
+- The extension ships a fixed set of predefined queries; **the documentation does not describe a user-defined-SQL option**, so treat custom SQL as unavailable unless your extension version's page says otherwise. True gaps (e.g., tempdb version-store pressure) go in a small custom Extensions 2.0 `sqlServer`-datasource extension on the same ActiveGate.
 
 For the full decision framework — mapping a homegrown script/Telegraf monitor estate onto the extension, the honest gaps, and the migration sequence — see **FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?**
 
 Blocked processes from the engine's point of view — the signal caller-side spans can only infer from slow response times:
 
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — feature sets, the `sql-server.*` metric keys, the jobs-as-log-streams model, the Always On two-configuration rule and the ActiveGate 1.303 minimum, [Microsoft SQL Server local extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local) — the OneAgent-host variant, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the framework these run on. Read at source 08/27/2026.</sub>
+
 ```dql
 // SQL Server engine blocking — from the ActiveGate extension (Default feature set)
+//
+// An empty result means the SQL Server extension is not deployed in this
+// environment — NOT a wrong key and not a broken query. `sql-server.*` keys
+// only exist once a monitoring configuration is running. Separate the two
+// before debugging: `metrics | filter startsWith(metric.key, "sql-server")`
+// returning 0 while `startsWith(metric.key, "dt.host.")` returns rows means
+// the discovery surface works and the extension simply is not there.
+// (`metrics` takes `from:` with NO leading comma, and caps discovery at 10 days.)
 timeseries blocked = avg(`sql-server.general.processesBlocked`), from:-24h
 ```
 
 ```dql
 // Always On availability-group sync health — extension Always On feature set
 // (point the Always On monitoring configuration at the primary replica)
+//
+// An empty result means the SQL Server extension is not deployed in this
+// environment — NOT a wrong key and not a broken query. `sql-server.*` keys
+// only exist once a monitoring configuration is running. Separate the two
+// before debugging: `metrics | filter startsWith(metric.key, "sql-server")`
+// returning 0 while `startsWith(metric.key, "dt.host.")` returns rows means
+// the discovery surface works and the extension simply is not there.
+// (`metrics` takes `from:` with NO leading comma, and caps discovery at 10 days.)
 timeseries agHealth = min(`sql-server.always-on.ag.synchronizationHealth`), from:-24h
 ```
 

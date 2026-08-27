@@ -368,7 +368,7 @@ In this notebook, you learned:
 
 - [OTel Logs Specification](https://opentelemetry.io/docs/specs/otel/logs/)
 - [Filelog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
-- [Dynatrace OTel Log Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started/logs/ingest)
+- [Dynatrace OTel Log Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs)
 
 ---
 

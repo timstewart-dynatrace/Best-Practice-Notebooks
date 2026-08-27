@@ -375,7 +375,7 @@ In Step 7, you:
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
-- [Alerting and Notifications](https://docs.dynatrace.com/docs/observe-and-explore/notifications-and-alerting)
+- [Alerting and Notifications](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
 - [Monaco Configuration as Code](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 
 ---

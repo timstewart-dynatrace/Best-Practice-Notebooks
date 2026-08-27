@@ -1,6 +1,6 @@
 # FAQ-07: How Do I Set Up a Launcher Page? (Default + Persona-Based)
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 07 — Launcher Page Setup (Default + Persona-Based) | **Created:** May 2026 | **Last Updated:** 05/20/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 07 — Launcher Page Setup (Default + Persona-Based) | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -118,7 +118,9 @@ Any user can set their own personal Home Launchpad. When they do, the admin's gr
 
 When a user logs in, the platform resolves their Home Launchpad in this order: **Personal → Group → Everyone**. The highest-precedence layer present wins. The admin-set layers fall to the "Suggested" list when overridden.
 
-> <sub>**Sources:** [Launchpads (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/launchpads) — verbatim on per-user override: users can set personal home launchpads that *"override any home launchpad set by your admin"* and admin-set launchpads then appear under *"Suggested"*. Group binding documented as *"select a user group, or select 'Everyone' to change the start page for all users."* **Derived:** the explicit three-layer precedence model with resolution order is community framing — the three primitives are documented, the layered model is the synthesis. **Softened:** multi-group resolution behavior is not explicitly stated in the docs; verify in your tenant.</sub>
+*In community practice multi-group resolution behaves as described above; the documentation does not state it explicitly, so verify it in your own tenant before relying on the precedence order.*
+
+> <sub>**Sources:** [Launchpads (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/launchpads) — verbatim on per-user override: users can set personal home launchpads that *"override any home launchpad set by your admin"* and admin-set launchpads then appear under *"Suggested"*. Group binding documented as *"select a user group, or select 'Everyone' to change the start page for all users."* **Derived:** the explicit three-layer precedence model with resolution order is community framing — the three primitives are documented, the layered model is the synthesis.</sub>
 
 <a id="admin-mechanism"></a>
 ## 4. Setting the Home Launchpad — Admin Mechanism
@@ -230,7 +232,9 @@ Practical guidance: treat Launchpad access scoping as a **Document Service conce
 
 For most customers, the implicit Document Service IAM model is sufficient — Launchpads don't carry sensitive data themselves, only links to other places that have their own access controls. For customers with strict IAM governance, the lack of a Launchpad-specific policy DSL is a real gap and should be flagged in the platform's IAM model documentation.
 
-> <sub>**Sources:** [Launchpads (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/launchpads) — documents Document Service persistence with `type='launchpad'` and the API surface. [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — does not enumerate a Launchpad-specific service as of May 2026; verify when authoring policies. **Derived:** the "treat as a Document Service concern" guidance is community / engagement synthesis — the underlying primitives are documented; the explicit access-scope guidance is the connecting framing. **Softened:** the absence of a published `launchpad:*` policy statement family is a current-state observation; the IAM catalog evolves and a future SaaS release may add explicit Launchpad scopes.</sub>
+*The absence of a published `launchpad:*` policy-statement family is a current-state observation rather than a documented guarantee — the IAM catalog evolves, and a future SaaS release may add explicit Launchpad scopes.*
+
+> <sub>**Sources:** [Launchpads (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/launchpads) — documents Document Service persistence with `type='launchpad'` and the API surface. [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — does not enumerate a Launchpad-specific service as of May 2026; verify when authoring policies. **Derived:** the "treat as a Document Service concern" guidance is community / engagement synthesis — the underlying primitives are documented; the explicit access-scope guidance is the connecting framing.</sub>
 
 <a id="recommended-approach"></a>
 ## 7. Recommended Approach

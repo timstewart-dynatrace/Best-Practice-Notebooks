@@ -451,7 +451,7 @@ With Dynatrace Intelligence (announced Perform 2026), workflows can now host **a
 ### Additional Resources
 
 - [Workflows Documentation](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
-- [Workflow Actions Reference](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/actions)
+- [Workflow Actions Reference](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 
 ---
 

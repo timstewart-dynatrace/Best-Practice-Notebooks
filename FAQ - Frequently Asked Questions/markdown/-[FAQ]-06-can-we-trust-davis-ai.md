@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 05/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -57,7 +57,7 @@ Dynatrace Intelligence is **not one AI** — it is four distinct surfaces with v
 
 **The headline:** the surfaces customers worry about most (data residency, model training, hallucination, runaway autonomy) all map primarily to the Generative AI surface — and that is also the surface where Dynatrace has applied the most explicit controls. The other three surfaces inherit the general platform posture (tenant isolation, IAM, audit) and add little incremental AI-specific risk.
 
-> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai), [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot). **Derived:** the four-surface taxonomy and risk-profile table is community / engagement framing — Dynatrace docs describe each capability individually but do not present this consolidated risk table.</sub>
+> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai). **Derived:** the four-surface taxonomy and risk-profile table is community / engagement framing — Dynatrace docs describe each capability individually but do not present this consolidated risk table.</sub>
 
 <a id="surface-map"></a>
 ## 2. The Four Davis AI Surfaces
@@ -85,7 +85,7 @@ A blanket "we use AI" statement collapses very different risk profiles into one 
 
 In community practice, the most productive framing in a security review is to walk the four surfaces explicitly and let the reviewer apply different scrutiny to each. Treating "Davis AI" as one thing usually leads to over-broad concerns about the low-risk surfaces and under-precise questions about the high-risk one.
 
-> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai), [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot), [Dynatrace AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability). **Derived:** the four-surface model and the "different risk per surface" framing is community / engagement-derived.</sub>
+> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai), [Dynatrace AI Observability (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability). **Derived:** the four-surface model and the "different risk per surface" framing is community / engagement-derived.</sub>
 
 <a id="residency"></a>
 ## 3. Data Residency and Tenant Isolation
@@ -112,7 +112,11 @@ This composite prompt is sent to a foundation model. The Dynatrace posture is th
 
 CoPilot inference is region-bound consistent with the rest of the platform — the same region your tenant data lives in is the region CoPilot operates in. For region-sensitive customers (EU data residency, FedRAMP), this is the load-bearing claim: CoPilot does not transport your prompts to a different region for inference.
 
-> <sub>**Sources:** [Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot/copilot-data-privacy) — verbatim: *"If your environment is located in EMEA, your prompts are processed in an EU region. If your environment is located in NORAM, LATAM, or APAC, your prompts are processed in a US region."* Prompts are routed to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock. Also: [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot), [Trusted AI — Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy) — verbatim: *"If your environment is located in EMEA, your prompts are processed in an EU region. If your environment is located in NORAM, LATAM, or APAC, your prompts are processed in a US region."* Prompts are routed to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock. Also:</sub>
+> - <sub>[Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai)</sub>
+> - <sub>[Trusted AI — Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/)</sub>
+> - <sub>[Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls)</sub>
 
 <a id="training-boundary"></a>
 ## 4. Model Training Boundary
@@ -137,7 +141,7 @@ Causal AI does not train. It is a deterministic graph algorithm — same inputs 
 
 A common confusion: "if CoPilot uses our tenant data to answer questions, isn't that training?" No. **Grounding (RAG) is reading; training is rewriting weights.** When CoPilot answers a question about your tenant, it retrieves relevant tenant context and includes it in the prompt for one specific answer — your data does not change the underlying model. The next user (in any tenant) does not get a model that has been altered by your data.
 
-> <sub>**Sources:** [Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot/copilot-data-privacy) — verbatim: *"Enterprise vendors don't use the prompts to fine-tune or improve any models or services, or to train models across customers or environments."* [Trusted AI — Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/) — verbatim: *"Causal AI and Predictive AI are trained only on the data of the specific customer using Dynatrace Intelligence"* and *"Humans control each phase of the Dynatrace Intelligence lifecycle."* The RAG-vs-training distinction is **Derived** synthesis of these two primary statements.</sub>
+> <sub>**Sources:** [Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy) — verbatim: *"Enterprise vendors don't use the prompts to fine-tune or improve any models or services, or to train models across customers or environments."* [Trusted AI — Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/) — verbatim: *"Causal AI and Predictive AI are trained only on the data of the specific customer using Dynatrace Intelligence"* and *"Humans control each phase of the Dynatrace Intelligence lifecycle."* The RAG-vs-training distinction is **Derived** synthesis of these two primary statements.</sub>
 
 <a id="hallucination"></a>
 ## 5. Hallucination and Accuracy Controls
@@ -168,7 +172,7 @@ This is the surface where hallucination is a real concern. Controls applied:
 
 The most reliable hallucination control is the *operator habit* of treating generative answers as drafts. In community practice, the teams that get the most value out of CoPilot use it for "first draft of a DQL query," "first pass at interpreting a problem," "first explanation of an unfamiliar feature" — and then verify. This is the same posture that applies to GenAI in software development generally and is not Dynatrace-specific.
 
-> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot), [DQL verify-dql (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language). **Derived:** the explicit hallucination-control table is community / engagement framing; the individual controls are documented but the consolidated set is not.</sub>
+> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai), [DQL verify-dql (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). **Derived:** the explicit hallucination-control table is community / engagement framing; the individual controls are documented but the consolidated set is not.</sub>
 
 <a id="autonomy"></a>
 ## 6. Autonomy Boundaries — Human-in-the-Loop
@@ -200,7 +204,7 @@ The platform's autonomy posture is: **AI surfaces produce findings and suggestio
 
 In community practice, the agentic-workflow conversation often comes up here: *can Davis act autonomously through Workflows?* The honest answer is *yes, if the customer configures it that way, and within the scopes the customer grants*. Davis CoPilot suggesting a workflow that, when executed, takes an automatic remediation is the same as any other workflow in the platform — governed by the workflow's own credentials, IAM scope, and configured triggers. The autonomy lives in the *customer's workflow configuration*, not in the AI.
 
-> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the "AI proposes, humans/workflows dispose" framing is community / engagement guidance — the underlying mechanics are documented; the explicit autonomy boundary is the synthesis.</sub>
+> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the "AI proposes, humans/workflows dispose" framing is community / engagement guidance — the underlying mechanics are documented; the explicit autonomy boundary is the synthesis.</sub>
 
 <a id="audit"></a>
 ## 7. Audit Trail and Explainability
@@ -230,7 +234,7 @@ For procurement reviews that ask "can we audit who asked Davis CoPilot what, and
 - Detect over-use of CoPilot for sensitive prompts (data egress monitoring on the prompt side).
 - Demonstrate to a regulator that AI-assisted actions trace back to human operators who reviewed them.
 
-> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot), [Dynatrace audit log (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs). **Derived + Softened:** the exact audit-event schemas for CoPilot interactions evolve — community-level guidance is "treat CoPilot interactions as auditable platform events"; the precise event names and retention should be verified against current docs.</sub>
+> <sub>**Sources:** [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai), [Dynatrace audit log (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs). **Derived + Softened:** the exact audit-event schemas for CoPilot interactions evolve — community-level guidance is "treat CoPilot interactions as auditable platform events"; the precise event names and retention should be verified against current docs.</sub>
 
 <a id="access-control"></a>
 ## 8. Access Control
@@ -263,7 +267,7 @@ Combined with the user's existing data-access scopes (storage, settings, entitie
 
 A security reviewer asking "can a junior engineer use CoPilot to ask about sensitive production data?" gets a precise answer: *only if that junior engineer can already see sensitive production data through normal IAM*. CoPilot is not a side channel.
 
-> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — verified May 2026, enumerates `davis-copilot:conversations:execute`, `davis-copilot:nl2dql:execute`, `davis-copilot:dql2nl:execute`, `davis-copilot:document-search:execute`, plus `davis:analyzers:read` and `davis:analyzers:execute`. Also: [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai/copilot). **Derived:** the user-scope-inherits framing combines the IAM model with CoPilot's RAG behavior; not stated as a single sentence in either source.</sub>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — verified May 2026, enumerates `davis-copilot:conversations:execute`, `davis-copilot:nl2dql:execute`, `davis-copilot:dql2nl:execute`, `davis-copilot:document-search:execute`, plus `davis:analyzers:read` and `davis:analyzers:execute`. Also: [Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai). **Derived:** the user-scope-inherits framing combines the IAM model with CoPilot's RAG behavior; not stated as a single sentence in either source.</sub>
 
 <a id="compliance"></a>
 ## 9. Compliance Posture
@@ -291,7 +295,7 @@ This mapping is community-level guidance for orientation. Authoritative EU AI Ac
 
 The NIST AI RMF's four functions (Govern, Map, Measure, Manage) map onto the Davis AI controls described in §§3–8: tenant-scoping addresses Govern/Map; confidence bands and audit trails address Measure; HITL and IAM address Manage. A security review that uses NIST AI RMF as its scoring rubric will find that Davis AI's existing controls already cover most of the rubric without additional customer configuration.
 
-> <sub>**Sources:** [Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/), [GDPR compliance (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/sensitive-data-center). **Derived:** the EU AI Act tier mapping and the NIST AI RMF mapping are community / engagement-level orientations — not Dynatrace's own legal positions. Treat as conversation-starters for a compliance review, not as definitive guidance.</sub>
+> <sub>**Sources:** [Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/), [GDPR compliance (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/sensitive-data-center). **Derived:** the EU AI Act and NIST AI RMF mappings are orientations for a compliance conversation, not Dynatrace's legal positions</sub>
 
 <a id="ai-observability"></a>
 ## 10. AI Observability for Customer GenAI Apps
@@ -348,7 +352,7 @@ Not every team should adopt every surface on day one. A rough maturity curve:
 
 In community practice, the pattern that produces the best outcomes is: **Causal AI + Predictive AI + read-only CoPilot adopted immediately; CoPilot-driven write actions through Workflows treated as an explicit governance decision per workflow.** This separates the value (which is mostly in the read surfaces) from the risk (which is mostly in autonomous writes) and lets each be evaluated on its own terms.
 
-> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/davis-ai), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the adopt/pilot/hold table is community / engagement framing — not Dynatrace's own recommendation.</sub>
+> <sub>**Sources:** [Davis AI overview (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the adopt/pilot/hold table is community / engagement framing — not Dynatrace's own recommendation.</sub>
 
 <a id="objections"></a>
 ## 12. Common Objections and Responses

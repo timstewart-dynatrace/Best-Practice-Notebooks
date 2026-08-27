@@ -161,7 +161,7 @@ Decide your primary-tag and host-group taxonomy *before* the first install — r
 ### Configuration Management
 
 For Ansible, Puppet, Chef, or other tools, see:
-- [Ansible Collection](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux#expand--oneagent-deployment-automation-with-ansible--2)
+- [Ansible Collection](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux)
 - [Puppet Module](https://forge.puppet.com/modules/dynatrace/dynatrace_oneagent)
 - [Chef Cookbook](https://supermarket.chef.io/cookbooks/dynatrace)
 
@@ -601,9 +601,9 @@ In this notebook, you learned:
 
 ## References
 
-- [OneAgent Overview](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent)
-- [Linux Installation](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux)
-- [Windows Installation](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows)
+- [OneAgent Overview](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent)
+- [Linux Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux)
+- [Windows Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows)
 - [Kubernetes Operator](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Deployment API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment)
 - [OneAgent Attribute Enrichment](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)

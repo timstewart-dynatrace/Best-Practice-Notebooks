@@ -329,7 +329,7 @@ This is the last of the core analysis notebooks in the BIZEV series. Across the 
 ### References
 
 - [Dynatrace Business Analytics](https://docs.dynatrace.com/docs/observe/business-observability)
-- [Dynatrace Dashboards](https://docs.dynatrace.com/docs/observe-and-explore/dashboards)
+- [Dynatrace Dashboards](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
 

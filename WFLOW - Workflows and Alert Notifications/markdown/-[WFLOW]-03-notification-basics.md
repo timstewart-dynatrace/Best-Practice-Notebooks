@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 08/27/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -213,7 +213,7 @@ input:
   connection: teams-production
   card:
     type: AdaptiveCard
-    $schema: "http://adaptivecards.io/schemas/adaptive-card.json"
+    $schema: "https://adaptivecards.io/schemas/adaptive-card.json"
     version: "1.4"
     body:
       - type: TextBlock
