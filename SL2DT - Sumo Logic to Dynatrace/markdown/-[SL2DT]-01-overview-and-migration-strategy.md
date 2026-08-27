@@ -275,11 +275,11 @@ If you're just here for a specific question:
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 
 ### Sumo Logic platform reference
-- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
-- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
-- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
-- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+- [Sumo Logic search operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/users-roles/)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

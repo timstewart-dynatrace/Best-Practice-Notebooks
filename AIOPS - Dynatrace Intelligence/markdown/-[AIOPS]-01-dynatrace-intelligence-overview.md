@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 07/30/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -120,7 +120,7 @@ fetch dt.davis.events, from:-1h
 
 **Reading the result:** Compare the two queries. The signal-to-problem ratio is the Causal AI compression factor — the higher the ratio, the more noise the platform is keeping off your alerting plate.
 
-> **Note on data objects:** `dt.davis.problems` carries grouped problems (`event.kind == "DAVIS_PROBLEM"`). `dt.davis.events` carries raw signals (`event.kind == "DAVIS_EVENT"`). They are sibling streams — older docs sometimes show `fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"`, but on modern tenants that returns zero rows. Always use `fetch dt.davis.problems` for problem-shaped queries.
+> **Note on data objects:** `dt.davis.problems` carries grouped problems (`event.kind == "DAVIS_PROBLEM"`). `dt.davis.events` carries raw signals (`event.kind == "DAVIS_EVENT"`). They are sibling streams. `fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"` returns zero rows — **not because the form was deprecated, but because it filters the wrong table**: `dt.davis.events` has only ever carried `DAVIS_EVENT`. It is a category error, so there is no migration to look for; use `fetch dt.davis.problems` for problem-shaped queries. Verified 08/27/2026: over 7 days `dt.davis.events` returned 206,023 rows, all `DAVIS_EVENT`, and 0 when filtered to `DAVIS_PROBLEM`, while `dt.davis.problems` returned 2,774.
 
 <a id="series-map"></a>
 ## 5. The Series Map

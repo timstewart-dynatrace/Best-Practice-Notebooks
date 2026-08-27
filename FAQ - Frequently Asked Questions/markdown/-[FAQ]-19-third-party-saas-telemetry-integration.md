@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 07/31/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -26,7 +26,6 @@ This entry covers **the reusable pattern**: how to choose an ingestion route fro
 8. [Where This Plugs Into the Rest of the Corpus](#downstream)
 9. [Recommended Approach](#recommended-approach)
 10. [Common Gotchas](#gotchas)
-11. [References](#references)
 
 ---
 
@@ -56,14 +55,14 @@ Four decisions carry almost all the weight, and they are best made in this order
 | **3. Topology** | Model the vendor's objects — the applications, the connectors, the edges, the regions — as `CUSTOM_*` Smartscape nodes. This is the decision that makes every later dashboard and alert better. See § 5 |
 | **4. Isolation** | Whatever you do retain goes in a **dedicated bucket** with its own permissions, not in `default_logs`. See § 6 |
 
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing), [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/smartscape-extraction). **Derived:** the four-decision ordering is this entry's framing — the platform imposes no order, but route constrains retention options and topology depends on fields that survive processing.</sub>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing), [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction). **Derived:** the four-decision ordering is this entry's framing — the platform imposes no order, but route constrains retention options and topology depends on fields that survive processing.</sub>
 
 ---
 
 <a id="signal-classes"></a>
 ## 2. Three Signal Classes, Three Different Answers
 
-The single most common mistake is treating a vendor integration as a *log* integration. Most SaaS platforms of this kind emit three distinct classes of signal, and they answer genuinely different questions. Deciding which questions you need answered — before you configure anything — is what keeps the project from becoming a log-volume problem.
+The single most common mistake is treating a vendor integration as a *log* integration. In community practice, most SaaS platforms of this kind emit three distinct classes of signal, and they answer genuinely different questions — the split below is a framing for deciding what to ingest, not a vendor-defined taxonomy, so check it against your own platform's catalogue. Deciding which questions you need answered — before you configure anything — is what keeps the project from becoming a log-volume problem.
 
 | Signal class | What it is | What it answers well | What it cannot answer |
 |---|---|---|---|
@@ -103,7 +102,12 @@ For environments where SVG doesn't render
 | **Nothing — pull only (REST API)** | **Scheduled poller** — a Dynatrace workflow, an extension, or a collector | Common for experience/score APIs. Watch for per-request time-window limits, which set your minimum poll frequency |
 | **Already flowing to a pipeline product** you run | **Multi-home** an additional output to Dynatrace | Usually the cleanest enterprise answer — see below |
 
-> <sub>**Sources:** [Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — Environment ActiveGate on Linux 1.295+ with an embedded OpenTelemetry Collector; multi-environment ActiveGates are not supported, [Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/collector/use-cases/syslog).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — Environment ActiveGate on Linux 1.295+ with an embedded OpenTelemetry Collector; multi-environment ActiveGates are not supported</sub>
+> - <sub>[Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/syslog)</sub>
+> - <sub>[Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)</sub>
+> - <sub>[Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)</sub>
+> - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly</sub>
 
 ### 3.1 The multi-home pattern — usually the right enterprise answer
 
@@ -175,7 +179,12 @@ For environments where SVG doesn't render
 
 **Use `No storage assignment` in the Storage stage** for the extract-then-discard pattern. The record runs the full gauntlet — parsed, metricized, topology-tagged, event-emitting — and is then simply not persisted. Reserve `Drop record` for records you want *gone*: health-check noise, a chatty debug category, a feed you enabled by mistake.
 
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order and both processor definitions quoted above, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — "skip the storage of logs that match the route and pipeline conditions"; useful "when you parse log lines and extract metrics, and access to original records is not needed", [Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction). **Derived:** the failure mode itself — that `Drop record` in stage 1 pre-empts the stage 2–5 extractors — follows from the documented stage order rather than from an explicit warning in the docs; validate on a narrow route before applying it broadly.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order and both processor definitions quoted above</sub>
+> - <sub>[Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — "skip the storage of logs that match the route and pipeline conditions"; useful "when you parse log lines and extract metrics, and access to original records is not needed"</sub>
+> - <sub>[Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction)</sub>
+> - <sub>[Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline) — worked extract-then-discard example</sub>
+> - <sub>**Derived:** the failure mode itself — that `Drop record` in stage 1 pre-empts the stage 2–5 extractors — follows from the documented stage order rather than from an explicit warning in the docs; validate on a narrow route before applying it broadly</sub>
 
 ### 4.2 Decide what is worth keeping, by class
 
@@ -221,7 +230,7 @@ Two behaviors sit behind one processor, and the difference matters:
 
 The dynamic-edge prerequisite is the one that bites. Both IDs must already be on the record when the edge processor runs — which means you calculate them earlier, with node processors in the node stage, even where you do not want those processors to create nodes.
 
-> <sub>**Sources:** [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/smartscape-extraction) — all quoted definitions, the `CUSTOM_`/`EXT_` naming constraint, and the static-vs-dynamic edge distinction, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — the worked node/edge processor configuration this section generalizes, [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail).</sub>
+> <sub>**Sources:** [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — all quoted definitions, the `CUSTOM_`/`EXT_` naming constraint, and the static-vs-dynamic edge distinction, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — the worked node/edge processor configuration this section generalizes, [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail).</sub>
 
 ### 5.2 A modeling checklist
 
@@ -242,7 +251,8 @@ Discover which custom types actually landed:
 ```dql
 // Which CUSTOM_* node types exist in this environment?
 // Returns zero rows if extraction has not produced any node yet — that is
-// the expected result before the pipeline runs, not an error.
+// the expected result before the pipeline runs, not an error. Confirm it is
+// really that, though: a zero here is also what a wrong node type looks like.
 smartscapeNodes "CUSTOM_*"
 | dedup type
 | fields type
@@ -251,23 +261,32 @@ smartscapeNodes "CUSTOM_*"
 Then inspect one type, and check for nodes that have stopped being refreshed:
 
 ```dql
-// Inspect extracted nodes of one custom type.
-// isNull(lifetime[end]) selects nodes that are still considered live —
-// invert it to find objects that have gone stale and may need alerting.
+// Inspect extracted nodes of one custom type, and keep only the live ones.
+//
+// lifetime[end] is a rolling "observed until" timestamp — it is ALWAYS populated,
+// even on a stale node, so it is not a tombstone. Verified 08/27/2026: of 12 HOST
+// nodes, isNull(lifetime[end]) matched 0 and isNotNull matched all 12. Null-testing
+// it selects nothing, always; the inverse selects everything. Compare against now().
 smartscapeNodes CUSTOM_APP_CONNECTOR
-| fields id, name, lifetime
-| filter isNull(lifetime[end])
+| fieldsAdd last_seen = lifetime[end]
+| filter last_seen > now() - 10m
+| fields id, name, last_seen
 ```
 
 Finally, confirm the relationships resolve. Prefer the full `traverse` syntax with named parameters — the short positional form is accepted but far less readable, and a wrong edge type returns empty rather than erroring:
 
 ```dql
 // Walk a custom relationship. Edge types are lowercase; node types are uppercase.
-// A wrong edge type returns zero rows with no error — verify against
-// smartscapeEdges if this comes back empty.
+//
+// traverse REPLACES the record with the target node's own fields — id, name, type.
+// There is no sourceName or targetName: DQL resolves unknown identifiers to null
+// WITHOUT raising FIELD_DOES_NOT_EXIST, so selecting them returns the right number
+// of rows with every value empty and no error to tell you (verified 08/27/2026).
+// A wrong edge type likewise returns zero rows with no error — check smartscapeEdges
+// if this comes back empty.
 smartscapeNodes CUSTOM_SECURE_ACCESS_APP
 | traverse edgeTypes: {served_by}, targetTypes: {CUSTOM_APP_CONNECTOR}, direction: forward
-| fields app = sourceName, connector = targetName
+| fields id, name, type
 ```
 
 ---
@@ -285,6 +304,8 @@ Where § 4 concluded "retain this raw," the record needs somewhere to go that is
 Bucket permissions are assigned per bucket through Account Management rather than through general environment roles — which is precisely the property that makes the isolation meaningful.
 
 Once the bucket exists, confirm records are landing where you intended, and keep an eye on the volume you have committed to:
+
+> <sub>**Sources:** [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — per-bucket retention and route-based storage assignment, [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Permissions can be assigned at the bucket, table, record, and field level"*, which is what makes a dedicated bucket a real isolation boundary. **Derived:** the exposure argument for a dedicated bucket combines per-bucket permissioning with the identity content of these feeds; no page frames it as a vendor-feed rule.</sub>
 
 ```dql
 // Confirm retained records are landing in the dedicated bucket, not the default.
@@ -332,6 +353,8 @@ Two rules make this durable:
 For feeds that are not JSON, parsing happens here too — see **FAQ-15** for DPL, and note especially that DPL does not backtrack, which trips up patterns ported from regex.
 
 ---
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — the Processing stage is where field renames happen, and it runs before the extraction stages, [Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction), [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — ID components are read at extraction time, which is what makes normalize-before-extract load-bearing. **Derived:** the canonical-dimension list is this entry's recommendation, not a documented set.</sub>
 
 <a id="downstream"></a>
 ## 8. Where This Plugs Into the Rest of the Corpus
@@ -390,30 +413,6 @@ A defensible sequence. The ordering is deliberate — each step's output is the 
 | 10 | **Shipping only the access logs** because they were the easy feed, then discovering they cannot answer experience questions | Map questions to signal classes first (§ 2) |
 
 ---
-
-<a id="references"></a>
-## 11. References
-
-**OpenPipeline — processing, extraction, storage**
-
-- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` / `No storage assignment` definitions behind § 4.1
-- [Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction)
-- [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/use-cases/tutorial-log-processing-pipeline)
-- [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
-
-**Smartscape topology from ingested signals**
-
-- [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/smartscape-extraction) — the authoritative reference for § 5
-- [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example
-- [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
-
-**Ingestion routes**
-
-- [Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog)
-- [Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/collector/use-cases/syslog)
-- [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)
-- [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)
-- [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/)
 
 ---
 

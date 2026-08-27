@@ -239,7 +239,7 @@ Skip those rows rather than sending an unattributed event for them. An event you
 
 To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks them by firing count and shows which are unattributed; AIOPS-03 §1 covers the correlation rules themselves, and ALERT-99 §3 explains which Davis data object to count when you audit.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` is optional, and "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the skip-unresolvable-rows rule combines the correlation requirement with the measured resolution gap in the table above.</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` is optional, and "If not set, the event is associated with the environment (`dt.entity.environment`) entity." **Derived:** the skip-unresolvable-rows rule combines the correlation requirement with the measured resolution gap in the table above.</sub>
 
 <a id="schedule-configuration"></a>
 ## Schedule Configuration

@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -472,7 +472,7 @@ smartscapeNodes "HOST"
 // liveness via node lifetime).
 ```
 
-Expected: Every node in your cluster should appear with the `host_group` matching your `<cluster-name>` value from the DynaKube.
+Expected: every node in your cluster appears, with `dt.host_group.id` matching the `<cluster-name>` value from your DynaKube.
 
 ### 9.3 Verify Container Metrics Are Flowing
 

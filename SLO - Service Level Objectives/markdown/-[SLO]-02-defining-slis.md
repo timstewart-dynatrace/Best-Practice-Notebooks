@@ -160,7 +160,7 @@ An SLI query that returns nothing — wrong field name, wrong `span.kind` case, 
 
 This notebook-as-scratchpad discipline is the single best defence against a dashboard full of SLOs that read "no data."
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language). All queries validated against a live tenant 06/16/2026.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All queries validated against a live tenant 06/16/2026.</sub>
 
 ---
 

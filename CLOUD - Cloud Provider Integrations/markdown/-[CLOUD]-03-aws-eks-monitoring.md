@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -68,7 +68,7 @@ The Dynatrace Operator (DynaKube) is the recommended way to monitor EKS workload
 ### DynaKube Configuration for EKS
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -95,6 +95,8 @@ spec:
 - Enable **kubernetes-monitoring** capability on ActiveGate for cluster-level metrics
 - Use **nodeSelector** to exclude Windows nodes if running mixed clusters
 - Consider **resource limits** to prevent OneAgent from consuming excessive node resources
+
+> <sub>**Sources:** [Kubernetes setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s) — the Operator/DynaKube deployment model, [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the deployment modes and the API versions; the worked YAML here targets `v1beta6` (see K8S-02 § 4 for the served-version table — `v1beta4` stopped being served in Operator 1.10.0), [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — the EKS side of the connection.</sub>
 
 <a id="node-groups"></a>
 

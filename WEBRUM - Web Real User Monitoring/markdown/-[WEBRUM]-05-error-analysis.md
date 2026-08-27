@@ -308,7 +308,7 @@ In this notebook, we covered:
 
 ### References
 
-- [Configure error detection for web applications (DT docs)](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/additional-configuration/configure-errors)
+- [Configure error detection for web applications (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/configure-errors)
 - [User actions in RUM Classic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/rum-concepts/user-actions)
 
 ---

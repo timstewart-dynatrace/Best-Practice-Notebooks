@@ -413,7 +413,7 @@ print(r1.status_code, r2.status_code, r3.status_code)
 
 - **IAM-04** Policy Authoring (verified statement syntax) · **IAM-05** Boundary Design · **IAM-10** Templated Policy Assignments · **IAM-12** API Provisioning scripts (curl flavor) · **IAM-95** Terraform lab (same pattern as IaC)
 - **MZ2POL series** — migrating off Management Zones onto this pattern
-- Full-featured utility built on exactly these calls — dry-run CLI, idempotent re-runs, delete helpers: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-IAM-Utility-3.0)
+- Full-featured utility built on exactly these calls — dry-run CLI, idempotent re-runs, delete helpers: [Python-IAM-Utility-3.0 (dtiam)](https://github.com/timstewart-dynatrace/Python-dtiam)
 
 ---
 

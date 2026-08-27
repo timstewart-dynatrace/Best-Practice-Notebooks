@@ -318,9 +318,9 @@ In this notebook, we covered:
 
 ### References
 
-- [Dynatrace RUM Overview](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/setup-and-configuration)
-- [RUM JavaScript version (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/web-frontends/additional-configuration/rum-javascript-version)
-- [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/new-rum-experience/analyze-and-alert/rum-dql-web-performance)
+- [Dynatrace RUM Overview](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications)
+- [RUM JavaScript version (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/additional-configuration/rum-javascript-version)
+- [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance)
 
 ---
 

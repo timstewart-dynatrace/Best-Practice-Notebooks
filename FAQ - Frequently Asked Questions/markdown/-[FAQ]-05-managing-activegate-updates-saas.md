@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/24/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -94,7 +94,12 @@ The general lesson generalises past this one property pair: a capability announc
 
 > **Fleet Management.** A centralized console for OneAgent, ActiveGate, and network-zone management at scale, with purpose-built ActiveGate views for deployment health and upgrade scheduling, was introduced around SaaS 1.343 (July 2026). **Its documentation page still carried a "Coming soon" banner when checked in July 2026**, so verify current GA status and feature scope against the [Fleet Management documentation (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management) and your tenant's release notes before planning around it — availability may vary. Once available in your tenant, fleets beyond a handful of AGs should plan updates from Fleet Management rather than per-AG settings pages; until then, per-AG settings remain the working model.
 
-> <sub>**Sources:** [API changelog 1.342 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-342) — `targetVersion` / `updateWindows` added to the Cluster API v2 ActiveGate `autoUpdate` schemas, [API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — both properties removed again across the six endpoints; per-AG read-only status changed, [SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343), [Fleet Management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management) — "Coming soon" banner as checked 07/08/2026. **Derived:** the "remove both properties from request bodies before the change lands" instruction follows from the 1.344 schema removal plus the staged-rollout model.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[API changelog 1.342 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-342) — `targetVersion` / `updateWindows` added to the Cluster API v2 ActiveGate `autoUpdate` schemas</sub>
+> - <sub>[API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — both properties removed again across the six endpoints; per-AG read-only status changed</sub>
+> - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343)</sub>
+> - <sub>[Fleet Management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management) — "Coming soon" banner as checked 07/08/2026</sub>
+> - <sub>**Derived:** the "remove both properties from request bodies before the change lands" instruction follows from the 1.344 schema removal plus the staged-rollout model</sub>
 
 <a id="modes"></a>
 ## 3. The Auto-Update vs Manual Decision
@@ -214,9 +219,9 @@ AWS, Azure, and GCP integration connectors are bundled with the AG. Connector be
 - Auto-update availability check runs every ~30 minutes.
 - Rollback is uninstall + reinstall of the older installer — no in-place downgrade.
 
-> <sub>**Sources:**</sub>
-> - <sub>[Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — per-AG update mechanic, one-click update, availability check interval.</sub>
-> - <sub>The per-role validation guidance is community / engagement-derived — Dynatrace docs describe each role's setup but do not document a per-role post-update validation checklist.</sub>
+*In community practice the per-role validation below is the checklist teams converge on; Dynatrace documents each role's setup but publishes no post-update validation list, so treat it as a starting point.*
+
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — per-AG update mechanic, one-click update, availability check interval.</sub>
 
 <a id="validation"></a>
 ## 7. Validation After Update
@@ -280,11 +285,9 @@ In community practice, rollback is usually a containment move while the underlyi
 | **Not validating cloud connectors after an update.** | Connector behavior is usually stable; teams skip the check. | Glance at connector status pages and ingest-lag for cloud metrics post-update — it's a 60-second check that catches the rare regression. |
 | **Automating Managed AG auto-update against `targetVersion` / `updateWindows`.** | Both properties were added to the Cluster API v2 `autoUpdate` endpoints in 1.342 and read as a stable capability. | API 1.344 removes both again. Strip them from request bodies before the change reaches your cluster (§2). On SaaS the properties never existed — per-AG settings are the control surface. |
 
-> <sub>**Sources:**</sub>
-> - <sub>[Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — update mechanic and check interval.</sub>
-> - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983.</sub>
-> - <sub>[API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — `targetVersion` / `updateWindows` removed from the Cluster API v2 ActiveGate `autoUpdate` endpoints.</sub>
-> - <sub>The remaining items are community / engagement-derived patterns — observed across fleets to be worth flagging, not formally documented as anti-patterns.</sub>
+*In community practice the remaining items are observed across fleets often enough to flag; none is documented by Dynatrace as an anti-pattern.*
+
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — update mechanic and check interval., [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983., [API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — `targetVersion` / `updateWindows` removed from the Cluster API v2 ActiveGate `autoUpdate` endpoints.</sub>
 
 <a id="recommendation"></a>
 ## 10. Recommended Approach

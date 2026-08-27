@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -46,7 +46,7 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 
 > **Important — what is deprecated, precisely:** the `dynatrace-aws-log-forwarder` Lambda function, on the **CloudWatch Subscription Filter → Lambda → Dynatrace API** path, is **deprecated** and will not receive further updates. For new **CloudWatch** log forwarding, use **Amazon Data Firehose**; existing deployments of that forwarder should plan migration to Firehose.
 >
-> **This is not a prohibition on Lambda-based log forwarding.** It retires one named component serving one source. The **S3 direct-ingestion** path is a *different*, Dynatrace-maintained Lambda forwarder reading a *different* source, and it is supported — forthcoming / rolling out with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) (published 07/27/2026, staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.
+> **This is not a prohibition on Lambda-based log forwarding.** It retires one named component serving one source. The **S3 direct-ingestion** path is a *different*, Dynatrace-maintained Lambda forwarder reading a *different* source, and it is supported — forthcoming / rolling out with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) (staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.
 
 ### Cross-Cloud Log Forwarding
 
@@ -58,7 +58,7 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 
 ### Architecture Overview
 
-![CloudWatch Log Ingestion Flow](images/cloudwatch-log-ingestion-flow.png)
+![CloudWatch Log Ingestion Flow](images/07-cloudwatch-log-ingestion-flow.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Component | Description |
@@ -143,7 +143,7 @@ For logs already stored in S3 (e.g., ALB access logs, CloudTrail, VPC Flow Logs)
 | **Parsing** | Out-of-the-box parsing for common AWS log formats |
 | **Multi-region** | Supports cross-region and multi-account setups |
 
-> **Forthcoming / rolling out (SaaS 1.344):** the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — published 07/27/2026, **staged tenant rollout** from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, the **customer-deployed S3 serverless pattern** (your own Lambda or container reading S3 objects and posting to the log ingest API) remains the working path. The parsing, multi-region and multi-account guidance above applies to **both**.
+> **Forthcoming / rolling out (SaaS 1.344):** the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — **staged tenant rollout** from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, you do not have to build one: **[dynatrace-aws-s3-log-forwarder (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder)** is Dynatrace-published and actively maintained (verified not archived, 08/27/2026), with out-of-the-box parsing for ELB, CloudFront, CloudTrail, VPC Flow, WAF and MSK, plus cross-region and multi-account rules. ⚠️ **Do not confuse it with `dynatrace-aws-log-forwarder`** — one token shorter, and **archived** (last commit 01/2025). The two names differ by `s3-`, and picking the wrong one lands you on a dead project. The parsing, multi-region and multi-account guidance above applies to **both**.
 
 ### Lambda Log Collection
 

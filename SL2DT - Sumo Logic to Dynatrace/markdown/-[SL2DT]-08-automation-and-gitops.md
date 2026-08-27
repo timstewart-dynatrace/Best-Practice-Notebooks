@@ -578,14 +578,14 @@ jobs:
 - [Terraform configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform)
 - [Monaco configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 - [Dynatrace Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
-- [Monaco (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-monitoring-as-code)
+- [Monaco (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code)
 - [API authentication (DT docs)](https://docs.dynatrace.com/docs/shortlink/api-authentication)
 - [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
 
 ### Sumo Logic automation (source)
 - [Sumo Logic Terraform provider (Terraform Registry)](https://registry.terraform.io/providers/SumoLogic/sumologic/latest/docs)
-- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
+- [Sumo Logic API (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/api/)
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

@@ -1,6 +1,6 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
@@ -136,7 +136,7 @@ Span → generates Event → Event triggers Metric → Metric drives SLO
 // Identify slow transactions that could trigger a cascade
 fetch spans, from:-1h
 | filter span.kind == "server" and duration > 5000000000
-| summarize slow_count = count(), avg_duration_ms = avg(duration / 1ms),
+| summarize {slow_count = count(), avg_duration_ms = avg(duration / 1ms)},
     by:{service.name}
 | sort slow_count desc
 | limit 10
@@ -264,9 +264,9 @@ You have completed the OPIPE series. From here:
 <a id="references"></a>
 ## References
 
-- [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Grail Data Lakehouse](https://docs.dynatrace.com/docs/platform/grail)
-- [DQL Cross-Data Queries](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Grail data lakehouse (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
+- [DQL cross-data queries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
 
 ---

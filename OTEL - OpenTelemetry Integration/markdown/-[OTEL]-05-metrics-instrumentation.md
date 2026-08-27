@@ -583,7 +583,7 @@ In this notebook, you learned:
 ## References
 
 - [OTel Metrics Specification](https://opentelemetry.io/docs/specs/otel/metrics/)
-- [OTel Python Metrics](https://opentelemetry.io/docs/instrumentation/python/manual/#metrics)
+- [OTel Python Metrics](https://opentelemetry.io/docs/languages/python/instrumentation/)
 - [Dynatrace OTLP Metrics Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics)
 - [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
 

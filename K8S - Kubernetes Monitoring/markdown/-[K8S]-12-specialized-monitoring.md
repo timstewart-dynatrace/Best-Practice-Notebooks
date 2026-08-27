@@ -570,7 +570,7 @@ In this notebook, you learned:
 - [NGINX instrumentation (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/instrument-nginx)
 - [Storage / CSI driver (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/storage)
 - [Dynatrace Operator Helm chart (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml)
-- [Telemetry ingest with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/opentelemetry-ingest)
+- [Telemetry ingest with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
 - [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd)
 - [StatsD via OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/statsd)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)

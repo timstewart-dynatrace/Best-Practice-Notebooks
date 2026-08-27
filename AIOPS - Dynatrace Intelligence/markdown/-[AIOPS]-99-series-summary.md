@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -54,12 +54,26 @@ fetch dt.davis.problems, from:-2h
 | limit 50
 ```
 
-**Problem severity rollup — 7 days:**
+**Problem category rollup — 7 days:**
 
 ```dql
 fetch dt.davis.problems, from:-7d
 | summarize problem_count = count(), by:{event.category}
 | sort problem_count desc
+```
+
+**Problem severity rollup — 7 days:** a different axis from category, and the one AIOPS-03 § 5 treats as
+distinct. Note `event.severity` is typed **`experimental`** in the semantic dictionary — fine for triage,
+not something to hard-code an integration against.
+
+```dql
+fetch dt.davis.problems, from:-7d
+| fieldsAdd severity_label = if(event.severity == 1, "1 - critical",
+                             else: if(event.severity == 2, "2 - high",
+                             else: if(event.severity == 3, "3 - medium",
+                             else: if(event.severity == 4, "4 - low", else: "5 - info"))))
+| summarize problem_count = count(), by:{event.severity, severity_label}
+| sort event.severity asc
 ```
 
 **MTTR by category — 30 days:**

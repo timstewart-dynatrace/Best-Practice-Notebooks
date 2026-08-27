@@ -384,7 +384,7 @@ In this notebook, we covered:
 ### References
 
 - [Apdex Standard](https://www.apdex.org/)
-- [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/platform-modules/digital-experience/web-applications/analyze-and-use)
+- [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use)
 - [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
 
 ---

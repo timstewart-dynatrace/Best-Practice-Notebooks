@@ -156,7 +156,7 @@ The Dynatrace Slack action authenticates as a Slack app (bot token), not as a us
 3. **Install to workspace** — the same page. Slack issues a **Bot User OAuth Token** (the workspace-scoped token a workflow uses). Bot tokens conventionally begin with `xoxb-`; verify the prefix on issue and store the literal value, not the prefix family.
 4. **Create the Dynatrace Connection** — *Settings → Integrations → Connections → + Connection → Slack*, paste the bot token, save under a descriptive name (e.g. `slack-prod-alerts`).
 
-> <sub>**Slack docs:** [chat.write scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write) — *"Send messages as your Slack app"*; [chat.write.public scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write.public) — allows posting to channels the app isn't a member of, requires `chat:write` too.</sub>
+> <sub>**Slack docs:** [chat.write scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write/) — *"Send messages as your Slack app"*; [chat.write.public scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write.public/) — allows posting to channels the app isn't a member of, requires `chat:write` too.</sub>
 
 **Token type choice:** prefer the Bot Token (OAuth app, the path above) over an Incoming Webhook URL. Webhooks are pinned to one channel and lose the ability to update / delete / thread messages, react with emoji, or use Block Kit interactivity. WFLOW-03 documents the webhook variant for the minimal case; production Slack integrations should use the OAuth app.
 
@@ -206,7 +206,7 @@ The push toward OAuth is **policy-driven, not platform-driven**:
 - `personalize_choices` if the workflow sets choice-list values that aren't in the default options.
 - *Avoid `admin`.* WFLOW-05 §4 already calls out least-privilege; ServiceNow tightens it further: the integration user should only see the tables the workflow updates.
 
-> <sub>**ServiceNow docs:** [REST API authentication (ServiceNow Docs)](https://www.servicenow.com/docs/bundle/yokohama-api-reference/page/integrate/inbound-rest/concept/c_RESTAPI.html) — both OAuth 2.0 inbound and Basic Authentication remain documented; no platform-wide deprecation notice as of May 2026. Verify against your instance's release notes before assuming Basic Auth is permanent.</sub>
+> <sub>**ServiceNow docs:** [REST API authentication (ServiceNow Docs)](https://www.servicenow.com/docs/r/yokohama/api-reference/rest-api-explorer/c_RESTAPI.html) — both OAuth 2.0 inbound and Basic Authentication remain documented; no platform-wide deprecation notice as of May 2026. Verify against your instance's release notes before assuming Basic Auth is permanent.</sub>
 
 ### 3.4 Rotation Patterns Without Breaking In-Flight Workflows
 
@@ -847,12 +847,12 @@ You've completed the WFLOW series. You now have the knowledge to:
 - [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
 - [Identity and Access Management umbrella (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Manage user permissions / boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop)
-- [Slack chat.write scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write)
-- [Slack chat.write.public scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write.public)
+- [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop/)
+- [Slack chat.write scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write/)
+- [Slack chat.write.public scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write.public/)
 - [PagerDuty Services and integrations (PagerDuty Support)](https://support.pagerduty.com/main/docs/services-and-integrations)
 - [PagerDuty Events API v2 overview (PagerDuty Developer)](https://developer.pagerduty.com/docs/events-api-v2-overview)
-- [ServiceNow inbound REST API (ServiceNow Docs)](https://www.servicenow.com/docs/bundle/yokohama-api-reference/page/integrate/inbound-rest/concept/c_RESTAPI.html)
+- [ServiceNow inbound REST API (ServiceNow Docs)](https://www.servicenow.com/docs/r/yokohama/api-reference/rest-api-explorer/c_RESTAPI.html)
 
 ---
 

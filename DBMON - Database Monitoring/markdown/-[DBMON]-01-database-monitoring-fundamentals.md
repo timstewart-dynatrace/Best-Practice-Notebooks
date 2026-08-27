@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -202,6 +202,8 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 > **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Db2 database naming switched to mixed case, so saved DQL or filters that match Db2 *entity or database names* case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
 
+> <sub>**Sources:** [Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — the per-technology support index, [.NET technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/dotnet) — the .NET client-library matrix behind the Redis example, [What's new in OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — StackExchange.Redis auto-instrumentation, [What's new in OneAgent 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — ServiceStack.Redis auto-instrumentation. **Derived:** the per-client-library-not-per-database framing generalizes the Redis pair; no single page states it as a rule.</sub>
+
 ```dql
 // Discover which database technologies are active in your environment
 fetch spans, from:-24h
@@ -241,13 +243,15 @@ While OneAgent captures database calls from the application side (client spans),
 | **Oracle** | Sessions, tablespace usage, SGA/PGA memory, redo log waits, library cache hit ratio |
 | **MongoDB** | Connections, operations/sec, document metrics, replica set health, storage engine stats |
 
-> **Note:** Extensions 2.0 require a **host-based ActiveGate**, not a Kubernetes-based deployment. See the Dynatrace documentation for extension installation procedures.
+> **Note:** the SQL / Prometheus / SNMP data sources these database extensions use run on an **Environment (host-based) ActiveGate**, which is the deployment to plan for. Support for other ActiveGate deployments varies by data source and is not stated in one place — **verify against the extension's own Hub/docs page for your deployment** rather than assuming. This entry previously said a Kubernetes-based ActiveGate is *"not supported"*; that flat negative is not something the documentation states, so it has been removed rather than replaced with a different unsourced claim (corrected 08/27/2026).
 
 ### Where to Go Deeper
 
 - **AUTOM series** (11 notebooks) — GitOps / Monaco / Terraform automation for extension deployment at scale
 - **ORGNZ-02** — Bucket strategy (including `default_database_monitoring`)
 - **IAM-04 / IAM-05** — Policy design that scopes extension log access by bucket
+
+> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model; note recent pages say simply *"Extensions"* and mean 2.0, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than from a single page — re-confirm before planning a migration around them.</sub>
 
 ### Where Extension Logs Land in Grail
 
@@ -262,9 +266,11 @@ fetch logs, from:-1h
 
 Grant `storage:bucket.default_database_monitoring:read` to roles that need to query this bucket.
 
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — introduces the `default_database_monitoring` bucket, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — extension log routing. **Derived:** the bucket-scoped IAM recommendation applies ORGNZ-02's per-bucket permission model to this bucket.</sub>
+
 ### Dynatrace Database App — Analysis-First Observability
 
-Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. As of August 2026 it is generally available for **PostgreSQL and MySQL**, with additional database technologies planned.
+Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as **available for PostgreSQL and MySQL**, with support for additional technologies coming soon. (The announcement and docs page carry no **GA** or preview label — that lifecycle term is not applied by any source, so it is not used here.)
 
 The app evaluates each monitored database instance across five areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** (0–100) — and surfaces AI-generated remediation suggestions backed by Dynatrace Intelligence.
 
@@ -278,7 +284,7 @@ The app evaluates each monitored database instance across five areas — configu
 
 Treat the app as a triage front end, not a replacement for the span- and extension-level analysis in this series — the DQL patterns in DBMON-01/05/06 remain the way to build the custom dashboards, alerts, and SLOs the app's UI doesn't cover.
 
-> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/), [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/applications-and-microservices/databases/database-app).</sub>
+> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/) — the announcement is the **only** source for the vendor list (PostgreSQL, MySQL), the five analysis areas, the 0–100 Health Score scale and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — supports the app's existence, its prerequisites and the health-score concept in general terms only. Re-read at source 08/27/2026: the previously cited `…/applications-and-microservices/databases/database-app` path now redirects here, and this page names no vendors, no GA label and none of the five areas — so the earlier placement implied documentation backing it does not carry.</sub>
 
 <a id="baseline-database-metrics"></a>
 

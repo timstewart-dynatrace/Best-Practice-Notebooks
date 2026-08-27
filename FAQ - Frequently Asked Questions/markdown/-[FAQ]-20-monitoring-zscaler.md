@@ -1,6 +1,6 @@
 # FAQ-20: How Do I Monitor Zscaler With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 07/31/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ The starting position in most organizations is worse than it needs to be. The th
 
 Two things about this integration are worth knowing before you plan it, because both are commonly assumed the other way:
 
-- **There is no turnkey Dynatrace integration for Zscaler.** No Hub listing, no extension to activate. You are building and owning this — a normal position, but one to decide deliberately rather than discover in week three.
+- **There is no turnkey Dynatrace integration for Zscaler.** As of 08/2026 the Dynatrace Hub lists no Zscaler integration and there is no extension to activate — checked against the Hub catalogue; the Hub's search is client-side rendered, so treat this as a dated check rather than a permanent fact and re-verify before planning around it. You are building and owning this — a normal position, but one to decide deliberately rather than discover in week three.
 - **The three product lines do not share a transport.** ZIA can push over HTTPS; ZPA cannot; ZDX is pull-only. A single ingestion design will not serve all three.
 
 This entry is the **worked example of FAQ-19**. Every structural decision — route, retention, topology, isolation — is made there generically; here they are made concretely for Zscaler. Read FAQ-19 first if you want the reasoning; read this if you want the answers.
@@ -33,7 +33,6 @@ This entry is the **worked example of FAQ-19**. Every structural decision — ro
 12. [Administrator Checklist](#checklist)
 13. [Recommended Approach](#recommended-approach)
 14. [Common Gotchas](#gotchas)
-15. [References](#references)
 
 ---
 
@@ -133,6 +132,8 @@ ZDX is the only one of the three that closes the experience gap, because it meas
 
 ZDX covers customer-defined applications alongside predefined ones such as Microsoft 365, Salesforce, ServiceNow, Zoom, and Box.
 
+> <sub>**Sources:** [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — ZPA log types and the raw TCP/TLS receiver transport, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems) — the ZIA HTTPS push feed, [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 pull and the two-hour report window. **Derived:** the *cannot answer* column is this entry's reading of what each plane's vantage point excludes — no Zscaler page states the exclusions as such.</sub>
+
 ### 3.4 Which plane answers which question
 
 | Question | ZPA logs | ZIA logs | ZDX | How to combine them |
@@ -146,7 +147,11 @@ ZDX covers customer-defined applications alongside predefined ones such as Micro
 
 **The honest conclusion.** Without ZDX, you can build a genuinely good access, traffic, and infrastructure-health integration — and you cannot build user-experience monitoring. Scope the project on that basis rather than discovering it at the demo.
 
-> <sub>**Sources:** [Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields), [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — the log-type codes cited in § 3.1, [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — ZDX Score 0–100 aggregated by user, application, location, and department, [Zscaler Digital Experience reference architecture (Zscaler)](https://help.zscaler.com/downloads/zdx/reference-architecture/zscaler-digital-experience-zdx/zscaler-digital-experience-zdx-reference-architecture.pdf).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields)</sub>
+> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — the log-type codes cited in § 3.1</sub>
+> - <sub>[Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — ZDX Score 0–100 aggregated by user, application, location, and department</sub>
+> - <sub>[Zscaler Digital Experience reference architecture (Zscaler)](https://help.zscaler.com/downloads/zdx/reference-architecture/zscaler-digital-experience-zdx/zscaler-digital-experience-zdx-reference-architecture.pdf)</sub>
 
 ---
 
@@ -188,7 +193,12 @@ Practical consequences:
 - **Backfill is a loop, not a parameter.** Seeding history means iterating windows — build that in rather than bolting it on.
 - **Credential expiry is a silent failure.** Nothing in Dynatrace knows the ZDX poller stopped. Alert on the *absence* of the ZDX metrics you extract, not just on their values.
 
-> <sub>**Sources:** [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming), [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 client credentials, credentials under Administration → API Management, and the two-hour report window, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems), [Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog). **Derived:** the "collector hop required" conclusion for ZPA follows from LSS offering only raw TCP/TLS against a Dynatrace ingest API that requires HTTPS with an authorization header — neither vendor states the combination.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming)</sub>
+> - <sub>[Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 client credentials, credentials under Administration → API Management, and the two-hour report window</sub>
+> - <sub>[Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems)</sub>
+> - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog)</sub>
+> - <sub>**Derived:** the "collector hop required" conclusion for ZPA follows from LSS offering only raw TCP/TLS against a Dynatrace ingest API that requires HTTPS with an authorization header — neither vendor states the combination</sub>
 
 ---
 
@@ -268,6 +278,8 @@ Zscaler logs carry user identity, destination, device, policy, and application c
 **Normalize before you extract.** Zscaler's feeds disagree with each other about field names — `appname` in ZIA web logs, `Application` in ZPA User Activity, an application field again in the ZDX API response. Rename all three into a single canonical `app` dimension in the Processing stage. Metric dimensions and Smartscape ID components are computed from fields as they stand at their stage, so renaming afterwards leaves metrics dimensioned on the old names with no way to retrofit them.
 
 Because ZIA web logs are frequently templated rather than JSON, a parsing example is worth having in hand. This runs as-is and scans nothing:
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` versus `No storage assignment` behaviour this table depends on, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — route-based storage assignment and per-bucket retention. **Derived:** the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub>
 
 ```dql
 // DPL parse of a templated ZIA-style web log line.
@@ -350,6 +362,8 @@ The highest-leverage design decision in this integration, and the one that pays 
 
 Verify the model exists before building on it — `smartscapeNodes` returns zero rows rather than an error for a type that was never extracted, so an empty result proves only that the query is valid:
 
+> <sub>**Sources:** [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — `CUSTOM_*` node and edge extraction, ID components, and the requirement that both IDs be present on the record before an edge processor runs, [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology) — end-to-end worked example. **Derived:** the five-node Zscaler model is this entry's proposal, not a documented reference architecture.</sub>
+
 ```dql
 // Which Zscaler node types has extraction actually produced?
 // Zero rows before the pipeline runs is expected, not an error.
@@ -359,21 +373,33 @@ smartscapeNodes "CUSTOM_*"
 ```
 
 ```dql
-// Live App Connectors. Invert the filter — isNotNull(lifetime[end]) — to find
-// connectors that have stopped reporting, which is the disconnect signal
-// worth alerting on.
+// Live App Connectors. To find connectors that have STOPPED reporting — the
+// disconnect signal worth alerting on — invert the COMPARISON (last_seen <
+// now() - 10m), not a null test.
+//
+// lifetime[end] is a rolling "observed until" timestamp — it is ALWAYS populated,
+// even on a stale node, so it is not a tombstone. Verified 08/27/2026: of 12 HOST
+// nodes, isNull(lifetime[end]) matched 0 and isNotNull matched all 12. Null-testing
+// it selects nothing, always; the inverse selects everything. Compare against now().
 smartscapeNodes CUSTOM_APP_CONNECTOR
-| fields id, name, lifetime
-| filter isNull(lifetime[end])
+| fieldsAdd last_seen = lifetime[end]
+| filter last_seen > now() - 10m
+| fields id, name, last_seen
 ```
 
 ```dql
 // Which connectors serve which private applications.
-// Node types uppercase, edge types lowercase. A wrong edge type returns zero
-// rows with no error — check smartscapeEdges if this comes back empty.
+// Node types uppercase, edge types lowercase.
+//
+// traverse REPLACES the record with the target node's own fields — id, name, type.
+// There is no sourceName or targetName: DQL resolves unknown identifiers to null
+// WITHOUT raising FIELD_DOES_NOT_EXIST, so selecting them returns the right number
+// of rows with every value empty and no error to tell you (verified 08/27/2026).
+// A wrong edge type likewise returns zero rows with no error — check smartscapeEdges
+// if this comes back empty.
 smartscapeNodes CUSTOM_SECURE_ACCESS_APP
 | traverse edgeTypes: {served_by}, targetTypes: {CUSTOM_APP_CONNECTOR}, direction: forward
-| fields app = sourceName, connector = targetName
+| fields id, name, type
 ```
 
 ---
@@ -568,27 +594,6 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 | 14 | **Treating the field mapping in § 8 as a specification.** Names vary by feed type, template, and account | Validate against your own feed output before building |
 
 ---
-
-<a id="references"></a>
-## 15. References
-
-**Zscaler — feeds, transports, and fields**
-
-- [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — ZPA log receivers, transport, log types, and formats
-- [Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields) — the ZPA field names in § 8
-- [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems) — ZIA HTTPS feed configuration
-- [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 client credentials and the two-hour report window
-- [Zscaler Digital Experience reference architecture (Zscaler)](https://help.zscaler.com/downloads/zdx/reference-architecture/zscaler-digital-experience-zdx/zscaler-digital-experience-zdx-reference-architecture.pdf)
-
-**Dynatrace — ingestion, processing, topology**
-
-- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/smartscape-extraction) — the mechanics behind § 7
-- [Define custom topology via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-topology)
-- [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
-- [Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog)
-- [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)
-- [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)
 
 ---
 

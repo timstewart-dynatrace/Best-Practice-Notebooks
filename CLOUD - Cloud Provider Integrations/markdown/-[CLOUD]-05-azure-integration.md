@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -72,9 +72,9 @@ Dynatrace supports all Azure public regions, Azure Government, and Azure China (
 
 **Region values are programmatic strings, not display names.** Azure regions surface in Dynatrace as lowercase, no-space identifiers — `eastus`, `westeurope`, `southcentralus` — not `East US` / `West Europe`. Filters, tag rules, and management-zone conditions must match the programmatic form (standardized as of OneAgent 1.337). A condition written against the display name silently matches nothing rather than erroring.
 
-### Release Radar (April 2026): Native Azure Experience in Clouds is GA
+### Release Radar (April 2026): the Clouds app extends to Microsoft Azure
 
-The enhanced **Clouds app** experience — already available for AWS — is now **generally available for Microsoft Azure**, bringing Azure to parity. For net-new Azure onboarding, this is the recommended path; the connection-mechanism table above still describes what runs underneath.
+The enhanced **Clouds app** experience — already available for AWS — now extends to **Microsoft Azure**, bringing Azure to parity. (The Release Radar entry says Dynatrace *"extends"* the experience; it does not use the lifecycle term **GA**, so neither does this entry.) For net-new Azure onboarding, this is the recommended path; the connection-mechanism table above still describes what runs underneath.
 
 What the native Azure experience adds:
 

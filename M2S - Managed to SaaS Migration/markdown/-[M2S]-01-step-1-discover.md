@@ -332,7 +332,7 @@ For each selected motivation, document:
 
 ## 4. SaaS Upgrade Assistant Overview
 
-The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)** is Dynatrace's primary migration tool for Managed-to-SaaS upgrades. Understanding its capabilities early helps you plan what will be automated versus what requires manual effort.
+The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)** is Dynatrace's primary migration tool for Managed-to-SaaS upgrades. Understanding its capabilities early helps you plan what will be automated versus what requires manual effort.
 
 ### How It Works
 
@@ -451,7 +451,7 @@ Identity, notification, and data-control surfaces differ on SaaS. Confirm each d
 | **Network access control** | — | **IP allow-list** (CIDR) for UI and API | Caveat: it protects the latest (Grail/Gen3) UI and API only — it does **not** block the classic `*.live.dynatrace.com` UI or the data-ingest APIs. |
 | **Dynatrace Support access** | Customer-grantable | **No customer grant/deny toggle** — role-based, internally approved, restricted to the Dynatrace corporate network with MFA, and **every access and change is audit-logged and visible to you** | Governance shifts from a prospective switch to auditable, least-privilege access. |
 
-> <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/database-services-classic/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Privacy Rights (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights), [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
+> <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/database-services-classic/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Privacy Rights (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights), [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
 
 <a id="step-completion-checklist"></a>
 
@@ -479,7 +479,7 @@ Before proceeding to Step 2, confirm that you have completed each item:
 
 ### Additional Resources
 
-- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
+- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 - [SaaS Upgrade Assistant on Dynatrace Hub](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/)
 - [Upgrading from Dynatrace Managed to SaaS](https://www.dynatrace.com/platform/saas-upgrade/)
 - [Grail Data Lakehouse](https://docs.dynatrace.com/docs/platform/grail)

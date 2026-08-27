@@ -1,6 +1,6 @@
 # FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 07/15/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -189,6 +189,8 @@ If you skip the extension entirely and bring everything in through Telegraf, you
 
 Verification once data flows — blocked processes from the Default feature set:
 
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — Hub install, ActiveGate-group placement and failover, monitoring-user grants, and the feature-set list, [Microsoft SQL Server local extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local), [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference) — the SQL data source executes queries only. **Derived:** the one-ActiveGate-per-hundreds-of-endpoints figure is a planning heuristic, not a published sizing number — measure against your own endpoint count.</sub>
+
 ```dql
 // Blocked processes from the SQL Server extension (Default feature set)
 timeseries blocked = avg(`sql-server.general.processesBlocked`), from:-24h
@@ -228,6 +230,8 @@ fetch logs, from:-24h
 | "Our thresholds are tuned; we can't lose them." | Keep them as metric events during the parallel run, then let Davis baselines take over where they prove better. Note the blocked-sessions semantic difference before copying values. |
 | "The DBA team owns monitoring, not the observability team." | The monitoring SQL user, feature-set selection, and gap-extension queries all remain DBA-owned artifacts — the platform team owns the ActiveGate. The split is cleaner than a shared Telegraf config. |
 | "Isn't this just more ingest cost?" | The extension itself is free; you pay for data — and you were already paying (or about to) to ingest the Telegraf versions of the same signals, without the entity context. |
+
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — the remote-collection model behind the *no agent on the DB host* answer, and the covered feature sets, [SQL Server Monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/) — publisher and support route. **Derived:** the objection/response pairings are this entry's framing of the trade-offs; no source argues them.</sub>
 
 ---
 

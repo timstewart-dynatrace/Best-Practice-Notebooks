@@ -317,8 +317,8 @@ In this notebook, we covered:
 
 ### References
 
-- [Define user action and session properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/web-applications/additional-configuration/define-user-action-and-session-properties)
-- [USQL — custom session queries (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)
+- [Define user action and session properties (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties)
+- [USQL — custom session queries (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data)
 
 ---
 

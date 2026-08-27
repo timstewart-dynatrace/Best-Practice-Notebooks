@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 07/21/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -33,15 +33,17 @@ This is the cost decision that the field most often gets wrong.
 
 | | Simple workflow | Multi-step workflow |
 |--|-----------------|---------------------|
-| **Shape** | Problem trigger → one notification action | Trigger → conditions, multiple actions, enrichment, multiple teams |
-| **Billing** | Not charged on run (query + send) | Charged (workflow-hours) |
+| **Shape** | **Exactly one task** — any trigger except Run Workflow, any action except Run JavaScript / Run Workflow / Approval Request | Trigger → conditions, multiple actions, enrichment, multiple teams |
+| **Billing** | No workflow-hours — but the run can still bill AppEngine functions and DQL query usage | Charged (workflow-hours) |
 | **Use when** | Filter problems and send to one channel | Routing to multiple teams, leaving comments, conditional logic, enrichment, centralised config |
 
-**Default to simple workflows where possible.** This may mean several simple workflows instead of one big one — that is the cheaper shape, because their query and runs are not charged under workflow-hours. Reach for a multi-step workflow when you genuinely need conditional branching, multi-team routing, or a single centralised configuration; the capability is worth the cost when you need it, but do not pay it by default.
+**Default to simple workflows where possible.** This may mean several simple workflows instead of one big one — that is the cheaper shape, because they do not consume workflow-hours. *Cheaper is not free:* the docs are explicit that "while simple workflows don't directly consume workflow hours, their execution can trigger the consumption of billable Dynatrace capabilities" — an AppEngine function invocation for a Slack message, or DQL query usage for a query inside the workflow. Reach for a multi-step workflow when you genuinely need conditional branching, multi-team routing, or a single centralised configuration; the capability is worth the cost when you need it, but do not pay it by default.
 
-> Verify current billing specifics against the Workflows documentation for your DPS model — the simple-vs-billed boundary is the kind of detail that shifts, and it is exactly what the field-authored source document got partially right but did not fully pin down.
+> Verify current billing specifics against the Workflows documentation for your DPS model — the simple-vs-billed boundary is the kind of detail that shifts.
 
-**A worked trap.** A frequent pattern is *one routing workflow per team or area* that catches every problem for that area and posts to the team's chat channel. It looks like simple fan-out — but the form of the delivery action decides the billing, not the apparent shape. A single built-in notification action keeps the workflow simple; a hand-rolled HTTP-function call or a run-JavaScript task to reach the same channel is what can tip it into the billed multi-step category. Choose the action type deliberately, and confirm which connectors count as simple notification actions for your DPS model.
+**A worked trap.** A frequent pattern is *one routing workflow per team or area* that catches every problem for that area and posts to the team's chat channel. It looks like simple fan-out — but what decides the category is the **task count and action type**, not the apparent shape. One built-in notification action keeps the workflow simple; a run-JavaScript task is excluded from simple workflows outright, and adding a second task tips it into the billed multi-step category. Choose the action type deliberately, and confirm which connectors count as simple notification actions for your DPS model.
+
+> <sub>**Sources:** [Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — *"limited to only one task"*; Run JavaScript / Run Workflow / Approval Request excluded, [Automation consumption (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"while simple workflows don't directly consume workflow hours, their execution can trigger the consumption of billable Dynatrace capabilities"*.</sub>
 
 <a id="pattern"></a>
 ## 2. The Routing Pattern
@@ -92,7 +94,7 @@ Rebuild the payload against the destination's live API contract; do not port the
 
 > ⚠️ **A classic integration scoped by a Management Zone is only as durable as that Management Zone.** The MZ filter has **no successor** inside the alerting model — Dynatrace's upgrade guide states it is *"no longer supported."* If you are retiring Management Zones, those notifications must be rebuilt as problem-triggered workflows first, filtered on affected-entity tags. **MZ2POL-09** covers that conversion end to end, including the capability regressions.
 
-> **Forthcoming/rolling out (SaaS 1.343):** a dedicated **Jira Service Management connector** joins the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Once available, it becomes the first-choice JSM path; until then, the existing Jira connector and custom-webhook paths described in this section remain the working options.
+> **Available (SaaS 1.343):** a dedicated **Jira Service Management connector** is part of the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343's rollout started **July 14, 2026** (page updated July 28, 2026), so it has reached tenants broadly — verify in yours, then treat it as the first-choice JSM path. The existing Jira connector and custom-webhook paths described in this section remain valid where it has not landed.
 
 <a id="legacy"></a>
 ## 4. The Legacy Path

@@ -873,7 +873,7 @@ Now that you can transform data, continue with:
 - [Processing Examples](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases)
 - [Dynatrace Pattern Language](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
 - [DPL Architect Tool](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect)
-- [DQL Functions in OpenPipeline](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-dql-functions)
+- [DQL Functions in OpenPipeline](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions)
 
 ---
 

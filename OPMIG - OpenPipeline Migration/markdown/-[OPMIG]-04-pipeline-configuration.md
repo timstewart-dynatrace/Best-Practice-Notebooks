@@ -824,10 +824,10 @@ Now that you can create and configure pipelines, continue with:
 
 ## References
 
-- [Configure Processing Pipeline](https://docs.dynatrace.com/docs/platform/openpipeline/getting-started/tutorial-configure-processing)
+- [Configure Processing Pipeline](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/tutorial-configure-processing)
 - [Processing Examples](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples)
-- [DQL Functions in OpenPipeline](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-dql-functions)
-- [Dynatrace Pattern Language](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail/dynatrace-pattern-language)
+- [DQL Functions in OpenPipeline](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions)
+- [Dynatrace Pattern Language](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
 
 ---
 

@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 of 05 | **Created:** June 2026 | **Last Updated:** 08/11/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -135,17 +135,24 @@ Two of the signals above are worth turning into standing trend queries rather th
 
 ```dql
 // Denoising ratio — problem-worthy events divided by resulting problems, trended daily
+//
+// Both streams must be confined to the SAME window. dt.davis.problems is fetched by
+// record timestamp, but binned by event.start — so a problem that started before the
+// window (or is still open from weeks ago) lands in a day bucket with zero events and
+// reports denoising_ratio = 0. Verified 08/27/2026: without the event.start filter the
+// first 12 rows were all such artifacts, dated back to 2026-06-01.
 fetch dt.davis.events, from:-30d
 | filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN"})
 | fieldsAdd kind = "event", day = bin(timestamp, 24h)
 | append [
     fetch dt.davis.problems, from:-30d
     | filter not(dt.davis.is_duplicate)
+    | filter event.start >= now() - 30d
     | fieldsAdd kind = "problem", day = bin(event.start, 24h)
   ]
 | summarize {event_count = countIf(kind == "event"), problem_count = countIf(kind == "problem")}, by:{day}
-| filter problem_count > 0
-| fieldsAdd denoising_ratio = toDouble(event_count) / problem_count
+| filter problem_count > 0 and event_count > 0
+| fieldsAdd denoising_ratio = round(toDouble(event_count) / problem_count, decimals: 2)
 | sort day asc
 ```
 

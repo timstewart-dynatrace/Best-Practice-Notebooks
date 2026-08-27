@@ -149,7 +149,7 @@ fetch spans, from:-24h
 
 **Verification status:** syntax-verified **and executed** 07/30/2026; returned 0 rows for the same reason as above — no GenAI telemetry on the validation tenant, not a query defect.
 
-> <sub>**Sources:** [Conversation and session tracking (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability), [Semantic Dictionary — `gen_ai` fields (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/semantic-dictionary). **Derived:** the attribute-existence note combines the documented attribute list with a live `dt.semantic_dictionary.fields` lookup performed 07/30/2026.</sub>
+> <sub>**Sources:** [Conversation and session tracking (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability), [Semantic Dictionary — `gen_ai` fields (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Derived:** the attribute-existence note combines the documented attribute list with a live `dt.semantic_dictionary.fields` lookup performed 07/30/2026.</sub>
 
 <a id="wf-dql-cost"></a>
 ## 2. Workflow Tutorial: Optimize DQL Cost

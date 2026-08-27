@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 07/21/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -137,6 +137,20 @@ When a segment is active and a user queries a specific data type, **only the mat
 | Expressions per filter condition | 10 |
 
 Since each data type gets at most 1 include, a segment can cover up to 20 distinct data types or entity types.
+
+### Configuring a segment can itself consume query budget
+
+Easy to miss because it happens before the segment is saved: the **preview** query the segment editor runs
+while you build the filter is a real query. *"If the queried data type is billable, the preview query will
+contribute to query consumption"*; if the data type is included in your subscription, it costs nothing extra.
+
+The exposure is deliberately bounded — *"all preview queries are subject to strict constraints, including a
+limit of 50 records, sampling, and scan limits"* — so this is a note for anyone iterating on segment
+definitions against billable data all afternoon, not a reason to avoid the editor. Note the scope: the
+documented consumption statement covers **configuration-time previews**, not the cost of a segment once it is
+applied to ordinary queries.
+
+> <sub>**Sources:** [Segments — query consumption (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-query-consumption) — both quoted sentences; read at source 08/27/2026.</sub>
 
 <a id="primary-grail-fields-and-enrichment"></a>
 

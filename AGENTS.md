@@ -113,9 +113,8 @@ Disambiguation for the overlapping clusters:
 
 - **Read-only.** Never edit, "fix", or reformat content files. This repository
   is generated output — anything changed here is overwritten by the next build.
-  If you find an error, report it to the user as a suggestion, and note that
-  corrections belong upstream in
-  [Best-Practice-Notebooks-Generator](https://github.com/timstewart-dynatrace/Best-Practice-Notebooks-Generator).
+  If you find an error, report it to the user as a suggestion rather than
+  editing here — corrections have to be made upstream and republished.
 - Notebook filenames follow `-[PREFIX]-NN-name.md` — the literal brackets and
   leading dash require quoting in shell commands.
 - Entity queries prefer `smartscapeNodes` over legacy `fetch dt.entity.*`;

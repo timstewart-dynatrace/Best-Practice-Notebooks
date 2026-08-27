@@ -380,8 +380,8 @@ Continue to **MOBL-09** to explore advanced mobile monitoring topics including c
 ## References
 
 - [Session Replay for Mobile](https://docs.dynatrace.com/docs/observe/digital-experience/session-replay)
-- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
-- [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/manage/subscriptions-and-licensing/dynatrace-platform-subscription)
+- [Mobile SDK Privacy Settings](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/additional-configuration/configure-rum-privacy-mobile)
+- [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/license)
 
 ---
 

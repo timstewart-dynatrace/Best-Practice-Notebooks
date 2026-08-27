@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -15,6 +15,7 @@ Kubernetes introduces unique observability challenges: ephemeral workloads, dyna
 4. [Data Sources and Signals](#data-sources-and-signals)
 5. [Key Metrics and Dimensions](#key-metrics-and-dimensions)
 6. [Your First Kubernetes Queries](#your-first-kubernetes-queries)
+7. [Next Steps](#next-steps)
 
 ---
 
@@ -301,6 +302,7 @@ fetch events, from:-24h
 | limit 25
 ```
 
+<a id="next-steps"></a>
 ## 7. Next Steps
 
 Now that you understand Kubernetes monitoring fundamentals, proceed to:

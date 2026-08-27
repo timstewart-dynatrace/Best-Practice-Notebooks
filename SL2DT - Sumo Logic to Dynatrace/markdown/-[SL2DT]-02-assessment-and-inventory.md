@@ -426,11 +426,11 @@ If any check fails, do not proceed to SL2DT-03. Fix the gap first.
 ## 11. References
 
 ### Sumo Logic — inventory APIs
-- [Sumo Logic API (Sumo Logic docs)](https://help.sumologic.com/docs/api/)
-- [Sumo Logic search operators (Sumo Logic docs)](https://help.sumologic.com/docs/search/search-query-language/search-operators/)
-- [Sumo Logic monitors (Sumo Logic docs)](https://help.sumologic.com/docs/alerts/monitors/)
-- [Sumo Logic dashboards (Sumo Logic docs)](https://help.sumologic.com/docs/dashboards/)
-- [Sumo Logic users and roles (Sumo Logic docs)](https://help.sumologic.com/docs/manage/users-roles/)
+- [Sumo Logic API (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/api/)
+- [Sumo Logic search operators (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/)
+- [Sumo Logic monitors (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/alerts/monitors/)
+- [Sumo Logic dashboards (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/dashboards/)
+- [Sumo Logic users and roles (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/users-roles/)
 
 ### Dynatrace — target-side capabilities for sizing assessment
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
@@ -439,4 +439,4 @@ If any check fails, do not proceed to SL2DT-03. Fix the gap first.
 
 ---
 
-<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://help.sumologic.com/docs/).*</sub>
+<sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official [Dynatrace documentation](https://docs.dynatrace.com/docs) and [Sumo Logic documentation](https://www.sumologic.com:443/help/docs/).*</sub>

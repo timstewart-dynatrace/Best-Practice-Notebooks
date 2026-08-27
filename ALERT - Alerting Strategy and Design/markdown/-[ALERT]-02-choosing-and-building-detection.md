@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 08/11/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -67,9 +67,9 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 - A **violating-samples / sliding-window minimum** (e.g. ≥3-of-5) so a single transient spike never pages.
 - **Routing bound to the team/area property the template already requires**, so even an untuned clone reaches the right owner.
 
-### Forthcoming: a second lever, at a different layer
+### A second lever, at a different layer
 
-**Rolling out (SaaS 1.344):** problem-event trigger delays become configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**; verify it has reached your tenant before designing around it.
+**Available (SaaS 1.344):** problem-event trigger delays are configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344's rollout started **07/29/2026** and two later sprints have shipped since, so it has reached tenants broadly; verify it has reached your tenant before designing around it.
 
 This is **not** a fifth analyzer knob, and it does not replace the sliding-window minimum above. The analyzer parameters decide whether a series is anomalous; the trigger delay decides how long the resulting event must hold before a problem opens. They act on different steps, so they compose — and because the delay applies platform-side, it damps flapping from detectors you do not own, which is exactly the case a template standard cannot reach. Until it arrives, the violating-samples / sliding-window minimum remains the control to rely on for transient-spike noise.
 

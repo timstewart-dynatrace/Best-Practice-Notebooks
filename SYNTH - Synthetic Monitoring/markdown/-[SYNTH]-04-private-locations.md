@@ -406,9 +406,9 @@ Continue to **SYNTH-05: Network Monitoring** to learn about synthetic network av
 ## References
 
 - [Private synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations)
-- [Synthetic architecture and communication (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/architecture-communication-latest)
-- [ActiveGate (DT docs)](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-activegate)
-- [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-app/private-locations/containerized-locations-synth-app)
+- [Synthetic architecture and communication (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/architecture-communication-latest)
+- [ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate)
+- [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app)
 
 ---
 

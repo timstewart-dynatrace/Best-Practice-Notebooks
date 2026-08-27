@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 07/30/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -88,7 +88,7 @@ To find out which dimensions your data actually carries, run `fieldsSummary` or 
 
 > **Note the operator.** The fallback uses the `in` **operator** with a bracketed subquery (`field in [ ... ]`), not the `in()` **function**. `in()` takes a static value set — `in(field, {"a", "b"})` — and does not accept an execution block.
 
-> <sub>**Sources:** [Smartscape topology navigation (Dynatrace GitHub — dt-dql-essentials)](https://github.com/dynatrace/dynatrace-for-ai), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language). **Derived:** the dimension-first ordering combines the deprecation guidance with the observation that a subquery forces a topology resolution the raw dimension avoids.</sub>
+> <sub>**Sources:** [Smartscape topology navigation (Dynatrace GitHub — dt-dql-essentials)](https://github.com/dynatrace/dynatrace-for-ai), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). **Derived:** the dimension-first ordering combines the deprecation guidance with the observation that a subquery forces a topology resolution the raw dimension avoids.</sub>
 
 <a id="entity-type-mapping"></a>
 ## 2. Entity Type Mapping
@@ -131,7 +131,7 @@ The practical consequence: **migrating ActiveGate work may mean replacing a REST
 
 **`synthetic_test` splits, and `multiprotocol_monitor` is renamed.** Monitor and step are **separate node types** — `BROWSER_MONITOR_STEP` and `HTTP_MONITOR_STEP` exist alongside their parents. A classic query that read steps as attributes of the test needs a `traverse` to the step nodes ([section 5](#topology-navigation)), not a field read. And `dt.entity.multiprotocol_monitor` becomes `NETWORK_AVAILABILITY_MONITOR` — a genuine rename, not a transliteration, so pattern-matching the classic name to derive the node type produces a type that does not exist.
 
-> <sub>**Sources:** [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language), [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343), [Entities API v2 — GET entities (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/get-entities-list). Mappings read from `fetch dt.semantic_dictionary.models` and confirmed against a live tenant, 07/30/2026 — including the three failing `dt.entity.*active_gate*` spellings, `smartscapeNodes "ACTIVEGATE"` returning 4 nodes, and `frontend.type` returning `web` (25) and `mobile` (6) despite its absence from the model's `fields` array.</sub>
+> <sub>**Sources:** [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language), [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343), [Entities API v2 — GET entities (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/get-entities-list). Mappings read from `fetch dt.semantic_dictionary.models` and confirmed against a live tenant, 07/30/2026 — including the three failing `dt.entity.*active_gate*` spellings, `smartscapeNodes "ACTIVEGATE"` returning 4 nodes, and `frontend.type` returning `web` (25) and `mobile` (6) despite its absence from the model's `fields` array.</sub>
 
 <a id="migrating-the-constructs"></a>
 ## 3. Migrating the Constructs
@@ -146,6 +146,8 @@ The practical consequence: **migrating ActiveGate work may mean replacing a REST
 | `affected_entity_ids` | `smartscape.affected_entity.ids` | Also `.types` for the type list |
 
 The `entityName`/`getNodeName` and `entityAttr`/`getNodeField` pairs are the ones people get wrong, because the `getNode*` functions look like the natural replacements and are not. See [section 7](#gotchas-worth-knowing-first).
+
+> <sub>**Dictionary:** `dt.smartscape.host` publishes `id`, `id_classic`, `name` and `type` as node fields — the basis for the `entityName` → `name` and *classic id → `id`, with `id_classic` as the bridge* rows; read from `dt.semantic_dictionary.models` 08/27/2026. **Derived:** the construct-by-construct mapping is this entry's translation table; no single page presents the classic and Smartscape surfaces side by side.</sub>
 
 <a id="a-verified-before-and-after"></a>
 ## 4. A Verified Before-and-After
@@ -234,6 +236,8 @@ Some classic entity types have **no standalone Smartscape node**. They became at
 Section 4 is exactly this case: the classic query treated the host group as a selector predicate against a host-group concept, and the Smartscape query filters a field on the host itself.
 
 A `HOST` node carries substantially more than the classic entity did — on the validation tenant, roughly 35 fields including `dt.host_group.id`, `dt.security_context`, `cloud.provider`, `aws.arn`, `aws.availability_zone`, `os.type`, `os.version`, `cores`, `host.software_technologies`, and `host.custom.metadata`. Inspect a single node before assuming an attribute needs a lookup:
+
+> <sub>**Dictionary:** `dt.host_group.id` is a field on `dt.smartscape.host`, not a node type — and there is **no** Smartscape node model for a Dynatrace host group, process group or container group: of the **2,144** `smartscape.nodes` models, every `*GROUP*` node type is a cloud-provider or database resource (`AWS_EKS_NODEGROUP`, `AZURE_…_CONTAINERGROUPS`, `DB_AVAILABILITY_GROUP_MSSQL`, …). Read from `dt.semantic_dictionary.models` 08/27/2026; the 2,144-model count is the control that makes the absence meaningful rather than an empty result.</sub>
 
 ```dql
 // What does one node actually expose? Run this before building any migration.

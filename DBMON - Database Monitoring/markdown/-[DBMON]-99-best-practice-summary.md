@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 7 | Build new database integrations on Extensions 2.0 | Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Extensions 2.0 require **host-based ActiveGate** (K8s-based AG not supported) | **Critical** | Deployment |
+| 7 | Build new database integrations on Extensions 2.0 | Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. the SQL / Prometheus / SNMP data sources these extensions use run on an **Environment (host-based) ActiveGate** — support for other ActiveGate deployments varies by data source and is not stated in one place, so verify for yours rather than assuming (the flat *"K8s-based AG not supported"* claim carried here previously is not documented; corrected 08/27/2026) | **Critical** | Deployment |
 | 7b | Extensions are YAML-defined with optional Python data sources | YAML package executed by EEC; built-in SQL/Prometheus/SNMP data sources cover most cases; Python data source is for custom logic only — not required by default | **Recommended** | Architecture |
 | 7c | Route extension logs to the `default_database_monitoring` bucket | Default destination for extension log output; reference this bucket name in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05) | **Recommended** | IAM/Bucket |
 | 8 | Install PostgreSQL extension | Captures: connections, transactions/sec, tuple operations, table/index sizes, lock waits, replication lag | **Recommended** | Extension |
@@ -70,9 +70,11 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 13b | Use the Database App Health Score for first-pass triage | GA as of 08/2026 for **PostgreSQL and MySQL** (additional technologies planned); each instance gets a 0-100 score combining availability, performance, configuration, and resource usage — check it before running manual DQL analysis | **Recommended** | Triage |
+| 13b | Use the Database App Health Score for first-pass triage | available since 08/2026 (no GA label is applied by any source) for **PostgreSQL and MySQL** (additional technologies planned); each instance gets a 0-100 score combining availability, performance, configuration, and resource usage — check it before running manual DQL analysis | **Recommended** | Triage |
 | 13c | Use the app's execution-plan visualization as a first pass, not a replacement | Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover | **Recommended** | Diagnostics |
 </cell id="cell-activegate">
+
+> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than a single page — re-confirm before planning a migration around them.</sub>
 
 <a id="span-attribute-coverage"></a>
 
@@ -107,6 +109,8 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |---|--------------|----------------|----------|----------|
 | 25b | Use DQL `timeseries` for table/index metrics — classic Metrics API v2 path is blocked | The `postgres.tables.*`, `postgres.indexes.*`, `mysql.tables.*`, `mysql.indexes.*` metric keys are blocked from the classic Metrics API v2 path as of sprint-1.338 (May 2026). Query via DQL `timeseries` against Grail instead. | **Critical** | API/Migration |
 
+*In community practice these thresholds are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.*
+
 <a id="nosql-database-monitoring"></a>
 
 ## 5. NoSQL Database Monitoring
@@ -140,6 +144,8 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |---|--------------|----------------|----------|----------|
 | 37b | Confirm StackExchange.Redis instrumentation on .NET workloads | OneAgent 1.337 added StackExchange.Redis coverage for .NET applications. Verify your .NET services produce `db.system == "redis"` spans. | **Recommended** | Coverage |
 | 37c | Confirm ServiceStack.Redis instrumentation on .NET workloads | Forthcoming / rolling out with **OneAgent 1.343** (released 07/28/2026): tracing support added for **ServiceStack.Redis** in .NET applications. Rollout is **per agent fleet, not per tenant** — **verify the OneAgent version installed on the hosts concerned** (the tenant version is not the agent version), then confirm those services produce `db.system == "redis"` spans. On **OneAgent 1.342 and earlier** only StackExchange.Redis is auto-instrumented, and ServiceStack.Redis calls produce no database spans | **Recommended** | Coverage |
+
+*In community practice these thresholds are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.*
 
 <a id="message-broker-monitoring"></a>
 

@@ -365,7 +365,7 @@ smartscapeNodes "ACTIVEGATE"
 <a id="saas-upgrade-assistant-setup"></a>
 ## 5. SaaS Upgrade Assistant Setup
 
-The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/) is a Dynatrace app that automates configuration migration from Managed to SaaS. Install and connect it now so it is ready for Step 5 (Execute).
+The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) is a Dynatrace app that automates configuration migration from Managed to SaaS. Install and connect it now so it is ready for Step 5 (Execute).
 
 ### 5.1 Prerequisites
 
@@ -744,7 +744,7 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 
 ### Preparation Resources
 
-- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
+- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 - [SaaS Upgrade Assistant on Dynatrace Hub](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/)
 - [ActiveGate Installation](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation)
 - [Network Zones Configuration](https://docs.dynatrace.com/docs/manage/network-zones)

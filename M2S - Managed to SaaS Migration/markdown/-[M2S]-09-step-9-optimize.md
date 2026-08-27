@@ -520,11 +520,11 @@ The migration is complete, but the journey continues. Here are the key activitie
 
 ### Additional Resources
 
-- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
+- [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 - [Upgrading from Dynatrace Managed to SaaS](https://www.dynatrace.com/platform/saas-upgrade/)
 - [Dynatrace Documentation](https://docs.dynatrace.com/)
 - [Dynatrace Community](https://community.dynatrace.com/)
-- [Dynatrace University](https://university.dynatrace.com/)
+- [Dynatrace University](https://university.dynatrace.com/learn)
 - [Dynatrace Community: Upgrade to SaaS](https://community.dynatrace.com/t5/Upgrade-to-SaaS/bd-p/upgrade_to_saas)
 
 ---

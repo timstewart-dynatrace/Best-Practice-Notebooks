@@ -496,9 +496,9 @@ Do not proceed to Step 9 (Optimize) until the high-priority items are confirmed.
 
 - [Grail Data Lakehouse Documentation](https://docs.dynatrace.com/docs/platform/grail)
 - [DQL Documentation](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
-- [Notebooks Documentation](https://docs.dynatrace.com/docs/observe-and-explore/notebooks)
+- [Notebooks Documentation](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
 - [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [AutomationEngine (Workflows) Documentation](https://docs.dynatrace.com/docs/platform-modules/automations)
+- [AutomationEngine (Workflows) Documentation](https://docs.dynatrace.com/docs/deliver)
 - [Dynatrace Assist Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai)
 - [AppEngine Documentation](https://docs.dynatrace.com/docs/platform/appengine)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)

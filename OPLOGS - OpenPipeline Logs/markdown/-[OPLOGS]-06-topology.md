@@ -394,7 +394,7 @@ Continue to **OPLOGS-07: Analytics & Dashboards** for aggregation and visualizat
 ## 📚 References
 - [Dynatrace Entity Model](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
 - [Kubernetes Monitoring](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
-- [Log Enrichment](https://docs.dynatrace.com/docs/observe-and-explore/logs/log-management-and-analytics/lma-log-enrichment)
+- [Log Enrichment](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-enrichment)
 
 ---
 

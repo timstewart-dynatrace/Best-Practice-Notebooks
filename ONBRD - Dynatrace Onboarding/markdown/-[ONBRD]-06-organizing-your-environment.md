@@ -436,7 +436,7 @@ In this notebook, you learned:
 
 ## References
 
-- [Host Properties](https://docs.dynatrace.com/docs/setup-and-configuration/dynatrace-oneagent/installation-and-operation/linux/installation/customize-oneagent-installation-on-linux)
+- [Host Properties](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/customize-oneagent-installation-on-linux)
 - [Segments](https://docs.dynatrace.com/docs/manage/segments)
 - [Cloud platform monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
 - [Kubernetes Labels](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)

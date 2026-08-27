@@ -173,7 +173,7 @@ Continue with the ORGNZ series:
 
 - [Organize data](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 - [Permissions in Grail](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)
-- [Grail data model](https://docs.dynatrace.com/docs/platform/grail/data-model)
+- [Grail data model](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 
 ---
 

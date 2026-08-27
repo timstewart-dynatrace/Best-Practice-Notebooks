@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 08/24/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -89,7 +89,13 @@ The ActiveGate hub enumerates its jobs: routing OneAgent traffic as a secure pro
 
 Two placement consequences follow. First, Dynatrace recommends a **dedicated system**: running ActiveGate alone on its machine is both a performance and a security recommendation. Second, **don't stack demanding capabilities on one ActiveGate** — the Kubernetes guide's recommended production pattern is itself a split (one ActiveGate for platform monitoring, separate replicas for OneAgent routing, §4), and synthetic locations can't share an ActiveGate with other locations at all (§5). A routing-only ActiveGate plus purpose-built ActiveGates for heavy jobs is easier to size, easier to diagnose, and safer to update (FAQ-05's update-ring guidance assumes the same separation).
 
-> <sub>**Sources:** [Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate), [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits), [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic), [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements). [What's new in ActiveGate 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — classic-only modules disallowed on Latest Dynatrace. **Derived:** the per-capability resource-profile characterizations combine the cited sizing drivers with the deployment-separation recommendations.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate)</sub>
+> - <sub>[Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits)</sub>
+> - <sub>[Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic)</sub>
+> - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
+> - <sub>[What's new in ActiveGate 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — classic-only modules disallowed on Latest Dynatrace</sub>
+> - <sub>**Derived:** the per-capability resource-profile characterizations combine the cited sizing drivers with the deployment-separation recommendations</sub>
 
 <a id="host-sizing"></a>
 ## 3. Baseline Sizing — Host-Based ActiveGates
@@ -111,7 +117,7 @@ Two placement consequences follow. First, Dynatrace recommends a **dedicated sys
 
 Reading the table honestly: the reference points are AWS instance shapes, so for on-premises VMs map by vCPU/RAM, and treat "estimated hosts" as exactly that — an estimate at typical per-host data volume. Hosts running chatty workloads (heavy log routing through the ActiveGate, dense process instrumentation) consume capacity faster.
 
-**Disk beyond the minimums.** The requirements page itemizes where space goes — installation (~600 MB executables), logs (1.2 GB), auto-update downloads (600 MB), temporary files (4 GB) — and Environment ActiveGates running extensions add ~1.2 GB for the extensions module plus 2 GB for its logs/cache. If extension-data persistence is enabled, the EEC wants a further *"2136 MB of free disk space: 600 MB for reliability mechanism, 1.5 GB as buffer"* — without it, persistence disables itself. A practical floor for an extensions-running ActiveGate is ~15 GB of free disk; disk is cheap, resizing later is not.
+**Disk beyond the minimums.** The requirements page itemizes where space goes — installation (~600 MB executables), logs (1.2 GB), auto-update downloads (600 MB), temporary files (4 GB) — and Environment ActiveGates running extensions add ~1.2 GB for the extensions module plus 2 GB for its logs/cache. If extension-data persistence is enabled, the EEC wants a further 2136 MB of free disk space — 600 MB for the reliability mechanism plus 1.5 GB as a buffer — without which persistence disables itself. A practical floor for an extensions-running ActiveGate is ~15 GB of free disk; disk is cheap, resizing later is not.
 
 Windows ActiveGates follow the same sizing model with their own OS-support matrix — see the Windows requirements page alongside the Linux one.
 
@@ -177,7 +183,7 @@ Planning rules that change the architecture, not just the size:
 
 Deployment and location design live in SYNTH-04; containerized synthetic locations on Kubernetes have their own requirements page.
 
-> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic) — node-size table quoted; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-app/private-locations) — two-node recommendation and one-location-per-ActiveGate constraint quoted. **Derived:** the executions-per-hour budgeting recipe operationalizes the published per-node ceilings.</sub>
+> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic) — node-size table quoted; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — two-node recommendation and one-location-per-ActiveGate constraint quoted. **Derived:** the executions-per-hour budgeting recipe operationalizes the published per-node ceilings.</sub>
 
 <a id="ha-placement"></a>
 ## 6. High Availability, Network Zones, and Placement
@@ -324,9 +330,14 @@ The namespace's sharpest diagnostic — and one the ready-made dashboard does *n
 | `dt.active_gate.id`, `host.name`, `dt.active_gate.group.name`, `dt.network_zone.id`, `dt.active_gate.working_mode` | Fleet slicing | Pinpoints the ActiveGate and zone |
 
 ```dql
-// OTel log loss at the ActiveGate, by machine and drop reason (24h)
-timeseries drop_count = sum(dt.sfm.active_gate.event_ingest.drop_count), from:-24h, by:{dt.active_gate.id, host.name, operation, drop_reason}, filter:{dt.system.bucket == "dt_system_metrics"}
-| filter operation == "POST /otlp/v1/logs"
+// Ingest drops at the ActiveGate, by machine and drop reason (24h)
+//
+// Do NOT scope this with `| filter operation == "POST /otlp/v1/logs"`. The
+// `operation` dimension is null on every data point of this metric (verified
+// 08/27/2026: 73 real drops in 24h, all with operation null), so that filter
+// discards the only rows the query exists to surface and reports "no loss"
+// while records are being dropped. `drop_reason` carries the diagnostic signal.
+timeseries drop_count = sum(dt.sfm.active_gate.event_ingest.drop_count), from:-24h, by:{dt.active_gate.id, host.name, drop_reason}, filter:{dt.system.bucket == "dt_system_metrics"}
 | fieldsAdd total_dropped = arraySum(drop_count)
 | filter total_dropped > 0
 | sort total_dropped desc
@@ -353,7 +364,15 @@ The `dsfm:active_gate.*` family is the **Metrics Classic** form of the same self
 
 If you do query `dsfm:` keys in DQL, mind the colon: `timeseries` parses an unquoted `dsfm:` prefix as a parameter name, so backtick-quote the key — `` avg(`dsfm:active_gate.jvm.cpu_usage`) ``.
 
-> <sub>**Sources:** [ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-sfm-metrics) — `dsfm:` metric keys, descriptions, and the queued/dropped interpretations quoted; [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/self-monitoring-metrics) — the `dsfm:` family's placement under Metrics Classic and its selector/Data-Explorer query surface; [Discovery & Coverage (DT docs)](https://docs.dynatrace.com/docs/shortlink/discovery-coverage-app) — the app that provides the ActiveGate diagnostic overview dashboard; [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — 50%/80% thresholds. [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle. **Derived:** the Gen2/Gen3 labeling reads the docs' Metrics-Classic placement of `dsfm:` against `dt.sfm.*`'s Grail-bucket residency — Dynatrace doesn't state the generation split explicitly; mapping the 50%/80% machine guideline onto the JVM-level metrics as alert thresholds; the `dt.sfm.active_gate.*` catalog is grounded in a live-tenant key enumeration (July 2026, ~53 keys) plus the shipped diagnostic dashboard's definition (threshold colorings, `drop_reason`/`operation` dimension values) — not yet documented at the sfm page; all queries syntax-validated against a live tenant's DQL verifier.</sub>
+*Provenance for this section: the Gen2/Gen3 labeling reads the docs' Metrics-Classic placement of `dsfm:` against `dt.sfm.*`'s Grail-bucket residency — Dynatrace does not state the generation split explicitly. The `dt.sfm.active_gate.*` catalog comes from a live-tenant key enumeration (July 2026, ~53 keys) plus the shipped diagnostic dashboard's own definitions (threshold colorings, `drop_reason` / `operation` dimension values), none of it yet on the sfm documentation page. Every query here was syntax-validated against a live tenant.*
+
+> <sub>**Sources:**</sub>
+> - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-sfm-metrics) — `dsfm:` metric keys, descriptions, and the queued/dropped interpretations quoted;</sub>
+> - <sub>[Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/self-monitoring-metrics) — the `dsfm:` family's placement under Metrics Classic and its selector/Data-Explorer query surface;</sub>
+> - <sub>[Discovery & Coverage (DT docs)](https://docs.dynatrace.com/docs/shortlink/discovery-coverage-app) — the app that provides the ActiveGate diagnostic overview dashboard;</sub>
+> - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — 50%/80% thresholds</sub>
+> - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle</sub>
+> - <sub>**Derived:** the Gen2/Gen3 split, the 50%/80% thresholds applied to JVM-level metrics, and the `dt.sfm.active_gate.*` catalog are all inferred rather than documented on the sfm page</sub>
 
 <a id="scale-up-or-out"></a>
 ## 8. Scale Up or Scale Out?
@@ -371,7 +390,7 @@ When §7 says an ActiveGate is running hot, the right move depends on which capa
 
 The general shape: **routing scales out, monitoring workloads scale up, synthetic scales by nodes** — and capability separation is the escape hatch when one box is doing too many different things for either axis to fix.
 
-> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — vertical-only vs replicas split; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-on-grail/synthetic-app/private-locations) — node failover/load-balancing; [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — zone distribution. **Derived:** the routing-scales-out generalization composes the zone failover model with the per-capability guidance; the split-before-supersize recommendation is community practice.</sub>
+> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — vertical-only vs replicas split; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — node failover/load-balancing; [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — zone distribution. **Derived:** the routing-scales-out generalization composes the zone failover model with the per-capability guidance; the split-before-supersize recommendation is community practice.</sub>
 
 <a id="recommended-approach"></a>
 ## 9. Recommended Approach

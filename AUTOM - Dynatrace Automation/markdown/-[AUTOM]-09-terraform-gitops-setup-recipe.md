@@ -437,7 +437,7 @@ The module encodes the naming pattern (`{env}-{app}-{role}`) and the rule struct
 
 > <sub>**Sources:**</sub>
 > - <sub>[Module development (HashiCorp)](https://developer.hashicorp.com/terraform/language/modules/develop) — module-authoring guidance.</sub>
-> - <sub>[Module sources (HashiCorp)](https://developer.hashicorp.com/terraform/language/modules/sources) — local paths, Git, registry references.</sub>
+> - <sub>[Module sources (HashiCorp)](https://developer.hashicorp.com/terraform/language/modules/configuration) — local paths, Git, registry references.</sub>
 > - <sub>[Semantic Versioning 2.0.0](https://semver.org/) — `MAJOR.MINOR.PATCH` semantics applied to modules.</sub>
 
 <a id="multi-env-promotion"></a>
@@ -587,7 +587,7 @@ Additionally for self-hosted backends: bucket policy restricting access to the C
 > <sub>**Sources:**</sub>
 > - <sub>[Sensitive input variables (HashiCorp)](https://developer.hashicorp.com/terraform/language/values/variables#suppressing-values-in-cli-output) — `sensitive` semantics.</sub>
 > - <sub>[Sensitive output values (HashiCorp)](https://developer.hashicorp.com/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output) — propagation through outputs.</sub>
-> - <sub>[Backend encryption (HashiCorp)](https://developer.hashicorp.com/terraform/language/state/sensitive-data) — state-at-rest concerns.</sub>
+> - <sub>[Backend encryption (HashiCorp)](https://developer.hashicorp.com/terraform/language/manage-sensitive-data) — state-at-rest concerns.</sub>
 
 <a id="lifecycle"></a>
 ## 9. Lifecycle Protections

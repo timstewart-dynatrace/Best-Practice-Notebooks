@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 07/20/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -31,7 +31,6 @@ Nearly everyone arrives at DPL fluent in regex, so § 3 handles that head-on: ex
 11. [DPL Architect](#dpl-architect)
 12. [Recommended Approach](#recommended-approach)
 13. [Common Gotchas](#common-gotchas)
-14. [References](#references)
 
 ---
 
@@ -114,7 +113,11 @@ $syslog_hdr = TIMESTAMP('MMM d HH:mm:ss'):ts ' ' LD:host;
 $syslog_hdr ' ' LD:process ': ' LD:message EOL;
 ```
 
-> <sub>**Sources:** [DPL Grammar (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-grammar), [DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers), [Literal expressions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-literal-expression), [Macros (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-macros).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[DPL Grammar (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-grammar)</sub>
+> - <sub>[DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers)</sub>
+> - <sub>[Literal expressions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-literal-expression)</sub>
+> - <sub>[Macros (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-macros)</sub>
 
 ---
 
@@ -270,6 +273,8 @@ Where Dynatrace *does* accept regex, its own documentation is unusually cautiona
 
 DPL cannot express that failure mode: every quantifier is bounded and look-behind is capped at 64 bytes. Whether that boundedness was *chosen* to avoid backtracking is not something Dynatrace states anywhere, so treat the connection as an observation about the design rather than a documented rationale.
 
+*In community practice the Grok mappings in § 3.4 are the accepted correspondences; no Dynatrace documentation covers Grok, so verify each against DPL Architect before relying on it.*
+
 > <sub>**Sources:**</sub>
 > - <sub>[Lines and strings (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-lines-strings) — "The syntax is compatible with Regular Expression Character Class"; negation via `^` or `!`</sub>
 > - <sub>[Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language) — character groups described as "Regular Expression compatible"</sub>
@@ -278,8 +283,7 @@ DPL cannot express that failure mode: every quantifier is bounded and look-behin
 > - <sub>[Management zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — regex permitted only in the `contains regex` / `does not contain regex` operators</sub>
 > - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — matching conditions accept neither regex nor DPL</sub>
 > - <sub>[String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `like` SQL wildcards; `matchesValue` / `matchesPhrase` wildcard scope</sub>
-> - <sub>**Derived:** § 3.5's "two languages for the same masking job" conclusion combines the OneAgent RE2 masking page with the OpenPipeline masking surface — neither page draws the contrast. § 3.7's bounded-quantifier observation is likewise an inference; Dynatrace publishes no DPL design rationale.</sub>
-> - <sub>Grok mappings in § 3.4 are **softened** — no Dynatrace documentation covers Grok, and searches of docs.dynatrace.com return no Grok page.</sub>
+> - <sub>**Derived:** § 3.5's two-languages contrast and § 3.7's bounded-quantifier observation are both inferences — no page draws either, and Dynatrace publishes no DPL design rationale</sub>
 
 ---
 
@@ -409,8 +413,8 @@ data record(x = "x")
 > - <sub>[Network matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-network)</sub>
 > - <sub>[Key-value pairs (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-key-value-pairs)</sub>
 > - <sub>[Positional matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-positional-matchers)</sub>
-> - <sub>[XML matchers (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail/dynatrace-pattern-language/dpl-xml) — absent from the grammar table; reachable only by direct link</sub>
-> - <sub>**Derived:** the "does not exist" list and the character-class quantifier discrepancy are live-tenant findings (07/20/2026), not documented statements.</sub>
+> - <sub>[XML matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-xml) — absent from the grammar table; reachable only by direct link</sub>
+> - <sub>**Derived:** the "does not exist" list and the character-class quantifier discrepancy are live-tenant findings (07/20/2026), not documented statements</sub>
 
 ---
 
@@ -520,15 +524,27 @@ The documented default quantifier is `{1,4096}`. On long lines — stack traces,
 
 ### Optional matchers
 
-`?` marks a matcher expression as optional and goes *after* any quantifier. Group it with its delimiter so the whole unit disappears together:
+`?` marks a matcher expression as optional and goes *after* any quantifier but *before* the `:name` export. Group it with its delimiter so the whole unit disappears together:
 
 ```dql
-// Right — the colon vanishes with the port
+// Right — the colon vanishes with the port.
+// "10.0.0.1 rest"      → {ip: 10.0.0.1}
+// "10.0.0.1:8080 rest" → {ip: 10.0.0.1, port: 8080}
 parse content, "IPADDR:ip (':' INT:port)?"
 
-// Wrong — a missing port leaves an unmatched literal colon
+// Wrong — rejected before it ever runs. `?` cannot follow the export name:
+// ERROR_IN_PARSING_PATTERN "Syntax error: extraneous input '?' expecting <EOF>".
 parse content, "IPADDR:ip ':' INT:port?"
+
+// Worse — this one compiles, and then fails silently. The optional marker is
+// placed legally, but the literal ':' is still mandatory outside the optional
+// unit, so an address with no port extracts NOTHING and raises no error.
+// "10.0.0.1 rest"      → {}            ← the silent case
+// "10.0.0.1:8080 rest" → {ip: 10.0.0.1, port: 8080}
+parse content, "IPADDR:ip ':' INT?:port"
 ```
+
+The placement rule is the point: `?` binds to the **matcher**, not to the exported field. Put it after the export and the pattern is a compile error; put it correctly but leave the delimiter outside the optional unit and you get this notebook's own subject — a pattern that parses, runs, and quietly returns nothing. *(all three live-verified 08/27/2026)*
 
 This is how you write one pattern for a log format with genuinely optional fields, instead of two patterns and a `coalesce`.
 
@@ -713,7 +729,7 @@ Two asymmetries matter more than the table suggests:
 
 The Dynatrace documentation states **no** DPL-specific performance or DPS-consumption cost for pattern complexity. In community practice, teams treat pattern count and pipeline depth as the thing to keep an eye on rather than individual pattern complexity — verify against your own pipeline metrics before optimizing on assumption.
 
-> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/limits) — the four limits in the table. **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — the four limits in the table. **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
 
 ---
 
@@ -845,27 +861,6 @@ Two features worth knowing: patterns can be developed across **multiple tabs** f
 **Assuming your masking language is portable.** OneAgent-side masking is regex; OpenPipeline-side masking is DPL. A rule written for one will not fire in the other. See § 3.5.
 
 ---
-
-<a id="references"></a>
-## 14. References
-
-- [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
-- [DPL Grammar (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-grammar) — the authoritative matcher table
-- [DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers)
-- [Lines and strings (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-lines-strings)
-- [Numeric matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-numeric)
-- [Time and date matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-time-date)
-- [Network matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-network)
-- [Key-value pairs (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-key-value-pairs)
-- [Positional matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-positional-matchers)
-- [Alternatives group (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-alternatives-group)
-- [Macros (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-macros)
-- [XML matchers (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/grail/dynatrace-pattern-language/dpl-xml) — not listed in the grammar table
-- [DPL Architect (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect)
-- [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands)
-- [String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions)
-- [OpenPipeline DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions)
-- [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/limits)
 
 ---
 

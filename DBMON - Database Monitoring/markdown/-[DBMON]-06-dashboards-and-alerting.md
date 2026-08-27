@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -193,6 +193,8 @@ The alert queries above are span-based (caller-side). If the **Microsoft SQL Ser
 Thresholds carried over from homegrown scripts should be revalidated rather than copied — e.g., scripts typically count *blocking* SPIDs while the extension metric counts *blocked* processes. The decision framework for migrating a script/Telegraf estate onto these signals is in **FAQ-14**.
 
 Log-space alert query — databases whose transaction log crossed 80% in the window:
+
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — the `sql-server.*` metric keys and the feature sets that emit them. **Derived:** the starting-point thresholds in the right-hand column are this series' recommendations, not published values — tune them against your own baseline before alerting on them.</sub>
 
 ```dql
 // Alert query: transaction logs above 80% utilization (SQL Server extension)

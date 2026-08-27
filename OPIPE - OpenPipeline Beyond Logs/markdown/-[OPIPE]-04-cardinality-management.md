@@ -1,6 +1,6 @@
 # OPIPE-04: Cardinality Management
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Controlling Dimension Explosion Across All Scopes
 
@@ -321,9 +321,9 @@ Continue to **OPIPE-05: Business & Security Event Pipelines** to configure OpenP
 <a id="references"></a>
 ## References
 
-- [Metric Ingestion Protocol](https://docs.dynatrace.com/docs/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)
-- [OpenPipeline Processing](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Grail Data Model](https://docs.dynatrace.com/docs/platform/grail)
+- [Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)
+- [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Grail data model (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 
 ---
 

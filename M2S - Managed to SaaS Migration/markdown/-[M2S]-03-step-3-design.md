@@ -623,7 +623,7 @@ Complete this checklist before proceeding to Step 4 (Prepare).
 - [OneAgent Network Requirements](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements)
 - [IAM Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/)
-- [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant/)
+- [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 
 ---
 

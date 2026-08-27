@@ -656,8 +656,8 @@ In this notebook, you learned:
 ## References
 
 - [Audit Logs](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)
-- [DQL Reference](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-query-language)
-- [SOC2 Trust Principles](https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2)
+- [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [SOC2 Trust Principles](https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services)
 
 ---
 

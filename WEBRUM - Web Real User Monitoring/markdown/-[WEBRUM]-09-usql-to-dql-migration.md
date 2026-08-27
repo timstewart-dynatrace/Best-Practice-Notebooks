@@ -66,7 +66,7 @@ USQL ran against a purpose-built session store. Gen3 moved RUM into Grail, and i
 
 The rest of the WEBRUM series is written against the classic vocabulary. If section 2 tells you your tenant serves New RUM, use the third column of the field tables below and expect the other notebooks to need the same translation.
 
-> <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure), [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data). **Derived:** the "grammar only" characterization of the classic path combines the documented USQL field list with the field names in use across the WEBRUM series.</sub>
+> <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure), [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data). **Derived:** the "grammar only" characterization of the classic path combines the documented USQL field list with the field names in use across the WEBRUM series.</sub>
 
 <a id="determining-which-model-your-tenant-serves"></a>
 ## 2. Determining Which Model Your Tenant Serves
@@ -139,7 +139,7 @@ The grammar change is identical for both targets — only the field names in the
 1. **Every `fetch` needs a time range.** USQL took its window from the dashboard, the management-zone selector, or the API request. DQL does not — `fetch user.sessions` without `from:` is not the same query.
 2. **Aggregations must be aliased before you sort on them.** `sort count() desc` is invalid; `summarize c = count()` then `sort c desc` is what USQL's implicit ordering becomes.
 
-> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — USQL keyword, function, and operator lists.</sub>
+> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — USQL keyword, function, and operator lists.</sub>
 
 <a id="table-mapping"></a>
 ## 4. Table Mapping
@@ -155,7 +155,7 @@ USQL had four tables. DQL has two, and the distinction USQL encoded in the table
 
 Under New RUM the event-type models each expose their own fields — `rum_exception` carries `error.name` / `error.type` / `error.is_fatal`, `rum_crash` adds `exception.stack_trace` and `exception.crash_signal_name`, `rum_request` carries `http.request.method` and `http.response.status_code`. Filter to the event type first, then reference its fields.
 
-> <sub>**Sources:** live query of `dt.semantic_dictionary.models` (Dynatrace tenant, 07/23/2026) for the New RUM column; [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) for the USQL table list.</sub>
+> <sub>**Sources:** live query of `dt.semantic_dictionary.models` (Dynatrace tenant, 07/23/2026) for the New RUM column; [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) for the USQL table list.</sub>
 
 <a id="field-mapping--sessions"></a>
 ## 5. Field Mapping — Sessions
@@ -360,7 +360,7 @@ fetch user.events, from:-24h
 
 **If `fetch user.sessions` returns nothing at all**, work through section 2 before assuming a field name is wrong — an unpopulated bucket, a missing `storage:user.sessions:read` scope, and a wrong field name all produce an empty result set, and only one of them is a query problem.
 
-> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — `FUNNEL` limits, closed-session constraint, `KEYS`/`CONDITION`; live query of `dt.semantic_dictionary.models` for the absent-field determinations.</sub>
+> <sub>**Sources:** [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data) — `FUNNEL` limits, closed-session constraint, `KEYS`/`CONDITION`; live query of `dt.semantic_dictionary.models` for the absent-field determinations.</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 9. Summary and Next Steps

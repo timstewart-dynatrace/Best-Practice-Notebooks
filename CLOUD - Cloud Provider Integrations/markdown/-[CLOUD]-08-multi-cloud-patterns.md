@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -83,6 +83,8 @@ Some entities are provider-specific and require separate queries:
 | `dt.entity.ec2_instance` | `dt.entity.azure_vm` | (uses `dt.entity.host`) |
 | `dt.entity.aws_lambda_function` | `dt.entity.azure_web_app` | `dt.entity.cloud_application` |
 | `dt.entity.relational_database_service` | `dt.entity.azure_sql_database` | (custom device) |
+
+> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services), [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration), [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in `dt.semantic_dictionary.models` on 08/27/2026. **Dictionary:** note the grain distinction — `dt.entity.kubernetes_node` (worker nodes, 30 on the validation tenant) is **not** interchangeable with `dt.entity.cloud_application_instance` (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub>
 
 <a id="cross-cloud-queries"></a>
 
@@ -202,6 +204,8 @@ Cloud providers use different region naming:
 
 Use a normalized `region` tag in Dynatrace to enable cross-cloud region-based queries.
 
+> <sub>**Sources:** [Tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags) — the tagging model these conventions target, [Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — normalizing provider tags into common dimensions centrally, which is the mechanism that makes a cross-cloud schema enforceable. **Derived:** the specific tag keys and the region-normalization map are this entry's convention, not a Dynatrace or cloud-provider standard — adopt or replace them wholesale, but do it once.</sub>
+
 <a id="health-dashboards"></a>
 
 ## 5. Unified Health Dashboards
@@ -231,10 +235,15 @@ fetch dt.davis.problems, from:-24h
 ### Service Error Rate (Unified)
 
 ```dql
-// Service-level error rates from spans in the last hour
+// Service-level error rates from spans in the last hour.
+//
+// span.status_code values are LOWERCASE. The uppercase literal matches nothing:
+// on a live tenant `== "ERROR"` matched 0 of 733,688 spans while `== "error"`
+// matched 19,932 in the same window (08/27/2026). The query still returns rows,
+// so the wrong literal reports 0% error rate for every service and nothing errors.
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize {total = count(), errors = countIf(span.status_code == "ERROR")}, by:{service.name}
+| summarize {total = count(), errors = countIf(span.status_code == "error")}, by:{service.name}
 | fieldsAdd error_pct = errors * 100.0 / total
 | filter total > 10
 | sort error_pct desc

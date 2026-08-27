@@ -1,6 +1,6 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/27/2026
 
 ## Overview
 
@@ -16,7 +16,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 > **Token currency note:** Platform Tokens (`dt0s16`) are the recommended choice for new tenants per Dynatrace SaaS sprint-1.337+; the Operator itself accepts platform tokens from **Operator 1.10.0** (July 15, 2026) — Classic API Tokens (`dt0c01`) continue to be accepted and remain the working path on earlier Operator versions. See K8S-02 §Prerequisites.
 
-> **Operator 1.10.0 upgrade notes (July 15, 2026):** the ActiveGate `TopologySpreadConstraint` default changed from `DoNotSchedule` to `ScheduleAnyway` — expect an **ActiveGate restart on upgrade** (an explicitly-set `whenUnsatisfiable` wins, so the recommended posture is to set it; see K8S-02 §8). DynaKube `v1beta3` was removed in Operator 1.9.0 and `v1beta4` is deprecated as of 1.10.0 — target `v1beta6` for new DynaKubes (`v1beta5` remains accepted). The `gke-autopilot.yaml` release artifact is removed — GKE Autopilot deploys via Helm. Two init containers were introduced — **`webhook-cert-generator`** and **`crd-storage-migrator`** — which is what an `Init:0/1` hang is waiting on (K8S-09 §2). 1.10.0 also adds a **CSI-to-ephemeral-volume migration mode**, which turns code-module delivery into a deliberate choice rather than a fixed default — see rule 7 and K8S-12 §2.
+> **Operator 1.10.0 upgrade notes (July 15, 2026):** the ActiveGate `TopologySpreadConstraint` default changed from `DoNotSchedule` to `ScheduleAnyway` — expect an **ActiveGate restart on upgrade** (an explicitly-set `whenUnsatisfiable` wins, so the recommended posture is to set it; see K8S-02 §8). DynaKube `v1beta3` was removed in Operator 1.9.0, and **`v1beta4` stopped being served in 1.10.0** (it was deprecated in 1.9.0) — so a `v1beta4` manifest fails to apply after this upgrade, not merely warns. `v1beta5` is still served but is itself flagged deprecated from 1.10.0. Target `v1beta6` for new DynaKubes. The `gke-autopilot.yaml` release artifact is removed — GKE Autopilot deploys via Helm. Two init containers were introduced — **`webhook-cert-generator`** and **`crd-storage-migrator`** — which is what an `Init:0/1` hang is waiting on (K8S-09 §2). 1.10.0 also adds a **CSI-to-ephemeral-volume migration mode**, which turns code-module delivery into a deliberate choice rather than a fixed default — see rule 7 and K8S-12 §2.
 
 ---
 
@@ -96,7 +96,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 11 | Use `v1beta6` for new DynaKubes | `apiVersion: dynatrace.com/v1beta6` — `v1beta5` remains accepted (no rewrite required); `v1beta4` deprecated in 1.10.x; `v1beta3` **removed** in 1.9.0 | **Critical** | Configuration |
+| 11 | Use `v1beta6` for new DynaKubes | `apiVersion: dynatrace.com/v1beta6`. `v1beta5` still applies but is **deprecated from 1.10.0**; `v1beta4` is **no longer served from 1.10.0** (apply fails); `v1beta3` **removed** in 1.9.0 | **Critical** | Configuration |
 | 12 | Set `apiUrl` to your SaaS tenant | `spec.apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api` | **Critical** | Configuration |
 | 13 | Add control-plane tolerations to OneAgent | `tolerations: [{effect: NoSchedule, key: node-role.kubernetes.io/master, operator: Exists}, {effect: NoSchedule, key: node-role.kubernetes.io/control-plane, operator: Exists}]` | Recommended | Configuration |
 | 14 | Set `nodeSelector` for linux-only | `nodeSelector: {kubernetes.io/os: linux}` | Recommended | Configuration |
