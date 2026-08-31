@@ -1,12 +1,12 @@
 # SLO-01: SLO and SLI Fundamentals
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 6 | **Created:** June 2026 | **Last Updated:** 08/31/2026
 
 ## Overview
 
 Service Level Objectives turn "is the service healthy?" from a matter of opinion into a measured, agreed number. This notebook defines the three building blocks — **SLI**, **SLO**, **error budget** — explains how Dynatrace models them in the modern SLO app, and helps you choose your first handful of SLOs.
 
-This is the conceptual foundation for the series. SLO-02 builds the SLI queries, SLO-03 covers composition and error budgets in depth, SLO-04 covers alerting, and SLO-05 covers provisioning SLOs as code.
+This is the conceptual foundation for the series. SLO-02 builds the SLI queries, SLO-03 covers composition and error budgets in depth, SLO-04 covers alerting, SLO-05 covers provisioning SLOs as code, and SLO-06 covers Site Reliability Guardians — the point-in-time deployment-gating counterpart to the ongoing reliability target defined here.
 
 ---
 
@@ -113,6 +113,7 @@ The most common failure mode is too many SLOs, none trusted. Start narrow:
 - **SLO-03** — error budgets, burn rate, composite and weighted SLOs.
 - **SLO-04** — burn-rate alerting and routing SLO breaches.
 - **SLO-05** — provisioning SLOs as code (`dynatrace_slo_v2`, Monaco).
+- **SLO-06** — Site Reliability Guardians: point-in-time deployment validation gates that complement the ongoing reliability target defined here.
 - **AIOPS-02** — anomaly detection; SLO breaches and anomalies are complementary detection inputs.
 - **WFLOW** — routing the problems an SLO breach raises.
 

@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 08/31/2026
 
 ## Overview
 

@@ -3,11 +3,12 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-5 notebooks on defining and operating SLOs in Dynatrace: SLI/SLO/error-budget
+6 notebooks on defining and operating SLOs in Dynatrace: SLI/SLO/error-budget
 fundamentals and the modern DQL-based SLO app, the four SLI query shapes,
-composition and burn-rate math, multiwindow burn-rate alerting, and SLOs as
-code. This series owns *reliability targets and error budgets* — not detector
-mechanics or notification routing.
+composition and burn-rate math, multiwindow burn-rate alerting, SLOs as
+code, and Site Reliability Guardians for point-in-time deployment gating.
+This series owns *reliability targets, error budgets, and change-validation
+gates* — not detector mechanics or notification routing.
 
 ## Routing table
 
@@ -20,13 +21,14 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Error-budget math (allowed downtime per target), burn-rate calculation, composite/weighted-global SLOs, rolling vs calendar windows | `-[SLO]-03-composition-and-error-budgets.md` |
 | Alerting on SLOs — why burn-rate beats threshold-on-SLI, fast-burn/slow-burn multiwindow alerts, configuring SLO alerts, routing breaches, avoiding fatigue | `-[SLO]-04-alerting.md` |
 | Provisioning SLOs from version control — the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2`/`builtin:monitoring.slo` path it replaces (blocked at upgrade), Monaco, the export-known-good API/CI-CD path | `-[SLO]-05-slos-as-code.md` |
+| Site Reliability Guardians — point-in-time deployment/change validation gates (as opposed to SLOs' continuous reliability target): guardian types (`SDLC_EVENT`/`BIZ_EVENT`), `DQL`/`REFERENCE_SLO` objectives, static/adaptive thresholds, the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, the `dynatrace_site_reliability_guardian` Terraform resource and Monaco three-file convention, CI/CD pipeline gating, and guardian-vs-SLO decision guidance | `-[SLO]-06-site-reliability-guardians.md` |
 
 ## Related series
 
 - Overall alerting strategy — where SLO burn-rate fits among the four detection mechanisms: go to `../ALERT - Alerting Strategy and Design/` instead for the end-to-end design.
 - Anomaly detectors and Davis problems — signals that are not reliability promises: go to `../AIOPS - Dynatrace Intelligence/` instead for detection mechanics.
 - Delivering a burn-rate alert to a channel or ITSM tool: go to `../WFLOW - Workflows and Alert Notifications/` instead for notification plumbing.
-- Terraform/Monaco/CI-CD tooling depth behind SLO-05: `../AUTOM - Dynatrace Automation/`
+- Terraform/Monaco/CI-CD tooling depth behind SLO-05 and SLO-06's guardian resource, plus the community CI/CD samples SLO-06 §6 points at: `../AUTOM - Dynatrace Automation/`
 
 ## Rules
 

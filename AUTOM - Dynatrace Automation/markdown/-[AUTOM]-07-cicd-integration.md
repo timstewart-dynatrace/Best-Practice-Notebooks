@@ -2525,6 +2525,8 @@ In this notebook, you learned:
 
 *Continue to **AUTOM-08: Migration Automation** to learn bulk configuration transfer.*
 
+> **Site Reliability Guardian, in depth:** the CLI and repos below wrap SRG automation for CI/CD, but this notebook does not otherwise cover guardian mechanics. For the objective/threshold model, the result classification, creating and triggering a guardian, and the Terraform/Monaco config-as-code schema, see **SLO-06: Site Reliability Guardians**.
+
 ## Community Resources & CI/CD Examples
 
 The following GitHub repositories provide working CI/CD pipelines, validation scripts, and platform engineering references:

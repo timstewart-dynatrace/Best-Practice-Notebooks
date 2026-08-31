@@ -83,7 +83,7 @@ Paths are the literal directory names (they contain spaces — quote them in she
 | WFLOW | `WFLOW - Workflows and Alert Notifications` | Workflows, notification routing |
 | AIOPS | `AIOPS - Dynatrace Intelligence` | Causal, predictive, and generative AI capabilities |
 | ALERT | `ALERT - Alerting Strategy and Design` | End-to-end alerting design; orchestrates AIOPS + SLO + WFLOW |
-| SLO | `SLO - Service Level Objectives` | SLIs, error budgets, burn-rate alerting, SLOs as code |
+| SLO | `SLO - Service Level Objectives` | SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians |
 
 **Security**
 
