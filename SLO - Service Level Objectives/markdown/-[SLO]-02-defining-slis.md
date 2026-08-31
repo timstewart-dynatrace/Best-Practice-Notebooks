@@ -1,6 +1,6 @@
 # SLO-02: Defining SLIs
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 6 | **Created:** June 2026 | **Last Updated:** 08/31/2026
 
 ## Overview
 

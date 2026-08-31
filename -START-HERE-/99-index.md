@@ -48,7 +48,7 @@
 | **S2D** | [Splunk to Dynatrace Migration](../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/) | 10 | SPL → DQL, anomaly detectors, dashboards, naming standards |
 | **S2S** | [SaaS to SaaS Migration](../S2S%20-%20SaaS%20to%20SaaS%20Migration/) | 11 | 9-step runbook for SaaS → SaaS tenant consolidation; includes migration scripts |
 | **SL2DT** | [Sumo Logic to Dynatrace](../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/) | 11 | Sumo procedural runbook; logs/dashboards/monitors; Gen3-first |
-| **SLO** | [Service Level Objectives](../SLO%20-%20Service%20Level%20Objectives/) | 5 | SLI fundamentals, defining SLIs, error budgets, burn-rate alerting, SLOs as code |
+| **SLO** | [Service Level Objectives](../SLO%20-%20Service%20Level%20Objectives/) | 6 | SLI fundamentals, defining SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians |
 | **SPANS** | [Distributed Tracing and Spans](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) | 9 | Span fundamentals, querying, topology, analytics, cost optimization |
 | **SYNTH** | [Synthetic Monitoring](../SYNTH%20-%20Synthetic%20Monitoring/) | 7 | Browser monitors, HTTP monitors, private locations, network monitoring |
 | **WEBRUM** | [Web Real User Monitoring](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) | 10 | RUM fundamentals, SPA, Core Web Vitals, session replay, USQL → DQL migration |

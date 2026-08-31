@@ -1,6 +1,6 @@
 # SLO - Service Level Objectives
 
-Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, and SLOs as code. Every DQL query in the series was validated against a live tenant.
+Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, SLOs as code, and Site Reliability Guardians for point-in-time deployment gating. Every DQL query in the series was validated against a live tenant.
 
 > **Recommended:** Import the JSON files from NOTEBOOKS/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
 
@@ -15,6 +15,7 @@ Defining and operating Service Level Objectives in Dynatrace — SLIs, error bud
 3. [Composition and Error Budgets](markdown/-[SLO]-03-composition-and-error-budgets.md) — Error-budget math and burn rate, composite and weighted-global SLOs, and rolling vs calendar windows
 4. [SLO Alerting](markdown/-[SLO]-04-alerting.md) — Burn-rate alerting over threshold-on-SLI: fast-burn and slow-burn multiwindow alerts, surfacing, routing, and avoiding fatigue
 5. [SLOs as Code](markdown/-[SLO]-05-slos-as-code.md) — Promoting SLOs into version control: the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2` / `builtin:monitoring.slo` path it replaces, Monaco, and the export-known-good API pattern
+6. [Site Reliability Guardians](markdown/-[SLO]-06-site-reliability-guardians.md) — Point-in-time deployment validation gates: guardian types, DQL/reference-SLO objectives, the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, provisioning as code (Terraform/Monaco), CI/CD pipeline integration, and how guardians complement SLOs
 
 ## Usage
 1. Choose a format: import JSON from NOTEBOOKS/, read PDFs/ for print, or view markdown/ for lightweight browsing.

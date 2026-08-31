@@ -37,7 +37,7 @@ and follow its pointers.
 - Workflow authoring depth (triggers, notifications, JavaScript actions): `../WFLOW - Workflows and Alert Notifications/`
 - IAM concepts behind the Terraform IAM lab (policies, groups, boundaries): `../IAM - IAM Administration/`
 - GitOps for the DynaKube CR and Dynatrace Operator specifically: `../K8S - Kubernetes Monitoring/`
-- SLOs as code (`dynatrace_slo_v2`, Monaco for SLOs): `../SLO - Service Level Objectives/`
+- SLOs as code (`dynatrace_slo_v2`, Monaco for SLOs) and Site Reliability Guardians (`dynatrace_site_reliability_guardian`, guardian objectives/thresholds, CI/CD pipeline gating): `../SLO - Service Level Objectives/`
 
 ## Rules
 
