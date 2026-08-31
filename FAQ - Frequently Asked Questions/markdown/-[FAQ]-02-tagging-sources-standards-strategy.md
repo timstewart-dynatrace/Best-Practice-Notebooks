@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -236,7 +236,11 @@ on that host only. That is a partial-coverage symptom that looks like a broken r
 produces `primary_tags.team`, and the three reserved cost/security keys stay top-level — the same shape § 2
 describes for the at-source path.
 
-> <sub>**Sources:** [Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the four enrichment sources, the target fields, the before-the-pipeline timing, and both precedence rules, all quoted above, [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent) — `--set-host-tag` / `oneagentctl` / `DT_TAGS`, the cross-domain precedence order, and the `primary_tags.<key>` storage rule. Read at source 08/27/2026.</sub>
+> **New (SaaS 1.346 — staged rollout from 08/25/2026): classic configuration surfaces can now match on trace-based `primary_tags`.** Verbatim: *"Request Naming, Service Detection Rules, Failure Detection and Request Attributes now support trace-based `primary_tags.*` values in the **Process group tag** condition field."*
+>
+> This narrows a long-standing split. The `primary_tags.*` values described above could be queried in DQL but could not be used as a condition in those four classic configuration surfaces, which forced a parallel set of process-group tags maintained purely to drive rules. From 1.346 the same enrichment keys can do both jobs — so a `primary_tags.team` established once via the precedence chain above can drive service detection and request naming directly, rather than being mirrored into a second tagging scheme. Worth knowing before you build that mirror; if you already have one, this is the change that lets you retire it.
+
+> <sub>**Sources:** [Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the four enrichment sources, the target fields, the before-the-pipeline timing, and both precedence rules, all quoted above, [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent) — `--set-host-tag` / `oneagentctl` / `DT_TAGS`, the cross-domain precedence order, and the `primary_tags.<key>` storage rule. Read at source 08/27/2026; [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — trace-based `primary_tags.*` in the Process group tag condition field, quoted above.</sub>
 
 <a id="cloud-specifics"></a>
 ## 4. AWS / Azure / GCP — Per-Cloud Specifics

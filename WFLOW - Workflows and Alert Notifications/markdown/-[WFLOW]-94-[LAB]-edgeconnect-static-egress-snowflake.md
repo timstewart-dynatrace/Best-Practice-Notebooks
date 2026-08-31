@@ -1,6 +1,6 @@
 # WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 07/14/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -432,3 +432,11 @@ Capacity: the 20-concurrent/120 s/6 MB limits are **per container** — scale `d
 ---
 
 <sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
+
+> **New (EdgeConnect 1.744.0, released 07/27/2026): Dynatrace domains are allowed in host patterns.** Verbatim: *"EdgeConnect now allows Dynatrace domains in host patterns. Requests to Dynatrace-owned domains are no longer rejected and can be routed through EdgeConnect. This feature requires Dynatrace version 1.345."*
+>
+> Previously a host pattern matching a Dynatrace-owned domain was rejected outright, so any flow that needed to reach a Dynatrace domain *through* EdgeConnect — rather than directly — had no supported path. That restriction is lifted.
+>
+> Two conditions gate it: **EdgeConnect 1.744.0 or later** on the connector side, and **Dynatrace 1.345 or later** on the tenant side. Both must hold; the EdgeConnect upgrade alone is not enough. It does not change the static-egress-IP pattern this lab builds — that mechanism is unchanged — but it widens what you can put in a host pattern, which is worth knowing before concluding that a Dynatrace-domain target is out of scope for EdgeConnect.
+
+> <sub>**Sources:** [EdgeConnect 1.744.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-744-0) — quoted above, read 08/28/2026.</sub>

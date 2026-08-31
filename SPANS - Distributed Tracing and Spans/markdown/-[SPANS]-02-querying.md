@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/12/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/28/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -179,6 +179,8 @@ Since Dynatrace v1.329, the **Enhanced Endpoints for SDv1** setting changes what
 - Use `contains(span.name, "/users")` or `startsWith(span.name, "GET /users")` for portable filtering — both forms work before and after the setting is enabled.
 - Exact equality on a literal URL (`span.name == "GET /users/42"`) only worked when endpoints weren't templated. Switch to `contains()` on the path stem.
 - For services without the `http.route` span attribute (often Nginx, Apache, IIS in front of a backend), endpoints may collapse to `GET /*`. Use request-naming rules to recover named endpoints — see [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).
+
+> **Changed (SaaS 1.346 — staged rollout from 08/25/2026): fewer `/*` endpoints on SDv2.** Verbatim: *"SDv2 now derives a `http.route` in cases where OneAgent sent the fallback value of `/*`."* On services detected by **SDv2**, endpoints that previously collapsed to `GET /*` may now carry a real derived route — which is the outcome you want, and also a change in the data your saved queries match against. Two things to check once it reaches your tenant: queries or dashboards that **filter for `/*`** as a proxy for "unnamed endpoint" will match fewer rows (that population is shrinking by design, not disappearing), and any **request-naming rule you added purely to work around `/*`** may now be redundant or, worse, competing with a derived route. The `isNull(http.route)` diagnostic in §10 remains the right way to find genuinely missing routes. SDv1 services are unaffected.
 
 **Services not affected:** external services, background activity, queue listeners, key-value stores — Enhanced Endpoints does not create endpoints for these.
 

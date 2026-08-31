@@ -1,6 +1,6 @@
 # SLO-02: Defining SLIs
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 5 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -53,11 +53,13 @@ Availability = the proportion of requests that did **not** fail. Using the pre-a
 
 ```dql
 // Availability SLI — metric-based, request success ratio
-// Validated on live tenant: returned ~95.6%
+// Re-validated on a live tenant 08/28/2026: returned 95.67%
+// interval:24h, not 1d — a calendar duration here raises
+// DEPRECATED_DURATION_UNIT_DAYS and is silently rewritten to 24h anyway
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
-}, from:-30d, interval:1d
+}, from:-30d, interval:24h
 | fieldsAdd sli_availability = ((total[] - failures[]) / total[]) * 100
 | fieldsAdd sli = arrayAvg(sli_availability)
 | fields sli, total, failures
@@ -97,7 +99,9 @@ A true latency SLI: the fraction of server requests that completed under the thr
 
 ```dql
 // Latency SLI — span-based good/total ratio under 500ms
-// Validated on live tenant: returned ~96.4%
+// Re-validated on a live tenant 08/28/2026: returned 99.54% (75,583/75,935)
+// A 1h window on live traffic moves — treat the figure as a shape check,
+// not a number to reproduce (06/2026 reading on the same tenant was ~96.4%)
 fetch spans, from:-1h
 | filter span.kind == "server"
 | summarize {
@@ -160,7 +164,7 @@ An SLI query that returns nothing — wrong field name, wrong `span.kind` case, 
 
 This notebook-as-scratchpad discipline is the single best defence against a dashboard full of SLOs that read "no data."
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All queries validated against a live tenant 06/16/2026.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's `interval` was changed from `1d` to `24h` in the same pass: a calendar duration raises `DEPRECATED_DURATION_UNIT_DAYS` and is silently rewritten to `24h`, so the query was never running on the interval it appeared to specify.</sub>
 
 ---
 

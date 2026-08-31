@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -52,7 +52,7 @@ The capability-to-dimension map:
 |----------------|------------------------|----------|
 | **Routing OneAgent traffic** | Number of connected OneAgents (hosts) and their data volume | §3 |
 | **Kubernetes monitoring** | Pod count (primary), node count (secondary), Prometheus-annotated pods | §4 |
-| **Cloud & remote API monitoring** (AWS, Azure, VMware, SNMP, Prometheus…) | Number of monitored endpoints/entities polled per cycle | §3 + extension notes — see the 1.345 module note in §2 |
+| **Cloud & remote API monitoring** (AWS, Azure, VMware, SNMP, Prometheus…) | Number of monitored endpoints/entities polled per cycle | §3 + extension notes |
 | **Extensions (EEC)** | Extension instances and monitored devices; adds disk requirements | §3 |
 | **Private synthetic** | Browser monitors per hour (HTTP monitors are far cheaper) | §5 |
 | **z/OS routing** | Mainframe traffic via the zRemote module | Size with Dynatrace guidance for your mainframe volume |
@@ -79,9 +79,6 @@ One rule sits above all the tables: **sizing numbers are starting points, not gu
 
 The ActiveGate hub enumerates its jobs: routing OneAgent traffic as a secure proxy, monitoring cloud environments and remote technologies via API (AWS, VMware, Azure, Kubernetes, OpenShift, Google Cloud, SNMP, Prometheus, and more), running synthetic monitors from private locations, routing z/OS traffic, and providing Dynatrace API access. Each job consumes a different resource profile:
 
-> **Classic-only modules on Latest Dynatrace — breaking (ActiveGate 1.345):** ActiveGate 1.345 **disallows modules that exclusively serve Dynatrace Classic monitoring pages** on ActiveGates connected to a *Latest Dynatrace* environment — **AWS, Azure, Cloud Foundry, VMware, memory dumps, and database insights**. Disable or uninstall those modules *before* upgrading such an ActiveGate; the upgrade does not complete cleanly while they remain enabled. ActiveGate 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — check which version your ActiveGates are actually on before planning the work, and note this changes *what an ActiveGate may run*, not the sizing math below. Classic-operated environments are unaffected. The release note does not name replacement modules for AWS/Azure/VMware on Latest Dynatrace; confirm the supported ingest path for those technologies against the ActiveGate capabilities page before you remove a working module.
-
-
 - **Routing** is network- and CPU-bound: load scales with the number of OneAgents connected and the volume of data they send. Memory matters for the outgoing message queue when the uplink is slow.
 - **Kubernetes monitoring** is memory- and CPU-bound on the *monitored workload count*: Dynatrace's Kubernetes sizing guide is explicit that consumption *"scales with the number of pods primarily due to increased data processing and storage needs,"* with node count a secondary driver and Prometheus metric collection adding CPU as annotated-pod counts rise.
 - **Extensions (EEC)** add per-instance polling work plus disk: the Extension Execution Controller wants ~2.1 GB of free disk for its persistence mechanism, and the extensions module claims its own installation and log/cache space.
@@ -94,7 +91,6 @@ Two placement consequences follow. First, Dynatrace recommends a **dedicated sys
 > - <sub>[Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits)</sub>
 > - <sub>[Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic)</sub>
 > - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
-> - <sub>[What's new in ActiveGate 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — classic-only modules disallowed on Latest Dynatrace</sub>
 > - <sub>**Derived:** the per-capability resource-profile characterizations combine the cited sizing drivers with the deployment-separation recommendations</sub>
 
 <a id="host-sizing"></a>
@@ -161,7 +157,9 @@ The guide also publishes its own health thresholds — effectively the container
 >
 > Verify the ActiveGate version running in the cluster before deciding which side of the change a reading came from; until it lands, the thresholds above remain correct as written.
 
-> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — scenario tables, replica counts, no-CPU-limit preference, single-cluster recommendation, and health thresholds are all from this page, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — Kubernetes CPU/memory request and limit metrics now include init containers. **Derived:** the "re-baseline the percentages, the absolute tables stand" conclusion follows from the thresholds being ratios whose denominator the 1.343 change raises.</sub>
+> **Rolling out (ActiveGate 1.345) — a second shift in the same denominator.** ActiveGate 1.345 continues the change 1.343 began: *"CPU, memory request, and limit metrics now account for pod-level resources introduced in Kubernetes version 1.34. When set, pod-level resources take precedence over container-level ones; the difference is reflected as an additional data point — aggregating at the pod scope shows the true effective resource reservation."* The consequence is the same shape as the 1.343 note above and stacks with it: on clusters running **Kubernetes 1.34+ with pod-level resources set**, the reported request/limit — the *denominator* of every percentage threshold in this section — changes again, so a percentage read before and after is not the same measurement. The S/M/L tables and routing replica counts are still absolute figures and still stand. Re-baseline the percentages once **both** the ActiveGate version and the cluster's Kubernetes version are known, and treat pod-level resources as a third variable when comparing readings across clusters. ActiveGate 1.345 published 08/12/2026 with a **staged rollout from 08/25/2026** — until it reaches a given cluster, the thresholds above remain correct as written.
+
+> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — scenario tables, replica counts, no-CPU-limit preference, single-cluster recommendation, and health thresholds are all from this page, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — Kubernetes CPU/memory request and limit metrics now include init containers, [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the same metrics now account for Kubernetes 1.34 pod-level resources, which take precedence over container-level ones. **Derived:** the "re-baseline the percentages, the absolute tables stand" conclusion follows from the thresholds being ratios whose denominator the 1.343 change raises.</sub>
 
 <a id="synthetic-sizing"></a>
 ## 5. Synthetic-Enabled ActiveGates
@@ -251,6 +249,10 @@ Wire the first three into anomaly-detection or a scheduled workflow (the ALERT a
 ### The full catalog — and the ready-made diagnostic dashboard
 
 The namespace goes far beyond the four core signals, and it is exactly what Dynatrace's own **"ActiveGate diagnostic overview" dashboard** is built on (the dashboard ships with the Discovery & Coverage app, per its own footer) — so before hand-building saturation tiles, open or import that dashboard: it already covers host vitals, the Java process, networking, and REST API health, with per-zone/group/instance filtering.
+
+> **Where the dashboard lives changed (ActiveGate 1.345 — staged rollout from 08/25/2026).** Verbatim: *"The **ActiveGate Diagnostic Overview** dashboard has moved from **Dashboards** to **Fleet Management**."* If you go looking for it under Dashboards on a tenant that has taken 1.345 and find nothing, it was moved, not removed — and the same release adds Smartscape Node ID filtering to it. The metrics it charts, and every query in this section, are unaffected.
+
+> **A dimension worth having (ActiveGate 1.345).** Verbatim: *"ActiveGate self-monitoring (SFM) metrics now include a host entity dimension when the ActiveGate is monitored by a OneAgent."* That closes a real gap in the queries above: `dt.sfm.active_gate.*` could be sliced by `dt.active_gate.id`, `host.name`, group, and network zone, but not joined to the **host entity** — so ActiveGate saturation and the host vitals underneath it were two separate investigations. Where the ActiveGate host runs a OneAgent, the two now line up in one query. It is additive: nothing above breaks on tenants that have not taken 1.345, and the dimension is absent on ActiveGates that no OneAgent monitors.
 
 A live-tenant enumeration (July 2026) shows ~53 keys in the namespace. By area:
 
@@ -370,6 +372,7 @@ If you do query `dsfm:` keys in DQL, mind the colon: `timeseries` parses an unqu
 > - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-sfm-metrics) — `dsfm:` metric keys, descriptions, and the queued/dropped interpretations quoted;</sub>
 > - <sub>[Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/self-monitoring-metrics) — the `dsfm:` family's placement under Metrics Classic and its selector/Data-Explorer query surface;</sub>
 > - <sub>[Discovery & Coverage (DT docs)](https://docs.dynatrace.com/docs/shortlink/discovery-coverage-app) — the app that provides the ActiveGate diagnostic overview dashboard;</sub>
+> - <sub>[ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the Diagnostic Overview dashboard's move to Fleet Management, and SFM metrics gaining a host entity dimension when the ActiveGate is OneAgent-monitored;</sub>
 > - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — 50%/80% thresholds</sub>
 > - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle</sub>
 > - <sub>**Derived:** the Gen2/Gen3 split, the 50%/80% thresholds applied to JVM-level metrics, and the `dt.sfm.active_gate.*` catalog are all inferred rather than documented on the sfm page</sub>

@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -252,6 +252,12 @@ While OneAgent captures database calls from the application side (client spans),
 - **IAM-04 / IAM-05** — Policy design that scopes extension log access by bucket
 
 > <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model; note recent pages say simply *"Extensions"* and mean 2.0, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than from a single page — re-confirm before planning a migration around them.</sub>
+
+> **New (SaaS 1.346 — staged rollout from 08/25/2026): a `definity` extension for data-pipeline observability.** Verbatim: *"The new definity extension is introduced. It ingests pipeline health, performance, and cost data into Dynatrace, giving you visibility into your lakehouse and Spark pipeline ecosystem."*
+>
+> This sits **adjacent to** the database monitoring in this series rather than inside it. The extensions above monitor a *database* — connections, queries, locks, replication. Definity monitors the *pipelines that move data into and around a lakehouse*, and adds **cost** as a first-class signal, which none of the database extensions do. If your estate runs Spark or a lakehouse alongside the databases covered here, it fills a gap this series does not otherwise address; if it does not, there is nothing to do. Check the Hub for availability on your tenant.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the definity extension entry quoted above, read 08/28/2026.</sub>
 
 ### Where Extension Logs Land in Grail
 

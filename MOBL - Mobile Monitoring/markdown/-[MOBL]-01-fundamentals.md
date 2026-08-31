@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 08/24/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -24,6 +24,16 @@ Sprint 8.337 of OneAgent for Mobile lands platform updates and developer-tooling
 > **Action:** if your CI runs Swift Instrumentor on a macOS image older than 11.5, plan the runner-image upgrade before adopting 8.337. iOS builds otherwise still produce instrumented binaries on the prior agent.
 
 ---
+
+### OneAgent for Mobile 8.345 (August 2026)
+
+| Item | Detail | Impact |
+|---|---|---|
+| **Gradle 9.7 compatibility** | The Dynatrace Android Gradle plugin now supports Gradle 9.7 | Unblocks Android projects already on 9.7; update `gradle-wrapper.properties` if pinned |
+| **Android fixes (build 8.345.1)** | ANR eliminated in Jetpack Compose instrumentation with Session Replay, and in Compose user-interaction monitoring; 5G NSA sessions no longer misreported as 4G; native crash attribution corrected across sessions | If Compose + Session Replay was deferred over ANR reports, this is the build that addresses them; network-type analytics shift for 5G NSA users |
+| **iOS fixes (build 8.345.1)** | User-action navigation and web-request detection improved; Session Replay stack overflow prevented; Initial Loading Action tracking corrected; iOS 27 tab-switch Session Replay fixed; a configuration-handling race condition eliminated | Several affect *measured values*, not just stability — Initial Loading Action in particular, so expect a step in that metric after adoption |
+
+Released 08/03/2026 with rollout from 08/11/2026. No Flutter, React Native, or Cordova changes in this sprint. As always with mobile, the agent version that matters is the one **compiled into shipped app builds** — these land as users update, not when the tenant updates.
 
 ---
 

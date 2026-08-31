@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -216,6 +216,16 @@ Lambda errors fall into two categories:
 |---|---|---|
 | **Function errors** | Unhandled exceptions, timeout, OOM | `dt.cloud.aws.lambda.errors` |
 | **Invocation errors** | Permission issues, throttling, invalid payload | `dt.cloud.aws.lambda.throttlers` |
+
+> **Breaking (SaaS 1.346 — staged rollout from 08/25/2026): expect your Lambda failure rate to rise.** Verbatim: *"HTTP failure detection now applies to FaaS services (AWS Lambda, Azure Functions, and GCP Cloud Functions) with HTTP data. After this update, you may see a higher failure rate in your environment. This is expected—issues with these services are now detected and reported for the first time."*
+>
+> The rise is **new detection, not new breakage** — HTTP-level failures your functions were already returning are now reported as failures. Three practical consequences:
+>
+> - **Re-baseline before you alert.** Any static failure-rate threshold, SLO, or anomaly baseline covering FaaS services was tuned against the pre-1.346 numbers. Let the new rate settle before treating a step change as an incident — and expect Davis baselines to re-learn.
+> - **Do not chase the step change as a regression.** The first post-rollout spike is the most likely moment for a false escalation. Confirm the tenant version before opening an investigation into a failure-rate jump.
+> - **The step is a one-time level shift, not a trend.** Compare like-for-like windows on the same side of the rollout.
+>
+> This applies to the metric-based error analysis below and to trace-based failure analysis alike, and it is a cross-cloud change — Azure Functions and GCP Cloud Functions are named alongside Lambda, so the same re-baselining applies in CLOUD-05 and CLOUD-06.
 
 ### Error Rate by Function
 

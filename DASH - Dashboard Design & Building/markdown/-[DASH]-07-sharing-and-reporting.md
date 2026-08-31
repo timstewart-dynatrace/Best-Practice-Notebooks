@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/11/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -200,7 +200,7 @@ Managing dashboards as code enables version control, peer review, and automated 
 
 ### Validate the Payload Before You Merge It
 
-> **Forthcoming/rolling out (SaaS 1.344) — a dashboard that fails validation will no longer load.** SaaS 1.344 was published 07/27/2026 with a **staged tenant rollout from 07/29/2026**; verify whether it has reached your tenant before relying on the new behavior. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings. Once 1.344 reaches your tenant, it does not load at all. Dynatrace names dashboards **created externally via API or by AI tooling** as the most affected population — which is precisely what every approach in the table above produces. Treat the warning state as a grace period, not a supported state.
+> **A dashboard that fails validation does not load (SaaS 1.344, restated and tightened in SaaS 1.346).** SaaS 1.344 was published 07/27/2026 (rollout from 07/29/2026) and SaaS 1.346 restates the rule verbatim: *"Starting with Dynatrace version 1.346, Dynatrace applies stricter validation rules to dashboards and won't display dashboards that fail validation until you fix them."* Two sprints have now shipped this, so treat it as **current behavior** rather than something to wait for — while still confirming which version your tenant runs, because the enforcement arrives with the version. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings; now it does not load at all until fixed. Dynatrace names dashboards **created externally via API or by AI tooling** as the most affected population — which is precisely what every approach in the table above produces. Treat the warning state as a grace period, not a supported state — and note that 1.346 describes the rules as *stricter* again, so a payload that squeaked past 1.344 is not guaranteed to pass.
 >
 > **Gate every payload before you merge it:**
 >

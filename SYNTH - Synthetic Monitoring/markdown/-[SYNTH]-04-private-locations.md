@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 08/28/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -413,3 +413,9 @@ Continue to **SYNTH-05: Network Monitoring** to learn about synthetic network av
 ---
 
 <sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
+
+> **Browser engine moves to Chromium 151 (ActiveGate 1.345 — rollout from 08/25/2026).** Per the release notes, *Chromium 151* is the latest supported version for a Synthetic-enabled ActiveGate on **RHEL 9.7** and **Rocky Linux 9.8**; *Chrome for Testing 151* is the latest for **Ubuntu 20.04 / 22.04 / 24.04**, **Amazon Linux 2023**, and **Oracle Linux 9.7**; and Chromium 151 is bundled with the **Windows** ActiveGate installer.
+>
+> The engine version ships **inside the ActiveGate update** rather than separately, which is why browser-monitor behavior can change on a synthetic AG that nobody deliberately touched. Validate browser monitors after the AG takes 1.345 before treating new failures as application regressions — post-update monitor flake is more often an engine change than a real one (FAQ-05 §9 makes the same point, and is the reason synthetic-heavy AGs are a standing candidate for manual update scheduling).
+
+> <sub>**Sources:** [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the Chromium 151 / Chrome for Testing 151 support matrix quoted above, read 08/28/2026.</sub>
