@@ -1,6 +1,6 @@
 # SLO-03: Composition and Error Budgets
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 5 | **Created:** June 2026 | **Last Updated:** 06/16/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -57,7 +57,9 @@ The following computes the current burn rate against a 99.5% target (0.5% budget
 
 ```dql
 // Error-budget burn rate against a 99.5% target
-// Validated on live tenant: observed_bad ~0.041, burn_rate ~8.3x
+// Re-validated on a live tenant 08/28/2026: observed_bad 0.045, burn_rate 9.02x
+// Live figures move between runs (06/2026: ~0.041 / ~8.3x) — what should hold
+// is the relationship: burn_rate = observed_bad / (1 - target)
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
@@ -116,7 +118,7 @@ Rolling windows give smoother, more honest day-to-day signals and avoid the "bud
 
 Whatever you choose, **alert on sustained breach, not on momentary dips** — a single bad interval inside a 30-day window is noise. SLO-04 covers how multiwindow burn-rate alerting encodes exactly that.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [Site Reliability Engineering — Error Budgets (Google SRE Book)](https://sre.google/sre-book/embracing-risk/). Burn-rate query validated against a live tenant 06/16/2026. **Derived:** the weighted-global calculation is a reporting pattern, not a built-in Dynatrace SLO type.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [Site Reliability Engineering — Error Budgets (Google SRE Book)](https://sre.google/sre-book/embracing-risk/). Burn-rate query re-executed against a live tenant 08/28/2026. **Derived:** the weighted-global calculation is a reporting pattern, not a built-in Dynatrace SLO type.</sub>
 
 ---
 

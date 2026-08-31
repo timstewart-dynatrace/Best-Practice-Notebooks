@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -122,7 +122,21 @@ Two effective modes per ActiveGate:
 - **Cloud connectors.** AGs running AWS/Azure/GCP cloud-monitoring connectors are usually safe to auto-update — connector behavior is stable across versions — but a connector-heavy AG benefits from a known restart time for the same reason.
 - **Network change-control.** Some networks treat any in-path infrastructure restart as a change requiring a ticket. Auto-update conflicts with that model; pick manual — but read the security factor above before settling there, because change-control and a remediation SLA usually come from the same governance function and are supposed to be reconciled rather than traded off.
 
-> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — auto-update toggle is per-AG; one-click *"Update now"* available when auto-update is disabled and a new version is ready, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983, shipped inside the ordinary version update. **Derived:** the "if the manual process cannot meet the SLA, the answer is HA plus auto-update" conclusion combines the security-fix delivery model with the per-AG restart behavior that HA absorbs.</sub>
+### The other clock: operating-system support end dates
+
+Auto-update keeps an ActiveGate current on *Dynatrace* versions. It does nothing about the **host OS falling out of support**, which stops updates just as effectively and on a schedule nobody sets. The ActiveGate 1.345 notes publish the current runway:
+
+| ActiveGate support ends | Operating systems |
+|---|---|
+| **November 1, 2026** | RHEL 9.4, Ubuntu 16.04 |
+| **December 1, 2026** | RHEL 9.7 / 10.1, Oracle Linux 9.7 / 10.1, Rocky Linux 9.7 / 10.1 |
+| **January 1, 2027** | Amazon Linux 2 |
+
+Read the December row carefully — it retires **9.7 and 10.1 point releases across three distributions at once**, which is the row most likely to catch a fleet that standardized on a single minor version. Inventory the OS behind each ActiveGate against these dates now: an OS migration is a rebuild-and-re-register, not a version bump, so it needs lead time an update window cannot supply. This is the strongest practical argument for HA pairs in §5 — an OS migration is far easier to absorb when a partner can carry traffic.
+
+> **Also in ActiveGate 1.345 — a transport change under the hood.** Verbatim: *"ActiveGate watchdog communication switches from TCP sockets to named pipes, aligning with OneAgent."* No action is required, but it is worth knowing before the next post-update investigation: local-port expectations, host-firewall rules, or monitoring that watched the watchdog's TCP socket may need revisiting on ActiveGates that have taken 1.345. The same release moves the containerized base image from **Red Hat UBI 9 Micro to UBI 10 Micro** — a change worth flagging to whoever scans your container images, since the scan baseline shifts with it.
+
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — auto-update toggle is per-AG; one-click *"Update now"* available when auto-update is disabled and a new version is ready, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983, shipped inside the ordinary version update, [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the OS support end dates tabulated above, the watchdog named-pipes switch, and the UBI 9 → UBI 10 Micro base-image change. **Derived:** the "if the manual process cannot meet the SLA, the answer is HA plus auto-update" conclusion combines the security-fix delivery model with the per-AG restart behavior that HA absorbs.</sub>
 
 <a id="sequencing"></a>
 ## 4. Sequencing — ActiveGates Before OneAgents

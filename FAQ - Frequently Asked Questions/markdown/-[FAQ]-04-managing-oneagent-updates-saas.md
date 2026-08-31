@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -138,7 +138,9 @@ For environments where SVG doesn't render
 
 The "No automatic updates" mode is often picked defensively at tenant standup ("we'll turn it on later") and then forgotten. If you adopt this mode, pair it with a recurring calendar reminder to evaluate available versions, or you will discover that the fleet is six months behind a year later.
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Automatic updates at earliest convenience"*, *"Automatic updates during update windows"*, and *"No automatic updates"* are the three documented modes; "Update now" and environment-wide "Update now to target version" are the manual triggers when auto-update is disabled.</sub>
+> **Breaking (OneAgent 1.345): disabling auto-update now also means versioned directories are never cleaned up.** Verbatim: *"Due to security concerns, versioned directories will no longer be removed automatically on hosts where auto-updates and process auto-injection are disabled."* This lands directly on the mode above. Previously, a host on **No automatic updates** still had old versioned directories reclaimed by a legacy migration mechanism; from 1.345 that mechanism is gone, so on hosts where auto-update **and** process auto-injection are both disabled, each retained version's directory persists until someone removes it. The cost is disk, and it accrues quietly on exactly the fleet this mode creates — long-lived hosts that update rarely and are rarely looked at. **If you run "No automatic updates" at any scale, add OneAgent installation-directory growth to what you monitor, and give the cleanup an owner.** OneAgent 1.345 began its **staged rollout on 08/25/2026**, and OneAgent fleets lag tenant version — check the version your hosts are actually on before assuming either behavior. The mode itself is unchanged and remains a legitimate choice; only its housekeeping side effect changed.
+
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"Automatic updates at earliest convenience"*, *"Automatic updates during update windows"*, and *"No automatic updates"* are the three documented modes; "Update now" and environment-wide "Update now to target version" are the manual triggers when auto-update is disabled, [OneAgent 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Removed legacy migration mechanism of versioned directories"*, quoted above. **Derived:** the disk-growth consequence for long-lived manually-updated hosts follows from the removal applying precisely to hosts with auto-update disabled.</sub>
 
 <a id="windows"></a>
 ## 5. Update Windows vs Maintenance Windows

@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -122,6 +122,15 @@ That last one is worth knowing before you conclude a detector has broken. A dete
 | `dt.davis.event_ids` | Array of constituent signal IDs from `dt.davis.events` |
 
 Custom string-typed fields can be propagated onto problems via Settings — useful for team / alerting-profile / service-tier attribution. Numeric custom fields are not supported.
+
+> **Changed (SaaS 1.346 — staged rollout from 08/25/2026): propagated problem fields keep only the latest value.** Verbatim: *"Propagated problem fields now store only the most recent event field value—they don't accumulate all historical values of an event field (for example, `trace_id`), rather they save only the latest value."*
+>
+> This changes what a propagated field *means*, which matters more than it first appears. A field like `trace_id` on a long-running problem previously accumulated every value the underlying events carried; now it holds one — the most recent. Two consequences for anything you have built on those fields:
+>
+> - **Do not treat a propagated field as a complete history.** A query that pulled `trace_id` off a problem to enumerate every affected trace will, after this change, return the last one only. Where you need the full set, go to the **events** (§3) rather than the problem record — the events are where the history actually lives, and that distinction is now load-bearing rather than stylistic.
+> - **Comparisons across the rollout window are not like-for-like.** A problem that opened before the change and persisted through it may show accumulated values; one opened after will not.
+>
+> The upside is that a propagated field is now unambiguous — one value, the newest — rather than a list whose length depended on how long the problem stayed open.
 
 <a id="data-objects"></a>
 ## 3. The Two Data Objects: `dt.davis.problems` vs. `dt.davis.events`

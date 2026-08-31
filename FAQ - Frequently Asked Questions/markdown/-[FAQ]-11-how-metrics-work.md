@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -407,6 +407,12 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion)</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — 20M vs 500M query ceilings</sub>
 > - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — timeseries queries always included</sub>
+
+> **New in the classic Metrics API (Dynatrace API 1.346, released 08/25/2026): an `asHistogram` transformation.** The API changelog adds an `asHistogram` enum value to the `transformations` property on `GET /metrics` and `GET /metrics/{metricKey}` (Environment API v2), and to `metricsMetadata` on the Early-Access `POST /ua/entity` and `POST /ua/list`.
+>
+> Two things to keep straight. This is a **metric-selector transformation on the classic Metrics API surface**, not a DQL command — nothing in the `timeseries` syntax above changes, and DQL still reads Grail only (§3). And it is a *transformation*, so it shapes how an already-ingested metric is returned; it does not turn a gauge into a histogram at ingest. If you maintain selector-based automation or Data Explorer definitions, this is a new option there; if you have already moved that work to DQL, it does not apply to you.
+
+> <sub>**Sources:** [Dynatrace API changelog version 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-346) — the `asHistogram` transformations enum addition, read 08/28/2026.</sub>
 
 <a id="cost"></a>
 ## 9. What Metrics Cost Under DPS

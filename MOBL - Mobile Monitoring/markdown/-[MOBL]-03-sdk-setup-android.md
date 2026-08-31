@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 08/04/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -413,3 +413,7 @@ In this notebook, you learned:
 ---
 
 <sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
+
+> **Gradle 9.7 is supported (OneAgent for Mobile 8.345, released 08/03/2026).** The Dynatrace Android Gradle plugin adds *"Support for Gradle version 9.7"*. If your project is pinned below that in `gradle-wrapper.properties`, this removes the plugin as a reason not to move; if you are already on 9.7, use the 8.345 plugin or later. Build 8.345.1 also resolves two ANRs in **Jetpack Compose** instrumentation — one in Compose with Session Replay, one in Compose user-interaction monitoring — worth knowing if Compose instrumentation was deferred on those grounds.
+
+> <sub>**Sources:** [What's new in OneAgent for Mobile 8.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-345) — Gradle 9.7 support and the Android 8.345.1 fixes, read 08/28/2026.</sub>

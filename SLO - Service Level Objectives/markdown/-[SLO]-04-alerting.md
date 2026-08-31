@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 5 | **Created:** June 2026 | **Last Updated:** 07/01/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 5 | **Created:** June 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -116,7 +116,7 @@ This is exactly the routing covered in WFLOW-04. The key dependency is upstream:
 - **One SLO breach, one notification.** Let the problem group related signals; do not also alert on the underlying raw metrics or you double-notify.
 - **Review what fired.** If an SLO pages and no one acts, the target or the burn thresholds are wrong — tune them.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the "Monitor error-budget burn rates" section (fetched 07/01/2026); [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/). Burn-rate query validated against a live tenant 06/16/2026. **Derived:** the two-tier fast/slow-burn window pairs are the standard SRE values layered onto the Dynatrace-documented fast-burn recipe above — Dynatrace's own docs only specify the fast-burn side.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the "Monitor error-budget burn rates" section (fetched 07/01/2026); [Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)](https://sre.google/workbook/alerting-on-slos/). Fast-burn query re-executed against a live tenant 08/28/2026 (burn_rate 9.05, fast_burn 0 — below the 14x trigger, which is the expected shape for a healthy window). **Derived:** the two-tier fast/slow-burn window pairs are the standard SRE values layered onto the Dynatrace-documented fast-burn recipe above — Dynatrace's own docs only specify the fast-burn side.</sub>
 
 ---
 

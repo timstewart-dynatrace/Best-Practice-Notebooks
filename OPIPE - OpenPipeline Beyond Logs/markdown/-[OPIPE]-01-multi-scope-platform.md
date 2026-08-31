@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/28/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -157,6 +157,14 @@ Every scope follows the same **four-stage data flow** (Ingest → Routing → Pr
 | **4. Storage** | Persist to a Grail bucket (or skip with No storage assignment) | Send to `app_logs` bucket | Send to `trace_data` bucket |
 
 > **Doc alignment (May 2026):** Per `/concepts/data-flow`, masking, filtering, transformation, and extraction are **processor categories within the Processing stage** — not separate pipeline stages. Earlier versions of this notebook described a six-stage pipeline; the corrected four-stage flow is shown above. The processor execution order *within* Processing is documented in OPMIG-02 § Processing Order.
+
+### Sprint 1.346 (August 2026): `dt.bindplane.*` Is a Reserved Namespace
+
+Verbatim: *"The `dt.bindplane.*` namespace is now reserved exclusively for Bindplane. Dynatrace uses it to populate fields such as `dt.bindplane.project`, `dt.bindplane.fleet`, and `dt.bindplane.configuration"* — to keep those fields populated consistently.
+
+The practical rule for pipeline authors is the same one that governs every `dt.*` namespace: **do not write into it from a processor.** If a processing rule of yours adds or overwrites a `dt.bindplane.*` field, move it to a namespace you own before the reservation takes effect, or the platform-populated value and yours will contend. This is worth a grep of your existing pipelines rather than an assumption — the namespace was not reserved before, so nothing stopped a rule from using it.
+
+SaaS 1.346 released 08/25/2026 with a **staged tenant rollout** from the same date; verify against your own tenant.
 
 ### The Key Insight
 

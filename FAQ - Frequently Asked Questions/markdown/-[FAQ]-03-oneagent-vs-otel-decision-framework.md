@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 08/28/2026
 
 ## Overview
 
@@ -722,6 +722,12 @@ Container monitoring on Windows is **host-based, not in-cluster-injected**. The 
 > - <sub>[otel4s (Typelevel GitHub)](https://github.com/typelevel/otel4s), [zio-telemetry (ZIO GitHub)](https://github.com/zio/zio-telemetry) — basis for *"Modified"* applicability rating on Scala effect systems</sub>
 >
 > <sub>The Clojure `core.async` note is **community guidance**, not vendor-documented.</sub>
+
+> **A signal worth tracking for Rust (Dynatrace API 1.346, released 08/25/2026).** The API changelog adds **`RUST` and `TOKIO`** as `serviceTechnology` values on the Request Attributes endpoints and as technology values on `GET /extensions/{technology}/availableHosts` (Early Access).
+>
+> Read this carefully, because it is a **configuration-surface** change, not an announcement of OneAgent auto-instrumentation for Rust. What it establishes is that Dynatrace now models Rust and Tokio as first-class technology values — which is a prerequisite for deeper support, and useful today if you are naming or attributing Rust services. For the decision this entry frames, **Rust remains an OpenTelemetry-instrumented runtime**: it is absent from the auto-instrumentation coverage in §6 and the async-context-propagation matrix in §7, and nothing in 1.346 changes that. Treat this as a reason to re-check the supported-technologies page over the next few sprints, not as a reason to revisit an OTel decision for Rust today.
+
+> <sub>**Sources:** [Dynatrace API changelog version 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-346) — `RUST` and `TOKIO` added to the serviceTechnology and extension-technology enums, read 08/28/2026.</sub>
 
 ---
 

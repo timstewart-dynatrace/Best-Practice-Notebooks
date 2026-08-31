@@ -1,6 +1,6 @@
 # OPIPE-04: Cardinality Management
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 08/28/2026
 
 ## Controlling Dimension Explosion Across All Scopes
 
@@ -283,6 +283,19 @@ Assign a cardinality budget to each extracted metric:
 | SLO metric (request count, error rate) | < 1,000 | 2-3 (service, route) |
 | Operational metric (latency by service) | < 10,000 | 3-4 (service, route, status code) |
 | Exploratory metric (for dashboards) | < 50,000 | 4-5 (include namespace, environment) |
+
+### Breaking (SaaS 1.346): a per-record size limit on sorting and grouping keys
+
+Cardinality has always been about the *number* of distinct values. SaaS 1.346 adds a constraint on their *size*. Verbatim: *"We now enforce a per-record size limit on field values used as sorting or grouping keys in DQL queries (such as `sort`, `summarize`, and `makeTimeseries` with `by:`)."* and *"Queries where sorting/grouping key values exceed the limit on one or more records will return a client-side error. Queries with appropriately-sized keys are unaffected and benefit from improved performance."*
+
+This is a **query-time** limit, distinct from every ingest-time guardrail above, and it fails in a way worth anticipating:
+
+- **One oversized record fails the whole query.** The limit is per record, so a single outlier — a full stack trace, a serialized payload, a giant URL — is enough to error a query that ran yesterday. The data is not rejected; the *query* is.
+- **It is a client-side error, not a silent truncation.** That is the good outcome: you get told. Contrast the cardinality traps above, which degrade quietly.
+- **The fix is the normalization you should already be doing.** Grouping by an unbounded free-text field was a cardinality problem before it was a size problem — §5 (value normalization), §6 (bucketing), and §7 (hashing) all produce compact keys as a side effect. Hashing in particular converts an arbitrarily long value into a fixed-width one.
+- **Group by an extracted field, not the raw one.** `summarize count(), by:{content}` is the shape at risk; `by:{status_code}` or a parsed, normalized field is not.
+
+The upside is real — Dynatrace notes conforming queries *"benefit from improved performance"* — but the migration cost lands on exactly the ad-hoc queries and saved tiles that group by raw text. SaaS 1.346 began its **staged tenant rollout on 08/25/2026**; until it reaches your tenant such queries keep working, which makes this a good window to find them deliberately rather than discover them through a broken dashboard.
 
 ```dql
 // Estimate cardinality for a proposed metric extraction
