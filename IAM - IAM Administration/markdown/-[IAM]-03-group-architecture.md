@@ -1,6 +1,6 @@
 # IAM-03: Group Architecture and Design
 
-> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 08/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 09/02/2026
 
 ## Designing Scalable Group Structures
 Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.
@@ -301,7 +301,7 @@ See **IAM-07: Audit Logging and Compliance** for access review automation.
 <a id="separation-of-duties"></a>
 ## 6. Separation of Duties
 
-> **New read-only IAM role (SaaS 1.346 — staged rollout from 08/25/2026).** Verbatim: *"A new `View users and groups` role is introduced for account admins. It allows them to grant a read-only permission to a user group and to view the IAM configuration."* This closes a real separation-of-duties gap the patterns below have to work around: auditors, support staff, and platform engineers who need to *see* group and policy structure previously had to be given an account-management role that could also *change* it. Grant `View users and groups` instead of a broader admin role wherever the need is inspection — the audit queries in §8 become usable by people you do not want holding write access. Verify the role is present in your account before designing a boundary around it.
+> **New read-only IAM role (SaaS 1.346 — staged rollout from 08/25/2026).** Recorded from the release note as: "A new `View users and groups` role is introduced for account admins. It allows them to grant a read-only permission to a user group and to view the IAM configuration." This closes a real separation-of-duties gap the patterns below have to work around: auditors, support staff, and platform engineers who need to *see* group and policy structure previously had to be given an account-management role that could also *change* it. Grant `View users and groups` instead of a broader admin role wherever the need is inspection — the audit queries in §8 become usable by people you do not want holding write access. Verify the role is present in your account before designing a boundary around it.
 >
 > <sub>Source: [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 Design your group structure to enforce separation of duties and reduce risk.
@@ -342,6 +342,8 @@ dt-breakglass-admins
 ├── Requires documented incident
 └── Automatic expiration
 ```
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346). **Sourcing note (09/02/2026):** this entry was read verbatim from that page on 08/28/2026, but is no longer present on it — re-checked two ways today, and the page now carries no Account Management / IAM entries at all. The role may have shipped, been renamed, or been pulled from the note; **verify in your own account before relying on it.**</sub>
 
 <a id="cross-environment-patterns"></a>
 ## 7. Cross-Environment Patterns

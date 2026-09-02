@@ -299,7 +299,7 @@ A reasonable starting set for a Terraform-driven CI shop:
 
 Add fleet replicas (`svc-tf-settings-01`, `-02`, …) only when one domain shows sustained concurrent-apply pressure against the Platform Token cap — not preemptively.
 
-> <sub>**Sources:** [`dynatrace_iam_service_user` (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_service_user), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens). **Derived:** the domain-scoped service-user recommendation combines the provider's resource model with the Platform Token per-user quota; neither source recommends this composition by name.</sub>
+> <sub>**Sources:** [`dynatrace_iam_service_user` (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_service_user), [`iam_service_user.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_service_user.md), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens). **Derived:** the domain-scoped service-user recommendation combines the provider's resource model with the Platform Token per-user quota; neither source recommends this composition by name.</sub>
 
 <a id="dsl-fundamentals"></a>
 ## 5. Permission DSL Fundamentals
@@ -955,10 +955,10 @@ Before relying on this scaffold in production:
 ### Provider documentation
 
 - [`dynatrace-oss/dynatrace` provider (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest)
-- [`dynatrace_iam_group` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group)
-- [`dynatrace_iam_policy` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy)
-- [`dynatrace_iam_policy_boundary` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_boundary)
-- [`dynatrace_iam_policy_bindings_v2` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2)
+- [`dynatrace_iam_group` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group), [`iam_group.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md)
+- [`dynatrace_iam_policy` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy), [`iam_policy.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy.md)
+- [`dynatrace_iam_policy_boundary` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_boundary), [`iam_policy_boundary.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_boundary.md)
+- [`dynatrace_iam_policy_bindings_v2` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_policy_bindings_v2), [`iam_policy_bindings_v2.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md)
 - [Provider GitHub repository (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace) — `dynatrace/export/initialize.go` is the source-of-truth for export flags
 - [Provider releases (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — read release notes before bumping pinned version
 

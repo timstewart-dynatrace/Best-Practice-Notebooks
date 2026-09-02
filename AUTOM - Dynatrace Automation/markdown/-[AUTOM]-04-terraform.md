@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 08/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 09/02/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -362,7 +362,7 @@ The minted token is then delivered to CI/Terraform via a secret manager or env v
 
 By contrast, the `dynatrace_api_token` resource **does** exist and is the only token-minting resource the provider offers — see the *Special case* subsection below.
 
-> <sub>**Sources:** [`dynatrace_iam_group` (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group), [Provider release notes v1.88.1 (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases), [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token). **Derived:** the absence of a `dynatrace_platform_token` resource is verified by enumeration of the provider's `dynatrace/api/iam/` directory plus the release-notes search; both checks performed 2026-05-22.</sub>
+> <sub>**Sources:** [`dynatrace_iam_group` (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group), [`iam_group.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md), [Provider release notes v1.88.1 (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases), [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token). **Derived:** the absence of a `dynatrace_platform_token` resource is verified by enumeration of the provider's `dynatrace/api/iam/` directory plus the release-notes search; both checks performed 2026-05-22.</sub>
 
 #### Decision: Which token does the Service User need for your Terraform resources?
 
