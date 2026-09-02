@@ -1,6 +1,6 @@
 # FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 05 — Managing ActiveGate Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -80,7 +80,7 @@ A few mechanics worth knowing:
 - **The check interval is fixed.** Roughly every 30 minutes; this is a platform behavior, not a configurable knob.
 - **The restart window is short.** Tens of seconds typically. HA pair architectures absorb this; single-AG architectures briefly drop traffic.
 
-> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — describes per-AG settings, one-click update, the 30-minute availability check; *"Go to Settings to open the ActiveGate updates settings for the particular ActiveGate."*</sub>
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — describes per-AG settings, one-click update, the 30-minute availability check; *"Turn on the Automatic updates at earliest convenience toggle for the ActiveGate"*, reached via **Settings > Updates > ActiveGate updates > Auto-update** (re-read 09/02/2026 — the page now gives the navigation path and toggle, replacing an earlier phrasing that pointed at the per-ActiveGate settings screen)</sub>
 
 ### A cautionary note on `targetVersion` and `updateWindows`
 
@@ -96,7 +96,7 @@ The general lesson generalises past this one property pair: a capability announc
 
 > <sub>**Sources:**</sub>
 > - <sub>[API changelog 1.342 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-342) — `targetVersion` / `updateWindows` added to the Cluster API v2 ActiveGate `autoUpdate` schemas</sub>
-> - <sub>[API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — both properties removed again across the six endpoints; per-AG read-only status changed</sub>
+> - <sub>[API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — the changelog marks the schema *"Broken compatibility"* and lists *"Removed properties: targetVersion , updateWindows"* on each of the six Cluster API v2 `/activeGates/autoUpdate` endpoints</sub>
 > - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343)</sub>
 > - <sub>[Fleet Management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management) — "Coming soon" banner as checked 07/08/2026</sub>
 > - <sub>**Derived:** the "remove both properties from request bodies before the change lands" instruction follows from the 1.344 schema removal plus the staged-rollout model</sub>
@@ -301,7 +301,7 @@ In community practice, rollback is usually a containment move while the underlyi
 
 *In community practice the remaining items are observed across fleets often enough to flag; none is documented by Dynatrace as an anti-pattern.*
 
-> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — update mechanic and check interval., [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983., [API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — `targetVersion` / `updateWindows` removed from the Cluster API v2 ActiveGate `autoUpdate` endpoints.</sub>
+> <sub>**Sources:** [Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/shortlink/update-activegate) — update mechanic and check interval., [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — security upgrade addressing CVE-2026-40984 and CVE-2026-40983., [API changelog 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344) — Cluster API v2 `/activeGates/autoUpdate`: *"Removed properties: targetVersion , updateWindows"*, flagged *"Broken compatibility"*.</sub>
 
 <a id="recommendation"></a>
 ## 10. Recommended Approach

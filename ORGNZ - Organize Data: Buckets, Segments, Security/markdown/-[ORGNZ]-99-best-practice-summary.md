@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -290,7 +290,7 @@ fetch logs, from:-1h
 | 58 | Restart applications after enrichment changes for spans | Logs: no restart needed (OneAgent auto-enriches); Spans: application restart required; Metrics: OneAgent restart applies automatically | Critical | Operations |
 | 59 | Verify enrichment coverage before building segments | Run DQL audit query to check field coverage percentage across signal types; fields with 0% coverage need enrichment | Critical | Operations |
 | 60 | Use Primary Grail Tags (`primary_tags.*`) when standard fields do not match your organization | Set via **host tags** (`hostautotag.conf` / `oneagentctl --set-host-tag`) or the `DT_TAGS` environment variable; propagates across logs, spans, and topology. **Host properties no longer work for this** — see row 60a | Recommended | Architecture |
-| 60a | Do not set host-level `primary_tags.*` via `hostcustomproperties.conf` | **Breaking, OneAgent 1.345:** *"the OS Agent promotes `primary_tags` from host tags (`hostautotag.conf`) and no longer from host properties (`hostcustomproperties.conf`) at the host level."* Existing primary tags configured through host properties silently stop being promoted once a host reaches 1.345 — audit before the fleet upgrades, and migrate them to host tags | Critical | Migration |
+| 60a | Do not set host-level `primary_tags.*` via `hostcustomproperties.conf` | **Breaking, OneAgent 1.345:** *"the OS Agent derives `primary_tags` from host tags (`hostautotag.conf`) rather than from host properties (`hostcustomproperties.conf`) at the host level."* Existing primary tags configured through host properties silently stop being promoted once a host reaches 1.345 — audit before the fleet upgrades, and migrate them to host tags | Critical | Migration |
 
 ### Validation Queries — Metadata Enrichment
 

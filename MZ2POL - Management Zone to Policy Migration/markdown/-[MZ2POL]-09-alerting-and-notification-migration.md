@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 08/27/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -174,7 +174,7 @@ smartscapeNodes "HOST"
             env_pct = round(with_env * 100.0 / hosts, decimals: 1)
 ```
 
-> ⚠️ **`tags` behaves differently on Smartscape nodes than on classic entities.** On a Smartscape node it is a **record** — access it with unquoted bracket syntax, `tags[team]`. On a classic entity it is an **array of `"key:value"` strings**, where OneAgent host tags additionally carry an `[Environment]` prefix. Using `matchesValue(tags, "team:checkout")` against `smartscapeNodes` does not merely underperform — `verify_dql` reports that the query *"will always return an empty result as the condition can't be true."* MZ2POL-05 §4.5 documents this trap in full.
+> ⚠️ **`tags` behaves differently on Smartscape nodes than on classic entities.** On a Smartscape node it is a **record** — access it with unquoted bracket syntax, `tags[team]`. On a classic entity it is an **array of `"key:value"` strings**, where OneAgent host tags additionally carry an `[Environment]` prefix. Using `matchesValue(tags, "team:checkout")` against `smartscapeNodes` does not merely underperform — `verify_dql` reports that the query `will always return an empty result as the condition can't be true` MZ2POL-05 §4.5 documents this trap in full.
 
 ### Propagation is not instant
 
@@ -229,7 +229,7 @@ Two things get worse. Both are cheaper to plan for than to discover.
 
 An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). Teams use it to suppress transient blips.
 
-**The workflow model does have an equivalent — the trigger's Minimum duration option.** The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+**The workflow model does have an equivalent — the trigger's Minimum duration option.** The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"the trigger fires once when the threshold is crossed on the active phase"* — and where the filter also detects the closed phase, *"the trigger will additionally fire once when the problem is closed"*
 
 > ⚠️ **Conflicting documentation.** The alert-notification upgrade guide still states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* Both pages were live 08/2026. The likely explanation is that the upgrade guide predates the option and was never re-tensed — but that is inference. **Verify the Minimum duration option behaves as documented in your tenant before relying on it**, and do not plan a wave around the upgrade guide's claim without checking.
 

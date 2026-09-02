@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -169,7 +169,7 @@ OneAgent in Kubernetes is managed by the Dynatrace Operator through a DynaKube c
 - **The DynaKube `autoUpdate` parameter is deprecated.** The DynaKube parameters reference now documents `autoUpdate` as *"Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update. Auto-update is disabled when the `version` or `image` fields are set."*
 - **The supported pattern is to pin the OneAgent version on the tenant.** Setting `version` or `image` on the DynaKube CR explicitly opts out of auto-update for that workload.
 
-In practice this means: for Kubernetes workloads, the policy choice is not "auto-update yes/no" at the DynaKube level — it is *"pin a specific OneAgent version on the tenant, or leave it floating."* Pinning the version on the tenant gives you a single, auditable artifact for what is deployed across all clusters using that DynaKube.
+In practice this means: for Kubernetes workloads, the policy choice is not "auto-update yes/no" at the DynaKube level — it is "pin a specific OneAgent version on the tenant, or leave it floating" Pinning the version on the tenant gives you a single, auditable artifact for what is deployed across all clusters using that DynaKube.
 
 | Decision | Mechanism on K8s |
 |----------|------------------|
@@ -246,7 +246,7 @@ In community practice, the right time to plan rollback is *before* enabling a br
 
 *In community practice the remaining items below are observed often enough across fleets to be worth flagging; Dynatrace does not document them as anti-patterns, so weigh them against your own fleet.*
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — mechanics of the three update modes and the "Update now" controls., [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — `autoUpdate` is deprecated; pin version on tenant is the supported path.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — mechanics of the three update modes and the "Update now" controls., [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the parameter table marks it *"(deprecated)"* — *"Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update."*.</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

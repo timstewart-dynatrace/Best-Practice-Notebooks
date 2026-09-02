@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 08/28/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 09/02/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -628,6 +628,7 @@ Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline
 ## References
 
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the `dt.bindplane.*` namespace reservation quoted in §2
 - [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
 - [OpenPipeline ingest sources (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference) — replaces the retired per-scope `openpipeline-spans` / `openpipeline-metrics` pages
 - [OpenPipeline pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups)

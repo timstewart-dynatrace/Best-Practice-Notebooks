@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -243,7 +243,7 @@ The Ownership app supplies workflow actions. **`get_owners`** returns *"ownershi
 
 That inverts the usual granularity advice. With `get_owners` you can run **one workflow that routes to many teams**; without it you fall back to **one workflow per destination**. Choose deliberately — the dynamic form is fewer objects but a longer chain to debug when a notification does not arrive.
 
-**`import_teams`** *"imports and auto-syncs ownership team data in JSON schema and accepts info from ServiceNow and Entra ID"* — so the team roster does not have to be maintained twice.
+**`import_teams`** *"automatically import and store ownership team information to keep the information always in sync and up to date"* — the page lists the sources separately: *"import teams using automation workflows from Microsoft Entra ID"*, *"import teams using automation workflows from ServiceNow"*, and *"import teams using automation workflows from any data source using JSON structure"* — so the team roster does not have to be maintained twice.
 
 ### When you still need the custom filter
 
@@ -268,7 +268,7 @@ For anything ownership does not express, the additional custom filter query take
 
 **Pair every open-notification with a close-notification.** The problem state option takes *active* or *active and closed*. Responders need the all-clear as much as the alarm, and on the ITSM side it is what resolves the ticket rather than leaving a queue of incidents describing conditions that ended days ago.
 
-**Duration suppression is a documented trigger option.** The **Minimum duration** setting (formerly **Delay**) postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"The trigger starts once when the threshold is crossed on the active phase and, if selected, also once on closure."*
+**Duration suppression is a documented trigger option.** The **Minimum duration** setting (formerly **Delay**) postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"the trigger fires once when the threshold is crossed on the active phase"* — and where the filter also detects the closed phase, *"the trigger will additionally fire once when the problem is closed"*
 
 This is the mechanism for suppressing transient blips: a problem that resolves inside the delay window never notifies.
 

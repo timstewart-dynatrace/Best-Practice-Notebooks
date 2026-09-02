@@ -1,6 +1,6 @@
 # FAQ-01: Why you need a good Host Group naming strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -70,7 +70,7 @@ Dynatrace's entity model links these layers — host groups contain hosts, hosts
 
 When OneAgent detects running processes on a host, it assigns each one to a **Process Group** (PG) based on technology, command line, working directory, and metadata. The per-host running instances are called **Process Group Instances** (PGIs). PGs and PGIs inherit context from the host they run on, and hosts roll up into the host group you assign. Services then associate with the process groups that handle their requests.
 
-The practical effect: **the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace** — in Smartscape, dashboards, alerts, IAM policies, and management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like *"all error-prone services in `app-pci`"* work without manual selection.
+The practical effect: **the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace** — in Smartscape, dashboards, alerts, IAM policies, and management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like "all error-prone services in `app-pci`" work without manual selection.
 
 | Layer | Gets host-group context from | Why it matters |
 |-------|---------------|---------------|
