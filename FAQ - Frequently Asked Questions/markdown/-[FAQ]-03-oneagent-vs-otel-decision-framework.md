@@ -716,7 +716,7 @@ Container monitoring on Windows is **host-based, not in-cluster-injected**. The 
 > <sub>**Sources:**</sub>
 > - <sub>[Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support)</sub>
 > - <sub>[Java technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/java) — JVM detail (Akka/Pekko, Play, Loom)</sub>
-> - <sub>[Go OpenTelemetry walkthrough (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/walkthroughs/go) — *"OneAgent performs no application-code instrumentation for Go"*</sub>
+> - <sub>[Go OpenTelemetry walkthrough (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/walkthroughs/go) — the documented Go path is OpenTelemetry instrumentation; the page describes no OneAgent code-level injection for Go</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — serverless-not-supported</sub>
 > - <sub>[OpenTelemetry on AWS Lambda (DT docs)](https://docs.dynatrace.com/docs/shortlink/opentel-lambda) — Lambda extension covers Python/Node/Java</sub>
 > - <sub>[otel4s (Typelevel GitHub)](https://github.com/typelevel/otel4s), [zio-telemetry (ZIO GitHub)](https://github.com/zio/zio-telemetry) — basis for *"Modified"* applicability rating on Scala effect systems</sub>
