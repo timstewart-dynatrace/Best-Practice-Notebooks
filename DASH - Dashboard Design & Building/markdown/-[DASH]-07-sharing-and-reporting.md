@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -236,6 +236,8 @@ configs:
 | **Multi-environment** | Deploy same dashboard to dev, staging, prod |
 | **Disaster recovery** | Rebuild entire dashboard library from code |
 | **Standardization** | Enforce naming, layout, and variable conventions |
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the stricter dashboard-validation rule quoted above; [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — the 1.344 release that first shipped it.</sub>
 
 <a id="version-control"></a>
 

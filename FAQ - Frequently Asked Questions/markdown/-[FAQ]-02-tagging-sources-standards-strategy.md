@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -99,7 +99,7 @@ Per Gen3-first guidance: tag at source via primary fields/tags, not at view time
 <a id="four-sources"></a>
 ## 3. The Four-Source Hierarchy
 
-> **Breaking (OneAgent 1.345): host `primary_tags` are promoted only from host tags.** Verbatim: *"Starting with OneAgent version 1.345, the OS Agent promotes `primary_tags` from host tags (`hostautotag.conf`) and no longer from host properties (`hostcustomproperties.conf`) at the host level."* This is a silent failure mode, which is what makes it worth auditing rather than noting: a host that reaches 1.345 simply stops promoting any `primary_tags.*` configured through the properties file, and nothing errors — the dimension just disappears from that host's signals, and every segment, bucket rule, and dashboard keyed on it quietly loses those records. Audit `hostcustomproperties.conf` across the fleet **before** it upgrades and migrate those entries to `hostautotag.conf` (or `oneagentctl --set-host-tag=`). Note the narrow scope: this is about *promotion to primary tags at the host level*, and the `oneagentctl` reference still documents `--set-host-property=` for `dt.*` reserved keys. OneAgent 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — tenant version is not agent version, so check the fleet, not the tenant.
+> **Breaking (OneAgent 1.345): host `primary_tags` are promoted only from host tags.** Verbatim: *"Starting with OneAgent version 1.345, the OS Agent derives `primary_tags` from host tags (`hostautotag.conf`) rather than from host properties (`hostcustomproperties.conf`) at the host level."* (Re-read 09/02/2026: the release note now reads *derives … rather than*, where earlier revisions of this entry quoted *promotes … and no longer from*. The behaviour is unchanged — only Dynatrace's wording moved.) This is a silent failure mode, which is what makes it worth auditing rather than noting: a host that reaches 1.345 simply stops promoting any `primary_tags.*` configured through the properties file, and nothing errors — the dimension just disappears from that host's signals, and every segment, bucket rule, and dashboard keyed on it quietly loses those records. Audit `hostcustomproperties.conf` across the fleet **before** it upgrades and migrate those entries to `hostautotag.conf` (or `oneagentctl --set-host-tag=`). Note the narrow scope: this is about *promotion to primary tags at the host level*, and the `oneagentctl` reference still documents `--set-host-property=` for `dt.*` reserved keys. OneAgent 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — tenant version is not agent version, so check the fleet, not the tenant.
 >
 > <sub>Source: [What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345)</sub>
 
@@ -301,8 +301,8 @@ The casing alone (`CostCenter` vs `costCenter` vs `cost_center`) means a naive q
 > - <sub>[Clouds app (DT docs)](https://docs.dynatrace.com/docs/shortlink/clouds-app)</sub>
 > - <sub>[OpenTelemetry on AWS Lambda (DT docs)](https://docs.dynatrace.com/docs/shortlink/opentel-lambda) — Lambda extension and `DT_*` integration env-var surface</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline)</sub>
-> - <sub>[Tagging AWS resources (AWS general reference)](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) — *"Tag keys are case sensitive .. tag values are case sensitive"*; basis for the cross-cloud casing-drift problem</sub>
-> - <sub>[Tag resources (Azure docs)](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) — *"Tag names are case-insensitive for operations .. Tag values are case-sensitive"*; 50-tag limit</sub>
+> - <sub>[Tagging AWS resources (AWS general reference)](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) — *"Tag values are case sensitive"* and *"tag keys are case sensitive"*; basis for the cross-cloud casing-drift problem</sub>
+> - <sub>[Tag resources (Azure docs)](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) — *"Tag names are case insensitive for operations"*, while *"Tag values are case sensitive"*; 50-tag limit</sub>
 > - <sub>[Best practices for resource labels (Google Cloud docs)](https://docs.cloud.google.com/resource-manager/docs/labels-overview) — GCP label naming rules (lowercase, hyphens) and recommended dimensions</sub>
 
 <a id="standards"></a>

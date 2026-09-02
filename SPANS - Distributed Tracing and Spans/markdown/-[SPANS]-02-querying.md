@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 08/28/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 09/02/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -184,7 +184,7 @@ Since Dynatrace v1.329, the **Enhanced Endpoints for SDv1** setting changes what
 
 **Services not affected:** external services, background activity, queue listeners, key-value stores — Enhanced Endpoints does not create endpoints for these.
 
-> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).</sub>
+> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the derived `http.route` change quoted above.</sub>
 
 ---
 
@@ -380,7 +380,7 @@ fetch spans, from:-1h
 
 **Forthcoming / rolling out (OneAgent 1.343).** OneAgent 1.343 released 07/28/2026 and adds **gRPC status-code support for .NET**. Rollout is **per fleet, not per tenant** — the tenant version is not the agent version, and agent fleets routinely lag a sprint or more. **Confirm the OneAgent version on the hosts concerned** before you build alerting on `rpc.grpc.status_code` for .NET services.
 
-Until 1.343 reaches those hosts, .NET gRPC spans are **still captured** — you filter on `span.status_code` and the `rpc.*` attributes above, exactly as this section shows. What is missing is only the gRPC-specific status code. So on a mixed fleet, treat a null `rpc.grpc.status_code` as **"not yet instrumented on this host"**, not as a healthy call: `0` means `OK`, and null means you do not know.
+Until 1.343 reaches those hosts, .NET gRPC spans are **still captured** — you filter on `span.status_code` and the `rpc.*` attributes above, exactly as this section shows. What is missing is only the gRPC-specific status code. So on a mixed fleet, treat a null `rpc.grpc.status_code` as "not yet instrumented on this host", not as a healthy call: `0` means `OK`, and null means you do not know.
 
 The query below separates those two populations so you can see which is which.
 

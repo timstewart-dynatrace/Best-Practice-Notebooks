@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 08/28/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -88,7 +88,7 @@ The cost is therefore lost attribution and unrelated alerts welded together, not
 | `dt.smartscape.k8s_daemonset` | `K8S_DAEMONSET`, `SERVICE` |
 | `dt.smartscape.k8s_job` | `K8S_JOB`, `SERVICE` |
 
-The table names the **grouping field**, not just a label, because that is what you filter on when you are working out why two alerts merged. Note the documentation introduces these as *"some of the examples of the grouping fields and potential entity types that can be merged"* — it is not an exhaustive list, so treat an unlisted merge as plausible rather than as a bug.
+The table names the **grouping field**, not just a label, because that is what you filter on when you are working out why two alerts merged. Note the documentation introduces these as *"some examples of the grouping fields and potential entity types that can be merged"* — it is not an exhaustive list, so treat an unlisted merge as plausible rather than as a bug.
 
 **Three further deduplication layers run on top:** time-based deduplication, so the same signal recurring inside the correlation window does not re-open a problem; causal merging across the dependency graph described above; and **frequent issue detection**, where Davis recognises a chronically recurring condition and stops raising it as a new problem on the reasoning that a permanent known issue is not news.
 
@@ -131,6 +131,8 @@ Custom string-typed fields can be propagated onto problems via Settings — usef
 > - **Comparisons across the rollout window are not like-for-like.** A problem that opened before the change and persisted through it may show accumulated values; one opened after will not.
 >
 > The upside is that a propagated field is now unambiguous — one value, the newest — rather than a list whose length depended on how long the problem stayed open.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the propagated-problem-field change quoted above.</sub>
 
 <a id="data-objects"></a>
 ## 3. The Two Data Objects: `dt.davis.problems` vs. `dt.davis.events`

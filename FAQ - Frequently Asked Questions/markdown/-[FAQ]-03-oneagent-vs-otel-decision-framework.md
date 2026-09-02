@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -162,7 +162,7 @@ This is the same model **Dynatrace OneAgent** uses by design — OneAgent's Java
 
 > <sub>**Sources:**</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — v1.9.0; serverless-not-supported guidance</sub>
-> - <sub>[OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — .NET Standard 1.0; v1.8.0 last release; metrics APIs deprecated/removed</sub>
+> - <sub>[OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — *"the SDK is built using .NET Standard 1.0"*; 1.8.0 is the newest version in both the release-notes and support-status tables, and the metrics surface was withdrawn across two releases — *"1.7.1 Deprecates metrics-related types and APIs"*, then *"1.8.0 Removes deprecated APIs and types."*</sub>
 > - <sub>[OneAgent SDK for Node.js (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-NodeJs)</sub>
 > - <sub>[OneAgent SDK for C/C++ (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-C)</sub>
 > - <sub>[Java technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/java)</sub>
@@ -216,7 +216,7 @@ The same release also adds OneAgent auto-tracing for **Azure Service Bus, Event 
 <a id="convert-meaning"></a>
 ## 5. What "Convert to OneAgent" Really Means
 
-When customers say *"convert from OTel to OneAgent"*, they often imagine a 1:1 re-instrumentation effort comparable to the original OTel rollout. **It is not.**
+When customers say "convert from OTel to OneAgent", they often imagine a 1:1 re-instrumentation effort comparable to the original OTel rollout. **It is not.**
 
 **For workloads where OneAgent's automatic coverage is sufficient** (the common case — REST/gRPC services on Spring, ASP.NET Core, Express, Django, Rails, plain thread pools or default async runtime), "converting" looks like this:
 
@@ -230,7 +230,7 @@ When customers say *"convert from OTel to OneAgent"*, they often imagine a 1:1 r
 
 **The realization:** "Convert to OneAgent" is rarely a re-instrumentation project. It is an *agent installation* project, possibly followed by *deleting OTel auto-instrumentation* if you want to simplify the runtime stack. The custom OTel code in the application generally stays exactly where it is.
 
-> <sub>**Sources:** [Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel) — *"create duplicate spans"* warning; OpenTelemetry Span Sensor mechanism, [OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java), [OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — metrics APIs deprecated/removed (no metrics/logs surface).</sub>
+> <sub>**Sources:** [Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel) — *"create duplicate spans"* warning; OpenTelemetry Span Sensor mechanism, [OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java), [OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — the release notes record *"1.7.1 Deprecates metrics-related types and APIs"* and then *"1.8.0 Removes deprecated APIs and types."* — leaving the SDK with no metrics or logs surface.</sub>
 
 <a id="framework-coverage"></a>
 ## 6. Framework Auto-Instrumentation Coverage Across Runtimes

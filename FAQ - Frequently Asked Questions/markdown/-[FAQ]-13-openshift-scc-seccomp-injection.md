@@ -1,6 +1,6 @@
 # FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ The mechanics live in the gap between two documentation pages: the [seccomp prof
 <a id="short-answer"></a>
 ## 1. Short Answer
 
-Since Operator **1.9.0**, the injected Dynatrace init container carries `seccompProfile: RuntimeDefault` **by default** (the `feature.dynatrace.com/init-container-seccomp-profile` flag flipped from `false` to `true`). OpenShift validates every pod's security context against the SCC that admits it, and the built-in SCCs differ on whether the `seccompProfile` field is permitted at all. Read from the shipped SCC manifests (re-verified 08/24/2026): **`restricted-v2` declares `seccompProfiles: [runtime/default]`** — its own description states it *"will also default the seccomp profile to runtime/default if unset, otherwise this seccomp profile is required"* — while **`anyuid` declares no `seccompProfiles` key at all**, so the field is not allowed under it. A pod admitted under **`anyuid`** therefore fails SCC validation the moment the webhook adds the seccomp profile: `Forbidden: seccomp may not be set` — a documented Red Hat failure mode, not a Dynatrace bug or an OpenShift bug, but an interaction neither doc page covers.
+Since Operator **1.9.0**, the injected Dynatrace init container carries `seccompProfile: RuntimeDefault` **by default** (the `feature.dynatrace.com/init-container-seccomp-profile` flag flipped from `false` to `true`). OpenShift validates every pod's security context against the SCC that admits it, and the built-in SCCs differ on whether the `seccompProfile` field is permitted at all. Read from the shipped SCC manifests (re-verified 08/24/2026): **`restricted-v2` declares `seccompProfiles: [runtime/default]`** — its own `description` field states it *"will also default the seccomp profile to runtime/default if unset, otherwise this seccomp profile is required"* — **read from the cluster, not from a docs page**: `oc get scc restricted-v2 -o jsonpath='{.metadata.annotations.kubernetes\.io/description}'`. It appears in neither the Red Hat SCC documentation nor the Dynatrace OpenShift page (checked 09/02/2026), so re-read it in your own cluster rather than expecting to find it online — while **`anyuid` declares no `seccompProfiles` key at all**, so the field is not allowed under it. A pod admitted under **`anyuid`** therefore fails SCC validation the moment the webhook adds the seccomp profile: `Forbidden: seccomp may not be set` — a documented Red Hat failure mode, not a Dynatrace bug or an OpenShift bug, but an interaction neither doc page covers.
 
 | Your situation | Your path |
 |----------------|-----------|

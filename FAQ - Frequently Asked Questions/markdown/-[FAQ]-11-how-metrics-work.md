@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/31/2026
 
 ## Overview
 
@@ -317,7 +317,7 @@ The Grail design also removed a classic artifact: Classic kept separate pre-aggr
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
 > - <sub>[Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — 462 days included, 10-year ceiling</sub>
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — custom metric buckets planned</sub>
-> - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — pre-aggregated/detail split removed</sub>
+> - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — *"Since the pre-aggregated metric builtin:host.net.bytesRx is no longer necessary, only builtin:host.net.nic.bytesRx is supported by metrics on Grail"*</sub>
 
 <a id="cardinality"></a>
 ## 7. Dimensions and Cardinality

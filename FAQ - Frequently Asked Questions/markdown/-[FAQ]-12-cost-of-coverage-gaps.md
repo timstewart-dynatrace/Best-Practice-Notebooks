@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -98,7 +98,7 @@ The capabilities are not parallel — they stack. The load-bearing chain:
 1. **Code modules produce traces.** Full-Stack injection is what generates PurePath distributed traces from your processes. No injection → no traces (unless you bring OpenTelemetry — see FAQ-03).
 2. **Traces produce services.** Automatic service detection works on observed requests. No traces → no service entities, no service-level response time / failure rate / throughput.
 3. **Services complete the topology.** Smartscape's service layer — who calls whom — exists only where services exist. Below it, the map ends at processes.
-4. **Topology powers Davis.** Davis root-cause analysis walks the dependency graph to connect a symptom (slow checkout) to a cause (saturated database on another host). Without the service layer, correlated events collapse to per-host findings: *"CPU is high"* rather than *"CPU is high **and here is the transaction chain it is breaking**."*
+4. **Topology powers Davis.** Davis root-cause analysis walks the dependency graph to connect a symptom (slow checkout) to a cause (saturated database on another host). Without the service layer, correlated events collapse to per-host findings: *"CPU is high"* rather than "CPU is high **and here is the transaction chain it is breaking**"
 5. **Code modules also gate Application Security.** Runtime Vulnerability Analytics and Runtime Application Protection analyze loaded libraries and live request execution *inside* the code modules. Infrastructure-only estates cannot run them at all.
 6. **RUM joins the user to all of it.** Frontend sessions link to backend traces (W3C trace context), which is what lets a problem say *"342 users affected."* No RUM → impact statements stop at the service boundary. No traces → RUM stops at the browser.
 7. **Logs are the evidence layer.** Metrics and traces tell you *where*; logs usually tell you *what exactly*. Davis correlates log anomalies into problems only for logs that are ingested.

@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/27/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -246,6 +246,8 @@ Segments are not an access-control mechanism and are not a routing mechanism. An
 4. **Validation**: Test access and filtering
 5. **Cutover**: Transition users to new model
 6. **Cleanup**: Remove deprecated MZ configurations
+
+> <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the **Minimum duration** option and the `dt.duration_marker` field quoted above.</sub>
 
 ---
 

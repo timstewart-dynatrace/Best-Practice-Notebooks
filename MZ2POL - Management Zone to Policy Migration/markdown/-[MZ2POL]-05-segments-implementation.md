@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 08/04/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/02/2026
 
 ## Overview
 
@@ -347,7 +347,7 @@ The restriction that bites during migration is *where* wildcards are allowed on 
 Tag conditions are a separate case: a tag filter tests **membership in the tag set** rather than a substring of a string field, so verify tag-based entity includes against your own tenant before assuming wildcard behavior.
 
 
-So *"service name contains payment"* converts cleanly (`entity.name = "*payment*"`), but *"host property X contains Y"* does not. For the equals-only properties the options are, in order of preference: rely on an exact value or an `in()` set, move the condition onto a signal include, or fall back to the `Segment` tag (§4.6).
+So *"service name contains payment"* converts cleanly (`entity.name = "*payment*"`), but `host property X contains Y` does not. For the equals-only properties the options are, in order of preference: rely on an exact value or an `in()` set, move the condition onto a signal include, or fall back to the `Segment` tag (§4.6).
 
 Wildcards may also follow a variable name in a starts-with condition — `foo = $bar*` — which is what makes the variable-driven consolidation in §2 practical. Variable *values* themselves may never contain `*`.
 
