@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -219,6 +219,13 @@ User actions represent individual interactions within a session. Dynatrace autom
 | **Custom** | Developer-defined action via RUM API | Custom business event |
 
 Let's explore the most common user actions:
+
+> **`dt.rum.application.id` is being deprecated (Semantic Dictionary 1.348, released 08/25/2026).** It moves from `stable` to `deprecated` — it is the field this series groups by throughout, so the change is worth knowing before it surprises you.
+>
+> **Deprecated is not removed.** Every query in this series keeps working; a deprecated field is a signal about where to point *new* work, not a break. Verified 09/09/2026 on the validation tenant, which is still pre-1.348 and returns `stable` for this field — so nothing has changed there yet.
+>
+> The changelog names no successor. Rather than guess one, check the dictionary when 1.348 reaches your tenant:
+> `fetch dt.semantic_dictionary.fields | filter name == "dt.rum.application.id" | fields name, stability, description`
 
 ```dql
 // Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written

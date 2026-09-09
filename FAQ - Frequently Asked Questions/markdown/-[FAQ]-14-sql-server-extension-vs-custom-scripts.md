@@ -125,7 +125,7 @@ If the extension only matched your scripts metric-for-metric, the migration woul
 
 In community practice, the maintenance point is the one that lands hardest with DBA teams: the scripts are rarely the problem — the person who wrote them leaving is.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-340) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database. **Derived:** the four-point value framing combines both sources with the DPS alerting model.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database. **Derived:** the four-point value framing combines both sources with the DPS alerting model.</sub>
 
 <a id="gaps-and-constraints"></a>
 ## 6. Honest Gaps and Constraints

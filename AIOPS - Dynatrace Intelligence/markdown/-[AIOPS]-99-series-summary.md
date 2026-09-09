@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -63,8 +63,14 @@ fetch dt.davis.problems, from:-7d
 ```
 
 **Problem severity rollup — 7 days:** a different axis from category, and the one AIOPS-03 § 5 treats as
-distinct. Note `event.severity` is typed **`experimental`** in the semantic dictionary — fine for triage,
-not something to hard-code an integration against.
+distinct. Note `event.severity` is being **promoted to `stable`** in Semantic Dictionary 1.348 (released
+08/25/2026), across Davis events, Davis event reports and Davis problems. It was `experimental`,
+which is why earlier revisions of this summary said to use it for triage but not to hard-code an
+integration against it — that caution is what the promotion lifts.
+
+Confirm before you rely on it: the dictionary ships with the platform version, and a live tenant
+checked on 09/09/2026 still returned `experimental`, so 1.348 had not reached it. Until it does,
+the original caution stands.
 
 ```dql
 fetch dt.davis.problems, from:-7d

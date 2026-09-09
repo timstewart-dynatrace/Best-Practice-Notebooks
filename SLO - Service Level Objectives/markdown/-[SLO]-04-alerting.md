@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 08/31/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -74,6 +74,10 @@ timeseries {
 <a id="configuring"></a>
 ## 3. Configuring SLO Alerts in Dynatrace
 
+> **Rolling out (SaaS 1.347): Dynatrace now ships the multiwindow alert §2 teaches you to build.** Verbatim: *"Multi-window burn rate alerts are now available for SLOs. An alert fires only when the burn rate breaches its threshold in both the long and the short window at the same time."* That AND-across-two-windows condition is exactly the fast/slow pairing in §2 — so where this has landed, the product configures natively what the rest of this section wires together by hand.
+>
+> **Treat it as forthcoming, and keep building the manual path until you can see it.** SaaS 1.347 released 09/03/2026 with a **staged tenant rollout from 09/08/2026**, and as of **09/09/2026 the SLO documentation page still documents only the manual route** — a `burnRate` field added to the SLI plus Anomaly Detection with a -1h look-back, which is what §2 and the rest of §3 are built on. This entry therefore names the feature rather than teaching a configuration flow it cannot yet source: a UI walkthrough written from a one-sentence release note would be invention, not documentation. When the docs catch up, the native path becomes the recommended route and everything below becomes the fallback for tenants that have not taken 1.347.
+
 Dynatrace surfaces SLO health as events you can alert on. In practice you have two routes:
 
 - **Built-in SLO alerting** — the SLO definition itself can raise an alert when the error budget / burn rate crosses a configured level. This is the simplest path and keeps the alert tied to the SLO object.
@@ -95,6 +99,8 @@ If you want one aggregated burn-rate value across every contributing entity rath
 **Fast-burn tuning, per Dynatrace's own recommendation:** Anomaly Detection's **-1h look-back window** is called out as well-suited for fast-burn alerting, with **10–14** as "a good starting point" for the static burn-rate threshold at that window — adjust up or down based on the SLO's criticality and evaluation period. Dynatrace also recommends four event properties on the custom alert so the resulting event carries enough context to route and correlate automatically: **`dt.source` entity** (attaches the affected service entities), **`event.type`** (`ERROR_EVENT` / `AVAILABILITY_EVENT` / `PERFORMANCE_EVENT` — matches the event into Dynatrace Intelligence RCA), **`slo.name`** (ties the event back to the SLO, which is unique per environment), and **`dt.owner`** (drives automatic routing to the right team).
 
 > The **slow-burn tier** (longer look-back, lower threshold, ticket-not-page routing) below is the standard SRE multiwindow pattern layered on top of this recipe — Dynatrace's docs describe the fast-burn -1h/10–14 configuration explicitly but do not publish an equivalent numeric recommendation for a slow-burn window, so treat those values as a sound starting point to tune against your own traffic and SLO criticality rather than a vendor-specified default.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the multi-window burn-rate alerting entry quoted above; [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — read 09/09/2026, still documenting only the manual `burnRate` + Anomaly Detection route, which is why this section names the feature rather than teaching a configuration flow.</sub>
 
 <a id="routing"></a>
 ## 4. Routing SLO Breaches

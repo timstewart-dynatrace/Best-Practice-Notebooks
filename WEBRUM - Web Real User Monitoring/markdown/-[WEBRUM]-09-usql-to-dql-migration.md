@@ -1,6 +1,6 @@
 # WEBRUM-09: Migrating USQL to DQL
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 08/12/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -179,7 +179,7 @@ Under New RUM the event-type models each expose their own fields — `rum_except
 | `country` | `country` | `geo.country.iso_code` |
 | `ip` | `ip` | `client.ip` |
 | `isp` | `isp` | `client.isp` |
-| `device` | `device` | `device.type` |
+| `device` | `device` | `device.type` — **being removed; see note below** |
 | `manufacturer` | `manufacturer` | `device.manufacturer` |
 | `screenWidth` / `screenHeight` | `screenWidth` / `screenHeight` | `device.screen.width` / `device.screen.height` |
 | `appVersion` | `appVersion` | `app.version` |
@@ -193,6 +193,12 @@ Under New RUM the event-type models each expose their own fields — `rum_except
 **New RUM adds** counters USQL had no equivalent for: `navigation_count`, `page_summary_count`, `request_count`, `user_interaction_count`, `view_summary_count`, and a broken-out error family (`error.exception_count`, `error.http_4xx_count`, `error.http_5xx_count`, `error.csp_violation_count`, `error.anr_count`).
 
 > <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure) for the USQL column; live query of `dt.semantic_dictionary.models` (model `rum.user_session`, Dynatrace tenant, 07/23/2026) for the New RUM column. **Derived:** the classic-Grail column is inferred from the USQL names plus field usage across the WEBRUM series — verify against your own tenant per section 2.</sub>
+
+> **`device.type` is being removed from the user-session model (Semantic Dictionary 1.348, released 08/25/2026).** A migrated USQL `device` query that lands on `device.type` stops resolving once 1.348 reaches your tenant.
+>
+> **No replacement is documented.** The same version adds a `client.*` family (`client.type`, `client.version`, `client.application.id`, and others) which *looks* like the successor, but the changelog states no mapping and this entry will not assert one. Verified against a live tenant on 09/09/2026: that tenant is still pre-1.348 — `device.type` is present on the `rum.user_session` model (`user.sessions`) and no `client.type` field exists yet — so the row above is accurate today and cannot responsibly be re-pointed until 1.348 lands.
+>
+> The removal is scoped to the **user-session** model. `device.type` also sits on three `dt.system.events` RUM billing models (`real_user_monitoring_usage_event` and siblings) that the changelog does not touch, so consumption queries splitting by it are unaffected — see FINOPS-01.
 
 <a id="field-mapping--user-actions"></a>
 ## 6. Field Mapping — User Actions

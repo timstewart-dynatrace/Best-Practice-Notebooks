@@ -1,6 +1,6 @@
 # FAQ-22: What Happened to My PurePath Timings in Grail?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -134,6 +134,8 @@ The customer premise here is correct, and it follows from one sentence in the di
 
 `endpoint.name` is `stable`, and its definition reads: *"The endpoint name is derived from endpoint detection rules and uniquely identifies one endpoint of a particular service… Endpoints are **exclusively detected on request root spans**."*
 
+> **Breaking (SaaS 1.347 — staged rollout from 09/08/2026): endpoint names keep their volatile segments.** Verbatim: *"Volatile segments are no longer dropped. Instead, they're replaced with typed placeholders, and path processing continues for the full path."* This does not change *where* endpoints are detected — the root-span rule below still holds — but it changes the **shape of every name**. A path that previously truncated at its first volatile segment now runs its full length with `{id}` / `{token}` standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.
+
 A client span — the caller's side of an outbound HTTP, gRPC, or database call — is by construction *not* a request root span. So:
 
 | On a request root (server) span | On a client span |
@@ -149,7 +151,7 @@ That last row is the one with real consequences. The `dt.service.request.*` fami
 1. **Characterize dependencies from the client spans.** `server.address` (and `peer.service` where the instrumentation supplies it) is the grouping key. **SPANS-04** §3–4 is the full treatment — service dependency mapping, inbound/outbound ratios, slowest-dependency queries.
 2. **`request.is_failed` is not your failure signal here — and is deprecated anyway.** The dictionary marks it `deprecated`, describing it as *"considered failed according to the failure detection rules. Only present on the request root span."* The successor namespace `dt.failure_detection.verdict` / `.results` is `experimental`. For client spans the `stable` answer is `span.status_code` plus the protocol status field (`http.response.status_code`, `rpc.grpc.status_code`) — which is exactly what **SPANS-03** already teaches. Do not build alerting on the failure-detection namespace while it is experimental.
 
-> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — Enhanced Endpoints explicitly does not create endpoints for external services. [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `dt.failure_detection.verdict` (`experimental`), `span.status_code` (`stable`); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged. The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the endpoint-naming change for volatile segments quoted above, [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — Enhanced Endpoints explicitly does not create endpoints for external services. [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `dt.failure_detection.verdict` (`experimental`), `span.status_code` (`stable`); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged. The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
 
 **Reproduce the contrast in your own tenant.** Two queries, run back to back — the first returns nulls in the endpoint and failure columns, the second does not:
 

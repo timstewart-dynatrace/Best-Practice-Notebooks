@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 09/09/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -65,6 +65,13 @@ Users have a lifecycle from creation to deactivation. Effective management requi
 <a id="scim-provisioning"></a>
 ## 2. SCIM Provisioning
 SCIM (System for Cross-domain Identity Management) automatically syncs users and groups from your IdP to Dynatrace.
+
+> **Breaking (SaaS 1.347 — staged rollout from 09/08/2026): `GET /Users` pagination is now RFC-compliant.** Verbatim: *"The SCIM `GET /Users` endpoint now interprets `startIndex` as the absolute, 1-based index of the first result, per RFC 7644."*
+>
+> **A client that passed a page number silently reads the wrong window.** Under the old interpretation `startIndex=2` meant "the second page"; under RFC 7644 it means "start at record 2". The request still returns `200` with a well-formed body, so the failure surfaces as users that never sync rather than as an error — the same silent shape that makes provisioning bugs hard to attribute.
+>
+> If you drive SCIM through a commercial IdP connector (Entra ID, Okta), it is almost certainly already RFC-compliant and needs no change. **The population at risk is hand-rolled sync scripts**, which is exactly what a page-number loop looks like. Convert to `startIndex = (page - 1) * count + 1` and reconcile a full user list after the rollout reaches your tenant.
+
 
 ![SCIM Provisioning Flow](images/06-scim-provisioning-flow.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -131,6 +138,8 @@ SCIM (System for Cross-domain Identity Management) automatically syncs users and
 - **Map groups explicitly** - don't auto-create
 - **Use consistent naming** between IdP and Dynatrace
 - **Monitor sync status** for failures
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the SCIM `GET /Users` `startIndex` change quoted above.</sub>
 
 <a id="just-in-time-provisioning"></a>
 ## 3. Just-in-Time Provisioning

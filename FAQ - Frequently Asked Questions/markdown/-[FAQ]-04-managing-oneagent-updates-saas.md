@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -43,6 +43,12 @@ The intent is not to talk anyone out of auto-update. For most fleets, **automati
 <a id="cadence"></a>
 ## 1. Why OneAgent Update Cadence Matters
 
+> **Breaking (SaaS 1.347 — staged rollout from 09/08/2026): very old agents are disconnected, not merely unsupported.** Verbatim: *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
+>
+> This is a different kind of floor from the support policy quoted elsewhere in this entry. **Falling outside Standard or Enterprise support means you stop receiving fixes; falling below 1.241 means the host stops reporting.** A fleet on "No automatic updates" (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.
+>
+> **Inventory before the rollout reaches you**, not after: `smartscapeNodes "HOST" | fields id, name, oneagent.version` (or the Deployment Status screen) will name any host at or below 1.241. There is no grace path once the rejection lands — the fix is an upgrade.
+
 OneAgent is the data-collection layer of the platform. Update cadence directly affects:
 
 - **Coverage parity with newly-supported technologies.** New runtime versions, frameworks, and infrastructure types arrive in OneAgent releases. A fleet running an older OneAgent loses coverage on whatever was added since.
@@ -59,7 +65,7 @@ OneAgent is the data-collection layer of the platform. Update cadence directly a
 
 In community practice, the most consistent benefit teams report from leaving auto-update on is "we stopped having a OneAgent-version inventory problem." Verify against your own change-control framework.
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."*</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."*</sub>
 
 <a id="mechanism"></a>
 ## 2. How OneAgent Updates Work on SaaS
