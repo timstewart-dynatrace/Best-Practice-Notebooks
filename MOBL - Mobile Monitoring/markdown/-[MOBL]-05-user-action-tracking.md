@@ -1,6 +1,6 @@
 # MOBL-05: User Action Tracking
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 5 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 5 of 12 | **Created:** February 2026 | **Last Updated:** 09/09/2026
 
 ## Overview
 
@@ -64,6 +64,12 @@ Dynatrace classifies mobile user actions into the following types:
 <a id="auto-detected-actions"></a>
 ## 2. Auto-Detected Actions
 
+> **New (OneAgent for Mobile 8.347 — released 08/28/2026, rollout from 09/08/2026): every launch produces an app-start action.** The agent now tracks *"an app start user action on every app launch"*, spanning initialization through the first fully settled screen, and it can be waterfall-visualized and filtered by launch type. That is a new member of the auto-detected population below — expect action counts to rise once instrumented builds ship, and check any dashboard that counts actions per session before reading the change as a regression.
+>
+> The same release **caps inflated cold-start durations** — verbatim, it *"caps inflated cold app-start durations so you see realistic warm-start timings"*. Startup-duration percentiles will shift downward as a result. That is a measurement correction, not an improvement in the app, so re-baseline startup SLOs and alerts rather than reporting a win.
+>
+> Mobile agent versions land with **app releases, not tenant updates** (MOBL-01), so this arrives across your user base at the pace of store adoption.
+
 Dynatrace auto-instrumentation capabilities differ between platforms and UI frameworks. Modern declarative frameworks (SwiftUI, Jetpack Compose) require more manual instrumentation than their imperative counterparts (UIKit, Android Views).
 
 ### Platform Compatibility Matrix
@@ -83,6 +89,8 @@ Dynatrace auto-instrumentation capabilities differ between platforms and UI fram
 - **App start and lifecycle events** (background/foreground) are always auto-detected regardless of UI framework.
 
 > **Tip:** If your app uses SwiftUI or Jetpack Compose, plan for custom action instrumentation early in development. See Section 5 for code examples.
+
+> <sub>**Sources:** [What's new in OneAgent for Mobile 8.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-347) — the app-start user action and cold-start capping quoted above.</sub>
 
 <a id="action-lifecycle"></a>
 ## 3. Action Lifecycle
