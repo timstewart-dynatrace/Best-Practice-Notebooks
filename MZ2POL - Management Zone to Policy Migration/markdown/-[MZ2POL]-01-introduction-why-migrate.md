@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/02/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/17/2026
 
 ## Overview
 
@@ -234,9 +234,9 @@ The single most common planning error is collapsing these into one:
 
 Segments are not an access-control mechanism and are not a routing mechanism. Anyone holding `storage:filter-segments:read` can apply any segment.
 
-> ⚠️ **The Management Zone filter has no successor inside the alerting model.** Dynatrace's upgrade guide states it plainly: *"Management Zone filter — No longer supported. Use Grail record-based field filters instead."* This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-05 §4 for the rule-to-dimension classification.
+> ⚠️ **The Management Zone filter does not carry over into the alerting model.** Dynatrace's upgrade guide moves filtering into the workflow trigger: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* Its own best practice is that *"Tagging entities with meaningful metadata and filtering on primary_tags.* is more maintainable than chaining entity conditions"*. This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-05 §4 for the rule-to-dimension classification.
 
-> ⚠️ **Duration-based suppression has a successor — verify it before assuming otherwise.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. Note that the alert-notification upgrade guide still states there is *"currently no alternative"* for this — the two pages conflict, and the upgrade guide appears not to have been re-tensed. **Confirm the Minimum duration option in your own tenant**, then inventory `delayInMinutes` across every profile and map each value onto a Minimum duration setting. See MZ2POL-09 §6.1.
+> **Duration-based suppression has a successor.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. Since its 09/07/2026 rewrite the alert-notification upgrade guide agrees: *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* Inventory `delayInMinutes` across every profile and map each value onto a Minimum duration setting. See MZ2POL-09 §6.1.
 
 ### Migration Phases
 
@@ -276,7 +276,7 @@ For the alerting side of the migration specifically, see **WFLOW-02** (problem-t
 - [Policy Boundaries](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
 - [Upgrade from RBAC to ABAC](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles)
 - [Segments Documentation](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries)
-- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the authoritative old→new mapping, including the "Management Zone filter: no longer supported" line and the connector equivalence table
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the authoritative old→new mapping, including where filtering goes in a workflow and the connector equivalence table
 - [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic surface; carries the "we recommend using simple workflows" steer
 - [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the one documented intersection of segments and alerting
 
