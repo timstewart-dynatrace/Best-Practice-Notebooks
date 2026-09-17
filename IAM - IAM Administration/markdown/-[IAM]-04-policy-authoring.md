@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 09/10/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -280,10 +280,13 @@ ALLOW <service>:<resource>:<action> WHERE <condition>
 | `!=` | Not equals | `storage:dt.security_context != "restricted"` |
 | `IN` | In list | `storage:dt.security_context IN ("team-a", "team-b")` |
 | `startsWith` | Prefix match | `settings:schemaId startsWith "builtin:alerting"` |
-| `contains` | Contains substring | `settings:schemaId contains "custom"` |
 | `MATCH` | Wildcard pattern match | `storage:dt.security_context MATCH('*/app:easytrade')` |
 
-> **`MATCH()` vs `startsWith`:** Use `MATCH()` for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use `startsWith` when matching a fixed leading prefix.
+> **`MATCH()` vs `startsWith`:** Use `MATCH()` for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use `startsWith` when matching a fixed leading prefix. **And use `MATCH()` whenever the field can hold an array** — on an array, `=`, `startsWith` and `IN` *"always return `false`"*, silently. See **IAM-05** for where that bites in a boundary.
+
+> **Corrected 09/10/2026 — `contains` is not an IAM condition operator.** An earlier revision of this table listed `contains` (`settings:schemaId contains "custom"`). The IAM policy statement syntax reference gives the operator set as `= != < > IN startsWith NOT IN NOT startsWith MATCH`, and the IAM policy reference lists `IN`, `=`, `!=`, `startsWith` and `NOT startsWith` for `settings:schemaId` — `contains` appears in neither. Use `startsWith` for a prefix, or `MATCH` for a pattern.
+>
+> <sub>**Sources:** [IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*</sub>
 
 ### Common Condition Fields
 
