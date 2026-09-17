@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/02/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/17/2026
 
 ## Overview
 
@@ -67,7 +67,7 @@ That asymmetry is the single biggest source of surprise in this part of the migr
 
 There is **no segment field on an alerting profile, and no segment field on a workflow trigger.** Segments are query-time filter conditions — they scope what a *query* returns and what a *user sees*. They do not scope what *fires*.
 
-Dynatrace's alert-notification upgrade guide is explicit: the **Management Zone filter is "no longer supported. Use Grail record-based field filters instead."** There is no successor filter inside the alerting model.
+Dynatrace's alert-notification upgrade guide moves that filtering into the workflow trigger itself: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* There is no management-zone filter to carry over, because *"There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."*
 
 Segments touch alerting in exactly one documented place: **scoping an anomaly detector** (Anomaly Detection app → *Set scope* → *Segments*). That scopes **detection** — which signals are evaluated — not **routing**.
 
@@ -88,7 +88,7 @@ Workflow  "Route — Team X"
   Action:   Slack / ServiceNow / email / PagerDuty → team X's destination
 ```
 
-No separate profile object exists in this shape. **The filter *is* the trigger.** Dynatrace notes that using a workflow trigger *"eliminates the need for adding and managing a separate alerting profile to filter incoming problems"*, and that the filter *"can use DQL matchers on the incoming problem record, which is much more flexible and powerful than alerting profiles."*
+No separate profile object exists in this shape. **The filter *is* the trigger.** Dynatrace notes that *"a single workflow trigger can encapsulate the combined filter logic of multiple alerting profiles"*, and that the filter *"can use DQL matchers on the incoming problem record, which is much more flexible and powerful than alerting profiles."*
 
 ### Status of the classic surfaces
 
@@ -96,27 +96,27 @@ Neither alerting profiles nor classic problem notifications are deprecated. Both
 
 The forcing function is not deprecation — it is **the Management Zone itself**. A profile scoped by an MZ is only as durable as that MZ. Profiles scoped purely by severity rules and tags are unaffected by this migration and can be left alone.
 
-> <sub>**Sources:** [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the "Management Zone filter: no longer supported" line. [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — trigger filter surface and DQL-matcher scope. [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic status. [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the detector-scoping exception.</sub>
+> <sub>**Sources:** [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — where filtering goes in a workflow, and that alerting profiles and problem notifications *"continue to work and are not being removed on a published schedule, but they'll not receive new capabilities."* [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — trigger filter surface and DQL-matcher scope. [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic status. [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the detector-scoping exception.</sub>
 
 <a id="inventory"></a>
 ## 3. Inventory Before You Start
 
 Alerting-profile configuration is not queryable via DQL — it lives in Settings. Export it via the Settings API (`builtin:alerting.profile`) or the UI, the same way MZ2POL-00 exports Management Zones.
 
-Collect these five columns for every profile. Each one drives a decision later, and three of them surface capability regressions that are much cheaper to find now than at cutover.
+Collect these five columns for every profile. Each one drives a decision later, and several surface gaps that are much cheaper to find now than at cutover.
 
 | Column | Why it matters | Drives |
 |--------|---------------|--------|
 | **Management zone reference** | Identifies which profiles this migration actually touches. Profiles without one need no work | Scope |
 | **Severity rules** (level + tag filters) | Carries forward directly onto the workflow trigger | §5 |
-| **`delayInMinutes`** per severity rule | **No equivalent as of 07/2026** — re-check before cutover (§6.1). Every non-zero value needs a recorded disposition | §6 |
+| **`delayInMinutes`** per severity rule | Maps onto the trigger's **Minimum duration** option, which accepts fixed values only (§6.1). Every non-zero value needs a recorded disposition | §6 |
 | **Event filters** (predefined / custom title / description) | Becomes the DQL matcher on the trigger | §5 |
 | **Notification destinations** consuming this profile | Four destination types have no native connector | §6 |
 
 ### The three questions the inventory must answer
 
 1. **How many profiles reference a Management Zone?** This is the real work list — often far smaller than the total profile count.
-2. **How many use a non-zero `delayInMinutes`?** Every one is a potential noise regression at cutover unless deliberately handled — and together they define your *last* migration wave, not your first (§6.1).
+2. **How many use a non-zero `delayInMinutes`?** Every one needs a Minimum duration value chosen deliberately — the allowed values are fixed, so some delays will not map exactly (§6.1).
 3. **What destinations are in play?** Opsgenie, Trello, VictorOps, and xMatters need HTTP rebuilds.
 
 > **Consolidate while you inventory.** Profiles are frequently near-duplicates that differ only by zone. The target is one workflow per **team/channel**, not one per profile — see §5. A hundred MZ-scoped profiles routinely collapse to a much smaller set of destinations.
@@ -223,31 +223,29 @@ At any meaningful profile count, hand-building in the UI produces drift within w
 <a id="regressions"></a>
 ## 6. Capability Regressions
 
-Two things get worse. Both are cheaper to plan for than to discover.
+One thing gets worse: four destinations lose their native connector. Duration-based suppression — listed here as a regression until 09/2026 — carries over, with one wrinkle. Both are cheaper to plan for than to discover.
 
-### 6.1 Duration-based suppression has no successor today
+### 6.1 Duration-based suppression maps onto Minimum duration
 
 An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). Teams use it to suppress transient blips.
 
 **The workflow model does have an equivalent — the trigger's Minimum duration option.** The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`, and *"the trigger fires once when the threshold is crossed on the active phase"* — and where the filter also detects the closed phase, *"the trigger will additionally fire once when the problem is closed"*
 
-> ⚠️ **Conflicting documentation.** The alert-notification upgrade guide still states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* Both pages were live 08/2026. The likely explanation is that the upgrade guide predates the option and was never re-tensed — but that is inference. **Verify the Minimum duration option behaves as documented in your tenant before relying on it**, and do not plan a wave around the upgrade guide's claim without checking.
+> **The documentation now agrees (09/17/2026).** Until 09/07/2026 the alert-notification upgrade guide said the classic **Duration** filter had no alternative, and this section treated duration suppression as the migration's one hard regression. The guide was rewritten. It now lists `dt.duration_marker` as *"How long the problem has been open, as a stepped threshold"*, says *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."*, and names *"separate profiles created purely to vary the delay"* among the Classic constraints that no longer exist.
 
-> **Read that "currently" as load-bearing.** It is the upgrade guide's own wording, and it marks this as a stated gap rather than a settled design decision. **Re-check the upgrade guide before you commit a cutover wave** — of everything in this notebook, this is the claim most likely to have changed since it was written, and a reader acting on a stale copy would accept a regression they may no longer have to.
-
-This is the one **hard capability regression** in the migration today. It cannot be designed around inside the alerting layer, and it is worth naming to on-call teams *before* cutover — every other part of this migration is neutral-to-better for them, and this one is strictly worse. Discovered afterwards, it reads as *"the migration made my pager noisier."*
+**The wrinkle: the values are fixed.** Minimum duration takes only the nine values above. A profile whose delay is not one of them — 7 or 20 minutes, say — has no exact match, and rounding changes behavior — up suppresses a little more, down pages a little sooner. Decide each one deliberately rather than letting a script round it.
 
 Per-profile options:
 
 | Option | When it fits | Trade-off |
 |--------|-------------|-----------|
-| **Defer the profile to a later wave** | The delay is load-bearing and the team will not accept the regression | Costs only time — and this is the one cohort with a concrete reason to wait |
-| **Accept the noise** | Delay was short; the signal is genuinely actionable | Slight increase in short-lived pages |
+| **Map to the nearest Minimum duration** | The delay is load-bearing and close to an allowed value | Rounding up suppresses slightly more; rounding down pages slightly sooner |
+| **Drop the delay** | Delay was short; the signal is genuinely actionable | Slight increase in short-lived pages |
 | **Replace with a Davis anomaly detector** | The signal was noisy because a static threshold was wrong for it | Changes detection semantics, not just routing; needs tuning |
 | **Express as an SLO burn-rate alert** | The concern was sustained degradation, not a threshold crossing | Best conceptual fit; requires an SLO to exist (**SLO-04**) |
 | **Retire the alert** | The delay was masking an alert nobody acts on | Free noise reduction — check usage first |
 
-**Sequence delay-dependent profiles according to what your tenant verification shows.** If the Minimum duration option is present and behaves as documented, these profiles convert like any other and need no special wave. If verification fails, they become the only cohort whose behavior you cannot reproduce — and only then is there a reason to hold them back. Profiles with `delayInMinutes: 0` — usually the large majority — carry no such constraint either way.
+**Delay-dependent profiles need no special wave.** Decide each one from the table above and convert it alongside everything else. Profiles with `delayInMinutes: 0` — usually the large majority — need no decision at all.
 
 > **A long `delayInMinutes` is usually evidence the alert was the wrong *shape*, not merely delayed.** A profile suppressing 30 minutes of a firing condition is describing a burn-rate concern. Route those to SLO burn-rate alerts where an SLO exists, and to Davis where one does not.
 
@@ -259,13 +257,14 @@ Documented connector mapping:
 |---------------------|--------------------|
 | Ansible | RedHat Ansible connector |
 | Custom integration | HTTP Request action |
-| Email | Microsoft 365 / Email connector |
+| Email | Email or Microsoft 365 connector |
 | Jira | Jira connector |
 | PagerDuty | PagerDuty connector |
 | ServiceNow | ServiceNow connector |
 | Slack | Slack connector |
+| Microsoft Teams | Microsoft Teams connector |
 
-**Opsgenie, Trello, VictorOps, and xMatters are currently not supported** as native workflow connectors. Each becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.
+**Opsgenie, Trello, VictorOps, and xMatters have no dedicated connector.** For Trello, VictorOps and xMatters the guide says *"No dedicated connector. Use HTTP Request."* For Opsgenie: *"Opsgenie is being retired by Atlassian and replaced by Jira Service Management (JSM). No official JSM connector is available yet. Use HTTP Request."* Each becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.
 
 Rebuild the payload against the destination's current API contract — do not port the old webhook body verbatim.
 
@@ -430,7 +429,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 | Workflow per destination exists | Every inventoried destination has a live workflow |
 | Alert parity per team | Within agreed tolerance across the parallel window, **confirmed by the receiving team** |
 | No workflow reads `management_zones` | Zero matches across all workflow definitions |
-| `delayInMinutes` dispositions | Every non-zero value has a recorded decision |
+| `delayInMinutes` dispositions | Every non-zero value has a recorded Minimum duration decision |
 | Security-context coverage | 100%, or every gap explained |
 | Deletion behavior established | §8 test run and result recorded |
 
@@ -464,7 +463,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 **Regressions**
 
 - [ ] Every non-zero `delayInMinutes` has a recorded disposition
-- [ ] On-call teams told about the duration-suppression loss *before* cutover
+- [ ] On-call teams told about any delay that was rounded *before* cutover
 - [ ] Move awareness-only recipients to Problems-app personal subscriptions
 
 **Visibility**
@@ -486,7 +485,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 1. **Alerting is the third job a Management Zone does**, and it migrates to problem-triggered workflows — not to Segments. Segments scope queries and anomaly detectors; they never scope triggers, notifications, or visibility.
 2. **The real work is enrichment.** Triggers match tags carried by entities; MZ rules are computed conditions. Every computed dimension must become an auto-tag, and must propagate, before its workflow can exist.
-3. **One confirmed capability regression:** four notification destinations have no native connector. Duration-based suppression maps onto the trigger's **Minimum duration** option, though the upgrade guide still claims otherwise — verify in-tenant.
+3. **One confirmed capability regression:** four notification destinations have no native connector. Duration-based suppression maps onto the trigger's **Minimum duration** option, and since its 09/07/2026 rewrite the upgrade guide agrees.
 4. **Visibility is a separate axis** and works only on `dt.security_context`, because it is the only field that filters correctly once events aggregate into a problem.
 5. **The deletion failure mode is undocumented.** Test it in non-prod before touching production, and never delete zones and profiles in the same change window.
 
@@ -498,7 +497,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 ## Additional Resources
 
-- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — the authoritative old→new mapping; the Management Zone filter statement, the connector table, and the duration-filter gap
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the authoritative old→new mapping: where filtering goes, the connector table, and delay as a workflow-trigger capability
 - [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — problem-trigger filter surface and DQL-matcher scope
 - [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — the current Gen3 hub
 - [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic status

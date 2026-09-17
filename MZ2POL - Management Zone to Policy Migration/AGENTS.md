@@ -12,8 +12,8 @@ distinct jobs and they migrate to different places:
   self-contained and readable without the access-control notebooks.
 - **Alerting** (who gets paged) becomes problem-triggered workflows filtered
   by affected-entity tags — notebook 09, also self-contained. **Not** Segments:
-  there is no segment field on a workflow trigger, and the Management Zone
-  filter has no successor inside the alerting model.
+  there is no segment field on a workflow trigger, and management-zone
+  filtering does not carry over — the trigger filters on the problem itself.
 
 The series covers an SDK analysis tool for the existing MZ estate, the ABAC
 model, assessment and planning, policy/boundary design, the MZ-to-Segment
@@ -38,7 +38,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Executing the migration phases: security-context assignment, parallel running, cutover, cleanup, rollback procedures | `-[MZ2POL]-06-migration-execution.md` |
 | Validating the migration, troubleshooting access issues, diagnostic and health-monitoring queries, ongoing maintenance | `-[MZ2POL]-07-validation-troubleshooting.md` |
 | `${bindParam:...}` policy templates for dozens of MZ-based teams, bulk binding via the IAM API, before/after access comparison | `-[MZ2POL]-08-templated-policies-migration.md` |
-| Replacing MZ-based **alerting**: why alerting profiles become problem-triggered workflows rather than segments, converting MZ rules into routing tags, the `delayInMinutes` capability gap and why delay-dependent profiles migrate last, connectors with no native equivalent (Opsgenie/Trello/VictorOps/xMatters), problem visibility via `dt.security_context`, and the undocumented MZ-deletion failure mode | `-[MZ2POL]-09-alerting-and-notification-migration.md` |
+| Replacing MZ-based **alerting**: why alerting profiles become problem-triggered workflows rather than segments, converting MZ rules into routing tags, mapping `delayInMinutes` onto the trigger's fixed Minimum duration values, connectors with no native equivalent (Opsgenie/Trello/VictorOps/xMatters), problem visibility via `dt.security_context`, and the undocumented MZ-deletion failure mode | `-[MZ2POL]-09-alerting-and-notification-migration.md` |
 | Consolidated best-practice checklist across assessment, policy/boundary/segment design, buckets, groups, execution, and validation | `-[MZ2POL]-99-best-practice-summary.md` |
 
 If more than three rows match, start with

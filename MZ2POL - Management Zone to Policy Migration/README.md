@@ -23,7 +23,7 @@ There is no automatic conversion in either direction: every policy and every seg
 6. [Migration Execution](markdown/-[MZ2POL]-06-migration-execution.md) — Executing the migration
 7. [Validation & Troubleshooting](markdown/-[MZ2POL]-07-validation-troubleshooting.md) — Validating and resolving issues
 8. [Templated Policies Migration](markdown/-[MZ2POL]-08-templated-policies-migration.md) — Policy templates for bulk MZ migration
-9. [Alerting and Notification Migration](markdown/-[MZ2POL]-09-alerting-and-notification-migration.md) — MZ-scoped alerting profiles become problem-triggered workflows; the tag prerequisite, capability regressions, and the deletion test
+9. [Alerting and Notification Migration](markdown/-[MZ2POL]-09-alerting-and-notification-migration.md) — MZ-scoped alerting profiles become problem-triggered workflows; the tag prerequisite, the connector gap and delay mapping, and the deletion test
 99. [Best Practice Summary](markdown/-[MZ2POL]-99-best-practice-summary.md) — Consolidated best practices from the MZ2POL series
 
 ## Usage
