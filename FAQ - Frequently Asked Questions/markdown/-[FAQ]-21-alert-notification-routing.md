@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 09/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 09/17/2026
 
 ## Overview
 
@@ -98,9 +98,9 @@ The two that matter most are the middle pair, because they look like the same qu
 
 Getting routing right does nothing for visibility. They are configured in different places, by different people, and only one of them fails quietly.
 
-> **If you are migrating from management zones.** A management zone did all four of these jobs through a single object, which is why the migration feels like one thing being replaced when it is really four things being separated. The upgrade guide states the **Management Zone** filter is *"No longer supported. Use Grail record-based field filters instead."* **MZ2POL-09** carries the per-profile disposition detail. The four-axis model above does not depend on any of this history.
+> **If you are migrating from management zones.** A management zone did all four of these jobs through a single object, which is why the migration feels like one thing being replaced when it is really four things being separated. The upgrade guide moves that filtering into the workflow trigger: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* *"There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* **MZ2POL-09** carries the per-profile disposition detail. The four-axis model above does not depend on any of this history.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the documented trigger option list, which contains no segment field. [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — *"We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim.</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the documented trigger option list, which contains no segment field. [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — *"We recommend filtering based on the following attributes: Primary Grail fields, Security context, Custom attributes."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — where management-zone filtering goes in a workflow, quoted verbatim.</sub>
 
 <a id="where-each-element-is-documented"></a>
 ## 3. Where Each Element Is Documented
@@ -272,9 +272,9 @@ For anything ownership does not express, the additional custom filter query take
 
 This is the mechanism for suppressing transient blips: a problem that resolves inside the delay window never notifies.
 
-> **A documented conflict, unresolved.** The alert-notification upgrade guide states the classic **Duration** filter is *"No longer supported. Currently there is no alternative to deliver problems that are active longer than X minutes."* The current trigger documentation describes the **Minimum duration** option above, which does exactly that. Both pages are live as of 08/03/2026. The most likely reading is that the upgrade guide predates this option and has not been re-tensed, but that is inference rather than a documented statement — **verify the Minimum duration option in your own tenant before relying on it**, and do not plan a migration around the upgrade guide's "no alternative" claim without checking first. This entry does not resolve the conflict; it records it.
+> **A documentation conflict, resolved 09/17/2026.** Earlier versions of this entry recorded that the alert-notification upgrade guide described the classic **Duration** filter as having no alternative — which contradicted the **Minimum duration** option above. The guide was rewritten on 09/07/2026 and that statement is gone. It now lists `dt.duration_marker` as *"How long the problem has been open, as a stepped threshold"*, and says *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* The two pages now agree: duration suppression is a workflow-trigger option.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the Minimum duration option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from **Delay**, and the docs still use the lowercase word "delay" in the `dt.duration_marker` sentence, which is how the rename went unnoticed). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the conflicting Duration-filter statement, quoted verbatim.</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the Minimum duration option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from **Delay**, and the docs still use the lowercase word "delay" in the `dt.duration_marker` sentence, which is how the rename went unnoticed). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — `dt.duration_marker` and the delay capability on the workflow trigger, quoted verbatim (page rewritten 09/07/2026, which resolved the earlier conflict).</sub>
 
 <a id="three-ways-this-goes-wrong"></a>
 ## 7. Three Ways This Goes Wrong
@@ -296,7 +296,7 @@ It arrives greenfield as the question above and mid-migration as *"we moved to S
 
 But the documented problem-trigger options are problem state, event category, severity, affected entities, delay, updates, and the additional custom filter query. **There is no segment field among them.** Segments scope what a detector evaluates and what a query returns; they do not scope who gets notified.
 
-For a migrating estate the upgrade guide is unambiguous on the related point: the **Management Zone** filter is *"No longer supported. Use Grail record-based field filters instead."*
+For a migrating estate the upgrade guide puts the filtering a management zone used to do into the trigger itself: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."*
 
 ### 2. Setting who gets paged, and calling access handled
 
@@ -321,7 +321,7 @@ A related trap for migrating estates: rebuilding every legacy profile as its own
 > - <sub>[Manage access to problem records (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-intelligence-problems-use-cases#manage-the-access-to-problem-records) — the automatic record-permission mapping and the `storage:dt.security_context` boundary, quoted verbatim</sub>
 > - <sub>[Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the complete documented option list, which contains no segment field</sub>
 > - <sub>[Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)</sub>
-> - <sub>[Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the Management Zone filter statement, quoted verbatim</sub>
+> - <sub>[Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — where management-zone filtering goes in a workflow, quoted verbatim</sub>
 
 <a id="recommended-approach"></a>
 ## 8. Recommended Approach
@@ -346,7 +346,7 @@ Sequenced, because the dependencies are real:
 1. **Four axes, not one.** Fires, routes, sees, filters — each a different mechanism and a different failure mode.
 2. **Ownership is the built-in answer.** `owner` and `dt.owner` are default tag keys in every environment, and affected-entity tags are a first-class trigger filter — so routing on ownership needs no custom field and no DQL. Reach for a custom attribute only where ownership genuinely does not fit.
 3. **The custom filter is a DQL matcher, not DQL.** `matchesPhrase`, `matchesValue`, `isNotNull`, `isNull` plus logical operators — and the exact surface differs per matcher context, so verify what the trigger accepts rather than assuming. Anything needing aggregation belongs upstream in enrichment.
-4. **Duration suppression exists** as the trigger's **Minimum duration** option — with a live documentation conflict against the upgrade guide that you should verify in your own tenant.
+4. **Duration suppression exists** as the trigger's **Minimum duration** option — and since the upgrade guide's 09/07/2026 rewrite, both documentation pages agree on it.
 5. **Enrichment gates everything.** You cannot filter on a tag or attribute that does not exist yet.
 
 | If you need… | Read |
