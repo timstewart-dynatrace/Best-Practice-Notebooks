@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/10/2026
 
 ## Overview
 
@@ -308,6 +308,12 @@ ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
 WHERE storage:dt.security_context IN ("LOB5")
   AND settings:dt.security_context IN ("LOB5");
 ```
+
+> **`=` and `IN` only work while `dt.security_context` holds a single value.** Dynatrace's Grail permissions reference: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* The failure is silent — the policy is valid, it evaluates, and it matches nothing. If any enrichment path can write an array into `dt.security_context`, use `MATCH` instead: *"you must use the `MATCH` operator to get 'for any value' set semantic."*
+>
+> Find out which case you are in before choosing an operator: `fetch logs, from:-1h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize records = count(), by:{sc_type}`. Any `array` row means an `=` or `IN` condition misses those records. **ORGNZ-04** covers the operator semantics in full.
+>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — the array semantics quoted above.</sub>
 
 > The `WHERE` clause uses **`AND`**, not `OR` — a policy `WHERE` does not support `OR`. Each condition only constrains the permissions of its own service: `storage:dt.security_context` scopes the `storage:*` reads, and `settings:dt.security_context` scopes the `settings:*` actions.
 

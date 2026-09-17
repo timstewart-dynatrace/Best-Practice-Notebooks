@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 09/17/2026
 
 ## Overview
 
@@ -279,7 +279,7 @@ DPL cannot express that failure mode: every quantifier is bounded and look-behin
 > - <sub>[Lines and strings (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-lines-strings) — "The syntax is compatible with Regular Expression Character Class"; negation via `^` or `!`</sub>
 > - <sub>[Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language) — character groups described as "Regular Expression compatible"</sub>
 > - <sub>[Regular expressions in Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata/reference/regular-expressions-in-dynatrace) — the catastrophic-backtracking warning, the `(.*)+b` example, and the no-backreferences / no-repeated-groups restrictions</sub>
-> - <sub>[Sensitive data masking (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking) — OneAgent-side masking takes RE2 regex</sub>
+> - <sub>[Sensitive data masking (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking) — *"Search expression: A regular expression to match the string that you want to mask. Use the regular expression format."* The linked words "regular expression" point to [RE2 syntax (Google GitHub)](https://github.com/google/re2/wiki/syntax)</sub>
 > - <sub>[Management zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — regex permitted only in the `contains regex` / `does not contain regex` operators</sub>
 > - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — matching conditions accept neither regex nor DPL</sub>
 > - <sub>[String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `like` SQL wildcards; `matchesValue` / `matchesPhrase` wildcard scope</sub>
