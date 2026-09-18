@@ -1,6 +1,6 @@
 # OPIPE-02: Span Processing & Enrichment
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Filtering, Enriching, and Routing Distributed Traces at Ingestion
 
@@ -15,7 +15,7 @@ This notebook covers the span-specific capabilities of OpenPipeline. For general
 1. [Understanding Span Data in OpenPipeline](#understanding-span-data)
 2. [Span Filtering: Dropping Noise at Ingestion](#span-filtering)
 3. [Span Attribute Enrichment](#span-attribute-enrichment)
-4. [Span-to-Log and Span-to-Event Generation](#span-generation)
+4. [Span-to-Event Extraction](#span-generation)
 5. [Routing Spans to Dedicated Buckets](#routing-spans)
 6. [Monitoring Your Span Pipeline](#monitoring-span-pipeline)
 7. [Summary](#summary)
@@ -149,17 +149,19 @@ fetch spans, from:-1h
 ```
 
 <a id="span-generation"></a>
-## 4. Span-to-Log and Span-to-Event Generation
+## 4. Span-to-Event Extraction
 
-OpenPipeline can generate **log records** or **events** from span data at ingestion. This is useful for:
+OpenPipeline can extract **business events** and **SDLC events** (Data extraction stage) or **Davis events** (Davis stage) from span data at ingestion. It does not generate log records from spans. This is useful for:
 
-- **Error alerting**: Generate an event when a span has `http.response.status_code >= 500`, enabling Dynatrace Intelligence to detect error spikes without querying spans directly
-- **Audit logging**: Create a log record for every span that touches a sensitive service, providing an audit trail in the logs scope
-- **SLO tracking**: Generate business events from spans that represent key user transactions
+- **Error alerting**: Extract a Davis event when a span has `http.response.status_code >= 500`, sending it to root cause analysis without querying spans directly
+- **Audit trail**: Extract a business event for every span that touches a sensitive service
+- **SLO tracking**: Extract business events from spans that represent key user transactions
+
+> <sub>**Sources:** [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction) — *"In the Data extraction stage, you can extract new records from incoming records that match a condition and re-ingest them as a different data type into another pipeline."*; [Davis stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage) — *"In the Davis stage, you can extract Davis events from incoming records that match a condition and send them to root cause analysis."*</sub>
 
 ### Generation vs. Metric Extraction
 
-| Feature | Span-to-Event Generation | Metric Extraction from Spans |
+| Feature | Span-to-Event Extraction | Metric Extraction from Spans |
 |---------|-------------------------|-----------------------------|
 | Output | Individual event records | Aggregated metric data points |
 | Use case | Alerting, audit trails | Dashboards, SLOs, trend analysis |
@@ -225,6 +227,30 @@ fetch spans, from:-24h
 | makeTimeseries span_count = count(), by:{service.name}, interval:1h
 ```
 
+### Seeing What Was Dropped: Self-Monitoring Metrics
+
+Counting stored spans by `dt.openpipeline.pipelines` cannot, by construction, see records that a drop rule removed or that were never stored — which is exactly what a drop rule produces. OpenPipeline publishes **self-monitoring metrics** for that: `dt.sfm.openpipeline.pipelines_out.records` counts records leaving each pipeline, split by `pipeline_id` and `bucket_name`, and `dt.sfm.openpipeline.not_stored.records` counts records that were not stored, split by `configuration` (scope), `pipeline_id`, and `reason`.
+
+> <sub>**Sources:** [OpenPipeline self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics).</sub>
+
+```dql
+// Records leaving each span pipeline, by destination bucket (self-monitoring)
+timeseries records = sum(dt.sfm.openpipeline.pipelines_out.records), from:-24h,
+  filter:{configuration == "spans"}, by:{pipeline_id, bucket_name}
+| fieldsAdd total = arraySum(records)
+| fields pipeline_id, bucket_name, total
+| sort total desc
+```
+
+```dql
+// Records not stored, by scope and reason (drops, no-storage assignments, invalid records)
+timeseries records = sum(dt.sfm.openpipeline.not_stored.records), from:-24h,
+  by:{configuration, reason}
+| fieldsAdd total = arraySum(records)
+| fields configuration, reason, total
+| sort total desc
+```
+
 ---
 
 <a id="summary"></a>
@@ -235,9 +261,9 @@ In this notebook you learned:
 - **Span landscape discovery** — Key fields for routing and filtering decisions
 - **Noise filtering** — Dropping health checks, synthetic traffic, and preflight requests at ingestion
 - **Attribute enrichment** — Adding business context and security context to spans
-- **Event generation** — Creating events and log records from span data for alerting and audit
+- **Event extraction** — Extracting business, SDLC, and Davis events from span data for alerting and audit
 - **Bucket routing** — Separating spans by purpose with differentiated retention
-- **Pipeline monitoring** — Tracking volume trends to verify filtering effectiveness
+- **Pipeline monitoring** — Tracking volume trends, and using OpenPipeline self-monitoring metrics to see records that were dropped or not stored
 
 ---
 
@@ -253,6 +279,9 @@ Continue to **OPIPE-03: Sampling-Aware Metrics** to learn how to extract accurat
 
 - [Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction)
 - [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction)
+- [Davis stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage)
+- [OpenPipeline self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics)
 - [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
 
 ---

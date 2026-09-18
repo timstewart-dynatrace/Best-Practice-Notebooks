@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 08/31/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -44,7 +44,7 @@ CI/CD integration brings software development practices to Dynatrace configurati
     - [Conceptual Model — Four-Layer Trust Chain](#eptm-conceptual-model)
     - [Prerequisites — OAuth Client + Service Users + IAM Policies](#eptm-prerequisites)
     - [Worked Recipe — Pre-Mint Sweep, Mint, Use, Delete](#eptm-recipe)
-    - [Capacity Planning Under the 10-Token Cap](#eptm-capacity)
+    - [Capacity Planning Under the Per-User Cap](#eptm-capacity)
     - [When This Pattern Is Justified](#eptm-justified)
 12. [Best Practices](#best-practices)
 13. [Governance Architecture](#governance-architecture)
@@ -181,16 +181,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Monaco
         run: |
           curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
           chmod +x monaco
           sudo mv monaco /usr/local/bin/
-      
-      - name: Validate Configuration
-        run: monaco validate manifest.yaml
-      
+
+      # Monaco has no "validate" command — the dry run below is the validation step
       - name: Dry Run Deploy
         env:
           DT_DEV_URL: ${{ secrets.DT_DEV_URL }}
@@ -219,13 +217,13 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Monaco
         run: |
           curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
           chmod +x monaco
           sudo mv monaco /usr/local/bin/
-      
+
       - name: Deploy to Staging
         env:
           DT_STAGING_URL: ${{ secrets.DT_STAGING_URL }}
@@ -239,13 +237,13 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Monaco
         run: |
           curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
           chmod +x monaco
           sudo mv monaco /usr/local/bin/
-      
+
       - name: Deploy to Production
         env:
           DT_PROD_URL: ${{ secrets.DT_PROD_URL }}
@@ -427,7 +425,7 @@ allowed_resources := {
   "dynatrace_maintenance"
 }
 
-deny[msg] {
+deny contains msg if {
   resource := input.planned_values.root_module.resources[_]
   startswith(resource.type, "dynatrace_")
   not allowed_resources[resource.type]
@@ -437,7 +435,7 @@ deny[msg] {
 
 > **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` in the allowlist above is **deprecated** in provider v1.98+ in favor of `dynatrace_maintenance_windows`. The allowlist stays valid for older provider pins; on v1.98+ add (or substitute) `"dynatrace_maintenance_windows"` so newly-authored maintenance windows pass the policy.
 
-> **Read the allowlist above as a mechanism demonstration, not a starting allowlist.** Every one of its four entries resolves to a Settings 2.0 schema marked **Blocked at upgrade** in AUTOM-02's catalog:
+> **Read the allowlist above as a mechanism demonstration, not a starting allowlist.** Every one of its four entries resolves to a Settings 2.0 schema marked **Blocked at upgrade** in AUTOM-02's catalog and listed on Dynatrace's [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas):
 >
 > | Resource | Schema | Upgrade status |
 > |---|---|---|
@@ -471,8 +469,10 @@ blocked_at_upgrade := {
   "dynatrace_metric_events",         # builtin:anomaly-detection.metric-events
   "dynatrace_slo_v2"                 # builtin:monitoring.slo
 }
+# Successors that carry forward: dynatrace_maintenance_windows, dynatrace_davis_anomaly_detectors
+# (for metric events), dynatrace_platform_slo (for SLOs), dynatrace_automation_workflow (for alerting)
 
-deny[msg] {
+deny contains msg if {
   resource := input.planned_values.root_module.resources[_]
   blocked_at_upgrade[resource.type]
   msg := sprintf(
@@ -482,7 +482,7 @@ deny[msg] {
 }
 ```
 
-Run it as a **warning** rather than a hard failure while you still have classic configuration to maintain — `conftest test --policy policy/ --output table` reports without failing the build when the rule is named `warn` instead of `deny`. Flip it to `deny` once the migration for that domain is complete, and it becomes a ratchet that stops the classic surface coming back.
+Run it as a **warning** rather than a hard failure while you still have classic configuration to maintain — `conftest test --policy policy/ --output table` reports without failing the build when the rule is named `warn` instead of `deny` (`warn contains msg if { … }`). Flip it to `deny` once the migration for that domain is complete, and it becomes a ratchet that stops the classic surface coming back.
 
 #### OPA/Conftest — Mandatory Team Tagging
 
@@ -493,21 +493,21 @@ Ensure all resources include team ownership metadata:
 ```rego
 package main
 
-deny[msg] {
+deny contains msg if {
   resource := input.planned_values.root_module.resources[_]
   resource.type == "dynatrace_autotag_v2"
   not resource.values.name
   msg := "Auto-tag resources must have a name"
 }
 
-deny[msg] {
+deny contains msg if {
   resource := input.planned_values.root_module.resources[_]
   startswith(resource.type, "dynatrace_")
   not has_team_ownership(resource)
   msg := sprintf("Resource '%s' must include team ownership metadata", [resource.address])
 }
 
-has_team_ownership(resource) {
+has_team_ownership(resource) if {
   contains(resource.values.name, resource.values.team_name)
 }
 ```
@@ -518,8 +518,10 @@ has_team_ownership(resource) {
 # Add after terraform plan step
 - name: Install Conftest
   run: |
-    wget -q https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz
-    tar xzf conftest_Linux_x86_64.tar.gz
+    # Pin the version — "latest" changed the default Rego syntax under existing policies once already
+    CONFTEST_VERSION=0.70.0
+    wget -q "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+    tar xzf "conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
     sudo mv conftest /usr/local/bin/
 
 - name: Run Policy Checks
@@ -527,6 +529,8 @@ has_team_ownership(resource) {
     terraform show -json tfplan > tfplan.json
     conftest test tfplan.json --policy policy/
 ```
+
+> **The policies above use Rego v1 syntax** (`deny contains msg if { … }`, `if` on rule bodies). conftest switched its default in v0.60.0 — per its [v0.60.0 release notes (GitHub)](https://github.com/open-policy-agent/conftest/releases/tag/v0.60.0): *"We have set the default version of Rego syntax to v1. This is a breaking change if your Rego policies are not compatible with the v1 syntax."* Older `deny[msg] { … }` policies fail to parse on current conftest unless you pass `--rego-version v0`. (Rego here was converted by rule, not executed — run `conftest test` against a sample plan before adopting.)
 
 #### Sentinel (Terraform Enterprise / Cloud)
 
@@ -585,7 +589,8 @@ jobs:
         run: |
           set +e
           terraform plan -detailed-exitcode -no-color 2>&1 | tee drift-output.txt
-          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+          # $? here would be tee's exit code (always 0); PIPESTATUS[0] is terraform's
+          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
         env:
           DYNATRACE_ENV_URL: ${{ secrets.DT_ENV_URL }}
           DYNATRACE_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
@@ -608,7 +613,7 @@ jobs:
             });
 ```
 
-> **Exit codes:** `terraform plan -detailed-exitcode` returns `0` = no changes, `1` = error, `2` = drift detected. This lets your pipeline take different actions based on the result.
+> **Exit codes:** `terraform plan -detailed-exitcode` returns `0` = no changes, `1` = error, `2` = drift detected. This lets your pipeline take different actions based on the result. Read it from `${PIPESTATUS[0]}`, not `$?`: after `… | tee`, `$?` is `tee`'s status, so the drift step would always report `0` and the issue would never be opened — a silent green. (GitHub's default `bash` shell supports `PIPESTATUS`.)
 
 ---
 
@@ -752,7 +757,6 @@ validate:
   stage: validate
   <<: *monaco-setup
   script:
-    - monaco validate manifest.yaml
     - monaco deploy manifest.yaml --environment development --dry-run
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -835,7 +839,6 @@ pipelines:
           <<: *install-monaco
           name: Validate Monaco config
           script:
-            - monaco validate manifest.yaml
             - monaco deploy manifest.yaml --environment development --dry-run
 
   branches:
@@ -963,8 +966,14 @@ provider "dynatrace" {
 
 variable "workspace" { type = string }
 variable "dt_env_url" { type = string }
-variable "dt_api_token" { type = string, sensitive = true }
-variable "dt_platform_token" { type = string, sensitive = true }
+variable "dt_api_token" {
+  type      = string
+  sensitive = true
+}
+variable "dt_platform_token" {
+  type      = string
+  sensitive = true
+}
 
 # --- 1. Bitbucket repo ---
 resource "bitbucket_repos" "config_repo" {
@@ -1080,18 +1089,20 @@ resource "dynatrace_management_zone_v2" "platform_baseline" {
   name = "platform-baseline"
 
   rules {
-    type             = "ME"
-    enabled          = true
-    propagation_type = "HOST_TO_PROCESS_GROUP_INSTANCE"
-
-    conditions {
-      key {
-        attribute = "HOST_GROUP_NAME"
-      }
-      string_conditions {
-        operator         = "EQUALS"
-        value            = "platform-baseline"
-        case_sensitive   = false
+    rule {
+      type    = "ME"
+      enabled = true
+      attribute_rule {
+        entity_type           = "HOST"
+        host_to_pgpropagation = true
+        attribute_conditions {
+          condition {
+            key            = "HOST_GROUP_NAME"
+            operator       = "EQUALS"
+            string_value   = "platform-baseline"
+            case_sensitive = false
+          }
+        }
       }
     }
   }
@@ -1137,7 +1148,7 @@ Bitbucket Pipelines has three variable scopes. Pick the right scope per credenti
 
 **Bitbucket Pipelines supports OIDC** for federating to AWS, GCP, and Vault — see the Atlassian docs on [Integrate Pipelines with resource servers using OIDC](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/). The pattern is to add `oidc: true` at the pipeline step level and configure the resource server (AWS / GCP / Vault) to trust the Bitbucket OIDC issuer.
 
-**Dynatrace does not currently document a direct OIDC trust path** for Bitbucket Pipelines — there's no published mechanism to issue a short-lived Dynatrace Platform Token from a Bitbucket OIDC assertion. The practical pattern remains *secured variable holding a long-lived token*, rotated on a cadence.
+**Preview — Dynatrace workload identity federation.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* A trust policy (issuer URL + audience) and a service-user mapping are configured through the Account Management API; the identity provider must publish an OpenID Connect discovery document over HTTPS. Bitbucket Pipelines is not named on the page — verify that WIF is available in your account and that your Bitbucket OIDC issuer satisfies the prerequisites before relying on it. Until then, the working pattern remains a *secured variable holding a long-lived token*, rotated on a cadence, or the Vault indirection below.
 
 If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC → Vault (or AWS Secrets Manager) → fetches a Dynatrace token at pipeline start. The pipeline still ends up with a token in memory, but the token in storage is in Vault, not in Bitbucket variables.
 
@@ -1148,6 +1159,7 @@ If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC �
 > - <sub>[Get started with Bitbucket Pipelines (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) — Pipelines overview.</sub>
 > - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) — auth-token landscape; of App passwords the page says *"They are the long term replacement for App passwords."*.</sub>
 > - <sub>[Integrate Pipelines with resource servers using OIDC (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/) — Bitbucket OIDC for AWS/GCP/Vault.</sub>
+> - <sub>[Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — Preview; *"An identity provider that publishes an OpenID Connect discovery document over HTTPS, and that issues tokens signed with ES256 or RS256."*</sub>
 
 ---
 
@@ -1407,7 +1419,7 @@ stages:
 
 **Auditing.** Bamboo records who started each stage, with timestamp, in the plan's audit log. For SOX / SOC2 / regulated environments, this is the auditable record of who authorized each production apply. Retain it according to your control framework — Bamboo's default retention is configurable.
 
-**Operational note.** When the Apply stage fails mid-execution (e.g., terraform apply hits an API rate limit and times out), Bamboo leaves the plan in a *failed* state. Recovery is a manual re-trigger of the Apply stage — Bamboo will run it against the same `tfplan` artifact subscribed from the original Plan stage. If state is partially-applied and you need to recover, follow AUTOM-09 §13 (stuck state lock and partial-apply recovery).
+**Operational note.** When the Apply stage fails mid-execution (e.g., terraform apply hits an API rate limit and times out), Bamboo leaves the plan in a *failed* state. Recovery is a manual re-trigger of the Apply stage — Bamboo will run it against the same `tfplan` artifact subscribed from the original Plan stage. If state is partially-applied and you need to recover, follow AUTOM-09 §12 Operational Realities (stuck state lock and partial-apply recovery).
 
 > <sub>**Sources:**</sub>
 > - <sub>[Bamboo YAML specs (Atlassian)](https://confluence.atlassian.com/bamboo/bamboo-yaml-specs-938844479.html) — top-level structure (`version`, `plan`, `stages`, jobs, `script` tasks).</sub>
@@ -1598,30 +1610,9 @@ The "Plan twice" property (once on PR, once on merge) is intentional — the mer
 
 <a id="argocd-integration"></a>
 ## 8. ArgoCD Integration
-For Kubernetes-native GitOps, use ArgoCD with Dynatrace configs.
+For Kubernetes-native GitOps, use ArgoCD to deliver the Dynatrace **Operator and DynaKube**.
 
-### ArgoCD Application for Monaco Configs
-
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: dynatrace-config
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/org/dynatrace-config.git
-    targetRevision: HEAD
-    path: projects
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: dynatrace
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
+> **Argo CD / Flux reconcile Kubernetes objects — not Monaco or Terraform projects.** Monaco YAML is not a Kubernetes manifest, and `monaco deploy` emits logs, not manifests, so it cannot be an Argo CD source or a Config Management Plugin `generate` command. Run Monaco/Terraform from CI (§3–§7) or from a Kubernetes Job, and use Argo CD / Flux for the Operator and DynaKube below.
 
 ### ArgoCD for Dynatrace Operator (DynaKube)
 
@@ -1666,7 +1657,7 @@ dynatrace/
 Use External Secrets Operator to sync tokens from secret stores:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: dynakube-tokens
@@ -1688,23 +1679,7 @@ spec:
         key: dynatrace/data-ingest-token
 ```
 
-### Using Config Management Plugins
-
-**argocd-cm ConfigMap:**
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-cm
-  namespace: argocd
-data:
-  configManagementPlugins: |
-    - name: monaco
-      generate:
-        command: ["sh", "-c"]
-        args: ["monaco deploy manifest.yaml --environment $ARGOCD_ENV_ENVIRONMENT"]
-```
+External Secrets Operator stopped serving `v1beta1` in v0.17.0 — use `external-secrets.io/v1`. (The `argocd-cm` `configManagementPlugins` mechanism shown in earlier versions of this notebook was removed in Argo CD 2.8, and a CMP cannot run Monaco anyway — see the note at the top of this section.)
 
 ---
 
@@ -1769,7 +1744,7 @@ spec:
 Deploy via Helm with FluxCD:
 
 ```yaml
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: dynatrace
@@ -1779,7 +1754,7 @@ spec:
   url: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
 
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: dynatrace-operator
@@ -1797,6 +1772,8 @@ spec:
   values:
     installCRD: true
 ```
+
+Flux v2.7.0 removed the `v1beta1` and `v2beta1` APIs from its CRDs, so `HelmRelease` must be `helm.toolkit.fluxcd.io/v2` and `HelmRepository` `source.toolkit.fluxcd.io/v1`.
 
 ### SOPS for Secret Management with FluxCD
 
@@ -1872,13 +1849,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base/dynatrace
-patchesStrategicMerge:
-  - dynakube-patch.yaml
+patches:
+  - path: dynakube-patch.yaml
 ```
 
 **Cluster-specific patch:**
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -1896,7 +1873,7 @@ For clusters serving multiple teams with different Dynatrace tenants:
 
 ```yaml
 # Team A - uses tenant-a.live.dynatrace.com
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: team-a-dynakube
@@ -1912,7 +1889,7 @@ spec:
 
 ---
 # Team B - uses tenant-b.live.dynatrace.com
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: team-b-dynakube
@@ -2105,7 +2082,10 @@ MINT_RESPONSE=$(curl -sS -X POST \
        '{name: $name, userUuid: $uuid, expirationDate: $exp, scope: $scope}')" \
   "${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens")
 
-export DT_API_TOKEN=$(echo "${MINT_RESPONSE}" | jq -r '.token')
+# A platform token (dt0s16) goes in the PLATFORM token variable — in DT_API_TOKEN the
+# provider would send it as "Api-Token" and get a 401
+export DYNATRACE_PLATFORM_TOKEN=$(echo "${MINT_RESPONSE}" | jq -r '.token')
+export DYNATRACE_HTTP_OAUTH_PREFERENCE=true
 export DT_TOKEN_ID=$(echo "${MINT_RESPONSE}"  | jq -r '.id')
 
 # ----- Step 4: Run the work (terraform apply, etc.) -----
@@ -2129,19 +2109,19 @@ Key points the script encodes:
 > <sub>**Sources:** [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens). **Derived:** the pre-mint sweep + short-TTL + `trap EXIT` pattern is a synthesis — Dynatrace docs document the individual mint/list/delete endpoints but do not endorse this lifecycle as a named pattern. The race-condition analysis (why "delete oldest" fails under concurrency) is community-reasoned, not from a primary source.</sub>
 
 <a id="eptm-capacity"></a>
-### 11.4 Capacity Planning Under the 10-Token Cap
+### 11.4 Capacity Planning Under the Per-User Cap
 
-**Verified at source:** *"A maximum of 10 platform tokens can be generated by a user for a given account."* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — verified 2026-05-22). The cap is **per-user, per-account** — i.e., per `userUuid`, which means **per Service User** in the on-behalf-of model. Multiple OAuth clients minting for the same Service User all count against that user's 10-cap.
+**Verified at source (re-read 09/18/2026):** *"A maximum of 50 platform tokens can be generated by a user per account, or 100 for a service user."* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)). The cap was 10 per user when this section was first written; it is **per user, per account** — i.e., per `userUuid`, which means **per Service User** (100) in the on-behalf-of model. Multiple OAuth clients minting for the same Service User all count against that user's cap.
 
-The arithmetic: with **N Service Users × 10 tokens** = N×10 capacity. A typical Terraform-driven CI shop with the AUTOM-95 §4 starter set (`svc-tf-settings`, `svc-tf-iam`, `svc-tf-synth`, `svc-tf-slo`) gets 40 token-slots of capacity. With short TTLs and the pre-mint sweep, steady-state utilization should rarely exceed concurrent-job count per domain.
+The arithmetic: with **N Service Users × 100 tokens** = N×100 capacity. A typical Terraform-driven CI shop with the AUTOM-95 §4 starter set (`svc-tf-settings`, `svc-tf-iam`, `svc-tf-synth`, `svc-tf-slo`) gets 400 token-slots of capacity. With short TTLs and the pre-mint sweep, steady-state utilization should rarely exceed concurrent-job count per domain — at the current cap, capacity is rarely the reason to add Service Users; attribution is.
 
 **Mitigation patterns by concurrency tier:**
 
 | Concurrent applies per domain | Recommendation | Why |
 |---|---|---|
-| 1–3 | Pattern works as-is with domain-scoped Service Users | 10-cap is far from binding; sweep handles orphans |
-| 4–9 | Add pre-mint sweep + monitor cap headroom in a dashboard | Approaching cap; orphan accumulation becomes load-bearing |
-| ≥10 | **Pattern requires Service User fleet** — not a drop-in | One Service User cannot serve sustained ≥10-concurrent without burst failures |
+| 1–30 | Pattern works as-is with domain-scoped Service Users | 100-cap is far from binding; sweep handles orphans |
+| 31–99 | Keep the pre-mint sweep + monitor cap headroom in a dashboard | Approaching cap; orphan accumulation becomes load-bearing |
+| ≥100 | **Pattern requires Service User fleet** — not a drop-in | One Service User cannot serve sustained ≥100-concurrent without burst failures |
 
 **Fleet extension when a single domain saturates a single Service User:**
 
@@ -2170,7 +2150,7 @@ SVC_USER_ID="${SVC_USER_IDS[${INDEX}]}"
 
 **Add fleet replicas reactively, not preemptively.** Provision the second replica when dashboards show sustained pressure (cap-utilization >70% during business hours). Provisioning a 5-node fleet up front for a domain that turns out to handle 2 concurrent applies is overengineering and dilutes audit attribution.
 
-**Critical reminder — the cap is on the Service User, not the OAuth client.** Shops with multiple CI systems (one OAuth client per platform — GitHub Actions + Azure DevOps + Bamboo, etc.) all minting for the same Service User share its 10-cap. Capacity planning must aggregate across all minting sources, not per OAuth client.
+**Critical reminder — the cap is on the Service User, not the OAuth client.** Shops with multiple CI systems (one OAuth client per platform — GitHub Actions + Azure DevOps + Bamboo, etc.) all minting for the same Service User share its 100-token cap. Capacity planning must aggregate across all minting sources, not per OAuth client.
 
 > <sub>**Sources:** [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) for the cap verbatim. **Derived:** the concurrency-tier recommendations, fleet-extension `hash mod N` pattern, and reactive-not-preemptive guidance are syntheses combining the cap with operational experience from cloud-IAM concurrent-credential patterns. Empirically verify the exact HTTP error code for cap-exceeded against your tenant before tuning automated retry logic.</sub>
 
@@ -2231,8 +2211,8 @@ SVC_USER_ID="${SVC_USER_IDS[${INDEX}]}"
 
 | Practice | Description |
 |----------|-------------|
-| **Validate first** | Always validate before deploy |
-| **Dry run PRs** | Show what would change |
+| **Validate first** | `monaco deploy --dry-run` (structure only — no API calls) or `terraform validate` before deploy |
+| **Plan PRs** | `terraform plan` shows what would change; Monaco's dry run does not |
 | **Plan as PR comment** | Post `terraform plan` output directly on PRs for reviewer context |
 | **Staged rollout** | Dev → Staging → Production |
 | **Manual gates** | Require approval for production |
@@ -2271,7 +2251,7 @@ SVC_USER_ID="${SVC_USER_IDS[${INDEX}]}"
 - [ ] Production
 
 ### Validation
-- [ ] Monaco validate passed
+- [ ] `monaco deploy --dry-run` / `terraform plan` passed
 - [ ] Dry run successful
 - [ ] Tested in dev environment
 

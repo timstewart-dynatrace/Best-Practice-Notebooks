@@ -1,8 +1,8 @@
 # AUTOM-06: Dynatrace SDKs
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
-Dynatrace provides official SDKs for programmatic access to the platform. These SDKs are auto-generated from OpenAPI specifications, ensuring they stay current with API changes.
+Dynatrace publishes official TypeScript SDK clients (`@dynatrace-sdk/*`) for programmatic access to the platform, auto-generated from OpenAPI specifications. There is no official Python SDK package — Python automation calls the REST APIs directly.
 
 ---
 
@@ -10,9 +10,10 @@ Dynatrace provides official SDKs for programmatic access to the platform. These 
 
 1. [Introduction](#introduction)
 2. [TypeScript SDK](#typescript-sdk)
-3. [Python SDK](#python-sdk)
+3. [Python: Calling the REST APIs](#python-rest-api)
 4. [Common Patterns](#common-patterns)
 5. [MCP Server Integration](#mcp-server-integration)
+6. [Next Steps](#next-steps)
 
 ---
 
@@ -23,7 +24,7 @@ Before starting this notebook, ensure you have:
 | Requirement | Description |
 |-------------|-------------|
 | Node.js 18+ | For TypeScript SDK |
-| Python 3.9+ | For Python SDK |
+| Python 3.9+ with `requests` | For the Python REST examples |
 | API Token | Token with required scopes |
 | Development Environment | VS Code or similar IDE |
 
@@ -34,7 +35,7 @@ Before starting this notebook, ensure you have:
 By the end of this notebook, you will:
 
 - Understand the Dynatrace SDK architecture
-- Know how to use TypeScript and Python clients
+- Know how to use the TypeScript SDK clients and call the REST APIs from Python
 - Be able to query data and manage configurations programmatically
 - Build custom automation applications
 
@@ -46,8 +47,8 @@ By the end of this notebook, you will:
 
 | SDK | Language | Use Case |
 |-----|----------|----------|
-| **@dynatrace-sdk** | TypeScript/JavaScript | Web apps, Node.js tools |
-| **dt-sdk** | Python | Scripts, data science |
+| **@dynatrace-sdk/*** | TypeScript/JavaScript | Dynatrace apps, app functions, workflow JavaScript tasks |
+| *(none)* | Python | No official Python SDK is published (`dt-sdk` is not on PyPI). Call the REST APIs with `requests` or a clearly labelled community library |
 
 ### SDK vs Direct API
 
@@ -79,20 +80,13 @@ By the end of this notebook, you will:
 ```bash
 npm install @dynatrace-sdk/client-query
 npm install @dynatrace-sdk/client-classic-environment-v2
-npm install @dynatrace-sdk/client-settings-v2
 ```
+
+(`@dynatrace-sdk/client-core` and `@dynatrace-sdk/client-settings-v2` are not published on npm; Settings 2.0 objects are reached through `client-classic-environment-v2`.)
 
 ### Configuration
 
-```typescript
-import { setEnvConfig } from '@dynatrace-sdk/client-core';
-
-// Configure environment
-setEnvConfig({
-  environmentUrl: process.env.DT_TENANT_URL,
-  apiToken: process.env.DT_API_TOKEN
-});
-```
+The `@dynatrace-sdk/*` clients are built for code that runs on the Dynatrace platform — apps, app functions and workflow JavaScript tasks — where the platform runtime supplies authentication. There is no `setEnvConfig` step to call. For scripts that run outside the platform (CI jobs, local tooling), call the REST APIs directly as in §3.
 
 ### Query Example
 
@@ -170,47 +164,24 @@ async function getServices() {
 
 ---
 
-<a id="python-sdk"></a>
-## 3. Python SDK
-### Installation
+<a id="python-rest-api"></a>
+## 3. Python: Calling the REST APIs
+
+Dynatrace does not publish a Python SDK: `pip install dt-sdk` fails because no such package exists on PyPI. Python automation calls the documented REST APIs directly. The examples below use the Settings 2.0 and Entities endpoints of the Environment API v2 with an access token (`Api-Token` header).
+
+### Setup
 
 ```bash
-pip install dt-sdk
+pip install requests
 ```
-
-### Configuration
 
 ```python
 import os
-from dynatrace_sdk import DynatraceClient
+import requests
 
-# Initialize client
-client = DynatraceClient(
-    environment_url=os.environ['DT_TENANT_URL'],
-    api_token=os.environ['DT_API_TOKEN']
-)
-```
-
-### Query Example
-
-```python
-from dynatrace_sdk.query import QueryService
-
-def query_hosts():
-    query_service = QueryService(client)
-    
-    result = query_service.query(
-        query="""
-            fetch dt.entity.host
-            | fieldsAdd name = entity.name, osType
-            | sort name asc
-            | limit 10
-        """,
-        default_timeframe_start='now-24h',
-        default_timeframe_end='now'
-    )
-    
-    return result.records
+BASE = os.environ['DT_TENANT_URL'].rstrip('/')          # https://{tenant}.live.dynatrace.com
+session = requests.Session()
+session.headers['Authorization'] = f"Api-Token {os.environ['DT_API_TOKEN']}"
 ```
 
 ---
@@ -218,55 +189,45 @@ def query_hosts():
 ### Settings Management
 
 ```python
-from dynatrace_sdk.settings import SettingsService
+def list_settings_objects(schema_id: str) -> list[dict]:
+    """All objects of one Settings 2.0 schema, following nextPageKey."""
+    items: list[dict] = []
+    params = {'schemaIds': schema_id, 'pageSize': 100}
+    while True:
+        r = session.get(f'{BASE}/api/v2/settings/objects', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        items.extend(body.get('items', []))
+        if not body.get('nextPageKey'):
+            return items
+        # With nextPageKey set, the API requires all other query parameters to be omitted
+        params = {'nextPageKey': body['nextPageKey']}
 
-def list_management_zones():
-    settings = SettingsService(client)
-    
-    zones = settings.list_objects(
-        schema_ids='builtin:management-zones',
-        page_size=100
-    )
-    
-    return zones
 
-def create_management_zone(name: str):
-    settings = SettingsService(client)
-    
-    result = settings.create_object(
-        schema_id='builtin:management-zones',
-        scope='environment',
-        value={
-            'name': name,
-            'rules': []
-        }
-    )
-    
-    return result
+def create_settings_object(schema_id: str, value: dict, scope: str = 'environment') -> list[dict]:
+    r = session.post(f'{BASE}/api/v2/settings/objects',
+                     json=[{'schemaId': schema_id, 'scope': scope, 'value': value}], timeout=30)
+    r.raise_for_status()
+    return r.json()
 ```
+
+Pick a schema that survives the upgrade to Latest Dynatrace for new automation (e.g. `builtin:davis.anomaly-detectors`); management zones and alerting profiles are on Dynatrace's removed-schemas list (AUTOM-02).
 
 ### Pagination Handling
 
 ```python
-def get_all_hosts():
+def get_all_hosts() -> list[dict]:
     """Iterate through all pages of hosts."""
-    all_hosts = []
-    next_page_key = None
-    
+    hosts: list[dict] = []
+    params = {'entitySelector': 'type(HOST)', 'pageSize': 500}
     while True:
-        response = client.entities.get_entities(
-            entity_selector='type(HOST)',
-            page_size=500,
-            next_page_key=next_page_key
-        )
-        
-        all_hosts.extend(response.entities)
-        
-        if not response.next_page_key:
-            break
-        next_page_key = response.next_page_key
-    
-    return all_hosts
+        r = session.get(f'{BASE}/api/v2/entities', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        hosts.extend(body.get('entities', []))
+        if not body.get('nextPageKey'):
+            return hosts
+        params = {'nextPageKey': body['nextPageKey']}
 ```
 
 ---
@@ -305,7 +266,7 @@ async function exportAllSettings() {
 ### Error Handling
 
 ```typescript
-import { ApiError } from '@dynatrace-sdk/client-core';
+import { queryClient } from '@dynatrace-sdk/client-query';
 
 async function safeQuery(query: string) {
   try {
@@ -314,11 +275,9 @@ async function safeQuery(query: string) {
     });
     return { success: true, data: result };
   } catch (error) {
-    if (error instanceof ApiError) {
-      console.error(`API Error: ${error.status} - ${error.message}`);
-      return { success: false, error: error.message };
-    }
-    throw error;
+    // Log and surface the failure; re-throw anything you cannot handle
+    console.error('Query failed:', error instanceof Error ? error.message : error);
+    return { success: false, error: String(error) };
   }
 }
 ```
@@ -349,8 +308,10 @@ def rate_limited(max_per_second: float):
     return decorator
 
 @rate_limited(10)  # Max 10 requests per second
-def api_call(entity_id: str):
-    return client.entities.get_entity(entity_id=entity_id)
+def api_call(entity_id: str) -> dict:
+    r = session.get(f'{BASE}/api/v2/entities/{entity_id}', timeout=30)
+    r.raise_for_status()
+    return r.json()
 ```
 
 ### Async Operations
@@ -383,33 +344,30 @@ async function queryMultipleHosts(hostIds: string[]) {
 
 ```python
 import pandas as pd
-from dynatrace_sdk import DynatraceClient
-from dynatrace_sdk.query import QueryService
 
-def generate_host_report():
-    """Generate a host inventory report."""
-    client = DynatraceClient(
-        environment_url=os.environ['DT_TENANT_URL'],
-        api_token=os.environ['DT_API_TOKEN']
-    )
-    
-    query_service = QueryService(client)
-    
-    result = query_service.query(
-        query="""
-            fetch dt.entity.host
-            | fieldsAdd 
-                name = entity.name,
-                osType,
-                cpuCores,
-                physicalMemory
-            | sort name asc
-        """
-    )
-    
-    df = pd.DataFrame(result.records)
+
+def generate_host_report() -> pd.DataFrame:
+    """Generate a host inventory report from the Entities API (uses session/BASE from §3)."""
+    rows = []
+    params = {'entitySelector': 'type(HOST)', 'fields': '+properties', 'pageSize': 500}
+    while True:
+        r = session.get(f'{BASE}/api/v2/entities', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        for e in body.get('entities', []):
+            props = e.get('properties', {})
+            rows.append({
+                'name': e.get('displayName'),
+                'osType': props.get('osType'),
+                'cpuCores': props.get('cpuCores'),
+                'physicalMemory': props.get('physicalMemory'),
+            })
+        if not body.get('nextPageKey'):
+            break
+        params = {'nextPageKey': body['nextPageKey']}
+
+    df = pd.DataFrame(rows).sort_values('name')
     df.to_csv('host_inventory.csv', index=False)
-    
     return df
 ```
 
@@ -420,7 +378,7 @@ def generate_host_report():
 | Practice | Description |
 |----------|-------------|
 | **Environment variables** | Never hardcode credentials |
-| **Type safety** | Use TypeScript types or Python type hints |
+| **Type safety** | Use the SDK's TypeScript types, or Python type hints on your REST wrappers |
 | **Error handling** | Catch and handle API errors |
 | **Pagination** | Always handle paginated responses |
 | **Rate limiting** | Respect API limits |
@@ -439,7 +397,7 @@ The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligenc
 
 ```bash
 # Install and run via npx
-npx -y @dynatrace-oss/dynatrace-mcp-server@latest
+npx -y @dynatrace-oss/dynatrace-mcp-server@2
 ```
 
 ### Configuration (Claude Code / AI Assistants)
@@ -449,15 +407,17 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
   "mcpServers": {
     "dynatrace": {
       "command": "npx",
-      "args": ["-y", "@dynatrace-oss/dynatrace-mcp-server@latest"],
+      "args": ["-y", "@dynatrace-oss/dynatrace-mcp-server@2"],
       "env": {
-        "DYNATRACE_ENVIRONMENT_URL": "https://{tenant}.apps.dynatrace.com",
-        "DYNATRACE_API_TOKEN": "<token>"
+        "DT_ENVIRONMENT": "https://{tenant}.apps.dynatrace.com",
+        "DT_PLATFORM_TOKEN": "<platform-token>"
       }
     }
   }
 }
 ```
+
+The server reads `DT_ENVIRONMENT` (a platform `apps.dynatrace.com` URL, not a classic `live` URL) and authenticates with `DT_PLATFORM_TOKEN` or an OAuth client (`OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET`), per the [dynatrace-mcp-server README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-mcp). Pinning the major version (`@2`) keeps a breaking release from reaching your assistant unannounced.
 
 ### MCP Server Capabilities
 
@@ -474,15 +434,15 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 | Scenario | Tool Choice |
 |----------|-------------|
 | AI-assisted development | MCP Server |
-| Custom application | TypeScript/Python SDK |
-| Automated pipeline | SDK with CI/CD |
+| Custom application | TypeScript SDK (platform apps) or REST API |
+| Automated pipeline | REST API or Monaco/Terraform in CI/CD |
 | Interactive triage | MCP Server with Claude or Copilot |
 | Batch processing | SDK |
 
 ---
 
 <a id="next-steps"></a>
-## 7. Next Steps
+## 6. Next Steps
 
 ### When to Use SDKs
 
@@ -492,7 +452,7 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 | One-off query | Direct API or Notebooks |
 | Config deployment | Monaco or Terraform |
 | Integration app | SDK |
-| Complex logic | SDK with JavaScript/Python |
+| Complex logic | TypeScript SDK, or Python against the REST API |
 | AI-assisted access | MCP Server |
 
 ### Continue the Series
@@ -505,7 +465,7 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 
 - [Dynatrace Developer Portal](https://developer.dynatrace.com/)
 - [TypeScript SDK Documentation](https://developer.dynatrace.com/develop/sdks/)
-- [Python SDK on PyPI](https://pypi.org/project/dt-sdk/)
+- [Settings 2.0 API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings)
 - [API Reference](https://docs.dynatrace.com/docs/dynatrace-api)
 - [MCP Server Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp)
 
@@ -515,7 +475,7 @@ npx -y @dynatrace-oss/dynatrace-mcp-server@latest
 
 In this notebook, you learned:
 
-- How to use the TypeScript and Python SDKs
+- How to use the TypeScript SDK clients, and how to call the REST APIs from Python
 - Common patterns for queries, settings, and entities
 - Building custom CLI tools and reporting scripts
 - Dynatrace MCP Server for AI-assisted programmatic access

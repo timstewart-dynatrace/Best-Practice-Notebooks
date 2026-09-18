@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/17/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -117,7 +117,7 @@ Collect these five columns for every profile. Each one drives a decision later, 
 
 1. **How many profiles reference a Management Zone?** This is the real work list — often far smaller than the total profile count.
 2. **How many use a non-zero `delayInMinutes`?** Every one needs a Minimum duration value chosen deliberately — the allowed values are fixed, so some delays will not map exactly (§6.1).
-3. **What destinations are in play?** Opsgenie, Trello, VictorOps, and xMatters need HTTP rebuilds.
+3. **What destinations are in play?** Trello, VictorOps, and xMatters need HTTP rebuilds; Opsgenie moves to the Jira Service Management connector (§6.2).
 
 > **Consolidate while you inventory.** Profiles are frequently near-duplicates that differ only by zone. The target is one workflow per **team/channel**, not one per profile — see §5. A hundred MZ-scoped profiles routinely collapse to a much smaller set of destinations.
 
@@ -223,7 +223,7 @@ At any meaningful profile count, hand-building in the UI produces drift within w
 <a id="regressions"></a>
 ## 6. Capability Regressions
 
-One thing gets worse: four destinations lose their native connector. Duration-based suppression — listed here as a regression until 09/2026 — carries over, with one wrinkle. Both are cheaper to plan for than to discover.
+One thing gets worse: three destinations lose their native connector. Duration-based suppression — listed here as a regression until 09/2026 — carries over, with one wrinkle. Both are cheaper to plan for than to discover.
 
 ### 6.1 Duration-based suppression maps onto Minimum duration
 
@@ -249,7 +249,7 @@ Per-profile options:
 
 > **A long `delayInMinutes` is usually evidence the alert was the wrong *shape*, not merely delayed.** A profile suppressing 30 minutes of a firing condition is describing a burn-rate concern. Route those to SLO burn-rate alerts where an SLO exists, and to Davis where one does not.
 
-### 6.2 Four destinations have no native connector
+### 6.2 Three destinations have no native connector
 
 Documented connector mapping:
 
@@ -263,8 +263,13 @@ Documented connector mapping:
 | ServiceNow | ServiceNow connector |
 | Slack | Slack connector |
 | Microsoft Teams | Microsoft Teams connector |
+| Opsgenie | Jira Service Management connector (Opsgenie's successor; SaaS 1.343) |
 
-**Opsgenie, Trello, VictorOps, and xMatters have no dedicated connector.** For Trello, VictorOps and xMatters the guide says *"No dedicated connector. Use HTTP Request."* For Opsgenie: *"Opsgenie is being retired by Atlassian and replaced by Jira Service Management (JSM). No official JSM connector is available yet. Use HTTP Request."* Each becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.
+**Trello, VictorOps, and xMatters have no dedicated connector** — the guide: *"No dedicated connector. Use HTTP Request."*
+
+**Opsgenie moves to the Jira Service Management connector.** Atlassian is retiring Opsgenie in favour of Jira Service Management (JSM), and Dynatrace ships a [Jira Service Management Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management): *"The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts."* It arrived with [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) (staged rollout) — confirm it is in your tenant. The alert-notification upgrade guide still says *"No official JSM connector is available yet. Use HTTP Request."*; the dedicated connector page and the release note are the more specific and more recent sources, so this notebook follows them.
+
+Each of the three becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.
 
 Rebuild the payload against the destination's current API contract — do not port the old webhook body verbatim.
 
@@ -485,7 +490,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 1. **Alerting is the third job a Management Zone does**, and it migrates to problem-triggered workflows — not to Segments. Segments scope queries and anomaly detectors; they never scope triggers, notifications, or visibility.
 2. **The real work is enrichment.** Triggers match tags carried by entities; MZ rules are computed conditions. Every computed dimension must become an auto-tag, and must propagate, before its workflow can exist.
-3. **One confirmed capability regression:** four notification destinations have no native connector. Duration-based suppression maps onto the trigger's **Minimum duration** option, and since its 09/07/2026 rewrite the upgrade guide agrees.
+3. **One confirmed capability regression:** three notification destinations have no native connector (Opsgenie moves to the JSM connector). Duration-based suppression maps onto the trigger's **Minimum duration** option, and since its 09/07/2026 rewrite the upgrade guide agrees.
 4. **Visibility is a separate axis** and works only on `dt.security_context`, because it is the only field that filters correctly once events aggregate into a problem.
 5. **The deletion failure mode is undocumented.** Test it in non-prod before touching production, and never delete zones and profiles in the same change window.
 

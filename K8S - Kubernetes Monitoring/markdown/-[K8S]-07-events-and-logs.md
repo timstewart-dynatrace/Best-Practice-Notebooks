@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -9,12 +9,12 @@ Kubernetes events and container logs provide crucial insights for debugging and 
 
 ## Table of Contents
 
-1. [Event Ingestion Configuration](#event-ingestion-configuration)
-2. [Container Log Collection](#container-log-collection)
-3. [OpenPipeline for K8s Logs](#openpipeline-for-k8s-logs)
-4. [Event Analysis Patterns](#event-analysis-patterns)
-5. [Log Analysis Patterns](#log-analysis-patterns)
-6. [Alerting on Events and Logs](#alerting-on-events-and-logs)
+1. [Kubernetes Events Overview](#kubernetes-events-overview)
+2. [Event Ingestion Configuration](#event-ingestion-configuration)
+3. [Container Log Collection](#container-log-collection)
+4. [OpenPipeline for K8s Logs](#openpipeline-for-k8s-logs)
+5. [Event Analysis Patterns](#event-analysis-patterns)
+6. [Log Analysis Patterns](#log-analysis-patterns)
 7. [Alerting on Events and Logs](#alerting-on-events-and-logs)
 
 ---
@@ -28,6 +28,7 @@ Kubernetes events and container logs provide crucial insights for debugging and 
 | **Permissions** | `logs.read`, `logs.ingest`, `events.read` |
 | **Knowledge** | K8S-01 Fundamentals |
 
+<a id="kubernetes-events-overview"></a>
 ## 1. Kubernetes Events Overview
 
 ### Event Types
@@ -374,7 +375,7 @@ fetch events, from:-24h
 
 ```dql
 // Pattern: Find errors with full context
-fetch logs
+fetch logs, from:-1h
 | filter loglevel == "ERROR"
 | filter k8s.namespace.name == "checkout"
 | fields timestamp, k8s.pod.name, content
@@ -386,7 +387,7 @@ fetch logs
 
 ```dql
 // Pattern: Identify noisy pods
-fetch logs, from: now() - 1h
+fetch logs, from:-1h
 | summarize count = count(), by:{k8s.pod.name}
 | sort count desc
 | limit 10
@@ -396,10 +397,11 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Pattern: Find stack traces
-fetch logs
+fetch logs, from:-1h
 | filter matchesPhrase(content, "Exception") or matchesPhrase(content, "Traceback")
 | fields timestamp, k8s.namespace.name, content
 | sort timestamp desc
+| limit 20
 ```
 
 ```dql

@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 08/12/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -14,6 +14,7 @@ With OneAgent deployed, Dynatrace has automatically discovered your infrastructu
 3. [Exploring Topology](#exploring-topology)
 4. [Data Types in Grail](#data-types-in-grail)
 5. [Discovery Queries](#discovery-queries)
+6. [Next Steps](#next-steps)
 
 ---
 
@@ -404,7 +405,7 @@ fetch dt.entity.cloud_application
 ```dql
 // Check for recent problems
 fetch dt.davis.problems, from: now() - 7d
-| fields timestamp, display_id, title, event.status, affected_entity_types
+| fields timestamp, display_id, event.name, event.status, affected_entity_types
 | sort timestamp desc
 | limit 20
 ```
@@ -416,6 +417,7 @@ fetch dt.davis.problems, from: now() - 30d
 | sort problem_count desc
 ```
 
+<a id="next-steps"></a>
 ## 6. Next Steps
 
 Now that you understand your data:

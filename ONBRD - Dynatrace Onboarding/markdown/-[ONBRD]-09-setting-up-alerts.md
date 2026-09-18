@@ -1,6 +1,6 @@
 # ONBRD-09: Setting Up Alerts
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Getting Notified When Things Go Wrong
 Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.
@@ -15,6 +15,7 @@ Dynatrace's DAVIS AI automatically detects problems, but you need to configure w
 4. [Notification Actions](#notification-actions)
 5. [Routing Alerts to Teams](#routing-alerts-to-teams)
 6. [Custom Metric Alerts](#custom-metric-alerts)
+7. [Next Steps](#next-steps)
 
 ---
 
@@ -77,14 +78,16 @@ Workflows are event-driven automations that can:
 | Feature | Workflows | Alerting Profiles (Legacy) |
 |---------|-----------|---------------------------|
 | **Trigger types** | Events, schedules, manual | detected problems only |
-| **Filtering** | JavaScript expressions | Rule-based |
+| **Filtering** | DQL matchers on the problem | Rule-based |
 | **Actions** | 20+ built-in actions | Fixed notifications |
 | **Automation** | Full automation capability | Notification only |
 | **Modern platform** | Recommended | Dynatrace Classic — supported, not deprecated |
 
-> **On the status of alerting profiles.** No Dynatrace page announces a deprecation or an end-of-life date for alerting profiles. They are labeled **Dynatrace Classic**, and the docs carry the steer *"to set up alerting and notifications, we recommend using simple workflows."* Treat that as *build new alerting on workflows*, not as *your existing profiles are about to stop working*.
+> **On the status of alerting profiles.** No Dynatrace page announces a deprecation or an end-of-life date for alerting profiles. The alerting-profiles page states *"Problem notification is a Dynatrace Classic concept."* and steers new work elsewhere: *"Use simple workflows to send notifications about problems."* Treat that as *build new alerting on workflows*, not as *your existing profiles are about to stop working*.
 >
 > One caveat does bite: an alerting profile scoped by a **Management Zone** is only as durable as that zone. The MZ filter has no successor in the alerting model, so teams retiring Management Zones must rebuild those profiles as problem-triggered workflows first. See MZ2POL-01 §5.
+
+> <sub>**Sources:** [Problem alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — the two quotes above, [Upgrade guide: alert notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."*</sub>
 
 <a id="creating-your-first-workflow"></a>
 ## 3. Creating Your First Workflow
@@ -279,7 +282,7 @@ Analyzers can detect anomalies in metrics:
 ```dql
 // Recent problems
 fetch dt.davis.problems, from: now() - 24h
-| fields timestamp, display_id, title, event.status, affected_entity_types
+| fields timestamp, display_id, event.name, event.status, affected_entity_types
 | sort timestamp desc
 | limit 20
 ```
@@ -302,8 +305,8 @@ fetch dt.davis.problems, from: now() - 7d
 ```dql
 // Active problems right now
 fetch dt.davis.problems, from: now() - 30d
-| filter event.status == "OPEN"
-| fields timestamp, display_id, title, affected_entity_types
+| filter event.status == "ACTIVE"
+| fields timestamp, display_id, event.name, affected_entity_types
 | sort timestamp desc
 ```
 
@@ -340,7 +343,8 @@ Check for:
 - Failed runs with error details
 - Action outputs
 
-## 8. Next Steps
+<a id="next-steps"></a>
+## 7. Next Steps
 
 With alerting configured:
 
@@ -352,7 +356,7 @@ With alerting configured:
 ### Where to Go Deeper
 
 - **AIOPS series** (8 notebooks) — Davis AI in depth: Causal/Predictive/Generative, anomaly detection mechanisms (static / auto-adaptive / seasonal / multi-dimensional baseline / novelty/forecast), Davis problems & RCA, Davis CoPilot / Dynatrace Assist, AI models, integrations & agentic workflows
-- **WFLOW series** (10 notebooks) — Workflows depth: triggers, actions, AI tasks, scheduled workflows, MCP server integration
+- **WFLOW series** (12 notebooks) — Workflows depth: triggers, actions, AI tasks, scheduled workflows, MCP server integration
 
 ### Alerting Checklist
 

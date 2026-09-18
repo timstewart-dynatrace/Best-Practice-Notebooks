@@ -47,7 +47,7 @@ The intent is not to talk anyone out of auto-update. For most fleets, **automati
 >
 > This is a different kind of floor from the support policy quoted elsewhere in this entry. **Falling outside Standard or Enterprise support means you stop receiving fixes; falling below 1.241 means the host stops reporting.** A fleet on "No automatic updates" (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.
 >
-> **Inventory before the rollout reaches you**, not after: `smartscapeNodes "HOST" | fields id, name, oneagent.version` (or the Deployment Status screen) will name any host at or below 1.241. There is no grace path once the rejection lands — the fix is an upgrade.
+> **Inventory before the rollout reaches you**, not after: `fetch dt.entity.host | fields entity.name, installerVersion | sort installerVersion asc` (or the Deployment Status screen) will name any host at or below 1.241. Do not use `smartscapeNodes "HOST"` for this: HOST nodes carry no OneAgent version, so a `oneagent.version` column comes back empty and the check finds nothing. There is no grace path once the rejection lands — the fix is an upgrade.
 
 > **Breaking (OneAgent 1.347 — pre-release notes, staged rollout planned from 09/22/2026): updating ends monitoring of Java 23.** Verbatim: *"Starting from OneAgent version 1.347, Java 23 is no longer monitored."* Support now covers *"LTS versions plus the last four Java versions (24, 25, 26 and 27)."*
 >
@@ -215,7 +215,7 @@ For most fleets on `Automatic updates at earliest convenience`, post-update vali
 
 For change-controlled fleets, the explicit validation set is:
 
-1. **Version reported.** Confirm the OneAgent is reporting the target version (Deployment status page; or DQL: `fetch dt.entity.host | fields entity.name, dt.host.os_version, oneagent.version`).
+1. **Version reported.** Confirm the OneAgent is reporting the target version (Deployment status page; or DQL: `fetch dt.entity.host | fields entity.name, osVersion, installerVersion`).
 2. **Deep monitoring re-injected.** Process Groups and PGIs for the host show the new agent version. New process starts after the update inherit the new agent.
 3. **Smartscape topology intact.** No unexpected gaps — services, processes, and hosts still link as before.
 4. **No new ingestion errors.** Spans, logs, and metrics from the host continue to land; no spike in dropped events.

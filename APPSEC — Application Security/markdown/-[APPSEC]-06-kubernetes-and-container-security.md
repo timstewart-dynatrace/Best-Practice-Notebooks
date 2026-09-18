@@ -1,6 +1,6 @@
 # APPSEC-06: Kubernetes and Container Security
 
-> **Series:** APPSEC — Application Security | **Notebook:** 6 of 10 | **Created:** June 2026 | **Last Updated:** 06/04/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 6 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -59,11 +59,11 @@ spec:
       useCSIDriver: true
 ```
 
-`applicationMonitoring` enables the code-module injection that powers RVA code-level coverage and RAP. Without it, K8s workloads will produce only the library-tier RVA signal and SPM findings on the cluster itself — no RAP, no code-level vulnerability info.
+`applicationMonitoring` enables the code-module injection that RVA and RAP rely on inside workload containers. Monitoring mode then decides how well findings are assessed: per the Application Security docs, Infrastructure and Discovery modes still provide third-party and code-level detection (limited) and RAP — Discovery only once code-module injection is enabled — but without the Full-Stack topology that adjusts the Dynatrace Security Score, so DSS stays at the CVSS base score (APPSEC-01 § 3). SPM findings on the cluster itself do not depend on monitoring mode.
 
 For cluster rollout the K8S series covers per-namespace targeting, monitoring modes, and operator versioning. APPSEC concerns are downstream of that.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the code-module dependency framing. **Softened:** the exact DynaKube schema may shift per operator release — verify against the current K8S series and the operator CRD.</sub>
+> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) — the *Monitoring modes coverage* table and *"For Application Security to work in Discovery mode, after enabling Discovery mode, you also need to enable code-module injection."* (re-read 09/18/2026). **Softened:** the exact DynaKube schema may shift per operator release — verify against the current K8S series and the operator CRD.</sub>
 
 <a id="image-vulns"></a>
 ## 2. Container Image Vulnerabilities
@@ -104,7 +104,7 @@ fetch security.events, from:-24h
 
 ```
 
-> <sub>**Sources:** field names (`k8s.cluster.name`, `k8s.namespace.name`) follow OpenTelemetry semantic-convention naming and are commonly present on AppSec events with K8s entity context — verified for DQL syntax only. **Softened:** verify field names in your tenant; the deep-page K8s AppSec schema docs were not resolvable at 06/04/2026.</sub>
+> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) lists `storage:k8s.cluster.name` and `storage:k8s.namespace.name` as conditions on `storage:security.events:read`. **Dictionary:** `k8s.namespace.name` (`stable`), `vulnerability.risk.level` (`stable`), read 09/18/2026. **Live-verified 09/18/2026:** `k8s.namespace.name` is populated on `COMPLIANCE_FINDING` records on the validation tenant; the cluster and namespace names in the query are placeholders, so replace them with your own. `vulnerability.risk.level` is populated only on vulnerability events — for compliance records group by `compliance.rule.severity.level` instead.</sub>
 
 <a id="namespace-scoping"></a>
 ## 5. Namespace Scoping for IAM
@@ -112,13 +112,16 @@ fetch security.events, from:-24h
 K8s namespace is the natural IAM boundary for AppSec findings: AppDev team X should see findings in its own namespaces, not in team Y's. The IAM permission model supports this via boundary conditions:
 
 ```
-ALLOW storage:security.events:read, vulnerability-service:vulnerabilities:read
-WHERE storage:k8s.namespace.name in {"team-payments-prod", "team-payments-staging"};
+ALLOW storage:buckets:read WHERE storage:table-name = "security.events";
+ALLOW storage:security.events:read
+  WHERE storage:k8s.namespace.name IN ("team-payments-prod", "team-payments-staging");
 ```
+
+Two details make or break this policy. IAM lists use `IN ("…", "…")` with parentheses — DQL's `{…}` array syntax does not validate here. And `storage:buckets:read` is required in addition to the table permission; without it the namespace-scoped grant reads nothing. `vulnerability-service:vulnerabilities:read` takes no conditions, so it cannot be namespace-scoped — grant it separately only if the team needs the API (APPSEC-09 § 3).
 
 See APPSEC-09 for the full pattern including the policy-vs-managed-policy decision and the privacy carve-out for `view-sensitive-request-data`.
 
-> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) confirms K8s namespace as an available boundary condition on `storage:security.events:read`. The full IAM model is in APPSEC-09.</sub>
+> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) confirms K8s namespace as an available boundary condition on `storage:security.events:read` and says of `storage:buckets:read`: *"Grants permission to read records from Grail buckets. Required additionally to a table permission."*; [IAM policy statement syntax (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax) — its `IN` example is `WHERE settings:schemaId IN ("builtin:container.monitoring-rule", "builtin:container.built-in-monitoring-rule")` (both re-read 09/18/2026). The full IAM model is in APPSEC-09.</sub>
 
 <a id="next"></a>
 ## 6. Next Steps
@@ -135,6 +138,7 @@ See APPSEC-09 for the full pattern including the policy-vs-managed-policy decisi
 |--------|----------|
 | [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | K8s + container security framing |
 | [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) | k8s.namespace.name boundary condition |
+| [IAM policy statement syntax (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax) | Condition operators (`=`, `IN (…)`, `startsWith`, `MATCH`) |
 
 ---
 

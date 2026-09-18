@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -580,14 +580,17 @@ timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
 ### 10.3 Metric Data Gaps
 
 ```dql
-// Check for gaps in host CPU metrics (indicates OneAgent interruptions)
+// Hosts with gaps in CPU reporting (OneAgent interruptions)
+// arraySize counts empty buckets too, so count only the non-null ones.
 timeseries hostCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
-| fieldsAdd dataPoints = arraySize(hostCpu)
-| fieldsAdd expectedPoints = 72
-| fieldsAdd completeness = toDouble(dataPoints) / toDouble(expectedPoints) * 100.0
+| fieldsAdd buckets = arraySize(hostCpu), reported = arraySize(arrayRemoveNulls(hostCpu))
+| fieldsAdd completeness = round(100.0 * reported / buckets, decimals: 1)
 | filter completeness < 95.0
-| fields dt.entity.host, completeness, dataPoints
+| fieldsAdd hostName = entityName(dt.entity.host, type:"dt.entity.host")
+| fields hostName, completeness, reported, buckets
 | sort completeness asc
+// A host that stopped reporting entirely drops out of timeseries altogether —
+// cross-check smartscapeNodes "HOST" for hosts with no series.
 ```
 
 Expected: All hosts at 100% completeness. Hosts below 95% indicate OneAgent restarts, pod evictions, or network interruptions to the Dynatrace backend.

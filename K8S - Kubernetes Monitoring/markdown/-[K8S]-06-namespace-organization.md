@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -194,7 +194,7 @@ spec:
 
 > **Requests are container-grain.** A ResourceQuota is enforced per namespace, but Dynatrace emits requests per **container** — there is no `dt.kubernetes.workload.requests_cpu` or `.requests_memory`. Sum the `dt.kubernetes.container.*` series across `k8s.namespace.name` to get the figure the quota is measured against. Confirm what your tenant carries with `metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key}` — note `metrics` takes `from:` with **no leading comma**.
 
-> **Quota tracking across an ActiveGate 1.343 upgrade:** request metrics **include init containers from ActiveGate 1.343 onward**, so reserved-CPU and reserved-memory figures step up at the upgrade with no workload change. Read a trend spanning that boundary as **two series, not one**, and re-baseline any >80%-of-quota alert afterward. Full explanation: K8S-08 §2.
+> **Quota tracking across ActiveGate 1.343 / 1.345 upgrades:** request metrics carry an effective pod value — init containers are accounted for from ActiveGate 1.343, and pod-level `spec.resources` (Kubernetes 1.34+) and pod `overhead` from 1.345 — so reserved-CPU and reserved-memory figures can step at either upgrade with no workload change. Read a trend spanning either boundary as **two series, not one**, and re-baseline any >80%-of-quota alert afterward. Full explanation: K8S-08 §2.
 
 ```dql
 // CPU requests by namespace (quota tracking)
@@ -418,6 +418,7 @@ In this notebook, you learned:
 - [Kubernetes Namespaces (kubernetes.io)](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
 - [Resource Quotas (kubernetes.io)](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
 - [smartscapeNodes command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources)
 
 ---
 

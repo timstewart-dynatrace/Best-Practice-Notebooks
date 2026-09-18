@@ -1,6 +1,6 @@
 # AUTOM-98 LAB: Terraform for Dynatrace
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 07/08/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 98 — Terraform Hands-On LAB | **Created:** April 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -166,23 +166,27 @@ terraform init
 
 ---
 
-> **Provider version currency (checked 07/08/2026):** the `~> 1.96` constraint **floats** — `terraform init` will pull the newest 1.x release (v1.100.0 as of July 2026), and releases v1.97–v1.100 include stricter validation and breaking changes (`dynatrace_kubernetes_enrichment` field removal in v1.100; stricter OpenPipeline-v2, anomaly, and RUM validation in v1.97) plus new resources (`dynatrace_maintenance_windows` in v1.98 — deprecates `dynatrace_maintenance`; OpenPipeline `*_dataforwarding` in v1.99). The walkthrough below was validated against v1.96.x. If you need the validated baseline exactly, pin `version = "1.96.4"`-style (exact); if you float, review the [provider release notes](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) for the versions `init` selects before applying.
+> **Provider version currency (checked 07/08/2026):** the `~> 1.96` constraint **floats** — `terraform init` will pull the newest 1.x release (v1.104.1, released 09/10/2026, at time of writing), and releases v1.97–v1.104 include stricter validation and breaking changes (`dynatrace_kubernetes_enrichment` field removal in v1.100; stricter OpenPipeline-v2, anomaly, and RUM validation in v1.97; legacy HTTP client and `DYNATRACE_HTTP_RESPONSE` removed in v1.101) plus new resources (`dynatrace_maintenance_windows` in v1.98 — deprecates `dynatrace_maintenance`; OpenPipeline `*_dataforwarding` in v1.99). The blocks in §3–§5 were re-checked with `terraform validate` against v1.104.1 on 09/18/2026. The walkthrough below was validated against v1.96.x. If you need the validated baseline exactly, pin `version = "1.96.4"`-style (exact); if you float, review the [provider release notes](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) for the versions `init` selects before applying.
 
 <a id="first-resource"></a>
 ## 3. Create Your First Resource — Alerting Profile
 
-Add an alerting profile resource to `main.tf`:
+> **Dynatrace Classic.** *"Alerting profiles and problem notifications are Dynatrace Classic."* They keep working on Classic tenants, but `builtin:alerting.profile` (the schema behind `dynatrace_alerting`) is on Dynatrace's list of [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."* Delay has no successor field: per the [alert-notification upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification), *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* Use this exercise for Terraform mechanics only (plan / apply / show); build new routing as a simple workflow (WFLOW, ALERT-03).
+
+Add an alerting profile resource to `main.tf`. Each rule needs `include_mode` (`NONE`, `INCLUDE_ALL` or `INCLUDE_ANY`), and `severity_level` takes `AVAILABILITY`, `CUSTOM_ALERT`, `ERRORS`, `MONITORING_UNAVAILABLE`, `PERFORMANCE` or `RESOURCE_CONTENTION`:
 
 ```hcl
 resource "dynatrace_alerting" "production" {
   name = "Production Alerts"
   rules {
     rule {
+      include_mode     = "NONE"
       severity_level   = "AVAILABILITY"
       delay_in_minutes = 0
     }
     rule {
-      severity_level   = "ERROR"
+      include_mode     = "NONE"
+      severity_level   = "ERRORS"
       delay_in_minutes = 5
     }
   }
@@ -206,12 +210,14 @@ Terraform will perform the following actions:
       + name = "Production Alerts"
       + rules {
           + rule {
-              + severity_level   = "AVAILABILITY"
               + delay_in_minutes = 0
+              + include_mode     = "NONE"
+              + severity_level   = "AVAILABILITY"
             }
           + rule {
-              + severity_level   = "ERROR"
               + delay_in_minutes = 5
+              + include_mode     = "NONE"
+              + severity_level   = "ERRORS"
             }
         }
     }
@@ -241,19 +247,29 @@ Confirm the alerting profile exists in your Dynatrace tenant under **Settings > 
 
 The `dynatrace_generic_setting` resource can manage any Settings 2.0 schema. This is useful when the provider does not have a dedicated resource type for a particular setting.
 
-### Example: Kubernetes Metadata Enrichment Rule
+### Example: Ownership Team
+
+`builtin:ownership.teams` is a multi-object schema (so creating one never overwrites an existing object) and survives the upgrade to Latest Dynatrace. The value below passes the Settings API's validate-only check (09/18/2026).
 
 ```hcl
-resource "dynatrace_generic_setting" "k8s_enrichment" {
-  schema_id = "builtin:kubernetes.generic.metadata.enrichment"
-  scope     = "environment"
+resource "dynatrace_generic_setting" "platform_team" {
+  schema = "builtin:ownership.teams"
+  scope  = "environment"
   value = jsonencode({
-    enabled = true
-    rules = [{
-      sourceAttribute = "namespace-label"
-      sourceKey       = "team"
-      targetAttribute = "dt.security_context"
-    }]
+    name        = "Platform Team"
+    identifier  = "platform-team"
+    description = "Owned by the Terraform LAB"
+    responsibilities = {
+      development    = false
+      infrastructure = true
+      lineOfBusiness = false
+      operations     = true
+      security       = false
+    }
+    supplementaryIdentifiers = []
+    contactDetails           = []
+    links                    = []
+    additionalInformation    = []
   })
 }
 ```
@@ -262,7 +278,7 @@ resource "dynatrace_generic_setting" "k8s_enrichment" {
 
 | Attribute | Description |
 |-----------|-------------|
-| `schema_id` | The Settings 2.0 schema identifier (e.g., `builtin:kubernetes.generic.metadata.enrichment`) |
+| `schema` | The Settings 2.0 schema identifier (e.g., `builtin:ownership.teams`). The argument is `schema` — `schema_id` fails `terraform validate` |
 | `scope` | Where the setting applies: `environment`, `HOST-xxx`, `KUBERNETES_CLUSTER-xxx`, etc. |
 | `value` | JSON-encoded configuration object matching the schema definition |
 
@@ -271,10 +287,12 @@ resource "dynatrace_generic_setting" "k8s_enrichment" {
 Navigate to **Settings** in the Dynatrace UI. The schema ID appears in the URL when you open any setting:
 
 ```
-https://<env-id>.apps.dynatrace.com/ui/settings/builtin:kubernetes.generic.metadata.enrichment
-                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                                This is the schema_id
+https://<env-id>.apps.dynatrace.com/ui/settings/builtin:ownership.teams
+                                                ^^^^^^^^^^^^^^^^^^^^^^^
+                                                This is the schema
 ```
+
+Before choosing a schema for new automation, check it is not on the [removed-schemas list (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas); `builtin:kubernetes.generic.metadata.enrichment`, used in earlier versions of this LAB, is a deprecated singleton whose rule fields differ from what was shown here.
 
 Alternatively, use the Settings API:
 
@@ -305,6 +323,7 @@ resource "dynatrace_iam_group" "sre_team" {
 ```hcl
 resource "dynatrace_iam_policy" "sre_policy" {
   name            = "SRE Full Access"
+  account         = var.dt_account_id
   statement_query = "ALLOW environment:roles:viewer;"
   tags            = ["sre"]
 }
@@ -314,9 +333,12 @@ resource "dynatrace_iam_policy" "sre_policy" {
 
 ```hcl
 resource "dynatrace_iam_policy_bindings_v2" "sre_binding" {
-  group_id   = dynatrace_iam_group.sre_team.id
-  account_id = var.dt_account_id
-  policies   = [dynatrace_iam_policy.sre_policy.id]
+  group   = dynatrace_iam_group.sre_team.id
+  account = var.dt_account_id
+
+  policy {
+    id = dynatrace_iam_policy.sre_policy.id
+  }
 }
 ```
 
@@ -327,7 +349,7 @@ terraform plan
 terraform apply
 ```
 
-> **Note:** The `account_id` variable is required for IAM policy bindings. This is your Dynatrace account UUID, found under **Account Management > Account settings**.
+> **Note:** Both the policy and the binding take `account` — your Dynatrace account UUID, found under **Account Management > Account settings** (passed here as `var.dt_account_id`). A policy needs exactly one of `account` / `environment` (environment-level policies are deprecated). The v2 binding takes one `group` and one `policy { id = … }` block per bound policy, and it **re-assigns every policy on that group** — list all of them.
 
 ---
 
@@ -337,6 +359,8 @@ terraform apply
 If you already have Dynatrace resources configured manually, you can bring them under Terraform management without recreating them.
 
 > **Bootstrapping from an existing tenant in bulk?** Use the provider's built-in **`-export` utility** rather than running `terraform import` per-resource. From a downloaded provider binary: `./terraform-provider-dynatrace -export -ref -id` (canonical form per [Terraform CLI commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — `-ref` emits inter-resource references rather than hardcoded IDs, `-id` adds commented IDs for traceability; supply credentials via env vars per AUTOM-04 §3). Generates `.tf` files for the entire tenant. The per-resource flow below is right when you only need to onboard a few specific resources.
+
+The walk-through below imports an alerting profile — Dynatrace Classic (see the §3 note); the same steps apply to any resource type.
 
 ### Step 1: Add a Resource Block
 

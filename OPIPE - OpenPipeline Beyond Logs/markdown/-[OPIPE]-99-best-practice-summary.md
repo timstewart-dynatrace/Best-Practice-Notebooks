@@ -1,6 +1,6 @@
 # OPIPE-99: Best Practice Summary
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 05/06/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 Definitive best practice settings for OpenPipeline beyond logs — spans, metrics, events, and cross-scope patterns. Each entry specifies the exact configuration.
 
@@ -29,8 +29,8 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | One pipeline per source type per scope | Separate pipelines for each distinct data source | Critical |
 | Never leave >20% of volume in default pipeline | Target 0% in default for production environments | Critical |
 | Route ordering: most specific first | Security/audit → application → infrastructure → API-ingested → default catch-all | Critical |
-| Configure all six scopes independently | Logs, Spans, Metrics, Events, Business Events, Security Events — changes in one scope have zero effect on others | Recommended |
-| Four-stage pipeline order in every scope | Ingest → Routing → Processing → Storage. Within Processing, processor execution order: Mask → Drop → Transform → Extract → Cost/Security → Bucket assignment (per `/concepts/data-flow`) | Critical |
+| Configure each scope independently | Logs, Spans, Metrics, Events, Business Events, Security Events, and the other configuration scopes — changes in one scope have zero effect on others | Recommended |
+| Know the fixed stage order | Ingest → Routing → pipeline → Storage. Inside the pipeline the stage sequence is fixed: Processing (mask, drop, transform) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → Bucket assignment → Metric extraction → Davis → Data extraction | Critical |
 | Default pipeline retention | `default_logs`: 14 days. `default_spans`: 7 days | Recommended |
 | Audit default bucket percentage weekly | `countIf(dt.system.bucket == "default_logs")/count()` — CRITICAL if >80%, WARNING if >50% | Critical |
 | Check pipeline count per scope | `countDistinct(dt.openpipeline.pipelines)` — minimum 3+ for logs, 2+ for spans | Critical |
@@ -42,7 +42,7 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 |----------|---------|----------|
 | Use groups for different parsing within one pipeline | One group per log format (e.g., `java-logs`, `nodejs-logs`) with shared global processors outside | Recommended |
 | Max 5-6 groups per pipeline | More than 6 = split into separate pipelines | Recommended |
-| Never put bucket routing inside a group | Bucket assignment is pipeline-level, not per-group | Critical |
+| Use conditional bucket assignment when only the destination differs | Conditional **Bucket assignment** processors (first match wins) inside one pipeline, instead of a pipeline per bucket | Recommended |
 | Make group matchers mutually exclusive | Unless multi-match is intentional — overlapping groups can set conflicting field values | Recommended |
 | Use separate pipelines (not groups) when lifecycle differs | Different bucket, retention, or security context = separate pipeline | Critical |
 | Groups for different processing, pipelines for different lifecycle | The fundamental decision rule | Critical |
@@ -69,11 +69,12 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
 | Enable sampling-aware for count metrics | `span.request_count`, `span.error_count` must weight by 1/sampling_ratio | Critical |
-| Do NOT enable sampling-aware for duration | Averages and percentiles are statistically representative from sampled data | Recommended |
+| Use the sampling-aware histogram for duration | Set **Measurement: Duration**, which enables the sampling options automatically. Percentiles are representative either way; extrapolated counts and sums are not without it | Recommended |
+| Check OTel spans for sampling metadata | OpenTelemetry spans usually carry no sampling-rate metadata, so extrapolation is less effective on them | Recommended |
 | Error rate ratios are naturally sampling-tolerant | Both numerator and denominator equally sampled — ratio is accurate | Recommended |
-| Rate (RED) | Metric: `span.request_count`, count, `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: Yes | Critical |
-| Errors (RED) | Metric: `span.error_count`, count, `span.kind == "server"` AND `status_code >= 500`, dims: `service.name`, `http.route`, `status_code`, sampling-aware: Yes | Critical |
-| Duration (RED) | Metric: `span.duration`, value, `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: No | Critical |
+| Rate (RED) | Metric: `span.request_count`, Sampling aware counter, `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: Yes | Critical |
+| Errors (RED) | Metric: `span.error_count`, Sampling aware counter, `span.kind == "server"` AND `status_code >= 500`, dims: `service.name`, `http.route`, `status_code`, sampling-aware: Yes | Critical |
+| Duration (RED) | Metric: `span.duration`, Sampling aware histogram (Measurement: Duration), `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: Yes | Critical |
 | Validate against built-in metrics | Compare `span.request_count` vs `dt.service.request.count` — significant divergence = misconfiguration | Critical |
 
 <a id="cardinality-management"></a>
@@ -84,7 +85,7 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | Never use `trace.id`, `span.id`, or `content` as dimensions | Unique per record = unbounded cardinality = metric dropped | Critical |
 | Never use `http.url` as dimension | Use `http.route` (pattern) instead of `http.url` (instance with query params) | Critical |
 | Never use `k8s.pod.name` without normalization | Use `k8s.deployment.name` or strip replica suffix | Critical |
-| Remove `http.url` when `http.route` exists | `fieldsRemove` processor in Processing stage | Recommended |
+| Remove `http.url` when `http.route` exists | **Remove fields** processor in the Processing stage | Recommended |
 | Remove `http.request.header.*` from spans | High-cardinality, rarely needed post-ingestion | Recommended |
 | Normalize URL paths to patterns | `/users/12345/orders` → `/users/{id}/orders` via DPL parse | Critical |
 | Group status codes into classes | `200/201/204` → `2xx`, `400/401/403` → `4xx`, `500/502/503` → `5xx` | Recommended |
@@ -93,7 +94,7 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | Cardinality budget: exploratory metrics | <50,000 series, max 4-5 dimensions | Critical |
 | Run cardinality estimation before extraction | `countDistinct()` across proposed dimensions on 1h data — reject if >100,000 | Critical |
 | Bucket continuous values into tiers | Duration: <100ms=fast, 100-500ms=normal, 500ms-2s=slow, >2s=very_slow | Recommended |
-| Hashing protects PII but does NOT reduce cardinality | 100K emails → 100K hashes. Use removal/grouping to reduce. | Recommended |
+| Hashing pseudonymizes PII (salt it) but does NOT reduce cardinality | An unsalted hash of an IP or email can be reversed by enumeration — use a secret salt or drop the field. 100K emails → 100K hashes: use removal/grouping to reduce | Recommended |
 
 <a id="security-context"></a>
 ## 6. Security Context
@@ -155,6 +156,7 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 | No overlapping routing conditions | Audit conditions for overlap — first match wins, order-dependent behavior is a bug | Critical |
 | Drop rules before extraction rules | Filter noise before creating metrics — otherwise you extract from noise | Critical |
 | Volume monitoring on every pipeline | `makeTimeseries count(), by:{dt.openpipeline.pipelines}, interval:1h` — alert on spikes/drops | Critical |
+| Monitor what was not stored | Self-monitoring metrics `dt.sfm.openpipeline.pipelines_out.records` (by `pipeline_id`, `bucket_name`) and `dt.sfm.openpipeline.not_stored.records` (by `configuration`, `reason`) — stored-record counts cannot see dropped records | Recommended |
 | Document rollback plan before changes | Record previous config — OpenPipeline cannot reprocess historical data | Critical |
 | Metric naming convention | `scope.metric_name` (e.g., `span.request_count`, `log.error_count`) | Recommended |
 | Test cascade chains end-to-end | Span → event → metric → SLO — failures propagate silently | Critical |

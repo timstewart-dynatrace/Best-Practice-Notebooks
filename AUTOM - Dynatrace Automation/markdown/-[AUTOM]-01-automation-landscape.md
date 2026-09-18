@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 08/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -140,7 +140,7 @@ Dynatrace's official configuration-as-code CLI tool. YAML-based configuration ma
 |--------|----------|
 | **Type** | CLI tool |
 | **Configuration** | YAML files |
-| **Features** | Download, deploy, delete, validate |
+| **Features** | Download, deploy (incl. `--dry-run`), delete, generate |
 | **Use Case** | Config management, migrations |
 | **Documentation** | [Monaco on GitHub](https://github.com/dynatrace/dynatrace-configuration-as-code) |
 
@@ -175,7 +175,7 @@ Official client libraries for programmatic access to Dynatrace APIs.
 | Aspect | Details |
 |--------|----------|
 | **Type** | Client libraries |
-| **Languages** | TypeScript/JavaScript, Python |
+| **Languages** | TypeScript/JavaScript (`@dynatrace-sdk/*`); Python automation calls the REST APIs directly |
 | **Features** | Type-safe, auto-generated from OpenAPI |
 | **Use Case** | Custom applications, complex automation |
 | **Documentation** | [Dynatrace SDK](https://developer.dynatrace.com/develop/sdks/) |
@@ -273,11 +273,11 @@ These tools aren't mutually exclusive. Common combinations:
 
 **Monaco is optional for Terraform shops.** A confident Terraform shop can cover the full Dynatrace surface — provisioning, configuration, drift detection, multi-env promotion — without ever adopting Monaco. The Terraform provider's built-in `-export` utility (see §3 "Tenant migration" row and the bulk-download workflow below) removes the historical reason teams reached for Monaco as a Terraform on-ramp.
 
-This section names **five specific patterns** where *adding* Monaco alongside an established Terraform footprint can pay off. **None are blockers.** If none of these patterns describe your situation, skip this section and stay Terraform-only — that's a complete, supported path.
+This section names **four specific patterns** where *adding* Monaco alongside an established Terraform footprint can pay off. **None are blockers.** If none of these patterns describe your situation, skip this section and stay Terraform-only — that's a complete, supported path.
 
 The general guidance in §4 (Combining Tools) still applies: pick one tool per config and avoid overlap. The patterns below name the seams where Monaco genuinely earns its place — not a recommendation to adopt Monaco by default.
 
-### Five Patterns Where Monaco Wins for a Terraform Shop
+### Four Patterns Where Monaco Wins for a Terraform Shop
 
 | Pattern | Why Monaco wins |
 |---|---|
@@ -285,7 +285,6 @@ The general guidance in §4 (Combining Tools) still applies: pick one tool per c
 | **N tenants, identical configs** | Monaco's `manifest.yaml` lists multiple environments and deploys to all with variable substitution — no per-environment state, no workspaces. For *"we have prod + EU-prod + APAC-prod and they should all look the same"*, Monaco is less ceremony. Terraform workspaces can do it, but each has its own state and the divergence-over-time tax is real. |
 | **App-team self-service** | Letting product teams commit Dynatrace configs alongside their app code with a CI job running `monaco deploy` on merge — no state backend per team, no state-locking infrastructure. The platform team keeps Terraform-managed shared infra; app teams get a low-floor path for their own SLOs / dashboards / management zones. |
 | **Bleeding-edge Settings 2.0 schemas** | When a new schema ships, Monaco supports it immediately (generic schema-id pattern). The Terraform provider catches up later. For configs that haven't reached the provider yet, Monaco is the fallback while you wait for typed resources. |
-| **Drift inspection without ownership** | `monaco deploy --dry-run` shows drift on configs you didn't automate — without the implication that running `apply` would now manage them. Terraform's import-then-plan flow does more than needed for read-only drift checks on classic UI-managed configs. |
 
 ### What's NOT a Good Reason for a Terraform Shop
 
@@ -302,11 +301,11 @@ For an experienced Terraform shop adopting Monaco selectively, the rule is **bou
 
 | Use Monaco for | Use Terraform for |
 |---|---|
-| Tenant cloning / bulk migration | Cross-cloud orchestration (AWS / Bitbucket / Dynatrace in one apply — see AUTOM-07 §5.4) |
+| Tenant cloning / bulk migration | Cross-cloud orchestration (AWS / Bitbucket / Dynatrace in one apply — see AUTOM-07 §5 *Combined Workspace*) |
 | Per-app self-service configs | Platform-team shared infra |
 | Bleeding-edge schemas | Anything with cross-system dependencies |
 | Multi-tenant N×deploy of identical sets | State-backed, dependency-graphed infra |
-| Drift inspection on UI-managed legacy configs | Configs you actively manage |
+| — | Configs you actively manage, including drift detection (`terraform plan`; Monaco has no drift view — `--dry-run` does not contact the tenant) |
 
 Document the boundary explicitly (in `DECISIONS.md` or your tenant runbook) so teams know which tool owns which config category — that's what prevents the anti-pattern of overlap.
 
@@ -359,14 +358,14 @@ Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path 
 
 ### Path B — Monaco target (config-only, single-tool simplicity)
 
-1. **Install Monaco** — see **AUTOM-03 §2 Getting Started**. Homebrew on macOS; `curl` the binary on Linux/Windows.
+1. **Install Monaco** — see **AUTOM-03 §2 Getting Started**. `curl` the release binary (macOS/Linux) or download the `.exe` (Windows); there is no Homebrew formula.
 2. **Set environment variables** — tenant URL + API Token. See **AUTOM-03 §2 Environment Setup**.
 3. **Bulk-download the tenant's existing config to YAML** — `monaco download --manifest manifest.yaml --environment <tenant>`. See **AUTOM-08 Migration Automation** for the full migration flow.
 4. **Review and clean up** — Monaco's YAML is human-readable; delete noise, parameterize sensitive values, split into logical projects. See **AUTOM-03 §3 Project Structure**.
 5. **Author your `manifest.yaml`** — list every environment Monaco should deploy to. Per-env values via `parameters` block. See **AUTOM-03 §4 Configuration Files**.
 6. **Commit to Git as your source-of-truth baseline.**
 7. **Wire up CI/CD** — pick your platform and use the **Monaco-deploy pattern** from: **AUTOM-07 §3 GitHub Actions** · **§4 GitLab CI/CD** · **§5.1 Bitbucket Pipelines — Monaco Deploy** · **§6 Atlassian Bamboo** (adapt the Plan Specs YAML to call `monaco deploy` instead of `terraform plan/apply`).
-8. **Add review + approval discipline** — Monaco doesn't have state-file locking, but pipeline-level approval gates work the same way. PR triggers `monaco validate` + `monaco deploy --dry-run`; merge to main triggers `monaco deploy` (gated by manual approval for production).
+8. **Add review + approval discipline** — Monaco doesn't have state-file locking, but pipeline-level approval gates work the same way. PR triggers `monaco deploy --dry-run` (Monaco has no `validate` command); merge to main triggers `monaco deploy` (gated by manual approval for production).
 9. **Plan for tool evolution** — if your needs grow beyond Dynatrace-config-only, **AUTOM-01 §5** documents the patterns where adding Terraform alongside Monaco makes sense.
 
 ### Common pitfalls (both paths)
@@ -392,16 +391,16 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 |------------|-------------|----------|
 | **Access Token (Classic)** | Scope-based token with explicit permissions (e.g., `settings.read`) | Settings API, Monaco, Terraform (settings/classic) |
 | **Platform Token** | Long-lived token bound to a user's permissions; simpler to create | Same as access token, but scopes are limited to user's existing permissions |
-| **OAuth Client** | Client ID + secret exchanged for short-lived tokens | **Required** for Terraform automation, document, and IAM resources |
+| **OAuth Client** | Client ID + secret exchanged for short-lived tokens | **Required** for account IAM resources; workflows, documents and segments accept a Platform Token or an OAuth client |
 
 ### Tool Authentication Matrix
 
 | Tool | Access/Platform Token | OAuth Client | Notes |
 |------|----------------------|--------------|-------|
 | **Settings API** | `settings.read`, `settings.write` | N/A | Direct REST calls |
-| **Monaco** | `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` | N/A | CLI tool |
+| **Monaco** | Access token: `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` (`auth.token`); platform token for platform configs (`auth.platformToken`) | Alternative to the platform token for platform configs (`auth.oAuth`) | Workflows, documents, Grail buckets and segments need `platformToken` or `oAuth`; access and platform tokens are not interchangeable |
 | **Terraform** (settings/classic) | `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` | N/A | IaC for config objects |
-| **Terraform** (automation/documents) | N/A | `automation:workflows:read/write`, `document:documents:read/write` | OAuth **required** |
+| **Terraform** (automation/documents) | Platform Token with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` (see AUTOM-04 §3) | `automation:workflows:read/write`, `document:documents:read/write` | Platform Token **or** OAuth |
 | **Terraform** (account management) | N/A | IAM scopes + `DT_ACCOUNT_ID` | OAuth **required** |
 | **Workflows** | Built-in (no external token needed) | N/A | Platform feature |
 | **SDKs** | Depends on operations performed | N/A | Client libraries |
@@ -415,7 +414,7 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 | Rotation | Rotate tokens regularly |
 | Secret storage | Use HashiCorp Vault, AWS Secrets Manager, etc. |
 | Platform tokens | Prefer over classic access tokens for simpler management |
-| OAuth for automation | Use OAuth clients when managing Workflows or Documents via Terraform |
+| OAuth for service identities | Prefer OAuth clients for CI/CD service identities managing Workflows or Documents; a Platform Token also works |
 
 > **Key Distinction:** Platform tokens work within the user's existing permissions (a scope only grants access if the user already has that permission). OAuth clients operate with their own independent scopes, making them more suitable for service accounts and CI/CD pipelines.
 

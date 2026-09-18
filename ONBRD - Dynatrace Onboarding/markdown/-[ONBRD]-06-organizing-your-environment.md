@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -10,10 +10,12 @@ As your Dynatrace environment grows, organization becomes critical. This noteboo
 ## Table of Contents
 
 1. [Why Organization Matters](#why-organization-matters)
-2. [Tagging with Host Properties and Cloud Tags](#tagging-with-host-properties-and-cloud-tags)
-3. [Segments for Data Filtering](#segments-for-data-filtering)
-4. [Naming Conventions](#naming-conventions)
-5. [Querying by Tags and Properties](#querying-by-tags-and-properties)
+2. [Modern Organization Building Blocks](#modern-organization-building-blocks)
+3. [Tagging with Host Properties and Cloud Tags](#tagging-with-host-properties-and-cloud-tags)
+4. [Segments for Data Filtering](#segments-for-data-filtering)
+5. [Naming Conventions](#naming-conventions)
+6. [Querying by Tags and Properties](#querying-by-tags-and-properties)
+7. [Next Steps](#next-steps)
 
 ---
 
@@ -23,9 +25,9 @@ As your Dynatrace environment grows, organization becomes critical. This noteboo
 - Entities discovered (hosts, services)
 - Understanding of your organizational structure
 
-### OneAgent Attribute Enrichment (OneAgent 1.331+)
+### OneAgent Attribute Enrichment (OneAgent 1.333+)
 
-> **Requires:** OneAgent version **1.331** or later
+> **Requires:** OneAgent version **1.333** or later
 
 OneAgent can enrich **all telemetry signals** (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.
 
@@ -93,6 +95,7 @@ Without organization, Dynatrace environments become difficult to manage:
 
 > **Note:** The modern Dynatrace platform uses **Segments** for data filtering and **Policies** for access control. This replaces the legacy Management Zones approach.
 
+<a id="modern-organization-building-blocks"></a>
 ## 2. Modern Organization Building Blocks
 
 The modern Dynatrace platform (Gen3/Grail) uses a "tag at source" approach rather than rule-based auto-tagging:
@@ -240,7 +243,7 @@ Segments are reusable DQL filters that:
 | **Access control** | Use Policies + `dt.security_context` instead | Built-in |
 | **Modern platform** | ✅ Recommended | ⚠️ Being phased out — MZ-on-calculated-metrics is on the May-2026 deprecation list |
 
-> **Where to go deeper:** the **ORGNZ series** (11 notebooks) covers segments, buckets, and `dt.security_context` design in depth. The **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use `dt.security_context` to scope access. **MZ2POL** (10 notebooks) covers Management Zone → Policy migration if you have legacy MZs to retire.
+> **Where to go deeper:** the **ORGNZ series** (11 notebooks) covers segments, buckets, and `dt.security_context` design in depth. The **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use `dt.security_context` to scope access. **MZ2POL** (11 notebooks) covers Management Zone → Policy migration if you have legacy MZs to retire.
 
 ### Segment Best Practices
 
@@ -390,6 +393,7 @@ fetch dt.entity.host
 // Field maps: entity.name -> name.
 ```
 
+<a id="next-steps"></a>
 ## 7. Next Steps
 
 With organization in place:
@@ -406,7 +410,7 @@ With organization in place:
 - **FAQ-01** — Host group naming strategy
 - **FAQ-02** — Tagging sources, standards, and strategy (primary tags vs cloud tags vs auto-tags)
 - **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) — Policy design that consumes `dt.security_context`
-- **MZ2POL series** (10 notebooks) — Management Zone → Policy migration for legacy MZ retirement
+- **MZ2POL series** (11 notebooks) — Management Zone → Policy migration for legacy MZ retirement
 
 ### Organization Checklist
 

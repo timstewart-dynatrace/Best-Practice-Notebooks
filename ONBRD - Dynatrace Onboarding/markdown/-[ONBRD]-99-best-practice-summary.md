@@ -1,12 +1,12 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 07/20/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
 Reference card for an architect or tenant lead onboarding a new 2026 Dynatrace tenant: recommended defaults, the key decision matrix, validation queries, anti-patterns, and the cross-series next-steps map.
 
-For the **sequence + dependencies + per-step decisions**, see [ONBRD-00 Architect's Sequence & Dependency Runbook](-[ONBRD]-00-architect-sequence.ipynb).
+For the **sequence + dependencies + per-step decisions**, see **ONBRD-00: Architect's Sequence & Dependency Runbook**.
 
 ---
 
@@ -25,7 +25,7 @@ For the **sequence + dependencies + per-step decisions**, see [ONBRD-00 Architec
 | Requirement | Details |
 |---|---|
 | Audience | Architect or tenant lead onboarding a new 2026 Dynatrace tenant |
-| Used alongside | [ONBRD-00](-[ONBRD]-00-architect-sequence.ipynb) for sequence + dependencies |
+| Used alongside | **ONBRD-00: Architect's Sequence & Dependency Runbook** for sequence + dependencies |
 
 <a id="recommended-defaults"></a>
 ## 1. Recommended Defaults (2026)
@@ -37,14 +37,14 @@ A new 2026 tenant should default to these choices unless there is a specific rea
 | API token | **Platform Token** (`dt0s16`) with `Authorization: Bearer` | Sprint-1.337 default; aligns with Gen3 IAM model. Classic API Tokens (`dt0c01`, `Authorization: Api-Token`) only for legacy paths. |
 | Configuration | **Settings v2** / Configuration as Code (Terraform `dynatrace_settings`, Monaco v2) | Sprint-1.337 announced Configuration API endpoints have Settings v2 equivalents. Plan automation around Settings v2. |
 | Extensions | **Extensions 2.0** (managed via the Dynatrace API Application → Extensions surface) | Current extensions framework; EF1.0 end of support 2025-03-31. |
-| Tagging at source | **Primary fields/tags at OneAgent install** via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (single tags-hub form, June 2026; prefix written explicitly) | OneAgent attribute enrichment (1.331+) emits these on every signal at ingest. |
+| Tagging at source | **Primary fields/tags at OneAgent install** via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (single tags-hub form, June 2026; prefix written explicitly) | OneAgent attribute enrichment (OneAgent 1.333+) emits these on every signal at ingest. |
 | Boundary field | **`dt.security_context`** for data + IAM scoping | Gen3 standard; segments + this field replace legacy Management Zones. |
 | IAM policies | **Parameterized policies** bound to groups via binding parameters | Avoids N-copies-of-similar-policy maintenance burden. |
 | K8s deployment | **Dynatrace Operator + Cloud Native FullStack** | Classic FullStack deprecated for new deployments. |
 | K8s CRD baseline | **DynaKube v1beta5 baseline; v1beta6 canary** | v1beta5 is field-tested baseline; v1beta6 for newer features (DB extensions preview) once canary-validated. |
 | Alerting | **Workflows + Davis Anomaly Detectors** | Alerting Profiles + metric-events being phased out. |
 | Logs | **OpenPipeline** | Future extension versions install ingest assets requiring updated configuration API (Nov 2025+). |
-| Windows OneAgent | **Npcap** for network insight (sprint-1.338+) | Replaces legacy WinPcap. |
+| Windows OneAgent | **Npcap** for network insight (OneAgent 1.337+) | Required for Network Agent metrics; WinPcap is no longer supported. |
 
 <a id="decision-matrix"></a>
 ## 2. Decision Matrix
@@ -55,7 +55,7 @@ Decisions an architect makes during onboarding, with default and when to deviate
 |---|---|---|
 | ActiveGate yes/no | Yes if >500 hosts, hybrid/on-prem, or cloud-API polling at scale | Pure SaaS-only with no on-prem footprint can defer until cloud-API polling demands it |
 | ActiveGate sizing | 10–20 GB; 2–3 AGs per zone | Larger only when load testing shows it is needed |
-| Per-cloud integration | **Clouds app** for AWS (GA), Azure (preview); legacy GCP integration via AG (GCP Clouds-app new connections will follow soon) | If existing CloudWatch / Azure Monitor pipelines exist, evaluate migration effort vs leaving in place |
+| Per-cloud integration | **Clouds app** for AWS (GA) and Azure (SaaS 1.337+, no AG for metric polling); GCP Clouds-app connection in **Preview** — verify it has reached your tenant; the classic AG-based GCP integration remains the working path until then | If existing CloudWatch / Azure Monitor pipelines exist, evaluate migration effort vs leaving in place |
 | OneAgent rollout sequence | Pilot 5–10 hosts → expand by host group → full | Skip pilot if you have onboarded the same workload class on another tenant |
 | Tag taxonomy | env / team / app / `dt.security_context` / `dt.cost.costcenter` | Add compliance dimensions (`*-pci`, `*-pii`) only if a hard audit boundary exists |
 | Host group naming | `<env>-<app>` or `<env>-<workload-type>` per FAQ-01 | Customer-specific patterns acceptable; avoid `all-hosts` / `default` / hardware-trait names |
@@ -138,7 +138,7 @@ ONBRD covers the foundation. These topic series cover each domain in depth:
 
 | Domain | Topic Series | Notebooks |
 |--------|--------------|-----------|
-| **IAM administration** | IAM | 13 |
+| **IAM administration** | IAM | 15 |
 | **Data organization (buckets, segments, security context)** | ORGNZ | 11 |
 | **Frequently asked questions** | FAQ | growing collection |
 | **OpenPipeline log processing** | OPLOGS | 9 |
@@ -148,22 +148,22 @@ ONBRD covers the foundation. These topic series cover each domain in depth:
 | **Kubernetes monitoring & DynaKube** | K8S | 15 |
 | **Cloud integration deep dives (AWS, Azure, GCP)** | CLOUD | 9 |
 | **OpenTelemetry integration** | OTEL | 9 |
-| **Workflows & alert notifications** | WFLOW | 10 |
+| **Workflows & alert notifications** | WFLOW | 12 |
 | **Dynatrace Intelligence (Causal/Predictive/Generative AI, Davis)** | AIOPS | 8 |
 | **Dashboard strategy & executive reporting** | DASH | 8 |
-| **Configuration automation & GitOps** | AUTOM | 11 |
-| **Management Zone → Policy migration** | MZ2POL | 10 |
-| **Web Real User Monitoring** | WEBRUM | 9 |
+| **Configuration automation & GitOps** | AUTOM | 14 |
+| **Management Zone → Policy migration** | MZ2POL | 11 |
+| **Web Real User Monitoring** | WEBRUM | 10 |
 | **Native mobile monitoring** | MOBL | 13 |
 | **Synthetic monitoring** | SYNTH | 7 |
-| **Business events & funnel analytics** | BIZEV | 7 |
+| **Business events & funnel analytics** | BIZEV | 8 |
 | **Database monitoring** | DBMON | 7 |
-| **Platform maturity & adoption roadmap** | ADOPT | 6 |
-| **Managed → SaaS migration** | M2S | 10 |
+| **Platform maturity & adoption roadmap** | ADOPT | 7 |
+| **Managed → SaaS migration** | M2S | 11 |
 | **SaaS → SaaS migration** | S2S | 11 |
 | **New Relic → Dynatrace (procedural runbook)** | NR2DT | 11 |
 | **New Relic → Dynatrace (component deep dives)** | NRLC | 9 |
-| **Sumo Logic → Dynatrace** | SL2DT | 10 |
+| **Sumo Logic → Dynatrace** | SL2DT | 11 |
 | **Splunk → Dynatrace** | S2D | 10 |
 
 ---

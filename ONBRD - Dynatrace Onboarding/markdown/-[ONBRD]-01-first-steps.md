@@ -1,6 +1,6 @@
 # ONBRD-01: Getting Started: Your First Steps in Dynatrace
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Finding Your Way Around
 Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.
@@ -14,6 +14,7 @@ Welcome to Dynatrace. This notebook helps you get oriented in your new environme
 3. [Key Areas to Know](#key-areas-to-know)
 4. [Your Environment ID and URLs](#your-environment-id-and-urls)
 5. [Checking What's Already There](#checking-whats-already-there)
+6. [Next Steps](#next-steps)
 
 ---
 
@@ -146,7 +147,7 @@ Modern Dynatrace platform access uses three credential types — choose based on
 | **OAuth Client** | (client ID + secret) | External SaaS integrations, account-admin automation |
 | **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts; migrate to Platform Token where possible |
 
-For OneAgent and ActiveGate deployment, installer downloads use a **PaaS / installer token** generated in Account Management. Token management depth lives in **ONBRD-02**.
+For OneAgent and ActiveGate deployment, installer downloads use a **PaaS / installer token** (classic access token with the `InstallerDownload` scope) generated in your environment's **Access Tokens** app → **Generate new token**. Token management depth lives in **ONBRD-02**.
 
 <a id="checking-whats-already-there"></a>
 ## 5. Checking What's Already There
@@ -206,7 +207,7 @@ fetch logs, from: now() - 1h
 ```dql
 // Check for recent problems
 fetch dt.davis.problems, from: now() - 7d
-| fields timestamp, display_id, title, event.status
+| fields timestamp, display_id, event.name, event.status
 | sort timestamp desc
 | limit 10
 ```
@@ -221,6 +222,7 @@ fetch dt.davis.problems, from: now() - 7d
 | **Logs found** | Log ingestion configured | Explore Logs & Events app |
 | **Problems found** | DAVIS is detecting issues | Review problem details |
 
+<a id="next-steps"></a>
 ## 6. Next Steps
 
 Now that you're oriented in the Dynatrace UI, proceed based on your priorities:

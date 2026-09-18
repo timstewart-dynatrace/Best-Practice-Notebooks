@@ -1,6 +1,6 @@
 # K8S-01: Kubernetes Monitoring Fundamentals
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 1 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Introduction to Kubernetes Observability with Dynatrace
 Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.
@@ -183,7 +183,7 @@ Dynatrace collects multiple signal types from Kubernetes:
 >
 > For DQL, use the Grail equivalents — and note the **grain differs, not just the prefix**: Grail emits requests and limits at **container** grain (`dt.kubernetes.container.requests_cpu`, `.requests_memory`, `.limits_cpu`, `.limits_memory`), summed by you across `k8s.workload.name` to reach a workload figure. There is no `dt.kubernetes.workload.requests_*`. Full Grail key list and the derivation pattern: **K8S-08 §2**.
 
-> **Request and limit metrics changed what they count in ActiveGate 1.343** — init containers are now included in the pod-scope total, and therefore in workload roll-ups. Reserved figures step up at the upgrade with no workload change; usage metrics are unaffected. This matters whenever you compare a request/limit trend across the upgrade boundary — see K8S-08 §2 before drawing capacity conclusions from one.
+> **Request and limit metrics changed what they count in ActiveGate 1.343 / 1.345** — they carry an *effective* pod value: from 1.343 init containers are accounted for, and from 1.345 pod-level `spec.resources` (Kubernetes 1.34+) and pod `overhead` too, which can move a limit *down*. Reserved figures can step at either upgrade with no workload change; usage metrics are unaffected. This matters whenever you compare a request/limit trend across an upgrade boundary — see K8S-08 §2 before drawing capacity conclusions from one.
 
 ### Cluster Health Metrics
 
@@ -335,6 +335,7 @@ In this notebook, you learned:
 - [Quickstart (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/quickstart) — minimum viable deployment
 - [Reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference) — DynaKube parameters, feature flags, network, security, storage, workload mutation
 - [Dynatrace Operator (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator) — source, releases, and Helm chart
+- [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources) — how request/limit metrics represent the enforced pod value
 
 ---
 

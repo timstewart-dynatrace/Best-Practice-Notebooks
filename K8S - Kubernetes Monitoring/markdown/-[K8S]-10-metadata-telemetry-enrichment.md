@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 08/28/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -171,7 +171,7 @@ Manual pod annotations:
 
 > **Warning:** Do not mix settings-based enrichment with manual pod annotations. Using both simultaneously may cause conflicts and unexpected behavior.
 
-> **New (ActiveGate 1.345 — rollout from 08/25/2026): Kubernetes ingest enrichment supports custom rules.** The release note states plainly that *"ActiveGate now supports ingest enrichment for custom rules."* This adds a third lever alongside the DynaKube-level and settings-based methods compared above: enrichment applied at the ActiveGate on ingest, driven by your own rules rather than only the built-in Kubernetes metadata set. Where you already maintain enrichment in two places, check whether a custom ingest rule consolidates it — and mind precedence, since another enrichment source setting the same key still wins or loses by the ordering rules in §5.
+> **New (ActiveGate 1.345 — rollout from 08/25/2026): Kubernetes ingest enrichment supports custom rules.** The release note states plainly that *"ActiveGate now supports ingest enrichment for custom rules."* This adds a third lever alongside the DynaKube-level and settings-based methods compared above: enrichment applied at the ActiveGate on ingest, driven by your own rules rather than only the built-in Kubernetes metadata set. Where you already maintain enrichment in two places, check whether a custom ingest rule consolidates it — and mind precedence, since another enrichment source setting the same key still wins or loses by the ordering rules in §5. One documented limit from the same release note: *"Ingest enrichment rules with conditions are ignored by the ActiveGate."* — a conditional rule silently does nothing on this path, so keep conditional logic in the settings-based method.
 >
 > The same release adds **`container.runtime.name` to the Smartscape `CONTAINER` node** — useful for fleets running more than one runtime (containerd, CRI-O, gVisor), because it makes "which runtime is this workload on" a queryable dimension rather than a node-labelling exercise. That matters in practice: gVisor is exactly the runtime behind the `dynatrace-webhook` `CrashLoopBackOff` fixed in Operator 1.10.2, and this field is how you find those nodes before an upgrade.
 

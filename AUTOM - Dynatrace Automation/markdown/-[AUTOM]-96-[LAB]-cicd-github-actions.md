@@ -1,6 +1,6 @@
 # AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 05/13/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ Hands-on lab that takes the GitHub Actions material from **AUTOM-07: CI/CD Integ
 - Runs `terraform apply` on merge to `main`, gated by a GitHub Environment with required reviewers.
 - Authenticates to Dynatrace via **GitHub OIDC -> AWS IAM role -> HashiCorp Vault -> runtime fetch** of a Dynatrace Platform Token. **No static Dynatrace token lives in GitHub Secrets.**
 - Stores Terraform state in S3 with native S3 lockfile locking, encrypted at rest.
-- Manages a single Settings 2.0 resource (Kubernetes generic-metadata enrichment) end-to-end so the credential plumbing is the focus, not the resource model.
+- Manages a single Settings 2.0 resource (an ownership team, `builtin:ownership.teams`) end-to-end so the credential plumbing is the focus, not the resource model.
 
 This LAB is the hands-on companion to AUTOM-07 §3 (which describes the patterns) and AUTOM-04 §3 (which describes the token model). It does **not** repeat material from those notebooks — it walks through the steps.
 
@@ -20,7 +20,7 @@ This LAB is the hands-on companion to AUTOM-07 §3 (which describes the patterns
 |-------|-----|
 | Other CI platforms (GitLab, Bitbucket, Bamboo, Azure DevOps) | AUTOM-07 §4–§7 |
 | State backend hardening (KMS, IAM scopes, multi-account) | AUTOM-09 §3 |
-| Multi-environment promotion patterns | AUTOM-09 §4 |
+| Multi-environment promotion patterns | AUTOM-09 §6 |
 | Lifecycle protections (`prevent_destroy`, `replace_triggered_by`) | AUTOM-09 §9 |
 | Token-model deep dive (Platform vs classic API) | AUTOM-04 §3 |
 | `dynatrace_api_token` / state-leakage concerns | AUTOM-04 §3 |
@@ -161,7 +161,7 @@ terraform {
 
 ### `main.tf` — one Settings 2.0 resource
 
-We pick **Kubernetes generic metadata enrichment** because it (a) is a Settings 2.0 schema, so it works with a Platform Token alone, (b) is harmless to create and delete in a non-prod tenant, and (c) is unlikely to collide with an existing rule.
+We pick an **ownership team** (`builtin:ownership.teams`) because it (a) is a Settings 2.0 schema, so it works with a Platform Token alone, (b) is a **multi-object** schema (up to 1,000 teams), so creating one never overwrites an existing object, (c) is not deprecated and is not on Dynatrace's removed-schemas list, and (d) is harmless to create and delete in a non-prod tenant.
 
 ```hcl
 provider "dynatrace" {
@@ -170,20 +170,30 @@ provider "dynatrace" {
   #   DYNATRACE_PLATFORM_TOKEN
 }
 
-resource "dynatrace_generic_setting" "lab_k8s_team_label" {
-  schema_id = "builtin:kubernetes.generic.metadata.enrichment"
-  scope     = "environment"
+resource "dynatrace_generic_setting" "lab_team" {
+  schema = "builtin:ownership.teams"
+  scope  = "environment"
 
   value = jsonencode({
-    enabled = true
-    rules = [{
-      sourceAttribute = "namespace-label"
-      sourceKey       = "lab-team"
-      targetAttribute = "dt.security_context"
-    }]
+    name        = "LAB Team"
+    identifier  = "lab-team"
+    description = "Created by the AUTOM CI/CD LAB - safe to delete"
+    responsibilities = {
+      development    = false
+      infrastructure = false
+      lineOfBusiness = false
+      operations     = true
+      security       = false
+    }
+    supplementaryIdentifiers = []
+    contactDetails           = []
+    links                    = []
+    additionalInformation    = []
   })
 }
 ```
+
+> **`schema`, not `schema_id`.** `dynatrace_generic_setting` takes `schema`, `scope` and a JSON `value`; `schema_id` fails `terraform validate`. The value above passes the Settings API's own validation for `builtin:ownership.teams` (checked with a validate-only request, 09/18/2026). Earlier versions of this LAB used `builtin:kubernetes.generic.metadata.enrichment`, which is a deprecated **singleton** (`maxObjects: 1`) — creating it would have overwritten a tenant's existing object — and whose rule fields were misnamed.
 
 > **No `dt_platform_token` argument in the provider block.** The Dynatrace provider reads `DYNATRACE_ENV_URL` and `DYNATRACE_PLATFORM_TOKEN` from the environment when the corresponding HCL arguments are absent. This is what lets the OIDC -> Vault -> env-vars chain work without HCL-level coupling.
 
@@ -229,6 +239,8 @@ Two trust relationships need to exist before the workflow can run:
 2. **AWS -> Vault** — so that the workflow, having assumed an AWS role, can authenticate to Vault and pull the Dynatrace Platform Token.
 
 Equivalently you can do **GitHub -> Vault directly** via Vault's `jwt` auth method bound to GitHub's OIDC issuer, skipping the AWS hop entirely. Both shapes are recommended in the [GitHub OIDC docs (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect). This LAB uses the AWS hop because it (a) is the most common shape in enterprises and (b) gets you AWS access for the state backend in the same step.
+
+> **Preview — skipping the stored Dynatrace token entirely.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* The page names a GitHub Actions job as a fitting workload, so the GitHub OIDC token could authenticate to Dynatrace directly, mapped to a service user — no Platform Token in Vault at all. Verify that WIF is available in your account before relying on it; until then, the Vault-held Platform Token in this LAB remains the working path.
 
 ### 5.1 — Create the GitHub OIDC identity provider in AWS
 
@@ -515,13 +527,13 @@ In the GitHub UI: **Settings -> Environments -> New environment -> `production`*
 
 ```bash
 # From your local clone of the repo
-git checkout -b lab-add-k8s-enrichment
+git checkout -b lab-add-ownership-team
 git add .
-git commit -m "feat: add Settings 2.0 K8s metadata enrichment rule"
-git push -u origin lab-add-k8s-enrichment
+git commit -m "feat: add Settings 2.0 ownership team"
+git push -u origin lab-add-ownership-team
 
 # Open the PR
-gh pr create --base main --title "LAB: add K8s enrichment rule" --body "Lab change."
+gh pr create --base main --title "LAB: add ownership team" --body "Lab change."
 ```
 
 ### What you should see, in order
@@ -578,9 +590,9 @@ Three places to check, in order:
 ### 9.1 — Dynatrace tenant
 
 1. Sign in to `https://<your-tenant>.apps.dynatrace.com`.
-2. Open **Settings -> Cloud and virtualization -> Kubernetes -> Generic metadata enrichment**.
-3. Confirm a rule exists with `sourceAttribute: namespace-label`, `sourceKey: lab-team`, `targetAttribute: dt.security_context`.
-4. Open the rule's audit log entry — the **Modified by** column should show the service user (e.g. `svc-terraform-lab`), not a human.
+2. Open the Settings app and search for **Teams** (schema `builtin:ownership.teams`) — or list the objects with `GET /api/v2/settings/objects?schemaIds=builtin:ownership.teams`.
+3. Confirm a team exists with name `LAB Team` and identifier `lab-team`.
+4. Check the object's modification info — it should show the service user (e.g. `svc-terraform-lab`), not a human.
 
 ### 9.2 — GitHub
 
@@ -625,7 +637,7 @@ If all three places show what you expect, the pipeline is wired correctly end-to
 |-------|----------|
 | Other CI platforms (GitLab, Bitbucket, Bamboo, Azure DevOps) following the same OIDC + Vault shape | **AUTOM-07** §4–§7 |
 | State backend hardening — KMS keys, IAM scopes per environment, multi-account state, audit logging | **AUTOM-09** §3 |
-| Multi-environment promotion — `envs/dev/`, `envs/staging/`, `envs/prod/` directories vs Terraform workspaces | **AUTOM-09** §4 |
+| Multi-environment promotion — `envs/dev/`, `envs/staging/`, `envs/prod/` directories vs Terraform workspaces | **AUTOM-09** §6 |
 | Lifecycle protections — `prevent_destroy`, `ignore_changes`, `replace_triggered_by` for critical resources | **AUTOM-09** §9 |
 | Token-model deep dive — Platform Token vs classic API Token vs OAuth Client; when each applies | **AUTOM-04** §3 |
 | `dynatrace_api_token` / state-leakage operational safety | **AUTOM-04** §3 *Operational Safety* |
@@ -652,7 +664,7 @@ Tick off each item to confirm a working LAB:
 - [ ] No raw token values appear in any log line
 - [ ] `production` GitHub Environment created; required reviewers configured; deployment branches restricted to `main`
 - [ ] Merge-to-main run shows `apply` job waiting on approval; approval triggers apply
-- [ ] Validation: DT tenant shows the new Settings 2.0 rule; modified-by = service user
+- [ ] Validation: DT tenant shows the new ownership team; modified-by = service user
 - [ ] Validation: GitHub Environments page shows the deployment with approver's name
 - [ ] Validation: Vault audit log shows two reads from the workflow's OIDC identity
 

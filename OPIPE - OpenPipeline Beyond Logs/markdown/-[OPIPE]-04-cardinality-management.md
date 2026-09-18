@@ -1,6 +1,6 @@
 # OPIPE-04: Cardinality Management
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 08/28/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Controlling Dimension Explosion Across All Scopes
 
@@ -67,7 +67,7 @@ Now add `user.id` (100,000 unique users):
 |------|--------|
 | **Metric storage** | Each unique dimension combination is a separate time series. Millions of series consume significant storage. |
 | **Query performance** | Queries against high-cardinality data scan more rows, hit scan limits faster, and return slowly. |
-| **Metric ingestion** | Dynatrace enforces cardinality limits. Metrics exceeding limits are partially dropped — you lose data silently. |
+| **Metric ingestion** | Metrics Classic enforces a 1 million per-metric dimension limit; on Grail, *"Dynatrace therefore may restrict or reject metric configurations"* built on volatile dimensions such as timestamps or unique IDs ([Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)). |
 | **Cost** | More stored data = higher DPS consumption. High-cardinality dimensions multiply cost multiplicatively, not additively. |
 
 <a id="high-cardinality-fields"></a>
@@ -164,7 +164,7 @@ The simplest approach: remove fields you do not need before they reach storage o
 
 ### OpenPipeline Configuration
 
-In the **Processing** stage of your pipeline, add a **fieldsRemove** processor:
+In the **Processing** stage of your pipeline, add a **Remove fields** processor:
 
 | Fields to Remove | Scope | Rationale |
 |-----------------|-------|----------|
@@ -250,13 +250,14 @@ When you need to track unique entities (users, sessions) without storing identif
 
 | Original Field | Hashed Field | Use Case |
 |---------------|-------------|----------|
-| `user.email` | `sha256(user.email)` → first 8 chars | Count unique users without storing PII |
-| `client.ip` | `sha256(client.ip)` → first 8 chars | Track unique clients without storing IPs |
+| `user.email` | `sha256(user.email)` | Count unique users without storing the cleartext address |
+| `client.ip` | `sha256(client.ip)` | Track unique clients without storing the cleartext IP |
 
 ### Trade-offs
 
 - **Cardinality**: Hashing does NOT reduce cardinality — 100,000 unique emails produce 100,000 unique hashes
-- **Privacy**: Hashing DOES protect PII — you cannot reverse a SHA-256 hash
+- **Privacy**: Hashing hides the cleartext, but it is **pseudonymization, not anonymization**. An unsalted hash of a low-entropy value can be reversed by hashing every candidate: there are only about 4.3 billion IPv4 addresses, and email addresses can be enumerated from known lists. Prefer a secret salt, or drop the field if you do not need it
+- **Truncation**: Keeping only the first 8 hex characters of the hash leaves about 4.3 billion possible values, so distinct inputs start to collide at scale and `countDistinct()` undercounts — keep the full hash if exact distinct counts matter
 - **When to use**: When the field is required for `countDistinct()` but must not be stored in cleartext
 - **When NOT to use**: When the goal is cardinality reduction — use grouping or removal instead
 
@@ -286,7 +287,7 @@ Assign a cardinality budget to each extracted metric:
 
 ### Breaking (SaaS 1.346): a per-record size limit on sorting and grouping keys
 
-Cardinality has always been about the *number* of distinct values. SaaS 1.346 adds a constraint on their *size*. Verbatim: *"We now enforce a per-record size limit on field values used as sorting or grouping keys in DQL queries (such as `sort`, `summarize`, and `makeTimeseries` with `by:`)."* and *"Queries where sorting/grouping key values exceed the limit on one or more records will return a client-side error. Queries with appropriately-sized keys are unaffected and benefit from improved performance."*
+Cardinality has always been about the *number* of distinct values. [SaaS 1.346](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) adds a constraint on their *size*. Verbatim: *"We now enforce a per-record size limit on field values used as sorting or grouping keys in DQL queries (such as `sort`, `summarize`, and `makeTimeseries` with `by:`)."* and *"Queries where sorting/grouping key values exceed the limit on one or more records will return a client-side error. Queries with appropriately-sized keys are unaffected and benefit from improved performance."*
 
 This is a **query-time** limit, distinct from every ingest-time guardrail above, and it fails in a way worth anticipating:
 
@@ -335,7 +336,9 @@ Continue to **OPIPE-05: Business & Security Event Pipelines** to configure OpenP
 ## References
 
 - [Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)
-- [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)
+- [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the sorting/grouping key size limit quoted in §8
 - [Grail data model (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 
 ---

@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -562,14 +562,17 @@ fetch dt.davis.events, from:-24h
 ```
 
 ```dql
-// Detect hosts with metric data gaps (missing CPU readings in last 6h)
-timeseries from:-6h, interval:5m,
-  cpuPoints = count(dt.host.cpu.usage),
-  by:{dt.entity.host}
-| fieldsAdd minPoints = arrayMin(cpuPoints)
-| filter minPoints == 0
+// Hosts with gaps in CPU reporting (OneAgent interruptions)
+// arraySize counts empty buckets too, so count only the non-null ones.
+timeseries hostCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
+| fieldsAdd buckets = arraySize(hostCpu), reported = arraySize(arrayRemoveNulls(hostCpu))
+| fieldsAdd completeness = round(100.0 * reported / buckets, decimals: 1)
+| filter completeness < 95.0
 | fieldsAdd hostName = entityName(dt.entity.host, type:"dt.entity.host")
-| fields hostName, minPoints
+| fields hostName, completeness, reported, buckets
+| sort completeness asc
+// A host that stopped reporting entirely drops out of timeseries altogether —
+// cross-check smartscapeNodes "HOST" for hosts with no series.
 ```
 
 <a id="symptom-resolution-index"></a>
@@ -609,7 +612,7 @@ The Dynatrace community maintains a curated [Kubernetes/OpenShift troubleshootin
 | Error / Symptom | Resolution |
 |-----------------|------------|
 | Cloud Native Full-Stack pods not injected — systematic validation walkthrough | [CNFS pod injection validation (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Operator-Cloud-Native-Full-Stack-Pod-Injection/ta-p/264697) |
-| Application pods can't start post-injection | [Pods can't start post-injection (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Application-pods-can-t-start-post-injection/ta-p/273048) |
+| Application pods can't start post-injection | [Pods can't start post-injection (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Application-pods-can-t-start-post-injection-with-quot/ta-p/273048) |
 | OpenShift: injected pods rejected at admission (seccomp × SCC) | FAQ-13 — Dynatrace injection and OpenShift SCCs |
 | `MountVolume` error migrating Classic Full-Stack → Cloud Native Full-Stack | [CFS→CNFS MountVolume error (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/MountVolume-Error-while-migrating-from-ClassicFullstack-to/ta-p/260612) |
 | Injection skipped with a `reason` annotation | Section 5 above — documented reason codes |
