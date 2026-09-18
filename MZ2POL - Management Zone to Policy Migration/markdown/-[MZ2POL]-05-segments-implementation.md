@@ -107,7 +107,7 @@ This rule is canonical in **ORGNZ-10** (§ *Best Practice: One Segment Per Dimen
 - Zones with no query activity in the last 90 days: delete rather than convert.
 - Zones that duplicate a dimension already carried by a Primary Grail field (host group, K8s namespace, cloud tags) — those come nearly free via §4.2 and §4.4.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/upgrade-guide-segments), [Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments).</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments).</sub>
 
 ---
 
@@ -169,7 +169,7 @@ Dynatrace documents a set of fully supported upgrade scenarios, organized by **h
 
 The Dynatrace guide notes it will "add further scenarios in the future" — so treat this as the supported set today, not an exhaustive account of every MZ shape.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/upgrade-guide-segments).</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments).</sub>
 
 ### 4.1 Auto-tagging on process, host, or service names
 
@@ -286,7 +286,7 @@ Two consequences worth accepting up front:
 
 > **They are not interchangeable.** `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` look similar but differ semantically — most visibly, `OTEL_RESOURCE_ATTRIBUTES` uses a **colon** where `DT_TAGS` uses a **space** as separator. Setting one and assuming the other is covered is a reliable way to produce a segment that half-works.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/upgrade-guide-segments), [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters). **Derived:** the §4.6 "good migration destination, mediocre long-term model" judgment combines the guide's fallback recommendation with the dimension-based scenarios it prefers elsewhere.</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters). **Derived:** the §4.6 "good migration destination, mediocre long-term model" judgment combines the guide's fallback recommendation with the dimension-based scenarios it prefers elsewhere.</sub>
 
 ### 4.9 Shortcut: reuse `dt.security_context` as a segment dimension
 
@@ -359,7 +359,7 @@ Entity includes alone do **not** filter the problem feed. To scope problems, the
 
 If the Management Zone was used to give a team a filtered problem view — a very common use — this is the include that does the work. ORGNZ-10 §12 has the full include shape and a worked example.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
 
 ---
 
@@ -582,7 +582,7 @@ Continue to **MZ2POL-06: Migration Execution** for the phased rollout, parallel-
 <a id="additional-resources"></a>
 ## Additional Resources
 
-- [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/upgrade-guide-segments)
+- [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments)
 - [Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments)
 - [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits)
 - [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility)

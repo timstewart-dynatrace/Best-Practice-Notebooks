@@ -1,6 +1,6 @@
 # BIZEV-05: KPIs and Metrics
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -196,7 +196,7 @@ pipelines:
 | DQL on bizevents | Seconds | Event retention (default 35 days) | Manual threshold | Scans event data |
 | Extracted metrics | Sub-second | Metric retention (default 5 years) | Native Dynatrace Intelligence/SLO | Pre-aggregated |
 
-> **Classic-pipeline variant — the bridge to classic dashboards.** Alongside the OpenPipeline path shown here, Dynatrace documents business-event metric extraction via the classic pipeline (Settings > Business Observability > Metric extraction). Rules there emit metrics keyed with the `bizevents.` prefix (up to 50 dimensions) that are readable in Data Explorer, classic dashboards, and classic metric-event alerting — useful when report consumers still live in the classic (Gen2) experience. Dynatrace recommends the OpenPipeline path where available; either way the output is an ordinary metric. See **BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move** for the full hybrid-adoption pattern.
+> **Classic-pipeline variant — the bridge to classic dashboards.** Alongside the OpenPipeline path shown here, Dynatrace documents business-event metric extraction via the classic pipeline (Settings > Business Observability > Metric extraction). Rules there emit metrics keyed with the `bizevents.` prefix (up to 50 dimensions) that are readable in Data Explorer, classic dashboards, and classic metric-event alerting — useful when report consumers still live in the classic (Gen2) experience. It is closing, though — per [Business event metric extraction via classic pipeline (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-metric-extraction): *"For new accounts created from September 2026, classic pipeline is not available. Use OpenPipeline to process your data."* Build new extraction on the OpenPipeline path; either way the output is an ordinary metric. See **BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move** for the full hybrid-adoption pattern.
 
 ```dql
 // If you have extracted business metrics, query them with timeseries

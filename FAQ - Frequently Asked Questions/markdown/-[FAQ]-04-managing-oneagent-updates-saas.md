@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -49,6 +49,10 @@ The intent is not to talk anyone out of auto-update. For most fleets, **automati
 >
 > **Inventory before the rollout reaches you**, not after: `smartscapeNodes "HOST" | fields id, name, oneagent.version` (or the Deployment Status screen) will name any host at or below 1.241. There is no grace path once the rejection lands — the fix is an upgrade.
 
+> **Breaking (OneAgent 1.347 — pre-release notes, staged rollout planned from 09/22/2026): updating ends monitoring of Java 23.** Verbatim: *"Starting from OneAgent version 1.347, Java 23 is no longer monitored."* Support now covers *"LTS versions plus the last four Java versions (24, 25, 26 and 27)."*
+>
+> This is the reverse of the floor above: here it is the **update** that drops coverage. On a fleet with auto-update on, Java 23 processes stop being monitored the day a host takes 1.347, with no error to explain the gap. The documented choices: *"If you are running Java 23, you can either update to Java 24+ and monitor your processes with OneAgent version 1.347, or you can keep using Java 23 with OneAgent version 1.345 and earlier."* Find your Java 23 processes before the rollout reaches your hosts, and if you must hold them, pin those hosts' OneAgent version (§4) rather than disabling updates fleet-wide. The same release also stops monitoring the `composefs` filesystem, which always reported 100% usage.
+
 OneAgent is the data-collection layer of the platform. Update cadence directly affects:
 
 - **Coverage parity with newly-supported technologies.** New runtime versions, frameworks, and infrastructure types arrive in OneAgent releases. A fleet running an older OneAgent loses coverage on whatever was added since.
@@ -65,7 +69,7 @@ OneAgent is the data-collection layer of the platform. Update cadence directly a
 
 In community practice, the most consistent benefit teams report from leaving auto-update on is "we stopped having a OneAgent-version inventory problem." Verify against your own change-control framework.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."*</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [What's new in Dynatrace OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — the Java 23 and `composefs` changes quoted above, [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."*</sub>
 
 <a id="mechanism"></a>
 ## 2. How OneAgent Updates Work on SaaS
