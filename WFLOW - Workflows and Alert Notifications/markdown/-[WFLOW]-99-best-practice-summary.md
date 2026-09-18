@@ -249,7 +249,7 @@ This notebook contains **91 best practices** across 13 categories extracted from
 - [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
-- [Upgrade guide — Alert notification (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification)
+- [Upgrade guide — Alert notification (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification)
 - [Dynatrace Developer Portal (Dynatrace)](https://developer.dynatrace.com/develop/)
 
 ---

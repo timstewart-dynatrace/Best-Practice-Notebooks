@@ -580,7 +580,7 @@ In this notebook, you learned:
 - [Business Observability umbrella (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability)
 - [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Cron expression sandbox (crontab.guru)](https://crontab.guru/)
-- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/manage/upgrade-guide-landing-page/upgrade-guide-alert-notification) — old→new mapping; states the Management Zone filter is no longer supported
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — old→new mapping; states the Management Zone filter is no longer supported
 
 ---
 

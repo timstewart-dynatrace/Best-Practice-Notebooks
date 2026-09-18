@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 09/09/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -74,9 +74,9 @@ timeseries {
 <a id="configuring"></a>
 ## 3. Configuring SLO Alerts in Dynatrace
 
-> **Rolling out (SaaS 1.347): Dynatrace now ships the multiwindow alert §2 teaches you to build.** Verbatim: *"Multi-window burn rate alerts are now available for SLOs. An alert fires only when the burn rate breaches its threshold in both the long and the short window at the same time."* That AND-across-two-windows condition is exactly the fast/slow pairing in §2 — so where this has landed, the product configures natively what the rest of this section wires together by hand.
+> **Announced, then withdrawn (SaaS 1.347).** An early version of the SaaS 1.347 release notes announced native multi-window burn-rate alerts for SLOs — the AND-across-two-windows condition §2 teaches you to build. Dynatrace took the item out of the notes on 09/08/2026, the day the rollout began: the changelog embedded in the release-notes page lists "Burn rate alerting for SLOs" among its removals, and as of 09/18/2026 the notes no longer mention burn-rate alerting at all.
 >
-> **Treat it as forthcoming, and keep building the manual path until you can see it.** SaaS 1.347 released 09/03/2026 with a **staged tenant rollout from 09/08/2026**, and as of **09/09/2026 the SLO documentation page still documents only the manual route** — a `burnRate` field added to the SLI plus Anomaly Detection with a -1h look-back, which is what §2 and the rest of §3 are built on. This entry therefore names the feature rather than teaching a configuration flow it cannot yet source: a UI walkthrough written from a one-sentence release note would be invention, not documentation. When the docs catch up, the native path becomes the recommended route and everything below becomes the fallback for tenants that have not taken 1.347.
+> **Build the manual path.** The SLO documentation still describes only the manual route — a `burnRate` field added to the SLI plus Anomaly Detection with a -1h look-back — which is what §2 and the rest of §3 build. If native multi-window alerting ships in a later release, it will appear in that release's notes, and this section will change then. Until it does, do not plan around it.
 
 Dynatrace surfaces SLO health as events you can alert on. In practice you have two routes:
 
@@ -100,7 +100,7 @@ If you want one aggregated burn-rate value across every contributing entity rath
 
 > The **slow-burn tier** (longer look-back, lower threshold, ticket-not-page routing) below is the standard SRE multiwindow pattern layered on top of this recipe — Dynatrace's docs describe the fast-burn -1h/10–14 configuration explicitly but do not publish an equivalent numeric recommendation for a slow-burn window, so treat those values as a sound starting point to tune against your own traffic and SLO criticality rather than a vendor-specified default.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the multi-window burn-rate alerting entry quoted above; [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — read 09/09/2026, still documenting only the manual `burnRate` + Anomaly Detection route, which is why this section names the feature rather than teaching a configuration flow.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — checked 09/18/2026: no burn-rate alerting item remains; see the page's changelog entry for 09/08/2026. [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — read 09/18/2026, still documenting only the manual `burnRate` + Anomaly Detection route.</sub>
 
 <a id="routing"></a>
 ## 4. Routing SLO Breaches

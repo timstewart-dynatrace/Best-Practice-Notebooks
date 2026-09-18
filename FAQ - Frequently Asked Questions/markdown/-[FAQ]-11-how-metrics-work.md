@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 08/31/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -174,16 +174,16 @@ The Grail catalog is also consolidated, not 1:1. The built-in-metrics page state
 | Data Explorer, Dashboards Classic | Classic | Metric selector |
 | Metrics API v2 (`/api/v2/metrics/query`) | Classic | Metric selector |
 
-The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as *"planned for a future release."* Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets, with the honest caveat that *"there isn't an exact, one-to-one mapping between Classic metric selectors and DQL"* — Classic's "Auto" pseudo-aggregation, notably, has no DQL equivalent.
+The migration state, per the docs: *"most but not all metrics are already supported on Grail"* — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as *"planned for a future release."* Data Explorer and Dashboards Classic ship a built-in **metric-selector-to-DQL converter** to help move assets. It does not cover everything: for what it cannot handle, the upgrade guide says to *"manually convert them by mapping Classic aggregations, transformations, and filters to their DQL equivalents."* Classic's "Auto" pseudo-aggregation is the common snag — *"As DQL doesn't have an equivalent pseudo-aggregation, you need to specify the aggregation explicitly."*
 
 **Practical rule:** author every *new* chart, alert, and automation in DQL against `dt.*` keys; treat metric selectors as the maintenance language for existing Classic assets until you migrate them (§8.4).
 
 > <sub>**Sources:**</sub>
 > - <sub>[Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — separate databases, dual-write, tool-to-backend mapping</sub>
-> - <sub>[Metrics on Grail upgrade guide (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade) — migration state, service-metric consolidation</sub>
+> - <sub>[Metrics on Grail upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics) — migration state, service-metric consolidation</sub>
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — `builtin:` ↔ `dt.` key mapping tables</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)</sub>
-> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion)</sub>
+> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion)</sub>
 > - <sub>[Data Explorer (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/explorer)</sub>
 
 <a id="ingest-paths"></a>
@@ -274,7 +274,9 @@ The classic mechanism (Settings → Log Monitoring → Metrics extraction) still
 
 ### 5.3 Calculated service metrics (Classic) — direction of travel
 
-Calculated service metrics are the classic way to derive request-scoped metrics (by URL pattern, request attribute, etc.). Their status is documented precisely: *"currently, no deprecation date is set"*, but *"when creating new calculated service metrics, you should use OpenPipeline, which uses metric extraction from span data"* — and *"OpenPipeline will eventually become the default method … at that point, the current calculated service metrics functionality will be deprecated."* The Grail path also lifts a real limitation: classic calculated metrics keep at most the top 100 dimension values, while Grail stores the full dimension cardinality (metrics already above 2,000 cardinality cannot be auto-upgraded).
+Calculated service metrics are the classic way to derive request-scoped metrics (by URL pattern, request attribute, etc.). Their status: *"OpenPipeline metric extraction now replaces calculated service metrics as the method to create additional service business or technical metrics"*, and *"If you're an existing customer, you can still use them until we deprecate them. If you're a new customer, you won't be able to create calculated service metrics anymore."* No deprecation date is published (checked 09/18/2026).
+
+**Existing calculated service metrics reach Grail by cardinality** (upgrade guide, rewritten 09/15/2026). One converts automatically when, among other criteria, *"The metric cardinality is less than 500 within any 5-minute window in the past two weeks"*; above that it must be switched on manually; and *"Classic calculated metrics with a cardinality exceeding 2,000 can't be converted to Grail calculated metrics"* — recreate those with OpenPipeline or DQL. Conversion does not double-bill — *"Calculated service metrics continue to consume your license like custom metrics. There are no changes to billing."* — but it can cost more: classic keeps *"at most 100 dimension values"*, while Grail keeps the full cardinality, so *"converting such a metric may increase the number of stored metric data points"*.
 
 
 > **Forthcoming/rolling out (SaaS 1.343, July 2026):** OpenPipeline metric extraction adds support for **histogram metrics** — you can extract a histogram (not just a counter or gauge value) from logs or spans, giving percentile-capable series from record data without shipping raw histograms through OTLP. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Until it arrives, the OTLP histogram path and counter/value extraction described in this section remain the available surfaces. This narrows the gap noted elsewhere in this entry between OTLP histogram ingestion and record-derived metrics.
@@ -283,7 +285,8 @@ Calculated service metrics are the classic way to derive request-scoped metrics 
 > - <sub>[OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — counter/value processors, supported scopes, Grail-only routing</sub>
 > - <sub>[Extract metrics from spans (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)</sub>
 > - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics) — classic `log.*` extraction modes</sub>
-> - <sub>[Calculated service metrics upgrade (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/calculated-service-metrics-upgrade) — deprecation posture, top-100 vs full cardinality</sub>
+> - <sub>[Calculated metrics for services (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric) — replacement by OpenPipeline, existing vs new customers</sub>
+> - <sub>[Upgrade from calculated service metrics to Grail (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/calculated-service-metrics-upgrade) — cardinality-based conversion, billing, top-100 vs full cardinality</sub>
 
 <a id="storage"></a>
 ## 6. Storage: Resolution, Rollups, and Retention
@@ -404,7 +407,7 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > - <sub>[Aggregation commands — makeTimeseries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands)</sub>
 > - <sub>[Metric selector (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector) — transformations, 10-metric cap</sub>
 > - <sub>[Metrics API v2 (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2)</sub>
-> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/upgrade/metric-selector-conversion)</sub>
+> - <sub>[Metric selector conversion (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion)</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — 20M vs 500M query ceilings</sub>
 > - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — timeseries queries always included</sub>
 
