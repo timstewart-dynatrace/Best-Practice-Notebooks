@@ -15,7 +15,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| How database monitoring works: OneAgent span capture vs ActiveGate extensions, database span anatomy (`db.*` attributes), entity model, discovering database services; the dedicated Databases app as a third analysis layer over both data sources — five analysis areas (configuration, schema, query, execution plan, and a rolled-up 0–100 **Health Score**) plus AI-generated remediation suggestions (GA August 2026 for PostgreSQL and MySQL, more technologies planned) | `-[DBMON]-01-database-monitoring-fundamentals.md` |
+| How database monitoring works: OneAgent span capture vs ActiveGate extensions, database span anatomy (`db.*` attributes), entity model, discovering database services; the dedicated Databases app as a third analysis layer over both data sources — five analysis areas (configuration, schema, query, execution plan, and a rolled-up 0–100 **Health Score**) plus AI-generated remediation suggestions (announced 08/2026 for PostgreSQL and MySQL, activated as New Database Monitoring) | `-[DBMON]-01-database-monitoring-fundamentals.md` |
 | PostgreSQL, MySQL/MariaDB, SQL Server, or Oracle: slow query detection, operation breakdown by table, connection monitoring, SQL Server ActiveGate extension (`sql-server.*` metrics, Always On, job logs) | `-[DBMON]-02-sql-databases.md` |
 | MongoDB, DynamoDB, Cassandra, or Cosmos DB: operation performance, read/write ratios, Request Units, cross-database comparison | `-[DBMON]-03-nosql-databases.md` |
 | Redis, Memcached, Kafka, RabbitMQ, or Elasticsearch: cache hit/eviction, consumer/producer throughput, queue health, search query latency | `-[DBMON]-04-cache-and-messaging.md` |

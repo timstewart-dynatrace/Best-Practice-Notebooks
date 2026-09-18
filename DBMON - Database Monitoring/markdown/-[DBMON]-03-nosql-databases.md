@@ -1,6 +1,6 @@
 # DBMON-03: NoSQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -51,7 +51,8 @@ Let's discover which NoSQL databases are active in your environment.
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -63,11 +64,13 @@ Let's discover which NoSQL databases are active in your environment.
 // Discover active NoSQL databases
 fetch spans, from:-1h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb", "couchbase", "hbase"})
+// db.operation.name is empty on some instrumentations — fall back to code.function (see §2)
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
-    unique_operations = countDistinct(db.operation.name)
+    unique_operations = countDistinct(operation)
 }, by:{db.system, server.address}
 | sort call_count desc
 ```
@@ -83,21 +86,25 @@ MongoDB is the most widely used document database. Dynatrace captures MongoDB op
 | Attribute | Description | Example |
 |-----------|-------------|---------|
 | `db.system` | Always `mongodb` | `mongodb` |
-| `db.operation` | MongoDB command | `find`, `insert`, `aggregate` |
+| `db.operation.name` | MongoDB command | `find`, `insert`, `aggregate` |
 | `db.namespace` | Database name | `orders`, `inventory` |
-| `db.mongodb.collection` | Target collection | `users`, `products` |
+| `db.collection.name` | Target collection | `users`, `products` |
 | `server.address` | MongoDB host (or mongos for sharded) | `mongo-primary.internal` |
+
+Which field carries the command depends on the instrumentation — check `db.operation.name` first, then `code.function` (OneAgent MongoDB) or `span.name` (OTel Redis). The MongoDB queries below fall back to `code.function` when `db.operation.name` is empty. Note that `code.function` is `experimental` in the semantic dictionary (read 09/18/2026), so re-check it before building long-lived dashboards on it.
 
 ```dql
 // MongoDB operation breakdown by collection
+// db.operation.name is the dictionary field, but OneAgent's MongoDB capture may leave it null
+// and carry the command in code.function — fall back so the breakdown is not silently empty.
 fetch spans, from:-1h
 | filter db.system == "mongodb"
-| filter isNotNull(db.operation.name)
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
 | summarize {
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-}, by:{db.namespace, db.collection.name, db.operation.name}
+}, by:{db.namespace, db.collection.name, operation}
 | sort call_count desc
 | limit 25
 ```
@@ -107,7 +114,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter db.system == "mongodb"
 | filter duration > 100ms
-| fields timestamp, db.namespace, db.collection.name, db.operation.name,
+| fields start_time, db.namespace, db.collection.name, db.operation.name,
         db.query.text, duration_ms = duration / 1ms
 | sort duration_ms desc
 | limit 20
@@ -115,10 +122,12 @@ fetch spans, from:-1h
 
 ```dql
 // MongoDB operation volume over time
+// Falls back to code.function where the instrumentation leaves db.operation.name empty (see §2).
 fetch spans, from:-6h
 | filter db.system == "mongodb"
-| filter isNotNull(db.operation.name)
-| makeTimeseries ops = count(), by:{db.operation.name}, interval:5m
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
+| makeTimeseries ops = count(), by:{operation}, interval:5m
 ```
 
 <a id="dynamodb-monitoring"></a>

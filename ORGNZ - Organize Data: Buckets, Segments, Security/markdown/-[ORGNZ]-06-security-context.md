@@ -1,6 +1,6 @@
 # ORGNZ-06: Security Context
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -88,50 +88,43 @@ dt.security_context: ["team-a", "project-x", "compliance"]
 
 <a id="setting-security-context"></a>
 ## Setting Security Context
-### Via OpenPipeline
 
-Configure OpenPipeline to add security context based on record attributes:
+*"Set the dt.security_context field as early as possible in the data pipeline, ideally at the source."* Dynatrace lists the patterns in order of preference and is explicit about the order: *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."* A value set at the source is on the record before pipeline routing, so the record reaches the right pipeline and bucket from the start.
 
-1. Go to **Settings** > **Log Processing** > **OpenPipeline**
-2. Select your pipeline
-3. Go to **Permission** tab
-4. Add **Set Security Context** processor
+> **Corrected 09/18/2026.** Earlier versions of this notebook showed a `dynatrace.com/security-context` Kubernetes label and annotation, a YAML OpenPipeline processor, and an automatic host-group mapping. None of those is documented, and Dynatrace does not read that label or annotation. If you copied them, replace them with one of the patterns below.
 
-```yaml
-# OpenPipeline security context processor
-processors:
-  - type: security-context
-    rules:
-      - condition: "host.group starts-with 'finance-'"
-        context: "lob:finance"
-      - condition: "k8s.namespace.name == 'checkout'"
-        context: "team:checkout"
-      - condition: "matchesValue(service.name, 'payment-*')"
-        context: "team:payments"
-```
+### 1. At the source (preferred)
 
-### Via OneAgent
+| Source | How |
+|--------|-----|
+| OneAgent host tag | *"OneAgent host tags: Add dt.security_context=<value> as a host tag during installation or via Deployment Status."* Applies to all telemetry from that host. |
+| Process on shared infrastructure | Set `DT_TAGS="dt.security_context=<value>"` as an environment variable on the process. |
+| Kubernetes | Namespace labels or annotations, mapped through Kubernetes metadata enrichment — see below. |
+| OpenTelemetry | Add `dt.security_context` as a resource attribute in `OTEL_RESOURCE_ATTRIBUTES` or in the OpenTelemetry Collector. |
 
-OneAgent can set security context based on:
+### 2. Central configuration
 
-| Source | Configuration |
-|--------|---------------|
-| Host groups | Automatic from host group membership |
-| Kubernetes labels | Map labels to security context |
-| Cloud metadata | Use cloud account/project info |
-| Custom tags | Reference existing tags |
+Under **Settings > Collect and capture**, the central primary Grail tag configuration maps a tag, label or resource attribute to `dt.security_context` — or, per the docs, can *"Set a fixed value for all signals within a given scope (environment, Kubernetes cluster, host group)."* That fixed value is how you give a whole host group one security context; nothing assigns it automatically from group membership.
 
-### Via Kubernetes
+### 3. OpenPipeline (refinement)
 
-Use labels or annotations to set security context:
+Use OpenPipeline only where the value has to be computed from several fields: *"define dt.security_context in OpenPipeline using dedicated Set security context processors. These are available for spans, logs, and metrics."* Configure them in the OpenPipeline app for the relevant scope.
+
+### Kubernetes
+
+Use existing namespace labels or annotations: *"Via the Kubernetes metadata enrichment feature, you can use already existing namespace labels and annotations as source for your security context."* Metadata enrichment must be enabled in Dynatrace Operator.
+
+A pod annotation is the fallback, not the default — *"Dedicated pod annotations are only intended for scenarios where namespace labels or annotations cannot be used as a source."* The documented annotation is:
 
 ```yaml
 metadata:
-  labels:
-    dynatrace.com/security-context: "team:checkout"
   annotations:
-    dynatrace.com/security-context: "compliance:pci"
+    metadata.dynatrace.com/dt.security_context: "team-checkout"
 ```
+
+It also enriches less: *"They do not enrich Kubernetes metrics, Kubernetes events, Kubernetes Smartscape entities, or Prometheus metrics."*
+
+> <sub>**Sources:** [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context), [Kubernetes security context (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/k8-security-context).</sub>
 
 <a id="iam-policies-with-security-context"></a>
 ## IAM Policies with Security Context

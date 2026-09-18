@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 08/28/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -44,8 +44,8 @@ Dynatrace monitors databases through two complementary approaches:
 OneAgent captures every database call as a **span** in the distributed trace. These spans contain:
 
 - **`db.system`** — The database technology (e.g., `postgresql`, `mysql`, `mongodb`)
-- **`db.statement`** — The query or command executed (normalized to remove literals)
-- **`db.operation`** — The operation type (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `find`, `aggregate`)
+- **`db.query.text`** — The query or command executed (normalized to remove literals)
+- **`db.operation.name`** — The operation type (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `find`, `aggregate`)
 - **`db.namespace`** — The database or schema name
 - **`server.address`** — The database server hostname or IP
 - **`server.port`** — The database server port
@@ -56,7 +56,7 @@ OneAgent captures every database call as a **span** in the distributed trace. Th
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Path | Captures | DQL pattern |
 |------|----------|-------------|
-| OneAgent client-side | Span attributes (db.system, db.statement, duration) for every DB call from app | fetch spans \| filter db.system == "..." |
+| OneAgent client-side | Span attributes (db.system, db.query.text, duration) for every DB call from app | fetch spans \| filter db.system == "..." |
 | ActiveGate Extensions server-side | Server-internal metrics (connections, buffer hit ratio, table sizes, deadlocks) | timeseries on extension-emitted metric keys |
 For environments where SVG doesn't render
 -->
@@ -69,7 +69,8 @@ Let's examine the structure of a database span by querying for recent database c
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -81,10 +82,10 @@ Let's examine the structure of a database span by querying for recent database c
 // Inspect database span fields — sample 10 recent DB calls
 fetch spans, from:-1h
 | filter isNotNull(db.system)
-| fields timestamp, db.system, db.operation.name, db.namespace,
+| fields start_time, db.system, db.operation.name, db.namespace,
         db.query.text, server.address, server.port,
         duration, span.kind, dt.entity.service
-| sort timestamp desc
+| sort start_time desc
 | limit 10
 ```
 
@@ -93,18 +94,20 @@ The query above returns the key attributes of each database span:
 | Field | Description | Example |
 |-------|-------------|---------|
 | `db.system` | Database technology identifier | `postgresql`, `mysql`, `mongodb` |
-| `db.operation` | SQL command or DB operation | `SELECT`, `INSERT`, `find` |
+| `db.operation.name` | SQL command or DB operation | `SELECT`, `INSERT`, `find` |
 | `db.namespace` | Database or schema name | `orders_db`, `inventory` |
-| `db.statement` | Normalized query text | `SELECT * FROM orders WHERE id = ?` |
+| `db.query.text` | Normalized query text | `SELECT * FROM orders WHERE id = ?` |
 | `server.address` | Database host | `db-prod-01.internal` |
 | `duration` | Execution time in nanoseconds | `1500000` (1.5ms) |
-| `span.kind` | Always `CLIENT` for outgoing DB calls | `CLIENT` |
+| `span.kind` | `client` for outgoing DB calls (lowercase) | `client` |
 
 <a id="discovering-database-services"></a>
 
 ## 3. Discovering Database Services
 
-Dynatrace automatically creates **database service entities** when it detects database calls. These entities represent the logical database endpoint, not the host. Let's discover what database services exist in your environment.
+Dynatrace records each database call as a **client span on the calling service**, described by `db.*` attributes — the service, not a separate database entity, is where the impact shows. Let's discover which services call which databases.
+
+> <sub>**Sources:** [Database query monitoring in Services (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-database-monitoring) — *"When a service makes a database call, Dynatrace captures it as a database client span."*</sub>
 
 ```dql
 // Discover which services call databases, and what they call.
@@ -113,7 +116,7 @@ Dynatrace automatically creates **database service entities** when it detects da
 // (its model is id / id_classic / name / type / tags / lifetime / references), so filtering
 // a Smartscape node on serviceType == "DATABASE_SERVICE" matches nothing. Under service
 // detection v2 there is no separate DATABASE_SERVICE entity at all: a database call is a
-// CLIENT span on the calling service, described by db.* attributes. Start from the spans
+// client span on the calling service, described by db.* attributes. Start from the spans
 // and resolve the service identity from there.
 fetch spans, from:-24h
 | filter isNotNull(db.system)
@@ -198,7 +201,7 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 
 > **Important:** The `db.system` field follows the OpenTelemetry semantic conventions. The exact values may vary depending on the database driver and instrumentation version.
 
-> **Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.** The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — **21 models** in total, each with `belongs_to` / `runs_on` / `is_part_of` / `same_as` / `uses` relationship properties. (Verified against the live Semantic Dictionary: `fetch dt.semantic_dictionary.models | filter startsWith(name, "dt.smartscape.db_")` returns 21.) As these roll out, expect database topology to surface as typed Smartscape nodes rather than only the generic `DATABASE_SERVICE` shape used in §3. The span-level `db.system` analysis in this series is unaffected.
+> **Semantic Dictionary 1.340 (May 2026) — first-class Smartscape database models.** The Semantic Dictionary now defines dedicated Smartscape models for major database technologies: Oracle Database (ASM disk group, cluster, instance, database), SQL Server (availability database / group / replica, instance, database), SAP HANA (database, instance, service), IBM Db2 (database member, instance, tablespace), MySQL, MariaDB, and PostgreSQL (database + instance each) — **21 models** in total, each with `belongs_to` / `runs_on` / `is_part_of` / `same_as` / `uses` relationship properties. (Verified against the live Semantic Dictionary: `fetch dt.semantic_dictionary.models | filter startsWith(name, "dt.smartscape.db_")` returns 21.) As these roll out, expect database topology to surface as typed Smartscape nodes alongside the span-based view in §3. The span-level `db.system` analysis in this series is unaffected.
 
 > **OneAgent 1.339 (June 2026) — Db2 naming is now mixed case.** Db2 database naming switched to mixed case, so saved DQL or filters that match Db2 *entity or database names* case-sensitively may need updating. The `db.system == "db2"` span-attribute filters used throughout this series follow the OpenTelemetry semantic convention (lowercase value) and are unaffected.
 
@@ -228,7 +231,7 @@ While OneAgent captures database calls from the application side (client spans),
 
 | Component | Role |
 |-----------|------|
-| **ActiveGate** | Hosts the extension runtime; must be **host-based** (not Kubernetes-based) for Extensions 2.0 — verify current Kubernetes-based ActiveGate support against the Dynatrace docs |
+| **ActiveGate** | Hosts the extension runtime. Two deployments: an **Environment ActiveGate** (the classic path), or — for SQL extensions, from Dynatrace 1.346 with Dynatrace Operator 1.8+ — **SQL Extension Executor pods in Kubernetes**, coordinated by the EEC and forwarding through an ActiveGate pod. Dynatrace 1.346 is rolling out to tenants in stages — verify it has reached yours; until then the Environment ActiveGate is the working path. |
 | **Extension Package** | YAML-defined declarative package executed by the Extension Execution Controller (EEC). Most database extensions ship with built-in SQL/Prometheus/SNMP data sources; custom logic can be added via an optional Python data source |
 | **Monitoring Configuration** | Defines connection string, credentials, polling interval, and the destination Grail bucket |
 | **`default_database_monitoring` bucket** | Where extension logs land by default; reference this bucket in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05) |
@@ -243,15 +246,15 @@ While OneAgent captures database calls from the application side (client spans),
 | **Oracle** | Sessions, tablespace usage, SGA/PGA memory, redo log waits, library cache hit ratio |
 | **MongoDB** | Connections, operations/sec, document metrics, replica set health, storage engine stats |
 
-> **Note:** the SQL / Prometheus / SNMP data sources these database extensions use run on an **Environment (host-based) ActiveGate**, which is the deployment to plan for. Support for other ActiveGate deployments varies by data source and is not stated in one place — **verify against the extension's own Hub/docs page for your deployment** rather than assuming. This entry previously said a Kubernetes-based ActiveGate is *"not supported"*; that flat negative is not something the documentation states, so it has been removed rather than replaced with a different unsourced claim (corrected 08/27/2026).
+> **Note:** the SQL / Prometheus / SNMP data sources these database extensions use run on an **Environment (host-based) ActiveGate**, which remains the working path. **SQL** extensions now have a second option: *Run SQL extensions on Kubernetes* documents Oracle, Microsoft SQL Server, PostgreSQL, MySQL / MariaDB, SAP HANA, IBM Db2 and Generic JDBC running on SQL Extension Executor pods that Dynatrace Operator 1.8+ deploys, with Dynatrace 1.346+ and SQL Extension Executor / EEC 1.345+ as prerequisites. Dynatrace 1.346 reaches tenants through a staged rollout — confirm your tenant version before choosing it. Both pages are cited below; Prometheus and SNMP data sources are not covered by them.
 
 ### Where to Go Deeper
 
-- **AUTOM series** (11 notebooks) — GitOps / Monaco / Terraform automation for extension deployment at scale
+- **AUTOM series** (14 notebooks) — GitOps / Monaco / Terraform automation for extension deployment at scale
 - **ORGNZ-02** — Bucket strategy (including `default_database_monitoring`)
 - **IAM-04 / IAM-05** — Policy design that scopes extension log access by bucket
 
-> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model; note recent pages say simply *"Extensions"* and mean 2.0, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than from a single page — re-confirm before planning a migration around them.</sub>
+> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model; note recent pages say simply *"Extensions"* and mean 2.0, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [Run SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes) — *"The following database types are supported, both as official Dynatrace Hub extensions and as custom extensions"*; prerequisites Dynatrace 1.346+, SQL Extension Executor 1.345+, Extension Execution Controller 1.345+, [Enable Dynatrace SQL database extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions) — *"SQL Extension Executor pods query your databases and collect metrics. The EEC coordinates task distribution across SQL Extension Executor pods and forwards collected data to the ActiveGate, which enriches and routes it to the Dynatrace backend."* **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than from a single page — re-confirm before planning a migration around them.</sub>
 
 > **New (SaaS 1.346 — staged rollout from 08/25/2026): a `definity` extension for data-pipeline observability.** Verbatim: *"The new definity extension is introduced. It ingests pipeline health, performance, and cost data into Dynatrace, giving you visibility into your lakehouse and Spark pipeline ecosystem."*
 >
@@ -276,7 +279,7 @@ Grant `storage:bucket.default_database_monitoring:read` to roles that need to qu
 
 ### Dynatrace Database App — Analysis-First Observability
 
-Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as **available for PostgreSQL and MySQL**, with support for additional technologies coming soon. (The announcement and docs page carry no **GA** or preview label — that lifecycle term is not applied by any source, so it is not used here.)
+Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as **available for PostgreSQL and MySQL**, with support for additional technologies coming soon. (The announcement and docs page carry no **GA** or preview label — that lifecycle term is not applied by any source, so it is not used here.) Verify the app is enabled on your tenant before relying on it.
 
 The app evaluates each monitored database instance across five areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** (0–100) — and surfaces AI-generated remediation suggestions backed by Dynatrace Intelligence.
 
@@ -325,8 +328,8 @@ fetch spans, from:-24h
 In this notebook you learned:
 
 - How Dynatrace captures database activity through OneAgent span instrumentation
-- The key span attributes (`db.system`, `db.statement`, `db.operation`, `db.namespace`) that describe each database call
-- How to discover database service entities and active database technologies
+- The key span attributes (`db.system`, `db.query.text`, `db.operation.name`, `db.namespace`) that describe each database call
+- How to discover which services call which databases, and which technologies are active
 - The role of ActiveGate extensions for server-side database metrics
 - How to establish a performance baseline using span data
 

@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -174,7 +174,7 @@ Within the upgrade phase, follow this precise execution order:
 | Compare entity counts against inventory | Run `fetch dt.entity.host \| summarize count()` (and service, application, process_group, synthetic_test). Counts must match the planning-phase inventory. | Critical |
 | Verify metrics flow with no gaps >15 minutes | Run `timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}` and check for nulls. Any host returning null has a data gap. | Critical |
 | Validate log ingestion is continuous | Run `fetch logs, from:-1h \| summarize count(), by:{bin(timestamp, 5m)}` and confirm no 5-minute buckets with zero count. | Critical |
-| Confirm distributed traces are flowing | Run `fetch spans, from:-1h \| summarize count(), by:{bin(timestamp, 5m)}`. Zero spans after agent migration means application processes need restart. | Critical |
+| Confirm distributed traces are flowing | Run `fetch spans, from:-1h \| summarize count(), by:{bin(start_time, 5m)}`. Zero spans after agent migration means application processes need restart. | Critical |
 | Get stakeholder sign-off | Obtain written approval from: Platform Team Lead, Security Team, Application Teams, Executive Sponsor. | Critical |
 | Keep Managed running 2–4 weeks post-migration | Maintain access for historical reference and comparison. Decommission only after full validation period. | Recommended |
 | Archive migration artifacts before decommission | Save SaaS Upgrade Assistant deploy result CSVs, entity inventory spreadsheets, and configuration mapping documents before decommissioning Managed. | Recommended |

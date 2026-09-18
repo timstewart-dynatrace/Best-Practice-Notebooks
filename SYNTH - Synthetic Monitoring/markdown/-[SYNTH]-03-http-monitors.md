@@ -1,6 +1,6 @@
 # SYNTH-03: HTTP Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Lightweight API and Endpoint Monitoring
 This notebook covers HTTP monitors for API health checks, endpoint validation, and multi-step API workflows using the latest Dynatrace platform.
@@ -9,12 +9,13 @@ This notebook covers HTTP monitors for API health checks, endpoint validation, a
 
 ## Table of Contents
 
-1. [Single Request Monitors](#single-request-monitors)
-2. [Multi-Step HTTP Monitors](#multi-step-http-monitors)
-3. [Authentication](#authentication)
-4. [Response Validation](#response-validation)
-5. [SSL Certificate Monitoring](#ssl-certificate-monitoring)
-6. [Analyzing HTTP Results](#analyzing-http-results)
+1. [HTTP Monitor Overview](#http-monitor-overview)
+2. [Single Request Monitors](#single-request-monitors)
+3. [Multi-Step HTTP Monitors](#multi-step-http-monitors)
+4. [Authentication](#authentication)
+5. [Response Validation](#response-validation)
+6. [SSL Certificate Monitoring](#ssl-certificate-monitoring)
+7. [Analyzing HTTP Results](#analyzing-http-results)
 
 ---
 
@@ -40,7 +41,7 @@ HTTP monitors execute lightweight HTTP requests without browser overhead:
 | Speed | Fast (< 1s typical) | Slower (3-30s) |
 | Resources | Minimal | Chrome instance |
 | JavaScript | Not executed | Fully executed |
-| Frequency | 1-60 minutes | 5-60 minutes |
+| Frequency | 1 min and up (to 4 h), or on demand | 5, 10, 15, 30 min; 1, 2, 4 h; or on demand |
 | Cost | Lower | Higher |
 
 ### Use Cases
@@ -109,7 +110,8 @@ smartscapeNodes "HTTP_MONITOR"
 // | summarize steps = count(), by:{monitor = name}
 // | sort steps desc
 
-// FALLBACK (classic surface -- still functional):
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
 // fetch dt.entity.http_check
 // | fields id, entity.name
 // | sort entity.name asc
@@ -148,20 +150,32 @@ Chain multiple HTTP requests with data passing between steps:
 | 6 | Validate response | Verify orders array exists |
 -->
 
-### Variable Extraction
+### Passing Values Between Requests
 
-| Source | Syntax | Example |
-|--------|--------|----------|
-| JSON path | `$.data.token` | Extract from JSON body |
-| Response header | `header:X-Request-Id` | Extract from headers |
-| Regex | `token":"([^"]+)` | Pattern matching |
+HTTP monitors have no declarative JSON-path or header extractor. A value is carried forward by a **post-execution script** on the request that returns it, which stores the value with `api.setValue()`:
+
+```javascript
+// Post-execution script on request 1 (POST /auth/login)
+if (response.getStatusCode() != 200) {
+    api.fail("HTTP error: " + response.getStatusCode());
+}
+var jsonData = JSON.parse(response.getResponseBody());
+api.setValue("token", jsonData.access_token);
+api.setValue("userId", jsonData.user.id);
+```
+
+`response.getResponseBody()` *"returns the first 50 KB of the response body as a string"*, so a value beyond that point cannot be read this way. Response headers are available to the same script through `response.getHeaders()`.
 
 ### Using Variables
 
-Reference extracted variables in subsequent steps:
-- URL: `https://api.example.com/users/${userId}`
-- Header: `Authorization: Bearer ${token}`
-- Body: `{"userId": "${userId}"}`
+Reference a stored value in any later request field with **single braces and no `$`**:
+- URL: `https://api.example.com/users/{userId}`
+- Header: `Authorization: Bearer {token}`
+- Body: `{"userId": "{userId}"}`
+
+`${userId}` is not substituted — the monitor sends the literal text.
+
+> <sub>**Sources:** [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*; [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"Pre and post execution scripts allows you to add custom logic between HTTP monitor requests to do things like parsing the response, modifying the request URL, or skipping requests under certain conditions."*</sub>
 
 ```dql
 // Multi-step HTTP monitor — per-step performance
@@ -194,24 +208,28 @@ fetch dt.synthetic.events, from: now() - 24h
 
 Store sensitive credentials securely:
 
-1. **Settings → Integration → Credential vault**
+1. **Credential Vault**
 2. Add credential (username/password, token, certificate)
-3. Reference in monitor: `${credentials.vault.myCredential}`
+3. Reference it in the URL, a header or the body as `{CREDENTIALS_VAULT-<id>|username}`, `{CREDENTIALS_VAULT-<id>|password}` or `{CREDENTIALS_VAULT-<id>|token}` — the documented form is *"{<credential ID>|token} , {<credential ID>|username} , or {<credential ID>|password}"*
 
 ### OAuth2 Flow Example
 
-```
-Step 1: Get Token
+```text
+Request 1: Get token
     POST https://auth.example.com/oauth/token
     Body: grant_type=client_credentials
-          &client_id=${vault.clientId}
-          &client_secret=${vault.clientSecret}
-    Extract: access_token
+          &client_id={CREDENTIALS_VAULT-<id>|username}
+          &client_secret={CREDENTIALS_VAULT-<id>|password}
+    Post-execution script:
+          var jsonData = JSON.parse(response.getResponseBody());
+          api.setValue("bearerToken", jsonData.access_token);
 
-Step 2: API Call
+Request 2: API call
     GET https://api.example.com/data
-    Header: Authorization: Bearer ${access_token}
+    Header: Authorization: Bearer {bearerToken}
 ```
+
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — its OAuth example parses the token response with `JSON.parse` and stores the token with `api.setValue`.</sub>
 
 <a id="response-validation"></a>
 ## 5. Response Validation
@@ -231,27 +249,26 @@ Step 2: API Call
 | **Contains** | Text present | `"status": "ok"` |
 | **Not Contains** | Text absent | `"error"` |
 | **Regex** | Pattern match | `"id":\s*\d+` |
-| **JSON Path** | Value at path | `$.status == "success"` |
 
-### JSON Path Assertions
+Text and regex rules are evaluated over the first 50 KB of the response body.
 
-```json
-// Response:
-{
-  "status": "success",
-  "data": {
-    "users": [
-      {"id": 1, "name": "John"},
-      {"id": 2, "name": "Jane"}
-    ]
-  }
+### Checking JSON Responses
+
+JSON-path assertions are **not** an HTTP-monitor rule type. The documented rule types are *"Response status code validation Text validation, where the first 50 KB of the response body is checked for a string of text or a regular expression SSL certificate expiry validation"*, and when several are configured, *"HTTP status code validation is the most important, followed by text and regular expression validation, and finally by SSL certificate expiry validation."*
+
+For a structured check, either match the JSON as text or regex (for example `"status":\s*"success"`), or assert in a post-execution script, where `api.fail()` *"marks the request as failed, providing the message as the reason, and marks the monitor execution as failed"*:
+
+```javascript
+var d = JSON.parse(response.getResponseBody());
+if (d.status !== "success") {
+    api.fail("status=" + d.status);
 }
-
-// Assertions:
-$.status == "success"           // Check status
-$.data.users.length > 0         // Array not empty
-$.data.users[0].name == "John"  // First user name
+if (!d.data || !d.data.users || d.data.users.length === 0) {
+    api.fail("users array is empty");
+}
 ```
+
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic).</sub>
 
 ```dql
 // HTTP status code distribution
@@ -383,9 +400,9 @@ In this notebook, you learned:
 
 ✅ **HTTP monitor types** - Single request vs multi-step  
 ✅ **Request configuration** - Methods, headers, body  
-✅ **Multi-step workflows** - Variable extraction and chaining  
+✅ **Multi-step workflows** - Values passed with `api.setValue()` and referenced as `{variable}`  
 ✅ **Authentication** - Basic, Bearer, OAuth2, API keys  
-✅ **Response validation** - Status codes, content, JSON path  
+✅ **Response validation** - Status codes, text/regex, post-execution script checks  
 ✅ **SSL monitoring** - Certificate expiration via `result.statistics.peer_certificate_expiry_date`  
 ✅ **Analysis queries** - Availability, percentiles, timing breakdown  
 
@@ -402,6 +419,7 @@ Continue to **SYNTH-04: Private Locations** to learn about running monitors from
 - [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor)
 - [HTTP monitor metrics in Synthetic on Grail (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/http-monitor-metrics)
 - [Credential vault (DT docs)](https://docs.dynatrace.com/docs/manage/credential-vault)
+- [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic)
 - [Synthetic app (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app)
 
 ---

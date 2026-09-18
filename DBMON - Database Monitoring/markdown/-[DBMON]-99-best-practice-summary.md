@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -33,7 +33,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |-------------|--------|
 | **Dynatrace Environment** | SaaS or Managed with Grail enabled |
 | **OneAgent** | Deployed on all application hosts making database, cache, and messaging calls |
-| **ActiveGate** | Host-based ActiveGate for Extensions 2.0 (remote DB metrics) |
+| **ActiveGate** | Environment ActiveGate for Extensions 2.0 (remote DB metrics), or — SQL extensions only, Dynatrace 1.346+ (staged rollout; verify it has reached your tenant) — SQL Extension Executor on Kubernetes via Dynatrace Operator 1.8+ |
 | **Permissions** | `storage:spans:read`, `storage:entities:read`, `storage:metrics:read` |
 | **Prior Reading** | DBMON-01 through DBMON-06 for full context |
 
@@ -46,7 +46,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 1 | Deploy OneAgent on every host that makes database calls | OneAgent installed on all application servers, not just database servers | **Critical** | Deployment |
 | 2 | Enable deep code-level instrumentation | OneAgent auto-instruments JDBC, ADO.NET, and native database drivers by default; do not disable | **Critical** | Deployment |
 | 3 | Verify `db.system` attribute is populated | Run `fetch spans, from:-1h \| filter isNotNull(db.system) \| summarize count(), by:{db.system}` — every expected technology must appear | **Critical** | Validation |
-| 4 | Verify `db.statement` capture is enabled | Confirm normalized SQL/commands appear in `db.statement` field; if blank, check OneAgent deep monitoring settings | **Critical** | Validation |
+| 4 | Verify `db.query.text` capture is enabled | Confirm normalized SQL/commands appear in `db.query.text` field; if blank, check OneAgent deep monitoring settings | **Critical** | Validation |
 | 5 | Confirm `db.namespace` is present | Run `filter isNotNull(db.namespace)` on spans; missing values indicate driver-level gaps | **Recommended** | Validation |
 | 6 | Ensure `server.address` and `server.port` resolve | These fields must contain the actual database endpoint, not `localhost` or `127.0.0.1` when the DB is remote | **Recommended** | Validation |
 
@@ -56,7 +56,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 7 | Build new database integrations on Extensions 2.0 | Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. the SQL / Prometheus / SNMP data sources these extensions use run on an **Environment (host-based) ActiveGate** — support for other ActiveGate deployments varies by data source and is not stated in one place, so verify for yours rather than assuming (the flat *"K8s-based AG not supported"* claim carried here previously is not documented; corrected 08/27/2026) | **Critical** | Deployment |
+| 7 | Build new database integrations on Extensions 2.0 | Extensions 2.0 is the current extensions framework; Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. The SQL / Prometheus / SNMP data sources these extensions use run on an **Environment (host-based) ActiveGate**, the working path; SQL extensions (Oracle, SQL Server, PostgreSQL, MySQL/MariaDB, SAP HANA, Db2, Generic JDBC) can alternatively run on **SQL Extension Executor pods in Kubernetes** via Dynatrace Operator 1.8+, from Dynatrace 1.346 — a staged rollout, so verify it has reached your tenant; until then the Environment ActiveGate remains the working path | **Critical** | Deployment |
 | 7b | Extensions are YAML-defined with optional Python data sources | YAML package executed by EEC; built-in SQL/Prometheus/SNMP data sources cover most cases; Python data source is for custom logic only — not required by default | **Recommended** | Architecture |
 | 7c | Route extension logs to the `default_database_monitoring` bucket | Default destination for extension log output; reference this bucket name in IAM policies for DB-team access scoping (see ORGNZ-02 + IAM-04/05) | **Recommended** | IAM/Bucket |
 | 8 | Install PostgreSQL extension | Captures: connections, transactions/sec, tuple operations, table/index sizes, lock waits, replication lag | **Recommended** | Extension |
@@ -66,15 +66,14 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 12 | Install MongoDB extension | Captures: connections, operations/sec, document metrics, replica set health, storage engine stats | **Recommended** | Extension |
 | 13 | Set extension polling interval to 60 seconds | Default polling; do not exceed 300s or real-time visibility degrades | **Recommended** | Configuration |
 
-### Dynatrace Database App (GA August 2026)
+### Dynatrace Databases App
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 13b | Use the Database App Health Score for first-pass triage | available since 08/2026 (no GA label is applied by any source) for **PostgreSQL and MySQL** (additional technologies planned); each instance gets a 0-100 score combining availability, performance, configuration, and resource usage — check it before running manual DQL analysis | **Recommended** | Triage |
 | 13c | Use the app's execution-plan visualization as a first pass, not a replacement | Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover | **Recommended** | Diagnostics |
-</cell id="cell-activegate">
 
-> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than a single page — re-confirm before planning a migration around them.</sub>
+> <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [Run SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes), [Enable Dynatrace SQL database extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions), [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket. **Derived:** the EF 1.0 end-of-support dates are carried from the extensions lifecycle announcements rather than a single page — re-confirm before planning a migration around them.</sub>
 
 <a id="span-attribute-coverage"></a>
 
@@ -82,10 +81,10 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 14 | Validate all six core DB span attributes | Every database span must carry: `db.system`, `db.statement`, `db.operation`, `db.namespace`, `server.address`, `server.port` | **Critical** | Data Quality |
-| 15 | Check for NULL fields periodically | Run `filter isNotNull(db.operation)` — NULL means the driver is not reporting the operation type; investigate driver version | **Recommended** | Data Quality |
-| 16 | Verify span.kind is CLIENT for outgoing DB calls | All database spans from the calling application must have `span.kind == "CLIENT"` | **Recommended** | Data Quality |
-| 17 | For Kafka, verify `messaging.system` attribute | Kafka spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name`, `messaging.operation`, and `messaging.kafka.consumer.group` are populated | **Critical** | Data Quality |
+| 14 | Validate all six core DB span attributes | Every database span must carry: `db.system`, `db.query.text`, `db.operation.name`, `db.namespace`, `server.address`, `server.port` | **Critical** | Data Quality |
+| 15 | Check for NULL fields periodically | Run `filter isNotNull(db.operation.name)` — NULL can mean the instrumentation carries the command in another field (`code.function` for OneAgent MongoDB, `span.name` for OTel Redis) rather than a driver fault; check those before investigating the driver version | **Recommended** | Data Quality |
+| 16 | Verify span.kind is client for outgoing DB calls | All database spans from the calling application must have `span.kind == "client"` (lowercase) | **Recommended** | Data Quality |
+| 17 | For Kafka, verify `messaging.system` attribute | Kafka spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name`, `messaging.operation.type`, and `messaging.consumer.group.name` are populated | **Critical** | Data Quality |
 | 18 | For RabbitMQ, verify `messaging.system` attribute | RabbitMQ spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name` is populated | **Critical** | Data Quality |
 
 <a id="sql-database-monitoring"></a>
@@ -94,13 +93,13 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 19 | Set slow query threshold for SQL databases | **500ms** — any SQL query exceeding `duration > 500ms` (500ms in nanoseconds) is classified as slow | **Critical** | Threshold |
+| 19 | Set slow query threshold for SQL databases | **500ms** — any SQL query exceeding `duration > 500ms` is classified as slow | **Critical** | Threshold |
 | 20 | Track read/write ratio | Classify operations: `SELECT` = READ, `INSERT/UPDATE/DELETE` = WRITE; monitor ratio shifts over time | **Recommended** | Analysis |
 | 21 | Rank queries by total execution time, not average | Sort by `total_time_ms = sum(duration)` to find highest-impact patterns regardless of individual speed | **Critical** | Optimization |
 | 22 | Monitor response time distribution using latency tiers | Bucket into: `<1ms`, `1-10ms`, `10-100ms`, `100ms-1s`, `>1s` — track tier distribution over time | **Recommended** | Analysis |
 | 23 | Baseline P50, P95, P99 over 24 hours | Run hourly percentile query on `duration` for each `db.system`; this is your performance reference point | **Critical** | Baseline |
 | 24 | Monitor vendor-specific patterns | PostgreSQL: vacuum/lock contention; MySQL: buffer pool/replication lag; MSSQL: page life expectancy/deadlocks; Oracle: tablespace/SGA | **Recommended** | Vendor |
-| 25 | Track errors by `span.status_message` | Group `span.status_code == "error"` by `span.status_message` to distinguish connection timeouts, deadlocks, and constraint violations | **Critical** | Error Handling |
+| 25 | Track errors by the recorded exception | Group `span.status_code == "error"` spans by the exception recorded in `span.events` (`exception.type`, `exception.message`) to distinguish connection timeouts, pool exhaustion, deadlocks, and constraint violations; `span.status_message` is experimental and often empty | **Critical** | Error Handling |
 
 
 ### Sprint-1.338 Update (May 2026)
@@ -118,7 +117,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 26 | Set slow query threshold for NoSQL databases | **100ms** for MongoDB; **300ms** critical threshold for all NoSQL | **Critical** | Threshold |
-| 27 | Monitor MongoDB by collection | Group by `db.mongodb.collection` in addition to `db.namespace` — collection-level granularity reveals hot spots | **Critical** | MongoDB |
+| 27 | Monitor MongoDB by collection | Group by `db.collection.name` in addition to `db.namespace` — collection-level granularity reveals hot spots | **Critical** | MongoDB |
 | 28 | Track DynamoDB Scan-to-Query ratio | `Scan` operations read every item in the table; ratio must be Query-dominated; any high Scan count signals missing Global Secondary Indexes | **Critical** | DynamoDB |
 | 29 | Set Cassandra slow threshold at 200ms | `filter duration > 200ms` — Cassandra operations exceeding 200ms indicate partition hotspots or cross-DC reads | **Recommended** | Cassandra |
 | 30 | Monitor Cosmos DB by operation and error rate | Track `ReadItem`, `CreateItem`, `Query`, `ReplaceItem` separately; errors indicate RU throttling (HTTP 429) | **Recommended** | Cosmos DB |
@@ -135,7 +134,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 34 | Monitor Redis read/write balance | READ: `GET`, `MGET`, `HGET`, `HGETALL`, `LRANGE`, `SMEMBERS`, `ZRANGE`; WRITE: `SET`, `MSET`, `HSET`, `LPUSH`, `RPUSH`, `SADD`, `ZADD`, `DEL` | **Recommended** | Analysis |
 | 35 | Alert on Redis latency spikes | Track `p95_us` (microseconds) over time at 5m intervals; any sustained increase above 5000us (5ms) triggers investigation | **Critical** | Alerting |
 | 36 | Watch for expensive Redis commands | `KEYS *`, `SMEMBERS` on large sets, `LRANGE` with large ranges cause latency spikes — flag any occurrence | **Critical** | Anti-Pattern |
-| 37 | Report cache metrics in microseconds, not milliseconds | Redis and Memcached latency is sub-millisecond; use `avg(duration) / 1000.0` for microsecond precision | **Recommended** | Reporting |
+| 37 | Report cache metrics in microseconds, not milliseconds | Redis and Memcached latency is sub-millisecond; use `avg(duration) / 1us` for microsecond precision (dividing a duration by a plain number leaves it a duration) | **Recommended** | Reporting |
 
 
 ### .NET Redis Client Coverage — OneAgent 1.337 and 1.343
@@ -153,11 +152,11 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation` (`publish` vs `process`) at 5m intervals | **Critical** | Kafka |
-| 39 | Monitor Kafka consumer group processing latency | Group by `messaging.kafka.consumer.group` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
-| 40 | Detect Kafka consumer errors | Filter `span.status_code == "error"` on `messaging.operation == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
-| 41 | Track RabbitMQ publish/consume rate per queue | Group by `messaging.destination.name` and `messaging.operation`; a publish rate exceeding consume rate signals backpressure | **Critical** | RabbitMQ |
-| 42 | Monitor RabbitMQ message throughput trend | Use `makeTimeseries` at 5m intervals grouped by `messaging.operation` to detect throughput drops | **Recommended** | RabbitMQ |
+| 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation.type` (`publish` vs `process`) at 5m intervals | **Critical** | Kafka |
+| 39 | Monitor Kafka consumer group processing latency | Group by `messaging.consumer.group.name` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
+| 40 | Detect Kafka consumer errors | Filter `span.status_code == "error"` on `messaging.operation.type == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
+| 41 | Track RabbitMQ publish/consume rate per queue | Group by `messaging.destination.name` and `messaging.operation.type`; a publish rate exceeding consume rate signals backpressure | **Critical** | RabbitMQ |
+| 42 | Monitor RabbitMQ message throughput trend | Use `makeTimeseries` at 5m intervals grouped by `messaging.operation.type` to detect throughput drops | **Recommended** | RabbitMQ |
 
 <a id="search-engine-monitoring"></a>
 
@@ -166,7 +165,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 43 | Set Elasticsearch slow query threshold at 200ms | `filter duration > 200ms` for search operations; indexing operations use a separate threshold | **Recommended** | Threshold |
-| 44 | Break down Elasticsearch operations by type | Track `db.operation` (search, index, bulk, delete) separately; search latency and indexing throughput have different SLOs | **Recommended** | Analysis |
+| 44 | Break down Elasticsearch operations by type | Track `db.operation.name` (search, index, bulk, delete) separately; search latency and indexing throughput have different SLOs | **Recommended** | Analysis |
 | 45 | Include OpenSearch in all Elasticsearch queries | Always filter `in(db.system, {"elasticsearch", "opensearch"})` — treat both identically | **Recommended** | Compatibility |
 
 <a id="query-analysis-and-optimization"></a>
@@ -175,7 +174,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 46 | Detect N+1 queries | Group spans by `trace.id` and `db.statement`; any pattern with `calls_per_trace >= 10` is an N+1 candidate; >= 50 is confirmed N+1 | **Critical** | Anti-Pattern |
+| 46 | Detect N+1 queries | Group spans by `trace.id` and `db.query.text`; any pattern with `calls_per_trace >= 10` is an N+1 candidate; >= 50 is confirmed N+1 | **Critical** | Anti-Pattern |
 | 47 | Fix N+1 by batching | Replace N individual queries with a single batch query using `IN` clauses or JOINs | **Critical** | Remediation |
 | 48 | Detect missing indexes heuristically | SELECT queries with `call_count >= 50` AND `avg_ms > 10` AND high `stddev_ms / avg_ms` ratio are index candidates | **Recommended** | Optimization |
 | 49 | Detect queries getting slower over time | Run 24h `makeTimeseries` of `avg(duration)` by `db.system` at 1h intervals; rising trend signals index degradation or table growth | **Recommended** | Trend |
@@ -198,7 +197,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 59 | Add read vs write ratio trend tile | Classify operations into READ/WRITE; 6h timeseries at 5m intervals | **Recommended** | Dashboard |
 | 60 | Add queries-per-minute trend by db.system | 6h timeseries at 1m intervals; used for throughput anomaly detection | **Recommended** | Dashboard |
 | 61 | Add today-vs-yesterday volume comparison | Use `append` pattern: `from:-24h` for today, `from:-48h, to:-24h` for yesterday | **Recommended** | Dashboard |
-| 62 | Include slow query detail table | Last 15m, `duration > 500ms`, fields: timestamp, db.system, db.namespace, db.statement, duration_ms, service_name | **Critical** | Dashboard |
+| 62 | Include slow query detail table | Last 15m, `duration > 500ms`, fields: start_time, db.system, db.namespace, db.query.text, duration_ms, service_name | **Critical** | Dashboard |
 
 <a id="alerting-thresholds"></a>
 
@@ -272,6 +271,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 <a id="see-also"></a>
 
+## 14. Where to Go Deeper — Topic Series Map
 
 DBMON covers database monitoring foundations. These topic series cover adjacent domains in depth:
 
@@ -281,12 +281,12 @@ DBMON covers database monitoring foundations. These topic series cover adjacent 
 | **OpenPipeline log processing** | OPLOGS | 9 |
 | **OpenPipeline beyond logs (metrics from spans)** | OPIPE | 7 |
 | **Dynatrace Intelligence (Davis anomaly detection on DB metrics)** | AIOPS | 8 |
-| **Workflows & alert notifications** (DB alert routing) | WFLOW | 10 |
+| **Workflows & alert notifications** (DB alert routing) | WFLOW | 12 |
 | **Dashboard strategy & executive reporting** | DASH | 8 |
 | **Bucket strategy** (`default_database_monitoring` and custom DB buckets) | ORGNZ | 11 |
-| **IAM administration** (bucket-scoped policies for DB-team access) | IAM | 13 |
+| **IAM administration** (bucket-scoped policies for DB-team access) | IAM | 15 |
 | **Tagging strategy** (host-group + ownership tagging for DBs) | FAQ-01, FAQ-02 | 2+ |
-| **Configuration automation** (Monaco/Terraform for extension deployment) | AUTOM | 11 |
+| **Configuration automation** (Monaco/Terraform for extension deployment) | AUTOM | 14 |
 | **OpenTelemetry integration** (OTel-instrumented DBs) | OTEL | 9 |
 | **Cloud DB integrations** (RDS, Aurora, Cosmos DB, Cloud SQL) | CLOUD | 9 |
 

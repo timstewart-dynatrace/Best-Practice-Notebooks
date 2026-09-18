@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 08/28/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -364,8 +364,8 @@ Client → API Gateway → Lambda Function → DynamoDB / SQS / etc.
 // or route. Select on the semantic field instead — faas.name is present on every FaaS span.
 fetch spans, from:-1h
 | filter span.kind == "server" and isNotNull(faas.name)
-| fieldsKeep timestamp, trace.id, span.name, duration, span.status_code, faas.name
-| sort timestamp desc
+| fieldsKeep start_time, trace.id, span.name, duration, span.status_code, faas.name
+| sort start_time desc
 | limit 20
 ```
 

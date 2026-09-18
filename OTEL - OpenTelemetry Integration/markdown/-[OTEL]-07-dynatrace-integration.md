@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 08/25/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -447,8 +447,8 @@ fetch spans, from:-1h
 // Check recent OTel spans
 fetch spans, from: now() - 1h
 | filter isNotNull(otel.scope.name)
-| fields timestamp, service.name, span.name, duration
-| sort timestamp desc
+| fields start_time, service.name, span.name, duration
+| sort start_time desc
 | limit 30
 ```
 

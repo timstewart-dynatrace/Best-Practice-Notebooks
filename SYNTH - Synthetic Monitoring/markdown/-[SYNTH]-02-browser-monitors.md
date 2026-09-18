@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -26,7 +26,7 @@ This notebook covers browser monitors in Dynatrace, including single-URL monitor
 - ✅ Completed SYNTH-01 Fundamentals
 - ✅ Web application URL to monitor
 
-> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_step_execution` events in `fetch dt.synthetic.events` **when the classic browser experience is in use**; with the *new browser monitor experience* activated, detailed actions surface in RUM instead. **Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all** — they run the new experience by default, so this discovery step matters mainly for pre-2026-01-26 tenants. Confirm which path your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
+> **How browser data is queried:** Browser monitors are analyzed primarily through the **`dt.synthetic.browser.*` metrics** (`timeseries`) — availability, total duration, and per-step duration. Execution-level browser records appear as `browser_monitor_execution` / `browser_monitor_step_execution` events in `fetch dt.synthetic.events` **when the classic browser experience is in use**; with the *new browser monitor experience* activated, detailed actions surface in RUM instead. **Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all** — they run the new experience by default, so this discovery step matters mainly for pre-2026-01-26 tenants. Confirm which path your tenant populates with a discovery query (`fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, "browser") | limit 5`).
 
 <a id="browser-monitor-types"></a>
 ## 1. Browser Monitor Types
@@ -115,7 +115,8 @@ smartscapeNodes "BROWSER_MONITOR"
 // | summarize steps = count(), by:{monitor = name, url}
 // | sort steps desc
 
-// FALLBACK (classic surface -- still functional):
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
 // fetch dt.entity.synthetic_test
 // | fields id, entity.name
 // | sort entity.name asc

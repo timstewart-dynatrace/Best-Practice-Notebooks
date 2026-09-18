@@ -1,6 +1,6 @@
 # SYNTH-06: Synthetic Analytics & Alerting
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Dashboards, SLOs, and Alerting Strategies
 This notebook covers advanced analytics for synthetic monitoring, including building dashboards, configuring SLOs, and implementing effective alerting strategies using the latest Dynatrace platform.
@@ -9,13 +9,14 @@ This notebook covers advanced analytics for synthetic monitoring, including buil
 
 ## Table of Contents
 
-1. [Availability Analysis](#availability-analysis)
-2. [Performance Analysis](#performance-analysis)
-3. [Location Comparison](#location-comparison)
-4. [SLO Configuration](#slo-configuration)
-5. [Alerting Strategies](#alerting-strategies)
-6. [Dashboard Building](#dashboard-building)
-7. [Series Complete!](#series-complete)
+1. [Analytics Overview](#analytics-overview)
+2. [Availability Analysis](#availability-analysis)
+3. [Performance Analysis](#performance-analysis)
+4. [Location Comparison](#location-comparison)
+5. [SLO Configuration](#slo-configuration)
+6. [Alerting Strategies](#alerting-strategies)
+7. [Dashboard Building](#dashboard-building)
+8. [Series Complete!](#series-complete)
 
 ---
 
@@ -45,15 +46,17 @@ This notebook covers advanced analytics for synthetic monitoring, including buil
 | Source | Description | Best For |
 |--------|-------------|----------|
 | `dt.synthetic.events` | Execution results (events) | Per-execution analysis, failures, percentiles |
-| `dt.synthetic.detailed_events` | Per-step request detail | Deep-dive on individual steps |
+| `dt.synthetic.detailed_events` | Request-level detail for HTTP steps (`http_step_execution_details`) | Deep-dive on individual HTTP requests |
 | `timeseries dt.synthetic.*` | Pre-aggregated metrics | Long-term trends, dashboards |
-| `dt.entity.synthetic_test` / `dt.entity.http_check` / `dt.entity.multiprotocol_monitor` | Monitor definitions (classic — still functional) | Configuration, name resolution |
-| `dt.entity.synthetic_location` | Location info (classic — still functional) | Geographic analysis |
+| `dt.entity.synthetic_test` / `dt.entity.http_check` / `dt.entity.multiprotocol_monitor` | Monitor definitions (classic — deprecated in DQL) | Configuration, name resolution |
+| `dt.entity.synthetic_location` | Location info (classic — deprecated in DQL) | Geographic analysis |
 | `smartscapeNodes "BROWSER_MONITOR"` / `"HTTP_MONITOR"` / `"NETWORK_AVAILABILITY_MONITOR"` | Monitor definitions (Smartscape — **preferred**) | Configuration; `name` is already the display name, so no `entityName()` step |
 | `smartscapeNodes "BROWSER_MONITOR_STEP"` / `"HTTP_MONITOR_STEP"` | Step definitions as **separate nodes** | Per-step configuration; `traverse` the `belongs_to` edge to reach the parent monitor |
 | `smartscapeNodes "SYNTHETIC_LOCATION"` | Location info (Smartscape — **preferred**) | Geographic analysis with `location_type`, `stage`, `cloud.provider`, `geo.*` — none of which exist on the classic entity |
 
-> **Note on the entity rows.** SaaS 1.344 (released 07/27/2026, **staged tenant rollout from 07/29/2026**) makes `dt.smartscape.*` the primary entity surface for the Synthetic app. The classic tables above still work, so they remain a genuine fallback while the rollout completes. Two mapping traps: the network-monitor node is `NETWORK_AVAILABILITY_MONITOR` (**not** `MULTIPROTOCOL_MONITOR`), and classic `synthetic_test` splits into `BROWSER_MONITOR` + `BROWSER_MONITOR_STEP`. See SYNTH-01 § 4 for the full mapping table and FAQ-16 for migration mechanics.
+> **Note on the entity rows.** SaaS 1.344 (released 07/27/2026, **staged tenant rollout from 07/29/2026**) makes `dt.smartscape.*` the primary entity surface for the Synthetic app. The classic tables above still return rows, but DQL queries against classic synthetic entities are documented as deprecated — *"They remain supported for as long as Dynatrace Classic is supported, so you can adopt the new model at your own pace."* Keep them as a fallback, not a target. Two mapping traps: the network-monitor node is `NETWORK_AVAILABILITY_MONITOR` (**not** `MULTIPROTOCOL_MONITOR`), and classic `synthetic_test` splits into `BROWSER_MONITOR` + `BROWSER_MONITOR_STEP`. See SYNTH-01 § 4 for the full mapping table and FAQ-16 for migration mechanics.
+
+> <sub>**Sources:** [Synthetic monitors in Smartscape (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-smartscape).</sub>
 
 <a id="availability-analysis"></a>
 ## 2. Availability Analysis
@@ -70,6 +73,9 @@ Example SLA Targets:
 
 ```dql
 // Overall synthetic availability (last 7 days)
+// Execution-weighted across every monitor and location. For a downtime estimate,
+// use the per-monitor query below -- a tenant-wide failed count cannot be turned
+// into minutes, because it sums failures across monitors, locations and frequencies.
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
 | summarize {
@@ -78,7 +84,24 @@ fetch dt.synthetic.events, from: now() - 7d
     failed = countIf(result.state == "FAIL")
   }
 | fieldsAdd availability_pct = round((successful * 100.0) / total_executions, decimals: 3)
-| fieldsAdd downtime_minutes = round((failed * 5.0), decimals: 0)  // Assuming 5-min frequency
+```
+
+```dql
+// Estimated failed minutes per monitor (last 7 days)
+// Share of executions that failed x the minutes in the window. This needs no
+// frequency assumption and never exceeds the window, unlike failed-count x 5,
+// which sums failures across every monitor and location.
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, "_monitor_execution")
+| summarize {
+    executions = count(),
+    failed = countIf(result.state == "FAIL"),
+    locations = countDistinct(dt.entity.synthetic_location)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd failed_pct = round(failed * 100.0 / executions, decimals: 2)
+| fieldsAdd est_failed_minutes = round(failed * 10080.0 / executions, decimals: 0)  // 10,080 = minutes in 7 days
+| sort est_failed_minutes desc
+| limit 20
 ```
 
 ```dql
@@ -365,8 +388,11 @@ fetch dt.synthetic.events, from: now() - 7d
 |---------|----------------|--------|
 | **Consecutive failures** | 2-3 | Avoid false positives |
 | **Location threshold** | 2+ locations | Confirm not local issue |
-| **Alert delay** | 5-10 minutes | Allow for transients |
-| **Auto-resolve** | After 2 successes | Clear resolved issues |
+| **Automatic retry on error** (browser monitors) | Enabled | Absorbs a single transient failure before the execution counts as failed |
+
+Synthetic outage handling has no separate alert-delay or auto-resolve-after-N-successes setting. Global and local outages are driven by the consecutive-failure count and the location threshold above; performance problems close once *"no performance threshold is violated in the five most recent executions"*. Browser monitors can also retry once: the option *"configures the monitor to avoid false positives by making one more execution after the first one failed"*.
+
+> <sub>**Sources:** [Synthetic alerting overview (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail) — *"You can specify how many consecutive executions must fail so the problem is generated"*.</sub>
 
 ```dql
 // Monitors with recent failures (potential outages)

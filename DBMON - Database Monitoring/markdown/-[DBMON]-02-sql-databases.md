@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -49,7 +49,8 @@ Let's start by identifying which SQL databases are active in your environment.
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -109,7 +110,7 @@ Slow queries are the most common cause of database-related performance problems.
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter duration > 500ms
-| fields timestamp, db.system, db.namespace, db.operation.name,
+| fields start_time, db.system, db.namespace, db.operation.name,
         db.query.text, server.address,
         duration_ms = duration / 1ms,
         dt.entity.service
@@ -193,11 +194,16 @@ fetch spans, from:-1h
 
 ```dql
 // Database error patterns — connection refused, timeout, deadlock
+// span.status_message is experimental and is often empty on failed DB spans; the error
+// text is recorded as an exception event in span.events. expand counts exception events,
+// so a span with two exception events counts twice.
 fetch spans, from:-6h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
 | filter span.status_code == "error"
-| summarize error_count = count(),
-           by:{db.system, server.address, span.status_message}
+| expand span.events
+| filter isNotNull(span.events[exception.type])
+| fieldsAdd exception_type = span.events[exception.type], exception_message = span.events[exception.message]
+| summarize error_count = count(), by:{db.system, server.address, exception_type, exception_message}
 | sort error_count desc
 | limit 20
 ```

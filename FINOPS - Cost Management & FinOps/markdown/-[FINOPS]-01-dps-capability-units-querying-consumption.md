@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 09/02/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -531,9 +531,9 @@ fetch dt.system.events, from:-1d
 
 On a validation tenant this returned three cost centers: `unassigned` (~397 TiB / day), `CostCenter2` (~172 GiB / day), `not-allowlisted` (~151 GiB / day). The `unassigned` bucket is universal — every tenant has it, and reducing its share by populating proper cost-center labels at ingest time is the upstream lever.
 
-**Defining cost-center / product labels:** The values come from data ingested with `dt.cost.costcenter` and `dt.cost.product` attributes — typically applied via OneAgent host properties (covered in the FAQ series entry on tagging sources, standards, and strategy) or via OpenPipeline enrichment rules at ingest. Reducing the `unassigned` share is part of the FINOPS-03 optimization framework.
+**Defining cost-center / product labels:** The values come from data ingested with `dt.cost.costcenter` and `dt.cost.product` attributes — typically applied via OneAgent host properties (covered in the FAQ series entry on tagging sources, standards, and strategy) or via OpenPipeline enrichment rules at ingest. Where host-group granularity is enough, Dynatrace names a preferred route: *"If cost attribution at the host group level is sufficient, the preferred approach is to map deployment-level primary Grail fields such as dt.host_group.id or host.name to dt.cost.costcenter and dt.cost.product via the Cost Allocation stage in OpenPipeline."* Use host tags or `DT_TAGS` when you need finer granularity than the host group. Reducing the `unassigned` share is part of the FINOPS-03 optimization framework.
 
-> <sub>**Sources:** [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — covers cost-center / product attribution semantics. The `dt.billing.logs.ingest.usage_by_costcenter` and `dt.billing.traces.ingest.usage_by_costcenter` metric series are documented in the same shortlink. Both queries verified live on a SaaS tenant (2026-05-19); the manual-expand query returned the three cost centers above.</sub>
+> <sub>**Sources:** [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — the host-group route quoted above. [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — covers cost-center / product attribution semantics. The `dt.billing.logs.ingest.usage_by_costcenter` and `dt.billing.traces.ingest.usage_by_costcenter` metric series are documented in the same shortlink. Both queries verified live on a SaaS tenant (2026-05-19); the manual-expand query returned the three cost centers above.</sub>
 
 <a id="pitfalls"></a>
 ## 11. Common Pitfalls

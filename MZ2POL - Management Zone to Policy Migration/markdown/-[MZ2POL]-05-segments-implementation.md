@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/02/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -167,7 +167,7 @@ Dynatrace documents a set of fully supported upgrade scenarios, organized by **h
 | 4.7 | **Extension** data | Filter on the extension enrichment attributes | No |
 | 4.8 | **Cloud-native / application-only injection** | Set `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` on the process | Yes — environment variables |
 
-The Dynatrace guide notes it will "add further scenarios in the future" — so treat this as the supported set today, not an exhaustive account of every MZ shape.
+The guide describes these as its *"fully supported scenarios"* — its stated purpose is *"sharing best practices for fully supported scenarios."* Treat them as the supported set today, not an exhaustive account of every MZ shape.
 
 > <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments).</sub>
 
@@ -221,6 +221,8 @@ If your host groups are *not* systematically named, this scenario is unavailable
 **The MZ pattern:** the zone scopes to a Kubernetes cluster or namespace.
 
 **The move:** Kubernetes signals are automatically enriched with cluster and namespace information — no additional tagging. Build the variable from the namespace entity and filter on the enrichment fields.
+
+That is enough for simple setups. For production the guide recommends a richer baseline: *"For most production environments, use Namespace annotations and labels as the baseline."* Map the namespace labels or annotations your teams already maintain through Kubernetes telemetry enrichment, and filter segments on those ([upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments)).
 
 ```dql
 // Segment variable definition — Kubernetes namespaces.

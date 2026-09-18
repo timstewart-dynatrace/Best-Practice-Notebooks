@@ -1,10 +1,10 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
-This notebook covers building database monitoring dashboards and configuring alerting for database health. You will learn dashboard design patterns for database KPIs, how to create alert-ready queries for slow query detection, connection pool thresholds, error rate monitoring, and database-specific SLO definitions. These queries are designed to be directly usable in **Dashboards (new)** tiles, **Davis Anomaly Detectors** in Workflows (the modern alerting path), and legacy metric events.
+This notebook covers building database monitoring dashboards and configuring alerting for database health. You will learn dashboard design patterns for database KPIs, how to create alert-ready queries for slow query detection, connection pool thresholds, error rate monitoring, and database-specific SLO definitions. These queries are designed to be directly usable in **Dashboards (new)** tiles, **Davis anomaly detectors** routed through Workflows (the modern alerting path), and legacy metric events.
 
 ---
 
@@ -92,7 +92,7 @@ fetch spans, from:-1h
 
 ### Health Score as a Prioritization Signal
 
-The queries above build a custom health overview from spans. If the **Dynatrace Database App** is enabled (GA as of August 2026 for PostgreSQL and MySQL), each monitored database instance also carries a built-in **Health Score** (0–100, combining availability, performance, configuration, and resource-usage signals) — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row.
+The queries above build a custom health overview from spans. If the **Dynatrace Database App** is enabled (available since 08/2026 for PostgreSQL and MySQL — verify it is enabled on your tenant), each monitored database instance also carries a built-in **Health Score** (0–100, combining availability, performance, configuration, and resource-usage signals) — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row.
 
 Use the two together rather than choosing one: the Health Score triages *which* instance to look at, and the span-based queries in this section remain the way to build custom dashboard tiles, thresholds, and SLOs the app's UI doesn't expose.
 
@@ -153,10 +153,15 @@ fetch spans, from:-1h
 
 ```dql
 // Alert query: Error breakdown by type — classify error categories
+// span.status_message is experimental and is often empty on failed DB spans; the error
+// text is recorded as an exception event in span.events. expand counts exception events,
+// so a span with two exception events counts twice.
 fetch spans, from:-1h
 | filter isNotNull(db.system) and span.status_code == "error"
-| summarize error_count = count(),
-           by:{db.system, server.address, span.status_message}
+| expand span.events
+| filter isNotNull(span.events[exception.type])
+| fieldsAdd exception_type = span.events[exception.type], exception_message = span.events[exception.message]
+| summarize error_count = count(), by:{db.system, server.address, exception_type, exception_message}
 | sort error_count desc
 | limit 20
 ```
@@ -226,7 +231,8 @@ fetch spans, from:-6h
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -267,9 +273,11 @@ fetch spans, from:-24h
 
 Slow query alerts detect when query performance degrades beyond acceptable thresholds.
 
-**Modern path (recommended for new alerting):** wire these queries into a **Davis Anomaly Detector** (configured in **Workflows**) so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
+**Modern path (recommended for new alerting):** wire these queries into a **custom alert (Davis anomaly detector)** — created in **Settings** (the Anomaly Detection app still works but is deprecated) — and route the resulting events with **Workflows**, so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
 
 **Legacy path (still supported for fixed-threshold cases):** the queries below are also directly usable as **metric events** in Settings → Anomaly detection → Metric events when you want a fixed threshold instead of an adaptive baseline.
+
+> <sub>**Sources:** [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"To manually create or edit a simple custom alert configuration, you can use Anomaly Detection or Settings."* and *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*</sub>
 
 ```dql
 // Alert query: Slow query count per 5-minute window (> 500ms threshold)
@@ -284,7 +292,7 @@ fetch spans, from:-1h
 fetch spans, from:-15m
 | filter isNotNull(db.system)
 | filter duration > 500ms
-| fields timestamp, db.system, db.namespace, db.operation.name,
+| fields start_time, db.system, db.namespace, db.operation.name,
         db.query.text, server.address,
         duration_ms = duration / 1ms,
         dt.entity.service
@@ -394,7 +402,7 @@ For a complete database monitoring implementation:
 ### Where to Go Deeper
 
 - **AIOPS series** (8 notebooks) — Davis AI: anomaly detection mechanisms (static / auto-adaptive / seasonal / multi-dimensional baseline / novelty/forecast), Davis problems & RCA, Davis CoPilot
-- **WFLOW series** (10 notebooks) — Workflow-driven alert routing, AI tasks, MCP server integration
+- **WFLOW series** (12 notebooks) — Workflow-driven alert routing, AI tasks, MCP server integration
 - **DASH series** (8 notebooks) — Dashboard strategy, executive reporting, tile-design patterns
 - **FAQ-02** — Tagging strategy for ownership routing in alerts
 
