@@ -1,6 +1,6 @@
 # K8S-05: Workload Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 13 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Application-Level Observability in Kubernetes
 Workload monitoring focuses on the application layer: deployments, pods, containers, and the services they provide. This notebook covers monitoring Kubernetes workloads from deployment health to service performance.
@@ -283,8 +283,9 @@ fetch spans, from:-1h
 ```dql
 // Slow traces by workload
 fetch spans, from:-1h
-| filter span.kind == "server" and duration > 1000000000  // > 1 second
-| fields timestamp, trace.id, k8s.namespace.name, k8s.deployment.name, duration
+| filter span.kind == "server" and duration > 1s
+| filter isNotNull(k8s.workload.name)
+| fields start_time, trace.id, k8s.namespace.name, k8s.workload.name, duration
 | sort duration desc
 | limit 20
 ```

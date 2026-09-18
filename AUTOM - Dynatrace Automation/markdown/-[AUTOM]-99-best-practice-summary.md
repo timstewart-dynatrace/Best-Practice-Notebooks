@@ -1,6 +1,6 @@
 # AUTOM-99: Best Practice Summary
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-09) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.
 
@@ -40,8 +40,7 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
 | Use least-privilege scopes | Grant only `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` for config tools. Add `ExternalSyntheticIntegration` only when managing synthetics. | Critical |
-| Use Platform Token + API Token together | Platform Token handles Settings 2.0 and Gen3 resources; API Token (`dt0c01.*`) handles Synthetics and SLOs. Configure both in provider. | Critical |
-| Use OAuth clients for Gen3 platform resources | Set `client_id`, `client_secret`, `account_id` for Workflows, Documents, Segments, and IAM resources. | Critical |
+| Configure a platform credential **and** a classic API token | A Platform Token **or** an OAuth client covers Settings 2.0 and platform resources (Workflows, Documents, Segments); with the Terraform provider set `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` when using a Platform Token for those. A classic API Token (`dt0c01.*`) is still required for Synthetics and `dynatrace_slo_v2`. Account IAM resources need an OAuth client (`client_id`, `client_secret`, `account_id`). In Monaco, reference them as `auth.token` plus `auth.platformToken` or `auth.oAuth` — access and platform tokens are not interchangeable. | Critical |
 | Never hardcode tokens | Store tokens in environment variables, HashiCorp Vault, AWS Secrets Manager, or equivalent secret store. | Critical |
 | Separate tokens per environment | Create distinct tokens for dev, staging, and production tenants. Never share tokens across environments. | Critical |
 | Rotate tokens on a schedule | Set a rotation cadence (e.g., 90 days). For short-lived tokens, retrieve from Vault at pipeline runtime. | Recommended |
@@ -70,15 +69,14 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
-| Always run `monaco validate` before deploy | Run `monaco validate manifest.yaml` to catch YAML syntax and schema errors before touching the tenant. | Critical |
-| Always run `monaco deploy --dry-run` before apply | Preview what will change. Never deploy blind. | Critical |
-| Use environment variables for auth | Set `DT_TENANT_URL` and `DT_API_TOKEN` as env vars. Never put tokens in YAML files. | Critical |
+| Always run `monaco deploy --dry-run` before deploy | Monaco has no `validate` command. `monaco deploy manifest.yaml --dry-run` parses YAML, checks template JSON and resolves references **without contacting the tenant** — it cannot catch payload errors, so a deploy can still fail with HTTP 400 after a clean dry-run. | Critical |
+| Use environment variables for auth | Set `DT_TENANT_URL` and `DT_API_TOKEN` as env vars. In `manifest.yaml`, `auth.token.name` holds the **variable name**, never the token. | Critical |
 | Use meaningful config IDs | IDs should describe the config purpose (e.g., `production-mz`, `web-app-alerting`). These IDs are how Monaco tracks objects. | Critical |
 | Use `manifest.yaml` for multi-environment setup | Define all environments in `environmentGroups` with separate URL/token env vars per environment. | Recommended |
-| Use environment-specific overrides | Use `overrides` blocks in config.yaml to vary values (e.g., `delay_minutes: 1` for prod, `5` for staging). | Recommended |
-| Use `skip.environments` for env-specific configs | Skip production-only configs in dev/staging using the `skip` directive. | Recommended |
-| Use groups for related configs | Group related configs (e.g., `group: web-application`) and deploy with `--group` flag. | Recommended |
-| Use config dependencies for ordering | Reference other configs with `{{ .management-zones.production-mz.id }}` to ensure correct deployment order. | Recommended |
+| Use environment-specific overrides | Add `environmentOverrides` (or `groupOverrides`) at the config level, sibling of `config:`, to vary values (e.g., `delay_minutes: 1` for prod, `5` for staging). | Recommended |
+| Use `skip` with overrides for env-specific configs | `skip` is a boolean on `config:`; set a default and flip it per environment or environment group in `environmentOverrides` / `groupOverrides`. | Recommended |
+| Use projects to group related configs | Put related configs in one project and deploy it with `--project`. `--group` selects manifest **environment groups**, not configs; there is no per-config `group:` key. | Recommended |
+| Use reference parameters for ordering | Reference other configs with `["<project>", "<configType>", "<configId>", "id"]` (for settings, `configType` is the schema ID) so Monaco deploys the dependency first. | Recommended |
 | Modular directory structure | Separate configs by domain: `management-zones/`, `auto-tagging/`, `alerting-profiles/`. | Recommended |
 | Download before creating from scratch | Run `monaco download` to get the current state, then modify the exported YAML. | Optional |
 
@@ -100,7 +98,7 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Import existing resources into state | Write the HCL block first, then `terraform import <resource> "<object-id>"`. Never recreate what already exists. | Recommended |
 | Use `terraform state rm` to detach without deleting | When you need to stop managing a resource without destroying it. | Recommended |
 | Format code with `terraform fmt` | Run before every commit for consistent HCL formatting. | Recommended |
-| Use the export utility for brownfield adoption | Run `terraform-provider-dynatrace -export -id all -target-folder ./exported` to generate HCL from existing configs. | Optional |
+| Use the export utility for brownfield adoption | Run `DYNATRACE_TARGET_FOLDER=./exported ./terraform-provider-dynatrace -export -ref -id` to generate HCL from existing configs (the output folder comes from `DYNATRACE_TARGET_FOLDER`; there is no `-target-folder` flag). | Optional |
 
 ---
 
@@ -113,8 +111,8 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Make tasks idempotent | Tasks must be safe to run multiple times without side effects (e.g., check if ticket exists before creating). | Critical |
 | Store secrets in Credential Vault | Use Dynatrace Credential Vault for API keys, webhook URLs, and integration tokens. Never hardcode secrets in workflow YAML or JavaScript. | Critical |
 | Scope triggers narrowly | Filter triggers by management zone, entity tag, problem category, and severity. Do not trigger on all problems. | Critical |
-| Add retry with backoff on external calls | Set `retry.count: 3` and `retry.delay: 30s` on HTTP tasks and external integrations. | Recommended |
-| Route errors to a handler task | Define `on_error: error_handler` tasks that send Slack/Teams notifications on failure. | Recommended |
+| Add retries on external calls | Set the task retry `count` (1–99) and `delay` in **seconds** (1–3600) on HTTP tasks and external integrations — e.g., count 3, delay 30. | Recommended |
+| Route errors to a handler task | Add a handler task whose condition is the upstream task's state (`states: {api_call: ERROR}` / Terraform `conditions { states = { api_call = "ERROR" } }`). Workflows have no `on_error` construct. | Recommended |
 | Validate entity type before remediation | Check `entity.type` in a JavaScript task before executing remediation (e.g., only restart `PROCESS_GROUP_INSTANCE`, not hosts). | Recommended |
 | Debounce flapping alerts | Add delays or deduplication checks for alerts that open/close rapidly. | Recommended |
 | Use manual triggers for testing | Test workflow logic with manual triggers before enabling detected-problem triggers. | Recommended |
@@ -132,8 +130,8 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Use environment variables for credentials | Set `DT_URL` and `DT_API_TOKEN` as environment variables. Never pass tokens as function arguments or config literals. | Critical |
 | Handle paginated responses | Always iterate through all pages. Check for `nextPageKey` in responses and loop until exhausted. | Critical |
 | Implement rate limiting | Use a rate-limiting decorator/wrapper (e.g., max 50 requests/second). Respect `429` responses with exponential backoff. | Recommended |
-| Use type-safe SDK clients | Use `@dynatrace-sdk/client-query` for TypeScript, `dt-sdk` for Python. These provide typed responses and auto-generated API coverage. | Recommended |
-| Wrap API calls in error handlers | Catch `ApiError` specifically; log `status` and `message`. Re-raise unknown errors. | Recommended |
+| Use type-safe SDK clients | Use the TypeScript `@dynatrace-sdk/*` clients (e.g., `@dynatrace-sdk/client-query`) in Dynatrace apps and functions. Dynatrace publishes no Python SDK package — Python automation calls the REST APIs directly. | Recommended |
+| Wrap API calls in error handlers | Catch errors around every call; log the HTTP status and message (`requests`: `raise_for_status()`). Re-raise what you cannot handle. | Recommended |
 | Add structured logging | Log request method, endpoint, status code, and duration for every API call. | Recommended |
 | Use MCP Server for AI-assisted access | Connect Dynatrace MCP Server to Claude Code, GitHub Copilot, or Amazon Q for natural-language queries against your tenant. | Optional |
 
@@ -147,14 +145,14 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Store all config in Git | Every Dynatrace configuration (Monaco YAML, Terraform HCL) lives in version control. No exceptions. | Critical |
 | Require PR reviews for production changes | Enable branch protection on `main`. Require at least 1 approval. Use CODEOWNERS for Dynatrace config paths. | Critical |
 | Mask all tokens in CI/CD | Store tokens as masked secrets in GitHub Actions, GitLab CI, or equivalent. Never echo tokens in logs. | Critical |
-| Validate on every PR | Run `monaco validate` or `terraform validate` + `terraform plan` on every pull request. Post plan output as PR comment. | Critical |
+| Validate on every PR | Run `monaco deploy --dry-run` or `terraform validate` + `terraform plan` on every pull request. Post plan output as PR comment. | Critical |
 | Deploy only from main branch | Gate `terraform apply` and `monaco deploy` to run only on push to `main` (not on PR branches). | Critical |
 | Use staged rollout: dev, staging, production | Deploy to dev first, then staging, then production. Require manual approval gate before production. | Critical |
 | Schedule drift detection | Run `terraform plan -detailed-exitcode` on a cron schedule (e.g., weekdays 6am UTC). Exit code `2` means drift. Auto-create GitHub Issue on drift. | Recommended |
 | Use Vault for runtime credentials | Retrieve tokens at pipeline runtime from HashiCorp Vault using OIDC/JWT auth instead of static CI/CD secrets. | Recommended |
 | Use reusable workflows for multi-repo orgs | Define a shared `workflow_call` workflow that all team repos invoke. Standardizes plan/apply across the organization. | Recommended |
 | Send deployment events to Dynatrace | `POST /api/v2/events/ingest` with `eventType: CUSTOM_DEPLOYMENT`, commit SHA, and branch name after every deploy. | Recommended |
-| Use Kustomize overlays for Operator GitOps | Base DynaKube config + per-cluster patches via `patchesStrategicMerge`. Use `apiVersion: dynatrace.com/v1beta5` or `v1beta6`. | Recommended |
+| Use Kustomize overlays for Operator GitOps | Base DynaKube config + per-cluster patches via `patches:` (`patchesStrategicMerge` is deprecated in Kustomize). Use `apiVersion: dynatrace.com/v1beta6`. | Recommended |
 | Encrypt K8s secrets in Git | Use Sealed Secrets, SOPS, or External Secrets Operator. Never commit plaintext Dynatrace tokens to Git. | Critical |
 | Use a PR template for config changes | Include sections: Description, Type of Change, Environments Affected, Validation Checklist, Rollback Plan. | Optional |
 
@@ -235,7 +233,7 @@ Key GitHub repositories organized by tool, providing starter templates, working 
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.28.5) |
+| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.29.1 at time of writing, 09/2026) |
 | [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 9 Monaco starter templates, pipeline observability configs, CI validation scripts |
 | [easytrade](https://github.com/Dynatrace/easytrade) | Real-world Monaco project structure (manifest.yaml, detection rules, workflows) |
 | [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | GUI tool for tenant-to-tenant config migration |
@@ -245,7 +243,7 @@ Key GitHub repositories organized by tool, providing starter templates, working 
 
 | Repository | Description |
 |------------|-------------|
-| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.100.0, 190 releases) with export capability |
+| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.104.1 released 09/10/2026 at time of writing — check the registry for newer) with export capability |
 | [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 10 Terraform starter templates, reusable modules, DQL data source, IAM onboarding |
 
 ### CI/CD & Platform Engineering

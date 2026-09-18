@@ -1,6 +1,6 @@
 # APPSEC-07: Security Investigator and Davis CoPilot for Security
 
-> **Series:** APPSEC — Application Security | **Notebook:** 7 of 10 | **Created:** June 2026 | **Last Updated:** 06/04/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 7 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -52,37 +52,44 @@ Investigator opens on a security problem and lets you pivot:
 
 The pivots are the value. A flat list of events is a triage queue; a pivoted view is an investigation.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) confirms Security Investigator. **Softened:** the specific pivot set is community-practice synthesis of the investigation surface — the deep-page Investigator docs were not resolvable at 06/04/2026.</sub>
+> <sub>**Sources:** [Investigations (DT docs)](https://docs.dynatrace.com/docs/secure/investigations) — the investigation app for evidence-driven work on Grail data, including security: *"Investigations supports a wide range of evidence-driven investigations"* and *"Attach relevant findings as evidence, while preserving the investigation context."* (re-read 09/18/2026). **Softened:** the specific pivot set above is community-practice synthesis of the investigation surface — the Investigations page does not enumerate these pivots; verify them in your tenant.</sub>
 
 <a id="copilot"></a>
 ## 2. Davis CoPilot for Security Questions
 
 Davis CoPilot accepts natural-language questions and translates them into DQL or topology queries. Examples:
 
-- "Which services were attacked the most in the last 24 hours?" → DQL over `security.events` with `ATTACK_EVENT` filter
+- "Which services were attacked the most in the last 24 hours?" → DQL over `security.events` filtered to `DETECTION_FINDING` from `Runtime Application Protection` (APPSEC-04 § 4)
 - "Show me the security problems opened on payments services this week" → DQL + topology filter
 - "Are any of these vulnerabilities reachable from the public internet?" → Investigator-style pivot
 
 CoPilot is most useful when you can verbalize the question but the DQL is non-obvious — exactly the situation a security analyst hits often. Treat the generated DQL as a starting point; review and refine before pinning to a dashboard.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) confirms CoPilot integration. **Softened:** the specific example prompts are illustrative — verify CoPilot's current generation behavior in your tenant.</sub>
+> <sub>**Softened:** the example prompts and the CoPilot behavior described here are illustrative community practice, not documented on the Application Security pages — verify CoPilot's current generation behavior in your tenant. The AIOPS series covers Davis CoPilot / Dynatrace Assist in depth.</sub>
 
 <a id="dql-export"></a>
 ## 3. DQL Generated On Demand
 
-When CoPilot generates a query you want to keep, the path is: open it in a notebook (this surface), refine, then pin to a dashboard. The pattern below is a CoPilot-style query you might use as a starting prompt: *"Show me vulnerability state changes in the last 24 hours grouped by severity and exposure."*
+When CoPilot generates a query you want to keep, the path is: open it in a notebook (this surface), refine, then pin to a dashboard. The pattern below is the kind of query a well-formed prompt should produce — compare generated DQL against it, because generated queries often skip the dedup step and count every periodic snapshot: *"Show me the open vulnerabilities grouped by severity and internet exposure."*
 
 ```dql
-// Vulnerability state changes by severity + exposure (24h)
-// Common CoPilot-generated shape for executive triage
-fetch security.events, from:-24h
+// Current open vulnerabilities by risk level and internet exposure (latest snapshot per vulnerability)
+fetch security.events, from:-7d
+| filter event.provider == "Dynatrace"
+| filter event.category == "VULNERABILITY_MANAGEMENT"
 | filter event.type == "VULNERABILITY_STATE_REPORT_EVENT"
-| summarize count = count(), by:{vulnerability.risk.level, vulnerability.public_exposure}
-| sort count desc
+| filter event.level == "VULNERABILITY"
+| dedup {vulnerability.display_id}, sort:{timestamp desc}
+| filter vulnerability.resolution.status == "OPEN"
+| filter vulnerability.mute.status == "NOT_MUTED"
+| summarize open = count(), by:{vulnerability.risk.level, vulnerability.davis_assessment.exposure_status}
+| sort open desc
 
 ```
 
-> <sub>**Sources:** field names (`event.type`, `vulnerability.risk.level`, `vulnerability.public_exposure`) inferred from the AppSec events shape and the DSS signal catalog; verified for DQL syntax only. **Softened:** verify field names — the deep-page schema docs were not resolvable at 06/04/2026.</sub>
+> **Validation note:** validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there.
+>
+> <sub>**Sources:** [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) — `vulnerability.davis_assessment.exposure_status` examples `NOT_AVAILABLE ; NOT_DETECTED ; PUBLIC_NETWORK ; ADJACENT_NETWORK`, and *"a deduplicated latest snapshot per vulnerability reflects present exposure"* (re-read 09/18/2026). **Dictionary:** `vulnerability.davis_assessment.exposure_status` (`stable`), `vulnerability.risk.level` (`stable`), `vulnerability.resolution.status` (`stable`), `vulnerability.mute.status` (`stable`), read 09/18/2026; no row for `vulnerability.public_exposure` under `filter startsWith(name, "vulnerability.public")`, read 09/18/2026 (control: `filter startsWith(name, "vulnerability")` → 70 rows).</sub>
 
 <a id="audit"></a>
 ## 4. Investigation Log as Audit Artifact
@@ -94,7 +101,7 @@ For regulated environments, the investigation itself is an audit artifact. Two p
 
 This is more discipline than tooling. Both surfaces support it; the question is whether the team commits to using them this way.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the investigation surface. **Derived:** the *investigation-as-audit-artifact* discipline is community practice in regulated environments.</sub>
+> <sub>**Sources:** [Investigations (DT docs)](https://docs.dynatrace.com/docs/secure/investigations) for the investigation surface and its evidence and history features. **Derived:** the *investigation-as-audit-artifact* discipline is community practice in regulated environments.</sub>
 
 <a id="next"></a>
 ## 5. Next Steps
@@ -109,7 +116,9 @@ This is more discipline than tooling. Both surfaces support it; the question is 
 
 | Source | Coverage |
 |--------|----------|
-| [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | Investigator + CoPilot surface |
+| [Investigations (DT docs)](https://docs.dynatrace.com/docs/secure/investigations) | The investigation app: queries, evidence, history, collaboration |
+| [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) | Exposure and risk fields used in § 3 |
+| [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | AppSec hub |
 
 ---
 

@@ -1,6 +1,6 @@
 # OPIPE-05: Business & Security Event Pipelines
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Processing Business Transactions and Security Events at Ingestion
 
@@ -29,8 +29,8 @@ This notebook covers the Business Events and Security Events scopes in OpenPipel
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail and business events enabled |
-| **Permissions** | `storage:bizevents:read`, `storage:events:read`, `openpipeline:configurations:write` |
-| **Data** | Business events ingested via OneAgent RUM, API, or OpenTelemetry |
+| **Permissions** | `storage:bizevents:read`, `storage:security.events:read`, `openpipeline:configurations:write` |
+| **Data** | Business events ingested via OneAgent capture rules, the RUM API, the business events API, or OpenPipeline extraction |
 | **Recommended** | **OPIPE-01** (multi-scope architecture), **BIZEV** series for business event analytics |
 
 <a id="business-events-scope"></a>
@@ -38,9 +38,11 @@ This notebook covers the Business Events and Security Events scopes in OpenPipel
 
 Business events represent **user transactions and business actions** — purchases, sign-ups, page views, API calls, form submissions. They are ingested through:
 
-- **OneAgent RUM** — Automatic capture of user actions on web and mobile apps
-- **Business Events API** — Custom events sent from backend services
-- **OpenTelemetry** — Span-derived business events
+- **OneAgent** — capture rules on incoming requests to monitored services
+- **RUM (web and mobile)** — an explicit call to the RUM JavaScript API, OneAgent for Mobile, or OpenKit; user actions are not turned into business events automatically
+- **Business events API** — JSON events sent from external systems and backend services
+- **OpenPipeline** — business events extracted from logs and spans (Data extraction stage)
+- **Workflows** — the *Ingest business event* action
 
 ### Key Business Event Fields
 
@@ -130,7 +132,7 @@ fetch bizevents, from:-24h
 <a id="security-events-scope"></a>
 ## 4. Security Events Scope
 
-Security events include threat detections, vulnerability findings, audit records, and compliance-relevant actions. They require special handling:
+Security events include threat detections, vulnerability findings, compliance findings, and events from external security tools. They are stored in their own table, **`security.events`** — not in `events` — so query them with `fetch security.events`. They require special handling:
 
 - **Never drop** — Security events must be retained for compliance, even if volume is high
 - **Never sample** — Every security event is potentially significant
@@ -143,13 +145,13 @@ Security events include threat detections, vulnerability findings, audit records
 |-----------|--------|------------|
 | Runtime vulnerability detections | OneAgent | Third-party library vulnerabilities |
 | Attack detections | Application Security | SQL injection, command injection attempts |
-| Audit events | Platform | Configuration changes, user actions |
 | Custom security events | API ingestion | SIEM, IDS/IPS, firewall events |
 
+> **Platform audit events are not security events.** Configuration changes and user actions are recorded as `AUDIT_EVENT` records in `dt.system.events`, outside the security-events scope.
+
 ```dql
-// Security event overview
-fetch events, from:-24h
-| filter event.kind == "SECURITY_EVENT"
+// Security event overview (security events are stored in security.events, not events)
+fetch security.events, from:-24h
 | summarize event_count = count(), by:{event.type}
 | sort event_count desc
 ```
@@ -200,8 +202,7 @@ Extract operational KPIs from both business and security events for dashboards a
 
 ```dql
 // Security event trend over 7 days
-fetch events, from:-7d
-| filter event.kind == "SECURITY_EVENT"
+fetch security.events, from:-7d
 | makeTimeseries event_count = count(), by:{event.type}, interval:24h
 ```
 
@@ -231,9 +232,11 @@ Continue to **OPIPE-06: Cross-Scope Design Patterns** to learn how to correlate 
 <a id="references"></a>
 ## References
 
+- [Business event capture (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing)
 - [Get business events from logs and spans (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans)
 - [Business event bucket assignment via OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment-openpipeline)
 - [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security)
+- [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — lists `storage:security.events:read`
 - [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 
 ---

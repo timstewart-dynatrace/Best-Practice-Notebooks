@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -147,21 +147,31 @@ metrics
 >
 > This is worth stating plainly because a `timeseries` against a key that does not exist is syntactically valid, executes without error, and returns nothing — the same shape as a correct query against an idle cluster. §5 below shows the derivation for nodes.
 
-> **Reading request and limit metrics across an ActiveGate 1.343 upgrade.** **ActiveGate 1.343 changes what the CPU and memory *request* and *limit* metrics count: init containers are now included in the pod-scope total** — and therefore in any workload- or namespace-level roll-up of it. Reported reservations **step up at the upgrade with no workload change at all**, because the arithmetic changed, not the cluster.
+> **Reading request and limit metrics across ActiveGate upgrades.** The CPU and memory *request* and *limit* metrics carry an **effective pod value**. Where a simple sum of container values would not match what Kubernetes enforces, Dynatrace adds a **compensating delta data point** to the same metric at ingest — in the docs' words, *"Dynatrace calculates the correct effective value at ingest time and adjusts the metric so that aggregated views across pods, workloads, namespaces, and clusters always reflect what Kubernetes actually enforces."* What that effective value covers grew in ActiveGate steps:
 >
-> | Metric family | Affected by the 1.343 change? |
+> | ActiveGate | What the request/limit metrics account for |
 > |---|---|
-> | `dt.kubernetes.container.requests_cpu`, `.requests_memory`, `.limits_cpu`, `.limits_memory` | **Yes** — init containers now counted |
+> | **1.339+** | App containers and native sidecars (`restartPolicy: Always`) |
+> | **1.343+** | Init containers — a delta where the init phase peaks above the running-phase sum |
+> | **1.345+** (rollout from 08/25/2026) | Pod-level `spec.resources` (Kubernetes 1.34+) and RuntimeClass `overhead` — including a **negative** delta where a pod-level *limit* caps the total below the container sum |
+> | **1.347** (pre-release; rollout planned from 09/22/2026) | Fix for a miscalculated effective value when a native sidecar precedes one or more non-restartable init containers |
+>
+> | Metric family | Affected by the effective-resource changes? |
+> |---|---|
+> | `dt.kubernetes.container.requests_cpu`, `.requests_memory`, `.limits_cpu`, `.limits_memory` | **Yes** — the effective value changes at each boundary above |
 > | `dt.kubernetes.container.cpu_usage`, `.memory_working_set` | **No** — usage metrics are unchanged |
 >
-> Two practical consequences:
+> Three practical consequences:
 >
-> 1. **A trend that spans the upgrade boundary is two series, not one.** Do not read a request/limit chart across the boundary as a single trend, and do not let a threshold alert on reserved CPU or memory fire on the discontinuity. Bound your comparison windows on one side of the upgrade or the other.
-> 2. **Pre-1.343 baselines understate reservations** relative to what the scheduler actually reserved, because init-container requests were excluded. Post-1.343 figures are the more faithful number — re-baseline rather than trying to reconcile the two.
+> 1. **A trend that spans any of these ActiveGate versions may carry a discontinuity** — up for init containers, up **or down** for pod-level limits, with no workload change at all. It appears only where the pod shape triggers it (an init container larger than the running-phase sum, a pod-level `spec.resources`, or an `overhead`), so it is not a uniform shift. Do not read a request/limit chart across a boundary as a single trend, and do not let a threshold alert on reserved CPU or memory fire on the discontinuity. Bound your comparison windows on one side of the upgrade or the other.
+> 2. **Earlier baselines misstate reservations** relative to what Kubernetes enforces. The post-upgrade figures are the more faithful number — re-baseline rather than trying to reconcile the two.
+> 3. **The delta belongs to no container.** The compensating data point has no `dt.smartscape.container` dimension (its `dt.smartscape_source.type` is `K8S_POD`), so a breakdown *by container* shows it as an unnamed row. Summing across it gives the enforced pod value; filtering out rows without a container quietly brings back the old arithmetic.
 >
-> Because node and namespace roll-ups are *derived* from these container-grain series (see the note above), the step-up propagates to every level you aggregate to — there is no unaffected roll-up to fall back on.
+> Because node and namespace roll-ups are *derived* from these container-grain series (see the note above), a change propagates to every level you aggregate to — there is no unaffected roll-up to fall back on. One edge case the docs call out explicitly: *"Upgrading Istio to version 1.27+ (where native sidecars are the default) without also upgrading to ActiveGate version 1.339+ will cause sidecar resources to be missing from the metric."*
 >
-> ActiveGate 1.343 rolls out per ActiveGate, not per tenant, and ActiveGate fleets lag tenant version — so **verify the version of the ActiveGate carrying the `kubernetes-monitoring` capability for the cluster in question** before deciding which side of the boundary a data point sits on. Until 1.343 reaches that ActiveGate, the pre-1.343 reading (init containers excluded) is what your data shows, and everything above about baselines and alert thresholds still describes it correctly.
+> Each version rolls out per ActiveGate, not per tenant, and ActiveGate fleets lag tenant version — so **verify the version of the ActiveGate carrying the `kubernetes-monitoring` capability for the cluster in question** before deciding which side of a boundary a data point sits on. Until a given version reaches that ActiveGate, the earlier reading is what your data shows, and everything above about baselines and alert thresholds still describes it correctly.
+>
+> <sub>Sources: [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources), [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345), [ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — read 09/18/2026.</sub>
 
 ```dql
 // Container CPU usage - top consumers
@@ -277,6 +287,8 @@ fetch logs, from: now() - 24h
 ## 4. Trace Queries
 ### Span Queries for Kubernetes Services
 
+> **`duration` is a duration type — compare it against a duration literal (`1s`, `500ms`), never a nanosecond integer.** `duration > 1000000000` is a type mismatch: it raises only a `DATATYPE_MISMATCH` warning, evaluates to null, and the filter silently drops every span. Spans also have no `timestamp` field — their time fields are `start_time` and `end_time`.
+
 ```dql
 // Service response times in K8s
 fetch spans, from:-1h
@@ -315,9 +327,9 @@ fetch spans, from:-1h
 ```dql
 // Slow traces (>1 second)
 fetch spans, from:-1h
-| filter span.kind == "server" and duration > 1000000000
+| filter span.kind == "server" and duration > 1s
 | filter isNotNull(k8s.namespace.name)
-| fields timestamp, trace.id, k8s.namespace.name, span.name, duration
+| fields start_time, trace.id, k8s.namespace.name, span.name, duration
 | sort duration desc
 | limit 20
 ```
@@ -433,12 +445,12 @@ fetch logs, from: now() - 1h
 
 **Filter by Cluster:**
 ```dql
-| filter kubernetesClusterName == "CLUSTER_NAME"
+| filter k8s.cluster.name == "CLUSTER_NAME"
 ```
 
 **Time-based Analysis:**
 ```dql
-fetch logs, from: now() - DURATION
+fetch logs, from:-DURATION
 | summarize log_count = count(), by:{time_bucket = bin(timestamp, INTERVAL)}
 | sort time_bucket asc
 ```
@@ -472,6 +484,9 @@ This notebook provided DQL query patterns for:
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Kubernetes app — workloads + namespaces views (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources)
+- [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345)
+- [ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347)
 
 ---
 

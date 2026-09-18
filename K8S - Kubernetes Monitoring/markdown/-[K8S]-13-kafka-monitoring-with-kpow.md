@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -378,8 +378,9 @@ fetch logs, from:-1h
 ```dql
 // Kpow pod restarts and events
 fetch events, from:-24h
-| filter contains(toString(affected_entity_ids), "kpow")
-| fields timestamp, event.name, event.kind
+| filter event.provider == "KUBERNETES_EVENT"
+| filter k8s.namespace.name == "kpow"
+| fields timestamp, dt.kubernetes.event.reason, dt.kubernetes.event.involved_object.name, dt.kubernetes.event.message
 | sort timestamp desc
 | limit 20
 ```

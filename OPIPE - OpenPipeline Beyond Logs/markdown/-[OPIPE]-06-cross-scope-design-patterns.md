@@ -1,10 +1,10 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
-OpenPipeline's six scopes process data independently — but observability value comes from **correlating** across them. A slow API response (span) may be caused by a database timeout (log) that triggers a detected problem (event) and degrades an SLO metric. This notebook covers design patterns that connect the dots across scopes, cascade processing for derived data, and a production readiness checklist.
+OpenPipeline's scopes process data independently — but observability value comes from **correlating** across them. A slow API response (span) may be caused by a database timeout (log) that triggers a detected problem (event) and degrades an SLO metric. This notebook covers design patterns that connect the dots across scopes, cascade processing for derived data, and a production readiness checklist.
 
 For individual scope deep-dives, see **OPIPE-02** (spans), **OPIPE-03** (metrics), **OPIPE-05** (events). For log processing, see **OPLOGS-01**. For trace analysis, see **SPANS-04: Service Dependencies & Flow Analysis**.
 
@@ -114,7 +114,7 @@ fetch logs, from:-1h
 Cascade processing creates a chain of derived data across scopes:
 
 ```
-Span → generates Event → Event triggers Metric → Metric drives SLO
+Span → extracted business event → business-event metric → SLO
 ```
 
 ### Example: Slow Transaction Cascade
@@ -122,20 +122,24 @@ Span → generates Event → Event triggers Metric → Metric drives SLO
 | Stage | Scope | Configuration | Output |
 |-------|-------|--------------|--------|
 | 1. Detect | Spans | Filter: `span.kind == "server"` AND `duration > 5s` | Matching spans |
-| 2. Generate | Spans → Events | Event generation rule: create event with `event.type = "slow_transaction"` | Event record per slow span |
-| 3. Extract | Events → Metrics | Metric extraction: `slow_transaction.count` by `service.name` | Metric time series |
+| 2. Extract event | Spans → Business events | Data extraction stage: *Business event* processor with `event.type = "slow_transaction"` (re-ingested into the business-events scope) | Business event per slow span |
+| 3. Extract metric | Business events → Metrics | Metric extraction stage in the business-events pipeline: `slow_transaction.count` by `service.name` | Metric time series |
 | 4. Alert | Metrics → SLO | SLO: `slow_transaction.count < 10 per 5m` per service | SLO breach triggers alert |
+
+Use a **business event** for step 2, not a Davis event: the Metric extraction stage supports the business-events scope, but not the Davis-events scope, so a Davis event cannot feed step 3.
+
+> <sub>**Sources:** [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, supported data types per stage.</sub>
 
 ### Design Considerations
 
 - **Each stage adds latency** — The full cascade may take seconds from span ingestion to SLO evaluation
-- **Failures propagate** — If the span pipeline drops the slow span, the event is never generated, and the metric never counts it
+- **Failures propagate** — If the span pipeline drops the slow span, the event is never extracted, and the metric never counts it
 - **Test end-to-end** — After configuring a cascade, verify data flows through every stage
 
 ```dql
 // Identify slow transactions that could trigger a cascade
 fetch spans, from:-1h
-| filter span.kind == "server" and duration > 5000000000
+| filter span.kind == "server" and duration > 5s
 | summarize {slow_count = count(), avg_duration_ms = avg(duration / 1ms)},
     by:{service.name}
 | sort slow_count desc
@@ -243,7 +247,7 @@ In this notebook you learned:
 
 - **Shared dimensions** — Cross-scope correlation requires common fields like `dt.entity.service` and `k8s.namespace.name`
 - **Same metric from multiple scopes** — Extract matching metrics from logs and spans to validate pipeline health
-- **Cascade processing** — Chain span → event → metric → SLO for automated detection and alerting
+- **Cascade processing** — Chain span → business event → metric → SLO for automated detection and alerting
 - **Unified bucket families** — Name related buckets with a common prefix for consistent lifecycle management
 - **When NOT to use OpenPipeline** — Keep data raw for exploratory analysis, changing logic, and one-time investigations
 - **Production readiness** — Checklist covering pipeline design, processing rules, metric extraction, security, and testing
@@ -265,6 +269,8 @@ You have completed the OPIPE series. From here:
 ## References
 
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction)
 - [Grail data lakehouse (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [DQL cross-data queries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)

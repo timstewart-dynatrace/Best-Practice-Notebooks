@@ -1,6 +1,6 @@
 # ONBRD-10: Building Dashboards
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Visualizing Your Data
 Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.
@@ -15,6 +15,7 @@ Dashboards provide at-a-glance visibility into your environment's health and per
 4. [Dashboard Patterns](#dashboard-patterns)
 5. [Useful Queries for Dashboards](#useful-queries-for-dashboards)
 6. [Sharing and Permissions](#sharing-and-permissions)
+7. [Next Steps](#next-steps)
 
 ---
 
@@ -239,7 +240,7 @@ fetch dt.entity.host
 ```dql
 // Error log count (Single Value tile)
 fetch logs, from: now() - 1h
-| filter loglevel == "error"
+| filter loglevel == "ERROR"
 | summarize error_count = count()
 ```
 
@@ -253,7 +254,7 @@ fetch logs, from: now() - 1h
 ```dql
 // Recent errors (Table tile)
 fetch logs, from: now() - 1h
-| filter loglevel == "error"
+| filter loglevel == "ERROR"
 | fields timestamp, log.source, content
 | sort timestamp desc
 | limit 10
@@ -277,7 +278,7 @@ fetch dt.davis.problems, from: now() - 7d
 ```dql
 // Recent problem list (Table tile)
 fetch dt.davis.problems, from: now() - 24h
-| fields timestamp, display_id, title, event.status
+| fields timestamp, display_id, event.name, event.status
 | sort timestamp desc
 | limit 10
 ```
@@ -315,6 +316,7 @@ Create presets for common views:
 | **JSON** | Backup, migration |
 | **Link** | Sharing (respects permissions) |
 
+<a id="next-steps"></a>
 ## 7. Next Steps
 
 Congratulations! You've completed the onboarding series.
@@ -340,7 +342,7 @@ Congratulations! You've completed the onboarding series.
 |------|--------------|
 | **Dashboard strategy + executive reporting** | DASH series (8 notebooks) |
 | **Davis AI / anomaly detection / RCA** | AIOPS series (8 notebooks) |
-| **Workflow automation + AI tasks** | WFLOW series (10 notebooks) |
+| **Workflow automation + AI tasks** | WFLOW series (12 notebooks) |
 | **Deepen DQL — spans / logs / OpenPipeline** | SPANS, OPLOGS, OPMIG, OPIPE |
 | **Synthetic monitoring** | SYNTH series |
 | **Web RUM / Mobile RUM** | WEBRUM, MOBL |

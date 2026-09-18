@@ -1,6 +1,6 @@
 # K8S-12: Specialized Monitoring Scenarios
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 13 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## NGINX Ingress, CSI Driver, Resource Tuning, and StatsD Ingestion
 This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, CSI Driver architecture, resource sizing guidelines, and StatsD metric ingestion on Kubernetes.
@@ -135,7 +135,48 @@ kubectl -n dynatrace get deployment dynatrace-operator \
   -o jsonpath='{.spec.template.spec.containers[0].image}'
 ```
 
-Migration in either direction is an operator-side change (DynaKube + Helm values); application manifests are untouched. Roll it per cluster rather than fleet-wide, and re-check pod-start latency at your busiest node density before committing.
+### Migrating CSI → Ephemeral Volumes (Operator 1.10.0+)
+
+The documented migration direction is **CSI → ephemeral**. The Dynatrace how-to uses the `csidriver.migrationMode` Helm value so the move takes *"a single pod-restart cycle instead of two"*. Prerequisites: *"Dynatrace Operator version 1.10.0+"*, an existing CSI-based injection setup, and a Helm-managed Operator — *"For manifest-based installations, see Migrate from manifests to Helm first."* Application manifests are untouched throughout; the change is Helm values plus one restart cycle.
+
+**Step 1 — Enable migration mode.** The CSI DaemonSet keeps running (so existing mounts can be cleanly unmounted) while new injections switch to ephemeral volumes:
+
+```bash
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --namespace dynatrace \
+  --reset-then-reuse-values \
+  --set csidriver.enabled=true \
+  --set csidriver.migrationMode=true \
+  --atomic
+```
+
+*"After this upgrade, all newly injected pods use ephemeral-volume injection. Existing pods continue to use their current CSI mounts until they are restarted."*
+
+**Step 2 — Restart every injected workload** so the webhook re-injects it with ephemeral volumes:
+
+```bash
+kubectl rollout restart deployment <deployment-name> -n <namespace>
+```
+
+**Step 3 — Verify no pod still mounts a CSI volume.** *"Empty output means all pods have been migrated."* Restart the workload of any pod that is listed:
+
+```bash
+kubectl get pods --all-namespaces -o jsonpath='{range .items[?(@.spec.volumes[*].csi.driver=="csi.oneagent.dynatrace.com")]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
+```
+
+**Step 4 — Only then disable the CSI driver.** *"Any pods that still rely on CSI mounts will fail to function after the CSI driver is disabled."* — never set `csidriver.enabled=false` before Step 3 comes back empty:
+
+```bash
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --namespace dynatrace \
+  --reset-then-reuse-values \
+  --set csidriver.enabled=false \
+  --atomic
+```
+
+Roll it per cluster rather than fleet-wide, and re-check pod-start latency at your busiest node density before committing.
+
+> <sub>Source: [Migrate from CSI driver to ephemeral volumes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes), read 09/18/2026.</sub>
 
 ### CSI Driver Container Structure
 
@@ -574,6 +615,7 @@ In this notebook, you learned:
 - [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd)
 - [StatsD via OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/statsd)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
+- [Migrate from CSI driver to ephemeral volumes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes)
 
 ---
 

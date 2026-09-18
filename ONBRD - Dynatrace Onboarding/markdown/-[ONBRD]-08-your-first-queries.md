@@ -1,6 +1,6 @@
 # ONBRD-08: Your First Queries
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Learning DQL Fundamentals
 Dynatrace Query Language (DQL) is how you access data in Grail. This notebook introduces the core concepts and patterns you'll use daily.
@@ -18,6 +18,7 @@ Dynatrace Query Language (DQL) is how you access data in Grail. This notebook in
 7. [Sorting and Limiting](#sorting-and-limiting)
 8. [Time Ranges](#time-ranges)
 9. [Common Patterns](#common-patterns)
+10. [Next Steps](#next-steps)
 
 ---
 
@@ -58,7 +59,7 @@ Each command in the pipeline operates on the output of the previous command:
 
 ```dql
 fetch logs                        // 1. Get all logs
-| filter loglevel == "error"     // 2. Keep only errors
+| filter loglevel == "ERROR"     // 2. Keep only errors (values are uppercase)
 | filter timestamp > now() - 1h  // 3. Last hour only
 | fields timestamp, content      // 4. Select columns
 | sort timestamp desc            // 5. Order by time
@@ -126,16 +127,17 @@ fetch dt.davis.problems, from:-24h
 Use `filter` to narrow results. Filter as early as possible for performance.
 
 ```dql
-// Filter by equality
+// Filter by equality - loglevel values are UPPERCASE ("ERROR", "WARN", "INFO");
+// a lowercase "error" matches nothing and raises no error
 fetch logs, from:-1h
-| filter loglevel == "error"
+| filter loglevel == "ERROR"
 | limit 20
 ```
 
 ```dql
 // Filter with multiple conditions (AND)
 fetch logs, from:-1h
-| filter loglevel == "error"
+| filter loglevel == "ERROR"
 | filter timestamp > now() - 1h
 | limit 20
 ```
@@ -143,14 +145,14 @@ fetch logs, from:-1h
 ```dql
 // Filter with or condition
 fetch logs, from:-1h
-| filter loglevel == "error" or loglevel == "warn"
+| filter loglevel == "ERROR" or loglevel == "WARN"
 | limit 20
 ```
 
 ```dql
 // Filter using IN for multiple values
 fetch logs, from:-1h
-| filter in(loglevel, {"error", "warn", "fatal"})
+| filter in(loglevel, {"ERROR", "WARN", "FATAL"})
 | limit 20
 ```
 
@@ -349,7 +351,7 @@ Here are patterns you'll use frequently.
 ```dql
 // Find error logs with context
 fetch logs, from: now() - 1h
-| filter loglevel == "error"
+| filter loglevel == "ERROR"
 | fields timestamp, log.source, content
 | sort timestamp desc
 | limit 50
@@ -400,6 +402,7 @@ fetch dt.entity.host
 // Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; entity.name -> name.
 ```
 
+<a id="next-steps"></a>
 ## 10. Next Steps
 
 With DQL fundamentals covered:

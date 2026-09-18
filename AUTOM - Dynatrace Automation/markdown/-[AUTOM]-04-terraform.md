@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 09/02/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -15,6 +15,8 @@ The Dynatrace Terraform provider enables infrastructure-as-code management of Dy
 5. [State Management](#state-management)
 6. [Advanced Patterns](#advanced-patterns)
 7. [Governance Architecture](#governance-architecture)
+8. [Next Steps](#next-steps)
+8. [Next Steps](#next-steps)
 
 ---
 
@@ -126,7 +128,7 @@ terraform {
   required_providers {
     dynatrace = {
       source  = "dynatrace-oss/dynatrace"
-      version = "~> 1.100"       # Current: v1.100.0 (released 07/02/2026)
+      version = "~> 1.104"       # v1.104.1 at time of writing (released 09/10/2026)
     }
   }
 }
@@ -137,7 +139,7 @@ provider "dynatrace" {
 }
 ```
 
-> **Provider version — v1.100.0, released 07/02/2026.** This is the current release at the time of writing and the version every version-specific claim in this notebook is stated against. Unlike a SaaS sprint, a provider release reaches nobody automatically: the version in play is whatever your `required_providers` block resolves to, and `terraform init` pins it in `.terraform.lock.hcl` until you deliberately run `terraform init -upgrade`. Check your lock file before assuming a resource or attribute described here is available to you, and check the [registry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest) for releases newer than v1.100.0.
+> **Provider version — v1.104.1, released 09/10/2026 (at time of writing, 09/2026).** Version-specific claims in this notebook were last re-checked against this release; earlier sections were written against v1.100.0. Breaking changes since v1.100: **v1.101.0** removed `dynatrace_activegate_updates`, `dynatrace_golden_state`, the legacy HTTP client and the `DYNATRACE_HTTP_LEGACY` / `DYNATRACE_HTTP_RESPONSE` environment variables; **v1.102.0** removed `enable_resource_attribute_rules`; **v1.104.0** removed the `DA` / `NONE` consumers from `dynatrace_aws_connection` / `dynatrace_azure_connection`. Unlike a SaaS sprint, a provider release reaches nobody automatically: the version in play is whatever your `required_providers` block resolves to, and `terraform init` pins it in `.terraform.lock.hcl` until you deliberately run `terraform init -upgrade`. Check your lock file before assuming a resource or attribute described here is available to you, and check the [registry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest) or the [provider releases (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) for releases newer than v1.104.1.
 
 > **Important:** Synthetic monitors and SLO definitions require a classic API Token (`dt0c01.*`). OAuth/Platform Token authentication does not support these resource types as of provider v1.88.0.
 
@@ -196,7 +198,7 @@ provider "dynatrace" {
 
 ### Method 3: OAuth Client Credentials
 
-**Required** for Automation (Workflows), Document, and Account Management (IAM) resources. The provider exchanges your client ID and secret for short-lived OAuth access tokens automatically.
+**Required** for Account Management (IAM) resources, Grail buckets and `dynatrace_platform_slo`; an alternative to a Platform Token for Automation (Workflows) and Document resources. The provider exchanges your client ID and secret for short-lived OAuth access tokens automatically.
 
 > **IAM is OAuth-only by construction.** Unlike Workflows and Documents (which support Platform Token via `DYNATRACE_HTTP_OAUTH_PREFERENCE=true`), the IAM Account Management API rejects Platform Tokens and classic API tokens — the [`dynatrace_iam_group` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) explicitly requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client."* The minimum-viable OAuth client for IAM needs four scopes: `account-idm-read`, `account-idm-write`, `iam-policies-management`, `account-env-read`. For the full IAM lifecycle (groups + policies + boundaries + bindings + bulk export + DSL discovery), see **AUTOM-95 LAB: Terraform IAM Management**.
 
@@ -240,7 +242,8 @@ export DYNATRACE_API_TOKEN="dt0c01.xxxx.yyyy"
 |----------|------------|
 | Settings 2.0 (auto-tags, management zones, alerting) | Platform Token |
 | Gen3 Platform (workflows, documents, segments) | Platform Token (via OAuth) |
-| SLO definitions (`dynatrace_slo_v2`) | Platform Token (Settings 2.0 — `builtin:monitoring.slo`) |
+| SLO definitions — Classic (`dynatrace_slo_v2`, `builtin:monitoring.slo`) | **API Token** (`slo.read`/`slo.write` + `settings.read`/`settings.write`, per the provider's [`slo_v2` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md)) |
+| SLO definitions — Latest Dynatrace (`dynatrace_platform_slo`) | **OAuth client** (`slo:slos:read`/`slo:slos:write`, per the [`platform_slo` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md)) — see SLO-05 |
 | Synthetic monitors (`dynatrace_http_monitor`) | **API Token** (v1.88.0) |
 
 ### Environment Variables — Complete Reference
@@ -259,7 +262,8 @@ export DYNATRACE_API_TOKEN="dt0c01.xxxx.yyyy"
 
 | Resource Category | API Token | Platform Token | OAuth Client |
 |-------------------|-----------|----------------|-------------|
-| Settings 2.0 (management zones, auto-tags, alerting, SLOs) | Yes | Yes | Yes (`HTTP_OAUTH_PREFERENCE`) |
+| Settings 2.0 (management zones, auto-tags, alerting) | Yes | Yes | Yes (`HTTP_OAUTH_PREFERENCE`) |
+| SLO — Classic (`dynatrace_slo_v2`) | **Yes (required)** | No | No |
 | Synthetic monitors | **Yes (required)** | No (v1.88.0) | No (v1.88.0) |
 | Gen3: Workflows, scheduling | No | Yes (with `HTTP_OAUTH_PREFERENCE`) | **Yes** |
 | Gen3: Documents (dashboards, notebooks) | No | Yes (with `HTTP_OAUTH_PREFERENCE`) | **Yes** |
@@ -358,7 +362,7 @@ Platform Tokens are minted **out-of-band** via either:
 - The DT UI (Account Management → Identity & access management → Service users → *Generate token*), or
 - `POST https://api.dynatrace.com/iam/v1/accounts/{accountUuid}/platform-tokens` ([endpoint docs](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token)), called by an OAuth client whose scope catalog includes Platform Token minting.
 
-The minted token is then delivered to CI/Terraform via a secret manager or env var. The token value never enters Terraform state (in contrast to `dynatrace_api_token`, which by design persists the minted classic API Token as a plain-text attribute in state — see *Operational Safety* subsection below). For the composed *OAuth client → mints ephemeral Platform Token on behalf of a Service User → Terraform applies* CI/CD pattern, see **AUTOM-07** *(forthcoming)*.
+The minted token is then delivered to CI/Terraform via a secret manager or env var. The token value never enters Terraform state (in contrast to `dynatrace_api_token`, which by design persists the minted classic API Token as a plain-text attribute in state — see *Operational Safety* subsection below). For the composed *OAuth client → mints ephemeral Platform Token on behalf of a Service User → Terraform applies* CI/CD pattern, see **AUTOM-07 §11**.
 
 By contrast, the `dynatrace_api_token` resource **does** exist and is the only token-minting resource the provider offers — see the *Special case* subsection below.
 
@@ -606,7 +610,7 @@ This section is the repo's consolidated Terraform resource catalog, organized by
 | Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Carries forward | Below — see also ORGNZ for bucket strategy |
 | IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Carries forward | Below — full hands-on walkthrough in AUTOM-95 LAB |
 
-> **Reading the Upgrade status column.** `Blocked` means the resource's underlying Settings 2.0 schema stops answering once your tenant upgrades to the latest Dynatrace — the Terraform resource goes with it, because the provider writes through that schema. Statuses are read from the ready-made *Check your upgrade readiness* dashboard, observed **07/31/2026**, and each resource-to-schema mapping was confirmed against the provider's own resource documentation. Public documentation does not currently publish these as breaking changes, so a resource can read as entirely current in the registry and still be `Blocked` here. See AUTOM-02 for the full schema catalog and the deprecated-versus-blocked distinction.
+> **Reading the Upgrade status column.** `Blocked` means the resource's underlying Settings 2.0 schema stops answering once your tenant upgrades to the latest Dynatrace — the Terraform resource goes with it, because the provider writes through that schema. Statuses are read from the ready-made *Check your upgrade readiness* dashboard, observed **07/31/2026**, cross-checked **09/18/2026** against Dynatrace's published [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas), and each resource-to-schema mapping was confirmed against the provider's own resource documentation. The provider registry does not flag these resources, so a resource can read as entirely current there and still be `Blocked` here. See AUTOM-02 for the full schema catalog and the deprecated-versus-blocked distinction.
 
 > **Auth requirement is a strong predictor here, but not a rule.** Every blocked row is a **Classic API token** row, and every Platform-Token-or-OAuth row carries forward — which makes sense, since the Gen3-native resources were built on the surfaces that survive. The exception worth remembering is **Synthetic**: it authenticates with a classic token and still carries forward. Do not infer status from the auth column alone.
 
@@ -619,22 +623,16 @@ resource "dynatrace_management_zone_v2" "production" {
   name = "Production"
 
   rules {
-    type    = "SERVICE"
-    enabled = true
-
-    conditions {
-      condition {
-        key {
-          type      = "STATIC"
-          attribute = "SERVICE_TAGS"
-        }
-        tag {
-          operator = "EQUALS"
-          negate   = false
-          value {
-            context = "CONTEXTLESS"
-            key     = "environment"
-            value   = "production"
+    rule {
+      type    = "ME"
+      enabled = true
+      attribute_rule {
+        entity_type = "SERVICE"
+        attribute_conditions {
+          condition {
+            key      = "SERVICE_TAGS"
+            operator = "EQUALS"
+            tag      = "environment:production"
           }
         }
       }
@@ -650,10 +648,21 @@ resource "dynatrace_autotag_v2" "application" {
   name = "Application"
 
   rules {
-    type         = "SERVICE"
-    enabled      = true
-    value_format = "{Service:DetectedName}"
-    conditions   = []
+    rule {
+      type                = "ME"
+      enabled             = true
+      value_format        = "{Service:DetectedName}"
+      value_normalization = "Leave text as-is"
+      attribute_rule {
+        entity_type = "SERVICE"
+        conditions {
+          condition {
+            key      = "SERVICE_DETECTED_NAME"
+            operator = "EXISTS"
+          }
+        }
+      }
+    }
   }
 }
 ```
@@ -662,27 +671,29 @@ resource "dynatrace_autotag_v2" "application" {
 
 ### Alerting Profile
 
+> **Dynatrace Classic.** *"Alerting profiles and problem notifications are Dynatrace Classic."* They keep working on Classic tenants, but `builtin:alerting.profile` (the schema behind `dynatrace_alerting`) is on Dynatrace's list of [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."* Delay has no successor field: per the [alert-notification upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification), *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* The example shows the resource shape for estates you still maintain; build new routing with `dynatrace_automation_workflow` (below, and WFLOW / ALERT-03).
+
 ```hcl
 resource "dynatrace_alerting" "production_alerts" {
   name            = "Production Alerting"
   management_zone = dynatrace_management_zone_v2.production.id
 
   rules {
-    delay_in_minutes = 0
-    severity_level   = "AVAILABILITY"
-    tag_filters      = []
-  }
-
-  rules {
-    delay_in_minutes = 5
-    severity_level   = "ERRORS"
-    tag_filters      = []
-  }
-
-  rules {
-    delay_in_minutes = 10
-    severity_level   = "PERFORMANCE"
-    tag_filters      = []
+    rule {
+      include_mode     = "NONE"
+      delay_in_minutes = 0
+      severity_level   = "AVAILABILITY"
+    }
+    rule {
+      include_mode     = "NONE"
+      delay_in_minutes = 5
+      severity_level   = "ERRORS"
+    }
+    rule {
+      include_mode     = "NONE"
+      delay_in_minutes = 10
+      severity_level   = "PERFORMANCE"
+    }
   }
 }
 ```
@@ -793,19 +804,35 @@ data "dynatrace_synthetic_location" "location" {
 }
 
 resource "dynatrace_browser_monitor" "homepage_clickpath" {
-  name       = "Homepage Clickpath"
-  frequency  = 15
-  locations  = [data.dynatrace_synthetic_location.location.id]
-  enabled    = true
+  name      = "Homepage Clickpath"
+  frequency = 15
+  locations = [data.dynatrace_synthetic_location.location.id]
+  enabled   = true
+
+  anomaly_detection {
+    loading_time_thresholds {
+      enabled = true
+    }
+    outage_handling {
+      global_outage = true
+    }
+  }
+
+  key_performance_metrics {
+    load_action_kpm = "VISUALLY_COMPLETE"
+    xhr_action_kpm  = "VISUALLY_COMPLETE"
+  }
 
   script {
-    version = "1.0"
+    type = "clickpath"
     events {
       event {
-        type = "navigate"
+        description = "Load homepage"
         navigate {
-          description = "Load homepage"
-          url         = "https://example.com"
+          url = "https://example.com"
+          wait {
+            wait_for = "page_complete"
+          }
         }
       }
     }
@@ -813,7 +840,7 @@ resource "dynatrace_browser_monitor" "homepage_clickpath" {
 }
 ```
 
-Requires the classic API token scope `ExternalSyntheticIntegration` (same as `dynatrace_http_monitor` — verified at the provider registry 07/01/2026). NRLC-09 points here for New-Relic-synthetic-check migrations; treat this and `dynatrace_http_monitor` as Config-v1 (classic) objects, not Settings 2.0 — there is no `builtin:synthetic_*` schema.
+Requires the classic API token scope `ExternalSyntheticIntegration` (same as `dynatrace_http_monitor` — verified at the provider registry 07/01/2026). A clickpath script needs `type = "clickpath"`, each event a `description`, and the monitor a `key_performance_metrics` block — the shape above follows the provider's own [`browser_monitor` example (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/browser_monitor.md) (`terraform validate` clean on v1.104.1, 09/18/2026). NRLC-09 points here for New-Relic-synthetic-check migrations; treat this and `dynatrace_http_monitor` as Config-v1 (classic) objects, not Settings 2.0 — there is no `builtin:synthetic_*` schema.
 
 ---
 
@@ -881,7 +908,8 @@ resource "dynatrace_document" "team_dashboard" {
       "tile-1" = {
         type  = "data"
         title = "Error Rate"
-        query = "timeseries avg(dt.service.request.failure_rate), by:{dt.entity.service}"
+        # dt.service.request.failure_rate does not exist — derive the rate from the two counts
+        query = "timeseries { failures = sum(dt.service.request.failure_count), total = sum(dt.service.request.count) }, by:{dt.entity.service}\n| fieldsAdd failure_rate = 100 * failures[] / total[]\n| fieldsRemove failures, total"
         visualization = "lineChart"
         visualizationSettings = {
           chartSettings = {}
@@ -928,7 +956,7 @@ resource "dynatrace_document" "runbook" {
         title = "Error Rate by Service"
         state = {
           input = {
-            value = "timeseries avg(dt.service.request.failure_rate), by:{dt.entity.service}"
+            value = "timeseries { failures = sum(dt.service.request.failure_count), total = sum(dt.service.request.count) }, by:{dt.entity.service}\n| fieldsAdd failure_rate = 100 * failures[] / total[]\n| fieldsRemove failures, total"
           }
         }
       }
@@ -941,41 +969,81 @@ resource "dynatrace_document" "runbook" {
 
 #### Segment (Gen3 Management Zone Replacement)
 
+A segment filter is **not** a DQL query string. `includes.items.filter` holds the segment editor's JSON filter tree (the shape below follows the provider's [`segment` example (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/segment.md)), so the reliable workflow is to build the segment in the UI and export it with `terraform-provider-dynatrace -export dynatrace_segment`.
+
 ```hcl
-resource "dynatrace_segment" "production_services" {
-  name            = "Production Services"
-  description     = "All services in the production environment"
-  is_public       = true
-  include_filter  = "fetch dt.entity.service | filter tags = \"Environment:production\""
+resource "dynatrace_segment" "cluster_scope" {
+  name        = "Kubernetes cluster"
+  description = "All data from one Kubernetes cluster, selected by variable"
+  is_public   = true
+
+  includes {
+    items {
+      data_object = "_all_data_object"
+      # Segment filter AST as emitted by the segment editor — k8s.cluster.name = $cluster
+      filter = jsonencode({
+        "children" : [
+          {
+            "key" : { "range" : { "from" : 0, "to" : 16 }, "textValue" : "k8s.cluster.name", "type" : "Key", "value" : "k8s.cluster.name" },
+            "operator" : { "range" : { "from" : 17, "to" : 18 }, "textValue" : "=", "type" : "ComparisonOperator", "value" : "=" },
+            "range" : { "from" : 0, "to" : 27 },
+            "type" : "Statement",
+            "value" : { "range" : { "from" : 19, "to" : 27 }, "textValue" : "$cluster", "type" : "String", "value" : "$cluster" }
+          }
+        ],
+        "explicit" : false,
+        "logicalOperator" : "AND",
+        "range" : { "from" : 0, "to" : 27 },
+        "type" : "Group"
+      })
+    }
+  }
+
+  variables {
+    type  = "query"
+    value = <<-EOT
+      fetch dt.entity.kubernetes_cluster
+      | fields cluster = entity.name
+      | sort cluster
+    EOT
+  }
 }
 ```
 
 #### Maintenance Window
 
+Use `dynatrace_maintenance_windows` (schema `builtin:maintenance-windows`, carries forward). The older `dynatrace_maintenance` resource writes `builtin:alerting.maintenance-window`, which is on the removed-schemas list.
+
 ```hcl
-resource "dynatrace_maintenance" "weekly_patch" {
-  enabled = true
-  name    = "Weekly Patch Window"
-  type    = "PLANNED"
-  suppression = "DONT_DETECT_PROBLEMS"
+resource "dynatrace_maintenance_windows" "weekly_patch" {
+  name        = "Weekly Patch Window"
+  description = "Weekly 02:00-04:00 UTC patching"
+  enabled     = true
+  auto_delete = false
+  # Required DQL filter selecting what is under maintenance. Build it in the
+  # maintenance-windows UI, then export (see note below) rather than hand-writing it.
+  filter = var.maintenance_filter
 
   schedule {
-    type = "WEEKLY"
-    weekly_recurrence {
-      day_of_week    = "SUNDAY"
-      time_window {
-        start_time = "02:00"
-        end_time   = "04:00"
-      }
-      recurrence_range {
-        start_date = "2026-01-01"
+    duration = 120
+    timezone = "UTC"
+
+    trigger {
+      type = "time"
+
+      recurring {
+        time           = "02:00:00"
+        earliest_start = "2026-01-01"
+        until          = "2027-12-31"
+        # Which days an instance is created on comes from a scheduling rule:
+        # rule = dynatrace_automation_scheduling_rule.sundays.id
       }
     }
   }
 }
 ```
 
-> **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` is **deprecated** in provider v1.98+ in favor of **`dynatrace_maintenance_windows`**, which manages the newer maintenance-windows schema (recurring and one-time windows). The example above remains valid — `dynatrace_maintenance` still works on current provider versions and is the working resource if you are pinned below v1.98. For new configurations on v1.98+, start with `dynatrace_maintenance_windows`; migrate existing configs on your next maintenance touch (review the resource docs for the schema differences before switching).
+> **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` is **deprecated** in provider v1.98+ in favor of **`dynatrace_maintenance_windows`** (example above; shape from the provider's [`maintenance_windows` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/maintenance_windows.md), `terraform validate` clean on v1.104.1). If you are pinned below v1.98, `dynatrace_maintenance` is still the working resource there, but it takes `general_properties` and `schedule` blocks rather than top-level `name`/`type`/`suppression` — export an existing window (`terraform-provider-dynatrace -export dynatrace_maintenance`) for the exact shape, and plan the move to `dynatrace_maintenance_windows` before your tenant upgrades.
 
 #### OpenPipeline (per-data-type resource family)
 
@@ -1009,16 +1077,18 @@ resource "dynatrace_iam_group" "platform_engineers" {
 }
 
 resource "dynatrace_iam_policy" "read_only" {
-  name        = "Read-Only Access"
-  account     = var.account_uuid
-  environment = "" # deprecated argument — use account instead (fixed 07/01/2026)
+  name            = "Read-Only Access"
+  account         = var.account_uuid
   statement_query = "ALLOW environment:roles:viewer;"
 }
 
 resource "dynatrace_iam_policy_bindings_v2" "binding" {
-  policy_id = dynatrace_iam_policy.read_only.id
-  account   = var.account_uuid
-  groups    = [dynatrace_iam_group.platform_engineers.id]
+  group   = dynatrace_iam_group.platform_engineers.id
+  account = var.account_uuid
+
+  policy {
+    id = dynatrace_iam_policy.read_only.id
+  }
 }
 ```
 
@@ -1126,22 +1196,16 @@ resource "dynatrace_management_zone_v2" "zone" {
   name = var.environment_name
 
   rules {
-    type    = "SERVICE"
-    enabled = true
-
-    conditions {
-      condition {
-        key {
-          type      = "STATIC"
-          attribute = "SERVICE_TAGS"
-        }
-        tag {
-          operator = "EQUALS"
-          negate   = false
-          value {
-            context = "CONTEXTLESS"
-            key     = "environment"
-            value   = var.environment_tag
+    rule {
+      type    = "ME"
+      enabled = true
+      attribute_rule {
+        entity_type = "SERVICE"
+        attribute_conditions {
+          condition {
+            key      = "SERVICE_TAGS"
+            operator = "EQUALS"
+            tag      = "environment:${var.environment_tag}"
           }
         }
       }
@@ -1188,11 +1252,11 @@ terraform workspace select production
 terraform workspace list
 ```
 
-**Use workspace in config:**
+**Use workspace in config** (run in a named workspace — in `default`, the map lookup below fails `terraform validate`; `dynatrace_alerting` is Dynatrace Classic, see the alerting-profile note in §4):
 ```hcl
 locals {
   environment = terraform.workspace
-  
+
   config = {
     development = {
       alert_delay = 30
@@ -1208,10 +1272,13 @@ locals {
 
 resource "dynatrace_alerting" "alerts" {
   name = "${local.environment} Alerting"
-  
+
   rules {
-    delay_in_minutes = local.config[local.environment].alert_delay
-    severity_level   = "AVAILABILITY"
+    rule {
+      include_mode     = "NONE"
+      delay_in_minutes = local.config[local.environment].alert_delay
+      severity_level   = "AVAILABILITY"
+    }
   }
 }
 ```
@@ -1270,19 +1337,18 @@ The Dynatrace Terraform provider can manage IAM policies, groups, and bindings. 
 
 > **Important:** Managing IAM resources requires OAuth client credentials with `DT_ACCOUNT_ID`. API tokens cannot manage IAM.
 
-> **Hands-on lab:** This subsection covers IAM at lecture depth. For a full hands-on walkthrough — OAuth client setup with the four minimal scopes, DSL discovery (no public catalog), the four IAM resource types (groups + policies + boundaries + bindings_v2), the `bindings_v2` re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting with `TF_LOG=DEBUG` — see **AUTOM-95 LAB: Terraform IAM Management**. Note the deprecated-arguments section (LAB-95 §12) flags that `dynatrace_iam_policy.environment` (used in the example below) is deprecated in favor of `account = var.account_uuid` — the example below predates this guidance and should be migrated on next touch.
+> **Hands-on lab:** This subsection covers IAM at lecture depth. For a full hands-on walkthrough — OAuth client setup with the four minimal scopes, DSL discovery (no public catalog), the four IAM resource types (groups + policies + boundaries + bindings_v2), the `bindings_v2` re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting with `TF_LOG=DEBUG` — see **AUTOM-95 LAB: Terraform IAM Management**. Note the deprecated-arguments section (LAB-95 §12): `dynatrace_iam_policy.environment` is deprecated in favor of `account = var.account_uuid`, and the provider itself emits a deprecation warning for environment-level policies — the example below defines and binds the policy at account level.
 
 ```hcl
 # Create a policy that restricts a team to specific settings schemas
 resource "dynatrace_iam_policy" "team_settings" {
   name            = "Payments Team - Settings Access"
-  environment     = var.dynatrace_environment_id
+  account         = var.account_uuid
   statement_query = <<-EOT
     ALLOW settings:objects:read, settings:objects:write
       WHERE settings:schemaId IN (
-        "builtin:alerting.profile",
-        "builtin:problem.notifications",
-        "builtin:maintenance-window"
+        "builtin:davis.anomaly-detectors",
+        "builtin:maintenance-windows"
       );
   EOT
 }
@@ -1293,22 +1359,24 @@ resource "dynatrace_iam_group" "payments_team" {
   description = "IAM group for the Payments team"
 }
 
-# Bind the policy to the group
+# Bind the policy to the group (account level)
 resource "dynatrace_iam_policy_bindings_v2" "payments_binding" {
-  group = dynatrace_iam_group.payments_team.id
+  group   = dynatrace_iam_group.payments_team.id
+  account = var.account_uuid
 
   policy {
-    id          = dynatrace_iam_policy.team_settings.id
-    environment = var.dynatrace_environment_id
+    id = dynatrace_iam_policy.team_settings.id
   }
 }
 ```
+
+The schema IDs in a `settings:schemaId` condition must exist: a misspelled ID (for example `builtin:maintenance-window`, which is not a schema) makes the condition silently match nothing. Pick schemas that survive the upgrade — `builtin:alerting.profile` and `builtin:problem.notifications` are on the removed-schemas list.
 
 IAM policies support multiple condition operators:
 
 | Operator | Example | Use Case |
 |----------|---------|----------|
-| `IN` | `settings:schemaId IN ("builtin:alerting.profile", ...)` | Explicit list |
+| `IN` | `settings:schemaId IN ("builtin:davis.anomaly-detectors", ...)` | Explicit list |
 | `startsWith` | `settings:schemaId startsWith "builtin:alerting"` | Schema family |
 | `contains` | `settings:schemaId contains "custom"` | Substring match |
 | `=` | `storage:bucket-name = "team_logs"` | Data isolation |
@@ -1328,7 +1396,7 @@ Here is why each token approach fails for scoped Synthetic access:
 
 | Token Approach | Why It Fails for Synthetic Scoping |
 |----------------|-----------------------------------|
-| **Platform Token** (cluster page) | Cannot express v1 Synthetic permissions — those APIs are not covered by platform scopes |
+| **Platform Token** (cluster page) | As of SaaS 1.343 (staged rollout — verify it has reached your tenant) a platform token can authenticate to classic endpoints, but it inherits the holder's environment-wide permissions: there is still no object- or team-level scoping for synthetic monitors, and the Terraform provider still requires a classic token for them (v1.88.0+) |
 | **OAuth Client** | The v1 Synthetic API **does not accept OAuth bearer tokens**. It requires a classic API token (`dt0c01`) with `ExternalSyntheticIntegration` scope. OAuth works for Gen3/platform resources only. |
 | **Personal Access Token** | Still a classic API token — scopes are broad and environment-wide |
 | **Environment Token** | Cannot be restricted to specific objects or teams. This is how classic tokens work by design. |
@@ -1402,7 +1470,7 @@ These approaches **do not** overcome the v1 API limitation:
 - Per-team OAuth clients for Synthetics (OAuth works for Gen3, not v1 APIs)
 - Sentinel-only enforcement without pipeline architecture (Sentinel constrains Terraform plans, not API permissions)
 - Terraform modules alone without CI governance (modules can be bypassed without pipeline guardrails)
-- Expecting platform tokens to cover Classic API endpoints
+- Expecting a platform token to give per-team scoping on synthetic monitors (from SaaS 1.343 it can reach classic endpoints, but with the holder's environment-wide rights)
 
 ---
 
@@ -1498,7 +1566,7 @@ For the full sequenced path from "no automation today" to "PR-driven plan-then-a
 
 ### When Monaco Belongs Alongside Terraform
 
-A Terraform shop doesn't need Monaco for most use cases, but five specific patterns make Monaco worth adding. See **AUTOM-01 §5: When a Terraform Shop Should Add Monaco**.
+A Terraform shop doesn't need Monaco for most use cases, but four specific patterns make Monaco worth adding. See **AUTOM-01 §5: When a Terraform Shop Should Add Monaco**.
 
 ### Continue the Series
 
@@ -1510,7 +1578,7 @@ A Terraform shop doesn't need Monaco for most use cases, but five specific patte
 
 ### Additional Resources
 
-- [Terraform Provider Documentation](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs) (v1.100.0, July 2026)
+- [Terraform Provider Documentation](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs) (v1.104.1 at time of writing, 09/2026)
 - [Provider GitHub Repository](https://github.com/dynatrace-oss/terraform-provider-dynatrace)
 - [Terraform CLI commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — `-export` utility reference
 - [Terraform Style Guide](https://developer.hashicorp.com/terraform/language/style)
@@ -1545,7 +1613,7 @@ The following GitHub repositories provide starter templates, reusable modules, a
 
 | Repository | Description |
 |------------|-------------|
-| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.100.0, 190 releases) -- supports hundreds of resource types with export capability |
+| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.104.1 at time of writing, 09/2026) -- supports hundreds of resource types with export capability |
 | [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | Official samples repo with 10 Terraform starter templates in `basic-templates-terraform` |
 
 ### Starter Templates & Modules (in `dynatrace-configuration-as-code-samples`)

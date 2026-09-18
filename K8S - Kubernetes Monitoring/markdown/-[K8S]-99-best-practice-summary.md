@@ -1,6 +1,6 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -71,7 +71,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
 | 6 | Install operator via Helm OCI, always with an explicit `--version` | `helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2 --namespace dynatrace --create-namespace --install --atomic` | **Critical** | Installation |
-| 7 | Choose a code-module delivery mode deliberately | `csidriver.enabled: true` is the default recommendation; ephemeral volumes are a supported alternative from Operator 1.10.0 (see note) | **Critical** *(making the choice)* | Installation |
+| 7 | Choose a code-module delivery mode deliberately | `csidriver.enabled: true` is the default recommendation; ephemeral volumes are a supported alternative from Operator 1.10.0 (see note). To migrate, use `csidriver.migrationMode` — never flip `csidriver.enabled: false` first | **Critical** *(making the choice)* | Installation |
 | 8 | Set platform explicitly | `platform: "kubernetes"` or `platform: "openshift"` | Recommended | Installation |
 | 9 | Create dedicated namespace | `kubectl create namespace dynatrace` | **Critical** | Installation |
 | 10 | Create API token secret before applying DynaKube | `kubectl create secret generic dynakube --namespace dynatrace --from-literal=apiToken=<TOKEN> --from-literal=dataIngestToken=<TOKEN>` | **Critical** | Installation |
@@ -83,7 +83,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 > | **CSI driver** (`csidriver.enabled: true`) | Default. You want code modules cached per node and shared across pods, and you can run a privileged DaemonSet with a host-path socket. | An extra 5-container DaemonSet to size and monitor; a mount-storm failure mode (rules 57–59, K8S-09 §2). |
 > | **Ephemeral volumes** (Operator 1.10.0+) | A CSI DaemonSet is unacceptable — restrictive admission policy, a managed platform that limits CSI drivers, or a node pool where you will not run privileged workloads. | Code modules are provisioned per pod rather than shared per node, so expect more image/volume churn and slower pod starts at high density. |
 >
-> Migrating in either direction is an operator-side change to the DynaKube and Helm values, not an application change. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — **on Operator 1.9.x and earlier the CSI driver remains the only supported mode**, so `csidriver.enabled: true` stays the correct setting there. Mechanics and trade-offs: K8S-12 §2–§3.
+> Migrating CSI → ephemeral (the documented direction) is a Helm-values change plus one workload-restart cycle, not an application change: enable `csidriver.migrationMode`, restart injected workloads, confirm no pod still mounts `csi.oneagent.dynatrace.com`, and only then set `csidriver.enabled: false` — pods still on CSI mounts stop working once the driver is disabled. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — **on Operator 1.9.x and earlier the CSI driver remains the only supported mode**, so `csidriver.enabled: true` stays the correct setting there. Mechanics and trade-offs: K8S-12 §2–§3.
 
 ### Required Token Scopes
 
@@ -209,7 +209,7 @@ spec:
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 51 | Pin OTel Collector image to a specific version (current: `0.48.0`, May 2026) | `spec.templates.otelCollector.imageRef.tag: "0.48.0"` | **Critical** | OTel |
+| 51 | Pin OTel Collector image to a specific, verified version (example: `0.56.0`, Sept 2026 — check the [releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) before installing) | `spec.templates.otelCollector.imageRef.tag: "0.56.0"` | **Critical** | OTel |
 | 52 | Never use `latest` tag for OTel Collector | Always specify explicit version tag | **Critical** | OTel |
 | 53 | Set OTel Collector resource limits | `limits: {cpu: 500m, memory: 512Mi}` for staging; `{cpu: 1000m, memory: 1Gi}` for production | Recommended | OTel |
 | 54 | Configure `telemetryIngest` with required protocols | `spec.telemetryIngest.protocols: [otlp]` (add `statsd`, `jaeger`, `zipkin` as needed) | Recommended | OTel |
@@ -329,7 +329,7 @@ spec:
 | 106 | Check webhook registration | `kubectl get mutatingwebhookconfigurations` — Dynatrace webhook must exist | Recommended | Troubleshooting |
 | 107 | Collect support bundle for escalation | DynaKube YAML, pod YAML, events, operator logs, OneAgent logs in a tar.gz | Optional | Troubleshooting |
 | 108 | Use DQL to detect Dynatrace component failures across fleet | Query `events` for `dynatrace` + `Failed/OOMKilled/BackOff` | Recommended | Troubleshooting |
-| 109 | Detect metric data gaps with timeseries count queries | `timeseries cpuPoints = count(dt.host.cpu.usage)` then `filter minPoints == 0` | Recommended | Troubleshooting |
+| 109 | Detect metric data gaps from null buckets | `timeseries … = avg(dt.host.cpu.usage)` then compare `arraySize(arrayRemoveNulls(…))` to `arraySize(…)` — `arraySize` counts empty buckets and `arrayMin` skips them | Recommended | Troubleshooting |
 
 ---
 

@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 07/30/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -14,6 +14,7 @@ Configuration migration is the process of transferring Dynatrace settings from o
 4. [Terraform Export](#terraform-export)
 5. [SaaS Upgrade Assistant](#saas-upgrade-assistant)
 6. [Validation and Verification](#validation-and-verification)
+7. [Summary](#summary)
 
 ---
 
@@ -114,11 +115,14 @@ export DT_SOURCE_URL="https://source-tenant.live.dynatrace.com"
 export DT_SOURCE_TOKEN="<your-source-api-token>"
 
 # Download all configurations
+# --token takes the NAME of the variable holding the token, not the token itself
 monaco download \
-  --environment-url "$DT_SOURCE_URL" \
-  --api-token "$DT_SOURCE_TOKEN" \
+  --url "$DT_SOURCE_URL" \
+  --token DT_SOURCE_TOKEN \
   --output-folder ./migration-export
 ```
+
+To include platform configurations (workflows, documents, Grail buckets, segments), also pass `--platform-token <VAR_NAME>` or the `--oauth-client-id` / `--oauth-client-secret` pair — an access token alone does not reach the Platform APIs.
 
 ### Step 2: Review and Clean
 
@@ -165,8 +169,7 @@ environmentGroups:
           value: DT_TARGET_URL
         auth:
           token:
-            type: environment
-            value: DT_TARGET_TOKEN
+            name: DT_TARGET_TOKEN
 ```
 
 ### Step 4: Validate and Deploy
@@ -176,10 +179,8 @@ environmentGroups:
 export DT_TARGET_URL="https://target-tenant.live.dynatrace.com"
 export DT_TARGET_TOKEN="<your-target-api-token>"
 
-# Validate first
-monaco validate manifest.yaml
-
-# Dry run
+# Dry run — Monaco has no separate "validate" command; this parses the YAML,
+# checks template JSON and resolves references without contacting the tenant
 monaco deploy manifest.yaml --environment target --dry-run
 
 # Deploy
@@ -423,17 +424,22 @@ Run these DQL queries on the target tenant to verify entity counts:
 ```
 
 ```dql
-// Verify synthetic monitors — Smartscape form (preferred for new queries)
-smartscapeNodes "BROWSER_MONITOR"
-| summarize total = count()
+// Verify synthetic monitors — all three monitor types, Smartscape form (preferred for new queries)
+smartscapeNodes "BROWSER_MONITOR", "HTTP_MONITOR", "NETWORK_AVAILABILITY_MONITOR"
+| summarize total = count(), by:{type}
 
-// Classic form — still functional, and a genuine fallback:
-//   fetch dt.entity.synthetic_test
+// Counting BROWSER_MONITOR alone misses HTTP and network-availability monitors, so a
+// migration check could pass with half the monitors missing. Compare per type.
+//
+// Classic form — still functional, and a genuine fallback (one query per type):
+//   fetch dt.entity.synthetic_test        // browser
 //   | summarize total = count()
 //
 // dt.entity.synthetic_test maps to the BROWSER_MONITOR Smartscape node type. Both forms
 // returned the same monitor count when live-verified 07/30/2026, so either works today;
-// dt.entity.* is deprecated, so prefer the Smartscape form for anything new.
+// dt.entity.* is deprecated, so prefer the Smartscape form for anything new. Note that
+// dt.entity.* is a lookback view: with a wide window (from:-30d) it also counts monitors
+// deleted inside that window, while smartscapeNodes counts current nodes (re-verified 09/18/2026).
 //
 // Two things to know before porting a synthetic query:
 //   - Clickpath steps are a SEPARATE node type (BROWSER_MONITOR_STEP), not fields of the
@@ -519,15 +525,15 @@ def validate_migration(source_url, source_token, target_url, target_token):
 
 | Task | Monaco Command |
 |------|---------------|
-| Download all | `monaco download --output-folder ./export` |
-| Download specific | `monaco download --api builtin:management-zones` |
+| Download all | `monaco download --manifest manifest.yaml --environment <env> --output-folder ./export` |
+| Download specific | `monaco download --manifest manifest.yaml --environment <env> --settings-schema builtin:management-zones` (`--api` is for classic Configuration APIs only) |
 | Validate | `monaco deploy manifest.yaml --dry-run` — Monaco ships no standalone `validate` subcommand (see AUTOM-03 §5) |
 | Dry run | `monaco deploy manifest.yaml --dry-run` |
 | Deploy | `monaco deploy manifest.yaml` |
 
-### Series Complete
+### Series So Far
 
-Congratulations! You've completed the AUTOM series. Here's what you learned:
+AUTOM-09 (Terraform GitOps setup recipe) and the appendix LABs (95–98) follow. Here's what the main sequence covered:
 
 | Notebook | Key Takeaway |
 |----------|-------------|
@@ -548,7 +554,8 @@ Congratulations! You've completed the AUTOM series. Here's what you learned:
 - [Terraform export utility (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility)
 - [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration)
 - [Migrate configuration — Managed to SaaS (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg)
-- [M2S Migration Series](../m2s/) - For Managed-to-SaaS specific guidance, including the **M2S-95 LAB** Terraform migration walkthrough
+- **M2S series** — for Managed-to-SaaS specific guidance, including the **M2S-95 LAB** Terraform migration walkthrough
+- [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas)
 
 ---
 

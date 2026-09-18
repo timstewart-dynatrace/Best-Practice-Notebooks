@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -83,11 +83,12 @@ When you extract metrics from sampled spans, the raw numbers are wrong:
 // while sampling.threshold was null on every one of them.
 // `supportability.atm_sampling_ratio` (experimental) carries the Adaptive
 // Traffic Management ratio specifically, on 99.8% of those spans.
+//
+// This cell shows the ratio per service; the next cell summarizes it tenant-wide.
 fetch spans, from:-1h
-| fieldsKeep trace.id, span.kind, service.name
-| summarize span_count = count(), by:{service.name}
-| sort span_count desc
-| limit 10
+| summarize spans = count(), by:{service.name, dt.system.sampling_ratio}
+| sort spans desc
+| limit 20
 ```
 
 ```dql
@@ -104,7 +105,11 @@ A **sampling-aware metric** adjusts its calculation based on the sampling rate t
 
 ### How It Works
 
-Each sampled span carries metadata about the sampling decision — typically a sampling ratio or probability. When OpenPipeline extracts a metric, it can use this information:
+Each sampled span carries metadata about the sampling decision — typically a sampling ratio or probability. When OpenPipeline extracts a metric, it can use this information.
+
+> **OpenTelemetry caveat.** The method depends on that metadata being present. Per the Metric extraction stage docs, *"Note that OpenTelemetry spans don't typically expose sampling rate metadata, making extrapolation less effective."* Check `dt.system.sampling_ratio` on your OTel spans (cells above) before trusting extrapolated counts from them.
+>
+> <sub>**Sources:** [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction).</sub>
 
 | Metric Type | Standard Extraction | Sampling-Aware Extraction |
 |-------------|--------------------|--------------------------|
@@ -199,24 +204,28 @@ fetch spans, from:-1h
 <a id="configuring-metric-extraction"></a>
 ## 4. Configuring Metric Extraction in OpenPipeline
 
-Metric extraction from spans is configured in the **Spans scope** of OpenPipeline, under the **Extraction** processing stage.
+Metric extraction from spans is configured in the **Spans scope** of OpenPipeline, in the **Metric extraction** stage — which runs after the Processing and Bucket assignment stages.
 
 ### Configuration Steps
 
-1. **Navigate** to OpenPipeline > Spans > select your pipeline > Extraction
-2. **Add metric extraction rule** with:
+1. **Navigate** to OpenPipeline > Spans > select your pipeline > Metric extraction
+2. **Add a metric extraction processor** with:
    - **Metric key**: The name of the metric to create (e.g., `span.request_count`)
-   - **Aggregation**: `count`, `sum`, `min`, `max`, `avg`, `value` (for gauges)
+   - **Processor**: *Sampling aware counter metric* (request and error counts), *Sampling aware histogram metric* or *Sampling aware value metric* (duration — set **Measurement: Duration**), or the plain *Counter* / *Histogram* / *Value* metric processors for non-span scopes
    - **Condition**: Which spans to extract from (e.g., `span.kind == "server"`)
    - **Dimensions**: Fields to carry as metric dimensions (e.g., `service.name`, `http.route`)
 
 ### Example: RED Metric Extraction Rules
 
-| Metric Key | Aggregation | Condition | Dimensions | Sampling-Aware |
+| Metric Key | Processor | Condition | Dimensions | Sampling-Aware |
 |-----------|-------------|-----------|------------|----------------|
-| `span.request_count` | count | `span.kind == "server"` | `service.name`, `http.route` | Yes |
-| `span.error_count` | count | `span.kind == "server"` AND `http.response.status_code >= 500` | `service.name`, `http.route`, `http.response.status_code` | Yes |
-| `span.duration` | value | `span.kind == "server"` | `service.name`, `http.route` | No (duration is representative) |
+| `span.request_count` | Sampling aware counter | `span.kind == "server"` | `service.name`, `http.route` | Yes |
+| `span.error_count` | Sampling aware counter | `span.kind == "server"` AND `http.response.status_code >= 500` | `service.name`, `http.route`, `http.response.status_code` | Yes |
+| `span.duration` | Sampling aware histogram | `span.kind == "server"` | `service.name`, `http.route` | Yes (Measurement: Duration) |
+
+Selecting **Duration** as the measurement turns on the sampling options for you: per the docs, *"Duration pre-sets field extraction to the span duration and enables all sampling options automatically."* Percentiles from sampled spans stay representative either way; what the sampling-aware variant adds is correct extrapolated counts and sums.
+
+> <sub>**Sources:** [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction).</sub>
 
 ### Dimension Selection: Less Is More
 
@@ -269,15 +278,21 @@ Cardinality = unique(service.name) x unique(http.route) x unique(status_code) x 
 
 ### Cardinality Guardrails
 
+In community practice, these bands are a useful rule of thumb — verify against your own tenant's query performance:
+
 | Guideline | Threshold |
 |-----------|----------|
 | Acceptable | < 10,000 time series per metric |
 | Caution | 10,000 - 100,000 time series |
-| Danger | > 100,000 time series (metric may be dropped or throttled) |
+| Danger | > 100,000 time series |
+
+The documented limits are different in kind: Metrics Classic enforces a 1 million per-metric dimension limit, and for Grail the docs state that *"Dynatrace therefore may restrict or reject metric configurations"* that use volatile dimensions such as timestamps or unique IDs.
+
+> <sub>**Sources:** [Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits).</sub>
 
 ### Reducing Cardinality Before Extraction
 
-Use OpenPipeline processing stages **before** extraction to normalize high-cardinality fields:
+Use the **Processing** stage, which runs before Metric extraction, to normalize high-cardinality fields:
 
 - Replace URL paths with route patterns: `/users/12345/orders` → `/users/{id}/orders`
 - Group status codes: `200`, `201`, `204` → `2xx`
@@ -295,7 +310,7 @@ In this notebook you learned:
 - **The sampling problem** — Counts are under-reported on sampled data; averages and ratios are approximately correct
 - **Sampling-aware metrics** — Compensate for sampling ratio to produce accurate throughput and error counts
 - **RED metrics from spans** — Rate (request count), Errors (failure rate), Duration (latency percentiles)
-- **Metric extraction configuration** — Rules, conditions, dimensions, and aggregation types
+- **Metric extraction configuration** — The Metric extraction stage, its sampling-aware processors, conditions, and dimensions
 - **Cardinality awareness** — Every dimension multiplies data points; choose dimensions deliberately
 
 ---
@@ -311,7 +326,8 @@ Continue to **OPIPE-04: Cardinality Management** for strategies to control dimen
 ## References
 
 - [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
-- [Data storage and retention for Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps)
+- [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps)
+- [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction)
 - [The RED Method (Grafana)](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/)
 - [Metric limits and cardinality (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)
 

@@ -1,6 +1,6 @@
 # AUTOM-09: Terraform GitOps Setup Recipe
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 07/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 09/18/2026
 
 A practical, opinionated recipe for standing up a Terraform GitOps shop for Dynatrace from scratch. This notebook covers what AUTOM-04 (Terraform resources) and AUTOM-07 (CI/CD integration) deliberately don't — repo layout, state backend choices, multi-environment promotion, lifecycle protections, secrets handling end-to-end, team onboarding, and operational realities. Use it as the bootstrap reference; consult AUTOM-04 for resource-level patterns and AUTOM-07 for CI/CD pipeline specifics.
 
@@ -328,11 +328,11 @@ terraform {
 | Constraint | Meaning | Use when |
 |------------|---------|----------|
 | `version = "1.96.3"` | Exact pin | Never (loses bug fixes) |
-| `version = "~> 1.96"` | Allows 1.96.x patch versions only (`>= 1.96, < 1.97`) | Production — get patches, not feature changes |
-| `version = "~> 1.96, < 2.0"` | Allows 1.x ≥ 1.96 | Most environments — get minor and patch versions, gate at major |
+| `version = "~> 1.96.0"` | Allows 1.96.x patch versions only (`>= 1.96.0, < 1.97.0`) | Production — get patches, not feature changes |
+| `version = "~> 1.96"` | Any 1.x ≥ 1.96 (`>= 1.96, < 2.0`) | Most environments — get minor and patch versions, gate at major |
 | `version = ">= 1.96"` | Any ≥ 1.96 | Avoid — no upper bound, breaks unpredictably |
 
-The middle two are the practical defaults. Use the **tighter** form (`~> 1.96`) in production once you've validated a specific minor; use the **looser** form (`~> 1.96, < 2.0`) in dev/staging to catch minor-version changes early.
+The middle two are the practical defaults. Use the **tighter** form (`~> 1.96.0`) in production once you've validated a specific minor; use the **looser** form (`~> 1.96`) in dev/staging to catch minor-version changes early. The `~>` operator only lets the **rightmost** version component increment — HashiCorp's own example: `~> 1.1` *"Allows Terraform to install 1.2 and 1.10 but not 2.0."* So the `versions.tf` above (`~> 1.96`) floats to the newest 1.x.
 
 ### Combined auth in the provider config
 
@@ -346,7 +346,7 @@ provider "dynatrace" {
 }
 ```
 
-See **AUTOM-07 §3.1 Terraform Workflow with Combined Auth** for the full pattern — Platform Token + API Token together give full Dynatrace resource coverage. Don't pick one; use both.
+See **AUTOM-07 §3 *Terraform Workflow with Combined Auth*** for the full pattern — Platform Token + API Token together give full Dynatrace resource coverage. Don't pick one; use both.
 
 ### Upgrade cadence
 
@@ -356,12 +356,12 @@ See **AUTOM-07 §3.1 Terraform Workflow with Combined Auth** for the full patter
 | **Quarterly** | Bump the production version constraint after staging has been on the newer version for 2–4 weeks without issue |
 | **On a known breaking change** | Coordinate the bump across all envs in one PR; bring a rollback plan |
 
-The Dynatrace provider has been on a steady cadence — 13 minor versions between November 2025 and July 2026, v1.88 through v1.100. Staying current is straightforward if you treat it as a recurring chore.
+The Dynatrace provider has been on a steady cadence — v1.88 (November 2025) through v1.104 (September 2026), several of them with breaking changes (v1.101, v1.102 and v1.104 each removed resources, attributes or environment variables). Staying current is straightforward if you treat it as a recurring chore.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Provider requirements (HashiCorp)](https://developer.hashicorp.com/terraform/language/providers/requirements) — `required_providers` syntax.</sub>
-> - <sub>[Version constraints (HashiCorp)](https://developer.hashicorp.com/terraform/language/expressions/version-constraints) — `~>`, `>=`, exact-pin semantics.</sub>
-> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (current: v1.100.0, released 07/02/2026).</sub>
+> - <sub>[Version constraints (HashiCorp)](https://developer.hashicorp.com/terraform/language/expressions/version-constraints) — *"Allows Terraform to install 1.2 and 1.10 but not 2.0."* (the `~> 1.1` example).</sub>
+> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (v1.104.1, released 09/10/2026, at time of writing).</sub>
 
 <a id="module-strategy"></a>
 ## 5. Module Strategy
@@ -403,33 +403,35 @@ Treat module versions as a contract with consumers. Renaming a resource inside a
 
 ```hcl
 # modules/management-zone/main.tf
-variable "env"      { type = string }
-variable "app"      { type = string }
-variable "role"     { type = string }
+variable "env" { type = string }
+variable "app" { type = string }
+variable "role" { type = string }
 variable "owner_tag" { type = string }
 
 resource "dynatrace_management_zone_v2" "this" {
   name = "${var.env}-${var.app}-${var.role}"
 
   rules {
-    type             = "ME"
-    enabled          = true
-    propagation_type = "HOST_TO_PROCESS_GROUP_INSTANCE"
-
-    conditions {
-      key {
-        attribute = "HOST_GROUP_NAME"
-      }
-      string_conditions {
-        operator       = "EQUALS"
-        value          = "${var.env}-${var.app}"
-        case_sensitive = false
+    rule {
+      type    = "ME"
+      enabled = true
+      attribute_rule {
+        entity_type           = "HOST"
+        host_to_pgpropagation = true
+        attribute_conditions {
+          condition {
+            key            = "HOST_GROUP_NAME"
+            operator       = "EQUALS"
+            string_value   = "${var.env}-${var.app}"
+            case_sensitive = false
+          }
+        }
       }
     }
   }
 }
 
-output "id"   { value = dynatrace_management_zone_v2.this.id }
+output "id" { value = dynatrace_management_zone_v2.this.id }
 output "name" { value = dynatrace_management_zone_v2.this.name }
 ```
 
@@ -499,14 +501,14 @@ This recipe assumes a Terraform plan-and-apply pipeline. The full implementation
 | AUTOM-07 section | What it covers |
 |------------------|----------------|
 | §3 GitHub Actions | Combined-auth Terraform workflow, Vault integration, drift detection, reusable workflows |
-| §3.1 Terraform Workflow with Combined Auth | Platform Token + API Token together — the canonical pattern |
-| §3.2 Vault Integration | Pulling short-lived credentials at pipeline start |
-| §3.3 Policy-as-Code Gates | Sentinel / OPA / Conftest integration |
-| §3.4 Drift Detection | Scheduled `terraform plan` runs that report diffs to a channel |
+| §3 *Terraform Workflow with Combined Auth* | Platform Token + API Token together — the canonical pattern |
+| §3 *Vault Integration* | Pulling short-lived credentials at pipeline start |
+| §3 *Policy-as-Code Gates* | Sentinel / OPA / Conftest integration |
+| §3 *Drift Detection* | Scheduled `terraform plan` runs that report diffs to a channel |
 | §4 GitLab CI/CD | GitLab equivalent of the above |
 | §5 Bitbucket Pipelines | Bitbucket Cloud Pipelines + FabianSchurig/bitbucket Terraform provider for the combined-workspace pattern |
-| §9 Best Practices | Branch protection, required reviewers, plan-output retention |
-| §10 Governance Architecture — Single SA Writer | Operational model for who can apply |
+| §12 Best Practices | Branch protection, required reviewers, plan-output retention |
+| §13 Governance Architecture — Single SA Writer | Operational model for who can apply |
 
 ### Recipe-specific CI/CD recommendations
 
@@ -682,37 +684,12 @@ resource "dynatrace_alerting_profile" "payments_alerts" {
 
 ### Apply protections at the module boundary, not per-resource
 
-If your module-management-zone always wants `prevent_destroy` for production, encode it in the module — don't depend on every consumer to remember.
+It is tempting to drive `prevent_destroy` from a module input (`prevent_destroy = var.protect_from_destroy`) so only production sets it. **Terraform rejects that** — `terraform validate` fails with *Variables not allowed*, because, per HashiCorp, *"only literal values can be used because the processing happens too early for arbitrary expression evaluation."* Two patterns that do work:
 
-```hcl
-# modules/management-zone/main.tf
-variable "protect_from_destroy" {
-  type    = bool
-  default = false
-}
+- **A protected module variant.** Keep `modules/management-zone/` unprotected and add `modules/management-zone-protected/` with `prevent_destroy = true` hard-coded; only production roots consume the protected variant.
+- **Policy instead of lifecycle.** Enforce it in the pipeline — a Conftest (AUTOM-07 §3 *Policy-as-Code Gates*) rule that fails any production plan containing a `delete` action on the protected resource types.
 
-resource "dynatrace_management_zone_v2" "this" {
-  # ...
-
-  lifecycle {
-    prevent_destroy = var.protect_from_destroy
-  }
-}
-```
-
-Then in `envs/production/main.tf`:
-
-```hcl
-module "platform_baseline" {
-  source              = "../../modules/management-zone"
-  env                 = "prod"
-  app                 = "platform"
-  role                = "baseline"
-  protect_from_destroy = true  # ← only prod sets this
-}
-```
-
-> <sub>**Sources:** [The lifecycle meta-argument (HashiCorp)](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle) — all four meta-arguments documented.</sub>
+> <sub>**Sources:** [The lifecycle meta-argument (HashiCorp)](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle) — all four meta-arguments documented; *"only literal values can be used because the processing happens too early for arbitrary expression evaluation."*</sub>
 
 <a id="onboarding"></a>
 ## 10. Onboarding New App Teams

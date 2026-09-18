@@ -1,6 +1,6 @@
 # ONBRD-04: Cloud & SaaS Integrations
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Extending Visibility Beyond OneAgent
 While OneAgent provides deep application and infrastructure monitoring, many organizations need visibility into cloud services and SaaS platforms that can't run an agent. This notebook covers how to integrate AWS, Azure, GCP, and third-party SaaS tools into Dynatrace.
@@ -24,7 +24,7 @@ While OneAgent provides deep application and infrastructure monitoring, many org
 ## Prerequisites
 
 - Dynatrace environment with admin access
-- **ActiveGate** deployed where required — Extensions and GCP polling still need an AG; AWS (Clouds app GA) and Azure (Clouds app preview) can use direct connections without AG
+- **ActiveGate** deployed where required — Extensions and the classic GCP integration still need an AG; AWS (Clouds app GA) and Azure (Clouds app, SaaS 1.337+) use direct connections without AG
 - Cloud provider admin access (for AWS/Azure/GCP)
 - API credentials for SaaS platforms
 
@@ -37,8 +37,8 @@ Dynatrace offers multiple integration methods depending on the data source:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Method | When to Use | Requires AG? |
 |--------|-------------|--------------|
-| Clouds App | AWS (GA) / Azure (preview) — direct connection | No |
-| AG-Polling (Classic) | GCP today; AWS/Azure without Clouds app; restricted networks | Yes |
+| Clouds App | AWS (GA) / Azure (SaaS 1.337+) — direct connection; GCP in Preview | No |
+| AG-Polling (Classic) | GCP (classic integration); AWS/Azure without Clouds app; restricted networks | Yes |
 | Extensions 2.0 | Custom data sources, SaaS APIs, SNMP, on-host integrations | Yes |
 | OTel Direct | OTel-instrumented apps and collectors | No (OTLP) |
 For environments where SVG doesn't render
@@ -46,8 +46,8 @@ For environments where SVG doesn't render
 
 | Method | Use Case | Requires ActiveGate? |
 |--------|----------|---------------------|
-| **Clouds App (recommended where supported)** | AWS (GA), Azure (preview); GCP not yet available | No (direct connection) |
-| **Cloud Integrations (Classic / AG-polling)** | GCP today; AWS / Azure where Clouds app is not used | Yes |
+| **Clouds App (recommended where supported)** | AWS (GA), Azure (SaaS 1.337+); GCP in **Preview** — verify it has reached your tenant | No (direct connection) |
+| **Cloud Integrations (Classic / AG-polling)** | GCP (classic integration — the working path until the Preview reaches you); AWS / Azure where Clouds app is not used | Yes |
 | **Extensions 2.0** *(current framework)* | Custom data sources, SaaS APIs, on-host integrations | Yes (AG-hosted) |
 | **OpenTelemetry** | OTel-instrumented apps | No (direct OTLP ingest) |
 | **Log Ingest** | External log sources | Optional (AG can route) |
@@ -55,11 +55,11 @@ For environments where SVG doesn't render
 
 ### Decision Rule (Quick Reference)
 
-| Source | Default Method (2026-05) |
+| Source | Default Method (09/2026) |
 |--------|--------------------------|
 | **AWS** | Clouds app (GA) — direct connection |
-| **Azure** | Clouds app (preview) — direct connection |
-| **GCP** | AG-based polling (Clouds app not yet available); review Azure Native and GCP push-based as alternatives |
+| **Azure** | Clouds app — direct connection (SaaS 1.337+); *"no need to deploy ActiveGate compute resources for metric polling"* ([Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding)) |
+| **GCP** | Classic AG-based integration until the Clouds-app **Preview** reaches your tenant; then evaluate the Clouds-app connection |
 | **AWS Lambda** | Clouds app + DT_TAGS env var (sprint-1.337) for tag propagation |
 | **Custom DB / SaaS / SNMP** | Extensions 2.0 on AG |
 | **OTel-instrumented app** | OTLP ingest direct to Dynatrace |
@@ -174,7 +174,7 @@ The Azure integration uses Azure Monitor to collect metrics and discover resourc
 
 The GCP integration uses Cloud Monitoring (formerly Stackdriver) APIs.
 
-> **Status note (2026-05):** GCP is **not yet available** in the Clouds app — direct/agentless connection is not supported. Today, GCP integration requires an **ActiveGate** for polling. Review the **CLOUD series** for per-provider detail and watch the Dynatrace release notes for Clouds-app GCP availability.
+> **Status note (09/2026):** Dynatrace's GCP setup page now lists **GCP Cloud Platform Monitoring (Preview)**: *"Connect your Google Cloud accounts to Dynatrace and manage the newly created GCP connections entirely from Clouds."* Preview features reach tenants on their own schedule — verify it has reached yours before planning around it. Until it does, the classic integration below, polled through an **ActiveGate**, remains the working path. Whether the Preview connection needs an ActiveGate is not stated here — check [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform). Review the **CLOUD series** for per-provider detail.
 
 ### Supported Services
 
@@ -353,7 +353,8 @@ smartscapeNodes "AWS_LAMBDA_FUNCTION"
 
 ```dql
 // Check for Azure VMs (modern Smartscape topology query)
-smartscapeNodes "AZURE_VM"
+// Azure node types follow AZURE_<RESOURCE_PROVIDER>_<TYPE> - "AZURE_VM" is not a node type and returns nothing.
+smartscapeNodes "AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES"
 | fields name, id
 | limit 20
 
@@ -428,13 +429,13 @@ With cloud and SaaS integrations configured:
 ### Where to Go Deeper
 
 - **CLOUD series** (9 notebooks) — Per-provider integration deep dives (AWS, Azure, GCP)
-- **AUTOM series** (11 notebooks) — GitOps / Terraform / Monaco automation for extension deployment
+- **AUTOM series** (14 notebooks) — GitOps / Terraform / Monaco automation for extension deployment
 - **OPLOGS / OPMIG / OPIPE** — OpenPipeline routing for ingested cloud and SaaS data
 - **OTEL series** — OpenTelemetry as the alternative ingest path
 
 ### Integration Checklist
 
-- [ ] AWS / Azure / GCP integration configured (Clouds app where supported, AG polling for GCP)
+- [ ] AWS / Azure / GCP integration configured (Clouds app for AWS/Azure; classic AG polling for GCP until the Clouds-app Preview reaches your tenant)
 - [ ] Required cloud permissions granted
 - [ ] ActiveGate assigned for Extensions
 - [ ] Extensions 2.0 evaluated for custom integrations; any remaining EF1.0 extensions identified for migration
@@ -449,7 +450,7 @@ With cloud and SaaS integrations configured:
 In this notebook, you learned:
 
 - The integration method matrix (Clouds app / AG polling / Extensions / OTel / Ingest APIs)
-- Per-provider status (AWS GA, Azure preview, GCP not-yet-Clouds-app)
+- Per-provider status (AWS GA, Azure direct connection since SaaS 1.337, GCP Clouds app in Preview)
 - AWS, Azure, and GCP setup paths
 - Extensions 2.0 as the current extensions framework
 - Dynatrace Hub for discovery
@@ -464,6 +465,8 @@ In this notebook, you learned:
 - [Clouds App](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring)
 - [AWS Monitoring](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/aws-monitoring)
 - [Azure Monitoring](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring/azure-monitoring)
+- [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding) — the no-ActiveGate quote above
+- [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)
 - [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)
 - [Extensions Framework](https://docs.dynatrace.com/docs/ingest-from/extensions)
 - [Dynatrace Hub](https://docs.dynatrace.com/docs/manage/hub)

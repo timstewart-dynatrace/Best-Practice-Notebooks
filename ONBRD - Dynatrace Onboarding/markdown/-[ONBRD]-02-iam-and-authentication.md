@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 08/03/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -15,6 +15,7 @@ Before inviting your team, configure authentication and permissions properly. Th
 4. [User Groups and Permissions](#user-groups-and-permissions)
 5. [API Token and OAuth Management](#api-token-and-oauth-management)
 6. [Verification Queries](#verification-queries)
+7. [Next Steps](#next-steps)
 
 ---
 
@@ -178,16 +179,17 @@ The modern platform uses **policies** to control what users can access:
 Prefer **one parameterized policy bound to multiple groups via binding parameters** over many copies of the same policy with hardcoded scope values:
 
 ```text
-ALLOW storage:logs:read WHERE storage:dt.security_context = $bindingParameter("team")
+ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
 ```
 
-Bind the policy to `team-payments`, `team-checkout`, `team-fraud`, etc., varying only the `team` parameter — one policy, N bindings. The parameter shape is load-bearing: design once, change rarely.
+Parameters are written as `${bindParam:<name>}` — Dynatrace's policy templating rule is *"Policy parameters should be prefixed with bindParam: and enclosed in ${...}."* ([Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating)). Bind the policy to `team-payments`, `team-checkout`, `team-fraud`, etc., varying only the `team` parameter — one policy, N bindings. The parameter shape is load-bearing: design once, change rarely.
 
 The **`dt.security_context`** field is the standardized boundary for Gen3 IAM scoping across both data and configurations. Without it, cross-entity-type policies cannot be written. Decide your `dt.security_context` value space before tagging anything (covered in **ONBRD-06**).
 
 ### Where to Go Deeper
 
 - **IAM-04 / IAM-05** — Designing effective policies and boundary conditions
+- **IAM-10: Templated Policy-Group Assignments** — binding one templated policy to many groups with `bindParam` values
 - **IAM-11 (WORKSHOP)** — Hands-on policy and persona design
 - **IAM-99** — IAM best-practice summary and DQL reference
 - **FAQ-02** — Tagging sources, standards, and strategy (`dt.security_context` design)
@@ -220,11 +222,11 @@ For environments where SVG doesn't render
 
 Platform Tokens are the standard for new automation as of sprint-337. They:
 
-- Use **policy-based permissions** (same Gen3 model as user groups) — no scope-list to maintain per token
+- Carry the **scopes you select** at creation, and only work within the permissions of the user (or service user) they are issued for — *"A platform token will only work within the limits of the assigned user's permissions."* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens))
 - Are bound to a single user identity (or service identity) for traceability
 - Should be the default unless you have a specific reason to choose OAuth or Classic
 
-**Location:** Account Management → Access tokens → "Generate Platform Token"
+**Location:** **My platform tokens** (`myaccount.dynatrace.com/platformTokens`) for your own tokens; admins: **Account Management → Identity & access management → Platform tokens**
 
 ```bash
 # Authorization scheme by token prefix:
@@ -247,15 +249,13 @@ Use for **external system integrations** or **account-admin automation** that op
 
 Existing scripts and OneAgent installer downloads still use Classic API tokens. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the `Api-Token` Authorization scheme (not `Bearer`).
 
-**Location:** Account Management → Access tokens
+**Location:** the **Access Tokens** app in your environment → **Generate new token** (not Account Management)
 
 | Common Use | Required Scope |
 |------------|---------------|
 | **OneAgent Installer Download** | `InstallerDownload` |
 | **Metric Ingestion** | `metrics.ingest` |
 | **Log Ingestion** | `logs.ingest` |
-
-> **Sprint 1.338 ActiveGate token note:** ActiveGate token schema changed in sprint-338 — review the upgrade-notes for any AG-token-issuing automation before upgrading.
 
 ### Token Best Practices
 
@@ -304,6 +304,7 @@ fetch logs, from: now() - 7d
 | **Break-glass account** | Local admin login still works |
 | **API tokens** | OneAgent deployment token ready |
 
+<a id="next-steps"></a>
 ## 7. Next Steps
 
 With IAM configured, you're ready to:
@@ -328,7 +329,7 @@ With IAM configured, you're ready to:
 
 ### Where to Go Deeper
 
-- **IAM series** (13 notebooks) — full IAM administration depth
+- **IAM series** (15 notebooks) — full IAM administration depth
 - **FAQ-02** — Tagging sources, standards, and strategy
 - **ORGNZ series** — Bucket strategy, segments, security context
 
@@ -352,6 +353,7 @@ In this notebook, you learned:
 
 - [Identity and Access Management](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Platform Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)
+- [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — the `${bindParam:...}` syntax quoted in section 4
 - [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations)
 - [Identity management — SSO and federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management)
 - [Access Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)

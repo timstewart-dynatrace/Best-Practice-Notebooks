@@ -1,6 +1,6 @@
 # APPSEC-08: Workflows, Notifications and Remediation
 
-> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 06/04/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -15,7 +15,7 @@ This notebook covers the trigger patterns, the routing decisions, the SLA + burn
 |-------------|---------|---------|
 | Jira | AppDev backlog | Severity >= High, reachable |
 | ServiceNow | Platform changes | SPM findings (CIS/PCI) |
-| PagerDuty | SOC paging | ATTACK_EVENT in prod |
+| PagerDuty | SOC paging | RAP DETECTION_FINDING in prod |
 | Slack | Awareness | Critical or digest |
 -->
 
@@ -45,16 +45,17 @@ This notebook covers the trigger patterns, the routing decisions, the SLA + burn
 <a id="triggers"></a>
 ## 1. Triggers on Security Problems
 
-The workflow engine can subscribe to security events as triggers. The two trigger modes:
+Security routing uses the workflow **Event trigger** with event type `security.events` and a DQL matcher; a **Schedule** trigger covers digests and SLA sweeps.
 
-| Trigger | Fires on | Use for |
-|---------|----------|---------|
-| **Event-stream** | New `security.events` records in Grail | High-volume routing (attack events, state changes) |
-| **Davis problem** | New / changed security problems in `vulnerability-service` | Lower-volume, deduped triage — the typical SOC routing |
+| Trigger | Filter (DQL matcher) | Use for |
+|---------|----------------------|---------|
+| Event trigger on `security.events` | `event.type == "VULNERABILITY_STATUS_CHANGE_EVENT" and event.level == "VULNERABILITY"` | New / reopened / closed vulnerabilities — SOC triage |
+| Event trigger on `security.events` | `event.type == "DETECTION_FINDING" and product.name == "Runtime Application Protection"` | RAP attack alerting |
+| Schedule | — | Digests and SLA sweeps |
 
-For SOC routing, Davis-problem triggers are usually the right choice — they're deduped and represent unique vulnerabilities, not the per-host state stream. For attack-event alerting (RAP), event-stream triggers are required because each attack is its own observation.
+Do **not** use the **Problem trigger** for vulnerabilities. It fires on Davis problems — the correlated performance and availability problems — so a SOC workflow built on it never runs for a new vulnerability. Filter the vulnerability trigger to the vulnerability level (`event.level == "VULNERABILITY"`) so each vulnerability transition fires once, not once per affected entity; narrow further with `event.status_transition` (`NEW_OPEN`, `REOPEN`, `CLOSE`, `MUTE`, `UNMUTE` — an `experimental` field) and `vulnerability.risk.level` as needed. RAP detections are one record per observed attack, so that trigger needs a tight filter (production only, risk level) before it pages anyone.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the security-problem / security-events surfaces. **Derived:** the event-stream vs Davis-problem trigger comparison is a synthesis of the two surfaces' shapes — verify trigger types in your tenant's workflow editor.</sub>
+> <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Problem trigger starts a workflow when a problem opens, changes, or resolves."*, with Davis problems as its event source, and for `security.events`: *"Use this type to automate remediation or ticketing when new vulnerabilities are detected."* (re-read 09/18/2026); [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) for the status-change event and its transition values.</sub>
 
 <a id="routing"></a>
 ## 2. Routing: Jira / ServiceNow / PagerDuty / Slack
@@ -63,10 +64,10 @@ Common routing patterns:
 
 | Destination | What goes there | Trigger filter |
 |-------------|------------------|----------------|
-| **Jira** | AppDev backlog: code-level vulns + third-party vulns scoped to service team | Severity ≥ High, reachable, owner-tag mapped |
+| **Jira** | AppDev backlog: code-level vulns + third-party vulns scoped to service team | New/reopened vulnerability, risk level ≥ High, owner-tag mapped |
 | **ServiceNow** | Platform/infra changes: SPM findings on cluster, cloud-account config | Severity ≥ High, framework in {CIS, PCI} |
-| **PagerDuty** | Real-time SOC paging: RAP attack events in production | event.type=ATTACK_EVENT, environment=prod, attack.state=detected |
-| **Slack** | Awareness channel: new critical security problems, weekly digest | Severity = Critical OR scheduled summary |
+| **PagerDuty** | Real-time SOC paging: RAP detections in production | `event.type == "DETECTION_FINDING"`, `product.name == "Runtime Application Protection"`, production scope |
+| **Slack** | Awareness channel: new critical vulnerabilities, weekly digest | Risk level = Critical OR scheduled summary |
 
 A finding can fire into multiple destinations — there's no requirement to pick one. What matters is that each destination has a clear ownership boundary so no finding falls between teams.
 
@@ -101,19 +102,24 @@ Burn-rate alerts catch the systemic-overload pattern that per-problem alerts mis
 <a id="dql-sla"></a>
 ## 5. DQL: Backlog Burn-Rate
 
-A starter query for backlog burn-rate dashboards: count new critical findings opened in the trailing 7 days vs new critical findings resolved.
+A starter query for backlog burn-rate dashboards: critical vulnerabilities opened (new or reopened) vs closed per day, over the trailing 7 days. It counts **status transitions** from `VULNERABILITY_STATUS_CHANGE_EVENT`, not state snapshots — RVA re-reports every open vulnerability at regular intervals, so counting `OPEN` snapshots would count the same vulnerability again on every report and inflate the "opened" side.
 
 ```dql
-// Critical security events: opened vs resolved, last 7 days
+// Critical vulnerabilities: opened (new or reopened) vs closed per day, from status transitions, last 7 days
 fetch security.events, from:-7d
-| filter event.type == "VULNERABILITY_STATE_REPORT_EVENT"
+| filter event.provider == "Dynatrace"
+| filter event.category == "VULNERABILITY_MANAGEMENT"
+| filter event.type == "VULNERABILITY_STATUS_CHANGE_EVENT"
+| filter event.level == "VULNERABILITY"
 | filter vulnerability.risk.level == "CRITICAL"
-| summarize opened = countIf(event.status == "OPEN"), resolved = countIf(event.status == "RESOLVED"), by:{day = bin(timestamp, 1d)}
+| summarize opened = countIf(in(event.status_transition, {"NEW_OPEN", "REOPEN"})), closed = countIf(event.status_transition == "CLOSE"), by:{day = bin(timestamp, 1d)}
 | sort day asc
 
 ```
 
-> <sub>**Sources:** field names (`event.type`, `vulnerability.risk.level`, `event.status`) inferred from the AppSec events shape; verified for DQL syntax only. **Softened:** verify field names and the `OPEN` / `RESOLVED` literal values in your tenant.</sub>
+> **Validation note:** validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there. The `countIf` logic was additionally exercised on synthetic records.
+>
+> <sub>**Sources:** [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) — *"A vulnerability change event is generated by Dynatrace Runtime Vulnerability Analytics (RVA) whenever a vulnerability's overall status or risk assessment changes"*, `event.status_transition` examples `NEW_OPEN ; REOPEN ; CLOSE ; MUTE ; UNMUTE`, and *"RVA re-reports the open state at regular intervals and reports a resolved state once"* (re-read 09/18/2026). **Dictionary:** `event.status_transition` (`experimental`), `vulnerability.risk.level` (`stable`), `event.type` (`stable`), read 09/18/2026. Because `event.status_transition` is `experimental`, re-check its values before building an alert on this query.</sub>
 
 <a id="next"></a>
 ## 6. Next Steps
@@ -129,6 +135,8 @@ fetch security.events, from:-7d
 | Source | Coverage |
 |--------|----------|
 | [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | Workflow + notification framing |
+| [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) | Problem trigger vs Event trigger on `security.events` |
+| [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) | Status-change events and transition values |
 | [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) | vulnerability-service:vulnerabilities:write scope |
 
 ---

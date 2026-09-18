@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -9,12 +9,12 @@ Cluster health monitoring provides visibility into the infrastructure layer of K
 
 ## Table of Contents
 
-1. [Node Monitoring](#node-monitoring)
-2. [Resource Capacity Planning](#resource-capacity-planning)
-3. [Control Plane Health](#control-plane-health)
-4. [Cluster-Wide Events](#cluster-wide-events)
-5. [Cost Optimization Queries](#cost-optimization-queries)
-6. [Alerting Strategies](#alerting-strategies)
+1. [Cluster Health Overview](#cluster-health-overview)
+2. [Node Monitoring](#node-monitoring)
+3. [Resource Capacity Planning](#resource-capacity-planning)
+4. [Control Plane Health](#control-plane-health)
+5. [Cluster-Wide Events](#cluster-wide-events)
+6. [Cost Optimization Queries](#cost-optimization-queries)
 7. [Dynatrace Component Health](#dynatrace-component-health)
 8. [Alerting Strategies](#alerting-strategies)
 
@@ -29,6 +29,7 @@ Cluster health monitoring provides visibility into the infrastructure layer of K
 | **Permissions** | `metrics.read`, `entities.read`, `logs.read`, `events.read` |
 | **Data** | At least 24 hours of cluster data |
 
+<a id="cluster-health-overview"></a>
 ## 1. Cluster Health Overview
 
 ### Key Health Indicators
@@ -200,7 +201,7 @@ timeseries avgDiskUsage = avg(dt.host.disk.used.percent), from:-1h, by:{dt.entit
 For environments where SVG doesn't render
 -->
 
-> **Capacity planning across an ActiveGate 1.343 upgrade:** the request and limit metrics — `dt.kubernetes.container.requests_cpu` / `requests_memory` and `limits_cpu` / `limits_memory` — **include init containers from ActiveGate 1.343 onward**, so the *Requested* line steps up at the upgrade while *Used* (`dt.kubernetes.container.cpu_usage`, `memory_working_set`) does not move. Read a trend spanning that boundary as **two series, not one** — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.
+> **Capacity planning across ActiveGate 1.343 / 1.345 upgrades:** the request and limit metrics — `dt.kubernetes.container.requests_cpu` / `requests_memory` and `limits_cpu` / `limits_memory` — **carry an effective pod value**: init containers are accounted for from ActiveGate 1.343, and pod-level `spec.resources` (Kubernetes 1.34+) and pod `overhead` from 1.345. The *Requested* line can therefore step at either upgrade — up for init containers, up or down for pod-level limits — while *Used* (`dt.kubernetes.container.cpu_usage`, `memory_working_set`) does not move. Read a trend spanning either boundary as **two series, not one** — otherwise the discontinuity reads as a genuine reservation increase and skews right-sizing conclusions. Full explanation: K8S-08 §2.
 
 ```dql
 // CPU requests by namespace — requests are a container-grain metric, summed to namespace
@@ -481,6 +482,7 @@ In this notebook, you learned:
 - [Kubernetes app — clusters and workloads view (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [smartscapeNodes command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources)
 
 ---
 

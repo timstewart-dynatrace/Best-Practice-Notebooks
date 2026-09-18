@@ -1,10 +1,10 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 09/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
-OpenPipeline is often introduced as a log processing framework — and logs are indeed the most common entry point. But OpenPipeline operates on **six distinct scopes**, each with its own processing pipeline, routing rules, and extraction capabilities. This notebook builds intuition for how the platform works across all scopes and why pipeline design matters.
+OpenPipeline is often introduced as a log processing framework — and logs are indeed the most common entry point. But OpenPipeline operates on many **configuration scopes** — logs, spans, metrics, events, business events, security events and more — each with its own pipelines, routing rules, and extraction capabilities. This notebook builds intuition for how the platform works across all scopes and why pipeline design matters.
 
 > **Companion Series**
 > - **OPLOGS** — Deep-dive into log processing: **OPLOGS-01: OpenPipeline Fundamentals**
@@ -15,7 +15,7 @@ OpenPipeline is often introduced as a log processing framework — and logs are 
 
 ## Table of Contents
 
-1. [The Six OpenPipeline Scopes](#the-six-openpipeline-scopes)
+1. [The OpenPipeline Scopes](#openpipeline-scopes)
 2. [Shared Architecture Across Scopes](#shared-architecture-across-scopes)
 3. [The Default Pipeline Anti-Pattern](#the-default-pipeline-anti-pattern)
 4. [Pipeline Design Principles](#pipeline-design-principles)
@@ -52,32 +52,29 @@ Sprint 1.337 SaaS landed a major OpenPipeline-relevant change: OneAgent now enri
 
 **Pipeline implication for cross-scope design:**
 
-1. **Routing rules** can dispatch on primary fields directly without parse processors:
+1. **Routing rules** can dispatch on primary fields directly without parse processors. A route's matching condition is DQL, and a route sends records to a **pipeline**, not to a bucket:
 
-   ```yaml
-   processors:
-     - type: route
-       rules:
-         - condition: "dt.cost.costcenter == 'cc-1234'"
-           destination: "finance_logs"
-         - condition: "dt.security_context contains 'pci'"
-           destination: "pci_audit_logs_365d"
-   ```
+   | Route matcher (DQL) | Target pipeline |
+   |---|---|
+   | `dt.cost.costcenter == "cc-1234"` | `finance-logs` |
+   | `contains(dt.security_context, "pci")` | `pci-audit` (whose Bucket assignment stage picks the 365-day bucket) |
+
+   The bucket is chosen later, by the target pipeline's **Bucket assignment** stage. If `dt.security_context` can hold an array value on your data, see the array rule in §6 before matching on it.
 
 2. **Cross-scope consistency:** because primary fields/tags appear on logs, spans, metrics, AND business events, queries that join across scopes (OPIPE-06 cross-scope design patterns) can correlate without scope-specific lookup tables.
 
 3. **Non-OneAgent sources** (raw syslog, third-party log shippers, OTLP-via-collector) still need OpenPipeline `enrichment` processors to surface the same fields. Document this split in your standard.
 
-> **Update (June 2026) — primary tags are now formally documented.** Dynatrace published a dedicated [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) page that canonicalizes what sprint 1.337 introduced. Two points matter for pipeline design: (1) **OpenPipeline itself is a documented primary-tag source** — `primary_tags.*` values can be "derived or transformed from any incoming field at ingest time," which closes the non-OneAgent-sources gap in point 3 above: instead of generic enrichment processors producing ad-hoc fields, derive proper `primary_tags.<key>` values so downstream routing and bucket assignment treat agent and agentless data identically. (2) The other documented sources are OneAgent, Kubernetes annotations (`metadata.dynatrace.com/primary_tags.<key>`), cloud-provider tags, and OpenTelemetry resource attributes — with host/process metadata flagged *Coming soon*. Primary tags are "available before data enters the processing pipeline," which is exactly what makes them usable in `route` conditions like the example above.
+> **Update (June 2026) — primary tags are now formally documented.** Dynatrace published a dedicated [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) page that canonicalizes what sprint 1.337 introduced. Two points matter for pipeline design: (1) **OpenPipeline itself is a documented primary-tag source** — `primary_tags.*` values can be *"derived or transformed from any incoming field at ingest-processing time"*, which closes the non-OneAgent-sources gap in point 3 above: instead of generic enrichment processors producing ad-hoc fields, derive proper `primary_tags.<key>` values so downstream routing and bucket assignment treat agent and agentless data identically. (2) The other documented sources are OneAgent, Kubernetes annotations (`metadata.dynatrace.com/primary_tags.<key>`), cloud-provider tags, OpenTelemetry resource attributes, and host or process metadata. Primary tags are "available before data enters the processing pipeline," which is exactly what makes them usable in routing conditions like the examples above.
 
 **Sprint-337 also added recommended-field suggestions to extraction processors** — the UI flags permission-relevant fields and Smartscape identifiers in the field-promotion dialog, preventing accidental promotion of sensitive content. Existing extraction processors keep working unchanged.
 
 ---
 
-<a id="the-six-openpipeline-scopes"></a>
-## 1. The Six OpenPipeline Scopes
+<a id="openpipeline-scopes"></a>
+## 1. The OpenPipeline Scopes
 
-OpenPipeline processes data through **six independent scopes**. Each scope has its own set of pipelines, routing rules, processors, and storage targets. They share the same architecture but operate on different data types.
+OpenPipeline processes data through independent **configuration scopes** — logs, spans, metrics, generic events, Davis events and problems, SDLC events, business events, security events, system events (limited support), Smartscape events (limited support), user events, and user sessions. Each scope has its own set of pipelines, routing rules, processors, and storage targets. They share the same architecture but operate on different data types. This series covers the six you will configure most:
 
 | Scope | Data Object | Primary Use Case | Key Fields |
 |-------|------------|------------------|------------|
@@ -86,7 +83,9 @@ OpenPipeline processes data through **six independent scopes**. Each scope has i
 | **Metrics** | `timeseries` | Time-series measurements from agents and extensions | `metric.key`, `dt.entity.*` |
 | **Events** | `events` | Lifecycle and configuration change events | `event.kind`, `event.type` |
 | **Business Events** | `bizevents` | Business transactions and user actions | `event.type`, `event.provider` |
-| **Security Events** | `events` (security bucket) | Threat detection and audit records | `event.kind`, `security.category` |
+| **Security Events** | `security.events` | Vulnerability, detection, and compliance findings | `event.kind`, `event.type` |
+
+> <sub>**Sources:** [OpenPipeline data flow (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow) — configuration scope list.</sub>
 
 ### What This Means in Practice
 
@@ -137,26 +136,30 @@ Use it for intermediate calculations feeding extraction. Do **not** use it for e
 ![Multi-Scope Architecture](images/01-multi-scope-architecture.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Scope | Key fields | Shared 4-stage flow |
+| Scope | Key fields | Shared data flow |
 |-------|------------|---------------------|
-| Logs | content, loglevel, log.source | Ingest → Routing → Processing → Storage |
-| Spans | span.kind, trace.id, duration | Ingest → Routing → Processing → Storage |
-| Metrics | metric.key, dt.entity.* | Ingest → Routing → Processing → Storage |
-| Events | event.kind, event.type | Ingest → Routing → Processing → Storage |
-| Business Events | event.type, event.provider | Ingest → Routing → Processing → Storage |
-| Security Events | SECURITY_EVENT, security.category | Ingest → Routing → Processing → Storage |
+| Logs | content, loglevel, log.source | Ingest → Routing → Pipeline stages → Storage |
+| Spans | span.kind, trace.id, duration | Ingest → Routing → Pipeline stages → Storage |
+| Metrics | metric.key, dt.entity.* | Ingest → Routing → Pipeline stages → Storage |
+| Events | event.kind, event.type | Ingest → Routing → Pipeline stages → Storage |
+| Business Events | event.type, event.provider | Ingest → Routing → Pipeline stages → Storage |
+| Security Events | SECURITY_EVENT, event.type | Ingest → Routing → Pipeline stages → Storage |
+
+Pipeline stages, in fixed order: Processing (DQL, add/remove/rename fields, drop record) → Smartscape node / edge → Permission (dt.security_context) → Product allocation → Cost allocation → Bucket assignment (bucket or no storage, first match) → Metric extraction (spans: sampling-aware) → Davis → Data extraction (business event, SDLC event).
 -->
 
-Every scope follows the same **four-stage data flow** (Ingest → Routing → Processing → Storage), with optional pre-processing on custom sources. The stages are identical in concept across scopes — only the data types and available processors differ.
+Every scope follows the same **data flow** (Ingest → Routing → Processing → Storage), with optional pre-processing on custom sources. Inside a pipeline, processing is not one step: it runs as a **fixed sequence of stages**, of which the stage named *Processing* is only the first. The flow is identical in concept across scopes — only the data types and available processors differ.
 
 | Stage | Purpose | Logs Example | Spans Example |
 |-------|---------|-------------|---------------|
 | **1. Ingest** | Receive records from a built-in / ready-made / custom source | OneAgent log ingest | OTLP span ingest |
 | **2. Routing** | Direct data to the right pipeline (dynamic DQL match or static for custom sources) | Match by `log.source` or `k8s.namespace.name` | Match by `span.kind` or `service.name` |
-| **3. Processing** | All in-pipeline work — Mask, Drop, Transform/Parse, Extract (counter / value / histogram / Smartscape / event), Cost, Security, Bucket assignment | Mask credit card numbers; drop debug; parse JSON; extract metrics | Mask PII; drop health-check spans; sampling-aware metrics; extract RED metrics |
-| **4. Storage** | Persist to a Grail bucket (or skip with No storage assignment) | Send to `app_logs` bucket | Send to `trace_data` bucket |
+| **3. Pipeline** | A fixed sequence of stages: **Processing** (DQL, add / remove / rename fields, drop record, GeoIP and inline lookup) → **Smartscape node** → **Smartscape edge** → **Permission** (security context) → **Product allocation** → **Cost allocation** → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Mask credit card numbers, drop debug, parse JSON (Processing); extract error-rate metrics (Metric extraction) | Mask PII, drop health-check spans (Processing); sampling-aware RED metrics (Metric extraction) |
+| **4. Storage** | Persist to the Grail bucket chosen in the Bucket assignment stage (or skip with No storage assignment) | Send to `app_logs` bucket | Send to `trace_data` bucket |
 
-> **Doc alignment (May 2026):** Per `/concepts/data-flow`, masking, filtering, transformation, and extraction are **processor categories within the Processing stage** — not separate pipeline stages. Earlier versions of this notebook described a six-stage pipeline; the corrected four-stage flow is shown above. The processor execution order *within* Processing is documented in OPMIG-02 § Processing Order.
+> **Stage order is fixed.** Per *Processing in OpenPipeline*, *"The sequence of stages is fixed for all pipelines and cannot be modified."* Masking, parsing, and dropping happen in the first stage (Processing); Metric extraction, Davis, and Data extraction run **after** Bucket assignment. Within a stage, processors run in the order you list them, and each stage executes either all matching processors or only the first match.
+>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order.</sub>
 
 ### Sprint 1.346 (August 2026): `dt.bindplane.*` Is a Reserved Namespace
 
@@ -168,11 +171,11 @@ SaaS 1.346 released 08/25/2026 with a **staged tenant rollout** from the same da
 
 ### The Key Insight
 
-If you understand how to build a log pipeline (route → mask → drop → transform → extract → assign bucket within Processing), you already understand how to build a span pipeline or an event pipeline. The concepts transfer directly — only the field names and processor options change.
+If you understand how to build a log pipeline (route to a pipeline → mask, drop, and transform in Processing → set permissions and cost allocation → assign a bucket → extract metrics and events), you already understand how to build a span pipeline or an event pipeline. The concepts transfer directly — only the field names and processor options change.
 
 ### Processors Available Per Scope
 
-Not every processor is available in every scope. The following table shows key differences (refresh against `/concepts/processing` for the current list):
+Not every processor is available in every scope. The following table shows key differences (refresh against [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) for the current list):
 
 | Processor | Logs | Spans | Metrics | Events | Bizevents |
 |-----------|------|-------|---------|--------|-----------|
@@ -180,16 +183,18 @@ Not every processor is available in every scope. The following table shows key d
 | Field enrichment (Add / Remove / Rename / DQL) | Yes | Yes | Yes | Yes | Yes |
 | Metric extraction (Counter / Value / Histogram Preview) | Yes | Yes (sampling-aware variants) | — | Yes | Yes |
 | Smartscape node / edge | Yes | Yes | Yes | Yes | Yes |
-| Event extraction (Bizevent / SDLC / Davis) | Yes | Yes | — | — | — |
-| Masking | Yes | Yes | — | Yes | Yes |
+| Event extraction (Business / SDLC event in Data extraction; Davis event in Davis) | Yes | Yes | — | Yes | Yes |
+| Masking (DQL processor, Processing stage) | Yes | Yes | Yes | Yes | Yes |
+| Inline lookup (Processing stage) | Yes | Yes | Yes | Yes | Yes |
+| GeoIP lookup (Processing stage, Early Access) | Yes | Yes | Yes | Yes | Yes |
 | Drop record | Yes | Yes | Yes | Yes | Yes |
-| Bucket assignment / No storage assignment | Yes | Yes | Yes | Yes | Yes |
+| Bucket assignment / No storage assignment | Yes | Yes | — | Yes | Yes |
 | Set dt.security_context | Yes | Yes | Yes | Yes | Yes |
-| DPS Cost Allocation (Cost Center / Product) | Yes | Yes | Yes | Yes | Yes |
+| DPS Cost Allocation (Cost Center / Product) | Yes | Yes | Yes | — | — |
 
-### OneAgent Attribute Enrichment (OneAgent 1.331+)
+### OneAgent Attribute Enrichment (OneAgent 1.333+)
 
-> **Requires:** OneAgent version **1.331** or later
+> **Requires:** OneAgent version **1.333** or later
 
 OneAgent can enrich **all telemetry signals** (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.
 
@@ -231,9 +236,11 @@ DT_TAGS="primary_tags.team=platform primary_tags.environment=production"
 <a id="the-default-pipeline-anti-pattern"></a>
 ## 3. The Default Pipeline Anti-Pattern
 
-Every OpenPipeline scope ships with a **Default Pipeline**. It is a catch-all: any data that does not match a custom pipeline's routing rules flows through the default pipeline and lands in the default bucket (e.g., `default_logs`, `default_spans`).
+Every OpenPipeline scope has a built-in **Default Pipeline** — for logs and business events, only where the Classic pipeline is not available. It is a catch-all: any data that does not match a custom pipeline's routing rules flows through the default pipeline and lands in the default bucket (e.g., `default_logs`, `default_spans`).
 
-This is convenient for getting started. It becomes a serious problem at scale.
+This is convenient for getting started. It becomes a serious problem at scale — Dynatrace's own guidance is to *"limit the use of the default pipeline to monitoring unassigned incoming data"*.
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — *"It's not available for log and business event configuration scopes where the Classic pipeline is available."*</sub>
 
 ### Why "Everything in Default" Fails
 
@@ -425,7 +432,7 @@ Pipeline: application-logs
 | **Global processors** | Processors placed outside any group run on **all records** unconditionally — before or after groups, depending on their position. |
 | **Available in all scopes** | Processing groups work in Logs, Spans, Metrics, Events, and Business Events scopes. |
 
-> **Forthcoming / rolling out (SaaS 1.344):** the matcher gains support for **Duration**-type record fields, with the operators `=`, `!=`, `>`, `>=`, `<`, and `<=` — published 07/27/2026, [staged tenant rollout](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) from 07/29/2026, so verify it has reached your tenant before relying on it. Until it does, match on an equivalent **numeric** field instead (for example a millisecond-valued field carried alongside the record rather than the duration field itself).
+> **SaaS 1.344+:** OpenPipeline matchers support **Duration**-type record fields, with the operators `=`, `!=`, `>`, `>=`, `<`, and `<=` ([rollout from 07/29/2026](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344)). On a tenant that has not yet reached 1.344, match on an equivalent **numeric** field instead (for example a millisecond-valued field carried alongside the record rather than the duration field itself).
 
 ### When to Use Processing Groups vs. Separate Pipelines
 
@@ -478,7 +485,7 @@ In the Spans scope, a single pipeline processes all server spans but needs diffe
 |---------|---------|-----|
 | Duplicating matchers on every processor | Verbose, error-prone, hard to maintain | Use a processing group — define the matcher once |
 | Overlapping group matchers without intent | A record processed by multiple groups may get conflicting field values | Make matchers mutually exclusive, or design for intentional multi-match |
-| Putting bucket routing in a group | Bucket assignment applies to the whole pipeline, not per-group | Configure bucket routing at the pipeline level, not inside groups |
+| One pipeline per destination bucket when only the destination differs | Pipeline proliferation for data that is otherwise processed identically | Use conditional **Bucket assignment** processors (first match wins) inside one pipeline |
 | Too many groups in one pipeline | Becomes as complex as having separate pipelines | If you have >5-6 groups, consider splitting into separate pipelines |
 
 <a id="security-context-across-scopes"></a>
@@ -607,8 +614,8 @@ Ask these questions in order:
 
 In this notebook you learned:
 
-- **Six scopes** — OpenPipeline processes logs, spans, metrics, events, business events, and security events independently
-- **Shared architecture** — All scopes follow the same four-stage flow (ingest → routing → processing → storage); masking, filtering, transformation, and extraction are processor categories within the Processing stage per `/concepts/data-flow`
+- **Configuration scopes** — OpenPipeline processes logs, spans, metrics, events, business events, security events, and more, each independently
+- **Shared architecture** — All scopes follow the same flow (ingest → routing → pipeline → storage); inside the pipeline a fixed sequence of stages runs Processing (mask, drop, transform) first and Bucket assignment before Metric extraction, Davis, and Data extraction
 - **The default pipeline anti-pattern** — Sending everything through the default pipeline causes query performance, cost, security, and blast radius problems
 - **Pipeline design principles** — One pipeline per source type, filter early, differentiate retention, order routing rules from specific to general
 - **Processing groups** — Conditional logic within a pipeline: group processors by matching condition to handle multiple data formats without creating separate pipelines. Use groups for different processing; use pipelines for different lifecycle.
@@ -629,8 +636,13 @@ Continue to **OPIPE-02: Span Processing & Enrichment** to configure OpenPipeline
 
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the `dt.bindplane.*` namespace reservation quoted in §2
-- [OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [OpenPipeline ingest sources (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference) — replaces the retired per-scope `openpipeline-spans` / `openpipeline-metrics` pages
+- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [OpenPipeline data flow (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow)
+- [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction)
+- [Davis stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage)
+- [Data extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/data-extraction)
+- [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags)
+- [OpenPipeline ingest sources (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference)
 - [OpenPipeline pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups)
 - [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
 - [Security context for access control (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)

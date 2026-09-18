@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -86,9 +86,9 @@ If you are converting classic problem notifications to workflows, this is the do
 | ServiceNow | ServiceNow connector |
 | Slack | Slack connector |
 
-### The four with no native connector
+### The three with no native connector
 
-**Opsgenie, Trello, VictorOps, and xMatters are currently not supported** as native workflow connectors. Each becomes an HTTP-action rebuild against the destination's current API — and per §1, adding an HTTP action can move a workflow out of the *simple* (unbilled) category into the billed multi-step one. Budget for that rather than discovering it.
+**Trello, VictorOps, and xMatters have no native workflow connector.** Opsgenie, which Atlassian is replacing with Jira Service Management, maps to the native JSM connector in the table above. Each becomes an HTTP-action rebuild against the destination's current API — and per §1, adding an HTTP action can move a workflow out of the *simple* (unbilled) category into the billed multi-step one. Budget for that rather than discovering it.
 
 Rebuild the payload against the destination's live API contract; do not port the classic webhook body verbatim.
 

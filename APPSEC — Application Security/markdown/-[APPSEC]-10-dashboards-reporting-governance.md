@@ -1,10 +1,10 @@
 # APPSEC-10: Dashboards, Reporting and Governance
 
-> **Series:** APPSEC — Application Security | **Notebook:** 10 of 10 | **Created:** June 2026 | **Last Updated:** 06/04/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 10 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
-AppSec produces signal continuously — dashboards and governance turn that signal into decisions. This closing notebook covers the executive-facing dashboard composition, the cadence of the governance review, and the FinOps angle (AppSec ingest is DPS-billed, so dashboards should be cost-aware).
+AppSec produces signal continuously — dashboards and governance turn that signal into decisions. This closing notebook covers the executive-facing dashboard composition, the cadence of the governance review, and the FinOps angle (RVA and RAP are DPS-billed per monitored GiB-hour, so cost follows where they are enabled).
 
 This is the final notebook in the series. The other nine cover the data sources; this one covers what to do with them at the leadership and program level.
 
@@ -13,7 +13,7 @@ This is the final notebook in the series. The other nine cover the data sources;
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | View | Audience | Cadence |
 |------|----------|---------|
-| DSS trend | Exec / CISO | Quarterly |
+| Open vulnerabilities by DSS level (trend) | Exec / CISO | Quarterly |
 | Severity mix | Security eng | Weekly |
 | MTTR by team | Program lead | Monthly |
 | Compliance % | Auditor / CISO | Quarterly |
@@ -23,7 +23,7 @@ This is the final notebook in the series. The other nine cover the data sources;
 
 ## Table of Contents
 
-1. [1. The Dynatrace Security Score Trend](#dss-trend)
+1. [1. Open Vulnerabilities by DSS Level — the Trend](#dss-trend)
 2. [2. Open Problems by Severity](#severity-mix)
 3. [3. MTTR by Team](#mttr)
 4. [4. Compliance Framework Coverage](#compliance-coverage)
@@ -44,22 +44,22 @@ This is the final notebook in the series. The other nine cover the data sources;
 | **Background** | APPSEC-01 (fundamentals + three-pillar framing) |
 
 <a id="dss-trend"></a>
-## 1. The Dynatrace Security Score Trend
+## 1. Open Vulnerabilities by DSS Level — the Trend
 
-The single most important board-facing metric is the DSS trend over a 90-day window. Treat it as directional:
+DSS is a per-vulnerability score (APPSEC-01 § 4), so there is no single tenant-wide "DSS" to chart. The board-facing metric is the **count of open vulnerabilities at each DSS level**, trended over a 90-day window — § 2's query, run on a schedule. Treat it as directional:
 
-- **Trending down (worse)** = posture deteriorating. Investigate which signals moved.
+- **More open vulnerabilities at CRITICAL / HIGH** = posture deteriorating. Investigate which applications or libraries added them.
 - **Flat** = posture stable. Could mean no new risk, or could mean stalled remediation — pair with backlog burn-rate from APPSEC-08 to disambiguate.
-- **Trending up (better)** = remediation is outpacing new findings.
+- **Fewer open vulnerabilities at CRITICAL / HIGH** = remediation is outpacing new findings.
 
-Do **not** compare DSS across tenants or across business units (per APPSEC-01 § 4). Use within-tenant deltas only.
+Do **not** compare these counts across tenants or business units without normalizing for estate size and monitoring-mode coverage (per APPSEC-01 § 3–4) — Infrastructure-mode hosts keep DSS at the CVSS base score, which shifts the level mix. Use within-tenant deltas.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the DSS framing. **Derived:** the trending-direction interpretation guide is community practice.</sub>
+> <sub>**Sources:** [Vulnerabilities concepts (DT docs)](https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts) — *"This scoring system forms the foundation for the Dynatrace Security Score (DSS), which adds environmental context to help prioritize remediation."*; [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) — *"the DSS will be the same as the CVSS base score"* in Infrastructure Monitoring deployments (both re-read 09/18/2026). **Derived:** the trending-direction interpretation guide is community practice.</sub>
 
 <a id="severity-mix"></a>
 ## 2. Open Problems by Severity
 
-Companion view to DSS: how many problems are open right now, by severity bucket?
+The underlying view: how many vulnerabilities are open right now, by DSS level? The query keeps the latest vulnerability-level snapshot per vulnerability, so each open vulnerability counts once however often RVA re-reports it.
 
 | Severity | Treatment |
 |----------|-----------|
@@ -71,16 +71,23 @@ Companion view to DSS: how many problems are open right now, by severity bucket?
 A healthy mix has Critical near zero, High in single digits, Medium and Low forming the long tail. A growing Critical count is the strongest early-warning signal.
 
 ```dql
-// Open security problems by severity (event-stream proxy via security.events)
+// Current open vulnerabilities by risk level (latest snapshot per vulnerability)
 fetch security.events, from:-7d
+| filter event.provider == "Dynatrace"
+| filter event.category == "VULNERABILITY_MANAGEMENT"
 | filter event.type == "VULNERABILITY_STATE_REPORT_EVENT"
-| filter event.status == "OPEN"
-| summarize count = count(), by:{vulnerability.risk.level}
-| sort vulnerability.risk.level asc
+| filter event.level == "VULNERABILITY"
+| dedup {vulnerability.display_id}, sort:{timestamp desc}
+| filter vulnerability.resolution.status == "OPEN"
+| filter vulnerability.mute.status == "NOT_MUTED"
+| summarize open = count(), by:{vulnerability.risk.level}
+| sort open desc
 
 ```
 
-> <sub>**Sources:** field names (`event.type`, `event.status`, `vulnerability.risk.level`) inferred from the AppSec events shape; verified for DQL syntax only. **Softened:** the SLA day counts (7/30/90) are common but should be set per your governance regime, not adopted blindly.</sub>
+> **Validation note:** validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there.
+>
+> <sub>**Sources:** [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) — *"A vulnerability state event is a periodic snapshot, emitted by Dynatrace Runtime Vulnerability Analytics (RVA), of a vulnerability's current status and risk aggregated across every entity it affects."* (re-read 09/18/2026). **Dictionary:** `vulnerability.risk.level` (`stable`), `vulnerability.resolution.status` (`stable`), `vulnerability.mute.status` (`stable`), `vulnerability.display_id` (`stable`), read 09/18/2026. **Softened:** the SLA day counts (7/30/90) are common but should be set per your governance regime, not adopted blindly.</sub>
 
 <a id="mttr"></a>
 ## 3. MTTR by Team
@@ -107,38 +114,38 @@ A workable cadence for most organizations:
 
 | Cadence | Audience | Content |
 |---------|----------|---------|
-| Daily | Security on-call | New Critical problems, attack-event spikes |
+| Daily | Security on-call | New Critical vulnerabilities, RAP detection spikes |
 | Weekly | Security engineering | Open backlog by team, MTTR trend, burn-rate |
-| Monthly | AppSec program lead + AppDev leadership | DSS trend, compliance coverage, IAM access review |
-| Quarterly | CISO + exec staff | DSS 90-day trend, compliance posture by framework, capacity asks |
+| Monthly | AppSec program lead + AppDev leadership | Open-vulnerability trend by DSS level, compliance coverage, IAM access review |
+| Quarterly | CISO + exec staff | 90-day trend of open vulnerabilities by DSS level, compliance posture by framework, capacity asks |
 
-The artifacts above (DSS trend, severity mix, MTTR, compliance) feed all four cadences — what differs is the aggregation level and the audience-appropriate framing.
+The artifacts above (open-vulnerability trend by DSS level, severity mix, MTTR, compliance) feed all four cadences — what differs is the aggregation level and the audience-appropriate framing.
 
 > <sub>**Derived:** the four-cadence model is common but not prescribed by Dynatrace docs. Adapt to your organization's existing security-governance rhythm.</sub>
 
 <a id="dps-cost"></a>
 ## 6. DPS Cost Awareness
 
-Application Security is DPS-billed — security.events ingest contributes to consumption. Three FinOps practices:
+Runtime Vulnerability Analytics and Runtime Application Protection are DPS-billed in **GiB-hours** — per monitored host or container, based on its memory — not per `security.events` record. Cost is therefore driven by *which hosts have RVA and RAP enabled*, not by how many findings or detections they produce. Three FinOps practices:
 
-1. **Monitor security.events ingest volume monthly** alongside vulnerability volume. A spike in events with no spike in vulnerabilities suggests RAP detection rules generating false positives at scale.
-2. **Sample RAP attack events selectively** if blocking-mode rollout is complete and steady-state attacks are noise. APPSEC-04's tuning loop applies here.
-3. **Cross-reference FINOPS-01 / FINOPS-02** for the DPS capability-units and forecasting model — AppSec is one tenant-wide consumer.
+1. **Scope enablement, not events.** Use monitoring rules for process groups to enable RVA and RAP where the risk justifies it; dropping or sampling detection records saves nothing and discards attack evidence.
+2. **Track consumption per capability and host** — FINOPS-01 § 5 covers the host-based capability queries, and FINOPS-02 the forecasting model. AppSec is one tenant-wide consumer among many.
+3. **Watch detection volume as a signal-quality metric, not a cost metric.** A spike in RAP detections with no matching incident suggests rules generating false positives — tune them (APPSEC-04 § 3) for the analysts' sake.
 
 Don't sacrifice security signal for cost savings without an explicit risk acceptance. But don't ignore cost either — it's a budget reality.
 
-> <sub>**Sources:** cross-reference to FINOPS-01 and FINOPS-02 in the series. **Derived:** the three FinOps practices are community guidance — verify against your organization's DPS-management discipline.</sub>
+> <sub>**Sources:** [Runtime Vulnerability Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics) — *"The unit of measure for Runtime Vulnerability Analytics is the GiB-hour"*; [Runtime Application Protection (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection) — *"The unit of measure for Runtime Application Protection is a GiB hour"* (both re-read 09/18/2026). **Derived:** practice 1 follows from the GiB-hour unit; practices 2–3 are community guidance — verify against your organization's DPS-management discipline.</sub>
 
 <a id="series-wrap"></a>
 ## 7. Series Wrap
 
-The series in one paragraph: AppSec in Gen3 SaaS is **three pillars** (RVA + RAP + SPM) over **one Grail data plane** (security.events + vulnerability-service), with **dual-surface IAM** (Grail + environment roles), consumed via **dashboards / workflows / Davis CoPilot**, and governed at the **monthly + quarterly** cadence with **DSS as the headline metric**. The OneAgent code module is the load-bearing dependency under all of it.
+The series in one paragraph: AppSec in Gen3 SaaS is **three pillars** (RVA + RAP + SPM) over **one Grail data plane** (security.events + vulnerability-service), with **dual-surface IAM** (Grail + environment roles), consumed via **dashboards / workflows / Davis CoPilot**, and governed at the **monthly + quarterly** cadence with **open vulnerabilities by DSS level** as the headline metric. The OneAgent code module is the load-bearing dependency under all of it.
 
 Where to go from here:
 - Open APPSEC-01 again with the rest of the series fresh and confirm the mental map.
 - Stand up the persona policies from APPSEC-09 before granting broad access.
 - Wire one end-to-end workflow per APPSEC-08 to prove the loop closes.
-- Set the governance cadence and the first DSS-trend review date.
+- Set the governance cadence and the first review date for the open-vulnerability trend.
 
 <a id="references"></a>
 ## References
@@ -146,6 +153,10 @@ Where to go from here:
 | Source | Coverage |
 |--------|----------|
 | [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | DSS + posture framing |
+| [Vulnerabilities concepts (DT docs)](https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts) | DSS as a per-vulnerability score |
+| [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) | Fields used in § 2 |
+| [Runtime Vulnerability Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics) | RVA billing unit |
+| [Runtime Application Protection (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection) | RAP billing unit |
 
 ---
 

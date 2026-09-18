@@ -1,6 +1,6 @@
 # AUTOM-02: Settings API
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 07/31/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for configuration management. It provides a unified way to manage all Dynatrace settings through JSON objects with schema validation.
 
@@ -13,6 +13,7 @@ The Settings API (also called Settings 2.0) is Dynatrace's modern REST API for c
 3. [Working with Settings Objects](#working-with-settings-objects)
 4. [Common Operations](#common-operations)
 5. [Best Practices](#best-practices)
+6. [Next Steps](#next-steps)
 
 ---
 
@@ -69,7 +70,7 @@ By the end of this notebook, you will:
 
 **Extensions Action endpoint signature change.** `PUT /extensions/{extensionName}/monitoringConfigurations/{configurationId}/actions` now returns `agIds` (plural array) and deprecates the singular `agId` and `agName` properties. Update any code parsing the response to handle the array form.
 
-> **Tokens:** For Extensions automation, prefer **Platform tokens (`dt0s16` / `dt0s01`)** with `Authorization: Bearer …` over the classic `dt0c01` (`Authorization: Api-Token …`). The Platform token model is the recommended path going forward — see [AUTOM-08: Migration Automation](#) for the migration plan.
+> **Tokens:** For Extensions automation, prefer **Platform tokens (`dt0s16` / `dt0s01`)** with `Authorization: Bearer …` over the classic `dt0c01` (`Authorization: Api-Token …`). The Platform token model is the recommended path going forward — see **AUTOM-08: Migration Automation** for the migration plan.
 
 ---
 
@@ -126,7 +127,7 @@ A schema being **available today** and a schema **surviving your upgrade to the 
 | Is it deprecated? | Dynatrace has named a successor. An end-of-life date may or may not be published, and the schema keeps working meanwhile. | Product documentation, release notes |
 | Is it blocked at upgrade? | The schema stops answering once the tenant moves to the latest Dynatrace. | The ready-made *Check your upgrade readiness* dashboard |
 
-The `Upgrade status` values below are read from that dashboard, observed **07/31/2026**. Note that public documentation does not currently publish these as breaking changes — a schema can read as perfectly current in the docs and still be flagged `Blocked` here. Blocking is triggered by **your tenant's own upgrade** rather than a calendar date, so the timing is yours; the scope is not. Re-check against the dashboard in your tenant before planning around any single row.
+The `Upgrade status` values below are read from that dashboard, observed **07/31/2026**, and cross-checked **09/18/2026** against the list Dynatrace now publishes: [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."* and *"If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment."* The published page is the authoritative list; the readiness dashboard remains the tenant-specific check. Blocking is triggered by **your tenant's own upgrade** rather than a calendar date, so the timing is yours; the scope is not. Re-check against the dashboard in your tenant before planning around any single row.
 
 **This matters most for config-as-code.** Monaco resolves a schema before writing objects (`--settings-schema`), and the Terraform provider maps its resources onto the same schemas — so a `Blocked` row takes its Monaco config type and its Terraform resource with it. `/api/v2/settings/objects` itself is unaffected; it is the individual schema that goes away, not the endpoint.
 
@@ -139,16 +140,16 @@ The `Upgrade status` values below are read from that dashboard, observed **07/31
 | Alerting | `builtin:alerting.profile` | Alerting profiles | **Blocked** — successor is workflow-based notification (WFLOW, ALERT-03) |
 | Alerting | `builtin:problem.notifications` | Problem notifications | **Blocked** — same successor |
 | Alerting | `builtin:alerting.maintenance-window` | Maintenance windows | **Blocked** — successor is platform maintenance windows |
-| Alerting | `builtin:anomaly-detection.hosts` | Host anomaly detection | Carries forward |
+| Alerting | `builtin:anomaly-detection.infrastructure-hosts` | Host anomaly detection (there is no `builtin:anomaly-detection.hosts` schema) | Carries forward — its `.high-gc` sub-schema is on the removed list |
 | Alerting | `builtin:anomaly-detection.services` | Service anomaly detection | Carries forward |
 | Alerting | `builtin:anomaly-detection.metric-events` | Custom metric-event alerts (`dynatrace_metric_events` Terraform resource — not the singular, nonexistent `dynatrace_metric_event`) | **Blocked** — recreate as DQL-based detectors on `builtin:davis.anomaly-detectors` |
 | Alerting | `builtin:anomaly-detection.infrastructure-disks` | Classic disk anomaly detection | **Blocked** — successor is the newer disk alerting |
 | Alerting | `builtin:davis.anomaly-detectors` | DQL-based anomaly detectors | Carries forward — the Gen3 target for metric-event migrations |
 | SLO | `builtin:monitoring.slo` | Service level objectives — **not** `builtin:slo` | **Blocked** — takes `dynatrace_slo_v2` and the Monaco path with it (SLO-05) |
-| Service | `builtin:settings.calculated-service-metrics` | Calculated service metrics | **Blocked** — no successor *concept*, not just a renamed schema; each metric in use needs a replacement built on pipeline extraction |
+| Service | `builtin:settings.calculated-service-metrics` | Calculated service metrics | **Blocked** — replaced by the new calculated metrics for services (removed-schemas list: "Replaced by calculated service metrics") |
 | Logs | `builtin:logmonitoring.log-custom-attributes` / `.log-dpp-rules` / `.log-buckets-rules` / `.log-events` | Classic log processing, attributes, buckets and events | **Blocked** — successor is OpenPipeline (OPMIG); do not point new automation at these |
 | Cloud | `builtin:cloud.aws` | Classic AWS connection | **Blocked** — recreate as a Cloud Observability connection (CLOUD-02) |
-| Infrastructure | `builtin:os.services.monitoring` | OS services monitoring rules | **Blocked** |
+| Infrastructure | `builtin:os.services.monitoring` | Classic Windows services monitoring | **Blocked** — replaced by OS services monitoring |
 | Automation | `builtin:issue-tracking.integration` | Releases issue-tracking integrations | **Blocked** — the classic Releases app has no named successor; recreate in the new model |
 | Network | `builtin:networkzones.zones` | Network zones — replaced the deprecated `/api/v2/networkZones` Configuration API (sprint 1.339); see M2S-03/04 | **Verify** — the dashboard blocks `builtin:networkzones`, and prefix matching sweeps `.zones` in with it. The global toggle and the zone definitions are distinct schemas, so confirm which one is affected before acting |
 | OpenPipeline | `builtin:openpipeline.<scope>.pipelines` / `.routing` / `.ingest-sources` | Per-data-type family, e.g. `builtin:openpipeline.logs.pipelines` — **not** a single generic schema; see OPIPE, OPMIG, SL2DT-03, NRLC-09 | Carries forward |
