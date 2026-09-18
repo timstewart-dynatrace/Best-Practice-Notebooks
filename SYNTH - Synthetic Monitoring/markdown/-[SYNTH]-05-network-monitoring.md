@@ -1,6 +1,6 @@
 # SYNTH-05: Synthetic Network Monitoring
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 07/30/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Network Availability, DNS, and ICMP Monitoring
 This notebook covers Dynatrace Synthetic **Network Availability Monitors** (multi-protocol monitors), which test ICMP (ping), DNS, and TCP port reachability.
@@ -10,12 +10,13 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 
 ## Table of Contents
 
-1. [ICMP (Ping) Monitors](#icmp-ping-monitors)
-2. [DNS Monitors](#dns-monitors)
-3. [TCP Port Monitors](#tcp-port-monitors)
-4. [Multi-Protocol Monitors](#multi-protocol-monitors)
-5. [Use Cases and Patterns](#use-cases-and-patterns)
-6. [Analyzing Network Results](#analyzing-network-results)
+1. [Network Monitoring Overview](#network-monitoring-overview)
+2. [ICMP (Ping) Monitors](#icmp-ping-monitors)
+3. [DNS Monitors](#dns-monitors)
+4. [TCP Port Monitors](#tcp-port-monitors)
+5. [Multi-Protocol Monitors](#multi-protocol-monitors)
+6. [Use Cases and Patterns](#use-cases-and-patterns)
+7. [Analyzing Network Results](#analyzing-network-results)
 
 ---
 
@@ -26,7 +27,7 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 - ✅ Private synthetic locations (for internal network monitoring)
 
 > **⚠️ Data model — read first:** ICMP, DNS, and TCP checks are **not** separate monitor types in Grail. They are protocols within a single **network availability monitor** (a *multi-protocol monitor*). In the data model:
-> - **Entity (classic):** `dt.entity.multiprotocol_monitor` — still functional
+> - **Entity (classic):** `dt.entity.multiprotocol_monitor` — deprecated in DQL, supported for as long as Dynatrace Classic is supported
 > - **Entity (Smartscape, preferred):** node type **`NETWORK_AVAILABILITY_MONITOR`** (model `dt.smartscape.network_availability_monitor`) — note the **name changed**; it is *not* `MULTIPROTOCOL_MONITOR`
 > - **Events:** `fetch dt.synthetic.events | filter event.type == "multiprotocol_monitor_execution"`
 > - **Metric:** `dt.synthetic.multi_protocol.executions` (execution count, by `dt.entity.multiprotocol_monitor`)
@@ -86,7 +87,8 @@ smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
 | sort name asc
 | limit 50
 
-// FALLBACK (classic surface -- still functional):
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
 // fetch dt.entity.multiprotocol_monitor
 // | fields id, entity.name
 // | sort entity.name asc
@@ -283,23 +285,13 @@ timeseries executions = sum(dt.synthetic.multi_protocol.executions),
 
 Create comprehensive monitoring by combining multiple protocol checks:
 
-```
-Multi-Protocol Monitor Example:
+Multi-protocol monitor example — target `db.example.com`:
 
-Target: db.example.com
-
-Step 1: DNS Resolution
-    ├── Query: db.example.com
-    └── Expected: 10.0.1.50
-
-Step 2: ICMP Ping
-    ├── Target: 10.0.1.50
-    └── Check: Host reachable
-
-Step 3: TCP Port Check
-    ├── Target: 10.0.1.50:5432
-    └── Check: PostgreSQL port open
-```
+| Step | Protocol | Target | Check |
+|------|----------|--------|-------|
+| 1 | DNS | `db.example.com` | Resolves to `10.0.1.50` |
+| 2 | ICMP | `10.0.1.50` | Host reachable |
+| 3 | TCP | `10.0.1.50:5432` | PostgreSQL port open |
 
 ### Monitoring Strategy by Layer
 

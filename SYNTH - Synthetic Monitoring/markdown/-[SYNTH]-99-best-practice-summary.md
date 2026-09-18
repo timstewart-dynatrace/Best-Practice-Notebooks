@@ -1,6 +1,6 @@
 # SYNTH-99: Best Practice Summary
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -74,12 +74,14 @@ Verify 1.344 has reached your tenant before relying on the combined form; until 
 | Set `Content-Type` and `Accept` headers on every request | `Content-Type: application/json`, `Accept: application/json` | Critical |
 | Add User-Agent header for identification | `User-Agent: Dynatrace Synthetic` | Recommended |
 | Enable SSL certificate monitoring on every HTTPS endpoint | SSL check: enabled (automatic on HTTP monitors) | Critical |
-| Use JSON path assertions for API response validation | Assert `$.status == "success"` or equivalent | Critical |
-| Extract variables between steps using JSON path | Variable extraction source: `$.data.token` | Critical |
-| Reference extracted variables in subsequent steps with `${variableName}` syntax | URL: `https://api.example.com/users/${userId}` | Critical |
+| Validate API responses with a text/regex rule, or with `api.fail()` in a post-execution script for structured checks (JSON-path assertions are not a rule type) | Regex rule: `"status":\s*"success"` (evaluated over the first 50 KB of the body) | Critical |
+| Pass values between requests with a post-execution script | `api.setValue("token", JSON.parse(response.getResponseBody()).access_token)` | Critical |
+| Reference stored values in later requests as `{variable_name}` — single braces, no `$` | URL: `https://api.example.com/users/{userId}` | Critical |
 | Validate HTTP status codes fail on 4xx/5xx | Default behavior: fail on 400-599 | Critical |
 | Add content-present assertion for positive match | Validation: contains `"status": "ok"` | Recommended |
 | Add content-absent assertion to catch error states | Validation: does not contain `"error"` | Recommended |
+
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor), [Pre- and post-execution scripting for HTTP monitors (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic) — *"You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention."*</sub>
 
 <a id="browser-monitor-configuration"></a>
 ## 3. Browser Monitor Configuration
@@ -143,44 +145,50 @@ Verify 1.344 has reached your tenant before relying on the combined form; until 
 | Provision ActiveGate with minimum **4 CPU cores, 8 GB RAM, 50 GB disk** | Resources: 4 cores / 8 GB / 50 GB (recommended) | Critical |
 | Deploy **2+ ActiveGates** per private location for high availability | Nodes per location: **2+** | Critical |
 | Distribute ActiveGates across availability zones | AZ distribution: one AG per AZ minimum | Recommended |
-| Install Chrome/Chromium and a display server on ActiveGates that run browser monitors | Required: Chrome + X11 or headless display | Critical |
+| Let the ActiveGate installer provide the browser; do not install Chrome/Chromium or a display server yourself | Browser version tracks the ActiveGate version (SYNTH-04) | Critical |
 | Monitor ActiveGate CPU < 80%, memory < 80%, disk < 80% | Alert thresholds: **80%** sustained for CPU/memory/disk | Critical |
 | Monitor ActiveGate execution queue depth | Alert threshold: queue > **100** pending executions | Recommended |
-| Use Kubernetes DynaKube CRD with `capabilities: [synthetic-monitoring]` for K8s deployments | DynaKube spec: `activeGate.capabilities: ["synthetic-monitoring"]` | Recommended |
+| Deploy containerized private locations from the UI-generated `synthetic.yaml` template, not from DynaKube | Template: Synthetic → Private locations → Download synthetic.yaml (plus the metric-adapter template) | Recommended |
 | Ensure outbound-only connectivity (no inbound firewall rules required) | Network: HTTPS outbound to Dynatrace cluster only | Critical |
+
+> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic) — *"On Windows, the ActiveGate installer package includes the Chrome for Testing browser used to run browser monitors."*; [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app) — *"Select Download synthetic.yaml. This is the location template file."*</sub>
 
 <a id="validation-and-assertions"></a>
 ## 8. Validation and Assertions
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Add at least one content validation rule to every monitor | Validation: text-present or JSON-path assertion | Critical |
+| Add at least one content validation rule to every monitor | Validation: text-present or regex rule (HTTP), or a post-execution `api.fail()` check | Critical |
 | Validate positive content ("Welcome", "status: ok") rather than only checking for absence of errors | Validation type: **Text Present** | Critical |
 | Use regex validation for dynamic content (e.g., order numbers) | Regex: `Order #\d{6}` | Recommended |
-| Validate JSON responses with JSON path assertions | Assert: `$.status == "success"`, `$.data.users.length > 0` | Critical |
+| Validate JSON responses with a text/regex rule or a post-execution script — JSON-path assertions are not a rule type | `var d = JSON.parse(response.getResponseBody()); if (d.status !== "success") api.fail("status=" + d.status);` | Critical |
 | Verify element presence in browser monitors for SPA pages | Selector: `#success-message` must exist | Recommended |
 | Enable HTTP status code validation (fail on 4xx/5xx) on all monitors | Default: fail on status 400-599 | Critical |
 | Add content-absent checks for known error strings | Validation: does not contain `"error"`, `"exception"` | Recommended |
+
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"HTTP status code validation is the most important, followed by text and regular expression validation, and finally by SSL certificate expiry validation."*</sub>
 
 <a id="authentication-and-security"></a>
 ## 9. Authentication and Security
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Store all credentials in the Dynatrace Credential Vault | Path: Settings > Integration > Credential vault | Critical |
-| Reference credentials with `${credentials.vault.myCredential}` syntax | Never hardcode tokens or passwords in monitor config | Critical |
+| Store all credentials in the Dynatrace Credential Vault | Path: Credential Vault | Critical |
+| Reference credentials as `{CREDENTIALS_VAULT-<id>\|username}`, `\|password}` or `\|token}` | Never hardcode tokens or passwords in monitor config | Critical |
 | Use OAuth2 client_credentials flow for API authentication | Step 1: POST to token endpoint, Step 2: Bearer token in header | Recommended |
-| Use Bearer token auth (not Basic auth) for modern APIs | Header: `Authorization: Bearer ${token}` | Recommended |
+| Use Bearer token auth (not Basic auth) for modern APIs | Header: `Authorization: Bearer {token}` | Recommended |
 | Use client certificates (mTLS) for high-security API endpoints | Credential type: certificate in vault | Optional |
 | Set SSL certificate expiration warning at **30 days** | Alert: warning at 30 days before expiry | Critical |
 | Set SSL certificate expiration critical alert at **14 days** | Alert: critical at 14 days before expiry | Critical |
 | Set SSL certificate expiration emergency alert at **7 days** | Alert: emergency at 7 days before expiry | Critical |
 | Validate SSL certificate chain, hostname match, and trusted CA on every HTTPS monitor | SSL checks: validity + chain + hostname + trust (all enabled) | Critical |
 
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"Use the format {<credential ID>|token} , {<credential ID>|username} , or {<credential ID>|password}"*.</sub>
+
 <a id="performance-thresholds"></a>
 ## 10. Performance Thresholds
 
-Set definitive thresholds for synthetic response time and web vitals.
+Set definitive thresholds for synthetic response time.
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
@@ -188,12 +196,7 @@ Set definitive thresholds for synthetic response time and web vitals.
 | DNS resolution time target | Good: **< 50ms**, Warning: **50-200ms**, Critical: **> 200ms** | Recommended |
 | TCP connect time target | Good: **< 100ms**, Warning: **100-300ms**, Critical: **> 300ms** | Recommended |
 | Time to First Byte (TTFB) target | Good: **< 500ms**, Warning: **500ms-1s**, Critical: **> 1s** | Critical |
-| First Contentful Paint (FCP) target | Good: **< 1.8s**, Critical: **> 3.0s** | Critical |
-| Largest Contentful Paint (LCP) target | Good: **< 2.5s**, Critical: **> 4.0s** | Critical |
-| Time to Interactive (TTI) target | Good: **< 3.8s**, Critical: **> 7.3s** | Recommended |
-| Total Blocking Time (TBT) target | Good: **< 200ms**, Critical: **> 600ms** | Recommended |
-| Cumulative Layout Shift (CLS) target | Good: **< 0.1**, Critical: **> 0.25** | Recommended |
-| Speed Index target | Good: **< 3.4s**, Critical: **> 5.8s** | Optional |
+| Take Web Vitals targets (LCP, FCP, CLS) from RUM, not synthetic | Synthetic browser monitors expose availability and step/total duration, not Web Vitals keys — see SYNTH-02 and the WEBRUM series | Recommended |
 | Flag performance anomalies when max response time > **2x** the average | Deviation factor threshold: **2.0** | Recommended |
 
 <a id="alerting-configuration"></a>
@@ -203,13 +206,15 @@ Set definitive thresholds for synthetic response time and web vitals.
 |----------|---------|----------|
 | Require **2-3 consecutive failures** before triggering an availability alert | Consecutive failures: **3** (recommended) | Critical |
 | Require failures from **2+ locations** to confirm a global outage | Location threshold: **2** | Critical |
-| Set alert delay to **5-10 minutes** to absorb transient failures | Alert delay: **5 min** (HTTP), **10 min** (browser) | Critical |
-| Auto-resolve alerts after **2 consecutive successes** | Auto-close: 2 successes | Critical |
+| Enable **Automatic retry on error** on browser monitors to absorb single transient failures | Retry: enabled (one extra execution after a failure) | Critical |
+| Expect performance problems to close only after **five clean executions** | No separate auto-resolve or alert-delay setting exists | Recommended |
 | Configure availability alerts for outage detection | Alert type: availability, trigger on consecutive failures | Critical |
 | Configure performance alerts for degradation detection | Alert type: P95 response time > threshold | Recommended |
 | Configure SLO-based alerts for error budget consumption | Alert type: error budget burn rate | Recommended |
 | Configure SSL certificate expiration alerts at 30/14/7 day thresholds | Three alert tiers: warning/critical/emergency | Critical |
 | Use multi-location failure detection to classify local vs global outages | Severity: WARNING at 2 locations, CRITICAL at 3+ locations | Recommended |
+
+> <sub>**Sources:** [Synthetic alerting overview (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail) — *"it configures the monitor to avoid false positives by making one more execution after the first one failed"* and *"no performance threshold is violated in the five most recent executions"*.</sub>
 
 <a id="slos-and-error-budgets"></a>
 ## 12. SLOs and Error Budgets

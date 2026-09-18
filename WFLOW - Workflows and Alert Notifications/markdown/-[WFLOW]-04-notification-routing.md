@@ -37,7 +37,7 @@ Sprint 1.337 added **ownership information** as a first-class attribute on Smart
 ```dql
 fetch events, from:-15m
 | filter event.kind == "DAVIS_PROBLEM"
-| filter event.status == "OPEN"
+| filter event.status == "ACTIVE"
 | fieldsAdd owning_team = getNodeField(affected_entity_ids[0], "ownership.team")
 | fieldsAdd oncall_user = getNodeField(affected_entity_ids[0], "ownership.oncall")
 | fields display_id, event.name, owning_team, oncall_user

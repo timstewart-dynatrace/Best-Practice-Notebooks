@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -193,7 +193,7 @@ fetch logs, from:-1h
 ```dql
 // Trace/span continuity — volume per 5-minute bucket
 fetch spans, from:-1h
-| summarize spanCount = count(), by:{time_bucket = bin(timestamp, 5m)}
+| summarize spanCount = count(), by:{time_bucket = bin(start_time, 5m)}
 | sort time_bucket desc
 | limit 12
 ```

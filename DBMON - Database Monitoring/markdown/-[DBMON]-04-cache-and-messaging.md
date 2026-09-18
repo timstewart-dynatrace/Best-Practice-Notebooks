@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -50,8 +50,8 @@ Caches and message brokers serve fundamentally different purposes from databases
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Layer | Producer span | Broker | Consumer span |
 |-------|---------------|--------|---------------|
-| Messaging (Kafka/RabbitMQ) | messaging.operation = publish | No span on broker; trace context flows via headers | messaging.operation = process; consumer.group |
-| Cache (Redis/Memcached) | db.system = redis; span.kind = client; db.operation = GET/SET | Sub-millisecond responses; compare in microseconds; slow > 5ms | (request-response, no separate consumer) |
+| Messaging (Kafka/RabbitMQ) | messaging.operation.type = publish | No span on broker; trace context flows via headers | messaging.operation.type = process; messaging.consumer.group.name |
+| Cache (Redis/Memcached) | db.system = redis; span.kind = client; db.operation.name = GET/SET | Sub-millisecond responses; compare in microseconds; slow > 5ms | (request-response, no separate consumer) |
 Note: messaging.system is canonical OTel; db.system == "kafka" is legacy compat
 For environments where SVG doesn't render
 -->
@@ -64,8 +64,8 @@ fetch spans, from:-1h
 | filter in(db.system, {"redis", "memcached", "kafka", "rabbitmq", "elasticsearch", "opensearch"})
 | summarize {
     call_count = count(),
-    avg_us = avg(duration) / 1000.0,
-    p95_us = percentile(duration, 95) / 1000.0
+    avg_us = avg(duration) / 1us,
+    p95_us = percentile(duration, 95) / 1us
 }, by:{db.system, server.address}
 | sort call_count desc
 ```
@@ -76,9 +76,12 @@ fetch spans, from:-1h
 
 Redis is the most commonly used in-memory data store. Monitoring Redis involves tracking operation types (GET, SET, DEL, HGET, etc.), latency distribution, and error rates. Since Redis operations should complete in microseconds, even small latency increases warrant investigation.
 
+Which field carries the command depends on the instrumentation — check `db.operation.name` first, then `code.function` (OneAgent MongoDB) or `span.name` (OTel Redis). The Redis queries below fall back to `span.name` when `db.operation.name` is empty.
+
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -88,28 +91,31 @@ Redis is the most commonly used in-memory data store. Monitoring Redis involves 
 // Confirm the catalog for your tenant with:
 //   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
 // Redis operation breakdown — which commands are most used?
+// OTel Redis instrumentations may omit db.operation.name; the command is also the span name.
 fetch spans, from:-1h
 | filter db.system == "redis"
-| filter isNotNull(db.operation.name)
+| fieldsAdd operation = coalesce(db.operation.name, span.name)
 | summarize {
     call_count = count(),
-    avg_us = avg(duration) / 1000.0,
-    p95_us = percentile(duration, 95) / 1000.0,
-    max_us = max(duration) / 1000.0
-}, by:{db.operation.name}
+    avg_us = avg(duration) / 1us,
+    p95_us = percentile(duration, 95) / 1us,
+    max_us = max(duration) / 1us
+}, by:{operation}
 | sort call_count desc
 ```
 
 ```dql
 // Redis GET vs SET ratio — understand cache read/write balance
+// OTel Redis instrumentations may omit db.operation.name; the command is also the span name.
 fetch spans, from:-1h
 | filter db.system == "redis"
-| filter isNotNull(db.operation.name)
+| fieldsAdd operation = coalesce(db.operation.name, span.name)
+| filter isNotNull(operation)
 | fieldsAdd op_type = if(
-    in(db.operation.name, {"GET", "MGET", "HGET", "HGETALL", "LRANGE", "SMEMBERS", "ZRANGE"}),
+    in(operation, {"GET", "MGET", "HGET", "HGETALL", "LRANGE", "SMEMBERS", "ZRANGE"}),
     then:"READ",
     else:if(
-      in(db.operation.name, {"SET", "MSET", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL"}),
+      in(operation, {"SET", "MSET", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL"}),
       then:"WRITE",
       else:"OTHER"))
 | summarize op_count = count(), by:{op_type}
@@ -131,7 +137,7 @@ fetch spans, from:-6h
 fetch spans, from:-1h
 | filter db.system == "redis"
 | filter duration > 5ms
-| fields timestamp, db.operation.name, db.query.text, server.address,
+| fields start_time, db.operation.name, db.query.text, server.address,
         duration_ms = duration / 1ms, dt.entity.service
 | sort duration_ms desc
 | limit 20
@@ -152,10 +158,10 @@ Per the OTel semantic conventions, **`messaging.system`** is the canonical field
 | Attribute | Description | Example |
 |-----------|-------------|---------|
 | `messaging.system` | Always `kafka` (canonical OTel field) | `kafka` |
-| `messaging.operation` | `publish` or `process` | `process` |
+| `messaging.operation.type` | `publish` or `process` | `process` |
 | `messaging.destination.name` | Topic name | `orders.created` |
-| `messaging.kafka.consumer.group` | Consumer group ID | `order-processor-group` |
-| `messaging.kafka.destination.partition` | Partition number | `3` |
+| `messaging.consumer.group.name` | Consumer group ID | `order-processor-group` |
+| `messaging.destination.partition.id` | Partition number | `3` |
 
 ```dql
 // Kafka message throughput by topic — producer and consumer activity
@@ -165,14 +171,14 @@ fetch spans, from:-1h
 | summarize {
     msg_count = count(),
     avg_ms = avg(duration) / 1ms
-}, by:{messaging.destination.name, messaging.operation}
+}, by:{messaging.destination.name, messaging.operation.type}
 | sort msg_count desc
 ```
 
 ```dql
 // Kafka consumer processing time over time by topic
 fetch spans, from:-6h
-| filter messaging.system == "kafka" and messaging.operation == "process"
+| filter messaging.system == "kafka" and messaging.operation.type == "process"
 | filter isNotNull(messaging.destination.name)
 | makeTimeseries msg_count = count(),
                  avg_process_ms = avg(duration / 1ms),
@@ -183,14 +189,14 @@ fetch spans, from:-6h
 ```dql
 // Kafka consumer group analysis — processing latency by consumer group
 fetch spans, from:-1h
-| filter messaging.system == "kafka" and messaging.operation == "process"
-| filter isNotNull(messaging.kafka.consumer.group)
+| filter messaging.system == "kafka" and messaging.operation.type == "process"
+| filter isNotNull(messaging.consumer.group.name)
 | summarize {
     msg_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{messaging.kafka.consumer.group, messaging.destination.name}
+}, by:{messaging.consumer.group.name, messaging.destination.name}
 | sort msg_count desc
 ```
 
@@ -209,7 +215,7 @@ fetch spans, from:-1h
     msg_count = count(),
     avg_ms = avg(duration) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{messaging.destination.name, messaging.operation}
+}, by:{messaging.destination.name, messaging.operation.type}
 | sort msg_count desc
 ```
 
@@ -218,7 +224,7 @@ fetch spans, from:-1h
 fetch spans, from:-6h
 | filter messaging.system == "rabbitmq"
 | filter isNotNull(messaging.destination.name)
-| makeTimeseries msg_count = count(), by:{messaging.operation}, interval:5m
+| makeTimeseries msg_count = count(), by:{messaging.operation.type}, interval:5m
 ```
 
 <a id="elasticsearch-monitoring"></a>
@@ -245,7 +251,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter in(db.system, {"elasticsearch", "opensearch"})
 | filter duration > 200ms
-| fields timestamp, db.operation.name, db.query.text, server.address,
+| fields start_time, db.operation.name, db.query.text, server.address,
         duration_ms = duration / 1ms
 | sort duration_ms desc
 | limit 15

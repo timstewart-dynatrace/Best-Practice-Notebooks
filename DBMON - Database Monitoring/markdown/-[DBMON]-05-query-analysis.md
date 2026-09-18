@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -50,7 +50,7 @@ We detect this by looking for query patterns with unusually high call counts per
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Pattern | Trace shape | Total time | DQL detection |
 |---------|-------------|------------|---------------|
-| ❌ N+1 (bad) | 1 outer span + N child DB spans (same statement template, different param) | 50 × ~12ms ≈ 600ms (73% of trace) | high db_call_count + low countDistinct(db.statement) per trace.id |
+| ❌ N+1 (bad) | 1 outer span + N child DB spans (same statement template, different param) | 50 × ~12ms ≈ 600ms (73% of trace) | high db_call_count + low countDistinct(db.query.text) per trace.id |
 | ✅ Batched (good) | 1 outer span + 1 batched DB span (SELECT ... WHERE id IN (...)) | ~38ms | single span per trace |
 For environments where SVG doesn't render
 -->
@@ -59,7 +59,8 @@ For environments where SVG doesn't render
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
-// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
 // non-existent field matches nothing and a summarize groups everything under null, so these cells
 // returned empty or single-null-group results without ever erroring.
 //   db.operation         -> db.operation.name    (stable; set on 50,379 of 57,295 db spans)
@@ -248,10 +249,15 @@ fetch spans, from:-1h
 
 ```dql
 // Database connection errors — timeout and connection refused patterns
+// span.status_message is experimental and is often empty on failed DB spans; the error
+// text is recorded as an exception event in span.events. expand counts exception events,
+// so a span with two exception events counts twice.
 fetch spans, from:-6h
 | filter isNotNull(db.system) and span.status_code == "error"
-| summarize error_count = count(),
-           by:{db.system, server.address, span.status_message}
+| expand span.events
+| filter isNotNull(span.events[exception.type])
+| fieldsAdd exception_type = span.events[exception.type], exception_message = span.events[exception.message]
+| summarize error_count = count(), by:{db.system, server.address, exception_type, exception_message}
 | sort error_count desc
 | limit 20
 ```
@@ -269,11 +275,11 @@ fetch spans, from:-6h
 
 ## 6. Query Normalization and Grouping
 
-Dynatrace automatically normalizes SQL queries by replacing literal values with `?` placeholders. This allows grouping identical query patterns regardless of parameter values. Understanding normalization helps you interpret `db.statement` values correctly.
+Dynatrace automatically normalizes SQL queries by replacing literal values with `?` placeholders. This allows grouping identical query patterns regardless of parameter values. Understanding normalization helps you interpret `db.query.text` values correctly.
 
 ### Normalization Examples
 
-| Original Query | Normalized (`db.statement`) |
+| Original Query | Normalized (`db.query.text`) |
 |---------------|----------------------------|
 | `SELECT * FROM users WHERE id = 42` | `SELECT * FROM users WHERE id = ?` |
 | `INSERT INTO orders (id, amount) VALUES (1, 99.50)` | `INSERT INTO orders (id, amount) VALUES (?, ?)` |
@@ -356,7 +362,7 @@ In this notebook you learned:
 
 - **SPANS series** (9 notebooks) — Span fundamentals, trace topology, parent/child span relationships (foundational for N+1 detection)
 - **AIOPS series** (8 notebooks) — Davis anomaly detection on connection-pool exhaustion, slow-query rate, query-pattern shifts
-- **WFLOW series** (10 notebooks) — Workflow-driven alert routing for DB-engineering teams
+- **WFLOW series** (12 notebooks) — Workflow-driven alert routing for DB-engineering teams
 - **DASH series** (8 notebooks) — Impact-ranking dashboard tiles (rank queries by total impact, not average)
 
 ---

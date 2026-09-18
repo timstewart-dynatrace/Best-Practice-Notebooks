@@ -1,6 +1,6 @@
 # SPANS-07: Grail Buckets & OpenPipeline
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Data Architecture and Processing for Distributed Traces
 This notebook covers Dynatrace Grail's bucket architecture for span storage, OpenPipeline configuration patterns, and data governance strategies.
@@ -255,7 +255,7 @@ stages:
       - transform:
           fields:
             duration_ms: duration / 1ms
-            is_slow: duration > 1000000000
+            is_slow: duration > 1s
 ```
 
 ### OpenPipeline Example: Add Business Context
@@ -379,7 +379,7 @@ stages:
         action: keep
         
       # Always keep slow requests (100%)
-      - condition: duration > 1000000000
+      - condition: duration > 1s
         action: keep
         
       # Sample 10% of normal requests for high-volume service

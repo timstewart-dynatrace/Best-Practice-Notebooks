@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -303,10 +303,12 @@ Beyond entities, you need a count of configuration objects to estimate migration
 | Request attributes | Config API v1: `/requestAttributes` or Settings 2.0 | ___ | 5–30 |
 | Custom services | Config API v1: `/service/customServices` | ___ | 5–20 |
 | Application detection rules | Config API v1 or Settings 2.0 | ___ | 5–20 |
-| Conditional naming rules | Config API v1 or Settings 2.0 | ___ | 5–15 |
+| Conditional naming rules ¹ | Config API v1 or Settings 2.0 | ___ | 5–15 |
 | Maintenance windows | Config API v1 or Settings 2.0 | ___ | 3–10 |
 | Classic dashboards | Dashboard API v1 | ___ | 20–200 |
 | Credential vault entries | Config API v1 | ___ | 5–20 |
+
+¹ Classic only. [Service naming upgrade guide (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services-classic/upgrade-guide-service-naming): *"In Latest Dynatrace with Smartscape on Grail, service naming rules (builtin:naming.services) no longer apply."* Inventory them to migrate a Classic target; don't plan to recreate them on a Latest Dynatrace one.
 
 ### Gen3 (Grail) Configuration
 

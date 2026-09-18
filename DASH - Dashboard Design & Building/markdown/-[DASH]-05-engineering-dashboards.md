@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -60,10 +60,10 @@ When investigating errors, engineers need the actual span attributes — status 
 // Recent error spans with details — engineering investigation table
 fetch spans, from:-1h
 | filter span.kind == "server" and span.status_code == "error"
-| fieldsKeep timestamp, trace.id, dt.entity.service, http.route, http.response.status_code, span.status_message, duration
+| fieldsKeep start_time, trace.id, dt.entity.service, http.route, http.response.status_code, span.status_message, duration
 | fieldsAdd duration_ms = duration / 1ms
 | fieldsRemove duration
-| sort timestamp desc
+| sort start_time desc
 | limit 25
 ```
 

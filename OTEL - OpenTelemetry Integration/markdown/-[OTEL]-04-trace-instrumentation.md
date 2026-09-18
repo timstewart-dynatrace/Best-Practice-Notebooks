@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 09/18/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -383,8 +383,8 @@ def checkout():
 // View spans with custom attributes
 fetch spans, from:-1h
 | filter isNotNull(order.id)
-| fields timestamp, trace.id, span.name, order.id, duration
-| sort timestamp desc
+| fields start_time, trace.id, span.name, order.id, duration
+| sort start_time desc
 | limit 20
 ```
 
@@ -395,8 +395,8 @@ fetch spans, from:-1h
 // otel.status_message. Values are LOWERCASE in Grail: "error", never "ERROR".
 fetch spans, from:-1h
 | filter span.status_code == "error"
-| fields timestamp, trace.id, span.id, span.name, span.kind, span.status_message
-| sort timestamp desc
+| fields start_time, trace.id, span.id, span.name, span.kind, span.status_message
+| sort start_time desc
 | limit 20
 ```
 

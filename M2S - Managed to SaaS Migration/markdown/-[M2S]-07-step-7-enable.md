@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 09/18/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -292,7 +292,7 @@ Common queries that replace everyday Managed workflows:
 | Check host CPU | `timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}` |
 | View service requests | `fetch spans, from:-1h \| filter span.kind == "server" \| summarize count(), by:{dt.entity.service}` |
 | Count log volume | `fetch logs, from:-24h \| summarize count = count(), by:{log.source} \| sort count desc` |
-| Find slow transactions | `fetch spans, from:-1h \| filter span.kind == "server" \| filter duration > 5000000000 \| limit 20` |
+| Find slow transactions | `fetch spans, from:-1h \| filter span.kind == "server" \| filter duration > 5s \| limit 20` |
 
 ### Frequently Asked Questions
 

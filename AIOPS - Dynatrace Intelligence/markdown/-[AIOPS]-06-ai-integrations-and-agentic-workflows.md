@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 08/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 09/18/2026
 
 ## Overview
 
@@ -111,13 +111,13 @@ The queries below are the documented reconstruction pattern. **Neither was execu
 // Replace the id with one you captured from the frontend's sessionStorage.
 fetch spans, from:-24h
 | filter gen_ai.conversation.id == "1f0c4d2e-9a3b-4c71-8e55-6d2a0b7f1c34"
-| fields timestamp,
+| fields start_time,
          span.name,
          gen_ai.request.model,
          gen_ai.usage.input_tokens,
          gen_ai.usage.output_tokens,
          feedback.rating
-| sort timestamp asc
+| sort start_time asc
 | limit 200
 ```
 

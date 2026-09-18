@@ -1,6 +1,6 @@
 # SYNTH-04: Private Synthetic Locations
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 08/28/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 4 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
 
 ## Monitoring Internal Applications from Your Infrastructure
 This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.
@@ -102,16 +102,22 @@ ActiveGate **1.343** (published 07/15/2026, rollout from 07/28/2026) additionall
 
 For browser monitors, additional requirements:
 - A Chromium-family browser — **shipped with the ActiveGate**, not installed separately, so its version tracks your **ActiveGate fleet version, not your tenant version**
-- Display server (X11 or headless)
+- Write access to `/tmp` — the browser's dependencies, including `xvfb`, are installed with it and use `/tmp` (no separate display server to install)
 - Additional RAM for browser instances
 
-**Browser baseline as of ActiveGate 1.343** (published 07/15/2026, rollout from 07/28/2026):
+**Browser baseline by ActiveGate version:**
 
-| Browser | ActiveGate host OS |
-|---------|--------------------|
-| **Chromium 150** | Red Hat Enterprise Linux 9.7, Rocky Linux 9.8 |
-| **Chrome for Testing 150** | Ubuntu 20.04, 22.04, and 24.04; Amazon Linux 2023; Oracle Linux 9.7 |
-| **Chrome for Testing 150** (bundled in the installer) | Windows ActiveGates |
+| ActiveGate | RHEL 9.7, Rocky Linux 9.8 | Ubuntu 20.04 / 22.04 / 24.04, Amazon Linux 2023, Oracle Linux 9.7 | Windows (bundled in the installer) |
+|------------|---------------------------|--------------------------------------------------------------------|------------------------------------|
+| **1.343** (published 07/15/2026, rollout from 07/28/2026) | Chromium 150 | Chrome for Testing 150 | Chrome for Testing 150 |
+| **1.345** (rollout from 08/25/2026) | Chromium 151 | Chrome for Testing 151 | Chrome for Testing 151 |
+| **1.347** (published 09/10/2026 as a planned release, **staged rollout planned from 09/22/2026**) | Chromium 152 | Chrome for Testing 152 | Chrome for Testing 152 |
+
+ActiveGate 1.347 is forthcoming — verify it has reached your synthetic ActiveGates before relying on Chromium 152; until then, the 1.345 row is the working baseline for upgraded fleets, and the 1.343 row for the rest.
+
+The engine version ships **inside the ActiveGate update** rather than separately, which is why browser-monitor behavior can change on a synthetic AG that nobody deliberately touched. Validate browser monitors after an AG takes a new version before treating new failures as application regressions — post-update monitor flake is more often an engine change than a real one (FAQ-05 §9 makes the same point, and is the reason synthetic-heavy AGs are a standing candidate for manual update scheduling).
+
+> <sub>**Sources:** [ActiveGate 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — *"Chrome for Testing 150 is bundled with the Windows ActiveGate installer."*; [ActiveGate 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — *"Chrome for Testing 151 is bundled with the Windows ActiveGate installer."*; [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Chromium 152 is the latest supported version for Synthetic-enabled ActiveGate"* and *"Chrome for Testing 152 is bundled with the Windows ActiveGate installer."*; [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic) — *"Its dependencies, including xvfb, utilize /tmp"*.</sub>
 
 Two things follow from the browser being bundled. First, an ActiveGate that has not been upgraded is still executing clickpaths in the older browser however current the tenant is — so when the *same* clickpath behaves differently at two private locations, compare **ActiveGate versions before** suspecting the application:
 
@@ -121,30 +127,30 @@ smartscapeNodes "ACTIVEGATE"
 | sort dt.active_gate.version asc, name asc
 ```
 
-Second, the **1.331 floor stated below is a minimum, not a target.** It is the version that stops private locations from breaking under the security-context migration; 1.343 is the version that determines which browser your clickpaths actually run in. Both matter, for different reasons. (For the update-management model on SaaS — auto-update windows, version pinning, staged fleet upgrades — see FAQ-05.)
+Second, the **1.331 floor stated below is a minimum, not a target.** It is the version that lets users whose access is scoped by security context see private-location results; the newer builds in the table above determine which browser your clickpaths actually run in. Both matter, for different reasons. (For the update-management model on SaaS — auto-update windows, version pinning, staged fleet upgrades — see FAQ-05.)
 
-> **Breaking change (SaaS 1.343, July 2026 — staged tenant rollout from mid-July):** private Synthetic locations require **ActiveGate 1.331 or newer** once 1.343 reaches your tenant, as part of migrating private-location scoping from **management zones to security context**. Upgrade any AG below 1.331 before the enforcement reaches your tenant, and review location access controls after the migration — the security-context model replaces MZ-based scoping (consistent with the platform-wide management-zone retirement; the MZ2POL series covers the broader migration). SaaS 1.343 also adds IAM-based access control for Synthetic Monitoring and API support for assigning security context to synthetic monitors.
+> **Security context and ActiveGate 1.331 (SaaS 1.343, July 2026 — staged tenant rollout from mid-July).** SaaS 1.343 migrates the management zones of each synthetic **monitor** to security-context values: *"Dynatrace performs a one-time migration of the management zone each synthetic monitor belongs to, mapping them to security context values with the same name on that monitor."* It runs once — *"Updating or creating management zones and monitors won't be synchronized."* On private locations, ActiveGate **1.331+** is what makes those results scopable: *"Earlier versions do not enrich the metrics and events produced by Synthetic monitor executions with the monitor's security context value. Without this enrichment, IAM policies scoped to security contexts cannot grant access to execution data."* An older ActiveGate keeps executing monitors; users whose access is scoped by security context just cannot see its results. Upgrade any synthetic AG below 1.331 before you move users to security-context-scoped policies, and review monitor access once the migration reaches your tenant — the security-context model replaces MZ-based scoping (the MZ2POL series covers the broader management-zone migration). SaaS 1.343 also adds IAM-based access control for Synthetic Monitoring and API support for assigning security context to synthetic monitors.
+>
+> <sub>**Sources:** [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343), [Access control for Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control).</sub>
 
 <a id="deployment-options"></a>
 ## 4. Deployment Options
 ### Option 1: Linux/Windows Installer
 
-```bash
-# Download from Dynatrace Hub
-# Settings → Deployment status → ActiveGate
+Download the installer from **Settings → Deployment status → ActiveGate**, run it with the synthetic flag, then check the service:
 
-# Linux installation
+```bash
 sudo /bin/sh Dynatrace-ActiveGate-Linux-x86-*.sh \
   --enable-synthetic
 
-# Verify synthetic capability
 sudo systemctl status dynatracegateway
 ```
 
 ### Option 2: Container Deployment
 
+`docker-compose.yml`:
+
 ```yaml
-# docker-compose.yml
 version: '3'
 services:
   activegate:
@@ -159,25 +165,13 @@ services:
       - "9999:9999"
 ```
 
-### Option 3: Kubernetes / OpenShift
+### Option 3: Kubernetes / OpenShift (containerized locations)
 
-```yaml
-# Use Dynatrace Operator with ActiveGate CRD
-apiVersion: dynatrace.com/v1beta5
-kind: DynaKube
-metadata:
-  name: dynakube
-spec:
-  activeGate:
-    capabilities:
-      - synthetic-monitoring
-    resources:
-      requests:
-        cpu: "500m"
-        memory: "512Mi"
-```
+Containerized private locations are deployed from **templates the Synthetic app generates**, not from a DynaKube custom resource — there is no `synthetic-monitoring` ActiveGate capability to add to a DynaKube. In **Synthetic → Private locations**, create a containerized location and select **Download synthetic.yaml** (*"This is the location template file."*), then deploy the metric adapter from its own downloaded template (*"This is the template file for the Synthetic metric adapter."*). Apply both with the `kubectl` commands the UI generates.
 
-> **⚠️ Breaking change for "Latest Dynatrace" tenants (Sprint 1.339):** Kubernetes / OpenShift private synthetic-location pod templates now require the environment variable **`METRIC_3RD_GEN_ENABLED`** on the synthetic-location pod. Without it, deployments on Latest tenants fail or run without 3rd-generation metric emission. Re-pull the template from **Settings → Synthetic → Private locations** or add this env var to existing manifests before/concurrent with the Latest Dynatrace transition, and schedule it through change management.
+> **⚠️ Latest Dynatrace — metric adapter (Sprint 1.339):** the variable belongs on the **Synthetic metric adapter** deployment, not on the location pod: *"Modify the adapter deployment. Set the environment variable METRIC_3RD_GEN_ENABLED to "true"."* The same migration requires you to *"Set the environment variable BASE_URL to match the Latest Dynatrace URL."* and to *"Modify synthetic location deployments—change the target metric in the Horizontal Pod Autoscaler definition."* Re-download the templates from **Synthetic → Private locations**, or patch existing manifests per those steps, and schedule the change through change management.
+
+> <sub>**Sources:** [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app).</sub>
 
 ```dql
 // List all synthetic locations, public and private
@@ -200,7 +194,8 @@ smartscapeNodes "SYNTHETIC_LOCATION"
 // exact literals it returns before hard-coding one into a dashboard, alert, or
 // automation filter -- a wrong literal returns zero rows, not an error.
 
-// FALLBACK (classic surface -- still functional, and genuinely lacks these fields.
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as Dynatrace
+// Classic is supported, and genuinely lacks these fields.
 // This is why the previous revision of this notebook said type/status/city/countryCode
 // "are not available": on the classic entity that was true, and remains true.)
 // fetch dt.entity.synthetic_location
@@ -217,7 +212,7 @@ smartscapeNodes "SYNTHETIC_LOCATION"
 | summarize locations = count(), by:{location_type, stage}
 | sort location_type asc, locations desc
 
-// FALLBACK (classic surface) -- can only produce a grand total, because the classic
+// FALLBACK (classic surface, deprecated in DQL) -- can only produce a grand total, because the classic
 // entity has no type field at all. That limitation is exactly what the old
 // naming-convention workaround was compensating for.
 // fetch dt.entity.synthetic_location
@@ -344,14 +339,13 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ### ActiveGate Logs
 
-```bash
-# Linux log location
-/var/log/dynatrace/gateway/
+Linux log location and key log files:
 
-# Key log files
-gateway.log         # Main gateway log
-synthetic.log       # Synthetic execution log
-connection.log      # Cluster connectivity
+```text
+/var/log/dynatrace/gateway/
+  gateway.log         Main gateway log
+  synthetic.log       Synthetic execution log
+  connection.log      Cluster connectivity
 ```
 
 ### Network Verification
@@ -390,7 +384,7 @@ In this notebook, you learned:
 
 ✅ **Why private locations** - Internal apps, security, compliance  
 ✅ **Architecture** - ActiveGate with synthetic engine  
-✅ **Deployment options** - Installer, container, Kubernetes (+ `METRIC_3RD_GEN_ENABLED` for Latest tenants)  
+✅ **Deployment options** - Installer, container, Kubernetes templates (+ adapter `METRIC_3RD_GEN_ENABLED` for Latest tenants)  
 ✅ **Configuration** - Creating and managing locations  
 ✅ **Health monitoring** - `dt.synthetic.location.health_status` metric + execution results by location  
 ✅ **Troubleshooting** - Common issues and resolution  
@@ -409,13 +403,9 @@ Continue to **SYNTH-05: Network Monitoring** to learn about synthetic network av
 - [Synthetic architecture and communication (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/architecture-communication-latest)
 - [ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate)
 - [Containerized private Synthetic locations on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app)
+- [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic)
+- [Access control for Synthetic (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control)
 
 ---
 
 <sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-> **Browser engine moves to Chromium 151 (ActiveGate 1.345 — rollout from 08/25/2026).** Per the release notes, *Chromium 151* is the latest supported version for a Synthetic-enabled ActiveGate on **RHEL 9.7** and **Rocky Linux 9.8**; *Chrome for Testing 151* is the latest for **Ubuntu 20.04 / 22.04 / 24.04**, **Amazon Linux 2023**, and **Oracle Linux 9.7**; and Chromium 151 is bundled with the **Windows** ActiveGate installer.
->
-> The engine version ships **inside the ActiveGate update** rather than separately, which is why browser-monitor behavior can change on a synthetic AG that nobody deliberately touched. Validate browser monitors after the AG takes 1.345 before treating new failures as application regressions — post-update monitor flake is more often an engine change than a real one (FAQ-05 §9 makes the same point, and is the reason synthetic-heavy AGs are a standing candidate for manual update scheduling).
-
-> <sub>**Sources:** [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the Chromium 151 / Chrome for Testing 151 support matrix quoted above, read 08/28/2026.</sub>
