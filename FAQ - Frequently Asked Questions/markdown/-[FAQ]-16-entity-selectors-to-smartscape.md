@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/09/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/21/2026
 
 ## Overview
 
@@ -273,7 +273,25 @@ The same applies to `getNodeName()` versus `name`. Both `getNode*` functions bel
 
 **`traverse` uses named parameters.** `edgeTypes:`, `targetTypes:`, `direction:` — not a `{ }` block after the edge name, which fails to parse.
 
-**`id_classic` is the bridge between the two id spaces.** Every Smartscape node carries it. On the validation tenant `id` and `id_classic` were identical for `HOST` and `SERVICE`, which makes joining migrated and unmigrated queries straightforward — but do not generalize that to every node type. Check `id_classic` explicitly rather than assuming the ids match:
+**`id_classic` is the bridge between the two id spaces — and you cannot compare it with `==`.** Every Smartscape node carries it, holding the classic `HOST-…` / `SERVICE-…` identifier, which makes it the obvious key for joining migrated and unmigrated queries. The obvious way to use it does not work.
+
+`id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them directly is **always false**, even when the two values print identically side by side. Grail notices, but reports it as an **INFO-severity notification** attached to an otherwise-successful result rather than as an error — so the query runs, returns a full set of rows, and answers the opposite of the question:
+
+```
+// Wrong — "no" on every row, and no error. Both columns print the SAME value.
+smartscapeNodes "SERVICE"
+| fieldsAdd same = if(id == id_classic, then: "yes", else: "no")
+
+// Right — compare like with like
+smartscapeNodes "SERVICE"
+| fieldsAdd same = if(toString(id) == id_classic, then: "yes", else: "no")
+```
+
+On the validation tenant (09/21/2026) `toString(id) == id_classic` matched **23 of 23** services and **7 of 7** hosts; the bare `==` matched **0** of each, with Grail attaching *"The `==` operation will always return `false` as `id` is a smartscape id, while `id_classic` is a string."*
+
+**Why this one bites hardest during a migration.** Reconciling `id_classic` against the source tenant's ids is how you prove the target tenant found everything — so a reconciliation query built on the bare `==` reports that *nothing* matched, which is indistinguishable from a failed migration and sends you hunting a problem that does not exist. Used as a `filter` instead, it returns zero rows, which reads as "nothing to fix." Both directions are silent. **FAQ-25 § 4** covers the migration case.
+
+The values being identical on `HOST` and `SERVICE` is also not something to generalize to every node type. Inspect before you rely on it:
 
 ```
 smartscapeNodes "SERVICE" | fields id, id_classic, name
@@ -281,7 +299,7 @@ smartscapeNodes "SERVICE" | fields id, id_classic, name
 
 **A zero-row result is ambiguous.** A wrong edge-type case, a genuinely absent relationship, a wrong traversal direction, and a missing read scope all return nothing. Work down that list before assuming the query is wrong.
 
-> <sub>**Sources:** all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — `getNodeField` null result, `"RUNS_ON"` zero-row return, `NO_PARAMETERS_FOR_COMMAND` on bare `smartscapeEdges`, `PARSE_ERROR` on the `traverse` block form, and identical `id`/`id_classic` on HOST and SERVICE nodes.</sub>
+> <sub>**Sources:** all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — `getNodeField` null result, `"RUNS_ON"` zero-row return, `NO_PARAMETERS_FOR_COMMAND` on bare `smartscapeEdges`, `PARSE_ERROR` on the `traverse` block form, and identical `id`/`id_classic` values on HOST and SERVICE nodes. The `==` type-mismatch behaviour was reproduced separately on 09/21/2026 — SERVICE 23 of 23 and HOST 7 of 7 matched with `toString(id)`, 0 of each without, with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response.</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 8. Summary and Next Steps
