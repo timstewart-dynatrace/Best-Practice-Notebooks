@@ -1,6 +1,6 @@
 # M2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 09/21/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -308,7 +308,7 @@ Every migration carries risk. The goal is not to eliminate risk but to identify,
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| **Data gaps during cutover** | High | Medium | Plan maintenance window; use parallel install to minimize gap to < 15 minutes |
+| **Data gaps during cutover** | High | Medium | Schedule waves inside existing maintenance windows to hold the per-host gap under 15 minutes. A host cannot report to both tenants at once — running a second agent is not available as a mitigation (M2S-05 § Zero-Gap Requirements) |
 | **Configuration drift** | Medium | High | Freeze Managed changes during migration; use SaaS Upgrade Assistant for snapshot export |
 | **Integration failures** | High | Medium | Test all webhooks and APIs in SaaS before cutover; verify endpoints and tokens |
 | **Rollback needed** | Medium | Low | Document rollback procedure; test on one host first; keep Managed running during parallel period |

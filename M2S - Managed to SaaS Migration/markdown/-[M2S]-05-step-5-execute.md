@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 09/21/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -241,15 +241,18 @@ For environments where SVG doesn't render
 
 ## 4. OneAgent Migration
 
-Once configurations are deployed, redirect OneAgents from Managed to SaaS. There are three migration methods — choose based on your requirements.
+Once configurations are deployed, redirect OneAgents from Managed to SaaS. There are two supported migration methods — choose based on your requirements.
 
 ### Migration Methods
 
 | Method | Command | Use When |
 |--------|---------|----------|
-| **Reconfigure (preferred)** | `oneagentctl --set-server` + `--set-tenant-token` + restart | Standard migration — preserves host identity, minimal downtime |
-| **Parallel install** | Install SaaS agent alongside Managed | Zero-gap requirements — both agents report simultaneously during transition |
+| **Reconfigure (preferred)** | `oneagentctl --set-server` + `--set-tenant-token` + restart | Standard migration — keeps the existing OneAgent install, its host ID source and host tags; minimal downtime |
 | **Reinstall** | Uninstall Managed agent, install SaaS agent | Clean start needed — resets all agent state |
+
+There is no third method. **A host cannot report to Managed and SaaS at the same time** — so "run both in parallel until we trust the new tenant" is not an option to weigh. See [Zero-Gap Requirements](#zero-gap-requirements) below for what to do instead.
+
+> **"Keeps the host install" is not "keeps the entity ID."** Reconfiguring preserves the agent — its installation, host ID source and host tags — so the SaaS tenant recognizes the machine consistently from the first heartbeat. It does **not** carry the classic `HOST-…` entity ID across. Entity IDs are environment-scoped, and the SaaS tenant mints new ones for every entity it discovers. Anything referencing an entity ID — dashboard tiles, SLO definitions, alerting filters, workflow actions — needs remapping; the SaaS Upgrade Assistant handles this for the configuration types it supports and reports `Entity reference not found` for the rest (see [Deploy Results](#saas-upgrade-assistant-deploy-results)).
 
 ### Reconfigure Method (Recommended)
 
@@ -298,16 +301,24 @@ systemctl restart oneagent
 
 Plan application restarts as part of your migration wave — coordinate with application teams for scheduled restart windows.
 
-### Parallel Install Method
+<a id="zero-gap-requirements"></a>
 
-For environments requiring zero monitoring gaps:
+### Zero-Gap Requirements: Phased Waves, Not Dual Agents
 
-1. Install the SaaS OneAgent alongside the existing Managed agent
-2. Validate data flows to SaaS for the configured period
-3. Uninstall the Managed agent once SaaS is confirmed
-4. Restart application processes
+The instinct on a migration this size is to run both agents side by side until the SaaS tenant is proven. **That configuration does not exist.** Dynatrace states the constraint plainly — *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."* ([Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent)) A single OneAgent cannot be pointed at two environments either; multi-tenant reporting is not supported. Installing a second agent to work around this is not a heavier-but-viable option, it is an unsupported state.
 
-> **Note:** Running two agents simultaneously doubles the CPU and memory overhead on the host. Use this method only when monitoring continuity is a hard requirement.
+The overlap you build is therefore **across the estate, not on a single host**:
+
+| Requirement | What actually works |
+|-------------|---------------------|
+| **Both environments live during cutover** | Phased waves. Migrated hosts report to SaaS, unmigrated hosts keep reporting to Managed. Both tenants carry real traffic for the whole overlap — just never the same host. |
+| **Traces that cross the boundary mid-migration** | Connect the two environments and enable **cross-environment tracing**, so a call from a migrated service into an unmigrated one still stitches into a single trace. |
+| **One view across both tenants** | **Cross-environment dashboard tiles** surface remote-environment metrics on a local dashboard for the duration of the overlap. |
+| **Continuity on one specific signal** | Non-OneAgent sources genuinely can dual-send. Cloud integrations (AWS / Azure / GCP), OpenTelemetry collectors, and API-based log and metric ingest all accept two destinations with separate credentials. If one signal cannot tolerate any gap at all, that is where the guarantee comes from. |
+
+**Sequence waves so the boundary stays narrow.** Migrate tightly-coupled services together rather than leaving a call chain split across tenants for weeks. Cross-environment tracing covers the seam, but fewer seams is less to validate.
+
+> **The residual gap is real — plan for it rather than engineering around it.** A reconfigured host is dark for its restart window, and its services stay incomplete until the application processes restart (above). That is the cost of the supported path. Scheduling waves inside existing maintenance windows is what holds a cutover inside a < 15-minute gap target; a second agent is not.
 
 > **Tip — OneAgent Attribute Enrichment (1.333+):** During agent redirect, consider adding primary tags and fields at the same time using `oneagentctl --set-host-tag`. This enriches all telemetry at the source with `primary_tags.environment`, `dt.security_context`, `dt.cost.costcenter`, etc. — eliminating the need for some server-side auto-tagging rules. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
