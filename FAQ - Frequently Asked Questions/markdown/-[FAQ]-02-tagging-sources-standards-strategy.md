@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/21/2026
 
 ## Overview
 
@@ -61,6 +61,22 @@ The implication: **picking the right source for each dimension you tag on is mor
 <a id="primary-vs-others"></a>
 ## 2. Primary Tags vs Primary Fields vs Custom Tags vs Auto-Tags
 
+![Unified tagging: one value, set once, read by every control plane](images/02-unified-tagging-layers_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | What it holds |
+|---|---|
+| 1 - Set at the source (preferred) | OneAgent host tag, DT_TAGS (per process), K8s namespace labels/annotations, OTel resource attributes, central config / OpenPipeline |
+| 2 - The unified tag model | Your own tags: primary_tags.<key> (team, app, stage). Reserved fields applied as-is: dt.security_context, dt.cost.costcenter, dt.cost.product |
+| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (TBD - no Dynatrace documentation as of 09/21/2026) |
+| 4 - The questions these answer | Who may see this record? Who gets paged about it? Whose budget does it consume? Can we prove it held? |
+For environments where SVG doesn't render
+-->
+
+The layering is why tagging is worth doing carefully. A value set at the source is on the record before routing, and from there the same value is what access, alert routing, chargeback and compliance evidence all read: *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."* It is also why ownership belongs in a tag rather than a dashboard filter — Dynatrace names the use case directly: *"Route alert notifications to the right recipients based on the ownership metadata on every Davis event."*
+
+> **Spaces — TBD.** *Spaces* appears in the diagram as a placeholder only. As of 09/21/2026 Dynatrace publishes no documentation for it, so this entry describes no behaviour, makes no recommendation, and nothing below depends on it. Revisit when Dynatrace documents it.
+
 Inside the OneAgent surface, several distinct concepts share "tag"-adjacent vocabulary. Disambiguating them is essential:
 
 | Concept | Field shape | Example | Set how | Notes |
@@ -94,7 +110,7 @@ Per Gen3-first guidance: tag at source via primary fields/tags, not at view time
 
 *In community practice the sprint-1.337 / sprint-1.338 dates and the AWS Lambda propagation surface above are the commonly-cited values — verify both against your own tenant's release notes before planning around them.*
 
-> <sub>**Sources:** [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — `primary_tags.*` naming convention; primary Grail fields — `dt.host_group.id` (auto-enriched) plus the reserved, explicitly-configured `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`; [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent) — `--set-host-tag` for both primary fields and tags; "up to 20 primary tags per host or process; excess tags are silently dropped without a warning"; [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — retains the older `--set-host-property=dt.security_context=easytrade_sec` form.</sub>
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — the propagation and notification-routing statements quoted above; [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."*, the diagram's layer order; [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — `primary_tags.*` naming convention; primary Grail fields — `dt.host_group.id` (auto-enriched) plus the reserved, explicitly-configured `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`; [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent) — `--set-host-tag` for both primary fields and tags; "up to 20 primary tags per host or process; excess tags are silently dropped without a warning"; [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — retains the older `--set-host-property=dt.security_context=easytrade_sec` form.</sub>
 
 <a id="four-sources"></a>
 ## 3. The Four-Source Hierarchy

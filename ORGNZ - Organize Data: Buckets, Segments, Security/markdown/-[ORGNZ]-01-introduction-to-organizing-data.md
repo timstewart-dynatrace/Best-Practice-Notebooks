@@ -1,6 +1,6 @@
 # ORGNZ-01: Introduction to Organizing Data in Grail
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 09/21/2026
 
 ## Overview
 
@@ -66,6 +66,27 @@ For environments where SVG doesn't render
 
 <a id="three-pillars-of-data-organization"></a>
 ## Three Pillars of Data Organization
+
+All three pillars read metadata that was set once, upstream of them. This is the layered view — where tagging happens, and what consumes it:
+
+![Unified tagging: one value, set once, read by every control plane](images/01-unified-tagging-layers_930x500.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | What it holds |
+|---|---|
+| 1 - Set at the source (preferred) | OneAgent host tag, DT_TAGS (per process), K8s namespace labels/annotations, OTel resource attributes, central config / OpenPipeline |
+| 2 - The unified tag model | Your own tags: primary_tags.<key> (team, app, stage). Reserved fields applied as-is: dt.security_context, dt.cost.costcenter, dt.cost.product |
+| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (TBD - no Dynatrace documentation as of 09/21/2026) |
+| 4 - The questions these answer | Who may see this record? Who gets paged about it? Whose budget does it consume? Can we prove it held? |
+For environments where SVG doesn't render
+-->
+
+Dynatrace states the ordering plainly: *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."* The value then travels, because *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."* Buckets, segments and security context are three consumers of that one value; ownership routing and cost allocation are two more. **FAQ-02** covers the tagging side in full.
+
+> **Spaces — TBD.** *Spaces* appears in the diagram as a placeholder only. As of 09/21/2026 Dynatrace publishes no documentation for it, so this entry describes no behaviour, makes no recommendation, and nothing below depends on it. Revisit when Dynatrace documents it.
+
+Sources: [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context), [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags).
+
 ### 1. Buckets (Physical Organization)
 
 Buckets are logical storage containers where records are stored:
