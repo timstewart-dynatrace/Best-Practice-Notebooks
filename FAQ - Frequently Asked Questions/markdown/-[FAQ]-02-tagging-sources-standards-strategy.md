@@ -68,14 +68,14 @@ The implication: **picking the right source for each dimension you tag on is mor
 |---|---|
 | 1 - Set at the source (preferred) | OneAgent host tag, DT_TAGS (per process), K8s namespace labels/annotations, OTel resource attributes, central config / OpenPipeline |
 | 2 - The unified tag model | Your own tags: primary_tags.<key> (team, app, stage). Reserved fields applied as-is: dt.security_context, dt.cost.costcenter, dt.cost.product |
-| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (TBD - no Dynatrace documentation as of 09/21/2026) |
+| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (proposed, TBD - delegated ownership of configuration objects per team; no Dynatrace documentation as of 09/21/2026) |
 | 4 - The questions these answer | Who may see this record? Who gets paged about it? Whose budget does it consume? Can we prove it held? |
 For environments where SVG doesn't render
 -->
 
 The layering is why tagging is worth doing carefully. A value set at the source is on the record before routing, and from there the same value is what access, alert routing, chargeback and compliance evidence all read: *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."* It is also why ownership belongs in a tag rather than a dashboard filter — Dynatrace names the use case directly: *"Route alert notifications to the right recipients based on the ownership metadata on every Davis event."*
 
-> **Spaces — TBD.** *Spaces* appears in the diagram as a placeholder only. As of 09/21/2026 Dynatrace publishes no documentation for it, so this entry describes no behaviour, makes no recommendation, and nothing below depends on it. Revisit when Dynatrace documents it.
+> **Spaces — proposed, TBD.** The gap is real today: `dt.security_context` delegates which *records* a team may read, but nothing delegates which *configuration objects* a team may own — changing an alert, an SLO or a maintenance window still goes through whoever holds the settings permissions, which is how a central team becomes a queue. A **Spaces** construct — delegated ownership of configuration objects, per team — is the proposed answer, and it is drawn here to mark where it would sit. It is a concept, not a capability: Dynatrace publishes no documentation for it as of 09/21/2026, no timing is announced, and nothing in this entry depends on it. Design against what the other columns give you today.
 
 Inside the OneAgent surface, several distinct concepts share "tag"-adjacent vocabulary. Disambiguating them is essential:
 
