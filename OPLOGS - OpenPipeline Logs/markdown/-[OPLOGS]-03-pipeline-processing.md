@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 08/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -9,16 +9,17 @@ This notebook covers OpenPipeline processing stages: parsing, enrichment, metric
 
 ## Table of Contents
 
-1. [Parsing & Field Extraction](#parsing-field-extraction)
-2. [Metric Extraction from Logs](#metric-extraction-from-logs)
-3. [Attribute Creation & Enrichment](#attribute-creation-enrichment)
-4. [Event Generation from Logs](#event-generation-from-logs)
-5. [Bucket Routing](#bucket-routing)
-6. [Filtering & Sampling](#filtering-sampling)
-7. [Complete Pipeline Example](#complete-pipeline-example)
-8. [📝 Summary](#summary)
-9. [➡️ Next Steps](#next-steps)
-10. [📚 References](#references)
+1. [Enrichment at the Source](#enrichment-at-the-source)
+2. [Parsing & Field Extraction](#parsing-field-extraction)
+3. [Metric Extraction from Logs](#metric-extraction-from-logs)
+4. [Attribute Creation & Enrichment](#attribute-creation-enrichment)
+5. [Event Generation from Logs](#event-generation-from-logs)
+6. [Bucket Routing](#bucket-routing)
+7. [Filtering (Drop Record)](#filtering-sampling)
+8. [Complete Pipeline Example](#complete-pipeline-example)
+9. [📝 Summary](#summary)
+10. [➡️ Next Steps](#next-steps)
+11. [📚 References](#references)
 
 ---
 
@@ -31,7 +32,10 @@ This notebook covers OpenPipeline processing stages: parsing, enrichment, metric
 
 
 
-> **OneAgent Attribute Enrichment (1.331+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via `oneagentctl --set-host-tag` or `--set-host-tag` at install time. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+<a id="enrichment-at-the-source"></a>
+## 1. Enrichment at the Source
+
+> **OneAgent Attribute Enrichment (OneAgent 1.333+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source — feeding directly into OpenPipeline routing, bucket assignment, and Grail permissions. Set them at install time with `--set-host-tag`, on existing hosts with `oneagentctl --set-host-tag`, or per process with `DT_TAGS`. See [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
 <a id="parsing-field-extraction"></a>
 ## 2. Parsing & Field Extraction
@@ -42,19 +46,36 @@ Parsing extracts structured fields from unstructured log content **at ingestion 
 ![DPL Matchers](images/03-dpl-matchers.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-DPL Matchers Reference:
+DPL Pattern Matchers Quick Reference:
 
-Basic Matchers:
-- LD: Line data (to delimiter) - matches any text
-- INT: Integer - matches 42, -17
-- DOUBLE: Decimal number - matches 3.14, -0.5
-- WORD: Word characters - matches hello123
+Text Matchers:
+- LD: Line data (minimal - stops at the next delimiter) - "error in module"
+- WORD: Single word - "ERROR"
+- DATA: Any text, across lines - "any content"
+- NSPACE: Non-whitespace - "user@host.com"
+- SPACE: Whitespace characters - tabs/spaces
 
-Specialized Matchers:
-- IPADDR: IP address - matches 192.168.1.1
-- TIMESTAMP: Date/time - various formats
-- JSON: JSON object/array - matches {"key": "value"}
-- SPACE: Whitespace - spaces, tabs
+Number Matchers:
+- INT: Integer - -1, 42, 1000
+- LONG: Long integer - 9223372036854775807
+- DOUBLE: Decimal number - 3.14, -0.5
+- BOOLEAN: true/false
+- HEXINT: Hex integer - 0x1F, 0xFF
+
+Network / Structured:
+- IPADDR: IPv4/IPv6 address - 10.0.0.1, ::1
+- IPV4: IPv4 only - 192.168.1.100
+- IPV6: IPv6 only - 2001:db8::1
+- DQS: Double-quoted string - "quoted str"
+- JSON: JSON object - {"k": "v"}
+
+Time / Date:
+- TIMESTAMP: Date/time (default yyyy-MM-dd HH:mm:ss) - 2024-01-15 14:30:00
+- ISO8601: ISO 8601 timestamp - 2024-01-15T14:30:00Z
+- TIME: Time, e.g. TIME('HH:mm:ss') - 14:30:00
+- DURATION: Time duration - 2h30m, 1d
+
+Syntax: MATCHER:fieldname (e.g., INT:status_code) or MATCHER (no capture). Full catalog: FAQ-15 section 4.
 -->
 
 | Matcher | Description | Example Match |
@@ -80,21 +101,6 @@ processors:
                       SPACE '\"' LD:method SPACE LD:path SPACE LD '\"' 
                       SPACE INT:status SPACE INT:bytes"
 ```
-
-### Sprint 1.337 (April 2026): Recommended-Field Suggestions
-
-When configuring an extraction processor in the UI, OpenPipeline now surfaces **recommended-field suggestions** that prevent two common misconfigurations:
-
-| Recommendation category | Why it matters |
-|---|---|
-| **Permission-relevant fields** (`dt.security_context`, `loglevel`, `k8s.namespace.name`, etc.) | Promoting these to top-level positions enables bucket-scoped IAM and security-context filtering downstream. |
-| **Smartscape identifiers** (`dt.entity.host`, `dt.entity.service`, `host.name`) | Surfacing these enables entity-aware queries without parse-on-read. |
-
-The suggestions also flag **sensitive-pattern matches** before promotion, so PII or credential-like content is not silently lifted into a permission-relevant position.
-
-> Existing extraction processors keep working unchanged. The recommendations only appear in the UI when you create or edit a processor.
-
----
 
 ```dql
 // Discover log patterns for parsing design
@@ -160,6 +166,14 @@ processors:
 | Error occurred | `log.error.count` | error_type, service |
 | Queue depth | `log.queue.size` | queue_name |
 
+### SaaS 1.337 (April 2026): Recommended Fields for Extraction Processors
+
+When you configure an extraction processor (metric, Davis event, business event or SDLC event), OpenPipeline suggests the fields to extract. Per the SaaS 1.337 release note: *"Recommendations automatically cover all permission- and cost-relevant fields or dimensions, with support for all Smartscape identifiers and Grail primary tags."* — so dimensions such as `dt.security_context`, `dt.cost.costcenter`, `dt.smartscape.*` and `primary_tags.*` are offered by default. Existing processors are unchanged.
+
+> <sub>**Sources:** [SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)</sub>
+
+---
+
 ```dql
 // Identify logs with numeric values for metric extraction
 fetch logs, from: now() - 1h
@@ -175,11 +189,13 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Simulate metric extraction: count by dimensions
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 1h
 | filter isNotNull(k8s.namespace.name)
 | summarize {
     request_count = count(),
-    error_count = countIf(loglevel == "ERROR")
+    error_count = countIf(status == "ERROR")
   }, by: {k8s.namespace.name, k8s.workload.name}
 | fieldsAdd error_rate = round((error_count * 100.0) / request_count, decimals: 2)
 | sort error_count desc
@@ -441,8 +457,8 @@ fetch logs, from: now() - 24h
 ```
 
 <a id="filtering-sampling"></a>
-## 7. Filtering & Sampling
-Reduce log volume by **filtering** or **sampling** at ingestion.
+## 7. Filtering (Drop Record)
+Reduce log volume by **dropping** low-value records at ingestion.
 
 ### OpenPipeline Filter Processor
 
@@ -458,12 +474,11 @@ processors:
     type: filter
     condition: contains(content, "heartbeat") OR contains(content, "keepalive")
     action: drop
-    
-  - name: sample-debug-logs
-    type: sample
-    condition: loglevel == "DEBUG"
-    rate: 0.1  # Keep only 10% of DEBUG logs
 ```
+
+> **There is no log-sampling processor.** None appears in the complete processor list in *Processing in OpenPipeline*, and a matcher cannot sample — `random()` is rejected in OpenPipeline matchers. To drop DEBUG records outright, use a **Drop record** processor (`loglevel == "DEBUG"`) in the Processing stage. To keep metric extraction from DEBUG records while not storing them, use a **No storage assignment** processor in the Bucket assignment stage instead: *"The record continues through all pipeline stages, including metric extraction, and is not stored only at the end."*
+>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — *"The following table lists alphabetically all available processors in a pipeline."*, [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples)</sub>
 
 ```dql
 // Identify candidates for filtering (high volume, low value)
@@ -519,12 +534,10 @@ processors:
       - name: environment
         value: if(contains(k8s.namespace.name, "prod"), "production", else: "non-prod")
 
-  # 4. MASK - Protect sensitive data
+  # 4. MASK - Protect sensitive data (DQL processor; the pattern is DPL, not regex)
   - name: mask-emails
-    type: mask
-    field: content
-    pattern: "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
-    replacement: "[EMAIL-MASKED]"
+    type: dql
+    dql: fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
 
   # 5. EXTRACT METRICS - Create dimensional metrics
   - name: extract-request-count
@@ -576,7 +589,7 @@ In this notebook, you learned:
 ✅ **Attributes** - Add computed fields for analysis  
 ✅ **Events** - Generate business events from patterns  
 ✅ **Routing** - Direct logs to appropriate buckets  
-✅ **Filtering** - Drop/sample low-value logs  
+✅ **Filtering** - Drop low-value logs (or skip storage with No storage assignment)  
 
 ### Key Takeaway
 
@@ -592,11 +605,12 @@ Continue to **OPLOGS-04: Buckets & Data Governance** to learn about storage mana
 
 <a id="references"></a>
 ## 📚 References
-- [OpenPipeline Overview](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [OpenPipeline Processors](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
-- [Metric Extraction](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline)
-- [Event Generation](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans)
-- [DPL Pattern Language](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline)
+- [Get business events from logs and spans (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans)
+- [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
+- [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples)
 
 ---
 

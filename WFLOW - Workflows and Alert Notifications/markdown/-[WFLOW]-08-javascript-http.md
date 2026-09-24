@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -36,13 +36,10 @@ When built-in actions aren't enough, use JavaScript and HTTP requests for custom
 ### Action Structure
 
 ```javascript
-// Every JavaScript action must export a default async function
-export default async function(context) {
-  // context contains:
-  // - event(): trigger event data
-  // - result(taskName): previous task results
-  // - env: environment secrets
-  
+// Every JavaScript action must export a default async function.
+// The runtime injects only identifiers: { executionId, actionExecutionId } (plus loopItemValue
+// in a loop). Event data, predecessor results and secrets come from SDK imports, not parameters.
+export default async function ({ executionId, actionExecutionId }) {
   // Your logic here
   const result = await doSomething();
   
@@ -57,20 +54,19 @@ export default async function(context) {
 ### Accessing Context
 
 ```javascript
-export default async function({ event, result, env }) {
-  // Trigger event data
-  const problemTitle = event().title;
-  const severity = event().severity;
-  
-  // Previous task result
-  const previousOutput = result('previous_task').data;
-  
-  // Environment secrets
-  const apiKey = env.API_KEY;
-  
-  return { title: problemTitle };
+import { execution, result } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function ({ executionId, actionExecutionId }) {
+  const ev = (await execution()).params.event;           // trigger payload
+  const prev = await result('previous_task');              // predecessor result (async)
+  const cred = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
+  // use cred.token in a request header; never return the credential
+  return { title: ev['event.name'] };
 }
 ```
+
+There is no `env` object and no `event` parameter: *"The runtime injects workflow and task identifiers into the function parameters"*, and *"For workflows triggered by an event, retrieve the event payload from the execution"*. Secrets come from the Credential Vault: *"To use a Credential Vault secret in a script, for example, as an API key in an HTTP request, retrieve it with credentialVaultClient"* ([Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)). The credential needs the AppEngine scope and **Allow access without app context** turned on, and the workflow actor needs access to it.
 
 ### Task Configuration
 
@@ -79,7 +75,7 @@ name: custom_javascript
 type: dynatrace.automations:run-javascript
 input:
   script: |
-    export default async function({ event }) {
+    export default async function () {
       return { processed: true };
     }
 ```
@@ -101,7 +97,7 @@ input:
 ```javascript
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ event }) {
+export default async function () {
   const result = await queryExecutionClient.queryExecute({
     body: {
       query: `
@@ -123,10 +119,12 @@ export default async function({ event }) {
 ### Get Entity Details
 
 ```javascript
+import { execution } from '@dynatrace-sdk/automation-utils';
 import { entitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event }) {
-  const entityId = event().root_cause_entity_id;
+export default async function () {
+  const ev = (await execution()).params.event;
+  const entityId = ev.root_cause_entity_id;
   
   const entity = await entitiesClient.getEntity({
     entityId: entityId,
@@ -144,11 +142,13 @@ export default async function({ event }) {
 ### Add Problem Comment
 
 ```javascript
+import { execution, result } from '@dynatrace-sdk/automation-utils';
 import { problemsClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event, result }) {
-  const problemId = event().display_id;
-  const actionTaken = result('remediation').action;
+export default async function () {
+  const ev = (await execution()).params.event;
+  const problemId = ev['event.id'];                        // the problem ID ({PID}), not display_id
+  const actionTaken = (await result('remediation')).action;
   
   await problemsClient.createComment({
     problemId: problemId,
@@ -168,35 +168,43 @@ export default async function({ event, result }) {
 
 ```yaml
 name: call_external_api
-type: dynatrace.http:request
+type: dynatrace.automations:http-function
 input:
   url: "https://api.example.com/endpoint"
   method: POST
+  # Authentication: select a Credential Vault token in the task's Authentication field
   headers:
-    Authorization: "Bearer {{ env.API_TOKEN }}"
     Content-Type: "application/json"
   body: |
     {
       "problem_id": "{{ event()['display_id'] }}",
-      "severity": "{{ event()['severity'] }}",
-      "title": "{{ event()['title'] }}"
+      "category": "{{ event()['event.category'] }}",
+      "title": "{{ event()['event.name'] }}",
+      "link": "{{ problem_link() }}"
     }
 ```
+
+The HTTP Request action docs: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication"* ([HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)).
 
 ### Using fetch() in JavaScript
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const response = await fetch('https://api.example.com/webhook', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${env.API_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      problem_id: event().display_id,
-      severity: event().severity,
-      title: event().title,
+      problem_id: ev.display_id,
+      category: ev['event.category'],
+      title: ev['event.name'],
       timestamp: new Date().toISOString()
     })
   });
@@ -213,9 +221,14 @@ export default async function({ event, env }) {
 ### GET Request with Query Parameters
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const params = new URLSearchParams({
-    entity_id: event().root_cause_entity_id,
+    entity_id: ev.root_cause_entity_id,
     from: new Date(Date.now() - 3600000).toISOString(),
     to: new Date().toISOString()
   });
@@ -224,7 +237,7 @@ export default async function({ event, env }) {
     `https://api.example.com/metrics?${params}`,
     {
       headers: {
-        'Authorization': `Bearer ${env.API_TOKEN}`
+        'Authorization': `Bearer ${token}`
       }
     }
   );
@@ -238,12 +251,17 @@ export default async function({ event, env }) {
 ### Try-Catch Pattern
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
   try {
+    const ev = (await execution()).params.event;   // trigger payload
+    const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
     const response = await fetch('https://api.example.com/action', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${env.TOKEN}` },
-      body: JSON.stringify({ id: event().display_id })
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ id: ev.display_id })
     });
     
     if (!response.ok) {
@@ -273,6 +291,8 @@ export default async function({ event, env }) {
 ### Retry Logic
 
 ```javascript
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
 async function fetchWithRetry(url, options, maxRetries = 3) {
   let lastError;
   
@@ -303,12 +323,13 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
   throw lastError;
 }
 
-export default async function({ event, env }) {
+export default async function () {
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const response = await fetchWithRetry(
     'https://api.example.com/action',
     {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${env.TOKEN}` }
+      headers: { 'Authorization': `Bearer ${token}` }
     }
   );
   
@@ -375,7 +396,7 @@ notify_failure:
     custom: ""
   input:
     script: |
-      export default async function({ execution, result }) {
+      export default async function () {
         return { posted_failure_notice: true };
       }
 ```
@@ -433,7 +454,7 @@ The two patterns compose. A JS task can `try/catch` its own recoverable errors a
 ```javascript
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ event }) {
+export default async function () {
   const result = await queryExecutionClient.queryExecute({
     body: {
       query: `
@@ -474,8 +495,11 @@ export default async function({ event }) {
 ### Parse Event Tags
 
 ```javascript
-export default async function({ event }) {
-  const tags = event().tags || [];
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const tags = ev.entity_tags || [];   // "key:value" strings
   
   // Parse key:value tags
   const tagMap = tags.reduce((acc, tag) => {
@@ -499,11 +523,12 @@ export default async function({ event }) {
 ### Build Dynamic Queries
 
 ```javascript
+import { execution } from '@dynatrace-sdk/automation-utils';
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ event }) {
-  const entityId = event().root_cause_entity_id;
-  const severity = event().severity;
+export default async function () {
+  const ev = (await execution()).params.event;
+  const entityId = ev.root_cause_entity_id;
   
   // Build query based on entity type
   let query;
@@ -511,7 +536,7 @@ export default async function({ event }) {
     query = `
       fetch spans, from: now() - 1h
       | filter dt.entity.service == "${entityId}"
-      | filter span.status_code >= 500
+      | filter http.response.status_code >= 500
       | summarize errors = count()
     `;
   } else if (entityId.startsWith('HOST-')) {
@@ -558,7 +583,7 @@ The accessor path depends on what the upstream task returned:
 |---|---|---|
 | **DQL query** (`dynatrace.automations:execute-dql-query`) | `.records` — array of row objects | `{{ result("query_errors").records[0].error_count }}` |
 | **Run JavaScript** (`dynatrace.automations:run-javascript`) | The returned object directly at top level | `{{ result("transform").affected_services }}` |
-| **HTTP request** (`dynatrace.http:request`) | `.body` for response payload, `.statusCode` for status | `{{ result("post_webhook").statusCode }}` |
+| **HTTP request** (`dynatrace.automations:http-function`) | `.body` for response payload, `.statusCode` for status | `{{ result("post_webhook").statusCode }}` |
 
 > **The `.output` wrapper is not universal.** Some older notebook patterns reference `result("task").output` — that field only exists when the upstream task literally returns an object containing a key named `output` (e.g., a JS task whose function returns `{ output: ... }`). It is not a built-in wrapper. Verify against the specific task type's documented result shape rather than assuming `.output` is always present.
 
@@ -655,8 +680,8 @@ JSON-serializable values pass cleanly between tasks: primitives, arrays, plain o
 |---|---|---|---|
 | **Trigger event** | `{{ event() }}`, `{{ event()['display_id'] }}` | `const ex = await execution(); ex.params.event` | Workflow-wide — every task reads the same event |
 | **Previous task result** | `{{ result("task_name") }}` | `await result('task_name')` | Workflow-wide once the task has completed |
-| **Workflow inputs** (parameters) | `{{ execution().params.<name> }}` | `(await execution()).params.<name>` | Workflow-wide; set at trigger time |
-| **Secrets / env** | `{{ env.MY_SECRET }}` | `env.MY_SECRET` (passed via task input destructure) | Workflow-wide; resolved at task execution |
+| **Workflow inputs** | `{{ input('<name>') }}` | `(await execution()).input.<name>` | Workflow-wide; set at run time (API `input`) or from the workflow defaults |
+| **Secrets** | Not in expressions — use a connection, or the action's Credential Vault field | `await credentialVaultClient.getCredentialsDetails({ id })` | Resolved at task execution; never return them in a result |
 | **Local variables inside one task** | (not exported) | `const x = ...` inside `export default async function() { ... }` | Task-local — **not visible to other tasks unless returned** |
 
 A task's `return` value is the **only** way to make data visible downstream. There is no shared mutable state between tasks — every cross-task value travels through `result()`.
@@ -685,31 +710,41 @@ For long-running multi-step orchestrations where intermediate state must persist
 ### GitHub Issue Creation
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const GITHUB_REPO = 'my-org/my-repo';
+const ENV_URL = 'https://<your-environment-id>.apps.dynatrace.com';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
+  // problem_link() is Jinja-only; in JS build the link from the problem ID
+  const problemUrl = `${ENV_URL}/ui/apps/dynatrace.davis.problems/problem/${ev['event.id']}`;
   const response = await fetch(
-    `https://api.github.com/repos/${env.GITHUB_REPO}/issues`,
+    `https://api.github.com/repos/${GITHUB_REPO}/issues`,
     {
       method: 'POST',
       headers: {
-        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'Authorization': `token ${token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        title: `[Dynatrace] ${event().title}`,
+        title: `[Dynatrace] ${ev['event.name']}`,
         body: `
 <a id="problem-details"></a>
 ## Problem Details
-- **Problem ID:** ${event().display_id}
-- **Severity:** ${event().severity}
-- **Started:** ${event().start_time}
-- **Link:** [View in Dynatrace](${event().problem_url})
+- **Problem ID:** ${ev.display_id}
+- **Category:** ${ev['event.category']}
+- **Started:** ${ev['event.start']}
+- **Link:** [View in Dynatrace](${problemUrl})
 
 <a id="affected-entities"></a>
 ## Affected Entities
-${event().affected_entity_ids.map(e => `- ${e}`).join('\n')}
+${ev.affected_entity_ids.map(e => `- ${e}`).join('\n')}
         `,
-        labels: ['dynatrace', event().severity.toLowerCase()]
+        labels: ['dynatrace', ev['event.category'].toLowerCase()]
       })
     }
   );
@@ -722,19 +757,24 @@ ${event().affected_entity_ids.map(e => `- ${e}`).join('\n')}
 ### Datadog Event
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const response = await fetch('https://api.datadoghq.com/api/v1/events', {
     method: 'POST',
     headers: {
-      'DD-API-KEY': env.DATADOG_API_KEY,
+      'DD-API-KEY': token,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      title: event().title,
-      text: `Problem ${event().display_id} detected by Dynatrace`,
-      alert_type: event().severity === 'CRITICAL' ? 'error' : 'warning',
+      title: ev['event.name'],
+      text: `Problem ${ev.display_id} detected by Dynatrace`,
+      alert_type: ev['event.category'] === 'AVAILABILITY' ? 'error' : 'warning',
       source_type_name: 'dynatrace',
-      tags: ['source:dynatrace', `severity:${event().severity}`]
+      tags: ['source:dynatrace', `category:${ev['event.category']}`]
     })
   });
   
@@ -745,21 +785,28 @@ export default async function({ event, env }) {
 ### Splunk HEC Event
 
 ```javascript
-export default async function({ event, env }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const SPLUNK_HEC_URL = 'https://splunk.example.com:8088';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const response = await fetch(
-    `${env.SPLUNK_HEC_URL}/services/collector/event`,
+    `${SPLUNK_HEC_URL}/services/collector/event`,
     {
       method: 'POST',
       headers: {
-        'Authorization': `Splunk ${env.SPLUNK_HEC_TOKEN}`,
+        'Authorization': `Splunk ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         event: {
-          problem_id: event().display_id,
-          title: event().title,
-          severity: event().severity,
-          affected_entities: event().affected_entity_ids
+          problem_id: ev.display_id,
+          title: ev['event.name'],
+          category: ev['event.category'],
+          affected_entities: ev.affected_entity_ids
         },
         sourcetype: 'dynatrace:problem',
         index: 'observability'
@@ -776,8 +823,10 @@ export default async function({ event, env }) {
 ### Parallel Execution
 
 ```javascript
-export default async function({ event }) {
-  const entityIds = event().affected_entity_ids;
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const entityIds = (await execution()).params.event.affected_entity_ids;
   
   // Execute all lookups in parallel
   const results = await Promise.all(
@@ -900,7 +949,7 @@ tasks:
     timeout: 2400        # 40 minutes in seconds, gives the wait 30m of headroom
 ```
 
-See [WFLOW-07 § *Approval Workflows*](#) for the full human-in-the-loop pattern.
+See **WFLOW-07 § Approval Workflows** for the full human-in-the-loop pattern.
 
 ### Decision guidance: raise the timeout, or fix the query?
 

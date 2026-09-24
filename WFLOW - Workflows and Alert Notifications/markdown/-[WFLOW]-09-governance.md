@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Production Best Practices
 This final notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -45,12 +45,15 @@ This final notebook covers workflow security, governance, observability, and ope
 ### Input Sanitization
 
 ```javascript
-export default async function({ event }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const ev = (await execution()).params.event;
   // NEVER do this - injection risk
-  // const query = `fetch logs | filter content == "${event().title}"`;
+  // const query = `fetch logs | filter content == "${ev['event.name']}"`;
   
   // SAFE: Validate and sanitize inputs
-  const title = event().title;
+  const title = ev['event.name'];
   
   // Remove potentially dangerous characters
   const sanitized = title
@@ -65,14 +68,17 @@ export default async function({ event }) {
 ### Secure HTTP Requests
 
 ```javascript
-export default async function({ event, env }) {
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   // NEVER log or expose secrets
-  // console.log(env.API_TOKEN);  // BAD!
+  // console.log(token);  // BAD!
   
   // ALWAYS use HTTPS
   const response = await fetch('https://api.example.com/endpoint', {  // NOT http://
     headers: {
-      'Authorization': `Bearer ${env.API_TOKEN}`  // Token from secrets
+      'Authorization': `Bearer ${token}`  // Token from the Credential Vault
     }
   });
   
@@ -87,58 +93,62 @@ export default async function({ event, env }) {
 
 <a id="secrets-management"></a>
 ## 2. Secrets Management
-### Using Environment Secrets
+### Where Secrets Live
 
-Secrets are stored securely and accessed via `env.SECRET_NAME`.
+The Workflows docs describe no `env` secrets object and no per-workflow secrets page. An earlier revision of this notebook used `{{ env.SECRET_NAME }}`; the expression reference lists no `env`, so those expressions do not resolve. Secrets live in one of two places:
 
-**Creating Secrets:**
+| Where | Used by | How |
+|-------|---------|-----|
+| **Connections** | Connector actions (Slack, Teams, ServiceNow, Jira, PagerDuty, …) | Select the connection in the task; the action reads the credential |
+| **Credential Vault** | HTTP Request action; Run JavaScript | HTTP Request: the task's **Authentication** field (Basic or Token). JavaScript: `credentialVaultClient` |
 
-1. Open workflow editor
-2. Go to **Settings** → **Secrets**
-3. Add secret with name and value
-4. Reference as `{{ env.SECRET_NAME }}`
+**Creating a Credential Vault entry for workflows:**
 
-### Secret Naming Convention
-
-| Pattern | Example | Use |
-|---------|---------|------|
-| `<SERVICE>_API_TOKEN` | `SLACK_API_TOKEN` | API authentication |
-| `<SERVICE>_WEBHOOK_URL` | `PAGERDUTY_WEBHOOK_URL` | Webhook endpoints |
-| `<SERVICE>_<ENV>_CRED` | `SERVICENOW_PROD_CRED` | Environment-specific |
+1. Open **Credential Vault** and add a credential (token, or username and password)
+2. Set the scope to **AppEngine**
+3. For JavaScript use, turn on **Allow access without app context**
+4. Give the workflow actor access to the credential
+5. Reference it by its ID (`CREDENTIALS_VAULT-…`)
 
 ### Secrets in JavaScript
 
 ```javascript
-export default async function({ env }) {
-  // Access secrets via env object
-  const apiToken = env.EXTERNAL_API_TOKEN;
-  const webhookUrl = env.SLACK_WEBHOOK_URL;
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const credential = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
+  const apiToken = credential.token;
   
-  // Secrets are never logged or exposed
   if (!apiToken) {
-    throw new Error('Missing required secret: EXTERNAL_API_TOKEN');
+    throw new Error('Credential CREDENTIALS_VAULT-XXXXXXXXXXXX has no token');
   }
   
+  // Use apiToken in a request header. Never log it or return it:
+  // execution results are visible to anyone with read access to the workflow.
   return { configured: true };
 }
 ```
 
-### Secrets in YAML
+### Secrets in HTTP Request Tasks
+
+Do not put a secret in a header value. The HTTP Request action docs: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication."* Select the credential in the task's **Authentication** field instead:
 
 ```yaml
 input:
   url: "https://api.example.com/webhook"
+  method: POST
+  # Authentication: Token -> CREDENTIALS_VAULT-XXXXXXXXXXXX (task's Authentication field)
   headers:
-    Authorization: "Bearer {{ env.API_TOKEN }}"
-    X-Api-Key: "{{ env.API_KEY }}"
+    Content-Type: "application/json"
 ```
 
 ### Secret Rotation
 
-1. Create new secret with updated value
-2. Update workflow to use new secret
-3. Test workflow execution
-4. Remove old secret
+1. Update the credential in the Credential Vault (or the connection)
+2. Test workflow execution
+3. Revoke the old token at its source
+
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — `credentialVaultClient` and the required credential settings. [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action), [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference).</sub>
 
 <a id="setting-up-third-party-connections"></a>
 ## 3. Setting Up Third-Party Connections
@@ -353,13 +363,12 @@ Build a dashboard with these queries to monitor workflow health.
 
 ```dql
 // Overall workflow health - last 24 hours
-fetch events, from: now() - 24h
-| filter event.type == "automation.workflow.execution"
-| summarize 
-    total = count(),
-    succeeded = countIf(execution.status == "SUCCEEDED"),
-    failed = countIf(execution.status == "FAILED"),
-    timed_out = countIf(execution.status == "TIMED_OUT")
+// Corrected 09/24/2026: there is no `automation.workflow.execution` event type, so the earlier
+// version of this cell returned 0 for every count. Executions are in `dt.system.events`.
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT" and event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == "SUCCESS"), failed = countIf(dt.automation_engine.state == "ERROR")}
 | fieldsAdd success_rate = round(100.0 * succeeded / total, decimals: 2)
 ```
 
@@ -486,20 +495,21 @@ fetch dt.system.events, from:-24h
 
 The five queries above give a workflow-level health view. The patterns below drill into **per-task execution detail** — what readers actually need when a workflow execution shows `FAILED` and the high-level dashboard doesn't reveal which task in which step broke.
 
-Workflow Automation emits two event types in Grail:
+Workflow executions are recorded in `dt.system.events` with `event.kind == "WORKFLOW_EVENT"`, split by `event.type`:
 
-| Event type | One per | Key fields |
+| `event.type` | One per | Key fields |
 |---|---|---|
-| `automation.workflow.execution` | Workflow run | `execution.id`, `execution.status`, `execution.duration`, `execution.error`, `workflow.name`, `trigger.type` |
-| `automation.task.execution` | Task run within a workflow | `execution.id` (parent workflow run), `task.name`, `task.type`, `task.status`, `task.duration`, `task.error` |
+| `WORKFLOW_EXECUTION` | Workflow run | `dt.automation_engine.workflow_execution.id`, `dt.automation_engine.state`, `dt.automation_engine.state_info`, `duration`, `dt.automation_engine.workflow.title` |
+| `TASK_EXECUTION` | Task run within a workflow | `dt.automation_engine.workflow_execution.id` (parent run), `dt.automation_engine.task.name`, `dt.automation_engine.state`, `dt.automation_engine.state_info` |
+| `ACTION_EXECUTION` | Action call within a task | `dt.automation_engine.action.app`, `dt.automation_engine.action.function`, `dt.automation_engine.state` |
 
-`execution.id` is the **correlation key** that joins task events to their parent workflow run, and links workflow runs to any downstream logs the run produced (HTTP-action target logs, JavaScript-action `console.log` output captured by the run, etc.).
+`dt.automation_engine.workflow_execution.id` is the **correlation key** that joins task and action records to their parent workflow run. (The `automation.workflow.execution` / `automation.task.execution` event types named in earlier revisions do not exist.)
 
 > <sub>**Sources:** [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Workflow reference (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language).</sub>
 
 ### 4.2 Failed executions with task-level detail
 
-When a workflow shows `FAILED`, the actionable question is *which task in the run failed and what was the error?* This goes one level below cell 8 (workflow-level failures) by filtering on `automation.task.execution` and surfacing `task.error`.
+When a workflow ends in `ERROR`, the actionable question is *which task in the run failed and what was the error?* This goes one level below cell 8 (workflow-level failures) by filtering on `TASK_EXECUTION` records and surfacing `dt.automation_engine.state_info`.
 
 ```dql
 // Failed task executions in the last 24h, with their workflow
@@ -655,15 +665,15 @@ Use a scheduled workflow to monitor other workflows:
 ```javascript
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ env }) {
+export default async function () {
   // Query for failures in the last hour
   const result = await queryExecutionClient.queryExecute({
     body: {
       query: `
-        fetch events, from: now() - 1h
-        | filter event.type == "automation.workflow.execution"
-        | filter execution.status == "FAILED"
-        | summarize failures = count(), by:{workflow.name}
+        fetch dt.system.events, from:-1h
+        | filter event.kind == "WORKFLOW_EVENT" and event.type == "WORKFLOW_EXECUTION"
+        | filter dt.automation_engine.state.is_final == true
+        | summarize failures = countIf(dt.automation_engine.state == "ERROR"), by:{dt.automation_engine.workflow.title}
         | filter failures >= 3
       `
     }
@@ -707,7 +717,7 @@ tasks:
         {{ result("check_workflows").message }}
         
         {% for wf in result("check_workflows").failing_workflows %}
-        • {{ wf.workflow_name }}: {{ wf.failures }} failures
+        • {{ wf["dt.automation_engine.workflow.title"] }}: {{ wf.failures }} failures
         {% endfor %}
 ```
 
@@ -720,9 +730,11 @@ Export workflows as JSON for version control:
 ```bash
 # Export via API
 curl -X GET "https://<env>/platform/automation/v1/workflows/<id>" \
-  -H "Authorization: Api-Token <token>" \
+  -H "Authorization: Bearer <platform-token>" \
   -o workflow-backup.json
 ```
+
+The platform token needs the `automation:workflows:read` scope. Platform tokens are sent as `Bearer`, not `Api-Token` ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)).
 
 ### Workflow Naming Convention
 
@@ -781,12 +793,17 @@ Level 4: Contact Dynatrace support
 
 ### Capacity Planning
 
-| Limit | Value | Monitor |
+| Limit | Value | Source |
 |-------|-------|----------|
-| Max concurrent executions | 100 | Dashboard query |
-| Max execution time | 15 min | Duration metrics |
-| Max tasks per workflow | 50 | Workflow design |
-| Rate limits | Varies | Rate limit errors |
+| Task timeout | 60 min default, max 7 days | Build workflows (DT docs) |
+| Per-action runtime | 120 s | Build workflows (DT docs) |
+| Event-triggered executions | 1,000 / hour / workflow | Upgrade guide (DT docs) |
+| Trigger filter expression | 1,000 characters | Event triggers (DT docs) |
+| Workflows per environment | 10,000 (100 on trial) | Upgrade guide (DT docs) |
+
+Concurrency and tasks-per-workflow caps are not published; see WFLOW-01 § 5. An earlier revision listed 100 concurrent executions, 15 minutes and 50 tasks with no source.
+
+> <sub>**Sources:** [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — *"The default timeout is 60 minutes, up to seven days."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Execution rate: 1,000 event-triggered executions per hour, per workflow."* and *"Environment limits are 10,000 workflows per customer environment and 100 per trial environment."* [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the 1,000-character filter limit.</sub>
 
 <a id="series-summary"></a>
 ## 9. Series Summary

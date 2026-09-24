@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -97,28 +97,29 @@ For non-native integrations, Azure uses an Entra ID (Azure AD) app registration.
 
 ### Setup Steps
 
-1. **Register an application** in Entra ID (Azure Active Directory)
-2. **Create a client secret** (or configure certificate-based auth)
-3. **Assign the Reader role** at the subscription or management group level
-4. **Configure in Dynatrace** with Tenant ID, Client ID, and Client Secret
+1. **Create the Azure connection in Dynatrace** — it displays the issuer, subject and audience values the next step needs
+2. **Register an application** in Entra ID (Azure Active Directory) and add a **federated identity credential** using those issuer, subject and audience values (or, where federation is not possible, a client secret)
+3. **Assign the Monitoring Reader role** to the app's service principal at the subscription or management group level
+4. **Update the connection in Dynatrace** with the Tenant ID and Client ID (plus the client secret, if you used one)
 
 ### Required Azure Permissions
 
 | Scope | Role | Purpose |
 |---|---|---|
-| Subscription | **Reader** | Access resource metadata and metrics |
-| Subscription | **Monitoring Reader** | Access Azure Monitor data (alternative to Reader) |
-| Management Group | **Reader** | Multi-subscription monitoring |
+| Subscription or Management Group | **Monitoring Reader** | The role the Azure connection docs assign to the service principal |
+| Subscription or Management Group | **Reader** | Classic (Settings / ActiveGate) Azure integration |
 
 ### Authentication Methods Comparison
 
-| Method | Security Level | Rotation | Recommended |
-|---|---|---|---|
-| **Client secret** | Medium | Manual (1-2 year expiry) | Development |
-| **Certificate** | High | Certificate lifecycle | Production |
-| **Managed identity** | Highest | Automatic | ActiveGate on Azure VM |
+| Method | Rotation | Recommended |
+|---|---|---|
+| **Federated identity credential** (OIDC token exchange; Clouds app connection) | None — no secret exists | **Production (recommended)** |
+| **Client secret** | Manual; keep expiry < 12 months | Only where federation is not possible |
+| **Managed identity** | Automatic | Classic ActiveGate running on an Azure VM only |
 
-> **Best Practice:** Use the **Azure Native Dynatrace Service** for the simplest setup. If using classic integration with an ActiveGate on an Azure VM, use **managed identity** to eliminate credential management.
+> **Best Practice:** Use the **Azure Native Dynatrace Service** for the simplest setup. For a Clouds app connection, use a **federated identity credential** — there is no secret to rotate. If using classic integration with an ActiveGate on an Azure VM, use **managed identity** to eliminate credential management.
+
+> <sub>**Sources:** [Create an Azure connection via CLI (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection/azure-connection-cli) — *"Federated identity credentials provide passwordless authentication and are more secure than client secrets."* The same page assigns the Monitoring Reader role and, for client secrets, notes that Microsoft recommends *"an expiration duration of less than 12 months for enhanced security"*.</sub>
 
 <a id="supported-services"></a>
 
@@ -186,10 +187,12 @@ fetch dt.entity.azure_vm, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this under-counted against the notebook default window and still looked like a valid answer.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### Count Azure Resources by Type
@@ -214,10 +217,12 @@ fetch dt.entity.azure_vm, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this under-counted against the notebook default window and still looked like a valid answer.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### List Azure Web Apps
@@ -229,13 +234,12 @@ fetch dt.entity.azure_web_app, from:-30d
 | sort entity.name asc
 | limit 20
 
-// Returns no rows unless the Azure integration has App Service enabled — an empty result here
-// means no Web App was seen in the window, NOT that the query is wrong.
-
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 <a id="azure-metrics"></a>
@@ -247,20 +251,26 @@ Azure Monitor metrics are ingested into Dynatrace under the `cloud.azure.*` name
 ### Azure VM CPU Usage
 
 ```dql
-// Azure VM CPU percentage over the last 6 hours
-timeseries avgCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
-| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+// Azure VM CPU (Azure Monitor metric, via the Azure connection) — no OneAgent needed.
+//
+// Corrected 09/24/2026: this cell used dt.host.cpu.usage with no provider filter, which is the
+// OneAgent host metric for EVERY host (EC2, Azure and Kubernetes nodes alike) — not Azure VMs.
+timeseries cpu = avg(cloud.azure.microsoft_compute.virtualmachines.PercentageCPU), from:-6h, by:{azure.resource.name}
+| fieldsAdd avgCpuValue = arrayAvg(cpu)
 | sort avgCpuValue desc
 | limit 10
 ```
 
-### Azure VM Memory Usage
+### Azure VM Available Memory
 
 ```dql
-// Host memory usage for Azure VMs over the last 6 hours
-timeseries avgMem = avg(dt.host.memory.usage), from:-6h, by:{dt.entity.host}
-| fieldsAdd avgMemValue = arrayAvg(avgMem)
-| sort avgMemValue desc
+// Azure VM available memory % (Azure Monitor metric), lowest first, over the last 6 hours.
+//
+// Corrected 09/24/2026: this cell used dt.host.memory.usage with no provider filter — the OneAgent
+// metric for every host, not an Azure VM metric.
+timeseries mem = avg(cloud.azure.microsoft_compute.virtualmachines.AvailableMemoryPercentage), from:-6h, by:{azure.resource.name}
+| fieldsAdd avgAvailableMemPct = arrayAvg(mem)
+| sort avgAvailableMemPct asc
 | limit 10
 ```
 
@@ -329,7 +339,7 @@ Azure organizes resources into **resource groups**, which serve as logical conta
 
 ### Key Takeaways
 
-- Azure integration uses **Entra ID app registration** with Reader role for authentication
+- Azure integration uses **Entra ID app registration** with the **Monitoring Reader** role; authenticate with a **federated identity credential** (recommended) rather than a client secret
 - **Managed identity** is the most secure option when ActiveGate runs on an Azure VM
 - **AKS monitoring** uses the same DynaKube Operator as EKS with Azure-specific networking considerations
 - **Resource groups and Azure tags** should map to Dynatrace Management Zones/Segments for governance

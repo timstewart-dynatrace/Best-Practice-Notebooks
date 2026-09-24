@@ -1,6 +1,6 @@
 # ORGNZ-04: Permissions in Grail Overview
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 04/30/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -50,7 +50,7 @@ Grail supports permissions at multiple granularity levels:
 | **Bucket** | All records in a bucket | Team owns entire bucket |
 | **Table** | All records of a data type | Access to all logs across buckets |
 | **Record** | Individual records by attribute | Filter by host group, namespace, security context |
-| **Field** | Specific fields on records | Mask sensitive fields |
+| **Field** | Specific fields on records | Hide sensitive fields (fieldsets) |
 
 ![Permission Hierarchy](images/04-permission-hierarchy.png)
 
@@ -107,6 +107,8 @@ ALLOW <service>:<resource>:<action> WHERE <conditions>
 | Condition | Description |
 |-----------|-------------|
 | `storage:dt.security_context` | Custom security context field |
+
+> These are the most-used conditions, not the full list. Grail also supports `storage:log.source`, `storage:metric.key`, `storage:event.kind` / `storage:event.type` / `storage:event.provider` and `storage:frontend.name`, and each condition applies only to certain tables — see the table in **ORGNZ-07 § Supported Record-Level Conditions**.
 
 <a id="policy-operators"></a>
 ## Policy Operators
@@ -193,7 +195,7 @@ To configure permissions:
 
 Creating access policies solely on the bucket and table level is not scalable in enterprise environments:
 
-- One Dynatrace tenant has a limited number of custom buckets (80 default)
+- One Dynatrace tenant has a limited number of custom buckets (250 by default from SaaS 1.346; 80 on earlier versions)
 - Creating a bucket per team/application doesn't scale
 
 ### Solution

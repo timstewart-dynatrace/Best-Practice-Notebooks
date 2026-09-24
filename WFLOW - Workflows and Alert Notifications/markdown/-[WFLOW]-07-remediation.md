@@ -1,6 +1,6 @@
 # WFLOW-07: Problem-Triggered Remediation
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Auto-Remediation with Workflows
 Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.
@@ -83,17 +83,17 @@ For environments where SVG doesn't render
 ```javascript
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ event }) {
-  const entityId = event.root_cause_entity_id;
-  
-  // Check recent remediation attempts
+export default async function () {
+  // Check recent remediation attempts. Workflow executions are recorded in dt.system.events;
+  // there is no automation.workflow.execution event type (a query on it always returns 0,
+  // so this guardrail would never trip).
   const result = await queryExecutionClient.queryExecute({
     body: {
       query: `
-        fetch events, from: now() - 1h
-        | filter event.type == "automation.workflow.execution"
-        | filter contains(workflow.name, "remediation")
-        | filter entity_id == "${entityId}"
+        fetch dt.system.events, from:-1h
+        | filter event.kind == "WORKFLOW_EVENT" and event.type == "WORKFLOW_EXECUTION"
+        | filter dt.automation_engine.state.is_final == true
+        | filter contains(dt.automation_engine.workflow.title, "remediation")
         | summarize attempts = count()
       `
     }
@@ -112,6 +112,8 @@ export default async function({ event }) {
   return { proceed: true, attempt_number: attempts + 1 };
 }
 ```
+
+This counts remediation runs across all entities. Execution records do not carry the entity a run acted on, so a per-entity limit needs the entity ID recorded somewhere you can query — for example in a business event the remediation task emits.
 
 ### Time Window Check
 
@@ -135,15 +137,20 @@ tasks:
 
 ```javascript
 // Restart a service via SSH/API
-export default async function({ event }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   const hostId = event.root_cause_entity_id;
-  const serviceName = extractServiceName(event.title);
+  const serviceName = extractServiceName(event['event.name']);
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   
   // Call external automation system
   const response = await fetch('https://automation.company.com/api/restart', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${env.AUTOMATION_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -165,19 +172,22 @@ export default async function({ event }) {
 ```yaml
 tasks:
   - name: clear_cache
-    type: dynatrace.http:request
+    type: dynatrace.automations:http-function
     input:
       url: "https://{{ event().get('affected_entity_ids')[0] }}.internal/admin/cache/clear"
       method: POST
-      headers:
-        Authorization: "Bearer {{ env.ADMIN_TOKEN }}"
+      # Authentication: a Credential Vault token selected in the task's
+      # Authentication field — never a static Authorization header
 ```
 
 ### Pattern 3: Traffic Redirect
 
 ```javascript
 // Redirect traffic away from failing instance
-export default async function({ event }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   const failingInstance = event.root_cause_entity_id;
   
   // Update load balancer to remove failing instance
@@ -197,15 +207,18 @@ export default async function({ event }) {
 
 ```javascript
 import { KubeConfig, CoreV1Api } from '@kubernetes/client-node';
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event }) {
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   // Extract pod info from problem
   const podName = extractPodName(event.root_cause_entity_id);
   const namespace = extractNamespace(event.root_cause_entity_id);
   
   // Configure kubernetes client
   const kc = new KubeConfig();
-  kc.loadFromString(env.KUBECONFIG);
+  kc.loadFromString((await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-KUBECONFIG' })).token);
   const k8sApi = kc.makeApiClient(CoreV1Api);
   
   // Delete pod (Kubernetes will recreate it)
@@ -230,13 +243,16 @@ export default async function({ event }) {
 
 ```javascript
 import { KubeConfig, AppsV1Api } from '@kubernetes/client-node';
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event }) {
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   const deploymentName = extractDeployment(event);
   const namespace = extractNamespace(event);
   
   const kc = new KubeConfig();
-  kc.loadFromString(env.KUBECONFIG);
+  kc.loadFromString((await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-KUBECONFIG' })).token);
   const k8sApi = kc.makeApiClient(AppsV1Api);
   
   // Get deployment history
@@ -271,14 +287,19 @@ export default async function({ event }) {
 ### Horizontal Pod Autoscaler Adjustment
 
 ```javascript
-export default async function({ event }) {
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const K8S_API_SERVER = 'https://k8s-api.example.com';   // add to Settings > External requests
+
+export default async function () {
+  const k8sToken = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   // Temporarily increase replicas for high load
   const response = await fetch(
-    `${env.K8S_API_SERVER}/apis/autoscaling/v2/namespaces/production/horizontalpodautoscalers/checkout-hpa`,
+    `${K8S_API_SERVER}/apis/autoscaling/v2/namespaces/production/horizontalpodautoscalers/checkout-hpa`,
     {
       method: 'PATCH',
       headers: {
-        'Authorization': `Bearer ${env.K8S_TOKEN}`,
+        'Authorization': `Bearer ${k8sToken}`,
         'Content-Type': 'application/merge-patch+json'
       },
       body: JSON.stringify({
@@ -299,13 +320,18 @@ export default async function({ event }) {
 
 ```javascript
 import { EC2Client, RebootInstancesCommand } from '@aws-sdk/client-ec2';
+import { execution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event }) {
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
+  // A username/password credential holding the access key ID and secret
+  const aws = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
   const ec2Client = new EC2Client({
     region: 'us-east-1',
     credentials: {
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+      accessKeyId: aws.username,
+      secretAccessKey: aws.password
     }
   });
   
@@ -328,15 +354,19 @@ export default async function({ event }) {
 
 ```javascript
 import { LambdaClient, UpdateFunctionCodeCommand } from '@aws-sdk/client-lambda';
+import { execution } from '@dynatrace-sdk/automation-utils';
 
-export default async function({ event }) {
+const LAMBDA_BUCKET = 'my-lambda-artifacts';
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   const lambdaClient = new LambdaClient({ region: 'us-east-1' });
   const functionName = extractLambdaName(event);
   
   // Force cold start by updating function
   const command = new UpdateFunctionCodeCommand({
     FunctionName: functionName,
-    S3Bucket: env.LAMBDA_BUCKET,
+    S3Bucket: LAMBDA_BUCKET,
     S3Key: `${functionName}/latest.zip`
   });
   
@@ -349,13 +379,18 @@ export default async function({ event }) {
 ### Azure App Service Restart
 
 ```javascript
-export default async function({ event }) {
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const AZURE_SUBSCRIPTION_ID = '<subscription-id>';
+
+export default async function () {
+  const azureToken = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const response = await fetch(
-    `https://management.azure.com/subscriptions/${env.AZURE_SUBSCRIPTION_ID}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${appName}/restart?api-version=2022-03-01`,
+    `https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${appName}/restart?api-version=2022-03-01`,
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.AZURE_TOKEN}`
+        'Authorization': `Bearer ${azureToken}`
       }
     }
   );
@@ -369,7 +404,10 @@ export default async function({ event }) {
 ### Runbook Lookup and Execution
 
 ```javascript
-export default async function({ event }) {
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   // Map problem types to runbooks
   const runbookMap = {
     'High CPU': 'runbook-cpu-investigation',
@@ -381,7 +419,7 @@ export default async function({ event }) {
   // Find matching runbook
   let runbookId = null;
   for (const [pattern, id] of Object.entries(runbookMap)) {
-    if (event.title.includes(pattern)) {
+    if (event['event.name'].includes(pattern)) {
       runbookId = id;
       break;
     }
@@ -412,12 +450,12 @@ export default async function({ event }) {
 
 ```yaml
 message: |
-  :warning: *{{ event()['title'] }}*
+  :warning: *{{ event()['event.name'] }}*
   
   *Suggested Runbook:*
-  {% if "CPU" in event()["title"] %}
+  {% if "CPU" in event()["event.name"] %}
   <https://wiki.company.com/runbooks/cpu-investigation|CPU Investigation Runbook>
-  {% elif "Memory" in event()["title"] %}
+  {% elif "Memory" in event()["event.name"] %}
   <https://wiki.company.com/runbooks/memory-troubleshooting|Memory Troubleshooting Runbook>
   {% else %}
   <https://wiki.company.com/runbooks|Browse Runbooks>
@@ -439,7 +477,7 @@ tasks:
         - type: section
           text:
             type: mrkdwn
-            text: "*Remediation Approval Required*\n\nProblem: {{ event()['title'] }}\nProposed Action: Restart pod\nEntity: {{ event()['root_cause_entity_id'] }}"
+            text: "*Remediation Approval Required*\n\nProblem: {{ event()['event.name'] }}\nProposed Action: Restart pod\nEntity: {{ event()['root_cause_entity_id'] }}"
         - type: actions
           elements:
             - type: button
@@ -528,13 +566,15 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Problems closed per day
+// Distinct problems closed per day
+// Counted with countDistinctExact(display_id) since 09/24/2026: `events` holds several records per
+// closed problem, so count() over-reported closed problems ~4x on the validation tenant.
 // Field names corrected 08/12/2026: on `events`, a Davis problem carries `event.status` and
 // `event.category` — there are no bare `status` / `severity` fields, so those filters matched
 // nothing. `event.status` values are ACTIVE / CLOSED — "OPEN" is not one of them.
 fetch events, from:-30d
 | filter event.kind == "DAVIS_PROBLEM" and event.status == "CLOSED"
-| summarize total_closed = count(), by:{time_bucket = bin(timestamp, 24h)}
+| summarize total_closed = countDistinctExact(display_id), by:{time_bucket = bin(timestamp, 24h)}
 | sort time_bucket asc
 ```
 

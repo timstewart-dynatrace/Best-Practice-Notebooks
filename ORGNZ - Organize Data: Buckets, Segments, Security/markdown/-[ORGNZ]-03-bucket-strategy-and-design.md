@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 07/20/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -27,6 +27,7 @@ A well-defined bucket strategy optimizes query performance, controls costs, and 
 6. [Bucket Strategy Considerations](#bucket-strategy-considerations)
 7. [Routing Data to Buckets](#routing-data-to-buckets)
 8. [Bucket Design Checklist](#bucket-design-checklist)
+9. [Query Billing Model](#query-billing-model)
 
 ---
 
@@ -54,7 +55,7 @@ By the end of this notebook, you will:
 | Bucket Name | Provider | Data Type | Retention | Org Unit |
 |-------------|----------|-----------|-----------|----------|
 | `aws_logs_35d_platform` | AWS | logs | 35 days | Platform team |
-| `azure_metrics_90d_finance` | Azure | metrics | 90 days | Finance |
+| `azure_spans_14d_finance` | Azure | spans | 14 days | Finance |
 | `gcp_spans_14d_checkout` | GCP | spans | 14 days | Checkout service |
 | `audit_logs_365d_compliance` | Any | logs | 365 days | Compliance |
 | `debug_logs_7d` | Any | logs | 7 days | Development |
@@ -87,7 +88,7 @@ By the end of this notebook, you will:
 | Debug logs | 3-7 days | High volume, low long-term value |
 | Application logs | 35-90 days | Operational analysis |
 | Audit logs | 1-7 years | Compliance requirements |
-| Metrics | 35-90 days | Trending and alerting |
+| Metrics | Fixed — `default_metrics`, ~15 months | Not configurable per bucket: metrics have no custom buckets |
 | Spans | 10-35 days | APM troubleshooting |
 | Security events | 90-365 days | Security investigations |
 
@@ -172,30 +173,17 @@ Cost: Chargeback to Finance cost center
 | Other buckets | Skipped entirely — no bytes scanned |
 -->
 
-### Sprint 1.337 (April 2026) Updates
+### DQL: Capacity Planning
 
-**New default bucket: `default_database_monitoring`.** Logs from official Dynatrace database extensions are now routed by default to a dedicated `default_database_monitoring` bucket — keeping them out of `default_logs` for faster queries and tighter IAM scoping. Note that the `default_*` prefix is reserved (per the Naming Rules above) — only Dynatrace-provided buckets use it; you cannot create your own.
+Track ingest trends to validate routing rules and spot anomalies:
 
-**OneAgent primary fields enable richer routing.** OneAgent now enriches all telemetry at the source with standardized **primary fields** from the Semantic Dictionary (e.g., `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) plus customer-defined **primary tags**. These appear as top-level fields on metrics, spans, logs, business events, and Smartscape entities (HOST, PROCESS, CONTAINER, DISK, NETWORK_INTERFACE).
-
-In bucket-routing terms, this means OpenPipeline `route` rules can dispatch on:
-
-```yaml
-processors:
-  - type: route
-    rules:
-      - condition: "dt.cost.costcenter == 'cc-1234'"
-        destination: "finance_logs"
-      - condition: "dt.security_context contains 'pci'"
-        destination: "pci_audit_logs_365d"
-      - condition: "dt.cost.product == 'checkout'"
-        destination: "checkout_logs"
-    default: "default_logs"
+```dql
+// Track log ingest trends by bucket over the last day — use for capacity planning and routing anomaly detection
+// For multi-day capacity planning use the billing-usage events in FINOPS-01 rather than a raw multi-day log scan
+fetch logs, from:-24h
+| summarize recordCount = count(), by:{time_bucket = bin(timestamp, 1h), dt.system.bucket}
+| sort time_bucket desc
 ```
-
-Available only on Latest Dynatrace tenants. See **ORGNZ-06: Security Context** for primary-tag schema design and **OPLOGS** / **OPIPE** for the ingest-time enrichment configuration.
-
-**Smartscape Ownership integration.** Smartscape entities now carry ownership information that Dynatrace Workflows can read directly — useful when bucket-routing decisions depend on which team owns the producing host or service. See **WFLOW** for the routing-on-ownership pattern.
 
 <a id="bucket-strategy-considerations"></a>
 ## Bucket Strategy Considerations
@@ -237,21 +225,39 @@ Bucket sizing shapes queryability because `fetch` stops after 500 GB of uncompre
 
 <a id="routing-data-to-buckets"></a>
 ## Routing Data to Buckets
-Use OpenPipeline to route data to custom buckets:
+Buckets are assigned in OpenPipeline, in the **Storage** stage of a pipeline. That stage holds **Bucket assignment** processors — *"Assign records to the best-fit bucket."* — and the **No storage assignment** processor, and it runs **first match only**: *"Depending on the stage type, a processor returns either the first matching record or all matching records."* Each processor pairs a DQL matcher with a target bucket; the matcher *"defines the target of a processor via a DQL statement and narrows down the available data to the specific set you want to process."*
 
-```yaml
-# OpenPipeline routing rule example
-processors:
-  - type: route
-    rules:
-      - condition: "loglevel == 'DEBUG'"
-        destination: "debug_logs_7d"
-      - condition: "log.source contains 'audit'"
-        destination: "audit_logs_365d"
-      - condition: "host.group starts-with 'finance-'"
-        destination: "finance_app_logs"
-    default: "default_logs"
-```
+> **Corrected 09/24/2026.** Earlier versions of this notebook showed an OpenPipeline `processors: - type: route` YAML with `rules`, `destination` and `default`. OpenPipeline has no such processor or setting — configure Storage-stage bucket assignment as below.
+
+Add one **Bucket assignment** processor per destination, most specific first:
+
+| Matching condition (DQL) | Bucket |
+|---|---|
+| `loglevel == "DEBUG"` | `debug_logs_7d` |
+| `matchesPhrase(log.source, "audit")` | `audit_logs_365d` |
+| `matchesValue(dt.host_group.id, "finance-*")` | `finance_app_logs` |
+
+Write matchers with the functions the OpenPipeline matcher documents — `==`, `matchesValue`, `matchesPhrase`, `isNull` / `isNotNull`, `iAny` — rather than `contains` or `starts-with`. `matchesValue` accepts a leading or trailing `*` and *"works with multi-value attributes (matching any value), and supports wildcards"*.
+
+There is no `default:` route to set. Where no bucket assignment applies, the record is not lost: *"If you haven't specified bucket assignment in the pipeline configuration, Dynatrace will send all ingested data to the default buckets."* Check unmatched records in the pipeline preview before relying on that for a custom pipeline.
+
+### Routing on primary fields
+
+OneAgent enriches telemetry at the source with standardized **primary fields** from the Semantic Dictionary (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) plus customer-defined **primary tags**. They appear as top-level fields on metrics, spans, logs, business events and Smartscape entities, so bucket assignment can key on them directly (Latest Dynatrace):
+
+| Matching condition (DQL) | Bucket |
+|---|---|
+| `dt.cost.costcenter == "cc-1234"` | `finance_logs` |
+| `matchesValue(dt.security_context, "pci")` | `pci_audit_logs_365d` |
+| `dt.cost.product == "checkout"` | `checkout_logs` |
+
+Use `matchesValue` rather than `==` on `dt.security_context`: the field can hold an array, and the equality operator *"doesn't operate on elements being part of multi-value attributes."* See **ORGNZ-06: Security Context** for how the value is set and **OPLOGS** / **OPIPE** for pipeline configuration.
+
+Logs from official Dynatrace database extensions already have a built-in bucket, `default_database_monitoring`, which keeps them out of `default_logs` for faster queries and tighter IAM scoping. The `default_*` prefix is reserved — only Dynatrace-provided buckets use it.
+
+**Smartscape Ownership integration.** Smartscape entities now carry ownership information that Dynatrace Workflows can read directly — useful when bucket-routing decisions depend on which team owns the producing host or service. See **WFLOW** for the routing-on-ownership pattern.
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing), [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline), [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data). Matchers executed as DQL filters on a live tenant 09/24/2026.</sub>
 
 <a id="bucket-design-checklist"></a>
 ## Bucket Design Checklist
@@ -266,6 +272,28 @@ Use this checklist when planning buckets:
 - [ ] Planned OpenPipeline routing rules
 - [ ] Considered access control strategy (bucket vs security context)
 
+<a id="query-billing-model"></a>
+## Query Billing Model
+
+Custom **log** buckets offer two query billing models:
+
+| Model | How Billed | Best For |
+|-------|-----------|----------|
+| **Usage-based** | Charged per GiB scanned at query time | Buckets queried infrequently or unpredictably |
+| **Retain with Included Queries** | Queries over data inside the bucket's Included Queries period (10–35 days) are not charged separately; data older than that is queried usage-based | Buckets queried frequently or heavily by dashboards/alerts |
+
+*"Customers can split a log bucket's retention period into two parts"* — an Included Queries period of 10–35 days, inside an overall retention of up to 10 years. The choice is not permanent: *"Alternatively, if the Retain with Included Query option does not meet your use case and requirements, you can reconfigure a bucket at any time to use individually billed on-demand queries without losing data."*
+
+> For compliance and audit buckets queried daily by security dashboards, **Retain with Included Queries** typically lowers total cost. For debug or ephemeral buckets queried only during incidents, **Usage-based** avoids paying for query capacity you rarely use.
+
+### Excluding Logs from Storage
+
+When you extract metrics from logs via OpenPipeline (e.g., parsing error rates into a metric), you may not need to retain the source log records at all. Configure a **No Storage Assignment** in the OpenPipeline Storage stage to drop matching records after processing — this avoids retaining data purely for a signal you've already transformed.
+
+> Use with caution: once records are dropped they cannot be recovered. Only use No Storage Assignment when metrics extraction fully captures the required signal.
+
+> <sub>**Sources:** [Log Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics).</sub>
+
 ## Next Steps
 
 Continue with the ORGNZ series:
@@ -276,35 +304,8 @@ Continue with the ORGNZ series:
 - [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
 - [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [OpenPipeline Routing](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Log Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics)
 
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-<a id="query-billing-model"></a>
-## Query Billing Model
-
-Each custom Grail bucket offers **two query billing models** — choose at creation time based on your workload:
-
-| Model | How Billed | Best For |
-|-------|-----------|----------|
-| **Usage-based** | Charged per GiB scanned at query time | Buckets queried infrequently or unpredictably |
-| **Retain with Included Queries** | Flat rate — query costs included in retention price | Buckets queried frequently or heavily by dashboards/alerts |
-
-> The billing model cannot be changed after bucket creation. For compliance and audit buckets queried daily by security dashboards, **Retain with Included Queries** typically lowers total cost. For debug or ephemeral buckets queried only during incidents, **Usage-based** avoids paying for query capacity you rarely use.
-
-### Excluding Logs from Storage
-
-When you extract metrics from logs via OpenPipeline (e.g., parsing error rates into a metric), you may not need to retain the source log records at all. Configure a **No Storage Assignment** in the OpenPipeline Storage stage to drop matching records after processing — this avoids retaining data purely for a signal you've already transformed.
-
-> Use with caution: once records are dropped they cannot be recovered. Only use No Storage Assignment when metrics extraction fully captures the required signal.
-
-### DQL: Capacity Planning
-
-Track ingest trends to validate routing rules and spot anomalies:
-
-```dql
-// Track log ingest trends by bucket — use for capacity planning and routing anomaly detection
-fetch logs, from:-1h
-| summarize recordCount = count(), by:{time_bucket = bin(timestamp, 1h), dt.system.bucket}
-| sort time_bucket desc
-```

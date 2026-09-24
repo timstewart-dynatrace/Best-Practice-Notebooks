@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -56,13 +56,15 @@ Trigger (Detected Problem, Schedule, etc.)
 
 | Channel | Task Type | Authentication |
 |---------|-----------|----------------|
-| Slack | `dynatrace.slack:message` | OAuth App or Webhook |
-| Microsoft Teams | `dynatrace.msteams:message` | Power Automate or Webhook (deprecated) |
-| Email | `dynatrace.email:send` | SMTP or built-in |
+| Slack | `dynatrace.slack:message` (illustrative) | OAuth App or Webhook |
+| Microsoft Teams | `dynatrace.msteams:message` (illustrative) | Power Automate or Webhook (deprecated) |
+| Email | `dynatrace.email:send-email` | SMTP or built-in |
 | PagerDuty | `dynatrace.pagerduty:*` | Integration Key |
 | ServiceNow | `dynatrace.servicenow:*` | OAuth or Basic Auth |
 | Jira | `dynatrace.jira:*` | API Token |
-| Custom Webhook | `dynatrace.http:request` | Bearer/Basic/Custom |
+| Custom Webhook (HTTP Request) | `dynatrace.automations:http-function` | Credential Vault (Basic or Token) |
+
+The email and HTTP identifiers are the ones the platform records in `dt.system.events` (`dt.automation_engine.action.app` / `.action.function`), and the HTTP one appears in the Jinja reference's task sample. The other action IDs in this series' YAML are illustrative: export a workflow built in the editor to get the exact identifiers.
 
 <a id="setting-up-connections"></a>
 ## 2. Setting Up Connections
@@ -125,11 +127,11 @@ input:
   message: |
     :rotating_light: *Problem Detected*
     
-    *Title:* {{ event()["title"] }}
-    *Severity:* {{ event()["severity"] }}
-    *Started:* {{ event()["start_time"] }}
+    *Title:* {{ event()["event.name"] }}
+    *Category:* {{ event()["event.category"] }}
+    *Started:* {{ event()["event.start"] }}
     
-    <{{ event()["problem_url"] }}|View in Dynatrace>
+    <{{ problem_link() }}|View in Dynatrace>
 ```
 
 ### Slack Message with Blocks
@@ -144,17 +146,17 @@ input:
     - type: header
       text:
         type: plain_text
-        text: "{{ ':red_circle:' if event()['severity'] == 'CRITICAL' else ':large_orange_circle:' }} {{ event()['severity'] }} Alert"
+        text: "{{ ':red_circle:' if (event().get('event.severity') | int(5)) <= 1 else ':large_orange_circle:' }} {{ event()['event.category'] }} Alert"
     - type: section
       fields:
         - type: mrkdwn
-          text: "*Problem:*\n{{ event()['title'] }}"
+          text: "*Problem:*\n{{ event()['event.name'] }}"
         - type: mrkdwn
-          text: "*Status:*\n{{ event()['status'] }}"
+          text: "*Status:*\n{{ event()['event.status'] }}"
     - type: section
       fields:
         - type: mrkdwn
-          text: "*Started:*\n{{ event()['start_time'] }}"
+          text: "*Started:*\n{{ event()['event.start'] }}"
         - type: mrkdwn
           text: "*ID:*\n{{ event()['display_id'] }}"
     - type: actions
@@ -163,7 +165,7 @@ input:
           text:
             type: plain_text
             text: "View Problem"
-          url: "{{ event()['problem_url'] }}"
+          url: "{{ problem_link() }}"
 ```
 
 <a id="microsoft-teams-notifications"></a>
@@ -173,7 +175,7 @@ input:
 >
 > | Method | Status | Notes |
 > |--------|--------|-------|
-> | **Power Automate Workflow** | Recommended | Create a "When a Teams webhook request is received" flow in Power Automate; use the resulting URL as a `dynatrace.http:request` task |
+> | **Power Automate Workflow** | Recommended | Create a "When a Teams webhook request is received" flow in Power Automate; use the resulting URL in an HTTP Request task (`dynatrace.automations:http-function`) |
 > | **Teams Workflows Connector** | Recommended | Available in new Teams client under channel **...** → **Workflows** |
 > | **O365 Incoming Webhook** | Deprecated | Legacy method shown below for reference only |
 
@@ -197,11 +199,11 @@ input:
   message: |
     **Problem Detected**
     
-    **Title:** {{ event()["title"] }}
-    **Severity:** {{ event()["severity"] }}
-    **Started:** {{ event()["start_time"] }}
+    **Title:** {{ event()["event.name"] }}
+    **Category:** {{ event()["event.category"] }}
+    **Started:** {{ event()["event.start"] }}
     
-    [View in Dynatrace]({{ event()["problem_url"] }})
+    [View in Dynatrace]({{ problem_link() }})
 ```
 
 ### Teams Adaptive Card
@@ -213,26 +215,26 @@ input:
   connection: teams-production
   card:
     type: AdaptiveCard
-    $schema: "https://adaptivecards.io/schemas/adaptive-card.json"
+    $schema: "https://adaptivecards.microsoft.com/schemas/adaptive-card.json"
     version: "1.4"
     body:
       - type: TextBlock
-        text: "{{ event()['severity'] }} Alert"
+        text: "{{ event()['event.category'] }} Alert"
         size: Large
         weight: Bolder
-        color: "{{ 'Attention' if event()['severity'] == 'CRITICAL' else 'Warning' }}"
+        color: "{{ 'Attention' if (event().get('event.severity') | int(5)) <= 1 else 'Warning' }}"
       - type: FactSet
         facts:
           - title: "Problem"
-            value: "{{ event()['title'] }}"
+            value: "{{ event()['event.name'] }}"
           - title: "Status"
-            value: "{{ event()['status'] }}"
+            value: "{{ event()['event.status'] }}"
           - title: "Started"
-            value: "{{ event()['start_time'] }}"
+            value: "{{ event()['event.start'] }}"
     actions:
       - type: Action.OpenUrl
         title: "View in Dynatrace"
-        url: "{{ event()['problem_url'] }}"
+        url: "{{ problem_link() }}"
 ```
 
 <a id="email-notifications"></a>
@@ -249,21 +251,21 @@ input:
 
 ```yaml
 name: send_email_alert
-type: dynatrace.email:send
+type: dynatrace.email:send-email
 input:
   to:
     - "oncall@company.com"
     - "platform-team@company.com"
-  subject: "[{{ event()['severity'] }}] {{ event()['title'] }}"
+  subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
   body: |
     A problem has been detected in your Dynatrace environment.
     
     Problem Details:
     ----------------
-    Title: {{ event()["title"] }}
-    Severity: {{ event()["severity"] }}
-    Status: {{ event()["status"] }}
-    Start Time: {{ event()["start_time"] }}
+    Title: {{ event()["event.name"] }}
+    Category: {{ event()["event.category"] }}
+    Status: {{ event()["event.status"] }}
+    Start Time: {{ event()["event.start"] }}
     Problem ID: {{ event()["display_id"] }}
     
     Affected Entities:
@@ -273,7 +275,7 @@ input:
     {{ event()["root_cause_entity_id"] }}
     
     View this problem:
-    {{ event()["problem_url"] }}
+    {{ problem_link() }}
 ```
 
 ### HTML Email
@@ -281,20 +283,20 @@ input:
 ```yaml
 input:
   to: ["oncall@company.com"]
-  subject: "[{{ event()['severity'] }}] {{ event()['title'] }}"
+  subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
   contentType: "text/html"
   body: |
     <html>
     <body style="font-family: Arial, sans-serif;">
-      <h2 style="color: {{ '#dc3545' if event()['severity'] == 'CRITICAL' else '#ffc107' }};">
-        {{ event()['severity'] }} Alert
+      <h2 style="color: {{ '#dc3545' if (event().get('event.severity') | int(5)) <= 1 else '#ffc107' }};">
+        {{ event()['event.category'] }} Alert
       </h2>
       <table style="border-collapse: collapse;">
-        <tr><td><b>Problem:</b></td><td>{{ event()['title'] }}</td></tr>
-        <tr><td><b>Status:</b></td><td>{{ event()['status'] }}</td></tr>
-        <tr><td><b>Started:</b></td><td>{{ event()['start_time'] }}</td></tr>
+        <tr><td><b>Problem:</b></td><td>{{ event()['event.name'] }}</td></tr>
+        <tr><td><b>Status:</b></td><td>{{ event()['event.status'] }}</td></tr>
+        <tr><td><b>Started:</b></td><td>{{ event()['event.start'] }}</td></tr>
       </table>
-      <p><a href="{{ event()['problem_url'] }}">View in Dynatrace</a></p>
+      <p><a href="{{ problem_link() }}">View in Dynatrace</a></p>
     </body>
     </html>
 ```
@@ -305,37 +307,41 @@ input:
 
 | Expression | Result | Use |
 |------------|--------|------|
-| `{{ event()["title"] }}` | Problem title | Main content |
-| `{{ event()["severity"] }}` | CRITICAL/HIGH/MEDIUM/LOW | Color coding |
+| `{{ event()["event.name"] }}` | Problem title | Main content |
+| `{{ event()["event.category"] }}` | AVAILABILITY/ERROR/SLOWDOWN/… | What kind of problem |
+| `{{ event().get("event.severity") \| int(5) }}` | 1 (most severe) … 5 | Color coding |
 | `{{ event()["affected_entity_ids"] \| join(", ") }}` | Comma-separated list | Show all affected |
-| `{{ event()["start_time"] }}` | ISO timestamp | When started |
-| `{{ event()["problem_url"] }}` | Full URL | Link to problem |
+| `{{ event()["event.start"] }}` | ISO timestamp | When started |
+| `{{ problem_link() }}` | Full URL | Link to problem (Problem trigger only) |
+
+`event.severity` is `experimental` in the semantic dictionary and is a 1–5 scale; the problem record carries no `CRITICAL`/`HIGH` strings. `int(5)` treats a missing severity as least severe — see WFLOW-04 §3 for why that default matters from SaaS 1.348.
 
 ### Conditional Formatting
 
 ```jinja
-{% if event()["severity"] == "CRITICAL" %}
+{% set sev = event().get("event.severity") | int(5) %}
+{% if sev <= 1 %}
 :red_circle: CRITICAL ALERT
-{% elif event()["severity"] == "HIGH" %}
+{% elif sev == 2 %}
 :large_orange_circle: HIGH ALERT
 {% else %}
-:large_yellow_circle: {{ event()["severity"] }} ALERT
+:large_yellow_circle: {{ event()["event.category"] }} ALERT
 {% endif %}
 ```
 
 ### Severity Emoji Map
 
-| Severity | Slack Emoji | Teams Color |
+| `event.severity` | Slack Emoji | Teams Color |
 |----------|-------------|-------------|
-| CRITICAL | `:red_circle:` | `Attention` |
-| HIGH | `:large_orange_circle:` | `Warning` |
-| MEDIUM | `:large_yellow_circle:` | `Accent` |
-| LOW | `:large_blue_circle:` | `Good` |
+| 1 (Critical) | `:red_circle:` | `Attention` |
+| 2 (High) | `:large_orange_circle:` | `Warning` |
+| 3 (Medium) | `:large_yellow_circle:` | `Accent` |
+| 4 (Low) | `:large_blue_circle:` | `Good` |
 
 ### Inline Severity Mapping
 
 ```jinja
-{{ {"CRITICAL": ":red_circle:", "HIGH": ":large_orange_circle:", "MEDIUM": ":large_yellow_circle:", "LOW": ":large_blue_circle:"}.get(event()["severity"], ":white_circle:") }}
+{{ {1: ":red_circle:", 2: ":large_orange_circle:", 3: ":large_yellow_circle:", 4: ":large_blue_circle:"}.get(event().get("event.severity") | int(5), ":white_circle:") }}
 ```
 
 <a id="complete-alert-workflow-example"></a>
@@ -363,44 +369,44 @@ tasks:
       connection: slack-production
       channel: "#alerts-production"
       message: |
-        {{ {"CRITICAL": ":red_circle:", "HIGH": ":large_orange_circle:", "MEDIUM": ":large_yellow_circle:"}.get(event()["severity"], ":white_circle:") }} *{{ event()["severity"] }} Problem*
+        {{ {1: ":red_circle:", 2: ":large_orange_circle:", 3: ":large_yellow_circle:"}.get(event().get("event.severity") | int(5), ":white_circle:") }} *{{ event()["event.category"] }} Problem*
         
-        *{{ event()["title"] }}*
+        *{{ event()["event.name"] }}*
         
-        • *Status:* {{ event()["status"] }}
-        • *Started:* {{ event()["start_time"] }}
+        • *Status:* {{ event()["event.status"] }}
+        • *Started:* {{ event()["event.start"] }}
         • *ID:* {{ event()["display_id"] }}
         
-        <{{ event()["problem_url"] }}|:mag: View Problem>
+        <{{ problem_link() }}|:mag: View Problem>
 
   - name: teams_notification
     type: dynatrace.msteams:message
     input:
       connection: teams-production
       message: |
-        **{{ event()["severity"] }} Problem**
+        **{{ event()["event.category"] }} Problem**
         
-        **{{ event()["title"] }}**
+        **{{ event()["event.name"] }}**
         
-        - **Status:** {{ event()["status"] }}
-        - **Started:** {{ event()["start_time"] }}
+        - **Status:** {{ event()["event.status"] }}
+        - **Started:** {{ event()["event.start"] }}
         - **ID:** {{ event()["display_id"] }}
         
-        [View Problem]({{ event()["problem_url"] }})
+        [View Problem]({{ problem_link() }})
 
   - name: email_notification
-    type: dynatrace.email:send
+    type: dynatrace.email:send-email
     input:
       to: ["platform-oncall@company.com"]
-      subject: "[{{ event()['severity'] }}] {{ event()['title'] }}"
+      subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
       body: |
-        A {{ event()["severity"] }} problem has been detected.
+        A {{ event()["event.category"] }} problem has been detected.
         
-        Problem: {{ event()["title"] }}
-        Status: {{ event()["status"] }}
-        Started: {{ event()["start_time"] }}
+        Problem: {{ event()["event.name"] }}
+        Status: {{ event()["event.status"] }}
+        Started: {{ event()["event.start"] }}
         
-        View: {{ event()["problem_url"] }}
+        View: {{ problem_link() }}
 ```
 
 ### Task Execution

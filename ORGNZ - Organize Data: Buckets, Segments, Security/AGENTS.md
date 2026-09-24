@@ -17,14 +17,14 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 |---|---|
 | Why organize data at all: buckets vs tables vs views, the three pillars, which mechanism to use when | `-[ORGNZ]-01-introduction-to-organizing-data.md` |
 | Bucket fundamentals: supported tables, bucket limits, default buckets, naming rules, querying bucket info | `-[ORGNZ]-02-understanding-grail-buckets.md` |
-| Bucket naming conventions, retention planning, design patterns, cost attribution, routing data to buckets | `-[ORGNZ]-03-bucket-strategy-and-design.md` |
+| Bucket naming conventions, retention planning, design patterns, cost attribution, assigning buckets in OpenPipeline (Storage-stage bucket assignment with DQL matchers), log-bucket query billing models | `-[ORGNZ]-03-bucket-strategy-and-design.md` |
 | The Grail permission model overview: permission levels, IAM policy structure, storage-policy conditions and operators | `-[ORGNZ]-04-permissions-in-grail.md` |
 | IAM policies granting specific buckets, team-isolation via buckets, when bucket-level isolation fits (compliance, retention, cost) | `-[ORGNZ]-05-bucket-level-access-control.md` |
 | Record-level access with `dt.security_context`: setting it, policy `WHERE` clauses, patterns, entity security context | `-[ORGNZ]-06-security-context.md` |
-| Record- and field-level permissions, combining mechanisms, policy boundaries, testing permissions | `-[ORGNZ]-07-advanced-permission-patterns.md` |
+| Record-level permission conditions and the tables each applies to, field-level access via fieldsets (`storage:fieldsets:read`), combining mechanisms, policy boundaries, testing permissions | `-[ORGNZ]-07-advanced-permission-patterns.md` |
 | Segments vs buckets, segment structure/limits, design patterns, OneAgent enrichments, segments and access control | `-[ORGNZ]-08-grail-segments.md` |
 | Enterprise patterns: LOB isolation, environment tiering, multi-cloud, Kubernetes-native organization, decision framework | `-[ORGNZ]-09-enterprise-patterns.md` |
-| Segment mechanics deep dive: filter syntax, include rules, variables, host-group segments, Settings API/Terraform, Query API consumption, Davis problem includes | `-[ORGNZ]-10-advanced-segment-definitions.md` |
+| Segment mechanics deep dive: filter syntax, include rules, variables, host-group segments, Filter Segments API/Terraform, Query API `filterSegments` consumption, Davis problem includes | `-[ORGNZ]-10-advanced-segment-definitions.md` |
 | Consolidated best practices + validation DQL: bucket design, retention, routing, IAM, security context, segments, governance | `-[ORGNZ]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[ORGNZ]-99-best-practice-summary.md`

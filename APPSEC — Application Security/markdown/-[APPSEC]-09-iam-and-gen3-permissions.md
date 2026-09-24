@@ -1,6 +1,6 @@
 # APPSEC-09: IAM and Gen3 Permissions for AppSec
 
-> **Series:** APPSEC — Application Security | **Notebook:** 9 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 9 of 10 | **Created:** June 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -189,7 +189,9 @@ Workflows and other automation that consume AppSec data need the right token typ
 - **For Grail reads** (`storage:security.events:read`) and **vulnerability-service** access: Platform Token on a Service User. AUTOM-04 § 3, *Provider Configuration*, covers the three-things-align model.
 - **For classic config APIs** that AppSec workflows occasionally touch (rare in v1 AppSec, more common as workflows chain into broader automation): classic API Token may still be required for some endpoints.
 
-Avoid granting `vulnerability-service:vulnerabilities:write` on a long-lived shared OAuth client — too much blast radius. Bind it to a specific Service User whose IAM scope is narrowed to exactly the management zones that workflow operates over.
+Avoid granting `vulnerability-service:vulnerabilities:write` on a long-lived shared OAuth client — too much blast radius. Bind it to a dedicated Service User that holds only this permission. The policy-statement reference lists no conditions for `vulnerability-service:vulnerabilities:write`, so the permission itself cannot be narrowed — and management zones are not available in Latest Dynatrace to narrow it with. Scope *which* findings the workflow acts on in its trigger filter instead, using `dt.security_context`, a primary Grail field, or `primary_tags.*`.
+
+> <sub>**Sources:** [Upgrade security notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-09-team-based-global-alerting/upgrade-security-notifications) — *"Management zones are not available in Latest Dynatrace. Replace management zone scoping with Grail record-based field filters."* and *"Use custom metadata enrichment to set dt.security_context on security events via OpenPipeline, then filter by it in the workflow trigger."*; [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `vulnerability-service:vulnerabilities:write` is listed with no conditions.</sub>
 
 > <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements). **Derived:** the blast-radius framing of *don't put write on a shared OAuth client* is community practice.</sub>
 

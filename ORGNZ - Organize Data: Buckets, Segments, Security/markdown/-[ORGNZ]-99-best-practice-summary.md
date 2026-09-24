@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/02/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -30,11 +30,11 @@ This notebook consolidates every actionable best practice from the ORGNZ series 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
 | 1 | Keep per-bucket ingest under 1 TB/day | Target: <1 TB/day per bucket; split at >2 TB/day (Dynatrace guidance) | Critical | Performance |
-| 2 | One data type per bucket | Each bucket stores exactly one table type (logs, metrics, spans, events, bizevents, security_events) | Critical | Architecture |
+| 2 | One data type per bucket | Each bucket stores exactly one table type (logs, metrics, spans, events, bizevents, security.events) | Critical | Architecture |
 | 3 | Use consistent naming convention | Format: `<provider>_<type>_<retention>` or `<team>_<type>_<retention>` (e.g., `aws_logs_35d`, `team_platform_logs`) | Critical | Naming |
 | 4 | Bucket names: lowercase, letter-first, underscores/hyphens only | Regex: `^[a-z][a-z0-9_-]*$`; never use `default_*` prefix | Critical | Naming |
 | 5 | Plan bucket names before creation | Bucket names are immutable after creation; display names can be changed | Critical | Planning |
-| 6 | Stay within the 80-bucket environment default (250 from SaaS 1.346 — staged rollout from 08/25/2026) | Budget buckets across teams; request increase only if justified | Recommended | Planning |
+| 6 | Stay within the custom-bucket environment default — 250 from SaaS 1.346 (80 on earlier versions) | Budget buckets across teams; request increase only if justified | Recommended | Planning |
 | 7 | Create dedicated buckets per cost center | One bucket per business unit/LOB for direct GiB/day cost attribution | Recommended | Cost |
 | 8 | Create separate buckets for compliance data | Dedicated bucket (e.g., `compliance_audit_logs`) with extended retention for regulatory requirements | Recommended | Compliance |
 | 9 | Create short-retention buckets for debug logs | Bucket: `debug_logs_7d` with 7-day retention for high-volume verbose logs | Recommended | Cost |
@@ -68,7 +68,7 @@ fetch dt.system.buckets
 |---|--------------|-----------------|----------|----------|
 | 11 | Set debug/development log retention to 3-7 days | Bucket retention: 7 days maximum for DEBUG-level logs | Critical | Cost |
 | 12 | Set standard operational log retention to 35 days | Bucket retention: 35 days for application and infrastructure logs | Recommended | Operations |
-| 13 | Set performance analysis retention to 60-90 days | Bucket retention: 90 days for metrics and quarterly trend analysis | Recommended | Operations |
+| 13 | Set performance analysis retention to 60-90 days | Bucket retention: 90 days for logs/events used in quarterly trend analysis (metrics retention is fixed at ~15 months in `default_metrics`) | Recommended | Operations |
 | 14 | Set audit/compliance log retention to 365-3657 days | Bucket retention: match regulatory requirement (SOX: 7 years = 2,555 days; HIPAA: 6 years = 2,190 days) | Critical | Compliance |
 | 15 | Set span retention to 10-35 days | Bucket retention: 10 days for default APM; 35 days if long-running incident correlation needed | Recommended | Operations |
 | 16 | Set security event retention to 90-365 days | Bucket retention: 365 days for security investigation timelines | Recommended | Security |
@@ -90,10 +90,10 @@ fetch dt.system.buckets
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
-| 18 | Route data to custom buckets via OpenPipeline | Configure OpenPipeline routing rules with conditions on `loglevel`, `host.group`, `service.name`, `log.source` | Critical | Architecture |
-| 19 | Always define a default route | Set `default: "default_logs"` (or appropriate default bucket) as the fallback in every OpenPipeline routing configuration | Critical | Reliability |
-| 20 | Route DEBUG logs to short-retention buckets | OpenPipeline condition: `loglevel == 'DEBUG'` → destination: `debug_logs_7d` | Recommended | Cost |
-| 21 | Route audit logs to compliance buckets | OpenPipeline condition: `log.source contains 'audit'` → destination: `audit_logs_365d` | Recommended | Compliance |
+| 18 | Route data to custom buckets via OpenPipeline | Configure Storage-stage **Bucket assignment** processors (first match wins) with DQL matchers on `loglevel`, `dt.host_group.id`, `log.source`, `dt.cost.*` | Critical | Architecture |
+| 19 | Decide where unmatched records go | There is no `default:` route setting; data with no bucket assignment goes to the scope's default bucket (`default_logs` for logs) — check unmatched records in the pipeline preview | Critical | Reliability |
+| 20 | Route DEBUG logs to short-retention buckets | Bucket assignment matcher `loglevel == "DEBUG"` → bucket `debug_logs_7d` | Recommended | Cost |
+| 21 | Route audit logs to compliance buckets | Bucket assignment matcher `matchesPhrase(log.source, "audit")` → bucket `audit_logs_365d` | Recommended | Compliance |
 | 22 | Data cannot be moved between buckets after ingestion | Route new data via OpenPipeline; old data stays in the original bucket until retention expires | Critical | Architecture |
 
 ### Validation Queries — Data Routing
@@ -108,8 +108,8 @@ fetch logs, from:-1h
 ```
 
 ```dql
-// Track log ingest trends by bucket over time — identify routing anomalies
-fetch logs, from:-1h
+// Track log ingest trends by bucket over the last day — identify routing anomalies
+fetch logs, from:-24h
 | summarize recordCount = count(), by:{time_bucket = bin(timestamp, 1h), dt.system.bucket}
 | sort time_bucket desc
 ```
@@ -127,7 +127,7 @@ fetch logs, from:-1h
 | 28 | Start with least privilege | Grant minimum required access; expand only when justified | Critical | Security |
 | 29 | Use policy boundaries for reusable conditions | Define regional/environmental restrictions once as a boundary; apply to multiple policies | Recommended | Governance |
 | 30 | Limit policy boundaries to 10 restrictions per boundary | Maximum 10 conditions per boundary; create additional boundaries if more are needed | Recommended | Architecture |
-| 31 | Use field-level DENY for sensitive data | Policy: `DENY storage:logs:read:user.email, storage:logs:read:user.ip_address` to mask PII fields | Recommended | Security |
+| 31 | Use fieldsets for sensitive fields | Grant `storage:fieldsets:read` on specific fieldsets (e.g. `builtin-sensitive-spans`, or a custom fieldset for log fields) only where needed — users without it don't see those fields. There is no per-field `DENY` permission | Recommended | Security |
 | 32 | Test policies with sample users before deployment | Create a test user in the target group and verify query results before rolling out to the team | Critical | Operations |
 | 33 | Document every IAM policy | Include name, description, tags, target group, and purpose in a policy registry | Recommended | Governance |
 
@@ -163,12 +163,12 @@ fetch logs, from:-1h
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
-| 34 | Use `dt.security_context` for record-level access control | Set via OpenPipeline Security Context processor or OneAgent host properties | Critical | Security |
+| 34 | Use `dt.security_context` for record-level access control | Set at the source first (host tag, `DT_TAGS`, K8s namespace labels, OTel resource attribute); OpenPipeline Set security context processor for computed values | Critical | Security |
 | 35 | Use hierarchical encoding in security context values | Format: `<org>/<department>/<team>` (e.g., `acme/engineering/platform`); enables department-level access with `MATCH ('acme/engineering/*')` | Critical | Scalability |
 | 36 | Use type prefixes for security context values | Prefix with `team:`, `lob:`, `env:`, `cloud:` (e.g., `team:checkout`, `lob:finance`, `env:production`) | Recommended | Naming |
 | 37 | Plan security context hierarchy before implementation | Context values are assigned to records at ingest time; changing schema requires re-ingesting data | Critical | Planning |
 | 38 | Use security context instead of additional buckets when at the bucket-count limit | Security context enables multi-team isolation within shared buckets without consuming bucket quota | Recommended | Scalability |
-| 39 | Set security context on entities via Grail Security Context settings | Settings → Topology model → Grail Security Context; entities inherit context to related records | Recommended | Security |
+| 39 | Set security context on entities via Grail Security Context settings | Settings → Topology model → Grail Security Context; this scopes the entities only, not their logs/spans/metrics — use a host tag or primary-field enrichment for those | Recommended | Security |
 | 40 | Always use MATCH for array-valued security context in IAM policies | `ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("team-a*")` | Critical | Security |
 
 ### Validation Queries — Security Context
@@ -244,8 +244,8 @@ Simulate segment filter conditions before committing to a segment definition:
 ```dql
 // Simulate host-group-based segment filter on logs
 fetch logs, from:-1h
-| filter isNotNull(host.group)
-| summarize count = count(), by:{host.group}
+| filter isNotNull(dt.host_group.id)
+| summarize count = count(), by:{dt.host_group.id}
 | sort count desc
 | limit 10
 ```
@@ -284,8 +284,8 @@ fetch logs, from:-1h
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
 | 54 | Enrich all signals with Primary Grail Fields before building segments | Verify `dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name` are present on logs, spans, and metrics | Critical | Architecture |
-| 55 | Set `dt.security_context` via host properties for dedicated infrastructure | Deployment Status → select hosts → Modify host properties → set `dt.security_context=<team>` | Recommended | Security |
-| 56 | Set `dt.cost.costcenter` and `dt.cost.product` on hosts | Host properties: `dt.cost.costcenter=<center>`, `dt.cost.product=<product>` — these propagate to service metrics | Recommended | Cost |
+| 55 | Set `dt.security_context` via a host tag for dedicated infrastructure | Host tag `dt.security_context=<team>` (installation, `oneagentctl --set-host-tag`, or Deployment Status) | Recommended | Security |
+| 56 | Set `dt.cost.costcenter` and `dt.cost.product` on hosts | Host tags: `dt.cost.costcenter=<center>`, `dt.cost.product=<product>` — these propagate to service metrics | Recommended | Cost |
 | 57 | Use `DT_TAGS` environment variable for shared infrastructure | Set `DT_TAGS=primary_tags.team=<team>` per process when multiple apps share the same host | Recommended | Architecture |
 | 58 | Restart applications after enrichment changes for spans | Logs: no restart needed (OneAgent auto-enriches); Spans: application restart required; Metrics: OneAgent restart applies automatically | Critical | Operations |
 | 59 | Verify enrichment coverage before building segments | Run DQL audit query to check field coverage percentage across signal types; fields with 0% coverage need enrichment | Critical | Operations |
@@ -360,7 +360,7 @@ fetch dt.entity.cloud_application_namespace
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
-| 61 | Understand the 500 GB scan limit | Maximum 500 GB scanned per query; at 1 TB/day ingest, queryable window is ~12 hours | Critical | Performance |
+| 61 | Understand the default 500 GB scan limit | `fetch` stops at 500 GB scanned by default (`scanLimitGBytes`); at 1 TB/day ingest an unmodified query reaches back ~12 hours — raise `scanLimitGBytes` or narrow the query | Critical | Performance |
 | 62 | Target specific buckets in queries | Use `fetch logs, bucket:{"team_logs", "app_logs_*"}` to avoid scanning all buckets | Recommended | Performance |
 | 63 | Use exact match (`=`) over pattern match in segment filters | `=` is faster than `starts-with`; use exact values when known | Recommended | Performance |
 | 64 | Minimize segment filter expressions | Fewer conditions = better query performance; maximum 10 expressions per filter | Recommended | Performance |
@@ -426,8 +426,10 @@ fetch dt.system.buckets
 
 ```dql
 // Audit all bucket management actions — create, update, truncate, delete
-fetch dt.system.events
+// Bucket changes are rare: widen to from:-365d for a full year of history
+fetch dt.system.events, from:-90d
 | filter event.kind == "AUDIT_EVENT" and event.category == "BUCKET_MANAGEMENT"
+| fields timestamp, event.type, resource, user.id, event.outcome
 | sort timestamp desc
 ```
 

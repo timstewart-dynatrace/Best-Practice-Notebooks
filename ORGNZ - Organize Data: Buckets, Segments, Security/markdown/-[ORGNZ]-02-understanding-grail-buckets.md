@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 07/20/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -78,19 +78,23 @@ fetch dt.system.buckets
 | `default_metrics` | metrics | 15 months |
 | `default_spans` | spans | 10 days |
 | `default_events` | events | 35 days |
+| `default_davis_events` | events | 462 days (~15 months) — Davis events and problems |
 | `default_bizevents` | bizevents | 35 days |
 | `default_securityevents` | security.events | 1 year |
 | `default_securityevents_builtin` | security.events | 3 years |
 | `default_user_events` | user.events | 35 days |
 | `default_user_sessions` | user.sessions | 35 days |
-| `default_mobile_user_replays` | mobile.user.replays | 35 days |
-| `default_web_user_replays` | web.user.replays | 35 days |
-| `default_synthetic_events` | synthetic.events | 35 days |
-| `default_synthetic_user_events` | synthetic.user.events | 35 days |
-| `default_synthetic_user_sessions` | synthetic.user.sessions | 35 days |
-| `default_synthetic_detailed_events` | synthetic.detailed.events | 35 days |
+| `default_mobile_user_replays` | user.replays | 35 days |
+| `default_web_user_replays` | user.replays | 35 days |
+| `default_synthetic_events` | events | 35 days |
+| `default_synthetic_user_events` | user.events | 35 days |
+| `default_synthetic_user_sessions` | user.sessions | 35 days |
+| `default_synthetic_detailed_events` | events | 35 days |
+| `default_database_monitoring` | logs | 35 days — logs from Dynatrace database extensions |
 | `default_application_snapshots` | application.snapshots | 10 days |
-| `dt_system_events` | dt.system.events | 1 year |
+| `dt_system_events` | dt.system.events | ~13 months (400 days on the validation tenant) |
+
+The built-in set varies by tenant and grows as Dynatrace adds capabilities — the query above is authoritative for your environment. (Checked 09/24/2026: the validation tenant also carries `default_security_events`, `default_security` and several other `default_*` event buckets not listed here.)
 
 > **Note:** The `default_securityevents` table was recently migrated to a new Grail security events schema. If you use security events, follow the [Grail security table migration guide](https://docs.dynatrace.com/docs/secure/threat-observability/concepts) to complete any required actions.
 
@@ -147,7 +151,7 @@ System tables are queried with `fetch dt.system.*` — they never need a `bucket
 
 | Limit | Value | Notes |
 |-------|-------|-------|
-| Maximum buckets per environment | 80 | Default; increase on request (+1 per 10 GB daily ingest) |
+| Maximum custom buckets per environment | 250 (SaaS 1.346+); 80 before | Increase on request: +1 per 10 GB daily ingest; above 1,000 reviewed by Dynatrace support |
 | Typical capacity | Up to 5 TB/day per table | With default bucket limit |
 
 ### Bucket Size Guidelines
@@ -201,16 +205,57 @@ Dynatrace provides default buckets with varying retention:
 | `default_spans` | spans | 10 days | Short-term APM data |
 | `default_events` | events | 35 days | Platform events |
 | `default_bizevents` | bizevents | 35 days | Business events |
-| `default_securityevents` | security_events | 1 year | Security events |
-| `default_securityevents_builtin` | security_events | 3 years | Built-in security events |
+| `default_securityevents` | security.events | 1 year | Security events |
+| `default_securityevents_builtin` | security.events | 3 years | Built-in security events |
 
 > **Note**: Query your environment's `dt.system.buckets` to verify current retention settings.
 
 <a id="querying-bucket-information"></a>
 ## Querying Bucket Information
 
+### DQL: Built-in Bucket Discovery
+
+Discover all built-in Grail buckets in your environment:
+
+```dql
+// List all built-in Grail buckets — inventory check
+fetch dt.system.buckets
+| filter startsWith(name, "default_") or startsWith(name, "dt_")
+| fields name, display_name, dt.system.table, retention_days
+| sort dt.system.table asc, name asc
+```
+
+### DQL: Bucket Audit Events
+
+Track who created, updated, truncated, or deleted a bucket:
+
+```dql
+// Audit bucket management actions — returns create, update, truncate, delete events
+// Bucket changes are rare: widen to from:-365d for a full year of history
+fetch dt.system.events, from:-90d
+| filter event.kind == "AUDIT_EVENT" and event.category == "BUCKET_MANAGEMENT"
+| fields timestamp, event.type, resource, user.id, event.outcome
+| sort timestamp desc
+```
+
 <a id="querying-data-from-buckets"></a>
 ## Querying Data from Buckets
+
+### DQL: Querying Data from Buckets
+
+Use the `bucket:` parameter to target specific storage:
+
+```dql
+// Query logs from a specific bucket — use the bucket: parameter to target storage
+fetch logs, from:-1h, bucket:"default_logs"
+| limit 10
+```
+
+```dql
+// Query from multiple buckets simultaneously — controls scan scope
+fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
+| limit 100
+```
 
 <a id="bucket-characteristics"></a>
 ## Bucket Characteristics
@@ -285,42 +330,3 @@ Continue with the ORGNZ series:
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-### DQL: Built-in Bucket Discovery
-
-Discover all built-in Grail buckets in your environment:
-
-```dql
-// List all built-in Grail buckets — inventory check
-fetch dt.system.buckets
-| filter startsWith(name, "default_") or startsWith(name, "dt_")
-| fields name, display_name, dt.system.table, retention_days
-| sort dt.system.table asc, name asc
-```
-
-### DQL: Bucket Audit Events
-
-Track who created, updated, truncated, or deleted a bucket:
-
-```dql
-// Audit bucket management actions — returns create, update, truncate, delete events
-fetch dt.system.events
-| filter event.kind == "AUDIT_EVENT" and event.category == "BUCKET_MANAGEMENT"
-| sort timestamp desc
-```
-
-### DQL: Querying Data from Buckets
-
-Use the `bucket:` parameter to target specific storage:
-
-```dql
-// Query logs from a specific bucket — use the bucket: parameter to target storage
-fetch logs, from:-1h, bucket:"default_logs"
-| limit 10
-```
-
-```dql
-// Query from multiple buckets simultaneously — controls scan scope
-fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
-| limit 100
-```

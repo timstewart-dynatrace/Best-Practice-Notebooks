@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -32,11 +32,11 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 1 | Use Clouds app direct connections for SaaS | **Clouds app > Add connection** — no ActiveGate required | Critical | CLOUD-01 |
 | 2 | Reserve classic ActiveGate polling for Managed only | ActiveGate-based polling for Dynatrace Managed or strict network isolation only | Critical | CLOUD-01 |
 | 3 | AWS: Use IAM role-based auth (STS AssumeRole) | IAM Role with trust policy to Dynatrace AWS account; never use long-lived access keys in production | Critical | CLOUD-02 |
-| 4 | AWS: Attach `ReadOnlyAccess` or custom least-privilege policy | Never grant `AdministratorAccess` to the monitoring role | Critical | CLOUD-02 |
+| 4 | AWS: Use the Dynatrace-generated scoped read-only policy | Use the Dynatrace-generated scoped read-only policy from the CloudFormation template (or a least-privilege policy derived from it); never `AdministratorAccess` | Critical | CLOUD-02 |
 | 5 | Azure: Use Azure Native Dynatrace Service | Deploy from Azure Marketplace for zero-infrastructure setup with unified billing | Recommended | CLOUD-05 |
 | 6 | Azure: Use managed identity when ActiveGate runs on Azure VM | Eliminates credential rotation entirely | Critical | CLOUD-05 |
-| 7 | Azure: Assign `Reader` role at subscription scope | Scope: subscription or management group; role: `Reader` or `Monitoring Reader` | Critical | CLOUD-05 |
-| 8 | Azure: Use certificate-based auth for production (non-native) | Client secret for dev only; certificates for production Entra ID app registrations | Recommended | CLOUD-05 |
+| 7 | Azure: Assign `Monitoring Reader` role at subscription scope | Scope: subscription or management group; role: `Monitoring Reader` (the role the Azure connection docs assign); `Reader` only for the classic integration | Critical | CLOUD-05 |
+| 8 | Azure: Use a federated identity credential (non-native) | Use a federated identity credential for Clouds-app Azure connections; client secret only where federation is unavailable (keep expiry < 12 months) | Recommended | CLOUD-05 |
 | 9 | GCP: Create dedicated service account with minimal roles | Assign `roles/monitoring.viewer`, `roles/compute.viewer`, `roles/container.viewer`, `roles/cloudasset.viewer` | Critical | CLOUD-06 |
 | 10 | GCP: Use dedicated project for monitoring resources | Isolate Dynatrace service accounts, Pub/Sub topics, and billing in a separate GCP project | Recommended | CLOUD-06 |
 | 11 | GCP: Use Helm on GKE for push-based integration | Deploy via Pub/Sub for metrics and logs; no ActiveGate needed for SaaS | Recommended | CLOUD-06 |
@@ -92,7 +92,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
 | 29 | Deploy DynaKube in CloudNativeFullStack mode for standard node pools | `spec.oneAgent.cloudNativeFullStack` — full agent injection + infrastructure monitoring | Critical | CLOUD-03 |
-| 30 | Use ApplicationMonitoring mode for Fargate and GKE Autopilot | `spec.oneAgent.applicationMonitoring` with `useCSIDriver: false` for Fargate | Critical | CLOUD-03, CLOUD-06 |
+| 30 | Use ApplicationMonitoring mode for Fargate and GKE Autopilot | `spec.oneAgent.applicationMonitoring`; for Fargate, install the Operator with the **Without CSI driver** variant (`useCSIDriver` is not a DynaKube `v1beta5` / `v1beta6` field) | Critical | CLOUD-03, CLOUD-06 |
 | 31 | Add tolerations for tainted node groups | `tolerations: [{effect: NoSchedule, key: node-role, operator: Exists}]` to ensure OneAgent runs on all nodes | Critical | CLOUD-03 |
 | 32 | Enable kubernetes-monitoring capability on ActiveGate | `spec.activeGate.capabilities: [kubernetes-monitoring, routing]` | Critical | CLOUD-03 |
 | 33 | Use nodeSelector to exclude Windows nodes | `nodeSelector: {kubernetes.io/os: linux}` in DynaKube spec | Recommended | CLOUD-03 |
@@ -109,7 +109,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 |---|---|---|---|---|
 | 38 | Install Dynatrace Lambda Layer on all Lambda functions | Enables distributed tracing, code-level visibility, and direct log collection | Critical | CLOUD-04 |
 | 39 | Use meaningful Lambda function names | Avoid auto-generated names; use `<service>-<function>-<env>` pattern for identification | Recommended | CLOUD-04 |
-| 40 | Monitor concurrency headroom | Alert when `cloud.aws.lambda.concurrentExecutions` exceeds 80% of account limit (default: 1,000/region) | Critical | CLOUD-04 |
+| 40 | Monitor concurrency headroom | Alert when `cloud.aws.lambda.ConcurrentExecutions.By.FunctionName` (Metric Streams) / `dt.cloud.aws.lambda.conc_executions` (polling) exceeds 80% of account limit (default: 1,000/region) | Critical | CLOUD-04 |
 | 41 | Track cold start ratio via spans | Query `faas.coldstart == true` from spans; high ratio indicates need for provisioned concurrency or SnapStart | Recommended | CLOUD-04 |
 | 42 | Use error-to-invocation ratio, not raw error count | `error_pct = errors / invocations * 100`; alert threshold: > 1% for critical functions | Critical | CLOUD-04 |
 | 43 | Correlate API Gateway latency with Lambda duration | End-to-end latency = API GW overhead + Lambda duration; monitor both | Recommended | CLOUD-04 |
@@ -124,7 +124,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 |---|---|---|---|---|
 | 46 | Use Amazon Data Firehose for CloudWatch log forwarding | Fully managed, auto-scaling, no custom code. Buffer: 1 MB or 60 seconds. Enable GZIP compression | Critical | CLOUD-07 |
 | 47 | Migrate the legacy **CloudWatch-subscription** Lambda forwarder to Firehose | `dynatrace-aws-log-forwarder` — the CloudWatch Subscription Filter → Lambda → Dynatrace API path — is **deprecated**; do not use it for new *CloudWatch* log forwarding. **Scope of this row:** it retires one named component for one source. It is **not** a prohibition on Lambda-based log forwarding in general — see 47b | Critical | CLOUD-07 |
-| 47b | For logs already in **S3**, use the S3 direct-ingestion forwarder — a *different* component for a *different* source, and supported | Forthcoming / rolling out (**SaaS 1.344**, **staged tenant rollout** from 07/29/2026 — verify it has reached your tenant): a **Dynatrace-maintained** Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a **single CloudFormation stack**, with records **linked to their Smartscape entity** when the producing account has an active AWS connection. Until it arrives, the customer-deployed S3 serverless pattern described in CLOUD-07 §3 remains the working path | Recommended | CLOUD-07 |
+| 47b | For logs already in **S3**, use the S3 direct-ingestion forwarder — a *different* component for a *different* source, and supported | Forthcoming / rolling out (**SaaS 1.344**, **staged tenant rollout** from 07/29/2026 — verify it has reached your tenant): a **Dynatrace-maintained** Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a **single CloudFormation stack**, with records **linked to their Smartscape entity** when the producing account has an active AWS connection. Until it arrives, the Dynatrace-published `dynatrace-aws-s3-log-forwarder` (not the archived `dynatrace-aws-log-forwarder`) remains the working path — CLOUD-07 §3 | Recommended | CLOUD-07 |
 | 48 | Use Lambda Layer log collection for Lambda functions | When Lambda Layer is deployed for tracing, use its built-in log collection instead of Firehose for Lambda logs | Recommended | CLOUD-07 |
 | 49 | Apply subscription filter patterns at CloudWatch level | Filter pattern examples: `?"ERROR" ?"WARN" ?"CRITICAL"` for Lambda; `""` (all) for application services | Critical | CLOUD-07 |
 | 50 | Drop debug/trace logs at source | Pre-filter: exclude DEBUG and TRACE in CloudWatch subscription filters. Estimated savings: 40–60% | Critical | CLOUD-07 |

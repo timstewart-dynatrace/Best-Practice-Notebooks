@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -308,9 +308,12 @@ spec:
 
   # Application Only - sidecar injection, no host monitoring
   oneAgent:
-    applicationMonitoring:
-      useCSIDriver: true
+    applicationMonitoring: {}
 ```
+
+> `useCSIDriver` is not a `v1beta5` field — the DynaKube parameters reference lists it only for the retired `v1beta1`/`v1beta2` APIs. Whether code modules come from the CSI driver is decided when the Operator is installed (CSI or *Without CSI driver* variant).
+>
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"DynaKube API version v1beta2 is no longer available with Dynatrace Operator version 1.7.0"*; [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver pod on each node."*</sub>
 
 **Host Monitoring (host metrics only):**
 

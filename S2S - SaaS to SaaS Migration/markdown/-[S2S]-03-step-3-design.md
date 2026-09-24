@@ -1,6 +1,6 @@
 # S2S-03: Step 3 — Design: Target Tenant Architecture
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -101,15 +101,21 @@ resource "dynatrace_iam_policy" "sre_settings" {
 
 ### Audit Source IAM Structure
 
-Before designing target IAM, query the source tenant to understand the current access model:
+Before designing target IAM, understand the current access model. Groups, policies, boundaries and bindings are **account-level** objects: *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*, which administrators view in Account Management > Settings > Audit log ([Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)). They are not in the source environment's audit events. What the environment can tell you is who actually uses it:
 
 ```dql
-// Audit log: IAM-related changes in the source tenant (last 30 days)
-fetch logs, from:-30d
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "iam") or contains(content, "policy") or contains(content, "group")
-| summarize changes = count(), by:{dt.audit.user}
-| sort changes desc
+// Who uses the source environment: successful sign-ins per user (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// Group, policy, boundary and binding changes are ACCOUNT-level. They are not in an
+// environment's audit events; review them in Account Management > Settings > Audit log.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT"
+| filter event.type == "LOGIN" and event.outcome == "success"
+| summarize logins = count(), last_login = takeMax(timestamp), by:{user.id}
+| sort logins desc
 | limit 20
 ```
 
@@ -203,10 +209,16 @@ Query the source tenant's audit log to understand which OpenPipeline configurati
 
 ```dql
 // Audit log: OpenPipeline configuration changes (last 30 days)
-fetch logs, from:-30d
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "openpipeline")
-| summarize changes = count(), by:{dt.audit.user}
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// OpenPipeline configuration is stored as builtin:openpipeline.* settings schemas.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS"
+| filter startsWith(details.dt.settings.schema_id, "builtin:openpipeline.")
+| filter in(event.type, {"CREATE", "UPDATE", "DELETE"})
+| summarize changes = count(), by:{details.dt.settings.schema_id, user.id}
 | sort changes desc
 | limit 10
 ```
@@ -383,11 +395,19 @@ fetch dt.entity.service
 ```
 
 ```dql
-// Audit source tenant: find dashboards and SLOs with hardcoded entity IDs
-fetch logs, from:-30d
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "entityId") or contains(content, "HOST-") or contains(content, "SERVICE-")
-| summarize references = count(), by:{dt.audit.user}
+// Audit source tenant: Settings 2.0 objects written with hardcoded entity IDs (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// Scope: audit events carry the object payload (details.json_after) only for Settings 2.0
+// objects, and only for objects changed inside the timeframe. Classic dashboards are not
+// covered - search your configuration export for HOST-/SERVICE- IDs for a complete inventory.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS"
+| filter in(event.type, {"CREATE", "UPDATE"})
+| filter contains(details.json_after, "HOST-") or contains(details.json_after, "SERVICE-")
+| summarize references = count(), by:{details.dt.settings.schema_id, user.id}
 | sort references desc
 | limit 20
 ```

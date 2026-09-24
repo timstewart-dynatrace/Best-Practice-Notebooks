@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -107,10 +107,16 @@ Query the source tenant to understand which OpenPipeline configurations are acti
 
 ```dql
 // Audit log: OpenPipeline configuration changes (last 30 days)
-fetch logs, from:-30d
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "openpipeline")
-| summarize changes = count(), by:{dt.audit.user}
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// OpenPipeline configuration is stored as builtin:openpipeline.* settings schemas.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS"
+| filter startsWith(details.dt.settings.schema_id, "builtin:openpipeline.")
+| filter in(event.type, {"CREATE", "UPDATE", "DELETE"})
+| summarize changes = count(), by:{details.dt.settings.schema_id, user.id}
 | sort changes desc
 | limit 10
 ```
@@ -244,10 +250,17 @@ After SLOs are deployed and data has accumulated, verify that they are evaluatin
 ```dql
 // Audit log: SLO configuration changes (last 7 days)
 // Use this to verify SLOs were successfully deployed to target tenant
-fetch logs, from:-7d
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "slo")
-| summarize changes = count(), by:{dt.audit.user}
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// SLO service writes are provider "SLO" (evaluation calls excluded); classic SLOs are the
+// builtin:monitoring.slo settings schema.
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter (event.provider == "SLO" and in(event.type, {"POST", "PUT", "DELETE"}) and not endsWith(resource, "evaluation:start"))
+    or (event.provider == "SETTINGS" and details.dt.settings.schema_id == "builtin:monitoring.slo")
+| summarize changes = count(), by:{event.provider, event.type, user.id}
 | sort changes desc
 | limit 10
 ```

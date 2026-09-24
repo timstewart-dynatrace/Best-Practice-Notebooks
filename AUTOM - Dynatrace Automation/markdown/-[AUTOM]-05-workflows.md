@@ -1,6 +1,6 @@
 # AUTOM-05: Dynatrace Workflows
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 Dynatrace Workflows is a built-in automation engine that enables event-driven actions directly within the platform. Unlike external tools, workflows run inside Dynatrace with full access to observability data.
 
@@ -228,7 +228,8 @@ tasks:
       method: POST
       headers:
         Content-Type: application/json
-        Authorization: "Bearer {{ env.API_TOKEN }}"
+        # No Authorization header: select a Credential Vault token in the
+        # action's Authentication input instead (see Credential Management below)
       body: |
         {
           "title": "{{ event()['event.name'] }}",
@@ -242,8 +243,10 @@ tasks:
 Store credentials securely:
 
 1. Go to **Settings → Credential Vault**
-2. Create a new credential
-3. Reference in workflow: `{{ credential.MY_API_KEY }}`
+2. Create a new credential (Token or Basic)
+3. In an HTTP Request task, select it in the **Authentication** input: *"The HTTP Request action supports using credentials from the credential vault for Basic and Token authentication."* In a Run JavaScript task, read it with `credentialVaultClient`.
+
+The workflow expression language has no `env` or `credential` object, so `{{ env.API_TOKEN }}` and `{{ credential.MY_API_KEY }}` are not valid references. Do not fall back to a literal header either — header values show in the workflow monitor, and Dynatrace advises: *"We strongly advise you not to expose any secret, but instead to use the authentication configuration via Credential Vault."* ([HTTP Request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action), [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action))
 
 ---
 

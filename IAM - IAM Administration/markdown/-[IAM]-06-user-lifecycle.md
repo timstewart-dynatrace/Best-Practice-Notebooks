@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 09/09/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -24,7 +24,7 @@ Manual user management doesn't scale. This notebook covers user lifecycle automa
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `account-iam-admin` for user/token management |
+| **Permissions** | `account-user-management` for user/token management |
 | **IdP** | Enterprise IdP (Okta, Azure AD, etc.) for SCIM |
 
 ## 1. User Lifecycle Overview
@@ -66,7 +66,7 @@ Users have a lifecycle from creation to deactivation. Effective management requi
 ## 2. SCIM Provisioning
 SCIM (System for Cross-domain Identity Management) automatically syncs users and groups from your IdP to Dynatrace.
 
-> **Breaking (SaaS 1.347 — staged rollout from 09/08/2026): `GET /Users` pagination is now RFC-compliant.** Verbatim: *"The SCIM `GET /Users` endpoint now interprets `startIndex` as the absolute, 1-based index of the first result, per RFC 7644."*
+> **Breaking (SaaS 1.347 — pre-release notes; staged rollout planned from 09/08/2026): `GET /Users` pagination is now RFC-compliant.** Verbatim: *"The SCIM `GET /Users` endpoint now interprets `startIndex` as the absolute, 1-based index of the first result, per RFC 7644."*
 >
 > **A client that passed a page number silently reads the wrong window.** Under the old interpretation `startIndex=2` meant "the second page"; under RFC 7644 it means "start at record 2". The request still returns `200` with a well-formed body, so the failure surfaces as users that never sync rather than as an error — the same silent shape that makes provisioning bugs hard to attribute.
 >
@@ -421,7 +421,9 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Find token creation events
+// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Token events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN, and their resource is the token ID —
+// a contains(resource, "token") filter misses them and matches only /lookups/iam_tokens uploads.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -435,8 +437,8 @@ fetch dt.system.events, from:-7d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.type == "CREATE" and contains(resource, "token")
-| fields timestamp, user.id, resource, event.outcome
+| filter in(event.provider, {"API_TOKEN", "ACTIVE_GATE_TOKEN"})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```

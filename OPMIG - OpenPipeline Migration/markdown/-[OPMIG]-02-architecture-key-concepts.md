@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Architecture & Key Concepts
 ---
@@ -59,11 +59,13 @@ Understanding how data flows through OpenPipeline is essential for designing eff
 | **Ingest** | OneAgent, Generic API, OTLP, Custom (built-in / ready-made / custom sources) | Data entry points; source recorded in `dt.openpipeline.source` |
 | **Pre-processing** *(custom sources only, optional)* | Source-level DQL transform | Normalize raw data into a common shape before routing |
 | **Routing** | Dynamic matchers (DQL) or static assignment (custom sources) | Route records to one or more pipelines |
-| **Processing** | Mask, drop, transform, parse, enrich, extract metrics/events/Smartscape, assign cost/security context | All in-pipeline work — masking, filtering, parsing, transformation, and extraction are processor categories within this stage, not separate stages |
-| **Storage** | Bucket assignment, retention policies, no-storage option | Persist to a Grail bucket, or skip retention with the No storage assignment processor |
+| **Pipeline** | Fixed sequence of stages: **Processing** (DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Masking, dropping, parsing and transformation all happen in the first stage (Processing); the extraction stages run after bucket assignment |
+| **Storage** | Grail bucket chosen by the Bucket assignment stage (or not stored — No storage assignment), retention per bucket | Persist to a Grail bucket, or skip retention with the No storage assignment processor |
 -->
 
-> **Doc alignment (May 2026):** OpenPipeline's official `/concepts/data-flow` documentation describes a **four-stage flow** (Ingest → Routing → Processing → Storage) with optional pre-processing on custom sources. Earlier versions of this notebook described a five-stage flow with a separate "Extraction" stage; metric, event, Smartscape, and cost-allocation extraction processors actually live *within* the Processing stage.
+> **Stage model (verified 09/24/2026):** data flows Ingest → Routing → pipeline → Storage, with optional pre-processing on custom sources. Inside a pipeline, per *Processing in OpenPipeline*, *"The sequence of stages is fixed for all pipelines and cannot be modified."* Masking, dropping, parsing and transformation are processors in the first stage, **Processing**; **Bucket assignment** comes seventh, and **Metric extraction**, **Davis** and **Data extraction** run after it. The diagram's Processing box stands for that whole stage sequence.
+>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order.</sub>
 
 ### Key Principles
 
@@ -372,10 +374,12 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 
 | Limit | Value | Notes |
 |-------|-------|-------|
-| **Max custom buckets** | 50 buckets | Per environment |
+| **Max custom buckets** | 80 by default; 250 from SaaS 1.346 (staged tenant rollout from 08/25/2026) | Per environment. The upgrade guide still states 80, the Grail *organize data* page and the 1.346 release note state 250 — check which default your tenant has before planning to either number |
 | **Min retention period** | 1 day | Per bucket |
 | **Max retention period** | 2555 days (~7 years) | Per bucket |
 | **Bucket name length** | 100 characters | Alphanumeric + underscore |
+
+> <sub>**Sources:** [Data partitioning — upgrade best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — *"The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table."*; [Organize data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"The default limit per environment is 250 custom buckets."*; [SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"Dynatrace now supports up to 250 custom Grail buckets by default"*.</sub>
 
 ### Rate Limits
 
@@ -623,23 +627,31 @@ fetch logs, from: now() - 24h
 <a id="understanding-processing-order"></a>
 ## Understanding Processing Order
 
-The order of processors within the Processing stage is critical:
+Two orders are in play, and only one of them is yours to choose:
+
+1. **The stage sequence is fixed.** Per *Processing in OpenPipeline*, *"The sequence of stages is fixed for all pipelines and cannot be modified."* Every pipeline runs **Processing** → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction**. Masking, dropping, parsing and transformation are all processors in the first stage; there is no separate masking or filtering stage, and the extraction stages run *after* bucket assignment.
+2. **Processor order within a stage is the order you configure** — *"each processor output becomes the input for the next one."*
 
 ![Processing Stage Order](images/processing-order.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Order | Processor Category | Purpose |
-|-------|-------------------|---------|
-| 1 | MASKING | Security first - redact PII before anything |
-| 2 | FILTERING (Drop record) | Drop unwanted records early |
-| 3 | TRANSFORM (DQL, Parse, fields) | Parse, enrich, normalize |
-| 4 | ENTITY DETECTION (automatic) | `dt.entity.*` fields are added by Dynatrace |
-| 5 | EXTRACTION | Metric, event, Smartscape, business event, SDLC, Davis event processors |
-| 6 | COST & SECURITY | DPS Cost Allocation, Set dt.security_context |
-| 7 | STORAGE ASSIGNMENT | Bucket assignment or No storage assignment |
+| Order | Stage | Processors |
+|-------|-------|------------|
+| 1 | Processing | DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup — all matching processors, in the order you list them |
+| 2 | Smartscape node | Smartscape node |
+| 3 | Smartscape edge | Smartscape edge |
+| 4 | Permission | Set security context (first match only) |
+| 5 | Product allocation | DPS cost allocation – product (first match only) |
+| 6 | Cost allocation | DPS cost allocation – cost center (first match only) |
+| 7 | Bucket assignment | Bucket assignment, No storage assignment (first match only) |
+| 8 | Metric extraction | Counter / value / histogram metric (sampling-aware variants on spans) |
+| 9 | Davis | Davis event |
+| 10 | Data extraction | Business event, software development lifecycle event |
 -->
 
-> 💡 **Tip:** Masking is applied FIRST so sensitive data is protected even if subsequent processors fail. The numbered groups above are processor *categories within the Processing stage* — they are not separate pipeline stages.
+> 💡 **Tip:** Masking is not automatically first. Inside the Processing stage, place masking processors **before** any processor that copies, parses or extracts from the sensitive field — a processor listed ahead of the masking processor sees the raw value. Records reach Bucket assignment and storage only after the whole Processing stage has run. The diagram groups processors by purpose; the execution order the platform enforces is the stage sequence above.
+>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order; *"The processor order in the stage; each processor output becomes the input for the next one."*</sub>
 
 ---
 
@@ -648,11 +660,11 @@ The order of processors within the Processing stage is critical:
 
 | Concept | Key Points |
 |---------|------------|
-| **Data Flow** | Ingest → (Pre-process) → Route → Process → Store (4 stages + optional pre-processing per `/concepts/data-flow`) |
+| **Data Flow** | Ingest → (Pre-process) → Route → pipeline (fixed stage sequence) → Store |
 | **Pre-storage** | All processing happens before data is persisted |
 | **Source Types** | Built-in / Ready-made / Custom — only custom sources support pre-processing and static routing |
 | **Routing** | Dynamic (DQL matcher) or static (custom sources only) |
-| **Processing Order** | Mask → Drop → Transform → Extract → Cost/Security → Storage assignment |
+| **Processing Order** | Fixed stages: Processing (mask, drop, parse, transform — in the order you list them) → Smartscape node/edge → Permission → Product and cost allocation → Bucket assignment → Metric extraction → Davis → Data extraction |
 | **Entity Detection** | Happens AFTER processing, BEFORE most extraction processors run |
 | **Multi-pipeline** | One record can be processed by up to 5 pipelines (`/reference/limits`) |
 | **DPL** | Powerful pattern language for parsing |
@@ -683,7 +695,7 @@ Now that you understand OpenPipeline architecture, continue with:
 
 ---
 
-*Last Updated: May 6, 2026*
+*Last Updated: September 24, 2026*
 
 ---
 

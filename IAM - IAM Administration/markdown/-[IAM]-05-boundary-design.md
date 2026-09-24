@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 09/10/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies.
@@ -24,7 +24,7 @@ Boundaries determine **what data** users can see. While policies control actions
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `environment-admin` or boundary management rights |
+| **Permissions** | `account-user-management` (boundaries are account-level objects) |
 | **Prior Knowledge** | **IAM-01** through **IAM-04** |
 
 <a id="boundary-fundamentals"></a>
@@ -38,9 +38,11 @@ Boundaries filter what entities and data a user can see within an environment.
 | **Policy** | What actions | "Can read logs" |
 | **Boundary** | What data | "Logs from checkout service only" |
 
-A user needs BOTH:
-- A **policy** granting the action (e.g., `storage:logs:read`)
-- A **boundary** including the data (e.g., `checkout` security context)
+A **policy** is required; a **boundary** is optional and only narrows it:
+- A **policy** grants the action (e.g., `storage:logs:read`)
+- A **boundary**, attached to a policy binding, restricts it to certain data (e.g., the `checkout` security context)
+
+A policy bound without a boundary applies to all data its permissions cover.
 
 ### How Boundaries Work
 
@@ -51,13 +53,15 @@ A user needs BOTH:
 
 ### Boundary Scope
 
-Boundaries are **environment-level** and assigned to groups:
+Boundaries are **account-level** objects, attached per policy binding — and the binding itself can be account- or environment-scoped:
 
 ```
 Group: dt-checkout-editors
-├── Policy: environment-editor
+├── Policy: Pro User
 └── Boundary: checkout-services-only
 ```
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Boundaries alone don't restrict anything, they are always used together with policies in the process of assigning policies to your user groups."*</sub>
 
 <a id="the-three-domain-model"></a>
 ## 2. The Three-Domain Model
@@ -150,7 +154,7 @@ ALLOW environment:roles:viewer;
 environment:management-zone IN ("checkout");
 ```
 
-Attach both to the user's group. When Management Zone retirement completes, the Gen2 binding is removed cleanly without touching the Gen3 one. **A `MATCH` operator on a Gen2 policy's boundary (e.g., `MATCH('*')` against `storage:entities:read`) would grant access to all Gen2 entities — `MATCH` belongs in Gen3 boundaries only.**
+Attach both to the user's group. When Management Zone retirement completes, the Gen2 binding is removed cleanly without touching the Gen3 one. **`MATCH` does not apply to Gen2 surfaces:** the `environment:` domain has no `MATCH`, and `storage:entities:read` (classic entities) supports only `=`, `IN` and `startsWith`.
 
 ### Operators
 
@@ -160,12 +164,13 @@ Attach both to the user's group. When Management Zone retirement completes, the 
 | `=` | Exact match | `= "checkout"` |
 | `!=` | Not equal | `!= "restricted"` |
 | `startsWith` | Prefix match | `startsWith "team-"` |
-| `contains` | Substring | `contains "prod"` |
 | `MATCH` | Wildcard pattern match | `storage:dt.security_context MATCH('*/app:easytrade')` |
 
 > **`MATCH()` is available for the `storage` and `settings` domains.** It supports `*` as a wildcard at any position — anchor with a trailing `*` to mimic prefix matching. The `environment:` domain (Classic Management Zones) does **not** support `MATCH()` — use `IN` (preferred) or `startsWith` there.
 >
-> **⚠️ `storage:smartscape:read` + `startsWith` has a known bug.** Use `MATCH('value*')` instead (e.g. `MATCH('comp:db*')`) for Smartscape and Classic entity access.
+> **`storage:entities:read` (classic entities) supports `=`, `IN` and `startsWith` only** — Dynatrace documents `startsWith` as evaluating for any matching value of the multi-value entity context. `storage:smartscape:read` and the record tables also accept `MATCH`.
+>
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"the security context of this entity. Can be a multi-value field and startsWith will evaluate for any matching value."*</sub>
 
 > **Place wildcards next to a word separator.** Dynatrace's guidance is to put the `*` immediately before or after a separator character — `-`, `_`, `.`, or `/`. `MATCH("db-tech-*")` evaluates more efficiently than `MATCH("db-tech*")`. This is why the structured `dt.security_context` format below uses `/` between dimensions and `:` within them: every boundary a transversal team needs then lands on a separator rather than mid-token.
 
@@ -221,15 +226,17 @@ ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
 ALLOW environment:roles:manage-settings, environment:roles:viewer;
 ```
 
-> **Don't write `MATCH('*')` on a Gen2 policy.** `MATCH` is a Gen3-domain operator only; using it as a wildcard on `storage:entities:read` (a Gen2 surface) would silently grant access to all Gen2 entities.
+> **Don't write `MATCH` on a Gen2 policy.** The `environment:` domain does not support it, and `storage:entities:read` (classic entities) lists only `=`, `IN` and `startsWith`. To grant all classic entity access, bind the policy without a boundary instead of writing a wildcard.
 
 ### Boundary Limitations
 
 | Limitation | Description | Workaround |
 |------------|-------------|------------|
 | **Max 10 conditions** | Only 10 lines per boundary | Create multiple boundaries |
-| **No AND between lines** | Each line is OR-combined | Use multiple boundaries for AND logic |
+| **No AND inside a boundary** | One condition per line; repeated condition names multiply the statement | Need AND? Put it in the policy's WHERE clause (IAM-04). Multiple boundaries on one policy are evaluated separately — they widen, not narrow |
 | **MATCH not in `environment:`** | `MATCH()` not supported in `environment:` domain (Classic MZ) | Use `IN` (preferred) for management zones |
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Boundaries don't support the AND operator, every line of a boundary can only consist of one condition."*; *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"*.</sub>
 
 <a id="security-context-and-data-partitioning-strategy"></a>
 ## 4. Security Context and Data Partitioning Strategy
@@ -287,7 +294,11 @@ These fields are automatically enriched from infrastructure metadata and provide
 | **Maximum buckets** | 80 per environment (default limit) |
 | **Optimal ingest** | ~1 TB/day per bucket for best query performance |
 | **Acceptable ingest** | 1-3 TB/day per bucket (limited query window) |
-| **Maximum ingest** | 3 TB/day per bucket hard limit |
+| **Maximum ingest** | No per-bucket ingest cap is documented. The 500 GB scan limit shrinks the queryable window as a bucket grows, and Dynatrace's split guidance differs between pages — see the note below |
+
+> **Sizing guidance varies.** Dynatrace pages describe single buckets well above 3 TB/day as possible but slow to query, and they give different points at which to split. Size against your own query windows rather than a fixed ceiling.
+>
+> <sub>**Sources:** [Partition data with Grail buckets (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."*; [Logs bucket strategy best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — *"At 100 TB/day in a single bucket, the same 500 GB scan covers only a few minutes of logs, making historical queries impractical without increasing scan limits."*</sub>
 
 ### Query Constraints
 
@@ -307,7 +318,7 @@ These fields are automatically enriched from infrastructure metadata and provide
 | `default_events` | 35 days |
 
 **Naming Convention:** Include organization, data type, and retention in bucket names:
-- `teamA_logs_90d`
+- `team_a_logs_90d`
 - `prod_spans_30d`
 - `pci_metrics_365d`
 
@@ -357,7 +368,7 @@ environment:management-zone IN ("Checkout");
 
 For team-level data access control (when the bucket scenario fits):
 
-1. **Create team-specific buckets** - `teamA_logs`, `teamA_spans`, etc.
+1. **Create team-specific buckets** - `team_a_logs`, `team_a_spans`, etc.
 2. **Configure pipeline routing** - Route data to buckets based on primary Grail fields
 3. **Create one parameterized policy** — bound to each team's group with different bucket parameters
 4. **Create one standalone boundary per team** — hardcoded scope, applied per group
@@ -375,7 +386,6 @@ Policy: tpl-team-data-access (parameterized)
 Boundary: bnd-team-checkout
     storage:bucket-name IN ("checkout_logs", "checkout_spans", "checkout_metrics");
     storage:dt.security_context IN ("checkout");
-    environment:management-zone IN ("Checkout");
 
 // Group: bind both — policy with team-specific parameters, boundary as-is
 Group: Checkout-Team
@@ -396,8 +406,11 @@ Group: Checkout-Team
 └── Boundary: bnd-team-checkout (unchanged — per-team hardcoded scope)
     storage:bucket-name IN ("checkout_logs", "checkout_spans", "checkout_metrics");
     storage:dt.security_context IN ("checkout");
-    environment:management-zone IN ("Checkout");
 ```
+
+> **No management zone in `bnd-team-checkout`.** Dynatrace's upgrade guidance is explicit: *"Boundary definitions must not reference classic management zones."* If you still need classic access during the transition, use a **separate** Gen2 boundary on a separate Gen2 policy binding (the "Standalone Gen2 boundary" above) — it is not part of the target model.
+>
+> <sub>**Sources:** [Upgrade management zones to IAM and segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-03-iam-segments).</sub>
 
 Adding a new team is one boundary YAML + one binding YAML — the policy stays unchanged. See **IAM-10: Templated Policy-Group Assignments** for binding mechanics and **IAM REFERENCE.md § Change-Management Caveat** for why parameter-shape decisions matter at design time.
 
@@ -556,8 +569,8 @@ Using two groups for the same user:
 
 **Group 1: All-Viewers (broad read)**
 ```
-Policy: environment-viewer
-Boundary: environment:management-zone IN ("*");
+Policy: Standard User (default policy)
+Boundary: none — a policy bound without a boundary is already environment-wide
 ```
 
 **Group 2: Checkout-Editors (scoped write)**
@@ -574,11 +587,15 @@ When `dt.security_context` follows the `comp:<component>/bu:<bu>/app:<app>` form
 // 3rd Gen Grail data — wildcard on app dimension (mid-string)
 storage:dt.security_context MATCH('*/app:easytrade');
 
-// Smartscape/Classic entities — anchored MATCH per component
-// (do NOT use startsWith on storage:smartscape:read or storage:entities:read — known bug)
+// Smartscape (storage:smartscape:read) — anchored MATCH per component
 storage:dt.security_context MATCH('comp:app/bu:digital/app:easytrade*');
 storage:dt.security_context MATCH('comp:db/bu:digital/app:easytrade*');
 storage:dt.security_context MATCH('comp:lb/bu:digital/app:easytrade*');
+
+// Classic entities (storage:entities:read) — no MATCH; startsWith matches any value of the array
+storage:dt.security_context startsWith "comp:app/bu:digital/app:easytrade";
+storage:dt.security_context startsWith "comp:db/bu:digital/app:easytrade";
+storage:dt.security_context startsWith "comp:lb/bu:digital/app:easytrade";
 ```
 
 This grants access to all data tagged with any component prefix for that application:
@@ -594,8 +611,11 @@ Infrastructure teams (database, network, OS) that need cross-application access 
 // 3rd Gen Grail data — all database components, all applications
 storage:dt.security_context MATCH('comp:db*');
 
-// Smartscape/Classic entities — anchored MATCH (NOT startsWith — known bug)
+// Smartscape (storage:smartscape:read) — anchored MATCH
 storage:dt.security_context MATCH('comp:db*');
+
+// Classic entities (storage:entities:read) — no MATCH; use startsWith
+storage:dt.security_context startsWith "comp:db";
 ```
 
 This grants access to all data matching:
@@ -605,11 +625,11 @@ This grants access to all data matching:
 
 > **Dimension order is the key design decision.** Placing `comp` first in the string means component-based transversal access is always a simple anchored match. Access by `bu` or other mid-string dimensions requires `MATCH('*/bu:digital/*')`.
 
-### Multi-Value Security Context (Upcoming)
+### Multi-Value Security Context
 
-> **Planned: CQ3** — `PRODUCT-14849`
+`dt.security_context` can already hold an array, and on classic entities it commonly does — on the validation tenant (09/24/2026) 9 of 10 hosts held an array, and 6 of them carried two or more values. Grail record permissions evaluate arrays only with `MATCH` (`=`, `IN` and `startsWith` return false); for `storage:entities:read`, use `startsWith`, which evaluates any matching value.
 
-The current single-string model requires choosing one leading dimension. A future **multi-value `dt.security_context`** will store each dimension independently:
+The single-string model above requires choosing one leading dimension. Storing each dimension as its own array value removes that choice:
 
 ```
 dt.security_context = ["bu:digital", "app:easytrade", "comp:db"]
@@ -617,13 +637,15 @@ dt.security_context = ["bu:digital", "app:easytrade", "comp:db"]
 
 This removes the dimension-ordering trade-off and simplifies all three team types to a single boundary condition per signal type:
 
-| Team | Boundary (future) |
+| Team | Boundary |
 |------|-------------------|
 | App team (easytrade) | `storage:dt.security_context MATCH('app:easytrade')` |
 | Database team (transversal) | `storage:dt.security_context MATCH('comp:db')` |
 | Business unit (digital) | `storage:dt.security_context MATCH('bu:digital')` |
 
-Until multi-value is available, the structured single-string pattern above is the recommended approach.
+Whichever model you choose, check what your data actually holds before writing conditions (the array check in Section 3).
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"// will match both "crn-70400-alpha" and ["crn-70131", "crn-70400-beta", "crn-70500"]"*.</sub>
 
 <a id="multi-tenant-isolation"></a>
 ## 6. Multi-Tenant Isolation
@@ -697,7 +719,7 @@ Condition: Host group name contains "tenant-"
 Action: Set dt.security_context = {hostGroup.name}
 ```
 
-Alternatively, set the context on the OneAgent at deployment. The June-2026 [tags hub](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent) documents the host-tag form for `dt.*` primary fields (the older `--set-host-property` form remains documented in the oneagentctl reference):
+Alternatively, set the context on the OneAgent at deployment. The June-2026 [tags hub](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) documents the host-tag form for `dt.*` primary fields (the older `--set-host-property` form remains documented in the oneagentctl reference):
 
 ```bash
 # Set via OneAgent installer / oneagentctl (tags-hub form)
@@ -824,7 +846,7 @@ In this notebook, you learned:
 - [Permission Boundaries](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
 - [Security Context](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)
 - [Primary Tags](https://docs.dynatrace.com/docs/manage/tags/primary-tags)
-- [Host properties and tags via OneAgent (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-domain-oneagent)
+- [Host properties and tags via OneAgent (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent)
 
 ---
 

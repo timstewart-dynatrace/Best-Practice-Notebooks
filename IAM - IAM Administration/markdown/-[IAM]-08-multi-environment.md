@@ -1,6 +1,6 @@
 # IAM-08: Multi-Environment IAM
 
-> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Scaling IAM Across Multiple Environments
 Enterprise organizations typically have multiple Dynatrace environments (development, staging, production). This notebook covers strategies for managing IAM consistently across environments while maintaining security boundaries.
@@ -53,7 +53,6 @@ Dynatrace Account (Organization Level)
 |-------|-----------------|----------|
 | **Account** | Users, groups, SSO, billing | Create users, manage IdP |
 | **Environment** | Data access, settings, configurations | Read logs, modify alerting |
-| **Segment** | Subset of environment data | Access only prod-frontend data |
 
 ### Common Environment Patterns
 
@@ -74,10 +73,9 @@ Managed in Account Management, apply across all environments:
 
 | Permission | Description |
 |------------|-------------|
-| `account-iam-admin` | Full IAM administration |
+| `account-user-management` | View and manage users, groups and policies |
 | `account-viewer` | View account information |
-| `account-company-admin` | Manage account settings |
-| `account-env-admin` | Create/manage environments |
+| `account-company-info` | Manage account and company settings |
 
 ### Environment-Level Permissions
 
@@ -94,7 +92,7 @@ Scoped to specific environments:
 
 | Role | Account Perms | Prod | Stage | Dev |
 |------|---------------|------|-------|-----|
-| IAM Admin | `account-iam-admin` | - | - | - |
+| IAM Admin | `account-user-management` | - | - | - |
 | Prod Viewer | - | Read | - | - |
 | Prod Editor | - | Read/Write | - | - |
 | Dev Team | - | Read | Read/Write | Full |
@@ -224,7 +222,7 @@ Emergency access mechanism for critical incidents when:
    - MFA with hardware token
 
 2. **Assign minimal necessary permissions**
-   - Typically `account-iam-admin` + environment admin
+   - Typically `account-user-management` + the Admin User default policy
    - Or scoped to specific emergency needs
 
 3. **Secure the credentials**
@@ -283,8 +281,8 @@ iam-config/
 │   ├── dev-team.yaml
 │   └── security-team.yaml
 ├── policies/
-│   ├── environment-viewer.yaml
-│   ├── environment-editor.yaml
+│   ├── standard-user.yaml
+│   ├── pro-user.yaml
 │   └── log-reader.yaml
 └── boundaries/
     ├── production-boundary.yaml
@@ -347,10 +345,10 @@ Special considerations for MSPs and multi-tenant deployments.
 
 <a id="monitoring-multi-environment-iam"></a>
 ## Monitoring Multi-Environment IAM
-Query patterns for multi-environment oversight.
+Query patterns for multi-environment oversight. Run these in each environment — audit events are recorded per environment, so there is no cross-environment audit query. Account-level changes are in the account audit log (Account Management > Settings > Audit log).
 
 ```dql
-// Cross-environment access attempts
+// Who calls this environment, from where (by organization, provider, source)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -370,7 +368,7 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Account-level administrative actions
+// Write activity in this environment by organization — account-level changes are in Account Management > Settings > Audit log
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -447,7 +445,6 @@ In this notebook, you learned:
 
 ## References
 
-- [Account Management](https://docs.dynatrace.com/docs/manage/account-management)
 - [Account Management (DT docs)](https://docs.dynatrace.com/docs/manage/account-management)
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
 

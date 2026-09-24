@@ -1,6 +1,6 @@
 # IAM-10: Templated Policy-Group Assignments
 
-> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook walks you through the complete lifecycle: template syntax, UI crea
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `account-iam-admin` to create/modify policies and bindings |
+| **Permissions** | `account-user-management` to create/modify policies and bindings |
 | **API Access** | OAuth client or API token with IAM management scopes |
 | **Prior Knowledge** | **IAM-04: Policy Authoring and Management** (policy syntax, conditions) |
 | **Optional** | Monaco CLI installed (for policy-as-code section) |
@@ -229,11 +229,11 @@ for team in "${!TEAM_GROUPS[@]}"; do
     -H "Authorization: Bearer ${TOKEN}" \
     -H 'Content-Type: application/json' \
     -d "{\"parameters\": {\"team\": \"${team}\"}}" \
-    -o /dev/null -w "  HTTP %{http_code}\n"
+    -o /dev/null -w "  HTTP %{http_code}  (204 = bound; 400 'already exists' = already converged)\n"
 done
 ```
 
-> **Tip:** A 201 response means the binding was created. A 409 means it already exists.
+> **Tip:** Success is **HTTP 204** with an empty body. Re-posting an identical binding returns **400** "such binding already exists" — treat it as converged, not as a failure (**IAM-96** Step 7, live-verified).
 
 > **Full working example:** For a complete script that creates groups, policies across all three domains (UI + Data + Config), and binds everything together for a four-persona model, see the **End-to-End Provisioning Script** in **IAM-11: Policy Persona Workshop**.
 
@@ -242,69 +242,38 @@ done
 
 Version-controlled, peer-reviewed, CI/CD-deployed IAM configuration.
 
+### What Monaco Can and Cannot Express
+
+Monaco manages IAM as **account resources** — `policies:`, `groups:` and `boundaries:` are dedicated top-level YAML types (not Settings schemas), deployed with Monaco's dedicated account commands rather than `monaco deploy`. Its documented account format covers policies, groups, boundaries and the policy-to-group binding with boundaries — but **not binding `parameters`**. Bind templated (`${bindParam:…}`) policies with their parameter values through the IAM API (Section 4) or Terraform (**IAM-95**); use Monaco for the policy text itself and for unparameterized bindings.
+
 ### Project Structure
 
 ```
 iam-config/
-├── manifest.yaml
-├── policies/
-│   ├── tpl-team-data-reader.yaml
-│   └── tpl-team-data-editor.yaml
-├── groups/
-│   └── team-groups.yaml
-└── bindings/
-    └── team-bindings.yaml
+├── manifest.yaml          # includes an accounts: section with the OAuth client
+└── account/
+    └── iam.yaml           # policies:, boundaries:, groups:
 ```
 
 ### Policy Template YAML
 
 ```yaml
-# policies/tpl-team-data-reader.yaml
-configs:
-  - id: tpl-team-data-reader
-    type:
-      settings:
-        schema: builtin:iam.policy
-    config:
-      name: "tpl-team-data-reader"
-      description: "Parameterized: read access scoped to ${bindParam:team}"
-      statements:
-        - >-
-          ALLOW storage:logs:read
-          WHERE storage:dt.security_context = "${bindParam:team}";
-        - >-
-          ALLOW storage:spans:read
-          WHERE storage:dt.security_context = "${bindParam:team}";
-        - >-
-          ALLOW storage:metrics:read
-          WHERE storage:dt.security_context = "${bindParam:team}";
+# account/iam.yaml
+policies:
+  - name: tpl-team-data-reader
+    id: tpl-team-data-reader
+    level:
+      type: account
+    description: "Parameterized: read access scoped to ${bindParam:team}"
+    policy: |-
+      ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
+      ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
+      ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
 ```
 
-### Binding YAML with Parameters
+The bindings that give `team` its value — `checkout` for one group, `payments` for another — are then created with the IAM API calls in Section 4 or the `dynatrace_iam_policy_bindings_v2` resource in **IAM-95**, both of which accept `parameters`.
 
-```yaml
-# bindings/team-bindings.yaml
-configs:
-  - id: checkout-team-binding
-    type:
-      settings:
-        schema: builtin:iam.binding
-    config:
-      policyId: "{{ .tpl-team-data-reader }}"
-      groupId: "{{ .dt-checkout-editors }}"
-      parameters:
-        team: "checkout"
-
-  - id: payments-team-binding
-    type:
-      settings:
-        schema: builtin:iam.binding
-    config:
-      policyId: "{{ .tpl-team-data-reader }}"
-      groupId: "{{ .dt-payments-editors }}"
-      parameters:
-        team: "payments"
-```
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."*</sub>
 
 ### GitOps Workflow
 
@@ -315,7 +284,7 @@ configs:
 5. **Approve** — Merge after validation
 6. **Deploy** — CI/CD applies to production
 
-> **Note:** IAM binding support in Monaco may vary by version. Always verify against the [Monaco documentation](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco). See also **AUTOM-03: Monaco** for full automation workflow.
+See **AUTOM-03: Monaco** for the full automation workflow.
 
 <a id="common-template-patterns"></a>
 ## 6. Common Template Patterns
@@ -415,10 +384,14 @@ Combined with a **boundary** using the same security context for entity-level re
 <a id="dql-audit-queries"></a>
 ## 7. DQL Audit Queries
 
-Use these queries to verify that templated policy bindings are working correctly and to audit policy-related changes.
+Use these queries to verify that templated policy bindings are working correctly and to audit policy-related API activity.
+
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 
 ```dql
-// Track recent policy binding changes
+// IAM API activity in this environment (binding changes made in Account Management: account audit log)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -433,6 +406,7 @@ Use these queries to verify that templated policy bindings are working correctly
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50

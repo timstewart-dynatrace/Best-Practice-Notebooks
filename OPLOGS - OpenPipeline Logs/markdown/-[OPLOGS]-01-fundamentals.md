@@ -1,6 +1,6 @@
 # OPLOGS-01: OpenPipeline Fundamentals
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 06/30/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Understanding the Unified Data Ingestion Framework
 This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.
@@ -21,10 +21,11 @@ This notebook introduces OpenPipeline, Dynatrace's unified data processing frame
 3. [Exploring Your OpenPipeline Data](#exploring-your-openpipeline-data)
 4. [Key OpenPipeline Fields](#key-openpipeline-fields)
 5. [Data Sources Explained](#data-sources-explained)
-6. [Environment Summary](#environment-summary)
-7. [📝 Summary](#summary)
-8. [➡️ Next Steps](#next-steps)
-9. [📚 References](#references)
+6. [Pipeline Stages](#pipeline-stages-overview)
+7. [Environment Summary](#environment-summary)
+8. [📝 Summary](#summary)
+9. [➡️ Next Steps](#next-steps)
+10. [📚 References](#references)
 
 ---
 
@@ -53,7 +54,7 @@ This notebook introduces OpenPipeline, Dynatrace's unified data processing frame
 | Storage | Log Storage v1 | Grail Data Lakehouse |
 | Query Language | Limited | Full DQL Support |
 | Retention | Global | Per-bucket configurable |
-| Data Masking | Limited | Full regex support |
+| Data Masking | Limited | DQL processor with DPL (`replacePattern`), `replaceString`, `ipMask` |
 | Parsing | Basic | DPL (Dynatrace Pattern Language) |
 | Custom Routing | No | Yes, by content/source |
 
@@ -67,12 +68,14 @@ This notebook introduces OpenPipeline, Dynatrace's unified data processing frame
 | **Data Sources** *(Ingest)* | OneAgent, Log Ingest API, OTLP, Generic Ingest, custom | Ingestion entry points; source recorded as `dt.openpipeline.source` |
 | **1. Ingest** | Built-in / Ready-made / Custom sources (custom supports optional pre-processing) | Records enter the platform |
 | **2. Routing** | Pipeline Selection | Dynamic (DQL matcher) or static (custom sources only) |
-| **3. Processing** | Mask · Drop · Transform · Parse · Extract (counter / value / histogram / Smartscape / bizevent / SDLC / Davis) · Cost / Security | All in-pipeline work — masking, filtering, transformation, and extraction are processor categories *within* this stage |
-| **4. Storage** | Bucket assignment / No storage assignment | Persist to Grail bucket, or skip retention |
+| **3. Pipeline** | Fixed sequence of stages: **Processing** (DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Masking, parsing, transformation and dropping all happen in the first stage (Processing); extraction stages run after bucket assignment |
+| **4. Storage** | Grail bucket chosen by the Bucket assignment stage (or not stored — No storage assignment) | Persist to Grail bucket, or skip retention |
 | **Output** | Grail | Logs, Spans, Metrics, Events storage |
 -->
 
-> **Doc alignment (May 2026):** Per the official `/concepts/data-flow` documentation, OpenPipeline has a **four-stage flow**: Ingest → Routing → Processing → Storage. The diagram above shows processor categories within Processing (Mask, Filter, Transform, Extract) inline so you can see the in-pipeline execution order — they are not independent stages.
+> **Stage model (verified 09/24/2026):** data flows Ingest → Routing → pipeline → Storage. Inside a pipeline, per *Processing in OpenPipeline*, "The sequence of stages is fixed for all pipelines and cannot be modified." Masking, dropping, parsing and transformation are processors in the first stage, **Processing**; **Bucket assignment** comes seventh, and **Metric extraction**, **Davis** and **Data extraction** run after it. The diagram's Mask / Filter / Process boxes are all inside that first stage.
+>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
 
 <a id="exploring-your-openpipeline-data"></a>
 ## 3. Exploring Your OpenPipeline Data
@@ -118,7 +121,7 @@ OpenPipeline adds metadata fields to every log record:
 | `timestamp` | When the log was generated |
 | `content` | The log message body |
 | `loglevel` | Log severity (ERROR, WARN, INFO, DEBUG, NONE) |
-| `status` | Status string (alternative to loglevel) |
+| `status` | Severity group derived from `loglevel`: ERROR (SEVERE, ERROR, CRITICAL, ALERT, FATAL, EMERGENCY), WARN, INFO (INFO, TRACE, DEBUG, NOTICE), NONE — use it for error-class counts |
 | `log.source` | Source identifier (e.g., "Container Output") |
 | `log.iostream` | Stream type (stdout, stderr) |
 
@@ -176,36 +179,27 @@ fetch logs, from: now() - 24h
 | makeTimeseries {log_count = count()}, by: {dt.openpipeline.source}, interval: 1h
 ```
 
+<a id="pipeline-stages-overview"></a>
 ## 6. Pipeline Stages Overview
 
-OpenPipeline processes data through ordered stages:
+A record first passes **Routing**, which picks the pipeline (a dynamic DQL matcher, or a static route for custom ingest sources). Inside the pipeline it then runs through a **fixed** sequence of ten stages — the order cannot be changed:
 
-### Stage 1: Routing
-- Matches incoming data to the appropriate pipeline
-- Based on source, content, or metadata
+| # | Stage | What it does in a log pipeline | Processors | Executed |
+|---|-------|--------------------------------|------------|----------|
+| 1 | **Processing** | Parse values into fields, transform the schema, filter records, mask sensitive data | DQL, Add fields, Remove fields, Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup | All matches |
+| 2 | Smartscape node | Extract Smartscape nodes from matching records | Smartscape node | All matches |
+| 3 | Smartscape edge | Extract Smartscape edges from matching records | Smartscape edge | All matches |
+| 4 | Permission | Apply a security context to matching records | Set security context | First match only |
+| 5 | Product allocation | Assign product or application usage | DPS Cost Allocation - Product | First match only |
+| 6 | Cost allocation | Assign cost-center usage | DPS Cost Allocation - Cost Center | First match only |
+| 7 | **Bucket assignment** | Choose the Grail bucket — or not to store the record | Bucket assignment, No storage assignment | First match only |
+| 8 | Metric extraction | Extract metrics from matching records | Counter metric, Histogram metric, Value metric | All matches |
+| 9 | Davis | Extract a Davis event and re-ingest it into another pipeline | Davis event | All matches |
+| 10 | Data extraction | Extract a business event or SDLC event and re-ingest it | Business event, Software development lifecycle event | All matches |
 
-### Stage 2: Masking (Security)
-- Redacts sensitive data BEFORE processing
-- Protects PII, credentials, secrets
-- Applied early for security compliance
+Masking, dropping and parsing are not separate stages: they are processors in stage 1, and within a stage they run in the order you place them. Storage in the chosen Grail bucket happens after the pipeline, so a record's retention is set by stage 7 — which is also why the extraction stages (8–10) still see records assigned to **No storage assignment**.
 
-### Stage 3: Filtering
-- Drops unwanted records
-- Reduces storage costs
-- Removes noise (debug logs, health checks)
-
-### Stage 4: Processing
-- Parses structured data from content
-- Adds enrichment fields
-- Transforms and normalizes data
-
-### Stage 5: Extraction
-- Creates metrics from log data
-- Generates events and business events
-
-### Stage 6: Storage
-- Routes to appropriate Grail bucket
-- Applies retention policies
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — *"each processor output becomes the input for the next one"*, [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples) — *"The record continues through all pipeline stages, including metric extraction, and is not stored only at the end."*</sub>
 
 <a id="environment-summary"></a>
 ## 7. Environment Summary
@@ -243,7 +237,7 @@ In this notebook, you learned:
 ✅ **Architecture** - Data flow from sources through processing to Grail  
 ✅ **Key fields** - `dt.openpipeline.source`, `dt.openpipeline.pipelines`, `dt.system.bucket`  
 ✅ **Data sources** - OneAgent, Log Ingest API, OTLP  
-✅ **Pipeline stages** - Routing, Masking, Filtering, Processing, Extraction, Storage  
+✅ **Pipeline stages** - a fixed sequence: Processing (mask, drop, parse, transform) → … → Bucket assignment → Metric / Davis / Data extraction  
 
 ---
 
@@ -255,9 +249,11 @@ Continue to **OPLOGS-02: Migration Guide** to learn how to migrate from classic 
 
 <a id="references"></a>
 ## 📚 References
-- [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Grail Data Lakehouse](https://docs.dynatrace.com/docs/platform/grail)
-- [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)
+- [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
+- [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation) — *"a status attribute is created with a value that is a sum of loglevel values based on the following grouping"*
 - [Log ingestion API (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api) — delivery reliability: HTTP 204 success, retryable codes + exponential backoff, ActiveGate disk-queue buffering, `503 Usable space limit reached`
 
 ---

@@ -1,6 +1,6 @@
 # IAM-03: Group Architecture and Design
 
-> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 09/02/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Designing Scalable Group Structures
 Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.
@@ -25,7 +25,7 @@ Groups are the foundation of access management. A well-designed group architectu
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `account-iam-admin` or group management rights |
+| **Permissions** | `account-user-management` or group management rights |
 | **Prior Knowledge** | **IAM-01** and **IAM-02** (SSO configured) |
 
 <a id="group-fundamentals"></a>
@@ -292,18 +292,20 @@ Every group should have a designated owner who:
 
 | Group Type | Review Frequency | Reviewer |
 |------------|------------------|----------|
-| Admin groups | Monthly | Security + Account Admin |
-| Editor groups | Quarterly | Group Owner + Manager |
-| Viewer groups | Semi-annually | Group Owner |
+| Account admin groups | Monthly | CISO / Security |
+| Admin groups | Quarterly | Security + Account Admin |
+| Editor groups | Semi-annually | Group Owner + Manager |
+| Viewer groups | Annually | Group Owner |
 
 See **IAM-07: Audit Logging and Compliance** for access review automation.
 
 <a id="separation-of-duties"></a>
 ## 6. Separation of Duties
 
-> **New read-only IAM role (SaaS 1.346 — staged rollout from 08/25/2026).** Recorded from the release note as: "A new `View users and groups` role is introduced for account admins. It allows them to grant a read-only permission to a user group and to view the IAM configuration." This closes a real separation-of-duties gap the patterns below have to work around: auditors, support staff, and platform engineers who need to *see* group and policy structure previously had to be given an account-management role that could also *change* it. Grant `View users and groups` instead of a broader admin role wherever the need is inspection — the audit queries in §8 become usable by people you do not want holding write access. Verify the role is present in your account before designing a boundary around it.
+> **No read-only IAM role yet.** Dynatrace briefly announced a read-only `View users and groups` role in the SaaS 1.346 release notes; the page's changelog records that entry as removed on 09/01/2026. Until such a role ships, give inspection-only staff `account-viewer`, and route IAM change review through the account audit log (IAM-07).
 >
-> <sub>Source: [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346).</sub>
+
 Design your group structure to enforce separation of duties and reduce risk.
 
 ### Key Separations
@@ -342,8 +344,6 @@ dt-breakglass-admins
 ├── Requires documented incident
 └── Automatic expiration
 ```
-
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346). **Sourcing note (09/02/2026):** this entry was read verbatim from that page on 08/28/2026, but is no longer present on it — re-checked two ways today, and the page now carries no Account Management / IAM entries at all. The role may have shipped, been renamed, or been pulled from the note; **verify in your own account before relying on it.**</sub>
 
 <a id="cross-environment-patterns"></a>
 ## 7. Cross-Environment Patterns
@@ -391,8 +391,12 @@ dt-tier3-viewers (all environments, view only)
 ## 8. Group Assessment Queries
 Use these queries to understand your current group usage.
 
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
+
 ```dql
-// Review recent group membership changes
+// IAM API activity in this environment — recent calls
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -407,13 +411,14 @@ Use these queries to understand your current group usage.
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// Audit group creation events
+// IAM API activity in this environment over 90 days (group creation itself is account-level)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -427,14 +432,15 @@ fetch dt.system.events, from:-30d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-90d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.type == "CREATE" and contains(resource, "iam")
-| fields timestamp, user.id, resource, event.outcome
+| filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
+| fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// Find group-related changes by admin user
+// IAM API activity in this environment, by user
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -449,6 +455,7 @@ fetch dt.system.events, from:-90d
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | summarize changes = count(), by:{user.id, event.type}
 | sort changes desc
 | limit 25

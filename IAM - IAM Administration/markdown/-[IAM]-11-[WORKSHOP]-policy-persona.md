@@ -1,6 +1,6 @@
 # IAM-11: Policy Persona Workshop
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -36,7 +36,7 @@ This workshop walks you through a structured, six-goal process to design that mo
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `account-iam-admin` to create/modify policies and group assignments |
+| **Permissions** | `account-user-management` to create/modify policies and group assignments |
 | **Prior Knowledge** | **IAM-01** (Governance), **IAM-02** (SSO), **IAM-03** (Groups), **IAM-04** (Policies), **IAM-05** (Boundaries) |
 | **Administrative Access** | Access to Active Directory or identity provider |
 | **Business Context** | Knowledge of role definitions in your organization |
@@ -213,9 +213,9 @@ Walk through the Dynatrace settings UI and catalog which configuration schemas e
 
 #### Reference: Schema Audit Table
 
-Create your own table and update the personas for your organization. Below is a starter template with common **classic (Gen2) schemas**. As Gen3 apps replace these settings screens, update your policies to use `app:` permissions instead:
+Create your own table and update the personas for your organization. Values that begin `group:` are schema **groups** — scope them with `settings:schemaGroup = "group:…"`, not `settings:schemaId`. Below is a starter template with common **classic (Gen2) schemas**. As Gen3 apps replace these settings screens, update your policies to use `app:` permissions instead:
 
-| Functionality | Schema ID | Schema Group | Standard User | Power User | SRE - Scoped | SRE - Platform | Admin |
+| Functionality | Schema ID / Group | Schema Group | Standard User | Power User | SRE - Scoped | SRE - Platform | Admin |
 |---|---|---|:---:|:---:|:---:|:---:|:---:|
 | Host monitoring | `group:host-monitoring` | `group:host-monitoring` | read | read | write | write | write |
 | Containers | `group:processes-and-containers.containers` | `group:processes-and-containers` | read | read | write | write | write |
@@ -337,8 +337,18 @@ Consider five dimensions:
 | Power User | All | All | All | All | None (env-wide) | None (env-wide) | No |
 | SRE - Scoped | All | Own org | Own org | All | `storage:dt.security_context IN ("org")` | `environment:management-zone IN ("Org-MZ")` | Yes |
 | SRE - Platform | All | All | All | All | None (env-wide) | None (env-wide) | Yes |
-| Security Viewer | None | Audit only | None | Security events | `storage:bucket-name IN ("default_audit_logs")` | None | No |
+| Security Viewer | None | None | None | Audit + security events | `storage:event.kind IN ("AUDIT_EVENT")` (audit records live in the `dt_system_events` bucket) | None | No |
 | Admin | All | All | All | All | None (env-wide) | None (env-wide) | Yes |
+
+> **Security Viewer data policy.** Platform audit records are `AUDIT_EVENT` records in `dt.system.events`, stored in the `dt_system_events` bucket — there is no separate audit-log bucket. Grant:
+> ```
+> ALLOW storage:buckets:read WHERE storage:bucket-name = "dt_system_events";
+> ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT";
+> ALLOW storage:buckets:read WHERE storage:table-name = "security.events";
+> ALLOW storage:security.events:read;
+> ```
+>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT""*.</sub>
 
 #### Deliverable
 
@@ -370,7 +380,7 @@ ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
   WHERE settings:schemaId startsWith "builtin:problem.notifications";
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
-  WHERE settings:schemaId startsWith "group:preferences";
+  WHERE settings:schemaGroup = "group:preferences";
 ```
 
 ```
@@ -378,14 +388,18 @@ ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
 // SREs: full settings access scoped by schema group
 ALLOW settings:objects:read, settings:schemas:read;
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
-  WHERE settings:schemaId startsWith "group:host-monitoring";
+  WHERE settings:schemaGroup = "group:host-monitoring";
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
-  WHERE settings:schemaId startsWith "group:anomaly-detection";
+  WHERE settings:schemaGroup = "group:anomaly-detection";
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
-  WHERE settings:schemaId startsWith "group:failure-detection";
+  WHERE settings:schemaGroup = "group:failure-detection";
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
-  WHERE settings:schemaId startsWith "group:processes-and-containers";
+  WHERE settings:schemaGroup = "group:processes-and-containers";
 ```
+
+> **Schema IDs and schema groups are different conditions.** Schema IDs begin `builtin:` or `app:` — match them with `settings:schemaId`. A `group:` value is a **schema group**, matched with `settings:schemaGroup` (operators `=` and `IN` only). A `settings:schemaId startsWith "group:…"` statement is accepted but matches no schema, so it silently grants nothing.
+>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"settings:schemaGroup - A schema group that allows to address multiple individual schemas at once."*</sub>
 
 > **Scaling tip:** If you have multiple orgs that need the same SRE config policy with different data scopes, create a **templated policy** with `${bindParam:team}` and bind it per-group. See **IAM-10**.
 
@@ -428,7 +442,7 @@ For environments where images don't render
 | Domain | Description |
 |--------|-------------|
 | Config Policy | Controls what settings and configurations a persona can read or modify |
-| Scope mechanisms | settings:schema-id, settings:schema-group |
+| Scope mechanisms | settings:schemaId, settings:schemaGroup |
 | Key permissions | settings:objects:read, settings:objects:write |
 For environments where images don't render
 -->
@@ -540,7 +554,7 @@ bnd-gen2-<ISOLATION-TYPE>-<SCOPE>   ← environment: domain conditions
 | `bnd-gen2-team-checkout` | Gen2 (Classic) | `environment:management-zone IN ("Checkout-Team");` |
 | `bnd-gen3-env-production` | Gen3 (Grail) | `storage:dt.security_context IN ("production");` |
 | `bnd-gen2-env-production` | Gen2 (Classic) | `environment:management-zone IN ("Production-MZ");` |
-| `bnd-gen3-audit-security` | Gen3 (Grail) | `storage:bucket-name IN ("default_audit_logs");` |
+| `bnd-gen3-audit-security` | Gen3 (Grail) | `storage:event.kind IN ("AUDIT_EVENT");` |
 
 > **Two bindings per scoped group:** attach `bnd-gen3-team-*` to the Gen3 data policy binding, and `bnd-gen2-team-*` to the Gen2 Classic entity policy binding. See **IAM-05: Boundary Design Patterns** for the full two-binding pattern.
 
@@ -576,16 +590,16 @@ After binding your policies to groups, validate that the implementation matches 
 
 | Check | How | Reference |
 |-------|-----|-----------|
-| Policies bound to correct groups | Query audit logs for recent policy binding events | **IAM-07** Section 4 |
+| Policies bound to correct groups | Review the account audit log (Account Management > Settings > Audit log) for binding changes | **IAM-07** Section 1 |
 | No unintended DENY overrides | Review effective permissions per group; test as each persona | **IAM-04** evaluation order |
-| Users provisioned into correct groups | Query group membership changes in audit logs | **IAM-07** Section 3 |
+| Users provisioned into correct groups | Review group membership changes in the account audit log | **IAM-07** Section 1 |
 | Data boundaries working | Run the same DQL query as different personas and compare results | **IAM-05** boundary testing |
 | SCIM sync functioning | Monitor SCIM provisioning events for errors | **IAM-06** lifecycle events |
 
-Use the following DQL query to audit recent IAM changes and confirm your policy bindings are in place:
+Group, policy and binding changes are account-level and are recorded in the account audit log, not in environment audit events. The DQL query below shows IAM API calls made through this environment — useful for spotting provisioning automation, not a change log:
 
 ```dql
-// Audit recent IAM policy and group changes (last 7 days)
+// IAM API activity in this environment (last 7 days)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -600,6 +614,7 @@ Use the following DQL query to audit recent IAM changes and confirm your policy 
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource
 | sort timestamp desc
 | limit 25
@@ -632,12 +647,17 @@ The complete provisioning script — including OAuth setup, group creation, poli
 
 Tables can have sensitive fields visible only to users with the right permissions. A **fieldset** is a named collection of sensitive fields defined at the bucket, table, or tenant scope.
 
-Currently, fieldsets are available only on the **spans** table with two predefined fieldsets:
+Dynatrace ships three predefined fieldsets — two for spans and one for `user.events` / `user.sessions` — and you can define custom fieldsets scoped to buckets or tables. Field permissions work with Smartscape, not with classic entities.
 
 | Fieldset | Contents |
 |----------|----------|
 | `builtin-request-attributes-spans` | Dynamically generated from Request Attributes |
 | `builtin-sensitive-spans` | `client.ip`, `db.connection_string`, `http.request.header.referer`, `url.full`, `url.query`, `db.bind.parameter` |
+| `builtin-sensitive-user-events-and-sessions` | Sensitive fields in `user.events` and `user.sessions`: `client.ip`, `dt.rum.user_tag`, `geo.location.latitude`, `geo.location.longitude` |
+
+The RUM fieldset is in no default policy — grant it explicitly: `ALLOW storage:fieldsets:read WHERE storage:fieldset-name = "builtin-sensitive-user-events-and-sessions";`
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"The three predefined fieldsets are:"*; *"You can use the field permissions with smartscape, but not with entities."*; [RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls) — *"This permission is not included in any policy by default and must be assigned explicitly"*.</sub>
 
 ### Fieldset Permissions
 
@@ -690,4 +710,4 @@ ALLOW storage:fieldsets:read
 
 ---
 
-> **\u26a0\ufe0f DISCLAIMER**: This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official [Dynatrace documentation](https://docs.dynatrace.com/docs).
+> **⚠️ DISCLAIMER**: This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official [Dynatrace documentation](https://docs.dynatrace.com/docs).

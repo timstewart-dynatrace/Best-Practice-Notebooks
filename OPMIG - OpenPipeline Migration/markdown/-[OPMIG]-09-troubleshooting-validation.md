@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 08/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -1086,11 +1086,13 @@ After migration, establish these maintenance practices.
 
 ```dql
 // Weekly health report query
+// error_logs uses the normalized `status` field: status == "ERROR" also covers SEVERE, CRITICAL,
+// ALERT, FATAL and EMERGENCY, which loglevel == "ERROR" alone misses
 fetch logs, from: now() - 7d
 | summarize {
     total_logs = count(),
     parsed_logs = countIf(isNotNull(loglevel)),
-    error_logs = countIf(loglevel == "ERROR"),
+    error_logs = countIf(status == "ERROR"),
     pipelines_used = countDistinct(dt.openpipeline.pipelines),
     sources_active = countDistinct(log.source)
   }

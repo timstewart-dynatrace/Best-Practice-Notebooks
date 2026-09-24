@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -435,11 +435,19 @@ Use the audit log to detect any configuration changes made during the freeze win
 ```dql
 // Source tenant: detect configuration changes during freeze window
 // Run this periodically during the freeze to catch violations
-fetch logs, from:-24h
-| filter matchesPhrase(log.source, "audit")
-| filter contains(content, "CREATE") or contains(content, "UPDATE") or contains(content, "DELETE")
-| filterOut contains(content, "token")  // Exclude token operations
-| summarize changes = count(), by:{dt.audit.user}
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// Covers Settings 2.0 objects (alerting, detection rules, management zones, auto-tags, ...).
+// Token operations are a separate provider (API_TOKEN), so they are already excluded.
+// Review user.id "UNKNOWN" rows before treating them as violations: on the validation
+// tenant they were metric-metadata and extension-definition writes.
+fetch dt.system.events, from:-24h
+| filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS"
+| filter in(event.type, {"CREATE", "UPDATE", "DELETE"})
+| filter user.id != "system"
+| summarize changes = count(), last_change = takeMax(timestamp), by:{user.id, details.dt.settings.schema_id}
 | sort changes desc
 | limit 20
 ```

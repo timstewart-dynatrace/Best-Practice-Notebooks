@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -30,20 +30,14 @@ Not all alerts should go to everyone. This notebook covers conditional routing b
 
 ### Sprint 1.337 (April 2026): Smartscape Ownership for Routing
 
-Sprint 1.337 added **ownership information** as a first-class attribute on Smartscape entities (HOST, SERVICE, PROCESS_GROUP, K8S_CLUSTER, etc.). Workflows can now read this directly to route notifications to the team that owns the producing entity — no longer requiring a side-table or manual maintenance of team→entity mappings.
+SaaS 1.337 made ownership available on Smartscape nodes, for use from **Workflows actions**: *"Ownership information is now available in Smartscape and for Smartscape nodes. This lets you use Workflows actions (such as get_owners) to send automated and targeted notifications to your teams"* ([What's new in SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)). It is not a DQL field. An earlier revision of this notebook read `getNodeField(affected_entity_ids[0], "ownership.team")`; that returns null on every problem, because no Smartscape node model has an `ownership.*` field and `getNodeField` does not resolve a classic entity ID.
 
-**Sample workflow trigger condition** using ownership for routing:
+Two documented routes:
 
-```dql
-fetch events, from:-15m
-| filter event.kind == "DAVIS_PROBLEM"
-| filter event.status == "ACTIVE"
-| fieldsAdd owning_team = getNodeField(affected_entity_ids[0], "ownership.team")
-| fieldsAdd oncall_user = getNodeField(affected_entity_ids[0], "ownership.oncall")
-| fields display_id, event.name, owning_team, oncall_user
-```
+- **Route on ownership with the Ownership app's *Get owners* action.** Add a *Get owners* task after the Problem trigger. Its *Entity ids* input takes *"A Jinja expression, for example, `{{ event()["dt.entity.host"] }}`"*; its output carries `slackChannels`, `msTeams`, `email` and `jira` contact lists per team ([Actions for Ownership (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions)). Feed those into the notification task (for example `{{ result("get_owners").slackChannels }}`) instead of hard-coding team names in the workflow.
+- **Or route on `primary_tags.team`** in the trigger's custom filter or a task condition. *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."* ([Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags)). The matcher is `primary_tags.team == "payments"`. Verify your entities carry the tag first: on the validation tenant `primary_tags.team` was null on every problem (09/24/2026).
 
-Wire `owning_team` / `oncall_user` into the workflow's notification action (Slack channel mapping, ServiceNow assignment group, PagerDuty service) instead of hard-coding team names in the workflow.
+**FAQ-21 §5** covers ownership coverage and the Problem fields mapping in depth.
 
 ### Sprint 1.337 (Dynatrace API): `metadata` removed from `GET /events`
 
@@ -85,7 +79,7 @@ Conditions control which tasks execute. They use Jinja expressions returning boo
 ```yaml
 conditions:
   - name: is_critical
-    expression: '{{ event()["severity"] == "CRITICAL" }}'
+    expression: '{{ (event().get("event.severity") | int(5)) <= 1 }}'
     
   - name: is_production
     expression: '{{ "prod" in event()["management_zones"] }}'
@@ -121,10 +115,10 @@ tasks:
 
 ```jinja
 # AND within expression
-{{ event()["severity"] == "CRITICAL" and "prod" in event()["management_zones"] }}
+{{ (event().get("event.severity") | int(5)) <= 1 and "prod" in event()["management_zones"] }}
 
 # OR within expression
-{{ event()["severity"] in ["CRITICAL", "HIGH"] }}
+{{ (event().get("event.severity") | int(5)) <= 2 }}
 
 # Check if field exists
 {{ event().get("root_cause_entity_id") is not none }}
@@ -134,22 +128,28 @@ tasks:
 ## 3. Routing by Severity
 ### Severity-Based Routing Pattern
 
-| Severity | Actions |
+The problem record carries severity as `event.severity`, a 1–5 scale (1 = most severe). There is no `CRITICAL`/`HIGH`/`MEDIUM`/`LOW` string on it, so conditions comparing against those strings are false for every problem. The tiers below use the scale:
+
+| `event.severity` | Actions |
 |----------|----------|
-| **CRITICAL** | PagerDuty + Slack #urgent + Email |
-| **HIGH** | Slack #alerts + Email |
-| **MEDIUM** | Slack #alerts |
-| **LOW** | Slack #alerts (business hours only) |
+| **1 (Critical)** | PagerDuty + Slack #urgent + Email |
+| **2 (High)** | Slack #alerts + Email |
+| **3 (Medium)** | Slack #alerts |
+| **4 (Low)** | Slack #alerts (business hours only) |
+
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): severity is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter that was matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Before relying on severity tiers, check which event sources actually **set** a severity (on the validation tenant, every problem in 30 days carried the default `3` bar one). For sources that do not, route on `event.category`, ownership or tags instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies and the conditions below keep working. The `int(5)` in them treats a missing severity as the least severe tier, so an unset severity never pages. **FAQ-21 §6** carries the same note.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release, read 09/24/2026. **Dictionary:** `event.severity` (`experimental`), read 09/24/2026.</sub>
 
 ![Severity-Based Notification Routing](images/04-notification-routing.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Severity | Channel | Action |
 |----------|---------|--------|
-| CRITICAL | PagerDuty + Slack #urgent | Page on-call, ServiceNow P1 |
-| HIGH | Slack + ServiceNow P2 | Escalate in 30m |
-| MEDIUM | Teams + ServiceNow P3 | Business hours only |
-| LOW | Log only | Weekly digest |
+| 1 (Critical) | PagerDuty + Slack #urgent | Page on-call, ServiceNow P1 |
+| 2 (High) | Slack + ServiceNow P2 | Escalate in 30m |
+| 3 (Medium) | Teams + ServiceNow P3 | Business hours only |
+| 4 (Low) | Log only | Weekly digest |
 For environments where SVG doesn't render
 -->
 
@@ -158,11 +158,11 @@ For environments where SVG doesn't render
 ```yaml
 conditions:
   - name: is_critical
-    expression: '{{ event()["severity"] == "CRITICAL" }}'
+    expression: '{{ (event().get("event.severity") | int(5)) <= 1 }}'
   - name: is_high
-    expression: '{{ event()["severity"] == "HIGH" }}'
+    expression: '{{ (event().get("event.severity") | int(5)) == 2 }}'
   - name: is_medium_or_low
-    expression: '{{ event()["severity"] in ["MEDIUM", "LOW"] }}'
+    expression: '{{ (event().get("event.severity") | int(5)) in [3, 4] }}'
 
 tasks:
   # CRITICAL: Page on-call + Slack urgent + Email
@@ -172,7 +172,7 @@ tasks:
     input:
       connection: pagerduty-prod
       severity: critical
-      summary: "{{ event()['title'] }}"
+      summary: "{{ event()['event.name'] }}"
 
   - name: slack_urgent
     type: dynatrace.slack:message
@@ -180,7 +180,7 @@ tasks:
     input:
       connection: slack-production
       channel: "#alerts-urgent"
-      message: ":rotating_light: *CRITICAL* {{ event()['title'] }}"
+      message: ":rotating_light: *CRITICAL* {{ event()['event.name'] }}"
 
   # HIGH: Slack alerts + Email
   - name: slack_high
@@ -188,7 +188,7 @@ tasks:
     conditions: [is_high]
     input:
       channel: "#alerts-production"
-      message: ":warning: *HIGH* {{ event()['title'] }}"
+      message: ":warning: *HIGH* {{ event()['event.name'] }}"
 
   # MEDIUM/LOW: Slack only
   - name: slack_low
@@ -196,7 +196,7 @@ tasks:
     conditions: [is_medium_or_low]
     input:
       channel: "#alerts-production"
-      message: ":information_source: *{{ event()['severity'] }}* {{ event()['title'] }}"
+      message: ":information_source: *{{ event()['event.category'] }}* {{ event()['event.name'] }}"
 ```
 
 > **Update — unified `event.severity` field (2026).** Dynatrace now exposes a standardized **`event.severity`** value as an **integer 1–5** (1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational), aligned to the ITIL severity model. It propagates from the constituent alerts up to the parent problem, which makes severity a first-class, consistent routing dimension across alerts, the problem feed, and Workflows.
@@ -209,7 +209,7 @@ tasks:
 > | 4 | Low |
 > | 5 | Informational |
 >
-> **The string-based conditions shown in this section (`"CRITICAL"` / `"HIGH"` / `"MEDIUM"` / `"LOW"`) remain valid** — the numeric field is additive, not a breaking change. If you decide to standardize on the numeric scale for new workflows, map the tiers as above and confirm the exact attribute form in your own tenant's workflow event payload before switching production conditions. In DQL (problem feed, reporting) the field is queried directly as `event.severity` — see **AIOPS-03 §5** for the severity rollup pattern.
+> **The conditions in this section key on this numeric field.** Earlier revisions compared against `"CRITICAL"` / `"HIGH"` / `"MEDIUM"` / `"LOW"`; the problem record carries no such strings, so those conditions were false for every problem. The field is `experimental` in the semantic dictionary and arrives as a string (`"3"`) on the validation tenant, hence the `| int` conversion. In DQL (problem feed, reporting) the field is queried directly as `event.severity` — see **AIOPS-03 §5** for the severity rollup pattern.
 
 <a id="routing-by-teamservice"></a>
 ## 4. Routing by Team/Service
@@ -236,21 +236,21 @@ tasks:
     conditions: [is_checkout_team]
     input:
       channel: "#checkout-alerts"
-      message: "{{ event()['title'] }}"
+      message: "{{ event()['event.name'] }}"
 
   - name: notify_payments
     type: dynatrace.slack:message
     conditions: [is_payments_team]
     input:
       channel: "#payments-alerts"
-      message: "{{ event()['title'] }}"
+      message: "{{ event()['event.name'] }}"
 
   - name: notify_platform
     type: dynatrace.slack:message
     conditions: [is_platform_team]
     input:
       channel: "#platform-alerts"
-      message: "{{ event()['title'] }}"
+      message: "{{ event()['event.name'] }}"
 ```
 
 ### Management Zone Routing (legacy — do not build new workflows on this)
@@ -286,8 +286,11 @@ tasks:
 Use JavaScript to determine the channel dynamically:
 
 ```javascript
-export default async function({ event }) {
-  const tags = event.tags || [];
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  const tags = ev.entity_tags || [];            // "key:value" strings
   
   // Find team tag
   const teamTag = tags.find(t => t.startsWith('team:'));
@@ -325,7 +328,7 @@ tasks:
     conditions: [is_business_hours]
     input:
       channel: "#alerts-production"
-      message: "{{ event()['title'] }}"
+      message: "{{ event()['event.name'] }}"
 
   # Off-hours: PagerDuty for CRITICAL only
   - name: pagerduty_off_hours
@@ -333,7 +336,7 @@ tasks:
     conditions: [is_off_hours, is_critical]
     input:
       connection: pagerduty-prod
-      summary: "[Off-Hours] {{ event()['title'] }}"
+      summary: "[Off-Hours] {{ event()['event.name'] }}"
 
   # Off-hours non-critical: Queue for morning
   - name: slack_queue
@@ -341,7 +344,7 @@ tasks:
     conditions: [is_off_hours, not is_critical]
     input:
       channel: "#alerts-queue"
-      message: ":moon: *Queued for review* {{ event()['title'] }}"
+      message: ":moon: *Queued for review* {{ event()['event.name'] }}"
 ```
 
 ### Weekend-Only Routing
@@ -355,8 +358,9 @@ tasks:
   - name: weekend_oncall
     conditions: [is_weekend, is_critical]
     input:
-      # Page weekend on-call rotation
-      routing_key: "{{ env.PD_WEEKEND_ROUTING_KEY }}"
+      # Page weekend on-call rotation: a connection that holds that rotation's
+      # routing key. Credentials live in connections, not in expressions.
+      connection: pagerduty-weekend-oncall
 ```
 
 <a id="escalation-patterns"></a>
@@ -372,7 +376,7 @@ tasks:
     type: dynatrace.slack:message
     input:
       channel: "#alerts-production"
-      message: ":warning: {{ event()['title'] }} - Acknowledge within 15 min"
+      message: ":warning: {{ event()['event.name'] }} - Acknowledge within 15 min"
 
   # Step 2: Wait 15 minutes
   - name: wait_for_ack
@@ -381,19 +385,21 @@ tasks:
     input:
       duration: "15m"
 
-  # Step 3: Check if still open
+  # Step 3: Check if still open (event.status is ACTIVE or CLOSED — never OPEN)
   - name: check_problem_status
     type: dynatrace.automations:run-javascript
     dependsOn: [wait_for_ack]
     input:
       script: |
-        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
-        
-        export default async function({ event }) {
-          const problemId = event.display_id;
-          // Check if problem is still open
-          // Return escalate: true if needs escalation
-          return { escalate: event.status === 'OPEN' };
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+        export default async function () {
+          const ev = (await execution()).params.event;   // snapshot from trigger time
+          // Re-query: the trigger payload is 15 minutes old by now
+          const q = await queryExecutionClient.queryExecute({ body: { query:
+            `fetch dt.davis.problems, from:-2h | filter display_id == "${ev['display_id']}" | sort timestamp desc | limit 1 | fields event.status` } });
+          return { escalate: q.result.records[0]?.['event.status'] === 'ACTIVE' };
         }
 
   # Step 4: Escalate to PagerDuty
@@ -404,7 +410,7 @@ tasks:
       - '{{ result("check_problem_status").escalate }}'
     input:
       severity: high
-      summary: "[ESCALATED] {{ event()['title'] }} - No acknowledgment in 15 min"
+      summary: "[ESCALATED] {{ event()['event.name'] }} - No acknowledgment in 15 min"
 ```
 
 ### Multi-Tier Escalation
@@ -420,24 +426,24 @@ tasks:
 ## 7. Multi-Channel Strategy
 ### Recommended Channel Matrix
 
-| Severity | Environment | Channel(s) |
+| `event.severity` | Environment | Channel(s) |
 |----------|-------------|------------|
-| CRITICAL | Production | PagerDuty + Slack urgent + Email |
-| CRITICAL | Staging | Slack alerts |
-| HIGH | Production | Slack alerts + Email |
-| HIGH | Staging | Slack alerts |
-| MEDIUM | Production | Slack alerts |
-| MEDIUM | Staging | Slack (daily digest) |
-| LOW | Any | Slack (weekly digest) |
+| 1 (Critical) | Production | PagerDuty + Slack urgent + Email |
+| 1 (Critical) | Staging | Slack alerts |
+| 2 (High) | Production | Slack alerts + Email |
+| 2 (High) | Staging | Slack alerts |
+| 3 (Medium) | Production | Slack alerts |
+| 3 (Medium) | Staging | Slack (daily digest) |
+| 4 (Low) | Any | Slack (weekly digest) |
 
 ### Complete Multi-Channel Workflow
 
 ```yaml
 conditions:
   - name: is_critical
-    expression: '{{ event()["severity"] == "CRITICAL" }}'
+    expression: '{{ (event().get("event.severity") | int(5)) <= 1 }}'
   - name: is_high_or_above
-    expression: '{{ event()["severity"] in ["CRITICAL", "HIGH"] }}'
+    expression: '{{ (event().get("event.severity") | int(5)) <= 2 }}'
   - name: is_production
     expression: '{{ "env:prod" in event().get("tags", []) }}'
   - name: is_business_hours
@@ -465,9 +471,9 @@ tasks:
 
   # Email: Critical or (High + Production + Business Hours)
   - name: email_alert
-    type: dynatrace.email:send
+    type: dynatrace.email:send-email
     conditions:
-      - '{{ event()["severity"] == "CRITICAL" or (event()["severity"] == "HIGH" and "env:prod" in event().get("tags", [])) }}'
+      - '{{ (event().get("event.severity") | int(5)) <= 1 or ((event().get("event.severity") | int(5)) == 2 and "env:prod" in event().get("tags", [])) }}'
 ```
 
 ### Query Workflow Routing Effectiveness
@@ -603,7 +609,7 @@ In this notebook, you learned:
 - [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 - [Davis Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Alerting and notifications umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications)
-- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — old→new mapping; states the Management Zone filter is no longer supported
+- [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification)
 
 ---
 

@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -156,7 +156,7 @@ and Azure tables above use. Managed GCP services are modelled under a colon-deli
 
 > ⚠️ **`dt.entity.google_cloud_platform_service` does not exist**, and a query against it does not error —
 > it returns zero rows behind a *"The entity type … wasn't found"* warning, which reads as an empty
-> environment. Corrected 08/27/2026. This is a partial list: **56** GCP entity models exist. Enumerate the
+> environment. Corrected 08/27/2026. This is a partial list: 50+ GCP entity models exist (55 on the validation tenant, 09/24/2026). Enumerate the
 > real set rather than guessing a name:
 >
 > ```dql
@@ -208,10 +208,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### Count Azure VMs
@@ -224,10 +226,12 @@ fetch dt.entity.azure_vm, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### Compare Cloud Resources Across Providers
@@ -255,9 +259,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
 
-// Note: Smartscape node types cover infrastructure/service topology
-// (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
-// (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
+// Smartscape note (dt.entity.* is deprecated but still functional): these resources ARE
+// Smartscape nodes — AWS_EC2_INSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AWS_LAMBDA_FUNCTION, AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On
+// Clouds-app connections the classic dt.entity.* types can under-count or return nothing for the
+// same estate (validation tenant 09/24/2026: EC2 6 classic vs 25 running on Smartscape; Lambda 2
+// vs 34; Azure VM 1 vs 8; Web App 0 vs 2). Prefer smartscapeNodes for the cloud-resource inventory.
 ```
 
 ### Host CPU Usage Across Cloud Hosts
@@ -292,7 +299,7 @@ Establish consistent naming across providers:
 
 | Component | Recommended Deployment |
 |---|---|
-| **Environment ActiveGate** | One per cloud provider, per region |
+| **Environment ActiveGate** | Only for classic polling (Managed / strict network isolation): one per provider per region; not needed for Clouds-app connections on SaaS |
 | **OneAgent** | On all compute instances (EC2, Azure VM, GCE) |
 | **Cloud Integration** | Enabled per provider with least-privilege IAM |
 | **Log Forwarding** | Centralized via OpenPipeline |

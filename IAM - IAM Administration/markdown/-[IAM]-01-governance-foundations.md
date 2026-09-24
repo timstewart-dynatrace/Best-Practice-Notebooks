@@ -1,6 +1,6 @@
 # IAM-01: IAM Governance Foundations
 
-> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Building a Strong Foundation for Identity Management
 Effective IAM governance is the cornerstone of enterprise security. This notebook establishes the framework for managing identities, groups, policies, and access controls in Dynatrace's Gen3 IAM system.
@@ -37,7 +37,7 @@ Dynatrace Gen3 IAM replaces the legacy Management Zone-based access control with
 | Component | Purpose | Scope |
 |-----------|---------|-------|
 | **Policies** | Define what actions users can perform | Account or Environment |
-| **Boundaries** | Filter which entities users can see | Environment |
+| **Boundaries** | Filter which entities users can see | Account (applied per binding) |
 | **Buckets** | Physically partition data for team isolation | Environment |
 | **Segments** | Reusable DQL-based data filters | Environment |
 | **Groups** | Collections of users with shared access | Account |
@@ -78,7 +78,7 @@ Attribute-Based Access Control (ABAC) evaluates access requests based on attribu
 | Identity | Users, Groups | Who is requesting access |
 | Policy | Permissions | What actions are allowed |
 | Boundary | Conditions | Which entities are visible |
-| Data | Segments | How data is filtered |
+| Data view | Segments | Filters what a user chooses to view — never restricts access |
 -->
 
 ### How Access is Evaluated
@@ -88,9 +88,8 @@ When a user attempts an action, Dynatrace evaluates:
 1. **Identity**: Who is the user? What groups do they belong to?
 2. **Policy**: Does any assigned policy grant this action?
 3. **Boundary**: Is the target entity within their boundary conditions?
-4. **Segment**: Does the data match their segment filters?
 
-Access is granted only if ALL conditions are satisfied.
+Access is granted only if a policy allows the action and every attached boundary condition is met. Segments then filter what the user *chooses* to view; they never restrict access.
 
 ### Policy Statement Structure
 
@@ -159,19 +158,18 @@ Account-level permissions apply across ALL environments:
 | Permission | Grants |
 |------------|--------|
 | `account-viewer` | View account settings, environments |
-| `account-editor` | Modify account settings |
-| `account-iam-admin` | Manage users, groups, account policies |
-| `environment-creator` | Create new environments |
+| `account-company-info` | Manage account and company settings (also required to read the account audit log) |
+| `account-user-management` | View and manage users, groups and policies |
 
 ### Environment Level
 
-Environment-level permissions scope to a single environment:
+Environment access is granted by binding policies — Dynatrace's default policies or your own — to a group for one environment (or for the whole account):
 
-| Permission | Grants |
+| Policy | Grants |
 |------------|--------|
-| `environment-viewer` | Read-only access to environment data |
-| `environment-editor` | Modify environment configurations |
-| `environment-admin` | Full environment control |
+| **Standard User** (default policy) | Access the environment and run Dynatrace apps |
+| **Pro User** (default policy) | Standard, plus build, deploy and run apps and workflows |
+| **Admin User** (default policy) | Administrative access across all platform services |
 | Custom policies | Fine-grained access per your design |
 
 ### Best Practice: Least Privilege
@@ -185,10 +183,12 @@ Environment Level → Scoped to team/function need
 
 | User Type | Account Permission | Environment Permission |
 |-----------|-------------------|------------------------|
-| Platform Admin | account-iam-admin | environment-admin (all) |
-| App Team Lead | account-viewer | environment-editor (their env) |
+| Platform Admin | account-user-management | Admin User (all) |
+| App Team Lead | account-viewer | Pro User (their env) |
 | Developer | None | Custom policy (read + limited write) |
-| Auditor | account-viewer | environment-viewer (all) |
+| Auditor | account-viewer | Standard User (all) |
+
+> <sub>**Sources:** [dynatrace_iam_group (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md) — *"Possible values: `account-company-info`, `account-user-management`, `account-viewer`"*; [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
 
 <a id="centralized-vs-federated-models"></a>
 ## 5. Centralized vs Federated Models

@@ -1,6 +1,6 @@
 # OPLOGS-06: Topology & Entity Context
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Leveraging Entity Relationships in Log Analysis
 This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.
@@ -9,16 +9,17 @@ This notebook explores how Dynatrace enriches logs with entity context (hosts, p
 
 ## Table of Contents
 
-1. [Host Topology](#host-topology)
-2. [Process Group Topology](#process-group-topology)
-3. [Kubernetes Topology](#kubernetes-topology)
-4. [Service Mapping](#service-mapping)
-5. [Cross-Entity Correlation](#cross-entity-correlation)
-6. [Using Entity IDs for Lookups](#using-entity-ids-for-lookups)
-7. [Topology-Based Alerting Patterns](#topology-based-alerting-patterns)
-8. [📝 Summary](#summary)
-9. [➡️ Next Steps](#next-steps)
-10. [📚 References](#references)
+1. [Entity Types Overview](#entity-types-overview)
+2. [Host Topology](#host-topology)
+3. [Process Group Topology](#process-group-topology)
+4. [Kubernetes Topology](#kubernetes-topology)
+5. [Service Mapping](#service-mapping)
+6. [Cross-Entity Correlation](#cross-entity-correlation)
+7. [Using Entity IDs for Lookups](#using-entity-ids-for-lookups)
+8. [Topology-Based Alerting Patterns](#topology-based-alerting-patterns)
+9. [📝 Summary](#summary)
+10. [➡️ Next Steps](#next-steps)
+11. [📚 References](#references)
 
 ---
 
@@ -29,6 +30,7 @@ This notebook explores how Dynatrace enriches logs with entity context (hosts, p
 - ✅ Completed OPLOGS-01 through OPLOGS-05
 - ✅ Understanding of Dynatrace entity model (helpful)
 
+<a id="entity-types-overview"></a>
 ## 1. Entity Types Overview
 
 Dynatrace automatically enriches logs with entity context:
@@ -141,9 +143,11 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Process group error analysis
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 1h
 | filter isNotNull(dt.entity.process_group)
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | fieldsAdd content_preview = substring(content, from: 0, to: 80)
 | summarize {error_count = count()}, by: {dt.entity.process_group, content_preview}
 | sort error_count desc
@@ -178,7 +182,7 @@ fetch logs, from: now() - 1h
 | filter isNotNull(k8s.namespace.name)
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR" OR loglevel == "WARN")
+    errors = countIf(status == "ERROR" OR status == "WARN")
   }, by: {k8s.namespace.name}
 | fieldsAdd error_percentage = round((errors * 100.0) / total, decimals: 2)
 | sort errors desc
@@ -191,7 +195,7 @@ fetch logs, from: now() - 1h
 | filter isNotNull(k8s.pod.name)
 | summarize {
     log_count = count(),
-    error_count = countIf(loglevel == "ERROR")
+    error_count = countIf(status == "ERROR")
   }, by: {k8s.namespace.name, k8s.pod.name}
 | sort error_count desc
 | limit 20
@@ -237,7 +241,7 @@ fetch logs, from: now() - 1h
 | filter isNotNull(dt.entity.service)
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR")
+    errors = countIf(status == "ERROR")
   }, by: {dt.entity.service}
 | fieldsAdd error_rate = round((errors * 100.0) / total, decimals: 2)
 | sort error_rate desc
@@ -338,7 +342,7 @@ Use entity context to create meaningful alert conditions.
 ```dql
 // Alert pattern: Errors per namespace (for threshold alerting)
 fetch logs, from: now() - 15m
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize {error_count = count()}, by: {k8s.namespace.name}
 | filter error_count > 10
 | sort error_count desc
@@ -350,7 +354,7 @@ fetch logs, from: now() - 15m
 | filter isNotNull(dt.entity.host)
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR")
+    errors = countIf(status == "ERROR")
   }, by: {dt.entity.host}
 | filter total > 100  // Minimum sample size
 | fieldsAdd error_rate = (errors * 100.0) / total
@@ -392,9 +396,9 @@ Continue to **OPLOGS-07: Analytics & Dashboards** for aggregation and visualizat
 
 <a id="references"></a>
 ## 📚 References
-- [Dynatrace Entity Model](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
-- [Kubernetes Monitoring](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
-- [Log Enrichment](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-enrichment)
+- [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail)
+- [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
+- [Connect log data to traces (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-enrichment)
 
 ---
 

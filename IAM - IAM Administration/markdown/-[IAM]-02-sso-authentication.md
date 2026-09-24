@@ -1,6 +1,6 @@
 # IAM-02: SSO and Authentication Configuration
 
-> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Setting Up Enterprise Authentication
 Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.
@@ -117,8 +117,9 @@ Configure your Identity Provider to work with Dynatrace.
    - Name it "Dynatrace" or "Dynatrace [Environment]"
 
 2. **Configure Service Provider Settings**
-   - ACS URL: `https://sso.dynatrace.com/sso/saml2/<account-uuid>`
-   - Entity ID: `https://sso.dynatrace.com/sso/saml2/<account-uuid>`
+   - Take the Entity ID and ACS URL from the Dynatrace SP metadata. They depend on the federation type you choose in Section 4:
+     - **Global federation:** Entity ID (audience) `https://sso.dynatrace.com:443/saml2/login`; ACS / Single Sign On URL `https://sso.dynatrace.com:443/saml2/sp/consumer`
+     - **Account or environment federation:** download the unique SP metadata while creating the SAML configuration. The ACS URL has the form `https://sso.dynatrace.com/identity-federation/sp/consumer/account/<account-UUID>/federation/<configuration-UUID>`
    - Name ID Format: Email address
 
 3. **Configure Attributes**
@@ -130,6 +131,8 @@ Configure your Identity Provider to work with Dynatrace.
    - Assign IdP groups that should access Dynatrace
    - Or assign all users and control access via Dynatrace groups
 
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"https://sso.dynatrace.com:443/saml2/login for Entity ID (Audience Restriction)."*, *"https://sso.dynatrace.com:443/saml2/sp/consumer for Single Sign On URL, Destination URL, Recipient URL."*</sub>
+
 ### Okta Configuration Example
 
 1. **Create Application**
@@ -139,8 +142,10 @@ Configure your Identity Provider to work with Dynatrace.
 
 2. **SAML Settings**
    ```
-   Single sign-on URL: https://sso.dynatrace.com/sso/saml2/<account-uuid>
-   Audience URI (SP Entity ID): https://sso.dynatrace.com/sso/saml2/<account-uuid>
+   Single sign-on URL: <ACS URL from the Dynatrace SP metadata>
+                       (global federation: https://sso.dynatrace.com:443/saml2/sp/consumer)
+   Audience URI (SP Entity ID): <Entity ID from the Dynatrace SP metadata>
+                       (global federation: https://sso.dynatrace.com:443/saml2/login)
    Name ID format: EmailAddress
    Application username: Email
    ```
@@ -166,8 +171,10 @@ Configure your Identity Provider to work with Dynatrace.
 
 2. **Single Sign-On → SAML**
    ```
-   Identifier (Entity ID): https://sso.dynatrace.com/sso/saml2/<account-uuid>
-   Reply URL (ACS URL): https://sso.dynatrace.com/sso/saml2/<account-uuid>
+   Identifier (Entity ID): <Entity ID from the Dynatrace SP metadata>
+                           (global federation: https://sso.dynatrace.com:443/saml2/login)
+   Reply URL (ACS URL): <ACS URL from the Dynatrace SP metadata>
+                           (global federation: https://sso.dynatrace.com:443/saml2/sp/consumer)
    ```
 
 3. **Attributes & Claims**
@@ -184,22 +191,27 @@ Configure Dynatrace to accept SAML assertions from your IdP.
 
 ### Steps in Dynatrace Account Management
 
-1. **Navigate to Identity Providers**
-   - Account Management → Identity & access management → Identity providers
+1. **Create a fallback user**
+   - A non-federated user account in a group with the *View and manage users and groups* permission, so you can still sign in if the SAML configuration fails
 
-2. **Add SAML Configuration**
-   - Click "Add identity provider"
-   - Select "SAML 2.0"
+2. **Verify domain ownership**
+   - Identity & access management → Domain verification — add your email domain, publish the DNS TXT record, and verify it
 
-3. **Enter IdP Information**
+3. **Create the SAML configuration**
+   - Identity & access management → SAML configuration → New configuration
+   - Choose the federation type — global, account, or environment
+
+4. **Enter IdP Information**
    - **Name**: Descriptive name (e.g., "Corporate Okta")
    - **IdP Entity ID**: From IdP metadata
    - **IdP SSO URL**: From IdP metadata
    - **IdP Certificate**: Upload X.509 certificate from IdP
 
-4. **Get Dynatrace SP Information**
+5. **Get Dynatrace SP Information**
    - Copy ACS URL and Entity ID to configure in IdP
    - Download Dynatrace SP metadata if IdP supports it
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Before you can configure the domain for which you want to set up SAML, you need to prove ownership of the domain."*, *"go to Identity & access management > SAML configuration and select New configuration"*.</sub>
 
 ### Configuration Options
 
@@ -392,7 +404,8 @@ fetch dt.system.events, from:-24h
 ```
 
 ```dql
-// Find failed authentication attempts
+// Find failed sign-in attempts (event.type LOGIN with outcome "failure" — other non-2xx outcomes
+// are failed API calls, and 304 Not Modified is a success)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -406,8 +419,7 @@ fetch dt.system.events, from:-24h
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.type == "LOGIN" or isNotNull(authentication.type)
-| filter not startsWith(event.outcome, "2") and event.outcome != "success"
+| filter event.type == "LOGIN" and event.outcome == "failure"
 | fields timestamp, user.id, authentication.type, event.outcome, origin.address
 | sort timestamp desc
 | limit 50

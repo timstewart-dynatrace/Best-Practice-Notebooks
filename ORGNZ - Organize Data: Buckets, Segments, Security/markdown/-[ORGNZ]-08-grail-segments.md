@@ -1,6 +1,6 @@
 # ORGNZ-08: Grail Segments
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 07/21/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -29,6 +29,7 @@
 8. [Testing Segments](#testing-segments)
 9. [Segments and Access Control](#segments-and-access-control)
 10. [Segment Design Checklist](#segment-design-checklist)
+11. [Bucket-Based Segment Filtering](#bucket-based-segments)
 
 ---
 
@@ -53,7 +54,7 @@ By the end of this notebook, you will:
 
 > **Key insight**: Buckets store data; segments filter it. Use buckets for retention and cost allocation, segments for dynamic data views.
 
-> **Performance benefit**: Applying a segment also reduces the **scanned bytes** of your queries. Since segments inject filter conditions at query time, only matching data is scanned — meaning fewer bytes read, lower cost, and faster results. This is especially impactful on high-volume buckets where unfiltered queries might hit the 500 GB scan limit.
+> **Performance benefit**: Applying a segment also reduces the **scanned bytes** of your queries. Since segments inject filter conditions at query time, only matching data is scanned — meaning fewer bytes read, lower cost, and faster results. This is especially impactful on high-volume buckets where unfiltered queries might hit the default 500 GB scan limit (`scanLimitGBytes`).
 
 <a id="segment-use-cases"></a>
 ## Segment Use Cases
@@ -264,6 +265,22 @@ includes:
 <a id="testing-segments"></a>
 ## Testing Segments
 
+### DQL: Segment Simulation
+
+Simulate a host-group-based segment filter on log data:
+
+```dql
+// Filter logs by host group — simulates a segment filter condition on log data.
+// `dt.host_group.id` is a Primary Grail Field that propagates across all signal types,
+// so it is the canonical attribute to anchor a host-group-based segment on.
+// The legacy `host.group` field is not populated on modern OneAgents and returns zero rows.
+fetch logs, from:-1h
+| filter isNotNull(dt.host_group.id)
+| summarize count = count(), by:{dt.host_group.id}
+| sort count desc
+| limit 10
+```
+
 <a id="segments-and-access-control"></a>
 ## Segments and Access Control
 **Important**: Segments are for **data filtering only**, not access control.
@@ -287,23 +304,6 @@ Segments are governed by existing access controls - users only see data they're 
 - [ ] Tested filter conditions with DQL
 - [ ] Documented segment usage
 - [ ] Planned variable usage for flexibility
-
-## Next Steps
-
-Continue with the ORGNZ series:
-- **ORGNZ-09**: Enterprise Patterns
-- **ORGNZ-10**: Advanced Segment Definitions
-
-## References
-
-- [Grail Segments](https://docs.dynatrace.com/docs/manage/segments)
-- [Smartscape topology and entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape)
-- [Segment Limits](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits)
-- [Configure custom filter segments — get started (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data)
-
----
-
-<sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
 
 <a id="bucket-based-segments"></a>
 ## Bucket-Based Segment Filtering
@@ -337,18 +337,19 @@ This lets users pick a bucket from a dropdown in Dashboards or Notebooks without
 
 > **Performance benefit:** targeting a bucket via segment reduces the data scanned compared to a full table scan, directly reducing query licensing costs.
 
-### DQL: Segment Simulation
+## Next Steps
 
-Simulate a host-group-based segment filter on log data:
+Continue with the ORGNZ series:
+- **ORGNZ-09**: Enterprise Patterns
+- **ORGNZ-10**: Advanced Segment Definitions
 
-```dql
-// Filter logs by host group — simulates a segment filter condition on log data.
-// `dt.host_group.id` is a Primary Grail Field that propagates across all signal types,
-// so it is the canonical attribute to anchor a host-group-based segment on.
-// The legacy `host.group` field is not populated on modern OneAgents and returns zero rows.
-fetch logs, from:-1h
-| filter isNotNull(dt.host_group.id)
-| summarize count = count(), by:{dt.host_group.id}
-| sort count desc
-| limit 10
-```
+## References
+
+- [Grail Segments](https://docs.dynatrace.com/docs/manage/segments)
+- [Smartscape topology and entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape)
+- [Segment Limits](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits)
+- [Configure custom filter segments — get started (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data)
+
+---
+
+<sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>

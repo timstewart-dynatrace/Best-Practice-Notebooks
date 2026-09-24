@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -9,16 +9,17 @@ This notebook covers Grail bucket architecture, retention policies, routing conf
 
 ## Table of Contents
 
-1. [Strategic Bucket Design](#strategic-bucket-design)
-2. [Retention Policies](#retention-policies)
-3. [Bucket Routing Configuration](#bucket-routing-configuration)
-4. [Access Control & Data Governance](#access-control-data-governance)
-5. [Query Optimization with Buckets](#query-optimization-with-buckets)
-6. [Cost Optimization Strategies](#cost-optimization-strategies)
-7. [Bucket Management Best Practices](#bucket-management-best-practices)
-8. [📝 Summary](#summary)
-9. [➡️ Next Steps](#next-steps)
-10. [📚 References](#references)
+1. [Discovering Your Buckets](#discovering-your-buckets)
+2. [Strategic Bucket Design](#strategic-bucket-design)
+3. [Retention Policies](#retention-policies)
+4. [Bucket Routing Configuration](#bucket-routing-configuration)
+5. [Access Control & Data Governance](#access-control-data-governance)
+6. [Query Optimization with Buckets](#query-optimization-with-buckets)
+7. [Cost Optimization Strategies](#cost-optimization-strategies)
+8. [Bucket Management Best Practices](#bucket-management-best-practices)
+9. [📝 Summary](#summary)
+10. [➡️ Next Steps](#next-steps)
+11. [📚 References](#references)
 
 ---
 
@@ -28,6 +29,11 @@ This notebook covers Grail bucket architecture, retention policies, routing conf
 - ✅ Access to a Dynatrace environment with log data
 - ✅ Understanding of OpenPipeline basics (OPLOGS-01 to OPLOGS-03)
 - ✅ Admin access for bucket configuration (optional)
+
+<a id="discovering-your-buckets"></a>
+## 1. Discovering Your Buckets
+
+Start with what already exists: which buckets hold log data, how their volume moves, and which log levels land in each.
 
 ```dql
 // Discover all buckets with log data
@@ -99,13 +105,15 @@ Examples:
 
 ```dql
 // Analyze current log distribution for bucket planning
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
     debug = countIf(loglevel == "DEBUG" OR loglevel == "TRACE"),
     info = countIf(loglevel == "INFO" OR loglevel == "NOTICE"),
-    warn = countIf(loglevel == "WARN" OR loglevel == "WARNING"),
-    error = countIf(loglevel == "ERROR" OR loglevel == "FATAL")
+    warn = countIf(loglevel == "WARN"),
+    error = countIf(status == "ERROR")
   }
 | fieldsAdd debug_pct = round((debug * 100.0) / total, decimals: 1)
 | fieldsAdd info_pct = round((info * 100.0) / total, decimals: 1)
@@ -276,24 +284,14 @@ fetch logs, from: now() - 24h
 
 ### IAM Policy Integration
 
-Configure in **Settings → Access tokens & IAM → Policies**
+Configure in **Account Management → Identity & access management → Policy management**. Policies are written in the policy statement language, not JSON, and bucket access needs **two** statements — read on the bucket, plus the table permission:
 
-```json
-{
-  "name": "audit-log-readers",
-  "statement": [
-    {
-      "effect": "ALLOW",
-      "permissions": ["storage:logs:read"],
-      "conditions": [
-        {
-          "bucket": ["audit_logs"]
-        }
-      ]
-    }
-  ]
-}
+```text
+ALLOW storage:buckets:read WHERE storage:bucket-name="audit_logs";
+ALLOW storage:logs:read WHERE storage:bucket-name="audit_logs";
 ```
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"All bucket permissions need to start with storage:buckets:read"*, [Manage IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt) — *"Go to Account Management > Identity & access management > Policy management."*</sub>
 
 ```dql
 // Identify sensitive data patterns for access control planning
@@ -377,7 +375,6 @@ fetch logs, from: now() - 24h
 |----------|---------|----------------|
 | Shorten DEBUG retention | 60-80% | Route to 7-day bucket |
 | Drop health check logs | 10-30% | OpenPipeline filter |
-| Sample verbose logs | 50-90% | Sampling processor |
 | Compress long content | 20-40% | Field truncation |
 
 ### ROI Calculation
@@ -448,12 +445,13 @@ fetch logs, from: now() - 24h
 
 ```dql
 // Weekly bucket health check query
+// error_pct uses status == "ERROR", which includes SEVERE, CRITICAL, FATAL, …
 fetch logs, from: now() - 7d
 | summarize {
     total_logs = count(),
     unique_sources = countDistinct(dt.openpipeline.source),
     debug_pct = round((countIf(loglevel == "DEBUG") * 100.0) / count(), decimals: 1),
-    error_pct = round((countIf(loglevel == "ERROR") * 100.0) / count(), decimals: 1)
+    error_pct = round((countIf(status == "ERROR") * 100.0) / count(), decimals: 1)
   }, by: {dt.system.bucket}
 | sort total_logs desc
 ```
@@ -492,10 +490,11 @@ Continue to **OPLOGS-05: Querying & Parsing** to learn advanced DQL techniques f
 
 <a id="references"></a>
 ## 📚 References
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
-- [Log Storage Configuration](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
-- [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
-- [IAM Policies](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+- [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment)
+- [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
+- [Working with policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
+- [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)
 
 ---
 

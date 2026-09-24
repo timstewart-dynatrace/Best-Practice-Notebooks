@@ -15,15 +15,15 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| What OpenPipeline is, architecture, `dt.openpipeline.*` fields, ingestion sources (OneAgent/API/OTLP), classic-vs-OpenPipeline comparison | `-[OPLOGS]-01-fundamentals.md` |
+| What OpenPipeline is, architecture and the fixed ten-stage pipeline order (masking/parsing/dropping all in stage 1, Processing; bucket assignment before extraction), `dt.openpipeline.*` fields, ingestion sources (OneAgent/API/OTLP), classic-vs-OpenPipeline comparison | `-[OPLOGS]-01-fundamentals.md` |
 | Assessing log sources/volumes before moving, migration paths, validation queries, migration checklist | `-[OPLOGS]-02-migration.md` |
-| Configuring processors: DPL parsing, metric extraction from logs, attribute enrichment, event generation, bucket routing, drop/sampling filters, the Inline lookup processor (SaaS 1.345, staged tenant rollout, available in every scope), and the `dt.smartscape_source.id` prerequisite without which Davis-event extraction collapses every record into one permanently-open problem | `-[OPLOGS]-03-pipeline-processing.md` |
+| Configuring processors: DPL parsing, metric extraction from logs, attribute enrichment, event generation, bucket routing, drop filters (there is no log-sampling processor), the Inline lookup processor (SaaS 1.345, staged tenant rollout, available in every scope), and the `dt.smartscape_source.id` prerequisite without which Davis-event extraction collapses every record into one permanently-open problem | `-[OPLOGS]-03-pipeline-processing.md` |
 | Bucket design, retention policies (`dt.system.bucket`), routing to buckets, access control, storage cost optimization | `-[OPLOGS]-04-buckets-governance.md` |
 | Writing log DQL: filters, string matching, `parse` with DPL matchers (LD/INT/IPADDR/JSON), JSON logs, null handling | `-[OPLOGS]-05-querying-parsing.md` |
 | Entity context on logs: `dt.entity.host`/`process_group`/`service`, `k8s.*` fields, cross-entity correlation, entity-ID lookups | `-[OPLOGS]-06-topology.md` |
 | Aggregations, `makeTimeseries`, statistical/trend analysis, log pattern analysis, dashboard-ready log queries | `-[OPLOGS]-07-analytics.md` |
-| Finding sensitive data (PII, credit cards, SSNs, tokens), masking configuration, audit log queries, compliance reporting | `-[OPLOGS]-08-security.md` |
-| Consolidated settings checklist: pipeline stage order, retention values by log type, masking patterns, DQL cookbook | `-[OPLOGS]-99-best-practice-summary.md` |
+| Finding sensitive data (PII, credit cards, SSNs, tokens), masking with DPL `replacePattern` statements in a DQL processor (not regex), audit log queries, compliance reporting | `-[OPLOGS]-08-security.md` |
+| Consolidated settings checklist: processor order within the Processing stage, retention values by log type, masking patterns, DQL cookbook | `-[OPLOGS]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[OPLOGS]-99-best-practice-summary.md`
 and follow its pointers.

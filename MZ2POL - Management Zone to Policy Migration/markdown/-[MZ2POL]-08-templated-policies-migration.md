@@ -1,6 +1,6 @@
 # MZ2POL-08: Templated Policies for MZ Migration
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 10 | **Created:** February 2026 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 10 | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -26,7 +26,7 @@ This notebook shows how to convert common MZ access patterns into parameterized 
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM and Grail enabled |
-| **Permissions** | `account-iam-admin` for policy and binding management |
+| **Permissions** | Account permission **View and manage users and groups** (`account-user-management`) for group and binding management — there is no `account-iam-admin` permission ([Role-based permissions (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/role-based-permissions)) |
 | **API Access** | OAuth client or API token with IAM management scopes |
 | **Prior Knowledge** | **MZ2POL-04: Policies and Boundaries** (G-P-B pattern, policy syntax) |
 | **Migration Status** | MZ assessment complete (**MZ2POL-03**), security context assigned |
@@ -345,12 +345,21 @@ fetch dt.entity.service
 ```
 
 ```dql
-// Audit recent policy binding changes for migration tracking
-fetch logs, from: now() - 30d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "binding")
-| fields timestamp, content
-| sort timestamp desc
+// IAM API activity against this environment (migration tracking aid, NOT a change log)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+// Group, policy, boundary and binding changes are ACCOUNT-level. They are not in an
+// environment's audit events; review them in Account Management > Settings > Audit log.
+// Policy bindings are account-level, so track binding changes in that audit log. This query
+// shows IAM API calls against the environment - useful for spotting automation. Scheduled
+// lookup-file uploads (/lookups/iam_*) are excluded; they are not IAM changes.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT"
+| filter contains(resource, "iam") and not startsWith(resource, "/lookups/")
+| summarize requests = count(), last_seen = takeMax(timestamp), by:{event.type, user.id}
+| sort requests desc
 | limit 100
 ```
 

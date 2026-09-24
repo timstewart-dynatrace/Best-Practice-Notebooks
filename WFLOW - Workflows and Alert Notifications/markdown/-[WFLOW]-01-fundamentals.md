@@ -1,6 +1,6 @@
 # WFLOW-01: Workflow Fundamentals
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Introduction to Dynatrace Workflows
 Dynatrace Workflows is the automation engine that enables event-driven automation, scheduled tasks, and integration orchestration. This notebook introduces core concepts, components, and your first workflow.
@@ -81,7 +81,7 @@ What starts the workflow:
 | Trigger Type | Starts When | Use Case |
 |--------------|-------------|----------|
 | **Detected Problem** | Dynatrace Intelligence detects a problem | Alert notifications |
-| **Detected Event** | Metric threshold breached | Capacity alerts |
+| **Davis Event** | An anomaly detector raised a Davis event (per-alert, before grouping into a problem) | Per-alert automation |
 | **Schedule** | Cron expression matches | Daily reports |
 | **On-Demand** | Manual execution or API call | Testing, ad-hoc runs |
 | **Event Trigger** | Custom/business event ingested | Business process automation |
@@ -105,8 +105,8 @@ Logic that controls task execution:
 
 ```
 conditions:
-  - name: is_critical
-    expression: '{{ event()["severity"] == "CRITICAL" }}'
+  - name: is_availability_problem
+    expression: '{{ event()["event.category"] == "AVAILABILITY" }}'
 ```
 
 ### 3.4 Expressions
@@ -114,10 +114,13 @@ conditions:
 Dynamic values using Jinja2 syntax:
 
 ```
-{{ event()["title"] }}           # Access trigger data
+{{ event()["event.name"] }}      # Access trigger data (problem title)
+{{ problem_link() }}             # Link to the problem (Problem trigger only)
 {{ result("task_name") }}        # Previous task result — shape depends on task type; see WFLOW-08 §6
-{{ env.SECRET_NAME }}             # Access secrets
+{{ input("environment") }}       # Workflow input
 ```
+
+There is no `env` object in the expression language. Secrets belong in a **connection** or the **Credential Vault**, never in an expression (WFLOW-09 §2).
 
 ### Visual: Workflow Execution Flow
 
@@ -129,7 +132,7 @@ Dynamic values using Jinja2 syntax:
 | Trigger | Event that starts workflow | Detected Problem, Schedule, On-Demand |
 | Tasks | Actions to execute | Slack, HTTP, JavaScript, DQL |
 | Conditions | Logic to control flow | Severity checks, boolean expressions |
-| Results | Capture output | SUCCEEDED, FAILED, TIMED_OUT |
+| Results | Capture output | SUCCESS, ERROR, CANCELLED |
 For environments where SVG doesn't render
 -->
 
@@ -191,7 +194,7 @@ Two distinct timeouts apply to every workflow task — confusing them is one of 
 
 > **Why this matters.** Raising the task `timeout` does not help a DQL query that's hitting the 120-second runtime budget — you need to narrow the query window, pre-aggregate, or split the work. Conversely, an approval task waiting for a human pager-out doesn't need a runtime budget — it needs a long task timeout (`timeout: 1800` for 30 minutes, `timeout: 86400` for 24 hours).
 
-Concrete handling: see [WFLOW-08 § *Configuring Task Timeouts*](#) for the YAML/JSON shape on `execute-dql-query`, `run-javascript`, and approval tasks.
+Concrete handling: see **WFLOW-08 § Configuring Task Timeouts** for the YAML/JSON shape on `execute-dql-query`, `run-javascript`, and approval tasks.
 
 **Other platform constraints.** Concurrency caps, per-workflow task counts, and rate limits exist but are not consistently published in current Dynatrace docs and have changed over the product's life. In community practice, treat "keep workflows small (under ~20 tasks), keep them focused (one trigger → one outcome), and don't fan out hundreds of concurrent executions" as the operational rule. Verify against your tenant's actual behavior under load before designing around a specific number.
 
@@ -200,10 +203,12 @@ Concrete handling: see [WFLOW-08 § *Configuring Task Timeouts*](#) for the YAML
 | State | Meaning |
 |-------|----------|
 | `RUNNING` | Currently executing |
-| `SUCCEEDED` | Completed successfully |
-| `FAILED` | One or more tasks failed |
+| `SUCCESS` | Completed successfully |
+| `ERROR` | A task failed or timed out — there is no separate `TIMED_OUT` state |
 | `CANCELLED` | Manually cancelled |
-| `TIMED_OUT` | Exceeded execution limit |
+| `SKIPPED` / `DISCARDED` | Task level only — the task's conditions were not met |
+
+These are the values `dt.automation_engine.state` carries in `dt.system.events` (the queries in §7 read them); `FAILED`, `SUCCEEDED` and `TIMED_OUT` are not values.
 
 <a id="your-first-workflow"></a>
 ## 6. Your First Workflow

@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/21/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -46,12 +46,12 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
 | 1 | Use Detected Problem trigger for incident alerts | `type: davis-problem` | Critical | WFLOW-02 |
-| 2 | Use Detected Event trigger for proactive metric thresholds | `type: davis-event` with DQL query and `evaluationFrequency: "5m"` | Critical | WFLOW-02 |
+| 2 | Use the Davis event trigger only for per-alert reactions | Put the threshold in an anomaly detector (ALERT-02); trigger on the problem, and use the Davis event trigger only when you need per-alert granularity | Critical | WFLOW-02 |
 | 3 | Use Schedule trigger for reports and health checks | `type: schedule` with cron expression and explicit `timezone` | Critical | WFLOW-02 |
 | 4 | Use On-Demand trigger for testing | `type: on-demand` before deploying any production workflow | Critical | WFLOW-02 |
 | 5 | Scope Detected Problem triggers with entity tags | `entityTagsMatch: all` with `entityTags: [{key: env, value: prod}]` | Critical | WFLOW-02 |
 | 6 | Filter by problem categories | Set `categories: [AVAILABILITY, PERFORMANCE]` to reduce noise | Recommended | WFLOW-02 |
-| 7 | Handle all problem lifecycle events | Trigger on OPEN, UPDATED, and CLOSED statuses in a single workflow | Recommended | WFLOW-05 |
+| 7 | Handle all problem lifecycle events | Problem state *active or closed*; branch on `event.status` (`ACTIVE` / `CLOSED`) in a single workflow | Recommended | WFLOW-05 |
 | 8 | Offset scheduled workflows from minute :00 | Use `:05`, `:15`, `:30` instead of `:00` to spread load | Recommended | WFLOW-02 |
 | 9 | Always set timezone on schedule triggers | `timezone: "America/New_York"` (explicit, never rely on default) | Recommended | WFLOW-02 |
 | 10 | Use Event trigger for business process automation | `type: event` with `filterQuery` for bizevent-driven workflows | Optional | WFLOW-02 |
@@ -79,7 +79,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 3 | Slack-only for Medium problems | Slack #alerts (business hours only for Low) | Recommended | WFLOW-04 |
 | 4 | Use Power Automate connector for Teams | Microsoft is deprecating Office 365 Connectors; use newer Workflows connector | Recommended | WFLOW-03 |
 | 5 | Use built-in email for simple notifications | No SMTP setup required; use custom SMTP or SendGrid for high volume | Optional | WFLOW-03 |
-| 6 | Include severity in email subject line | `[{{ event()['severity'] }}] {{ event()['title'] }}` | Recommended | WFLOW-03 |
+| 6 | Include severity in email subject line | `[{{ event()['event.category'] }}] {{ event()['event.name'] }}` | Recommended | WFLOW-03 |
 
 <a id="message-formatting-templates"></a>
 ## 5. Message Formatting & Templates
@@ -87,14 +87,14 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
 | 1 | Structure messages: Severity + Title + Key metrics + Link | Line 1: severity indicator + title; Line 2: impact; Line 3: affected entities; Line 4: action link | Critical | WFLOW-06 |
-| 2 | Use severity-coded visual indicators | Slack: `:red_circle:` CRITICAL, `:large_orange_circle:` HIGH, `:large_yellow_circle:` MEDIUM, `:large_blue_circle:` LOW | Critical | WFLOW-06 |
+| 2 | Use severity-coded visual indicators | Slack, keyed on `event.severity`: `:red_circle:` 1, `:large_orange_circle:` 2, `:large_yellow_circle:` 3, `:large_blue_circle:` 4 | Critical | WFLOW-06 |
 | 3 | Use Slack Block Kit for rich messages | `blocks:` with `header`, `section`, `actions`, `context` types | Recommended | WFLOW-06 |
 | 4 | Use Teams Adaptive Cards v1.4 | `type: AdaptiveCard`, `version: "1.4"` with `FactSet`, `TextBlock`, `Action.OpenUrl` | Recommended | WFLOW-06 |
-| 5 | Always include a link to the Dynatrace problem | `<{{ event()['problem_url'] }}|View in Dynatrace>` (Slack) or `Action.OpenUrl` (Teams) | Critical | WFLOW-03 |
-| 6 | Use dictionary mapping for severity-to-emoji | `{{ {"CRITICAL": ":red_circle:", ...}.get(event()["severity"], ":white_circle:") }}` | Recommended | WFLOW-06 |
+| 5 | Always include a link to the Dynatrace problem | `<{{ problem_link() }}|View in Dynatrace>` (Slack) or `Action.OpenUrl` (Teams) | Critical | WFLOW-03 |
+| 6 | Use dictionary mapping for severity-to-emoji | `{{ {1: ":red_circle:", ...}.get(event().get("event.severity") \| int(5), ":white_circle:") }}` | Recommended | WFLOW-06 |
 | 7 | Limit affected entities shown to 3-5 | `event()["affected_entity_ids"][:3]` with overflow indicator | Recommended | WFLOW-06 |
 | 8 | Use `.get()` with defaults for optional fields | `event().get("root_cause_entity_id", "Pending analysis")` | Critical | WFLOW-06 |
-| 9 | Truncate long strings | `{{ event()["title"] \| truncate(50) }}` | Recommended | WFLOW-06 |
+| 9 | Truncate long strings | `{{ event()["event.name"] \| truncate(50) }}` | Recommended | WFLOW-06 |
 | 10 | Enrich notifications with DQL data | Add recent error logs via `queryExecutionClient.queryExecute()` in a JavaScript task before the notification task | Optional | WFLOW-06 |
 | 11 | Test templates with mock data first | On-Demand trigger + JavaScript mock event task before production deployment | Critical | WFLOW-06 |
 | 12 | Preview Slack templates in Block Kit Builder | https://app.slack.com/block-kit-builder before deploying | Recommended | WFLOW-06 |
@@ -105,11 +105,11 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
-| 1 | Route by severity | CRITICAL: PagerDuty + Slack + Email; HIGH: Slack + Email; MEDIUM: Slack; LOW: Slack business hours only | Critical | WFLOW-04 |
+| 1 | Route by severity | `event.severity` 1: PagerDuty + Slack + Email; 2: Slack + Email; 3: Slack; 4: Slack business hours only. Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (pre-release, staged rollout) | Critical | WFLOW-04 |
 | 2 | Route by team ownership via entity tags | Condition: `"team:checkout" in event().get("tags", [])` maps to `#checkout-alerts` | Critical | WFLOW-04 |
 | 3 | Do **not** route by management zone | `"Production" in event()["management_zones"]` is legacy. It fails silently once MZs are retired — the array empties, conditions go false, notifications stop with no error. Route on entity tags (`env:prod`) or Smartscape ownership instead | Critical | WFLOW-04 |
 | 4 | Implement time-based routing | Business hours (Mon-Fri 9-17): Slack channel; Off-hours Critical: PagerDuty; Off-hours non-critical: queue for morning | Critical | WFLOW-04 |
-| 5 | Auto-escalate unacknowledged alerts | Wait 15 min, check if still OPEN, escalate to PagerDuty if unacknowledged | Recommended | WFLOW-04 |
+| 5 | Auto-escalate unacknowledged alerts | Wait 15 min, re-query the problem and check it is still ACTIVE, escalate to PagerDuty if unacknowledged | Recommended | WFLOW-04 |
 | 6 | Multi-tier escalation | 0 min: Slack; 15 min: Email team lead; 30 min: PagerDuty on-call; 60 min: PagerDuty manager | Recommended | WFLOW-04 |
 | 7 | Use AND logic for multi-condition tasks | `conditions: [is_critical, is_production]` requires both true | Recommended | WFLOW-04 |
 | 8 | Use JavaScript for dynamic channel selection | Parse `team:` tag to construct `#${team}-alerts` dynamically | Optional | WFLOW-04 |
@@ -122,10 +122,10 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 |---|---------------|-----------------|----------|--------|
 | 1 | Deduplicate PagerDuty incidents | `dedupKey: "dynatrace-{{ event()['display_id'] }}"` | Critical | WFLOW-05 |
 | 2 | Deduplicate ServiceNow incidents | `correlation_id: "DT-{{ event()['display_id'] }}"` | Critical | WFLOW-05 |
-| 3 | Map Dynatrace severity to PagerDuty severity | CRITICAL: `critical`; HIGH: `error`; MEDIUM: `warning`; LOW: `info` | Critical | WFLOW-05 |
-| 4 | Map Dynatrace severity to ServiceNow impact/urgency | CRITICAL: impact=1, urgency=1; HIGH: impact=2, urgency=2; MEDIUM: impact=2, urgency=2; LOW: impact=3, urgency=3 | Critical | WFLOW-05 |
-| 5 | Auto-resolve incidents when problem closes | Trigger on `event()["status"] == "CLOSED"`, resolve PagerDuty via `dedupKey` or set ServiceNow `state: 6` | Critical | WFLOW-05 |
-| 6 | Include Dynatrace problem URL in incident details | `customDetails.problem_url` (PagerDuty) or `description` body (ServiceNow) | Critical | WFLOW-05 |
+| 3 | Map Dynatrace severity to PagerDuty severity | `event.severity` 1: `critical`; 2: `error`; 3: `warning`; 4: `info` | Critical | WFLOW-05 |
+| 4 | Map Dynatrace severity to ServiceNow impact/urgency | `event.severity` 1–2: impact=1, urgency=1; 3: impact=2, urgency=2; 4: impact=3, urgency=3 | Critical | WFLOW-05 |
+| 5 | Auto-resolve incidents when problem closes | Trigger on `event()["event.status"] == "CLOSED"`, resolve PagerDuty via `dedupKey` or set ServiceNow `state: 6` | Critical | WFLOW-05 |
+| 6 | Include Dynatrace problem URL in incident details | `{{ problem_link() }}` in `customDetails` (PagerDuty) or the `description` body (ServiceNow) | Critical | WFLOW-05 |
 | 7 | Store incident ID for subsequent updates | Capture `sys_id` from create response in a JavaScript task for update/resolve operations | Recommended | WFLOW-05 |
 | 8 | Use PagerDuty Events API v2 | Integration type: Events API v2 (not v1) | Critical | WFLOW-05 |
 | 9 | Set `assignment_group` and `caller_id` in ServiceNow | `assignment_group: "Platform Engineering"`, `caller_id: "dynatrace.integration"` | Recommended | WFLOW-05 |
@@ -144,7 +144,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 6 | Auto-remediate only well-defined scenarios | Pod crash loops: yes (restart); Disk space 90%: yes (cleanup); Database deadlocks: no (investigate); Security incidents: no (human judgment) | Critical | WFLOW-07 |
 | 7 | Follow remediation maturity model | Level 0: manual; Level 1: notification + runbook link; Level 2: semi-automated (approval); Level 3: fully automated with guardrails | Recommended | WFLOW-07 |
 | 8 | Map problem types to runbooks | JavaScript `runbookMap` object mapping problem title patterns to runbook IDs | Recommended | WFLOW-07 |
-| 9 | Include runbook links in notifications | Jinja conditional: `{% if "CPU" in event()["title"] %}` links to CPU runbook | Recommended | WFLOW-07 |
+| 9 | Include runbook links in notifications | Jinja conditional: `{% if "CPU" in event()["event.name"] %}` links to CPU runbook | Recommended | WFLOW-07 |
 | 10 | Validate after remediation | Query metrics/logs post-action to confirm resolution | Recommended | WFLOW-07 |
 | 11 | Start non-prod, promote to prod | Test all remediation workflows in staging before enabling in production | Critical | WFLOW-07 |
 
@@ -161,7 +161,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 6 | Limit DQL query scope | `from: now() - 1h`, select only needed `fields`, `limit 100` | Critical | WFLOW-08 |
 | 7 | Use `Promise.all()` for parallel entity lookups | Execute all independent API calls concurrently | Recommended | WFLOW-08 |
 | 8 | Always use HTTPS for external calls | Never use `http://` in HTTP request URLs | Critical | WFLOW-09 |
-| 9 | Access secrets via `env` object only | `env.API_TOKEN` (never hardcode, never log secrets via `console.log`) | Critical | WFLOW-08, WFLOW-09 |
+| 9 | Read secrets from the Credential Vault | `credentialVaultClient.getCredentialsDetails({ id })` in JavaScript; the Authentication field in HTTP tasks (never hardcode, never log or return secrets) | Critical | WFLOW-08, WFLOW-09 |
 | 10 | Add problem comments after remediation | Use `problemsClient.createComment()` to record automated actions | Recommended | WFLOW-08 |
 | 11 | Validate secret existence before use | `if (!apiToken) throw new Error('Missing required secret: ...')` | Recommended | WFLOW-09 |
 
@@ -170,11 +170,11 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
-| 1 | Never hardcode secrets in workflows | Use `{{ env.SECRET_NAME }}` in YAML or `env.SECRET_NAME` in JavaScript | Critical | WFLOW-09 |
+| 1 | Never hardcode secrets in workflows | Connections for connector actions; Credential Vault for HTTP (Authentication field) and JavaScript (`credentialVaultClient`) | Critical | WFLOW-09 |
 | 2 | Sanitize all dynamic inputs | Remove `"'\\` characters, limit string length to 200 chars before using in queries | Critical | WFLOW-09 |
-| 3 | Never log secrets | Do not use `console.log(env.API_TOKEN)` or return secrets in task output | Critical | WFLOW-09 |
-| 4 | Use secret naming convention | Pattern: `<SERVICE>_API_TOKEN`, `<SERVICE>_WEBHOOK_URL`, `<SERVICE>_<ENV>_CRED` | Recommended | WFLOW-09 |
-| 5 | Rotate secrets monthly | Create new secret, update workflow, test, remove old secret | Recommended | WFLOW-09 |
+| 3 | Never log secrets | Do not `console.log()` a credential or return it in task output — results are visible to anyone who can read the workflow | Critical | WFLOW-09 |
+| 4 | Name credentials consistently | Pattern: `<service>-<env>-<purpose>` for Credential Vault entries and connections | Recommended | WFLOW-09 |
+| 5 | Rotate secrets monthly | Update the Credential Vault entry or connection, test, revoke the old token at its source | Recommended | WFLOW-09 |
 | 6 | Fail secure on errors | Default to safe state (no action) when errors occur, never expose error details externally | Critical | WFLOW-09 |
 
 <a id="access-control"></a>
@@ -197,9 +197,9 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 3 | Alert on failure spike | Threshold: > 5 failures per hour | Critical | WFLOW-09 |
 | 4 | Build a workflow health dashboard | Queries: overall health, per-workflow success rates, execution trend, recent failures, task-level performance | Critical | WFLOW-09 |
 | 5 | Create a workflow-monitoring workflow | Scheduled every 15-60 min; query for workflows with 3+ failures/hour; alert to `#workflow-alerts` | Recommended | WFLOW-09 |
-| 6 | Monitor notification task success rates | Query `automation.task.execution` filtered by `slack`, `msteams`, `email`, `pagerduty` task types | Recommended | WFLOW-03 |
-| 7 | Track remediation success rates | Query `automation.workflow.execution` filtered by `remediation` or `auto-heal` workflow names | Recommended | WFLOW-07 |
-| 8 | Monitor skipped tasks | Query `task.status == "SKIPPED"` to validate routing conditions are working as designed | Optional | WFLOW-04 |
+| 6 | Monitor notification task success rates | Query `dt.system.events` `ACTION_EXECUTION` records by `dt.automation_engine.action.app` (`dynatrace.email`, `dynatrace.slack`, …) | Recommended | WFLOW-03 |
+| 7 | Track remediation success rates | Query `dt.system.events` `WORKFLOW_EXECUTION` records filtered on `dt.automation_engine.workflow.title` containing `remediation` | Recommended | WFLOW-07 |
+| 8 | Monitor skipped tasks | Query `TASK_EXECUTION` records with `dt.automation_engine.state` `SKIPPED` / `DISCARDED` to validate routing conditions are working as designed | Optional | WFLOW-04 |
 
 <a id="operations-change-management"></a>
 ## 13. Operations & Change Management
@@ -213,7 +213,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 5 | Daily: check execution dashboard | Review success rates and investigate failures | Recommended | WFLOW-09 |
 | 6 | Weekly: verify external connections | Test all Slack, Teams, PagerDuty, ServiceNow connections | Recommended | WFLOW-09 |
 | 7 | Monthly: rotate secrets | Update API tokens, passwords, webhook URLs | Recommended | WFLOW-09 |
-| 8 | Query execution history with DQL | `fetch events, from: now() - 24h \| filter event.type == "automation.workflow.execution"` | Recommended | WFLOW-01 |
+| 8 | Query execution history with DQL | `fetch dt.system.events, from:-24h \| filter event.kind == "WORKFLOW_EVENT" and event.type == "WORKFLOW_EXECUTION"` | Recommended | WFLOW-01 |
 
 ## Summary
 

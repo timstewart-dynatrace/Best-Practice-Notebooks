@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -134,7 +134,7 @@ Security Context enables entity-level access control. Plan how to tag your entit
 | Maximum 80 buckets per environment | Plan for scale within this limit |
 | ~1 TB/day optimal per bucket | Best query performance |
 | 1-3 TB/day acceptable | Limited query window due to 500 GB scan limit |
-| 3 TB/day maximum | Hard limit per bucket |
+| No documented hard cap per bucket | Dynatrace sizing guidance on where to split differs between pages ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
 | Names immutable | Choose naming convention carefully upfront |
 | No data migration | Cannot consolidate or split buckets later |
 

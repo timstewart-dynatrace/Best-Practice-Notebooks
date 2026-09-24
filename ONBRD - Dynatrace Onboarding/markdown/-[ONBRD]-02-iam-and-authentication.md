@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -277,21 +277,26 @@ Existing scripts and OneAgent installer downloads still use Classic API tokens. 
 After configuring IAM, verify your setup with these queries.
 
 ```dql
-// Check recent audit log entries for user access
-fetch logs, from: now() - 24h
-| filter matchesPhrase(log.source, "audit")
-| fields timestamp, content
+// Recent sign-ins to this environment (audit events)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == "AUDIT_EVENT".
+fetch dt.system.events, from:-24h
+| filter event.kind == "AUDIT_EVENT"
+| filter event.type == "LOGIN"
+| fields timestamp, user.id, event.outcome, authentication.type, origin.type
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// Check for authentication events (if audit logs enabled)
-fetch logs, from: now() - 7d
-| filter matchesPhrase(content, "login") or matchesPhrase(content, "authentication")
-| fields timestamp, content
-| sort timestamp desc
-| limit 25
+// Sign-in outcomes over the last 7 days (audit events, not application logs)
+fetch dt.system.events, from:-7d
+| filter event.kind == "AUDIT_EVENT"
+| filter in(event.type, {"LOGIN", "LOGOUT"})
+| summarize events = count(), users = countDistinct(user.id), by:{event.type, event.outcome}
+| sort events desc
 ```
 
 ### Manual Verification Checklist
