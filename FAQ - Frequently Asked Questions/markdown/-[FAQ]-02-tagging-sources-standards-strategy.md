@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/21/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -68,14 +68,18 @@ The implication: **picking the right source for each dimension you tag on is mor
 |---|---|
 | 1 - Set at the source (preferred) | OneAgent host tag, DT_TAGS (per process), K8s namespace labels/annotations, OTel resource attributes, central config / OpenPipeline |
 | 2 - The unified tag model | Your own tags: primary_tags.<key> (team, app, stage). Reserved fields applied as-is: dt.security_context, dt.cost.costcenter, dt.cost.product |
-| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (proposed, TBD - delegated ownership of configuration objects per team; no Dynatrace documentation as of 09/21/2026) |
+| 3 - What reads the same value | Permissions (IAM filters on dt.security_context - grants access); Segments (saved filters - grant nothing, run inside IAM); Ownership (primary_tags.team - routes problem-triggered workflows); Cost allocation (dt.cost.* - who pays); Compliance (bucket routing, retention, auditability); Spaces (dt.space - Grail data access scoped by space membership; SaaS 1.348, rolling out; ownership of configuration objects not yet documented) |
 | 4 - The questions these answer | Who may see this record? Who gets paged about it? Whose budget does it consume? Can we prove it held? |
 For environments where SVG doesn't render
 -->
 
 The layering is why tagging is worth doing carefully. A value set at the source is on the record before routing, and from there the same value is what access, alert routing, chargeback and compliance evidence all read: *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."* It is also why ownership belongs in a tag rather than a dashboard filter — Dynatrace names the use case directly: *"Route alert notifications to the right recipients based on the ownership metadata on every Davis event."*
 
-> **Spaces — proposed, TBD.** The gap is real today: `dt.security_context` delegates which *records* a team may read, but nothing delegates which *configuration objects* a team may own — changing an alert, an SLO or a maintenance window still goes through whoever holds the settings permissions, which is how a central team becomes a queue. A **Spaces** construct — delegated ownership of configuration objects, per team — is the proposed answer, and it is drawn here to mark where it would sit. It is a concept, not a capability: Dynatrace publishes no documentation for it as of 09/21/2026, no timing is announced, and nothing in this entry depends on it. Design against what the other columns give you today.
+> **Spaces — rolling out with SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026).** The release notes introduce *"Space-based access control with `dt.space`"*: *"The dt.space attribute is now a primary, permission-relevant field in Grail. Data access can be scoped by space membership, enabling fine-grained governance and consistent data separation across your Grail datasets."* That is a **data-access** control: it sits beside `dt.security_context` in deciding which *records* a team may read.
+>
+> The gap this column was first drawn for is still open in what Dynatrace documents. Nothing yet delegates which *configuration objects* a team may own — changing an alert, an SLO or a maintenance window still goes through whoever holds the settings permissions, which is how a central team becomes a queue. Whether spaces will also delegate ownership of configuration objects is **not documented yet**: as of 09/24/2026 there is no docs page for spaces, and `dt.space` is not yet in the semantic dictionary. Verify that 1.348 has reached your tenant before relying on `dt.space`; until then — and for configuration ownership in any case — design against what the other columns give you today.
+>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — the `dt.space` release note quoted above (pre-release, read 09/24/2026). **Dictionary:** no row for `dt.space` under `filter contains(name, "space")`, read 09/24/2026 (control: the same filter returned 21 other fields).</sub>
 
 Inside the OneAgent surface, several distinct concepts share "tag"-adjacent vocabulary. Disambiguating them is essential:
 
