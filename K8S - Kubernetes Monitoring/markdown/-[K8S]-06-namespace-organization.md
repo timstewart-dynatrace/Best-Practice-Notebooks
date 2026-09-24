@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -112,16 +112,19 @@ spec:
 | `monitoring` | Injection control | `monitoring: enabled` |
 
 ```dql
-// Namespace resource usage summary (CPU)
-timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
-| sort avgCpuUsageMillicores desc
+// Namespace CPU usage — sum() adds up every container in the namespace; avg() would
+// return the average container's usage, which ranks namespaces by container size, not consumption
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpuMillicores = arrayAvg(cpuMillicores)
+| sort avgCpuMillicores desc
 | limit 15
 ```
 
 ```dql
-// Memory usage by namespace
-timeseries avgMemUsageBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{k8s.namespace.name}
-| sort avgMemUsageBytes desc
+// Memory usage by namespace — sum() of every container's working set in the namespace
+timeseries memBytes = sum(dt.kubernetes.container.memory_working_set), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgMemBytes = arrayAvg(memBytes)
+| sort avgMemBytes desc
 | limit 15
 ```
 
@@ -342,8 +345,10 @@ metadata:
 ```
 
 ```dql
-// Resource consumption by namespace (for cost allocation)
-timeseries avgCpuMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+// Resource consumption by namespace (for cost allocation) — sum() of every container in the
+// namespace; a per-container avg() under-states namespaces that run many modest containers
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpuMillicores = arrayAvg(cpuMillicores)
 | sort avgCpuMillicores desc
 | limit 15
 ```

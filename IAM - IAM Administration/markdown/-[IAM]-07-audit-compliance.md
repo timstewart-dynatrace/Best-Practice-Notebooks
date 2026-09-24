@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -23,9 +23,10 @@ Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and securi
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Gen3 IAM and audit logging enabled |
-| **Permissions** | `logs.read` with access to audit log bucket |
-| **Data Retention** | Audit logs retained per compliance requirements |
+| **Dynatrace Environment** | SaaS with Grail — Grail-based audit logging is on by default and cannot be turned off |
+| **Permissions** | `ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT";` and `ALLOW storage:buckets:read WHERE storage:bucket-name = "dt_system_events";` |
+| **Account audit log** | The `account-company-info` account permission, to review account-level IAM changes in Account Management |
+| **Data Retention** | Environment audit events are kept for one year; plan exports if a framework needs longer |
 
 <a id="audit-log-fundamentals"></a>
 ## 1. Audit Log Fundamentals
@@ -48,10 +49,20 @@ Dynatrace audit logs capture all security-relevant events in your environment.
 | Field | Description | Example |
 |-------|-------------|----------|
 | `timestamp` | Event time | `2026-01-26T14:30:00Z` |
-| `log.source` | Log category | `audit` |
-| `content` | Event details | JSON with action details |
-| `dt.security.user` | Acting user | `user@company.com` |
-| `dt.source_entity` | Source entity | Client IP, service |
+| `event.kind` | Always `AUDIT_EVENT` for audit records | `AUDIT_EVENT` |
+| `event.type` | Action | `LOGIN`, `GET`, `POST`, `CREATE`, `DELETE` |
+| `event.outcome` | Result — `success` / `failure`, or an HTTP status | `success`, `403` |
+| `event.provider` | Component that recorded the event | `API_GATEWAY`, `SETTINGS`, `API_TOKEN` |
+| `user.id` | Acting user (a UUID, not an email address) | `37e52d7a-…` |
+| `user.organization` | Organization of the acting user | `DYNATRACE` |
+| `authentication.type` / `authentication.grant.type` | How the caller authenticated | `OAUTH2`, `TOKEN` |
+| `resource` | The API path or object acted on | `/platform/document/v1/…` |
+| `origin.address` | Client IP address | `203.0.113.10` |
+| `request.source` | Where the request came from | `BROWSER`, `DT_SERVERLESS`, `OTHER` |
+
+> **Two audit records, two places.** Activity *inside this environment* — sign-ins, API calls, settings and token changes — is recorded as `AUDIT_EVENT` records in `dt.system.events`, which every query in this notebook reads. **Account-level IAM changes** — groups, memberships, policies, boundaries — are recorded in the account audit log (Account Management > Settings > Audit log), not here.
+>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is enabled by default and can't be turned off."*, [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*.</sub>
 
 ### Retention Requirements
 
@@ -88,7 +99,9 @@ fetch dt.system.events, from:-24h
 ```
 
 ```dql
-// Failed login attempts - critical for security monitoring
+// Failed sign-in attempts - critical for security monitoring
+// Corrected 09/24/2026: a failed sign-in is event.type == "LOGIN" with event.outcome == "failure".
+// The previous "any non-2xx outcome" predicate counted 404 GETs and even 304 Not Modified.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -102,8 +115,8 @@ fetch dt.system.events, from:-24h
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter not startsWith(event.outcome, "2") and event.outcome != "success"
-| summarize failures = count(), by:{user.id, event.outcome}
+| filter event.type == "LOGIN" and event.outcome == "failure"
+| summarize failures = count(), by:{user.id, origin.address}
 | sort failures desc
 | limit 25
 ```
@@ -163,6 +176,10 @@ fetch dt.system.events, from:-7d
 ## 3. Authorization and Access Events
 Track permission checks and access attempts to sensitive resources.
 
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
+
 ```dql
 // Access denied events - indicates permission issues or attacks
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
@@ -185,7 +202,7 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Permission changes and grants
+// IAM API activity in this environment (account-level IAM changes: see the note above)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -200,6 +217,7 @@ fetch dt.system.events, from:-7d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | summarize changes = count(), by:{user.id, event.type}
 | sort changes desc
 ```
@@ -216,7 +234,7 @@ fetch dt.system.events, from:-30d
 
 <a id="configuration-change-tracking"></a>
 ## 4. Configuration Change Tracking
-Monitor all changes to IAM configuration.
+Track changes recorded in this environment. Account-level IAM changes (groups, policies, boundaries, bindings) are in the account audit log — see the note in Section 3.
 
 ```dql
 // User creation and deletion events
@@ -240,7 +258,7 @@ fetch dt.system.events, from:-30d
 ```
 
 ```dql
-// Group membership changes
+// IAM API activity in this environment — recent calls (group membership itself is account-level)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -255,13 +273,14 @@ fetch dt.system.events, from:-30d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// Policy changes - critical for compliance
+// IAM API activity in this environment, by user (policy changes themselves: account audit log)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -276,12 +295,16 @@ fetch dt.system.events, from:-30d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
-| summarize policy_changes = count(), by:{user.id}
-| sort policy_changes desc
+| filter not startsWith(resource, "/lookups/")
+| summarize iam_api_calls = count(), by:{user.id}
+| sort iam_api_calls desc
 ```
 
 ```dql
-// Token creation and revocation
+// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Corrected 09/24/2026: token lifecycle events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN,
+// and their resource is the token ID, so the previous contains(resource, "token") filter missed
+// every one of them and matched only scheduled /lookups/iam_tokens uploads.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -295,8 +318,8 @@ fetch dt.system.events, from:-30d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter contains(resource, "token") and in(event.type, {"CREATE", "DELETE", "POST"})
-| fields timestamp, user.id, event.type, resource, event.outcome
+| filter in(event.provider, {"API_TOKEN", "ACTIVE_GATE_TOKEN"})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```
@@ -320,11 +343,14 @@ Standard queries for compliance frameworks.
 SOC2 requires evidence of access controls and monitoring.
 
 ```dql
-// SOC2: User access review - all users who accessed system in period
-fetch logs, from: now() - 90d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "login")
-| summarize last_login = max(timestamp), login_count = count(), by: { content }
+// SOC2: Users who signed in during the period
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, "audit")`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-90d
+| filter event.kind == "AUDIT_EVENT"
+| filter event.type == "LOGIN" and event.outcome == "success"
+| summarize {last_login = takeMax(timestamp), login_count = count()}, by:{user.id}
 | sort last_login desc
 | limit 500
 ```
@@ -448,6 +474,8 @@ PCI-DSS requires tracking access to cardholder data.
 
 ```dql
 // PCI-DSS: Failed access attempts (potential attack indicator)
+// Corrected 09/24/2026: failures are "failure" or an HTTP status of 400 or above. The previous
+// "not 2xx" predicate also counted 304 Not Modified, which is a success.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -461,7 +489,7 @@ PCI-DSS requires tracking access to cardholder data.
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter not startsWith(event.outcome, "2") and event.outcome != "success"
+| filter event.outcome == "failure" or toLong(event.outcome) >= 400
 | summarize failures = count(), by:{user.id, origin.address, event.outcome}
 | sort failures desc
 | limit 50
@@ -512,10 +540,13 @@ fetch dt.system.events, from:-180d
 ```
 
 ```dql
-// Access review: High-activity users (potential over-privileged)
-fetch logs, from: now() - 30d
-| filter matchesPhrase(log.source, "audit")
-| summarize action_count = count(), by: { content }
+// Access review: High-activity users (potential over-privilege)
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, "audit")`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT"
+| summarize action_count = count(), by:{user.id}
 | sort action_count desc
 | limit 50
 ```
@@ -556,16 +587,18 @@ Create dashboards for ongoing compliance monitoring.
 | Token Operations | Creates/revocations | Table |
 
 ```dql
-// Dashboard: Authentication trend (for line chart)
-fetch logs, from: now() - 30d
-| filter matchesPhrase(log.source, "audit")
-| filter matchesPhrase(content, "login")
-| summarize logins = count(), by: { day = bin(timestamp, 1d) }
-| sort day asc
+// Dashboard: Sign-in trend (for line chart)
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, "audit")`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-30d
+| filter event.kind == "AUDIT_EVENT"
+| filter event.type == "LOGIN" and event.outcome == "success"
+| makeTimeseries logins = count(), interval:1d
 ```
 
 ```dql
-// Dashboard: Failed access by day (for bar chart)
+// Dashboard: Failed access by day (for bar chart) — "failure" or HTTP 400 and above
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -579,7 +612,7 @@ fetch logs, from: now() - 30d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter not startsWith(event.outcome, "2") and event.outcome != "success"
+| filter event.outcome == "failure" or toLong(event.outcome) >= 400
 | makeTimeseries failures = count(), interval:1d
 ```
 
@@ -655,7 +688,8 @@ In this notebook, you learned:
 
 ## References
 
-- [Audit Logs](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)
+- [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail)
+- [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [SOC2 Trust Principles](https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services)
 

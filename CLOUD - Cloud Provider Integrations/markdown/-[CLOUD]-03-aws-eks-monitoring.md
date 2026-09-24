@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ Monitoring EKS with Dynatrace involves multiple data paths:
 | Data Path | Source | What It Monitors |
 |---|---|---|
 | **DynaKube Operator** | OneAgent on each node | Pods, containers, processes, traces |
-| **AWS Cloud Integration** | CloudWatch API via ActiveGate | EKS control plane, node group metrics |
+| **AWS Cloud Integration** | CloudWatch API via the Clouds app connection (or a classic ActiveGate on Managed) | EKS control plane, node group metrics |
 | **Kubernetes API** | Dynatrace ActiveGate | Cluster events, deployments, workload state |
 | **Prometheus Integration** | kube-state-metrics, node-exporter | Custom and detailed K8s metrics |
 
@@ -116,7 +116,7 @@ EKS node groups are collections of EC2 instances that serve as Kubernetes worker
 
 ```dql
 // List Kubernetes cluster entities
-fetch dt.entity.kubernetes_cluster
+fetch dt.entity.kubernetes_cluster, from:-7d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
@@ -166,7 +166,7 @@ timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entit
 //
 // The node-CPU sibling was corrected on 08/11/2026 and this cell was missed, so it kept drawing
 // an empty tile for a further day — when a key turns out not to exist, sweep the whole namespace.
-timeseries nodeMemory = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.kubernetes_node}
+timeseries nodeMemory = sum(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgMemory = arrayAvg(nodeMemory)
 | sort avgMemory desc
 | limit 15
@@ -195,11 +195,18 @@ For Fargate pods, use **ApplicationMonitoring** mode in DynaKube:
 ```yaml
 spec:
   oneAgent:
-    applicationMonitoring:
-      useCSIDriver: false  # Fargate doesn't support CSI
+    applicationMonitoring: {}
 ```
 
-> **Note:** Fargate pods cannot use the CSI driver. Set `useCSIDriver: false` and Dynatrace will inject via init containers instead.
+> **Note:** `useCSIDriver` is **not** a DynaKube `v1beta5` / `v1beta6` field — for those versions the `.spec.oneAgent.applicationMonitoring` parameters are `additionalResourceAttributes`, `codeModulesImage`, `codeModulesImagePullPolicy`, `imagePullPolicy`, `initResources`, `namespaceSelector` and `version` (`useCSIDriver` appears only under the retired `v1beta1` / `v1beta2` APIs). Whether the CSI driver runs is decided when you **install the Operator**, not in the DynaKube. The driver is optional and runs as a node DaemonSet, which Fargate cannot host — so install the Operator with the **Without CSI driver** variant of the application-observability setup guide. For the manifest install that is `kubernetes.yaml` rather than `kubernetes-csi.yaml`:
+>
+> ```bash
+> kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
+> ```
+>
+> The guide pins the current release (`v1.10.2` on 09/24/2026) — substitute the Operator version you run.
+
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the per-version `applicationMonitoring` parameter tables, [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see Step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver Pod on each node."*, [Fargate considerations (AWS docs)](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html) — *"Daemonsets aren't supported on Fargate."*</sub>
 
 <a id="eks-metrics"></a>
 
@@ -209,8 +216,8 @@ spec:
 
 ```dql
 // Pod CPU usage by namespace over the last hour
-timeseries podCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
-| fieldsAdd avgCpu = arrayAvg(podCpu)
+timeseries avgContainerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpu = arrayAvg(avgContainerCpu)
 | sort avgCpu desc
 | limit 10
 ```
@@ -277,8 +284,8 @@ One of the key benefits of Kubernetes monitoring is the ability to allocate cost
 ### CPU-Based Cost Allocation by Namespace
 
 ```dql
-// Namespace CPU usage as percentage of total cluster CPU
-timeseries nsCpu = avg(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
+// Namespace CPU usage (sum over the namespace's containers) over the last 24 hours
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgCpu = arrayAvg(nsCpu)
 | sort avgCpu desc
 | limit 15
@@ -288,7 +295,7 @@ timeseries nsCpu = avg(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.na
 
 ```dql
 // Namespace memory usage over the last 24 hours
-timeseries nsMem = avg(dt.kubernetes.container.memory_working_set), from:-24h, by:{k8s.namespace.name}
+timeseries nsMem = sum(dt.kubernetes.container.memory_working_set), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgMemBytes = arrayAvg(nsMem)
 | fieldsAdd avgMemGB = avgMemBytes / 1073741824.0
 | sort avgMemGB desc
@@ -311,7 +318,7 @@ timeseries nsMem = avg(dt.kubernetes.container.memory_working_set), from:-24h, b
 ### Key Takeaways
 
 - EKS monitoring requires **DynaKube Operator** for workload visibility and **cloud integration** for control plane metrics
-- **Fargate** pods need ApplicationMonitoring mode with `useCSIDriver: false`
+- **Fargate** pods need ApplicationMonitoring mode with the Operator installed **without the CSI driver** (`useCSIDriver` is not a DynaKube `v1beta5` / `v1beta6` field)
 - Dynatrace provides deeper visibility than CloudWatch Container Insights, especially for **distributed tracing** and **AI root cause analysis**
 - **Namespace-level metrics** enable team-based cost allocation
 

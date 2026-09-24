@@ -1,6 +1,6 @@
 # MOBL-09: Session Properties & Data Privacy
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 04/25/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -397,36 +397,36 @@ fetch bizevents, from:-24h
 
 ## 7. Data Retention
 
-Dynatrace Grail stores mobile RUM data according to configurable retention policies. Understanding data retention is critical for both performance analysis and privacy compliance.
+Dynatrace Grail stores mobile RUM data in built-in buckets whose retention you cannot currently change. Understanding data retention is critical for both performance analysis and privacy compliance.
 
 ### Default Retention Periods
 
 | Data Type | Default Retention | Configurable |
 |-----------|-------------------|-------------|
-| Business events (sessions, actions) | 35 days | Yes, per bucket |
-| Events (crashes, errors) | 35 days | Yes, per bucket |
+| User events and sessions (`user.events`, `user.sessions` — actions, crashes, errors, requests) | 35 days | No — built-in RUM buckets |
+| Mobile session replay (`default_mobile_user_replays`) | 35 days | No — built-in RUM bucket |
+| Business events your app sends (`bizevents`) | 35 days | Yes, per bucket |
 | Metrics (aggregated performance data) | 5 years | Limited |
 | Entities (mobile app configurations) | Lifetime of entity | N/A |
 
-### Configuring Retention with Grail Buckets
+### RUM Retention Is Not Configurable Today
 
-You can control retention by routing mobile data to specific Grail buckets with custom retention policies:
+Dynatrace: *"Grail stores RUM data across seven built-in buckets. All buckets have a 35-day retention period by default"*, and *"You cannot currently modify these buckets or create custom RUM buckets."* Extended retention for RUM data is in preview ([RUM data access controls (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls)). So a bucket cannot shorten or lengthen mobile session, event or replay retention, and RUM data cannot be routed into custom buckets.
 
-1. **Create a dedicated bucket** -- Create a Grail bucket for mobile RUM data with the desired retention period
-2. **Configure OpenPipeline** -- Route mobile business events to the dedicated bucket using OpenPipeline processing rules
-3. **Set retention policy** -- Configure the retention period on the bucket (e.g., 90 days for extended analysis, or 14 days for privacy-sensitive data)
+A dedicated bucket applies only to data you can route, such as business events your app sends:
+
+1. **Create a dedicated bucket** -- Create a Grail bucket for those business events with the desired retention period
+2. **Configure OpenPipeline** -- Route the business events to the dedicated bucket using OpenPipeline processing rules
 
 ### Privacy Implications of Retention
 
 | Consideration | Recommendation |
 |---------------|----------------|
-| **GDPR data minimization** | Set the shortest retention period that meets business needs |
+| **GDPR data minimization** | Set the shortest retention that meets business needs where retention is configurable (business events); for RUM data, minimize what the SDK captures |
 | **Right to erasure** | Use the data deletion API for individual user requests; do not rely solely on retention expiry |
 | **Regulatory audit** | Ensure retention periods are documented in your data processing records |
 | **Cross-border data** | Verify that Grail storage regions comply with data residency requirements |
-| **Session replay** | Consider shorter retention for session replay data, which contains more sensitive visual information |
-
-> **Tip:** For GDPR compliance, consider creating separate Grail buckets for EU and non-EU user data with different retention policies. Use OpenPipeline rules to route data based on geolocation.
+| **Session replay** | Replay retention is fixed at 35 days today, so limit what is captured instead — masking and replay sampling (MOBL-08) |
 
 ---
 
@@ -440,7 +440,7 @@ In this notebook, you learned:
 - **Opt-in mode** -- how to start the SDK in silent mode and only begin collection after explicit user consent
 - **GDPR and CCPA compliance** -- regulation requirements mapped to Dynatrace features, including data deletion API
 - **Querying session properties** -- DQL patterns for segmenting sessions by country, device, OS, and app version
-- **Data retention** -- Grail bucket retention policies and their privacy implications
+- **Data retention** -- built-in 35-day RUM buckets (not currently configurable) and their privacy implications
 
 ---
 

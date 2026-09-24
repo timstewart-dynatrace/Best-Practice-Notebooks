@@ -1,6 +1,6 @@
 # WFLOW-06: Custom Notification Templates
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 08/27/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Rich Message Formatting
 Create professional, informative notifications with dynamic content, formatting, and data enrichment. This notebook covers Jinja templating, Slack Block Kit, Teams Adaptive Cards, and data enrichment patterns.
@@ -50,31 +50,34 @@ Create professional, informative notifications with dynamic content, formatting,
 
 ### Severity Visual Guide
 
-| Severity | Slack | Teams | Email |
+| `event.severity` | Slack | Teams | Email |
 |----------|-------|-------|-------|
-| CRITICAL | :red_circle: | Red header | Red banner |
-| HIGH | :large_orange_circle: | Orange header | Orange banner |
-| MEDIUM | :large_yellow_circle: | Yellow header | Yellow banner |
-| LOW | :large_blue_circle: | Blue header | Blue banner |
+| 1 (Critical) | :red_circle: | Red header | Red banner |
+| 2 (High) | :large_orange_circle: | Orange header | Orange banner |
+| 3 (Medium) | :large_yellow_circle: | Yellow header | Yellow banner |
+| 4 (Low) | :large_blue_circle: | Blue header | Blue banner |
+
+The problem record carries severity as `event.severity` on a 1–5 scale (`experimental` in the semantic dictionary), not as `CRITICAL`/`HIGH` strings. The templates below convert it with `| int(5)`, so a missing severity renders as the lowest tier; from SaaS 1.348 severity is no longer defaulted (WFLOW-04 §3). WFLOW-02 §7 maps the other old field names.
 
 <a id="jinja2-expression-deep-dive"></a>
 ## 2. Jinja2 Expression Deep Dive
 ### Variable Access
 
 ```jinja
-{{ event()["title"] }}              {# Direct field access #}
+{{ event()["event.name"] }}         {# Direct field access #}
 {{ event().get("field", "default") }} {# With default value #}
 {{ result("task_name").output }}    {# Previous task result #}
-{{ env.SECRET_NAME }}                {# Environment secret #}
+{{ environment().url }}              {# Environment URL #}
+{{ problem_link() }}                 {# Link to the problem (Problem trigger only) #}
 {{ now() }}                          {# Current timestamp #}
 ```
 
 ### Filters
 
 ```jinja
-{{ event()["title"] | upper }}           {# UPPERCASE #}
-{{ event()["title"] | lower }}           {# lowercase #}
-{{ event()["title"] | truncate(50) }}    {# Limit length #}
+{{ event()["event.name"] | upper }}           {# UPPERCASE #}
+{{ event()["event.name"] | lower }}           {# lowercase #}
+{{ event()["event.name"] | truncate(50) }}    {# Limit length #}
 {{ list_field | join(", ") }}            {# Join array #}
 {{ number | round(2) }}                   {# Round decimals #}
 {{ timestamp | format_datetime }}        {# Format date #}
@@ -83,12 +86,13 @@ Create professional, informative notifications with dynamic content, formatting,
 ### Conditionals
 
 ```jinja
-{% if event()["severity"] == "CRITICAL" %}
+{% set sev = event().get("event.severity") | int(5) %}
+{% if sev <= 1 %}
   :rotating_light: CRITICAL ALERT
-{% elif event()["severity"] == "HIGH" %}
+{% elif sev == 2 %}
   :warning: HIGH ALERT
 {% else %}
-  :information_source: {{ event()["severity"] }} ALERT
+  :information_source: {{ event()["event.category"] }} ALERT
 {% endif %}
 ```
 
@@ -107,7 +111,7 @@ Affected Entities:
 ### Inline Conditionals
 
 ```jinja
-{{ ":red_circle:" if event()["severity"] == "CRITICAL" else ":large_yellow_circle:" }}
+{{ ":red_circle:" if (event().get("event.severity") | int(5)) <= 1 else ":large_yellow_circle:" }}
 
 {{ event().get("root_cause_entity_id", "Pending analysis") }}
 ```
@@ -115,13 +119,13 @@ Affected Entities:
 ### Dictionary Mapping
 
 ```jinja
-{# Severity to emoji mapping #}
+{# Severity (1-5) to emoji mapping #}
 {{ {
-    "CRITICAL": ":red_circle:",
-    "HIGH": ":large_orange_circle:",
-    "MEDIUM": ":large_yellow_circle:",
-    "LOW": ":large_blue_circle:"
-   }.get(event()["severity"], ":white_circle:") }}
+    1: ":red_circle:",
+    2: ":large_orange_circle:",
+    3: ":large_yellow_circle:",
+    4: ":large_blue_circle:"
+   }.get(event().get("event.severity") | int(5), ":white_circle:") }}
 ```
 
 <a id="slack-block-kit-templates"></a>
@@ -137,13 +141,13 @@ input:
     - type: header
       text:
         type: plain_text
-        text: "{{ {\"CRITICAL\": \":rotating_light:\", \"HIGH\": \":warning:\", \"MEDIUM\": \":large_yellow_circle:\", \"LOW\": \":information_source:\"}.get(event()[\"severity\"], \":grey_question:\") }} {{ event()[\"severity\"] }} Problem"
+        text: "{{ {1: ':rotating_light:', 2: ':warning:', 3: ':large_yellow_circle:', 4: ':information_source:'}.get(event().get('event.severity') | int(5), ':grey_question:') }} {{ event()['event.category'] }} Problem"
     
     # Problem title
     - type: section
       text:
         type: mrkdwn
-        text: "*{{ event()['title'] }}*"
+        text: "*{{ event()['event.name'] }}*"
     
     # Details in two columns
     - type: section
@@ -151,11 +155,11 @@ input:
         - type: mrkdwn
           text: "*Problem ID:*\n{{ event()['display_id'] }}"
         - type: mrkdwn
-          text: "*Status:*\n{{ event()['status'] }}"
+          text: "*Status:*\n{{ event()['event.status'] }}"
         - type: mrkdwn
-          text: "*Started:*\n{{ event()['start_time'] }}"
+          text: "*Started:*\n{{ event()['event.start'] }}"
         - type: mrkdwn
-          text: "*Severity:*\n{{ event()['severity'] }}"
+          text: "*Category:*\n{{ event()['event.category'] }}"
     
     # Root cause (if available)
     - type: section
@@ -179,13 +183,13 @@ input:
           text:
             type: plain_text
             text: "View Problem"
-          url: "{{ event()['problem_url'] }}"
+          url: "{{ problem_link() }}"
           style: primary
         - type: button
           text:
             type: plain_text
             text: "View Service"
-          url: "https://{{ env.DYNATRACE_HOST }}/ui/services"
+          url: "{{ environment().url }}/ui/services"
     
     # Footer context
     - type: context
@@ -203,19 +207,19 @@ input:
   connection: teams-production
   card:
     type: AdaptiveCard
-    $schema: "https://adaptivecards.io/schemas/adaptive-card.json"
+    $schema: "https://adaptivecards.microsoft.com/schemas/adaptive-card.json"
     version: "1.4"
     body:
       # Header with color
       - type: TextBlock
-        text: "{{ event()['severity'] }} Problem Detected"
+        text: "{{ event()['event.category'] }} Problem Detected"
         size: Large
         weight: Bolder
-        color: "{{ {'CRITICAL': 'Attention', 'HIGH': 'Warning', 'MEDIUM': 'Accent', 'LOW': 'Good'}.get(event()['severity'], 'Default') }}"
+        color: "{{ {1: 'Attention', 2: 'Warning', 3: 'Accent', 4: 'Good'}.get(event().get('event.severity') | int(5), 'Default') }}"
       
       # Problem title
       - type: TextBlock
-        text: "{{ event()['title'] }}"
+        text: "{{ event()['event.name'] }}"
         wrap: true
         weight: Bolder
       
@@ -224,12 +228,12 @@ input:
         facts:
           - title: "Problem ID"
             value: "{{ event()['display_id'] }}"
-          - title: "Severity"
-            value: "{{ event()['severity'] }}"
+          - title: "Category"
+            value: "{{ event()['event.category'] }}"
           - title: "Status"
-            value: "{{ event()['status'] }}"
+            value: "{{ event()['event.status'] }}"
           - title: "Started"
-            value: "{{ event()['start_time'] }}"
+            value: "{{ event()['event.start'] }}"
           - title: "Root Cause"
             value: "{{ event().get('root_cause_entity_id', 'Analyzing...') }}"
       
@@ -246,7 +250,7 @@ input:
     actions:
       - type: Action.OpenUrl
         title: "View in Dynatrace"
-        url: "{{ event()['problem_url'] }}"
+        url: "{{ problem_link() }}"
 ```
 
 <a id="data-enrichment"></a>
@@ -256,9 +260,11 @@ input:
 Add recent error logs to notification:
 
 ```javascript
+import { execution } from '@dynatrace-sdk/automation-utils';
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
-export default async function({ event }) {
+export default async function () {
+  const event = (await execution()).params.event;   // trigger payload
   // Get recent error logs for the affected service
   const rootCause = event.root_cause_entity_id;
   
@@ -302,9 +308,11 @@ _No recent errors found_
 ### Enrich with Entity Details
 
 ```javascript
+import { execution } from '@dynatrace-sdk/automation-utils';
 import { entitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ event }) {
+export default async function () {
+  const event = (await execution()).params.event;
   const entityId = event.root_cause_entity_id;
   
   if (!entityId) {
@@ -329,8 +337,8 @@ export default async function({ event }) {
 
 ```yaml
 message: |
-  {{ {"CRITICAL": ":red_circle:", "HIGH": ":large_orange_circle:", "MEDIUM": ":large_yellow_circle:", "LOW": ":large_blue_circle:"}.get(event()["severity"], ":white_circle:") }} *{{ event()["title"] }}*
-  `{{ event()["display_id"] }}` | {{ event()["severity"] }} | <{{ event()["problem_url"] }}|View>
+  {{ {1: ":red_circle:", 2: ":large_orange_circle:", 3: ":large_yellow_circle:", 4: ":large_blue_circle:"}.get(event().get("event.severity") | int(5), ":white_circle:") }} *{{ event()["event.name"] }}*
+  `{{ event()["display_id"] }}` | {{ event()["event.category"] }} | <{{ problem_link() }}|View>
 ```
 
 ### Problem Resolved (Slack)
@@ -339,11 +347,11 @@ message: |
 message: |
   :white_check_mark: *Problem Resolved*
   
-  *{{ event()["title"] }}*
+  *{{ event()["event.name"] }}*
   
-  • *Duration:* {{ event().get("duration", "N/A") }}
+  • *Duration:* {{ ((event().get("resolved_problem_duration") | int(0)) / 60000000000) | round(1) }} min
   • *Problem ID:* {{ event()["display_id"] }}
-  • *Resolved:* {{ event().get("end_time", now()) }}
+  • *Resolved:* {{ event().get("event.end", now()) }}
 ```
 
 ### Daily Summary (Scheduled)
@@ -371,10 +379,10 @@ message: |
   
   Problem *{{ event()["display_id"] }}* has not been acknowledged after 15 minutes.
   
-  *{{ event()["title"] }}*
+  *{{ event()["event.name"] }}*
   
   This alert is being escalated to the on-call team.
-  <{{ event()["problem_url"] }}|View Problem>
+  <{{ problem_link() }}|View Problem>
 ```
 
 <a id="testing-templates"></a>
@@ -382,21 +390,22 @@ message: |
 ### Test with On-Demand Trigger
 
 1. Create workflow with On-Demand trigger
-2. Add JavaScript task to create mock event:
+2. Add JavaScript task to create mock event (`problem_link()` only evaluates under a Problem trigger, so link rendering cannot be tested this way):
 
 ```javascript
 export default async function() {
   return {
+    // Field names match the dt.davis.problems record the Problem trigger delivers
     mock_event: {
-      display_id: "P-TEST-001",
-      title: "High response time on checkout-service",
-      severity: "CRITICAL",
-      status: "OPEN",
-      start_time: new Date().toISOString(),
-      affected_entity_ids: ["SERVICE-ABC123", "SERVICE-DEF456"],
-      root_cause_entity_id: "HOST-XYZ789",
-      management_zones: ["Production", "Checkout"],
-      problem_url: "https://example.dynatrace.com/ui/problems/P-TEST-001"
+      "display_id": "P-TEST-001",
+      "event.id": "-1234567890123456789_1790000000000V2",
+      "event.name": "High response time on checkout-service",
+      "event.category": "SLOWDOWN",
+      "event.severity": "1",
+      "event.status": "ACTIVE",
+      "event.start": new Date().toISOString(),
+      "affected_entity_ids": ["SERVICE-ABC123", "SERVICE-DEF456"],
+      "root_cause_entity_id": "HOST-XYZ789"
     }
   };
 }
@@ -406,8 +415,8 @@ export default async function() {
 
 ```yaml
 message: |
-  {{ result("mock_data").mock_event.severity }} Alert
-  {{ result("mock_data").mock_event.title }}
+  {{ result("mock_data").mock_event["event.category"] }} Alert
+  {{ result("mock_data").mock_event["event.name"] }}
 ```
 
 ### Preview Templates in Slack Block Kit Builder

@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 09/18/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -8,7 +8,7 @@
 
 **Two surfaces, one truth.** Consumption data appears in two places: as raw per-record `BILLING_USAGE_EVENT` records in `dt.system.events`, and as pre-aggregated `dt.billing.*` metric series. They report the same underlying usage, but at different granularity — choose based on whether you need per-record attribution or fast time-aligned aggregates.
 
-**Per-capability schemas.** There is no universal `billed_*` field. Each capability has its own unit field — `billed_gibibyte_hours` for Full-Stack, `billed_bytes` for log ingest, `data_points` for metrics, `billed_sessions` for RUM, and so on. Mixing units across capabilities is the most common authoring mistake. The schema reference is in the [REFERENCE.md](../docs/REFERENCE.md) for this series.
+**Per-capability schemas.** There is no universal `billed_*` field. Each capability has its own unit field — `billed_gibibyte_hours` for Full-Stack, `billed_bytes` for log ingest, `data_points` for metrics, `billed_sessions` for RUM, and so on. Mixing units across capabilities is the most common authoring mistake. § 2 lists the unit for each capability.
 
 > **Scope:** Dynatrace SaaS, DPS license model. Classic licensing surfaces some of the same consumption data — the linked Classic-license doc covers the equivalents. Anything called out as **Softened** evolves sprint-to-sprint; verify against current docs before signing off on a procurement review.
 
@@ -57,7 +57,7 @@
 | What's the account-level equivalent? | Account Management portal → Subscription → Cost Overview (billable totals), Budget Alerts (commit tracking), Cost Monitors (anomaly detection). The portal applies subscription-currency conversion + reconciliation logic that DQL does not. |
 | When does DQL disagree with the portal? | Three typical causes: (a) portal converts raw units to subscription currency, DQL does not; (b) portal includes pending reconciliations; (c) time-zone or time-window alignment. See §12. |
 
-> <sub>**Sources:** [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription), [DPS Hosts capabilities (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-hosts), [Account Management portal (DT docs)](https://docs.dynatrace.com/docs/shortlink/account-management). The per-capability schema table is derived from live `dt.system.events` schema inspection on a SaaS tenant (2026-05-19) — see [REFERENCE.md](../docs/REFERENCE.md) for the full schema reference.</sub>
+> <sub>**Sources:** [Dynatrace Platform Subscription (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription), [DPS Hosts capabilities (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-hosts), [Account Management portal (DT docs)](https://docs.dynatrace.com/docs/shortlink/account-management). The per-capability schema table is derived from live `dt.system.events` schema inspection on a SaaS tenant (2026-05-19) — the capability-to-unit table is in § 2.</sub>
 
 <a id="capability-model"></a>
 ## 2. The DPS Capability Model
@@ -163,7 +163,7 @@ Use this surface when you need:
 
 If your question is *"how much did capability X cost over time?"* — use `dt.billing.*`. If your question is *"who is consuming what?"* or *"which bucket / host / workflow drove the cost?"* — use `dt.system.events`. Many dashboards combine both: `dt.billing.*` for the top-line trend, `dt.system.events` for drill-down attribution.
 
-> <sub>**Sources:** Both surfaces verified live on a SaaS tenant (2026-05-19) — the `dt.billing.*` metric catalog returned 13 series; `fetch dt.system.events | filter event.kind == "BILLING_USAGE_EVENT"` returned 15 distinct `event.type` values across 7 unit-field families. See [REFERENCE.md](../docs/REFERENCE.md) for the full schema table. **Derived:** the "which surface for which question" decision framing is community / engagement guidance — Dynatrace docs document each surface separately but do not present the choice as a single decision point.</sub>
+> <sub>**Sources:** Both surfaces verified live on a SaaS tenant (2026-05-19) — the `dt.billing.*` metric catalog returned 13 series; `fetch dt.system.events | filter event.kind == "BILLING_USAGE_EVENT"` returned 15 distinct `event.type` values across 7 unit-field families. § 2 carries the capability-to-unit table. **Derived:** the "which surface for which question" decision framing is community / engagement guidance — Dynatrace docs document each surface separately but do not present the choice as a single decision point.</sub>
 
 <a id="mandatory-patterns"></a>
 ## 4. Mandatory Patterns — `dedup`, `event.kind`, `billing_type`
@@ -541,7 +541,7 @@ On a validation tenant this returned three cost centers: `unassigned` (~397 TiB 
 | # | Pitfall | What goes wrong | Fix |
 |---|---------|-----------------|-----|
 | 1 | Missing `dedup event.id` | Double-counting when billing events are re-emitted | Add `dedup event.id` immediately after `filter event.kind == "BILLING_USAGE_EVENT"` |
-| 2 | Assuming `billed_bytes` is universal | Trace Ingest returns NULL — query silently shows zero | Trace Ingest uses `ingested_bytes`; check the schema in [REFERENCE.md](../docs/REFERENCE.md) |
+| 2 | Assuming `billed_bytes` is universal | Trace Ingest returns NULL — query silently shows zero | Trace Ingest uses `ingested_bytes`; check the unit for each capability in § 2 |
 | 3 | Summing across capabilities | Combining `billed_bytes + billed_gibibyte_hours` produces dimensional nonsense | Aggregate within one `event.type`, convert to currency at the reporting boundary |
 | 4 | Filtering on `dt.security_context` for attribution | The field is literally `"BILLING_USAGE_EVENT"` on every record | Use `usage.bucket`, `dt.entity.host`, or `dt.cost.costcenter[]` for attribution |
 | 5 | Short timeframes on Metrics-Ingest | Last 4 hours are incomplete — under-reports consumption | Always query Metrics-Ingest with at least 4 hours of timeframe |
@@ -590,7 +590,7 @@ Additionally, **Metrics-Ingest has a ~4-hour data lag** — the portal incorpora
 
 If your DQL total deviates from the portal by more than ~15% for the same period after accounting for the three factors above, investigate:
 
-- Are you missing capabilities? Cross-check the `event.type` list in [REFERENCE.md](../docs/REFERENCE.md) against what your queries cover.
+- Are you missing capabilities? List the `event.type` values your tenant actually emits — `fetch dt.system.events, from:-30d | filter event.kind == "BILLING_USAGE_EVENT" | summarize n = count(), by:{event.type}` — and check that each one is covered by a query.
 - Is `dedup event.id` present? Missing dedup roughly doubles totals.
 - Are retention queries using `sum()` where they should use `max()`? (Pitfall #6.)
 - For Metrics-Ingest, did you subtract included quotas? (Section 8.)
@@ -609,7 +609,7 @@ Dynatrace publishes an official **DPS Usage Details DEMO dashboard** that exerci
 4. Set the timeframe to align with your billing period (see §12).
 5. Use the dashboard as the operational view; use this notebook as the canonical query reference when you need to extend or debug.
 
-The DQL queries throughout §§5–9 are directly derived from this dashboard's tile patterns. When the dashboard updates (Dynatrace refreshes it as new capabilities ship), the patterns in this notebook should be re-verified — flag drift in [REFERENCE.md](../docs/REFERENCE.md) Lessons Learned.
+The DQL queries throughout §§5–9 are directly derived from this dashboard's tile patterns. When the dashboard updates (Dynatrace refreshes it as new capabilities ship), re-verify the patterns in this notebook against the updated tiles.
 
 > <sub>**Sources:** [DPS Usage Details DEMO dashboard (DT docs)](https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription) — the canonical reference for DPS-consumption DQL patterns. **Derived:** the "make a copy, customize, use as bootstrap" workflow is the standard demo-dashboard adoption pattern.</sub>
 

@@ -1,6 +1,6 @@
 # OPLOGS-05: Querying & Parsing Logs
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 05/06/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## DQL Fundamentals and DPL Pattern Matching
 This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.
@@ -92,7 +92,7 @@ fetch logs, from: now() - 24h, to: now() - 12h
 | `==` | Equals | `loglevel == "ERROR"` |
 | `!=` | Not equals | `status != "NONE"` |
 | `>`, `>=` | Greater than | `count > 100` |
-| `<`, `<=` | Less than | `duration < 1000` |
+| `<`, `<=` | Less than | `duration < 1s` |
 
 ### Logical Operators
 
@@ -101,6 +101,8 @@ fetch logs, from: now() - 24h, to: now() - 12h
 | `AND` | Both conditions | `loglevel == "ERROR" AND isNotNull(host)` |
 | `OR` | Either condition | `loglevel == "ERROR" OR loglevel == "WARN"` |
 | `NOT` | Negate | `NOT contains(content, "health")` |
+
+> Compare durations with duration literals — `5s`, `100ms` — never a bare number: `duration < 1000` compares an integer with a duration and silently matches nothing.
 
 ```dql
 // Filter by log level
@@ -159,8 +161,10 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Exclude patterns with NOT
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter NOT matchesPhrase(content, "health")
 | filter NOT matchesPhrase(content, "heartbeat")
 | fieldsAdd content_preview = substring(content, from: 0, to: 100)
@@ -182,10 +186,10 @@ fetch logs, from: now() - 1h
 ```dql
 // Add computed fields
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | fieldsAdd severity = if(contains(content, "critical"), "CRITICAL", 
                        else: if(contains(content, "fatal"), "FATAL",
-                       else: "ERROR"))
+                       else: loglevel))
 | fieldsAdd content_length = stringLength(content)
 | fields timestamp, severity, content_length, dt.entity.host
 | limit 20
@@ -226,12 +230,16 @@ DPL extracts structured data from unstructured log content.
 | `'literal'` | Match exact string |
 | `(opt1\|opt2)` | Match alternatives |
 
+A `parse` pattern must match from the **start** of the string (trailing text is fine). To find a value anywhere, prefix `DATA?` before a literal, or use `parseAll()` for matcher-only patterns — see FAQ-15 §5.
+
 ```dql
 // Parse log level from content (e.g., "[ERROR] message")
 fetch logs, from: now() - 1h
 | filter startsWith(content, "[")
 | parse content, "'[' LD:parsed_level ']'"
-| filter isNotNull(parsed_level)
+// keep only supported loglevel values — bracketed timestamps and message fragments are not levels
+| fieldsAdd parsed_level = upper(parsed_level)
+| filter in(parsed_level, {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"})
 | summarize {count = count()}, by: {parsed_level}
 | sort count desc
 | limit 10
@@ -253,7 +261,7 @@ fetch logs, from: now() - 1h
 // Parse key-value pairs
 // Example: "user=john action=login status=success"
 fetch logs, from: now() - 1h
-| parse content, "'user=' LD:username SPACE"
+| parse content, "DATA? 'user=' [A-Za-z0-9._@-]+:username"
 | filter isNotNull(username)
 | summarize {count = count()}, by: {username}
 | sort count desc
@@ -263,8 +271,10 @@ fetch logs, from: now() - 1h
 ```dql
 // Parse IP addresses from logs
 fetch logs, from: now() - 1h
-| parse content, "IPADDR:client_ip"
-| filter isNotNull(client_ip)
+// parseAll finds every IP anywhere in the line; parse would only match one at the very start
+| fieldsAdd client_ip = parseAll(content, "IPADDR:ip")
+| filter arraySize(client_ip) > 0
+| expand client_ip
 | summarize {count = count()}, by: {client_ip}
 | sort count desc
 | limit 15
@@ -398,10 +408,10 @@ Continue to **OPLOGS-06: Topology & Entity Context** to learn about entity conte
 
 <a id="references"></a>
 ## 📚 References
-- [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
-- [DQL Functions](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions)
-- [Dynatrace Pattern Language](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
-- [DPL Architect Tool](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect)
+- [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions)
+- [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
+- [DPL Architect (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect)
 
 ---
 

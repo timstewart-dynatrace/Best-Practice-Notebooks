@@ -1,6 +1,6 @@
 # ORGNZ-09: Enterprise Data Organization Patterns
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -77,8 +77,8 @@ Complete isolation by business unit:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | LOB | Buckets | Segment | Security Context | Policy |
 |-----|---------|---------|------------------|--------|
-| Finance | finance_logs_365d, finance_metrics_90d | finance-all-data | lob:finance | ALLOW WHERE context = 'lob:finance' |
-| Retail | retail_logs_90d, retail_metrics_35d | retail-all-data | lob:retail | ALLOW WHERE context = 'lob:retail' |
+| Finance | finance_logs_365d, finance_events_90d | finance-all-data | lob:finance | ALLOW WHERE context = 'lob:finance' |
+| Retail | retail_logs_90d, retail_events_35d | retail-all-data | lob:retail | ALLOW WHERE context = 'lob:retail' |
 For environments where SVG doesn't render
 -->
 
@@ -87,37 +87,37 @@ For environments where SVG doesn't render
 **Step 1: Create buckets**
 ```
 finance_logs_365d (logs, 365 days)
-finance_metrics_90d (metrics, 90 days)
+finance_events_90d (events, 90 days)
 retail_logs_90d (logs, 90 days)
 ```
 
-**Step 2: Configure OpenPipeline routing**
-```yaml
-processors:
-  - type: route
-    rules:
-      - condition: "host.group starts-with 'finance-'"
-        destination: "finance_logs_365d"
-      - condition: "host.group starts-with 'retail-'"
-        destination: "retail_logs_90d"
-```
+**Step 2: Assign buckets in OpenPipeline**
+
+In the log pipeline's **Storage** stage, add one **Bucket assignment** processor per LOB; the first matching processor wins (see **ORGNZ-03 § Routing Data to Buckets**):
+
+| Matching condition (DQL) | Bucket |
+|---|---|
+| `matchesValue(dt.host_group.id, "finance-*")` | `finance_logs_365d` |
+| `matchesValue(dt.host_group.id, "retail-*")` | `retail_logs_90d` |
 
 **Step 3: Set security context**
-```yaml
-processors:
-  - type: security-context
-    rules:
-      - condition: "host.group starts-with 'finance-'"
-        context: "lob:finance"
-      - condition: "host.group starts-with 'retail-'"
-        context: "lob:retail"
-```
+
+Set `lob:finance` / `lob:retail` at the source first — a `dt.security_context=lob:finance` host tag on the finance hosts, or a fixed value per host group in the central primary Grail tag configuration (see **ORGNZ-06 §3**). Where the value has to be computed in the pipeline, use **Set security context** processors in the pipeline's Permission stage, which *"Sets the proper record-level access via dt.security_context by either copying it from a field, setting it as a static string, or a static array that allows multiple values."*
+
+| Matching condition (DQL) | Security context (static string) |
+|---|---|
+| `matchesValue(dt.host_group.id, "finance-*")` | `lob:finance` |
+| `matchesValue(dt.host_group.id, "retail-*")` | `lob:retail` |
+
+> **Corrected 09/24/2026.** Earlier versions of this notebook showed `type: route` and `type: security-context` YAML processors keyed on `host.group`. Neither processor type exists in that form, and `host.group` is not a Grail field — use `dt.host_group.id`.
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing), [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline).</sub>
 
 **Step 4: Create IAM policies**
 ```
 // Finance policy
 ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH "finance_";
-ALLOW storage:logs:read, storage:metrics:read WHERE storage:dt.security_context = "lob:finance";
+ALLOW storage:logs:read, storage:events:read WHERE storage:dt.security_context = "lob:finance";
 ```
 
 <a id="enterprise-pattern-2-environment-based-tiering"></a>
@@ -126,7 +126,7 @@ Different access levels for production vs non-production:
 
 ```
 Production:
-├── Buckets: prod_logs, prod_metrics, prod_spans
+├── Buckets: prod_logs, prod_events, prod_spans
 ├── Security Context: env:production
 ├── Policy: ALLOW WHERE storage:dt.security_context = 'env:production'
 ├── Access: Restricted to production support team
@@ -232,7 +232,7 @@ For environments where SVG doesn't render
 
 ### Phase 2: Infrastructure
 - [ ] Created custom buckets
-- [ ] Configured OpenPipeline routing rules
+- [ ] Configured OpenPipeline bucket assignment (Storage stage)
 - [ ] Configured OpenPipeline security context processors
 - [ ] Verified data flow to correct buckets
 

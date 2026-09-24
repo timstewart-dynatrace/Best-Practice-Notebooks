@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/10/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -500,7 +500,7 @@ When migrating from Management Zones, leverage **Primary Grail Fields** for cons
 | **Maximum buckets** | 80 per environment (default limit) |
 | **Optimal ingest** | ~1 TB/day per bucket for best query performance |
 | **Acceptable ingest** | 1-3 TB/day per bucket (limited query window) |
-| **Maximum ingest** | 3 TB/day per bucket hard limit |
+| **Maximum ingest** | No hard per-bucket cap is documented — Dynatrace describes ingesting *"well over 15 TB per day into a single bucket"* when queries stay within narrow timeframes. A larger bucket costs queryable window per scan, and Dynatrace pages give different split points ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
 
 ### Query Constraints
 

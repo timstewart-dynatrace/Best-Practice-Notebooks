@@ -1,6 +1,6 @@
 # OPLOGS-08: Security & Data Protection
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Sensitive Data Discovery, Masking, and Compliance
 This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.
@@ -132,7 +132,7 @@ fetch logs, from: now() - 1h
 
 <a id="openpipeline-masking-configuration"></a>
 ## 2. OpenPipeline Masking Configuration
-OpenPipeline provides built-in masking processors to protect sensitive data at ingestion time.
+OpenPipeline masks sensitive data at ingestion time with a **DQL processor** in the **Processing** stage — there is no dedicated masking processor.
 
 ![Masking Pipeline Flow](images/08-masking-pipeline.png)
 
@@ -160,37 +160,34 @@ Step 4: Verify Masking
 - Monitor masking effectiveness
 -->
 
-### Masking Processor Types
+### Masking Options
 
 | Processor | Use Case |
 |-----------|----------|
-| **Mask value** | Replace with fixed pattern (e.g., `***MASKED***`) |
-| **Hash value** | One-way hash for correlation without exposure |
-| **Remove field** | Completely remove the field |
-| **Pattern mask** | Partial masking (e.g., `****1234`) |
+| **DQL processor** — `replacePattern` / `replaceString` / `ipMask` | Replace a value or part of it (e.g. `[EMAIL-MASKED]`, last octet → 0) |
+| **DQL processor** — `hashSha256()` | One-way hash when you need to correlate on a value without exposing it |
+| **Remove fields** | Drop a whole field |
 
 ### Configuration Path
 
 1. Settings → Process and contextualize → OpenPipeline
 2. Select or create pipeline
-3. Add "Mask value" or "Hash value" processor
+3. Add a **DQL** processor to the **Processing** stage (masking has no dedicated processor)
 4. Configure field and pattern
 
-### DPL Patterns for Masking
+### DPL masking statements (DQL processor, Processing stage)
 
+```text
+fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
+fieldsAdd content = replacePattern(content, "CREDITCARD", "[CC-MASKED]")
+fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", "[SSN-MASKED]")
+fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9]{20,}", "[KEY-MASKED]")
+fieldsAdd content = replacePattern(content, "IPADDR", "xxx.xxx.xxx.xxx")
 ```
-# Email pattern
-[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}
 
-# Credit card pattern
-\b(?:\d[ -]*?){13,16}\b
-
-# SSN pattern (US)
-\b\d{3}-\d{2}-\d{4}\b
-
-# IP address pattern
-\b(?:\d{1,3}\.){3}\d{1,3}\b
-```
+> DPL, not regex — see FAQ-15 §3. `CREDITCARD` validates the Luhn checksum. There is no `EMAIL` matcher; the character-class pattern above is the working form. Regex syntax (`\b`, `\d`, `(?:…)`, `$1`) is rejected when you save the processor. Test every statement with `data record(content="…") | fieldsAdd x = replacePattern(…)` before deploying.
+>
+> <sub>**Sources:** [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data) — *"You can mask parts of an attribute by leveraging replacePattern in combination with other DQL functions."*</sub>
 
 ```dql
 // Verify masking is working (look for masked patterns)
@@ -217,9 +214,11 @@ IP addresses may require masking depending on your compliance requirements.
 
 ```dql
 // Find logs containing IP addresses
+// parseAll finds every IP anywhere in the line; parse would only match one at the very start
 fetch logs, from: now() - 1h
-| parse content, "IPADDR:ip_found"
-| filter isNotNull(ip_found)
+| fieldsAdd ip_found = parseAll(content, "IPADDR:ip")
+| filter arraySize(ip_found) > 0
+| expand ip_found
 | summarize {count = count()}, by: {ip_found, k8s.namespace.name}
 | sort count desc
 | limit 20
@@ -228,14 +227,12 @@ fetch logs, from: now() - 1h
 ```dql
 // Classify IP addresses (internal vs external)
 fetch logs, from: now() - 1h
-| parse content, "IPADDR:ip_found"
-| filter isNotNull(ip_found)
-| fieldsAdd ip_str = toString(ip_found)
-| fieldsAdd ip_type = if(startsWith(ip_str, "10."), "RFC1918-10",
-                     else: if(startsWith(ip_str, "192.168."), "RFC1918-192",
-                     else: if(startsWith(ip_str, "172."), "RFC1918-172",
-                     else: if(startsWith(ip_str, "127."), "LOOPBACK",
-                     else: "EXTERNAL"))))
+| fieldsAdd ip_found = parseAll(content, "IPADDR:ip")
+| filter arraySize(ip_found) > 0
+| expand ip_found
+| fieldsAdd ip_type = if(ipIn(ip_found, {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}), "RFC1918",
+                     else: if(ipIn(ip_found, "127.0.0.0/8"), "LOOPBACK",
+                     else: "EXTERNAL"))
 | summarize {count = count()}, by: {ip_type}
 | sort count desc
 ```
@@ -270,8 +267,10 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Security-related errors over time
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter contains(content, "security")
         OR contains(content, "unauthorized")
         OR contains(content, "forbidden")
@@ -356,14 +355,12 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Log retention verification
-fetch logs, from: now() - 7d
-| summarize {
-    earliest = min(timestamp),
-    latest = max(timestamp),
-    total_logs = count()
-  }, by: {dt.system.bucket}
-| fieldsAdd retention_days = (latest - earliest) / 1d
+// Configured retention per log bucket
+// (min/max timestamp over a query window cannot verify retention — the window bounds the answer)
+fetch dt.system.buckets
+| filter dt.system.table == "logs"
+| fields name, retention_days, included_query_days, records
+| sort name asc
 ```
 
 ```dql
@@ -400,21 +397,14 @@ fetch logs, from: now() - 1h
 
 ### OpenPipeline Masking Configuration Example
 
-```yaml
-# OpenPipeline processor configuration
-processors:
-  - name: mask-emails
-    type: mask
-    field: content
-    pattern: "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
-    replacement: "[EMAIL-MASKED]"
-    
-  - name: mask-api-keys
-    type: mask
-    field: content
-    pattern: "(api_key|apikey|key)=[A-Za-z0-9]{20,}"
-    replacement: "$1=[KEY-MASKED]"
+One **DQL** processor in the **Processing** stage (matcher `true`, or a narrower one), placed before any processor that copies or parses `content`:
+
+```text
+fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
+| fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9]{20,}", "[KEY-MASKED]")
 ```
+
+The patterns are DPL, not regex; `<<(…)` is a lookbehind, so the key name stays and only the value is replaced — no `$1` back-reference is needed (or supported).
 
 ```dql
 // Security health summary
@@ -447,7 +437,7 @@ In this notebook, you learned:
 
 <a id="next-steps"></a>
 ## ➡️ Next Steps
-Continue to **OPLOGS-07: Buckets & Cost Optimization** for storage management.
+Continue to **OPLOGS-99: Best Practice Summary** for the consolidated settings.
 
 🆕 **New Addition (March 2026):** OpenPipeline processes more than logs. To extend these concepts to spans, metrics, and events, continue to **OPIPE-01: OpenPipeline as a Multi-Scope Platform**.
 
@@ -455,9 +445,9 @@ Continue to **OPLOGS-07: Buckets & Cost Optimization** for storage management.
 
 <a id="references"></a>
 ## 📚 References
-- [OpenPipeline Data Masking](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data)
-- [Log Security Best Practices](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-security-context)
-- [GDPR and Compliance](https://docs.dynatrace.com/docs/manage/data-privacy-and-security)
+- [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data)
+- [Set up Grail permissions for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-security-context)
+- [Data privacy and security (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security)
 
 ---
 

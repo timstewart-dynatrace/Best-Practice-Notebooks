@@ -1,6 +1,6 @@
 # MOBL-11: Dashboards & Alerting
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 08/04/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -262,10 +262,13 @@ tasks:
       channel: "#mobile-incidents"
       message: |
         :rotating_light: Mobile Problem Detected
-        Problem: {{ event()['title'] }}
-        Severity: {{ event()['severity'] }}
-        Affected: {{ event()['affected_entity_ids'] | join(', ') }}
+        Problem: {{ event()['display_id'] }} — {{ event()['event.name'] }}
+        Category: {{ event()['event.category'] }}
+        Affected: {{ event()['affected_entity_names'] | join(', ') }}
+        Link: {{ problem_link() }}
 ```
+
+> **Template fields come from the problem record.** The Problem trigger's `event()` is the `dt.davis.problems` record — run `fetch dt.davis.problems, from:-24h | limit 1` to see every field a template can read. It has no `title` field, and its `severity` field is not a CRITICAL/HIGH label (0 of 3,209 problem records on a validation tenant, 09/24/2026): the title is `event.name`, the kind of problem is `event.category`, and the link is `{{ problem_link() }}`, which *"evaluates correctly in workflows with Davis problem event triggers only."* ([Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger))
 
 <a id="executive-summary"></a>
 

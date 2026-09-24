@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -128,7 +128,7 @@ Best practices for configuring mobile session replay with appropriate privacy co
 | 6 | Only use Custom masking when you need to unmask specific elements | Start with Safe, move to Custom only for targeted debugging; tag specific views with `dtxMaskingMode` | **Recommended** | MOBL-08 |
 | 7 | Temporarily increase sample rate during incidents | Raise to 50-100% when actively investigating a reported issue; lower again after resolution | **Recommended** | MOBL-08 |
 | 8 | Monitor DEM unit consumption for session replay | Track in Dynatrace license overview; session replay is the primary DEM cost driver | **Recommended** | MOBL-08 |
-| 9 | Consider shorter Grail retention for session replay data | Session replay contains more sensitive visual information than raw telemetry | **Optional** | MOBL-09 |
+| 9 | Limit what session replay captures (masking, sampling) | Replay retention is fixed at 35 days in a built-in bucket that cannot currently be modified | **Optional** | MOBL-09 |
 
 <a id="session-properties-user-tagging"></a>
 
@@ -160,10 +160,10 @@ Best practices for GDPR, CCPA, and general data privacy compliance.
 | 3 | Persist user consent in app storage | SDK does not persist consent; store in UserDefaults (iOS) or SharedPreferences (Android) and check on each launch | **Critical** | MOBL-09 |
 | 4 | Provide a way to withdraw consent in app settings | Set data collection level to `Off` when user revokes consent | **Critical** | MOBL-09 |
 | 5 | Implement data deletion API for right-to-erasure requests | POST to `/api/v2/data-privacy/deletion` with `userId`, `startDate`, `endDate`, `dataTypes: ["RUM"]` | **Critical** | MOBL-09 |
-| 6 | Set shortest Grail retention period that meets business needs | Configure dedicated Grail buckets with retention matching your data minimization policy | **Recommended** | MOBL-09 |
+| 6 | Minimize retained personal data | RUM data sits in built-in 35-day buckets that cannot currently be modified; set short retention only on data you route yourself (business events) and minimize what the SDK captures | **Recommended** | MOBL-09 |
 | 7 | Separate crash reporting opt-in from general monitoring | Crash reporting has its own `crashReportingOptedIn` flag independent of data collection level | **Recommended** | MOBL-09 |
 | 8 | Display clear, plain-language consent dialog | Explain what data is collected, why, and how; provide granular options for Performance vs User Behavior levels | **Critical** | MOBL-09 |
-| 9 | Consider separate Grail buckets for EU vs non-EU data | Use OpenPipeline rules to route data based on geolocation for data residency compliance | **Optional** | MOBL-09 |
+| 9 | Do not plan per-region RUM buckets | Custom RUM buckets cannot currently be created, so RUM data cannot be split into EU and non-EU buckets with OpenPipeline | **Optional** | MOBL-09 |
 
 <a id="dashboards-alerting"></a>
 

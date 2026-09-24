@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 08/27/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -21,7 +21,7 @@ The content draws from real-world implementation patterns, including host group-
 7. [Cross-App Integration](#cross-app-integration)
 8. [Known Limitations and Workarounds](#known-limitations-and-workarounds)
 9. [Troubleshooting and Performance](#troubleshooting-and-performance)
-10. [Segments via Settings API and Terraform](#segments-via-settings-api-and-terraform)
+10. [Segments via the Filter Segments API and Terraform](#segments-via-settings-api-and-terraform)
 11. [Consuming Segments via the Query API](#consuming-segments-via-the-query-api)
 12. [Davis Problem Segment Include Shape](#davis-problem-segment-include-shape)
 
@@ -191,7 +191,7 @@ When Primary Grail Fields don't align with how your organization wants to segmen
 
 - Identified by the prefix `primary_tags.`
 - Example: `primary_tags.stage=prod`, `primary_tags.team=platform`
-- Set via host properties, environment variables (`DT_TAGS`), or OpenPipeline
+- Set via host tags, environment variables (`DT_TAGS`), or OpenPipeline — not host properties (see *Enrichment via Host Tags* below)
 - Propagated across all data points, similar to Primary Grail Fields
 
 > **Limitation:** Primary Grail Tags do not yet enrich Kubernetes metrics or events. They work for logs, spans, and topology data. Check the [Dynatrace documentation](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/k8s-metadata-telemetry-enrichment) for the latest supported signal types.
@@ -200,19 +200,23 @@ When Primary Grail Fields don't align with how your organization wants to segmen
 
 | Scenario | Approach | Effort | Granularity |
 |----------|----------|--------|-------------|
-| **Dedicated Infrastructure** | Host group + host properties | Low | Host-level |
+| **Dedicated Infrastructure** | Host group + host tags | Low | Host-level |
 | **Shared Infrastructure** | `DT_TAGS` environment variable per process | Higher | Process-level |
 | **Kubernetes** | Primary Grail Fields (automatic) | None | Namespace/cluster |
 | **Cloud (AWS/Azure/GCP)** | Native cloud tags | None | Account/subscription |
 
-### Enrichment via Host Properties
+### Enrichment via Host Tags
 
-For dedicated infrastructure, enrich hosts via **Deployment Status** → select hosts → **Modify host properties**:
+For dedicated infrastructure, set these as **host tags** — at OneAgent installation (`--set-host-tag`), with `oneagentctl --set-host-tag`, or via **Deployment Status**:
 
 1. `dt.security_context=<team-or-app>` — For IAM access control
 2. `dt.cost.costcenter=<cost-center>` — For cost allocation
 3. `dt.cost.product=<product>` — For product tracking
 4. `primary_tags.<key>=<value>` — For custom enrichment
+
+The docs name host tags for each of these: *"OneAgent host tags: Add dt.security_context=<value> as a host tag during installation or via Deployment Status."* and *"You can also set dt.cost.costcenter and dt.cost.product directly as host tags during OneAgent installation or via the central primary Grail tag configuration."* For `primary_tags.*` the distinction is now enforced: from OneAgent 1.345, host-level primary tags are derived from host tags only, and values set as host properties stop being promoted (see **ORGNZ-99** row 60a).
+
+> <sub>**Sources:** [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context), [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation).</sub>
 
 > **Restart Requirements:**
 > - **Logs**: No application restart needed — OneAgent log module auto-enriches after its own restart
@@ -525,54 +529,47 @@ fetch logs, from:-1h
 
 <a id="segments-via-settings-api-and-terraform"></a>
 
-## 10. Segments via Settings API and Terraform
+## 10. Segments via the Filter Segments API and Terraform
 
 Segments authored in the Segments app are convenient for exploration, but **production-grade segment libraries should be managed as code**. Manual segments drift, get orphaned when their creator leaves, and lack the review/promotion discipline that buckets and IAM policies already have in mature tenants.
 
-### Schema
+> **Corrected 09/24/2026.** Earlier versions of this section described segments as Settings 2.0 objects under a `builtin:filter-segments` schema, created with `POST /api/v2/settings/objects`. That schema does not exist — the Settings API answers 404 for it — so that call cannot create a segment. Segments have their own platform API.
 
-Segments are managed through the Settings 2.0 API under schema **`builtin:filter-segments`**. The object body carries the same fields you fill in the UI:
+### The Filter Segments API
+
+Segments are managed through the **Filter Segments API** at `/platform/storage/filter-segments/v1/filter-segments`, authenticated with a platform token. The body carries the same fields you fill in the UI:
 
 | Field | Purpose |
 |-------|---------|
-| `name` | Stable internal identifier (used by automation; cannot contain `*`) |
+| `name` | Segment name shown in the UI (the API addresses a segment by its generated `uid`) |
 | `description` | Free-text purpose statement |
-| `includes` | Array of include blocks — one per data type (see §2) |
-| `variables` | Optional DQL-backed variable definitions (see §4) |
-| `visibility` | `PRIVATE` (creator + shares) or `PUBLIC` (everyone) |
+| `isPublic` | `false` — *"The filter-segment is private and only visible to the owner"*; `true` — *"The filter-segment is visible to everyone in the environment"* (needs `storage:filter-segments:share`) |
+| `includes` | Array of `{ "dataObject": …, "filter": … }` — one per data object (see §2) |
+| `variables` | Optional DQL-backed variable definition (see §4): `{ "type": "query", "value": "<DQL>" }` |
 
-### Create via API — minimal example
+For `dataObject`, *"Use '_all_data_object' to apply it to all dataObjects."* The `filter` is the segment's filter expression as the Segments app stores it — on the validation tenant (read 09/24/2026) the Dynatrace ready-made segments store plain text such as `dt.host_group.id = $dt.host_group.id`, while the SDK's own create example carries a serialized filter tree. Rather than hand-writing that value, build the segment once in the UI, read it back, and version the JSON you get. With `$DT_ENV` set to `https://<environment-id>.apps.dynatrace.com`, the first call lists segments (`uid`, `name`, `isPublic`, `owner`); the second returns one segment with its includes and variables — the body to keep in version control:
 
 ```bash
-curl -X POST "$DT_ENV/api/v2/settings/objects" \
-  -H "Authorization: Bearer $DT_PLATFORM_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[{
-    "schemaId": "builtin:filter-segments",
-    "scope": "environment",
-    "value": {
-      "name": "env-production",
-      "description": "Production workloads across all platforms",
-      "visibility": "PUBLIC",
-      "includes": [
-        { "dataType": "logs",  "filter": "dt.host_group.id starts-with \"prod-\"" },
-        { "dataType": "spans", "filter": "dt.host_group.id starts-with \"prod-\"" }
-      ]
-    }
-  }]'
+curl -s "$DT_ENV/platform/storage/filter-segments/v1/filter-segments" \
+  -H "Authorization: Bearer $DT_PLATFORM_TOKEN"
+
+curl -s "$DT_ENV/platform/storage/filter-segments/v1/filter-segments/<uid>?add-fields=INCLUDES&add-fields=VARIABLES" \
+  -H "Authorization: Bearer $DT_PLATFORM_TOKEN"
 ```
+
+Create a segment by sending a body of that shape with `POST` to the collection path — the SDK's `createFilterSegment`, which needs `storage:filter-segments:write`, plus `storage:filter-segments:share` when `isPublic` is `true`.
 
 > **Auth scheme:** Platform Tokens (`dt0s16.*` / `dt0s01.*`) require the `Bearer` header; classic API Tokens (`dt0c01.*`) require `Authorization: Api-Token`. Mixing schemes returns 401 even with all the right scopes — see AUTOM-04 §3 for the routing rules.
 
 ### Manage via Terraform
 
-The `dynatrace-oss/dynatrace` Terraform provider exposes segments through the `dynatrace_segment` resource. The structural shape mirrors the Settings 2.0 schema above. Required scopes on the credential:
+The `dynatrace-oss/dynatrace` Terraform provider exposes segments through the `dynatrace_segment` resource. The structural shape mirrors the API body above. Required scopes on the credential:
 
 - `storage:filter-segments:read` and `storage:filter-segments:write` for create/update
 - `storage:filter-segments:share` if the segment's visibility is set beyond the owner (there is no share-with-specific-group mechanism — see §6)
 - `storage:filter-segments:delete` if `terraform destroy` should remove segments
 
-See AUTOM-04 §6 for the resource-table-driven catalog (including which auth scheme each Terraform resource requires) and AUTOM-09 for the broader GitOps repo layout and state-backend recommendations. The `dynatrace_segment` resource is Platform-Token-friendly; combined auth (`DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) is the recommended default so the Settings 2.0 object carries the calling service user as `owner` for IAM filtering downstream.
+See AUTOM-04 §6 for the resource-table-driven catalog (including which auth scheme each Terraform resource requires) and AUTOM-09 for the broader GitOps repo layout and state-backend recommendations. The `dynatrace_segment` resource is Platform-Token-friendly; combined auth (`DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) is the recommended default so the segment carries the calling service user as `owner` for IAM filtering downstream.
 
 ### When IaC is worth the overhead
 
@@ -588,12 +585,12 @@ The pragmatic split most tenants converge on: **exploration in the UI, promotion
 
 ### Drift between UI and code
 
-When a segment is managed in code but someone edits it through the UI, the next `terraform apply` (or settings-objects PUT) reverts the change. Two defenses:
+When a segment is managed in code but someone edits it through the UI, the next `terraform apply` (or API update) reverts the change. Two defenses:
 
 1. **Document ownership** — add a `description` like `Managed in Terraform repo X — open a PR, do not edit here`.
-2. **Restrict write scope** in production: only the IaC service user holds `storage:filter-segments:write` for `PUBLIC` segments; everyone else gets `read` + private-segment authoring.
+2. **Restrict write scope** in production: only the IaC service user holds `storage:filter-segments:write` for public segments; everyone else gets `read` + private-segment authoring.
 
-> <sub>**Sources:** [Get started with segments — analyze monitoring data (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data), [Settings 2.0 API schemas (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas). **Derived:** the UI-vs-code split table is a synthesis of community IaC practice — there is no Dynatrace doc that prescribes when to promote a segment from UI to code.</sub>
+> <sub>**Sources:** [Get started with segments — analyze monitoring data (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data), [Grail storage filter-segments SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/). Endpoint paths read from the validation tenant 09/24/2026. **Derived:** the UI-vs-code split table is a synthesis of community IaC practice — there is no Dynatrace doc that prescribes when to promote a segment from UI to code.</sub>
 
 <a id="consuming-segments-via-the-query-api"></a>
 
@@ -603,7 +600,7 @@ A common point of confusion: **there is no inline DQL syntax that references a s
 
 ### Request shape
 
-Segments attach to the **`/platform/storage/query/v1/query:execute`** request body as a `segments` array. Each element references a segment by its stable identifier:
+Segments attach to the **`/platform/storage/query/v1/query:execute`** request body as a `filterSegments` array. Each element references a segment by its `id` (the segment's `uid`) and can supply values for its variables:
 
 ```http
 POST /platform/storage/query/v1/query:execute
@@ -611,18 +608,20 @@ Authorization: Bearer <platform-token>
 Content-Type: application/json
 
 {
-  "query": "fetch logs | summarize count = count(), by:{loglevel}",
-  "segments": [
-    { "segmentId": "<segment-uuid>" }
+  "query": "fetch logs, from:-1h | summarize count = count(), by:{loglevel}",
+  "filterSegments": [
+    { "id": "<segment-id>", "variables": [ { "name": "stage", "values": ["prod"] } ] }
   ]
 }
 ```
+
+> **Corrected 09/24/2026.** Earlier versions showed a `segments: [{ "segmentId": … }]` field. The query service does not define that field, so a request built from it runs **unfiltered** — IAM still applies, but the segment does not.
 
 The Grail query engine merges the segment's include filters into the executing query before scanning — same effect as if the filters had been hand-written into the DQL.
 
 ### Where the API call happens
 
-You almost never invoke the Query API directly. The Dynatrace surfaces that read and write to Grail pass `segments` for you, transparently:
+You almost never invoke the Query API directly. The Dynatrace surfaces that read and write to Grail pass `filterSegments` for you, transparently:
 
 | Surface | How segments are passed |
 |---------|------------------------|
@@ -631,21 +630,23 @@ You almost never invoke the Query API directly. The Dynatrace surfaces that read
 | **Logs, Distributed Traces, Problems, SLOs apps** | App's segment selector is included in every Grail call the app makes |
 | **Workflows DQL task** | Task config carries a segments array; injected at execution time |
 | **Site Reliability Guardian validators** | Validator config attaches segments to its evaluation queries |
-| **Direct API consumers** (custom apps, scripts, terraform-provider-dynatrace queries) | **You** must add the `segments` array to the request body |
+| **Direct API consumers** (custom apps, scripts, terraform-provider-dynatrace queries) | **You** must add the `filterSegments` array to the request body |
 
 ### Implication for custom integrations
 
-If you are writing a script that queries Grail through the API — for example, a Workflow JavaScript task using `@dynatrace-sdk/client-query`, a CI/CD job emitting a Site Reliability Guardian-style check, or a custom Dynatrace app — and you want it to honor a saved segment, **you must pass the `segments` array yourself**. The DQL string alone will not pick up "the currently active segment in the app" — there is no such thing outside a UI session.
+If you are writing a script that queries Grail through the API — for example, a Workflow JavaScript task using `@dynatrace-sdk/client-query`, a CI/CD job emitting a Site Reliability Guardian-style check, or a custom Dynatrace app — and you want it to honor a saved segment, **you must pass the `filterSegments` array yourself**. The DQL string alone will not pick up "the currently active segment in the app" — there is no such thing outside a UI session.
 
 ### Variables in segments — how the value is supplied
 
-If a segment defines variables (§4), the consumer must also supply the **selected values** for those variables. In the UI this is the dropdown selection; in the API the value travels in the same `segments` array element. Consult the [Grail service overview (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/grail-service/) for the precise field name and shape — it has evolved sprint-to-sprint and pinning a specific JSON example here would create drift.
+If a segment defines variables (§4), the consumer must also supply the **selected values** for those variables. In the UI this is the dropdown selection; in the API each `filterSegments` element carries `variables: [{ "name": …, "values": [ … ] }]`, and *"The values defined in the request will replace the variables used in the filter segments."* Several segments in one request narrow together: *"If the request defines multiple segments, they will be combined using the AND boolean operator, and the Grail data will be filtered accordingly."*
+
+Verified on the validation tenant 09/24/2026: `fetch logs, from:-1h | summarize n = count(), by:{k8s.namespace.name}` returned `easytrade`, `hipstershop`, `online-boutique` and more without a segment, and only `dynatrace` with the ready-made `k8s.namespace.name` segment passed as `filterSegments: [{ "id": "<uid>", "variables": [{ "name": "k8s.namespace.name", "values": ["dynatrace"] }] }]`.
 
 ### Why this matters for design
 
 Because segments are query context, **a segment's effective behavior depends on who is calling**. The same segment applied by a user with `storage:logs:read` on bucket A returns rows from bucket A; applied by a user without that scope, the same segment returns nothing from bucket A. Segments do not bypass IAM — they layer on top of it. This is the §9 "Segments filters entities but not logs" troubleshooting story restated as a design principle.
 
-> <sub>**Sources:** [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries), [Grail service overview (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/grail-service/). **Softened:** In community practice, the most common cause of "my segment works in the app but not in my script" is the script's API call missing the `segments` array — verify against your own integrations.</sub>
+> <sub>**Sources:** [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries), [Grail service overview (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/grail-service/), [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/). **Softened:** In community practice, the most common cause of "my segment works in the app but not in my script" is the script's API call missing the `filterSegments` array — verify against your own integrations.</sub>
 
 <a id="davis-problem-segment-include-shape"></a>
 
@@ -713,14 +714,14 @@ In this notebook you learned:
 1. **Filter condition syntax** — Operators (`=`, `!=`, `starts-with`, `contains`), field access, AND/OR logic
 2. **Data type include rules** — One include per type, conditions scoped to queried data type
 3. **Primary Grail Fields** — Which metadata propagates across all signals (and which doesn't)
-4. **Enrichment approaches** — Dedicated vs shared infrastructure, host properties vs DT_TAGS
+4. **Enrichment approaches** — Dedicated vs shared infrastructure, host tags vs DT_TAGS
 5. **Advanced variables** — Primary/secondary, DQL queries, permission requirements
 6. **Host group-based segments** — Parsing naming conventions, one segment per dimension
 7. **Visibility and sharing** — Public vs unlisted, governance model
 8. **Cross-app integration** — Persistence, dashboard vs tile-level segments
 9. **Limitations and troubleshooting** — detected problem event includes, entity operator restrictions, performance tips
-10. **Segments via Settings API and Terraform** — `builtin:filter-segments` schema, the `dynatrace_segment` Terraform resource, UI-vs-code decision criteria, drift management
-11. **Consuming segments via the Query API** — `segments` array on `/platform/storage/query/v1/query:execute`; no inline DQL syntax; custom integrations must pass segments themselves
+10. **Segments via the Filter Segments API and Terraform** — `/platform/storage/filter-segments/v1/filter-segments` (`name`, `isPublic`, `includes[{dataObject, filter}]`), the `dynatrace_segment` Terraform resource, UI-vs-code decision criteria, drift management
+11. **Consuming segments via the Query API** — `filterSegments` array (`id` + `variables`) on `/platform/storage/query/v1/query:execute`; no inline DQL syntax; custom integrations must pass segments themselves
 12. **Davis problem segment include shape** — Why entity includes alone are not enough; the load-bearing `events` include with `event.kind = "DAVIS_PROBLEM"`
 
 ## Series Summary
@@ -749,7 +750,8 @@ In this notebook you learned:
 - [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries)
 - [Supported data types in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-data-types)
 - [Get started with segments — analyze monitoring data (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data)
-- [Settings 2.0 API schemas (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas)
+- [Grail storage filter-segments SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/)
+- [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/)
 - [Grail service overview (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/grail-service/)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 

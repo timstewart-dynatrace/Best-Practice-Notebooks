@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ Dynatrace provides a **unified entity model** that normalizes cloud resources ac
 | `dt.entity.service` | ECS Service / Lambda | App Service | Cloud Run / GKE Service |
 | `dt.entity.kubernetes_cluster` | EKS | AKS | GKE |
 | Tags | AWS Tags | Azure Tags | GCP Labels |
-| `dt.host.cpu.usage` | CloudWatch CPU | Azure Monitor CPU | Cloud Monitoring CPU |
+| `dt.host.cpu.usage` (OneAgent — the same key on every provider) | CloudWatch CPU is a separate key under `cloud.aws.*` | Azure Monitor CPU is a separate key under `cloud.azure.*` | Cloud Monitoring CPU is a separate key under `cloud.gcp.*` |
 
 <a id="unified-entities"></a>
 
@@ -80,11 +80,11 @@ Some entities are provider-specific and require separate queries:
 
 | AWS | Azure | GCP |
 |---|---|---|
-| `dt.entity.ec2_instance` | `dt.entity.azure_vm` | (uses `dt.entity.host`) |
+| `dt.entity.ec2_instance` | `dt.entity.azure_vm` | `dt.entity.cloud:gcp:gce_instance` |
 | `dt.entity.aws_lambda_function` | `dt.entity.azure_web_app` | `dt.entity.cloud_application` |
-| `dt.entity.relational_database_service` | `dt.entity.azure_sql_database` | (custom device) |
+| `dt.entity.relational_database_service` | `dt.entity.azure_sql_database` | `dt.entity.cloud:gcp:cloudsql_database` |
 
-> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services), [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration), [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in `dt.semantic_dictionary.models` on 08/27/2026. **Dictionary:** note the grain distinction — `dt.entity.kubernetes_node` (worker nodes, 30 on the validation tenant) is **not** interchangeable with `dt.entity.cloud_application_instance` (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub>
+> <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services), [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration), [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in `dt.semantic_dictionary.models` on 08/27/2026 (the two GCP compute/database types re-checked 09/24/2026). **Dictionary:** note the grain distinction — `dt.entity.kubernetes_node` (worker nodes, 30 on the validation tenant) is **not** interchangeable with `dt.entity.cloud_application_instance` (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub>
 
 <a id="cross-cloud-queries"></a>
 
@@ -118,9 +118,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this under-counted against the notebook default window and still looked like a valid answer.
 
-// Note: Smartscape node types cover infrastructure/service topology
-// (HOST, SERVICE, PROCESS_GROUP, ...). Cloud provider entity types
-// (EC2, Azure VM, Lambda, Web App) are queried via fetch dt.entity.* as shown above.
+// Smartscape note (dt.entity.* is deprecated but still functional): these resources ARE
+// Smartscape nodes — AWS_EC2_INSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AWS_LAMBDA_FUNCTION, AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On
+// Clouds-app connections the classic dt.entity.* types can under-count or return nothing for the
+// same estate (validation tenant 09/24/2026: EC2 6 classic vs 25 running on Smartscape; Lambda 2
+// vs 34; Azure VM 1 vs 8; Web App 0 vs 2). Prefer smartscapeNodes for the cloud-resource inventory.
 ```
 
 ### Unified Host CPU Usage (All Providers)
@@ -241,9 +244,13 @@ fetch dt.davis.problems, from:-24h
 // on a live tenant `== "ERROR"` matched 0 of 733,688 spans while `== "error"`
 // matched 19,932 in the same window (08/27/2026). The query still returns rows,
 // so the wrong literal reports 0% error rate for every service and nothing errors.
+//
+// Group by dt.service.name (corrected 09/24/2026): service.name is the OTel resource attribute and
+// was null on 75,781 of 82,406 server spans in one hour (09/24/2026), so grouping by it put most of
+// the estate in one null bucket. dt.service.name is the detected service and was set on all of them.
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize {total = count(), errors = countIf(span.status_code == "error")}, by:{service.name}
+| summarize {total = count(), errors = countIf(span.status_code == "error")}, by:{dt.service.name}
 | fieldsAdd error_pct = errors * 100.0 / total
 | filter total > 10
 | sort error_pct desc
@@ -302,7 +309,7 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-24h, by:{dt.entity.host}
 
 ```dql
 // Kubernetes namespaces with highest resource consumption (cost proxies)
-timeseries nsCpu = avg(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgCpu = arrayAvg(nsCpu)
 | sort avgCpu desc
 | limit 10

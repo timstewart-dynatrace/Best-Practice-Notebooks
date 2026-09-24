@@ -1,6 +1,6 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -59,7 +59,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 |---|---------------|-----------------|----------|----------|
 | 1 | Use `cloudNativeFullStack` for new deployments | `spec.oneAgent.cloudNativeFullStack: {}` | **Critical** | Deployment |
 | 2 | Do NOT use `classicFullStack` for new deployments | Remove `spec.oneAgent.classicFullStack` | **Critical** | Deployment |
-| 3 | Use `applicationMonitoring` when infra visibility is not needed | `spec.oneAgent.applicationMonitoring: { useCSIDriver: true }` | Recommended | Deployment |
+| 3 | Use `applicationMonitoring` when infra visibility is not needed | `spec.oneAgent.applicationMonitoring: {}` (CSI driver use is chosen at Operator install, not in the DynaKube) | Recommended | Deployment |
 | 4 | Use `hostMonitoring` for infra-only clusters | `spec.oneAgent.hostMonitoring: {}` | Optional | Deployment |
 | 5 | Omit `oneAgent` entirely for infrastructure-only monitoring alongside other APM tools | Only configure `spec.activeGate` | Recommended | Deployment |
 

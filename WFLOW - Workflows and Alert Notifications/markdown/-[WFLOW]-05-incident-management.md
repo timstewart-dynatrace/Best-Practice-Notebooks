@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -105,18 +105,18 @@ name: create_pagerduty_incident
 type: dynatrace.pagerduty:create-incident
 input:
   connection: pagerduty-production
-  severity: '{{ {"CRITICAL": "critical", "HIGH": "error", "MEDIUM": "warning", "LOW": "info"}.get(event()["severity"], "warning") }}'
-  summary: "[{{ event()['severity'] }}] {{ event()['title'] }}"
+  severity: '{{ {1: "critical", 2: "error", 3: "warning", 4: "info"}.get(event().get("event.severity") | int(5), "info") }}'
+  summary: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
   source: "dynatrace"
   component: "{{ event().get('root_cause_entity_id', 'unknown') }}"
   group: "{{ event().get('management_zones', ['default'])[0] }}"
-  class: "{{ event().get('event_type', 'problem') }}"
+  class: "{{ event()['event.category'] }}"
   customDetails:
     problem_id: "{{ event()['display_id'] }}"
-    problem_url: "{{ event()['problem_url'] }}"
+    problem_url: "{{ problem_link() }}"
     affected_entities: "{{ event()['affected_entity_ids'] | join(', ') }}"
     root_cause: "{{ event().get('root_cause_entity_id', 'N/A') }}"
-    start_time: "{{ event()['start_time'] }}"
+    start_time: "{{ event()['event.start'] }}"
   dedupKey: "dynatrace-{{ event()['display_id'] }}"
 ```
 
@@ -130,7 +130,7 @@ type: dynatrace.pagerduty:resolve-incident
 input:
   connection: pagerduty-production
   dedupKey: "dynatrace-{{ event()['display_id'] }}"
-  description: "Problem resolved in Dynatrace at {{ event().get('end_time', now()) }}"
+  description: "Problem resolved in Dynatrace at {{ event().get('event.end', now()) }}"
 ```
 
 ### Acknowledge Incident
@@ -196,16 +196,16 @@ name: create_snow_incident
 # Operation: "Create Incident" (select in the workflow builder)
 input:
   connection: servicenow-production
-  short_description: "[Dynatrace] {{ event()['title'] }}"
+  short_description: "[Dynatrace] {{ event()['event.name'] }}"
   description: |
     A problem has been detected by Davis.
 
     Problem Details:
     ================
     Problem ID: {{ event()['display_id'] }}
-    Severity: {{ event()['severity'] }}
-    Status: {{ event()['status'] }}
-    Start Time: {{ event()['start_time'] }}
+    Category: {{ event()['event.category'] }}
+    Status: {{ event()['event.status'] }}
+    Start Time: {{ event()['event.start'] }}
 
     Affected Entities:
     {{ event()['affected_entity_ids'] | join('\n') }}
@@ -214,9 +214,9 @@ input:
     {{ event().get('root_cause_entity_id', 'Pending analysis') }}
 
     View in Dynatrace:
-    {{ event()['problem_url'] }}
-  impact: '{{ {"CRITICAL": 1, "HIGH": 2, "MEDIUM": 2, "LOW": 3}.get(event()["severity"], 3) }}'
-  urgency: '{{ {"CRITICAL": 1, "HIGH": 2, "MEDIUM": 2, "LOW": 3}.get(event()["severity"], 3) }}'
+    {{ problem_link() }}
+  impact: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get("event.severity") | int(5), 3) }}'
+  urgency: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get("event.severity") | int(5), 3) }}'
   category: "Software"
   subcategory: "Application"
   assignment_group: "Platform Engineering"
@@ -234,7 +234,7 @@ input:
 | 4 | 3 (Low) |
 | 5 (Informational) | skip — usually no incident |
 
-> **Verify what your `event()` accessor returns.** Whether the workflow `event()` accessor exposes severity as the integer field or a string label varies by tenant and trigger type — the example above keys on string labels (`"CRITICAL"`, …). Check your tenant's workflow editor and key the mapping to whatever `event()` actually returns. The same caveat applies to the PagerDuty severity mapping in §3.
+> **What `event()` actually carries.** The problem record has `event.severity` on the 1–5 scale, not `"CRITICAL"`-style labels; on the validation tenant it arrives as a string (`"3"`), which is why the mappings above convert it with `| int`. It is `experimental` in the semantic dictionary, and from SaaS 1.348 it is no longer defaulted (WFLOW-04 §3), so `int(5)` sends an unset severity to the lowest tier. The same applies to the PagerDuty severity mapping in §3.
 
 ### Comment on an Incident
 
@@ -247,7 +247,7 @@ input:
   work_notes: |
     [Automated Update from Dynatrace]
     Problem updated at {{ now() }}
-    Current status: {{ event()['status'] }}
+    Current status: {{ event()['event.status'] }}
 ```
 
 ### Resolve Incident
@@ -261,7 +261,7 @@ input:
   close_code: "Resolved"
   close_notes: |
     Problem automatically resolved in Dynatrace.
-    Resolution time: {{ event().get('end_time', now()) }}
+    Resolution time: {{ event().get('event.end', now()) }}
 ```
 
 <a id="bi-directional-sync"></a>
@@ -277,16 +277,20 @@ The native ServiceNow **workflow action is one-way** — it creates, comments on
 Use a scheduled workflow to check incident status:
 
 ```javascript
-import { problemsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function({ connection }) {
+const SNOW_URL = 'https://your-instance.service-now.com';   // add to Settings > External requests
+
+export default async function () {
+  // A JavaScript task does not receive a connection object; keep the credential in the Credential Vault
+  const cred = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
   // Query ServiceNow for Dynatrace-related incidents
   const response = await fetch(
-    `${connection.instance_url}/api/now/table/incident?` +
+    `${SNOW_URL}/api/now/table/incident?` +
     `sysparm_query=correlation_id STARTSWITH DT-^state!=6`,
     {
       headers: {
-        'Authorization': `Basic ${btoa(connection.username + ':' + connection.password)}`,
+        'Authorization': `Basic ${btoa(cred.username + ':' + cred.password)}`,
         'Accept': 'application/json'
       }
     }
@@ -320,8 +324,10 @@ tasks:
     dependsOn: [create_incident]
     input:
       script: |
-        export default async function({ result }) {
-          const incidentNumber = result('create_incident').sys_id;
+        import { result } from '@dynatrace-sdk/automation-utils';
+
+        export default async function () {
+          const incidentNumber = (await result('create_incident')).sys_id;
           // Store in workflow state or external system
           return { incident_number: incidentNumber };
         }
@@ -339,7 +345,7 @@ name: incident-lifecycle-management
 trigger:
   type: davis-problem
   config:
-    # Trigger on all problem events (open, update, close)
+    # Problem state: active or closed — fires on open and again on close
     entityTagsMatch: all
     entityTags:
       - key: env
@@ -347,9 +353,9 @@ trigger:
 
 conditions:
   - name: is_problem_open
-    expression: '{{ event()["status"] == "OPEN" }}'
+    expression: '{{ event()["event.status"] == "ACTIVE" }}'
   - name: is_problem_closed
-    expression: '{{ event()["status"] == "CLOSED" }}'
+    expression: '{{ event()["event.status"] == "CLOSED" }}'
 
 tasks:
   # CREATE: When problem opens
@@ -359,7 +365,7 @@ tasks:
     input:
       connection: pagerduty-production
       severity: critical
-      summary: "{{ event()['title'] }}"
+      summary: "{{ event()['event.name'] }}"
       dedupKey: "dynatrace-{{ event()['display_id'] }}"
 
   # RESOLVE: When problem closes

@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -255,12 +255,6 @@ For environments where SVG doesn't render
   - `references/mapping-tables.md` — complete operator/function/field maps
   - `references/examples.md` — 15 worked translations
   - `references/out-of-scope.md` — features not covered in v1
-
-### Docs
-
-- [SL2DT HISTORY](../docs/HISTORY.md) — development context and decisions
-- [SL2DT REFERENCE](../docs/REFERENCE.md) — quick reference, patterns, lessons learned
-- [SL2DT AGENT-TASKS](../docs/AGENT-TASKS.md) — brief for building the `Dynatrace-SumoLogic` migration tool
 
 ### Parallel series
 

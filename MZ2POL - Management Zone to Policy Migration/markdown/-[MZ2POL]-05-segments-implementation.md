@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -77,7 +77,7 @@ This matters for planning. A 200-zone estate is 200 hand-authored segment defini
 | Tool | What it does | What it does not do |
 |---|---|---|
 | MZ2POL-00 SDK analysis tool | Exports `builtin:management-zones`, classifies each rule (tag-based / name-based / SELECTOR / host-group / complex-nested), scores migration readiness | Emits no segments — it is an inventory and triage aid |
-| Settings 2.0 API (`builtin:filter-segments`) | Creates segments programmatically once you have written the definition | Does not derive the definition from an MZ |
+| Filter Segments API (`POST /platform/storage/filter-segments/v1/filter-segments`, `storage:filter-segments:write`; SDK: [client-filter-segment-management (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/)) | Creates segments programmatically once you have written the definition | Does not derive the definition from an MZ. Segments are not a Settings 2.0 object — there is no `builtin:filter-segments` schema (the Settings API returns 404 for it) |
 | Terraform `dynatrace_segment` / Monaco `segments` | Manages segment definitions as code | Same — you supply the DQL |
 
 The practical sequence is therefore: **inventory (MZ2POL-00) → consolidate → hand-author the definitions using the scenarios below → deploy as code (ORGNZ-10 §10, AUTOM-04)**.

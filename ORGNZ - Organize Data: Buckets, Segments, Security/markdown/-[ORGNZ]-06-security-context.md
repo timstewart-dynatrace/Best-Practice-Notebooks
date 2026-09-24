@@ -1,6 +1,6 @@
 # ORGNZ-06: Security Context
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -167,6 +167,19 @@ ALLOW storage:logs:read WHERE storage:dt.security_context = "crn-70400-team";
 <a id="querying-security-context"></a>
 ## Querying Security Context
 
+### DQL: Security Context Verification
+
+Verify that `dt.security_context` is being set on your log data:
+
+```dql
+// Summarize log volume by security context — verify dt.security_context is assigned correctly
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize recordCount = count(), by:{dt.security_context}
+| sort recordCount desc
+| limit 20
+```
+
 <a id="security-context-patterns"></a>
 ## Security Context Patterns
 ### Pattern 1: Team-Based Access
@@ -268,9 +281,11 @@ Security context can also be set on entities (not just records):
 
 1. Go to **Settings** > **Topology model** > **Grail Security Context**
 2. Define rules to assign security context to entities
-3. Entities inherit context to related records
+3. This scopes access to the **entities** only. Records sent from those entities are not scoped by it: *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."* To scope a host's records, set `dt.security_context` as a host tag (see §3) — *"After you set the security context on a host, it will be used to automatically determine the security context for all logs, spans, metrics, and events that are sent from this host."*
 
 This enables entity-level access control for services, hosts, and other monitored entities.
+
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context).</sub>
 
 ## Next Steps
 
@@ -286,16 +301,3 @@ Continue with the ORGNZ series:
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-### DQL: Security Context Verification
-
-Verify that `dt.security_context` is being set on your log data:
-
-```dql
-// Summarize log volume by security context — verify dt.security_context is assigned correctly
-fetch logs, from:-1h
-| filter isNotNull(dt.security_context)
-| summarize recordCount = count(), by:{dt.security_context}
-| sort recordCount desc
-| limit 20
-```

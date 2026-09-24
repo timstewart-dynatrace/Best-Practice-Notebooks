@@ -1,6 +1,6 @@
 # ORGNZ-07: Advanced Permission Patterns
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 05/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -57,17 +57,27 @@ For environments where SVG doesn't render
 
 ### Supported Record-Level Conditions
 
-| Condition | Description | Example |
-|-----------|-------------|----------|
-| `storage:k8s.namespace.name` | Kubernetes namespace | `= 'production'` |
-| `storage:k8s.cluster.name` | Kubernetes cluster | `= 'main-cluster'` |
-| `storage:host.name` | Host name | `= 'web-server-01'` |
-| `storage:dt.host_group.id` | Host group | `STARTSWITH 'prod-'` |
-| `storage:aws.account.id` | AWS account | `= '123456789012'` |
-| `storage:gcp.project.id` | GCP project | `= 'my-project'` |
-| `storage:azure.subscription` | Azure subscription | `= 'sub-id'` |
-| `storage:azure.resource.group` | Azure resource group | `= 'my-rg'` |
-| `storage:dt.security_context` | Custom context | `MATCH ('team-*')` |
+| Condition | Description | Example | Tables it applies to |
+|-----------|-------------|---------|----------------------|
+| `storage:k8s.namespace.name` | Kubernetes namespace | `= 'production'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:k8s.cluster.name` | Kubernetes cluster | `= 'main-cluster'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:host.name` | Host name | `= 'web-server-01'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:dt.host_group.id` | Host group | `STARTSWITH 'prod-'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:aws.account.id` | AWS account | `= '123456789012'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:gcp.project.id` | GCP project | `= 'my-project'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:azure.subscription` | Azure subscription | `= 'sub-id'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:azure.resource.group` | Azure resource group | `= 'my-rg'` | events, security.events, bizevents, logs, metrics, spans, smartscape |
+| `storage:dt.security_context` | Custom context | `MATCH ('team-*')` | events, security.events, bizevents, system, logs, metrics, spans, entities, smartscape, user.events, user.sessions |
+| `storage:log.source` | Log source | `= '/var/log/audit/audit.log'` | logs |
+| `storage:metric.key` | Metric key | `STARTSWITH 'dt.host.'` | metrics |
+| `storage:event.kind` | Event kind | `= 'DAVIS_PROBLEM'` | events, security.events, bizevents, system |
+| `storage:event.type` | Event type | `= 'CUSTOM_INFO'` | events, security.events, bizevents, system |
+| `storage:event.provider` | Event provider | `= 'my-app'` | events, security.events, bizevents, system |
+| `storage:frontend.name` | Frontend (RUM application) name | `= 'www.example.com'` | user.events, user.sessions, metrics, smartscape |
+
+A condition only restricts the tables listed for it. `storage:log.source` is the natural condition for audit-log access — it scopes `storage:logs:read` to named log sources without a dedicated bucket.
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — supported record-level fields and the tables each applies to, read 09/24/2026.</sub>
 
 <a id="record-level-policy-examples"></a>
 ## Record-Level Policy Examples
@@ -113,23 +123,32 @@ For environments where SVG doesn't render
 
 <a id="field-level-access"></a>
 ## Field-Level Access
-Control access to specific fields within records:
+Field-level access in Grail uses **fieldsets**, not per-field permissions. A fieldset is a named group of sensitive fields, and reading those fields requires `storage:fieldsets:read` on that fieldset. A user without it does not get masked values — the fields are left out: *"If you don't have sufficient permissions, sensitive fields won't be shown in the result."*
 
-| Use Case | Implementation |
-|----------|----------------|
-| Hide sensitive fields | Deny access to specific fields |
-| Mask PII | Field-level policies |
-| Compliance requirements | Restrict access to audit fields |
+> **Corrected 09/24/2026.** Earlier versions of this notebook showed `DENY storage:logs:read:user.email` statements. There is no per-field permission suffix, and a policy written that way will not validate.
 
-### Field-Level Policy Example
+| Fieldset | Covers |
+|----------|--------|
+| `builtin-sensitive-spans` | Span fields considered sensitive |
+| `builtin-request-attributes-spans` | Span fields holding request-attribute data marked sensitive |
+| `builtin-sensitive-user-events-and-sessions` | Sensitive fields in `user.events` and `user.sessions` |
+| Custom fieldset | Fields you name, scoped to buckets or tables |
+
+*"The predefined fieldsets apply to spans, user.events and user.sessions only. They don't apply to logs or events."* For log fields such as `user.email`, define a custom fieldset: *"You can define your custom fieldsets, and to which scope they apply (either buckets, or tables, otherwise all buckets and tables)."*
+
+### Fieldset Policy Example
 
 ```json
 {
-  "name": "restricted-field-access",
-  "description": "Hide sensitive fields from general users",
-  "statementQuery": "ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read; DENY storage:logs:read:user.email, storage:logs:read:user.ip_address;"
+  "name": "sensitive-span-fields",
+  "description": "Allow reading the built-in sensitive span fields",
+  "statementQuery": "ALLOW storage:fieldsets:read WHERE storage:fieldset-name = \"builtin-sensitive-spans\";"
 }
 ```
+
+Grant this only to groups that need the fields; everyone else keeps `storage:spans:read` and does not see them. To mask PII *values* rather than hide whole fields, mask at capture or ingest (OneAgent or OpenPipeline masking) — see **OPLOGS-08**.
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail).</sub>
 
 <a id="combined-permission-patterns"></a>
 ## Combined Permission Patterns
@@ -144,8 +163,8 @@ Layer 1: Bucket access
 Layer 2: Record filtering
   ALLOW storage:logs:read WHERE k8s.namespace.name = 'team-namespace'
 
-Layer 3: Field masking (optional)
-  DENY storage:logs:read:sensitive_field
+Layer 3: Sensitive fields (optional, only for groups that need them)
+  ALLOW storage:fieldsets:read WHERE storage:fieldset-name = "<fieldset-name>"
 ```
 
 ### Pattern 2: Multi-Team Shared Bucket
@@ -285,6 +304,20 @@ For environments where SVG doesn't render
 <a id="testing-permissions"></a>
 ## Testing Permissions
 
+### DQL: Access Distribution Audit
+
+Measure coverage of key access control fields across your log data:
+
+```dql
+// Verify accessible data distribution across all key access control dimensions
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    withSecurityContext = countIf(isNotNull(dt.security_context)),
+    withNamespace = countIf(isNotNull(k8s.namespace.name)),
+    withHostGroup = countIf(isNotNull(dt.host_group.id))
+```
+
 <a id="best-practices"></a>
 ## Best Practices
 | Practice | Rationale |
@@ -313,17 +346,3 @@ Continue with the ORGNZ series:
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-### DQL: Access Distribution Audit
-
-Measure coverage of key access control fields across your log data:
-
-```dql
-// Verify accessible data distribution across all key access control dimensions
-fetch logs, from:-1h
-| summarize
-    total = count(),
-    withSecurityContext = countIf(isNotNull(dt.security_context)),
-    withNamespace = countIf(isNotNull(k8s.namespace.name)),
-    withHostGroup = countIf(isNotNull(dt.host_group.id))
-```

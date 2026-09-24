@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -304,10 +304,14 @@ oneAgent:
 
 ```yaml
 oneAgent:
-  applicationMonitoring:
-    # Only application-level monitoring, no infrastructure
-    useCSIDriver: true
+  applicationMonitoring: {}
+  # Only application-level monitoring, no infrastructure.
+  # Whether the CSI driver is used is set when installing the Operator (§3), not here.
 ```
+
+> **`useCSIDriver` is not a field on current DynaKube API versions.** The parameters reference lists it under `applicationMonitoring` only for `v1beta2` and `v1beta1`, and `v1beta2` is gone from Operator 1.7.0 onward. On `v1beta3` and later, whether code modules come from the CSI driver is decided when the Operator is installed: the install guide has a CSI variant and a *Without CSI driver* variant, and the Helm values in §3 carry a `csidriver` block.
+>
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"DynaKube API version v1beta2 is no longer available with Dynatrace Operator version 1.7.0"*; [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver pod on each node."*</sub>
 
 | Pros | Cons |
 |------|------|

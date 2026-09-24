@@ -1,6 +1,6 @@
 # OPLOGS-07: Analytics & Dashboards
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 08/04/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Aggregation, Time Series, and Visualization Queries
 This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.
@@ -95,11 +95,13 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Aggregations with grouping
+// status == "ERROR" covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == "ERROR" alone misses SEVERE and the rest
 fetch logs, from: now() - 1h
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR"),
-    warnings = countIf(loglevel == "WARN"),
+    errors = countIf(status == "ERROR"),
+    warnings = countIf(status == "WARN"),
     info = countIf(loglevel == "INFO")
   }, by: {k8s.namespace.name}
 | sort total desc
@@ -111,7 +113,7 @@ fetch logs, from: now() - 1h
 fetch logs, from: now() - 1h
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR")
+    errors = countIf(status == "ERROR")
   }, by: {k8s.namespace.name}
 | filter total > 100  // Minimum sample size
 | fieldsAdd error_rate_pct = round((errors * 100.0) / total, decimals: 2)
@@ -134,8 +136,8 @@ fetch logs, from: now() - 6h
 fetch logs, from: now() - 6h
 | makeTimeseries {
     total = count(),
-    errors = countIf(loglevel == "ERROR"),
-    warnings = countIf(loglevel == "WARN")
+    errors = countIf(status == "ERROR"),
+    warnings = countIf(status == "WARN")
   }, interval: 5m
 ```
 
@@ -154,7 +156,7 @@ fetch logs, from: now() - 6h
 | filter isNotNull(dt.entity.host)
 | makeTimeseries {
     total = count(),
-    errors = countIf(loglevel == "ERROR")
+    errors = countIf(status == "ERROR")
   }, by: {dt.entity.host}, interval: 15m
 ```
 
@@ -169,9 +171,10 @@ fetch logs, from: now() - 24h
     first_seen = min(timestamp),
     last_seen = max(timestamp)
   }, by: {dt.openpipeline.source}
-| fieldsAdd duration_ns = toLong(last_seen) - toLong(first_seen)
-| fieldsAdd duration_hours = round(duration_ns / 1h, decimals: 1)
-| fieldsAdd logs_per_hour = round(total / (duration_ns / 1h), decimals: 0)
+// duration ÷ duration yields a number; a long ÷ duration would return null
+| fieldsAdd span = last_seen - first_seen
+| fieldsAdd duration_hours = round(span / 1h, decimals: 1)
+| fieldsAdd logs_per_hour = round(total / (span / 1h), decimals: 0)
 | sort total desc
 ```
 
@@ -203,7 +206,7 @@ fetch logs, from: now() - 7d
 | fieldsAdd day_bucket = bin(timestamp, 1d)
 | summarize {
     log_count = count(),
-    error_count = countIf(loglevel == "ERROR")
+    error_count = countIf(status == "ERROR")
   }, by: {day_bucket}
 | sort day_bucket asc
 ```
@@ -211,7 +214,7 @@ fetch logs, from: now() - 7d
 <a id="dashboard-ready-queries"></a>
 ## 4. Dashboard-Ready Queries
 
-> 📊 **Reference queries moved to OPLOGS-99.** See [**OPLOGS-99 § 9.1 Dashboard-Ready Queries**](../../oplogs/notebooks/-[OPLOGS]-99-best-practice-summary.ipynb) for single-value, time-series, breakdown, and percentile queries optimized for dashboard tiles. The teaching content for *how* dashboard queries are constructed lives in OPLOGS-05 (querying-parsing).
+> 📊 **Reference queries moved to OPLOGS-99.** See **OPLOGS-99 § 9.1 Dashboard-Ready Queries** for single-value, time-series, breakdown, and percentile queries optimized for dashboard tiles. The teaching content for *how* dashboard queries are constructed lives in OPLOGS-05 (querying-parsing).
 
 > 💰 **Cost-aware design — prefer a metric for queries that run on a schedule.** Dashboard tiles and alerts re-run their query on every render and evaluation. A `fetch logs … | summarize` behind a recurring tile pays the Grail **log Query** cost every time, whereas the same answer sourced from a metric does not — the Metrics powered by Grail **Query** dimension is always included at no additional charge, so metric reads never appear on the bill. For any recurring aggregate, check for an out-of-the-box metric first, and otherwise extract one from the log stream at ingest (OpenPipeline metric extraction — see OPLOGS-03 §3). Reserve `fetch logs` for one-shot investigation. **FAQ-09** covers the full decision and the DPS query economics.
 
@@ -229,7 +232,7 @@ fetch logs, from: now() - 2h
 ```dql
 // New error patterns (appeared in last hour)
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | fieldsAdd error_sig = substring(content, from: 0, to: 80)
 | summarize {
     count = count(),
@@ -287,7 +290,7 @@ fetch logs, from: now() - 1h
 <a id="operational-dashboard-queries"></a>
 ## 7. Operational Dashboard Queries
 
-> 🚦 **Reference queries moved to OPLOGS-99.** See [**OPLOGS-99 § 9.2 Operational Dashboard Queries**](../../oplogs/notebooks/-[OPLOGS]-99-best-practice-summary.ipynb) for SLO-style queries: error budgets, top-N services by volume, per-host log distribution.
+> 🚦 **Reference queries moved to OPLOGS-99.** See **OPLOGS-99 § 9.2 Operational Dashboard Queries** for SLO-style queries: error budgets, top-N services by volume, per-host log distribution.
 
 ---
 
@@ -312,9 +315,9 @@ Continue to **OPLOGS-08: Security & Data Protection** for data protection patter
 
 <a id="references"></a>
 ## 📚 References
-- [DQL Aggregation Functions](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions)
-- [DQL makeTimeseries](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries)
-- [Dynatrace Dashboards](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Aggregation functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions)
+- [DQL aggregation commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries)
+- [Dashboards and Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 
 ---
 

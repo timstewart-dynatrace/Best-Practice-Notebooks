@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 07/20/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -59,14 +59,16 @@ fetch logs, from: now() - 24h
 
 ```dql
 // Assessment Query 3: Log level distribution
+// status groups levels (SEVERE/CRITICAL/FATAL… → ERROR; DEBUG/TRACE/NOTICE → INFO),
+// so DEBUG/TRACE are split out of info to keep each record in exactly one bucket
 fetch logs, from: now() - 24h
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR" OR status == "ERROR"),
-    warnings = countIf(loglevel == "WARN" OR status == "WARN"),
-    info = countIf(loglevel == "INFO" OR status == "INFO"),
-    debug = countIf(loglevel == "DEBUG" OR status == "DEBUG"),
-    none = countIf(loglevel == "NONE" OR status == "NONE")
+    errors = countIf(status == "ERROR"),
+    warnings = countIf(status == "WARN"),
+    info = countIf(status == "INFO" AND NOT in(loglevel, {"DEBUG", "TRACE"})),
+    debug = countIf(in(loglevel, {"DEBUG", "TRACE"})),
+    none = countIf(status == "NONE")
   }
 | fieldsAdd debug_pct = round((toDouble(debug) / toDouble(total)) * 100, decimals: 1)
 | fieldsAdd none_pct = round((toDouble(none) / toDouble(total)) * 100, decimals: 1)
@@ -223,7 +225,15 @@ When logs have `loglevel = NONE`, configure a DQL processor to extract the level
 **Processor Configuration:**
 - **Type:** DQL
 - **Matcher:** `loglevel == "NONE"`
-- **Statement:** `parse content, "'[' LD:parsed_level ']'" | fieldsAdd loglevel = parsed_level`
+- **Statement:**
+
+```dql
+parse content, "'[' LD:parsed_level ']'"
+| fieldsAdd loglevel = if(in(upper(parsed_level), {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"}), upper(parsed_level), else: loglevel)
+| fieldsRemove parsed_level
+```
+
+> Only accept values from the supported loglevel list — anything else leaves the record unchanged. Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.
 
 ### Pattern 2: Drop Debug Logs
 
@@ -247,7 +257,8 @@ Send error logs to a dedicated bucket with longer retention for compliance.
 fetch logs, from: now() - 1h
 | filter loglevel == "NONE" OR status == "NONE"
 | parse content, "'[' LD:parsed_level ']'"
-| filter isNotNull(parsed_level)
+| fieldsAdd parsed_level = upper(parsed_level)
+| filter in(parsed_level, {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"})
 | fields timestamp, content, parsed_level
 | limit 10
 ```
@@ -302,15 +313,15 @@ In this notebook, you learned:
 
 <a id="next-steps"></a>
 ## ➡️ Next Steps
-Continue to **OPLOGS-03: Querying & Parsing** to learn DQL syntax and DPL parsing patterns.
+Continue to **OPLOGS-03: OpenPipeline Processing** to configure parsing, enrichment, extraction and bucket routing.
 
 ---
 
 <a id="references"></a>
 ## 📚 References
-- [OpenPipeline Documentation](https://docs.dynatrace.com/docs/platform/openpipeline)
-- [Log Ingest API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)
-- [OTLP Log Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs)
+- [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)
+- [Log Monitoring API v2 - POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)
+- [Ingest OTLP logs (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs)
 
 ---
 

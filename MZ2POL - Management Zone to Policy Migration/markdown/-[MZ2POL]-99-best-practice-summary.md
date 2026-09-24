@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/17/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -105,7 +105,7 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 | Plan bucket names carefully — they are immutable | Naming convention: `{team}_{datatype}` or `{env}_{datatype}`. 3-100 chars, lowercase alphanumeric, underscores, hyphens only. | Critical |
 | One data type per bucket | Logs, metrics, events, or spans — never mixed in a single bucket | Critical |
 | Stay within 80 buckets per environment | Default platform limit | Critical |
-| Target ~1 TB/day per bucket for optimal query performance | Acceptable: 1-3 TB/day (limited query window). Hard limit: 3 TB/day per bucket. | Recommended |
+| Target ~1 TB/day per bucket for optimal query performance | Acceptable: 1-3 TB/day (limited query window). No hard per-bucket cap is documented; Dynatrace sizing guidance on where to split varies between pages (MZ2POL-02). | Recommended |
 | Create buckets and configure OpenPipeline routing BEFORE migrating policies | Data must flow to correct buckets first; policies reference bucket names | Critical |
 | Reference buckets in both policies and boundaries | Policy: `ALLOW storage:logs:read WHERE storage:bucket-name = "frontend_logs"`. Boundary: `storage:bucket-name IN ("frontend_logs", "frontend_spans")` | Recommended |
 | Do not use buckets for regional or application MZs | Use segments instead — buckets cannot be consolidated or split later | Recommended |

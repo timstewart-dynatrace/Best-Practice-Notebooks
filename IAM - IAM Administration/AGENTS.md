@@ -21,7 +21,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Policy statement syntax (`ALLOW service:resource:action WHERE …`), condition expressions, `environment:roles:*`, managed vs custom policies, GitOps for policies | `-[IAM]-04-policy-authoring.md` |
 | Boundaries vs policies, the three-domain model, `dt.security_context` partitioning, multi-tenant isolation | `-[IAM]-05-boundary-design.md` |
 | SCIM provisioning, JIT access, onboarding/offboarding, service accounts and OAuth clients, token management, external users | `-[IAM]-06-user-lifecycle.md` |
-| Audit-trail queries against `dt.system.events` (`event.kind == "AUDIT_EVENT"` — platform audit records are **not** in `logs`), authentication/authorization events, failed-access and off-hours review, SOC2/SOX/HIPAA compliance reports, access reviews | `-[IAM]-07-audit-compliance.md` |
+| Audit-trail queries against `dt.system.events` (`event.kind == "AUDIT_EVENT"` — platform audit records are **not** in `logs`), authentication/authorization events, failed-access and off-hours review, SOC2/SOX/HIPAA compliance reports, access reviews; account-level IAM changes (groups, policies, boundaries) live in the Account Management audit log, not `AUDIT_EVENT` | `-[IAM]-07-audit-compliance.md` |
 | IAM across dev/staging/prod, account vs environment level, break-glass procedures, syncing IAM config | `-[IAM]-08-multi-environment.md` |
 | Permission-denied debugging, policy conflict resolution, boundary issues, token 401s, diagnostic queries, escalation | `-[IAM]-09-troubleshooting.md` |
 | Parameterized policies with `${bindParam:…}`, binding via IAM API, Monaco policy-as-code, template patterns | `-[IAM]-10-templated-policy-assignments.md` |

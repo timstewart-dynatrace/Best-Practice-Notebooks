@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 08/27/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -66,7 +66,7 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 | 1 | CloudWatch Log Group | Source: /aws/lambda/*, /ecs/*, /rds/* |
 | 2 | Subscription Filter | Pattern-based log selection |
 | 3 | Amazon Data Firehose | Primary path: buffered delivery to Dynatrace (recommended) |
-| 4 | Dynatrace Log Ingest API | /api/v2/logs/ingest |
+| 4 | Dynatrace Log Ingest API (Firehose endpoint) | /api/v2/logs/ingest/aws_firehose |
 | 5 | OpenPipeline | Parse, route, mask, enrich |
 | 6 | Grail Storage | Buckets: lambda_logs, app_logs, db_logs |
 For environments where SVG doesn't render
@@ -108,8 +108,8 @@ When you onboard an AWS account via the **Clouds app**, CloudWatch log forwardin
 ### Manual Setup Steps
 
 1. Create a **Firehose delivery stream** with HTTP endpoint destination
-2. Set the endpoint URL to your Dynatrace log ingest API: `https://{env-id}.live.dynatrace.com/api/v2/logs/ingest`
-3. Configure an **access key** using a Dynatrace API token with `logs.ingest` scope
+2. Set the endpoint URL to the Dynatrace **Firehose** log ingest endpoint: `https://{env-id}.live.dynatrace.com/api/v2/logs/ingest/aws_firehose` — not the generic `/api/v2/logs/ingest` endpoint
+3. Configure an **access key** using a Dynatrace API token with the **Ingest logs** permission
 4. Set buffer conditions (recommended: 1 MB or 60 seconds)
 5. Enable GZIP compression
 6. Create **CloudWatch Subscription Filters** on target log groups pointing to the Firehose stream
@@ -125,6 +125,8 @@ CloudWatch subscription filters support pattern matching to pre-filter logs befo
 | `?"ERROR" ?"WARN"` | Lines containing ERROR or WARN |
 | `{ $.level = "error" }` | JSON logs where level is error |
 | `[ip, id, user, timestamp, request, status_code >= 400]` | Space-delimited logs with status >= 400 |
+
+> <sub>**Sources:** [Stream logs via Amazon Data Firehose (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-logs-ingest/lma-stream-logs-with-firehose) — *"use the full URL: `https://<your_environment_ID>.live.dynatrace.com/api/v2/logs/ingest/aws_firehose`"*; the same page gives the **Ingest logs** token permission and the 1 MiB / 60 s buffer hints used in steps 3–4.</sub>
 
 <a id="alternative-methods"></a>
 

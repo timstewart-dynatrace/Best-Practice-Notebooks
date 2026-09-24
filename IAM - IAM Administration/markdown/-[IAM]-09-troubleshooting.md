@@ -1,6 +1,6 @@
 # IAM-09: Troubleshooting Access Issues
 
-> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Systematic Diagnosis of IAM Problems
 Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.
@@ -28,7 +28,7 @@ Access issues are among the most common support requests. This notebook provides
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM |
-| **Permissions** | `account-iam-admin` for full diagnosis |
+| **Permissions** | `account-user-management` for full diagnosis |
 | **Knowledge** | IAM-01 through 08 completed |
 
 <a id="troubleshooting-methodology"></a>
@@ -85,7 +85,7 @@ Environment Information:
 | **Authentication** | Can't login | SSO misconfigured, account disabled |
 | **Authorization** | Access denied | Missing policy, wrong group |
 | **Data Access** | No results | Boundary restriction, no data |
-| **Partial Access** | See some, not all | Segment restrictions |
+| **Partial Access** | See some, not all | Boundary or policy condition |
 | **Intermittent** | Sometimes works | Caching, eventual consistency |
 
 ### Quick Diagnosis Table
@@ -96,7 +96,7 @@ Environment Information:
 | "Forbidden" | Boundary restriction | Boundary config |
 | "Not Found" | No data or no access | Query without filters |
 | "Unauthorized" | Token/auth issue | Token validity |
-| Can't see entity | Segment restriction | Segment coverage |
+| Can't see entity | Boundary or policy condition | Entity's `dt.security_context` vs. the boundary |
 | Can read, can't write | Read-only policy | Policy permissions |
 
 <a id="permission-denied-debugging"></a>
@@ -216,7 +216,7 @@ Data returned
 |-------|---------|-------|------------|
 | Too restrictive | See no data | Boundary too narrow | Expand boundary |
 | Not restrictive enough | See too much | Boundary too broad | Narrow boundary |
-| Segment mismatch | Some data missing | Segment doesn't match | Fix segment definition |
+| Segment applied | Some data missing | A segment the user selected hides data they are allowed to see | Clear the segment selector before debugging access |
 | Environment excluded | No env access | Env not in boundary | Add environment |
 
 ### Boundary Debugging Steps
@@ -246,7 +246,7 @@ Temporarily:
 
 Modify boundary to include:
 - Missing environments
-- Missing segments
+- Missing security-context values
 - Missing data types
 
 <a id="sso-and-authentication-issues"></a>
@@ -384,7 +384,7 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Failed authentication attempts
+// Failed sign-in attempts (event.type LOGIN with outcome "failure")
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -398,14 +398,14 @@ fetch dt.system.events, from:-7d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter not startsWith(event.outcome, "2") and event.outcome != "success"
-| fields timestamp, user.id, event.type, event.outcome, resource
+| filter event.type == "LOGIN" and event.outcome == "failure"
+| fields timestamp, user.id, authentication.type, origin.address
 | sort timestamp desc
 | limit 50
 ```
 
 ```dql
-// Recent policy or group changes that might affect access
+// Recent IAM API activity in this environment (account-level policy or group changes: account audit log)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -420,6 +420,7 @@ fetch dt.system.events, from:-7d
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource
 | sort timestamp desc
 | limit 25
@@ -492,12 +493,11 @@ POLICIES
 BOUNDARIES
 □ Boundary includes target environment
 □ Boundary includes target data type
-□ Segment definitions are correct
 □ No overly restrictive boundaries
 
 DATA
 □ Data exists in target timeframe
-□ Data matches segment criteria
+□ No segment is selected that hides the data (segments filter views, they do not restrict access)
 □ Query syntax is correct
 ```
 
@@ -545,6 +545,10 @@ Congratulations! You've completed the IAM series.
 | **09: Troubleshooting** | Methodology, common issues |
 | **10: Templated Policy-Group Assignments** | Parameterized policies, IAM API bindings, Monaco |
 | **11: Policy Persona Workshop** | Persona-based policy design, schema audit, domain mapping |
+| **12: API Provisioning & Validation** | Provisioning scripts, binding reports, cleanup, validation DQL |
+| **95: Terraform IAM Provisioning (LAB)** | Groups, policies, boundaries and bindings as Terraform |
+| **96: Python IAM Provisioning (LAB)** | Step-by-step Account Management API provisioning in Python |
+| **99: Best Practice Summary** | 72 best practices with priorities and settings |
 
 ### Ongoing Maintenance
 

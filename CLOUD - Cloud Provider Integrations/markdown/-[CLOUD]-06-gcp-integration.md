@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -153,7 +153,7 @@ GCP compute instances that run OneAgent appear as regular host entities. Cloud-s
 
 ```dql
 // List all hosts (includes GCE instances with OneAgent)
-fetch dt.entity.host
+fetch dt.entity.host, from:-7d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 | limit 20
@@ -172,7 +172,7 @@ fetch dt.entity.host
 
 ```dql
 // List all Kubernetes clusters (GKE clusters appear here)
-fetch dt.entity.kubernetes_cluster
+fetch dt.entity.kubernetes_cluster, from:-7d
 | fieldsKeep id, entity.name, tags
 | sort entity.name asc
 
@@ -189,7 +189,7 @@ fetch dt.entity.kubernetes_cluster
 
 ```dql
 // Count cloud application entities (includes GKE workloads, Cloud Run)
-fetch dt.entity.cloud_application
+fetch dt.entity.cloud_application, from:-7d
 | summarize resource_count = count()
 | fieldsAdd resource_type = "Cloud Applications (GKE/Cloud Run)"
 
@@ -318,7 +318,8 @@ OneAgent monitoring of Cloud Run managed is **limited to Java and Node.js**. Clo
 //
 // Corrected 08/12/2026: `cloud.platform` is DEPRECATED in the semantic dictionary and carried no
 // value on any span in the validation tenant, so `cloud.platform == "gcp_cloud_run"` could only
-// ever return nothing. `cloud.provider` is the stable replacement (aws / azure / gcp / ...).
+// ever return nothing. The dictionary marks `cloud.platform` "Deprecated, no replacement available";
+// `cloud.provider` (stable) is the nearest field, and narrows to provider only (aws / azure / gcp / ...).
 // Note this narrows to provider, not service — add a service.name or faas.name filter to isolate
 // Cloud Run specifically. On a tenant with no GCP workloads this correctly returns no rows.
 fetch spans, from:-1h

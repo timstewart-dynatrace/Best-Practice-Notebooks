@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -197,9 +197,10 @@ timeseries totalThrottle = sum(dt.containers.cpu.throttled_time), from:-1h, by:{
 ```
 
 ```dql
-// Namespace-level resource usage
-timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
-| sort avgCpuUsageMillicores desc
+// Namespace-level resource usage — sum() of every container in the namespace
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpuMillicores = arrayAvg(cpuMillicores)
+| sort avgCpuMillicores desc
 | limit 15
 ```
 
@@ -397,8 +398,9 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Top namespaces by CPU (bar chart)
-timeseries avgCpuMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+// Top namespaces by CPU (bar chart) — sum() of every container in the namespace
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpuMillicores = arrayAvg(cpuMillicores)
 | sort avgCpuMillicores desc
 | limit 10
 ```

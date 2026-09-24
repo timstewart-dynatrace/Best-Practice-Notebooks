@@ -1,12 +1,12 @@
 # ORGNZ-05: Bucket-Level Access Control
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 08/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
 Bucket-level access control provides a straightforward way to isolate data by team, application, or business unit. By granting permissions to specific buckets, you can ensure teams only access data relevant to their responsibilities.
 
-> **Canonical pattern (when bucket-level access fits):** Bucket-level access works well in specific scenarios — **compliance separation** (PCI/HIPAA), **retention isolation** (different retention requirements naturally produce distinct buckets), **hard cost attribution** (per-LOB billing buckets), or **hostile multi-tenancy** (strict cross-tenant isolation). For general team-scoped data access without one of those scenarios, **`dt.security_context` + record-level permissions** (covered in **ORGNZ-06**) is usually the simpler choice — it scales beyond the 80-bucket limit and is mutable without re-routing ingest. See **[IAM REFERENCE.md § Bucket-Match Overlay](../../iam/docs/REFERENCE.md#bucket-match-overlay-scenario-driven)** for the canonical scenario gating. The patterns below teach bucket-level mechanics for when the scenario fits.
+> **Canonical pattern (when bucket-level access fits):** Bucket-level access works well in specific scenarios — **compliance separation** (PCI/HIPAA), **retention isolation** (different retention requirements naturally produce distinct buckets), **hard cost attribution** (per-LOB billing buckets), or **hostile multi-tenancy** (strict cross-tenant isolation). For general team-scoped data access without one of those scenarios, **`dt.security_context` + record-level permissions** (covered in **ORGNZ-06**) is usually the simpler choice — it scales beyond the custom-bucket limit and is mutable without re-routing ingest. See **[IAM REFERENCE.md § Bucket-Match Overlay](../../iam/docs/REFERENCE.md#bucket-match-overlay-scenario-driven)** for the canonical scenario gating. The patterns below teach bucket-level mechanics for when the scenario fits.
 
 ## Prerequisites
 
@@ -91,7 +91,7 @@ Grant access to a list of specific buckets:
 {
   "name": "finance-multi-bucket-access",
   "description": "Finance team can access multiple buckets",
-  "statementQuery": "ALLOW storage:buckets:read WHERE storage:bucket-name IN ('finance_logs', 'finance_metrics', 'finance_audit'); ALLOW storage:logs:read, storage:metrics:read;",
+  "statementQuery": "ALLOW storage:buckets:read WHERE storage:bucket-name IN ('finance_logs', 'finance_events', 'finance_audit'); ALLOW storage:logs:read, storage:events:read;",
   "tags": ["team:finance"]
 }
 ```
@@ -125,7 +125,7 @@ Use pattern matching for complex bucket names:
 <a id="team-isolation-pattern"></a>
 ## Team Isolation Pattern
 
-> **When this approach fits:** team isolation via dedicated buckets is well-suited to scenarios where each team's data already needs its own bucket for compliance, retention, or hard-cost-attribution reasons. For routine per-team scoping without one of those reasons, **`dt.security_context` parameterization** (one policy template, bound per team — see **ORGNZ-06** and **IAM-04 Pattern 2**) is usually simpler and avoids the 80-bucket limit. The pattern below applies once you've decided buckets are the right tool for your team-isolation scenario.
+> **When this approach fits:** team isolation via dedicated buckets is well-suited to scenarios where each team's data already needs its own bucket for compliance, retention, or hard-cost-attribution reasons. For routine per-team scoping without one of those reasons, **`dt.security_context` parameterization** (one policy template, bound per team — see **ORGNZ-06** and **IAM-04 Pattern 2**) is usually simpler and avoids the custom-bucket limit. The pattern below applies once you've decided buckets are the right tool for your team-isolation scenario.
 
 ### Architecture
 
@@ -149,17 +149,16 @@ team_checkout_logs
 team_payments_logs
 ```
 
-**Step 2: Route data via OpenPipeline**
+**Step 2: Assign buckets in OpenPipeline**
 
-```yaml
-processors:
-  - type: route
-    rules:
-      - condition: "host.group starts-with 'platform-'"
-        destination: "team_platform_logs"
-      - condition: "service.name contains 'checkout'"
-        destination: "team_checkout_logs"
-```
+In the log pipeline's **Storage** stage, add one **Bucket assignment** processor per team. Each has a DQL matcher, and the stage applies the first processor that matches:
+
+| Matching condition (DQL) | Bucket |
+|---|---|
+| `matchesValue(dt.host_group.id, "platform-*")` | `team_platform_logs` |
+| `matchesPhrase(service.name, "checkout")` | `team_checkout_logs` |
+
+See **ORGNZ-03 § Routing Data to Buckets** for how the Storage stage works and which matcher functions to use.
 
 **Step 3: Create IAM policies per team**
 
@@ -196,6 +195,17 @@ ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;
 <a id="verifying-bucket-access"></a>
 ## Verifying Bucket Access
 
+### DQL: Verifying Bucket Access
+
+Confirm you can read from the expected buckets:
+
+```dql
+// Verify bucket access — check data distribution across buckets you can read
+fetch logs, from:-1h
+| summarize count = count(), by:{dt.system.bucket}
+| sort count desc
+```
+
 <a id="best-practices"></a>
 ## Best Practices
 | Practice | Rationale |
@@ -205,7 +215,7 @@ ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;
 | Document all policies | Audit trail and governance |
 | Test policies with sample users | Prevent access issues |
 | Use STARTSWITH for team prefixes | Future-proof for new buckets |
-| Combine with record-level for scale | Bucket limits (80 by default) may not suffice |
+| Combine with record-level for scale | Bucket limits (250 by default from SaaS 1.346; 80 before) may not suffice |
 
 <a id="when-bucket-level-isnt-enough"></a>
 ## When Bucket-Level Isn't Enough
@@ -213,12 +223,12 @@ Bucket-level access has limitations:
 
 | Limitation | Alternative |
 |------------|-------------|
-| 80-bucket default limit | Use security context for finer granularity |
+| Custom-bucket limit (250 by default from SaaS 1.346; 80 before) | Use security context for finer granularity |
 | Shared data needs | Use record-level permissions |
 | Dynamic team membership | Use security context mapped to tags |
-| Field-level masking | Use field-level permissions |
+| Hiding sensitive fields | Use fieldsets (`storage:fieldsets:read`) — see ORGNZ-07 |
 
-> **Bucket limit — rolling out (SaaS 1.346):** the default custom-bucket limit per environment rises from **80 to 250**. SaaS 1.346 began its **staged tenant rollout on 08/25/2026** — verify the new default has reached your tenant before planning against it. Until it does, 80 remains the working default, and the increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support.
+> **Bucket limit (SaaS 1.346):** the default custom-bucket limit per environment is **250** (previously 80). SaaS 1.346 began its staged tenant rollout on 08/25/2026; a tenant still below 1.346 keeps the 80 default. The increase-on-request path is unchanged: roughly one additional bucket per 10 GB of daily ingest, with requests above 1,000 buckets reviewed by Dynatrace support.
 
 See **ORGNZ-06** and **ORGNZ-07** for advanced permission patterns.
 
@@ -235,14 +245,3 @@ Continue with the ORGNZ series:
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-### DQL: Verifying Bucket Access
-
-Confirm you can read from the expected buckets:
-
-```dql
-// Verify bucket access — check data distribution across buckets you can read
-fetch logs, from:-1h
-| summarize count = count(), by:{dt.system.bucket}
-| sort count desc
-```

@@ -1,6 +1,6 @@
 # IAM-12: API Provisioning & Validation Scripts
 
-> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -188,7 +188,7 @@ UI_POLICIES=(
 
 # --- Config Policies (one statementQuery per persona) ------------------------
 # Controls which settings schemas each persona can read/write.
-# Add schema prefixes to grant write access; read is granted to all.
+# Add schema ID prefixes (builtin:…) or schema groups (group:…) to grant write access; read is granted to all.
 POWER_SCHEMAS=(
   "builtin:alerting.profile"
   "builtin:problem.notifications"
@@ -206,7 +206,12 @@ _build_config_policy() {
   local base="ALLOW settings:objects:read; ALLOW settings:schemas:read;"
   local schemas=("$@")
   for prefix in "${schemas[@]}"; do
-    base+=" ALLOW settings:objects:write WHERE settings:schemaId startsWith \"${prefix}\";"
+    if [[ "${prefix}" == group:* ]]; then
+      # Schema groups are a separate condition (operators = and IN only)
+      base+=" ALLOW settings:objects:write WHERE settings:schemaGroup = \"${prefix}\";"
+    else
+      base+=" ALLOW settings:objects:write WHERE settings:schemaId startsWith \"${prefix}\";"
+    fi
   done
   echo "${base}"
 }
@@ -528,7 +533,7 @@ All customizable values live in the **CONFIGURATION** block at the top of the sc
 - **Change writable schemas** — edit `POWER_SCHEMAS` or `SRE_SCHEMAS` arrays; the `_build_config_policy` function generates the policy statement
 - **Add teams** — append to the `TEAMS` array
 - **Per-team SRE groups** — create separate groups (`DT-SRE-Checkout`, `DT-SRE-Payments`) and adjust the Phase 4 loop to bind each team to its own group
-- **Bucket isolation** — add `AND storage:bucket.name = "${bindParam:bucket}"` to `TPL_DATA_STATEMENT` (see **IAM-10** Pattern 3)
+- **Bucket isolation** — add `AND storage:bucket-name = "${bindParam:bucket}"` to `TPL_DATA_STATEMENT` (see **IAM-10** Pattern 3)
 
 <a id="report"></a>
 
@@ -679,31 +684,64 @@ echo "Report complete."
 
 ## 4. Script 3: Cleanup Test Resources
 
-Use this script to remove groups, policies, and bindings created during testing. Run this **before** re-provisioning to avoid duplicate resources.
+Use this script to remove groups, policies, and bindings created while testing in a **sandbox** account. It is deliberately conservative:
+
+- **Dry run by default.** Without `--apply` it only lists what matches — nothing is deleted.
+- **Explicit confirmation.** With `--apply` it deletes only after you type `DELETE <count>` for the exact number of resources listed; anything else, or no terminal input, aborts with nothing deleted.
+- **Scoped by prefix.** It selects environment-level policies whose names start with one of `POLICY_PREFIXES` (bindings are removed first) and account groups whose names start with `GROUP_PREFIX`. Built-in policies are never selected, and an empty or very short prefix makes the script refuse to run.
 
 ```bash
 #!/usr/bin/env bash
 # =============================================================================
-# IAM Cleanup — removes test groups, policies, and bindings
+# IAM Cleanup — removes TEST groups, policies, and bindings by name prefix
 # =============================================================================
 # Usage:
-#   ./IAM-CleanUp.sh          # Interactive mode (asks for confirmation)
-#   ./IAM-CleanUp.sh --force  # Delete without confirmation
+#   ./IAM-CleanUp.sh           # DRY RUN (default): lists what would be deleted, deletes nothing
+#   ./IAM-CleanUp.sh --apply   # Deletes — only after you type the confirmation phrase
 #
-# This script runs automatically at the start of IAM-End-to-End-Provisioning.sh
-# but can also be run standalone to clean up test resources.
+# Scope: environment-level policies (and their bindings) whose names start with
+# one of POLICY_PREFIXES, and account groups whose names start with GROUP_PREFIX.
+# Built-in Dynatrace policies are never selected.
 # =============================================================================
-set -eo pipefail
+set -euo pipefail
 
-FORCE_DELETE=${1:-}  # --force flag to skip confirmation
+MODE="dry-run"
+case "${1:-}" in
+  "")      ;;
+  --apply) MODE="apply" ;;
+  *)       echo "Usage: $0 [--apply]"; exit 2 ;;
+esac
 
+# --- CONFIGURATION -----------------------------------------------------------
+# Use prefixes that ONLY your test resources carry. Never use a production
+# naming prefix here (for example GLOBAL-, the persona convention in IAM-11).
+POLICY_PREFIXES=("TEST-" "tpl-test-")
+GROUP_PREFIX="DT-TEST-"
 
 SSO_TOKEN_URL="https://sso.dynatrace.com/sso/oauth2/token"
-OAUTH_CLIENT_ID="dt0s02.xxxxxxx"                                              # Your client ID
-OAUTH_CLIENT_SECRET="dt0s02.xxxxxxx.xxxxxxxxxx"  # Your client secret
-ACCOUNT_UUID="xxx-xxx-xxx-xxx-xxx"                            # Dynatrace account UUID
+OAUTH_CLIENT_ID="dt0s02.xxxxxxx"                     # Your client ID
+OAUTH_CLIENT_SECRET="dt0s02.xxxxxxx.xxxxxxxxxx"      # Your client secret
+ACCOUNT_UUID="xxx-xxx-xxx-xxx-xxx"                   # Dynatrace account UUID
+ENVIRONMENT_ID="YOUR_ENVIRONMENT_ID"                 # Environment ID
+API_BASE="https://api.dynatrace.com"                 # Account Management API base
 OAUTH_SCOPE="account-idm-read account-idm-write iam-policies-management"
 
+# --- COLORS ------------------------------------------------------------------
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# --- SAFETY GUARD: refuse empty or very short prefixes -----------------------
+for p in "${POLICY_PREFIXES[@]}" "${GROUP_PREFIX}"; do
+  if [[ ${#p} -lt 4 ]]; then
+    echo -e "${RED}ERROR:${NC} prefix '${p}' is empty or shorter than 4 characters — refusing to run."
+    exit 1
+  fi
+done
+
+# --- TOKEN -------------------------------------------------------------------
 TOKEN_RESPONSE=$(curl -s \
   --request POST "${SSO_TOKEN_URL}" \
   --header "Content-Type: application/x-www-form-urlencoded" \
@@ -714,163 +752,118 @@ TOKEN_RESPONSE=$(curl -s \
   --data-urlencode "resource=urn:dtaccount:${ACCOUNT_UUID}")
 
 TOKEN=$(echo "${TOKEN_RESPONSE}" | jq -r '.access_token // empty')
-EXPIRES_IN=$(echo "${TOKEN_RESPONSE}" | jq -r '.expires_in // "unknown"')
-
 if [[ -z "${TOKEN}" ]]; then
-  echo "ERROR: Failed to acquire token"
-  echo "${TOKEN_RESPONSE}" | jq .
+  echo -e "${RED}ERROR:${NC} failed to acquire token"
+  echo "${TOKEN_RESPONSE}" | jq . || true
   exit 1
 fi
 
-echo "Token acquired (expires in ${EXPIRES_IN}s)"
-
-# --- CONFIGURATION -----------------------------------------------------------
-ENVIRONMENT_ID="YOUR_ENVIRONMENT_ID"                                    # Environment ID
-API_BASE="https://api.dynatrace.com"                         # Account Management API base
-
-# --- COLORS ------------------------------------------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
 echo ""
 echo "=============================================="
-echo "  IAM Cleanup — Removing Test Resources"
+echo "  IAM Cleanup — mode: ${MODE}"
+echo "  Policy prefixes: ${POLICY_PREFIXES[*]}"
+echo "  Group prefix:    ${GROUP_PREFIX}"
 echo "=============================================="
-echo ""
 
-# --- DELETE POLICIES (and their bindings) ------------------------------------
-echo -e "${CYAN}Deleting test policies...${NC}"
+# --- SELECT POLICIES ---------------------------------------------------------
 POLICIES=$(curl -s -X GET \
   "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" \
   -H "Authorization: Bearer ${TOKEN}")
-
-POLICIES_TEMP=$(mktemp)
-echo "${POLICIES}" | jq -r '(.policies // [])[] | select(.name | (startswith("GLOBAL-") or startswith("TEST-") or startswith("tpl-"))) | .uuid' > "$POLICIES_TEMP" 2>/dev/null || true
-
-DELETED_POLICIES=0
-while IFS= read -r puuid; do
-  if [[ -n "$puuid" ]]; then
-    curl -s -o /dev/null -X DELETE \
-      "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${puuid}?forceMultiple=true" \
-      -H "Authorization: Bearer ${TOKEN}" 2>/dev/null || true
-    curl -s -o /dev/null -X DELETE \
-      "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies/${puuid}?force=true" \
-      -H "Authorization: Bearer ${TOKEN}" 2>/dev/null || true
-    DELETED_POLICIES=$((DELETED_POLICIES + 1))
-  fi
-done < "$POLICIES_TEMP"
-rm -f "$POLICIES_TEMP"
-
-if [[ $DELETED_POLICIES -gt 0 ]]; then
-  echo -e "  ${GREEN}✓${NC} Deleted $DELETED_POLICIES policy/policies"
+if ! echo "${POLICIES}" | jq -e '.policies | type == "array"' >/dev/null 2>&1; then
+  echo -e "${RED}ERROR:${NC} could not list policies — nothing deleted."
+  exit 1
 fi
 
-# --- DELETE GROUPS -----------------------------------------------------------
-echo ""
-echo -e "${CYAN}Deleting test groups...${NC}"
-GROUPS=$(curl -s -X GET \
+PREFIX_JSON=$(printf '%s\n' "${POLICY_PREFIXES[@]}" | jq -R . | jq -s .)
+POLICY_ROWS=()
+while IFS= read -r row; do
+  [[ -n "${row}" ]] && POLICY_ROWS+=("${row}")
+done < <(echo "${POLICIES}" | jq -r --argjson pfx "${PREFIX_JSON}" '
+  .policies[]
+  | select(.builtIn != true)
+  | select(.name as $n | any($pfx[]; . as $p | $n | startswith($p)))
+  | .uuid + "|" + .name')
+
+# --- SELECT GROUPS -----------------------------------------------------------
+GROUPS_JSON=$(curl -s -X GET \
   "${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups" \
   -H "Authorization: Bearer ${TOKEN}")
-
-GROUPS_TEMP=$(mktemp)
-echo "${GROUPS}" | jq -r '(if type == "array" then . else (.items // .groups // []) end)[] | select(.name | startswith("DT-TEST-")) | .uuid' > "$GROUPS_TEMP" 2>/dev/null || true
-
-# Check if we have groups to delete
-if [[ -s "$GROUPS_TEMP" ]]; then
-  GROUP_COUNT=$(wc -l < "$GROUPS_TEMP" || echo 0)
-  
-  if [[ "${FORCE_DELETE}" != "--force" ]] && [[ $GROUP_COUNT -gt 0 ]]; then
-    echo "Found $GROUP_COUNT group(s) matching prefix 'DT-TEST-'"
-    read -p "Delete these groups? (yes/no): " -r CONFIRM || CONFIRM=""
-    if [[ "${CONFIRM}" != "yes" ]]; then
-      echo "Aborted by user."
-      rm -f "$GROUPS_TEMP"
-      exit 0
-    fi
-  fi
-  
-  DELETED_GROUPS=0
-  while IFS= read -r guuid; do
-    if [[ -n "$guuid" ]]; then
-      curl -s -o /dev/null -X DELETE \
-        "${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups/${guuid}" \
-        -H "Authorization: Bearer ${TOKEN}" 2>/dev/null || true
-      DELETED_GROUPS=$((DELETED_GROUPS + 1))
-    fi
-  done < "$GROUPS_TEMP"
-  
-  if [[ $DELETED_GROUPS -gt 0 ]]; then
-    echo -e "  ${GREEN}✓${NC} Deleted $DELETED_GROUPS group(s)"
-  fi
+if ! echo "${GROUPS_JSON}" | jq -e '(if type == "array" then . else (.items // .groups) end) | type == "array"' >/dev/null 2>&1; then
+  echo -e "${RED}ERROR:${NC} could not list groups — nothing deleted."
+  exit 1
 fi
 
-rm -f "$GROUPS_TEMP"
+GROUP_ROWS=()
+while IFS= read -r row; do
+  [[ -n "${row}" ]] && GROUP_ROWS+=("${row}")
+done < <(echo "${GROUPS_JSON}" | jq -r --arg p "${GROUP_PREFIX}" '
+  (if type == "array" then . else (.items // .groups) end)[]
+  | select(.name | startswith($p))
+  | .uuid + "|" + .name')
 
+# --- PLAN --------------------------------------------------------------------
+TOTAL=$(( ${#POLICY_ROWS[@]} + ${#GROUP_ROWS[@]} ))
 echo ""
-echo -e "${GREEN}✓ Cleanup complete.${NC}"
+echo -e "${CYAN}Policies (bindings removed first):${NC} ${#POLICY_ROWS[@]}"
+for row in "${POLICY_ROWS[@]+"${POLICY_ROWS[@]}"}"; do echo "  - ${row#*|}  (${row%%|*})"; done
+echo -e "${CYAN}Groups:${NC} ${#GROUP_ROWS[@]}"
+for row in "${GROUP_ROWS[@]+"${GROUP_ROWS[@]}"}"; do echo "  - ${row#*|}  (${row%%|*})"; done
+
+if [[ ${TOTAL} -eq 0 ]]; then
+  echo ""
+  echo "Nothing matches the configured prefixes. Nothing to do."
+  exit 0
+fi
+
+if [[ "${MODE}" != "apply" ]]; then
+  echo ""
+  echo -e "${YELLOW}Dry run — nothing was deleted.${NC} Review the list, then re-run with --apply."
+  exit 0
+fi
+
+# --- CONFIRM -----------------------------------------------------------------
 echo ""
-echo "Tip: Run './IAM-CleanUp.sh --force' to skip confirmation, or"
-echo "     './IAM-End-to-End-Provisioning.sh' to auto-cleanup and re-provision."
-  echo "${POLICIES}" | jq -r --arg p "${prefix}" \
-    '(.policies // [])[] | select(.name | startswith($p)) | .uuid + "|" + .name' \
-    2>/dev/null | while IFS='|' read -r puuid pname; do
-    [[ -z "${puuid}" ]] && continue
+read -r -p "Type 'DELETE ${TOTAL}' to delete these ${TOTAL} resources: " CONFIRM || CONFIRM=""
+if [[ "${CONFIRM}" != "DELETE ${TOTAL}" ]]; then
+  echo "Confirmation did not match — nothing deleted."
+  exit 1
+fi
 
-    # Delete bindings first (ignore "no binding" errors)
-    echo -n "  Deleting bindings for ${pname}... "
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-      "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${puuid}?forceMultiple=true" \
-      -H "Authorization: Bearer ${TOKEN}")
-    if [[ "${HTTP}" =~ ^2 ]]; then
-      echo -e "${GREEN}OK${NC}"
-    else
-      echo -e "${YELLOW}${HTTP} (may have no bindings)${NC}"
-    fi
+# --- DELETE ------------------------------------------------------------------
+FAILED=0
+for row in "${POLICY_ROWS[@]+"${POLICY_ROWS[@]}"}"; do
+  puuid="${row%%|*}"; pname="${row#*|}"
+  echo -n "  Bindings of ${pname}... "
+  HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+    "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${puuid}?forceMultiple=true" \
+    -H "Authorization: Bearer ${TOKEN}") || HTTP="000"
+  [[ "${HTTP}" =~ ^2 ]] && echo -e "${GREEN}OK${NC}" || echo -e "${YELLOW}${HTTP} (may have no bindings)${NC}"
 
-    # Delete policy
-    echo -n "  Deleting policy ${pname}... "
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-      "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies/${puuid}?force=true" \
-      -H "Authorization: Bearer ${TOKEN}")
-    if [[ "${HTTP}" =~ ^2 ]]; then
-      echo -e "${GREEN}OK${NC}"
-    else
-      echo -e "${RED}FAILED (HTTP ${HTTP})${NC}"
-    fi
-  done
+  echo -n "  Policy ${pname}... "
+  HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+    "${API_BASE}/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies/${puuid}?force=true" \
+    -H "Authorization: Bearer ${TOKEN}") || HTTP="000"
+  if [[ "${HTTP}" =~ ^2 ]]; then echo -e "${GREEN}OK${NC}"; else echo -e "${RED}FAILED (HTTP ${HTTP})${NC}"; FAILED=$((FAILED + 1)); fi
 done
 
-# --- DELETE GROUPS -----------------------------------------------------------
-echo ""
-echo -e "${CYAN}Fetching groups...${NC}"
-GROUPS=$(curl -s -X GET \
-  "${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups" \
-  -H "Authorization: Bearer ${TOKEN}")
-
-echo "${GROUPS}" | jq -r --arg p "${GROUP_PREFIX}" \
-  '(if type == "array" then . else (.items // .groups // []) end)[]
-  | select(.name | startswith($p)) | .uuid + "|" + .name' \
-  2>/dev/null | while IFS='|' read -r guuid gname; do
-  [[ -z "${guuid}" ]] && continue
-  echo -n "  Deleting group ${gname}... "
+for row in "${GROUP_ROWS[@]+"${GROUP_ROWS[@]}"}"; do
+  guuid="${row%%|*}"; gname="${row#*|}"
+  echo -n "  Group ${gname}... "
   HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
     "${API_BASE}/iam/v1/accounts/${ACCOUNT_UUID}/groups/${guuid}" \
-    -H "Authorization: Bearer ${TOKEN}")
-  if [[ "${HTTP}" =~ ^2 ]]; then
-    echo -e "${GREEN}OK${NC}"
-  else
-    echo -e "${RED}FAILED (HTTP ${HTTP})${NC}"
-  fi
+    -H "Authorization: Bearer ${TOKEN}") || HTTP="000"
+  if [[ "${HTTP}" =~ ^2 ]]; then echo -e "${GREEN}OK${NC}"; else echo -e "${RED}FAILED (HTTP ${HTTP})${NC}"; FAILED=$((FAILED + 1)); fi
 done
 
 echo ""
+if [[ ${FAILED} -gt 0 ]]; then
+  echo -e "${RED}Cleanup finished with ${FAILED} failure(s).${NC}"
+  exit 1
+fi
 echo -e "${GREEN}Cleanup complete.${NC}"
 ```
 
-> **Safety:** The script only deletes resources whose names start with the configured prefixes. Adjust `GROUP_PREFIX` and `POLICY_PREFIXES` to match your naming convention.
+> **Safety:** Set `POLICY_PREFIXES` and `GROUP_PREFIX` to prefixes that **only your test resources carry**, and always read the dry-run list before running with `--apply`. Do not point it at `GLOBAL-` or `DT-GLOBAL-` — that is the production persona naming convention (IAM-11), and it is also what Script 1 creates by default. To make Script 1's output removable by this script, set `PERSONA_SCOPES` to `TEST`, name the groups `DT-TEST-…`, and rename `TPL_DATA_NAME` / `ADMIN_DATA_NAME` to `tpl-test-…` / `TEST-…` before provisioning a sandbox.
 
 <a id="dql-validation"></a>
 
@@ -878,8 +871,12 @@ echo -e "${GREEN}Cleanup complete.${NC}"
 
 These DQL queries let you audit your IAM configuration directly from a Dynatrace Notebook — no shell scripts needed.
 
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
+
 ```dql
-// Audit IAM policy and group changes (last 7 days)
+// IAM API activity in this environment (last 7 days)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -894,6 +891,7 @@ These DQL queries let you audit your IAM configuration directly from a Dynatrace
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 25
@@ -901,10 +899,9 @@ fetch dt.system.events, from:-7d
 
 ### Audit: Who Changed Policies Recently?
 
-The query above scans audit events for IAM-related changes. Look for:
-- **CREATE** events for new policies or groups
-- **UPDATE** events for modified policy statements
-- **DELETE** events for removed resources
+Policy, group and binding changes are account-level: answer this question from the account audit log (Account Management > Settings > Audit log), which records each change with its previous and current state. The query above complements it by showing which users and automation called the IAM API **through this environment** — look for:
+- **POST / PUT / DELETE** calls against `/platform/iam/…` paths from users or clients you do not expect
+- Calls with a non-2xx `event.outcome`, which point at failing provisioning scripts
 
 ### Verify Group Membership
 

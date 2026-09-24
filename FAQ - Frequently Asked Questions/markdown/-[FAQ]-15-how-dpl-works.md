@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 09/17/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ Nearly everyone arrives at DPL fluent in regex, so § 3 handles that head-on: ex
 
 Five rules explain nearly every DPL problem:
 
-1. **A pattern does not need to match the whole line — but it must match contiguously from wherever it starts.** Any gap you don't account for breaks the match.
+1. **`parse` matches from the start of the string, contiguously.** It does not need to consume the whole line — trailing text is ignored — but it does not search forward for a starting point: `parse("xx 42", "INT:n")` is `null`, while `parse("42 xx", "INT:n")` is `"42"`. Any gap you don't account for breaks the match. `matchesPattern` is stricter still: the pattern must cover the *whole* string (§ 7). *(live-verified)*
 2. **`LD` matches as *little* as possible; character classes like `ALPHA` and `WORD` match as *much* as possible.** These opposite behaviors in one language cause most surprises. *(live-verified)*
 3. **There is no backtracking.** A greedy matcher that over-consumes never gives characters back — the pattern fails instead. A quantified matcher must never be able to match the delimiter that follows it. *(live-verified)*
 4. **Failure is silent.** A non-matching pattern yields `null`. An *ambiguous* pattern yields wrong values with no warning at all. There is no error either way.
@@ -631,10 +631,10 @@ data record(t = "ERROR svc=api code=500 code=502")
 
 ```dql
 fetch logs, from: -1h
-| filter matchesPattern(content, "IPADDR ' - - ['")
+| filter matchesPattern(content, "IPADDR ' - - [' DATA")
 ```
 
-`contains(content, "192.168")` matches a version string; `matchesPattern` with `IPADDR` matches only an actual address. This is also the natural expression for OpenPipeline **matching conditions**.
+**`matchesPattern` must match the whole string, not a prefix.** Without the trailing `DATA`, the same filter returns `false` on every access-log line — live-verified 09/24/2026: 0 records against 11,175 with `DATA` over the same hour, and `matchesPattern("10.1.2.3 GET /x", "IPADDR")` is `false`. `DATA` absorbs the rest of the record, line breaks included; `LD` stops at the first line break, so it fails on multi-line content. `contains(content, "192.168")` matches a version string; this pattern matches only records that start with an actual address. This is also the natural expression for OpenPipeline **matching conditions**.
 
 ### `replacePattern` — masking
 
@@ -777,11 +777,11 @@ A pattern that works on your three samples may cover 60% of production. Quantify
 
 ```dql
 fetch logs, from: -1h
-| filter matchesPattern(content, "IPADDR ' - - ['")
+| filter matchesPattern(content, "IPADDR ' - - [' DATA")
 | summarize matched = count()
 ```
 
-Compare against the unfiltered count. Anything short of the coverage you expected means the format varies — go find the variants before deploying to a pipeline.
+The trailing `DATA` matters: `matchesPattern` must match the whole string, so without it this count is 0 (§ 7). Compare against the unfiltered count. Anything short of the coverage you expected means the format varies — go find the variants before deploying to a pipeline.
 
 > <sub>**Sources:** [DPL Architect (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/dpl-architect) — coverage feedback as the intended validation loop. **Derived:** the four-step ladder and the symptom table are authoring syntheses of the live-verified behaviors in § 5 and § 4; the documentation does not provide a troubleshooting guide.</sub>
 

@@ -1,6 +1,6 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -17,14 +17,13 @@ Dashboards are the primary visualization layer in Dynatrace, turning raw observa
 Sprint 1.337 introduced data shapes that make several dashboard patterns simpler:
 
 1. **OneAgent primary fields/tags as top-level fields** on all signals (Latest Dynatrace). Filters and `by:` groupings can dispatch on `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, and customer-defined `primary_tags.<key>` directly — no more `parse(content, ...)` in dashboard tile queries. Particularly impactful for executive dashboards (DASH-03) that need cost-by-business-unit views.
-2. **Smartscape Ownership integration** — entities now carry ownership (`ownership.team`, `ownership.oncall`) as queryable attributes. Dashboards can split metrics or surface alerts by owning team without maintaining side-tables. See:
+2. **Ownership by team** — split by owning team with primary Grail tags, not a node attribute. There is no `ownership.*` field on Smartscape nodes: on a validation tenant (09/24/2026) `getNodeField(id, "ownership.team")` returned null for 35 of 35 services while `getNodeField(id, "name")` resolved all 35, and `dt.semantic_dictionary.fields` has no field containing `ownership`. Primary tags do reach metrics: *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags"* ([Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags)). So a tile can split by `primary_tags.team` directly:
 
    ```dql
-   smartscapeNodes "SERVICE"
-   | fieldsAdd team = getNodeField(smartscape.id, "ownership.team")
-   | summarize service_count = count(), by:{team}
-   | sort service_count desc
+   timeseries requests = sum(dt.service.request.count), by:{primary_tags.team}, from:-2h
    ```
+
+   The split is only as good as the tag — where no `team` primary tag is set, every series lands in one null group. For notifying the owning team from a workflow, the Ownership app's *Get owners* action *"Retrieves owners from entities and team identifiers"* ([Actions for Ownership (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions)).
 
 3. **OTel `service.name` enrichment** + new **`dt.service.name`** field — splitting service-level dashboards by OTel-canonical name now works without joining through entity enrichment.
 

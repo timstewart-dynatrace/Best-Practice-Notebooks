@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 09/10/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -26,25 +26,25 @@ Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
-| **Permissions** | `account-iam-admin` to create/modify policies |
+| **Permissions** | `account-user-management` to create/modify policies |
 | **Prior Knowledge** | **IAM-01** through **IAM-03** |
 
-### Sprint 1.337 (April 2026): Permission Updates
+### SaaS 1.337: `frontend.name` as a permission field
 
-**New `frontend.name` permission field for Grail RUM data.** Sprint 1.337 introduced `frontend.name` as a permission-relevant field on `metric` and `dt.entity.*` Smartscape data. You can now scope IAM policies to specific frontend applications at the **record-level** and **field-level**, instead of relying on bucket-only isolation:
+SaaS 1.337 added `frontend.name` as a condition for metrics, RUM and Smartscape data, so access can be scoped per frontend without splitting buckets. The condition is `storage:frontend.name` on each table permission, and the policy reference lists `=`, `IN`, `startsWith` and `MATCH` for it:
 
 ```text
-ALLOW storage:metric:read
-  WHERE storage:metric.frontend.name == "checkout-web"
-  OR    storage:metric.frontend.name == "account-web";
-
-ALLOW storage:user.sessions:read
-  WHERE storage:user.sessions.frontend.name STARTS WITH "public-";
+ALLOW storage:metrics:read WHERE storage:frontend.name IN ("checkout-web", "account-web");
+ALLOW storage:user.events:read WHERE storage:frontend.name IN ("checkout-web", "account-web");
+ALLOW storage:user.sessions:read WHERE storage:frontend.name MATCH ("checkout-web", "account-web");
 ```
 
-Use this when multiple teams own different frontends but share a single RUM tenant — fine-grained ABAC without splitting buckets.
+Use `MATCH` for `user.sessions`: a session can span several frontends. Check each value in Experience Vitals before binding the policy, because the `frontend.name` value is not always the display name.
 
-**`dt.security_context` is now a primary field at source.** OneAgent now enriches all telemetry with `dt.security_context` (and `dt.cost.*`) as **top-level primary fields** at ingestion on Latest Dynatrace tenants. The MATCH() ABAC patterns covered later in this notebook (and across IAM-04, IAM-05, IAM-07) work directly against the primary-field value with no need for OpenPipeline parse processors on OneAgent-instrumented data. The structured-context spread completed in PR #50 already aligns with this — the sprint-1.337 change makes the field guarantee tenant-wide rather than pipeline-dependent.
+> <sub>**Sources:**</sub>
+> - <sub>[SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Statements like ALLOW storage:metrics:read WHERE storage:frontend.name = "mobile_app" let you selectively control access to metrics and Smartscape data at the record- and field level."*</sub>
+> - <sub>[RUM data access controls best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls) — *"Because user sessions may span multiple frontends, use the MATCH operator"*; *"The frontend.name value may differ from the display name shown in Experience Vitals."*</sub>
+> - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)</sub>
 
 ---
 
@@ -67,7 +67,7 @@ Policies are assigned to **groups**, not individual users:
 
 ```
 Group: dt-checkout-editors
-├── Policy: environment-editor (default)
+├── Policy: Pro User (default)
 ├── Policy: log-management (custom)
 └── Boundary: checkout-services-only
 ```
@@ -76,7 +76,7 @@ Group: dt-checkout-editors
 
 | Type | Description | Examples |
 |------|-------------|----------|
-| **Default Policies** | Pre-built by Dynatrace | `environment-viewer`, `environment-editor` |
+| **Default Policies** | Pre-built by Dynatrace | Standard User, Pro User, Admin User |
 | **Custom Policies** | Created by you | `log-read-only`, `dashboard-manager` |
 
 <a id="policy-statement-syntax"></a>
@@ -142,12 +142,12 @@ ALLOW document:documents:read;
 
 | Service | Purpose | Common Resources |
 |---------|---------|------------------|
-| `storage` | Grail data access | `logs`, `spans`, `metrics`, `events`, `bizevents` |
+| `storage` | Grail data access | `logs`, `spans`, `metrics`, `events`, `bizevents`, `buckets`, `bucket-definitions` |
 | `settings` | Configuration objects | `objects`, `schemas` |
-| `document` | Notebooks, dashboards | `documents`, `directShares` |
-| `environment` | Environment management | `extensions`, `activeGates`, `oneAgents` |
-| `state` | Entity management | `entities`, `problems` |
-| `automation` | Workflows, AutomationEngine | `workflows`, `calendars` |
+| `document` | Notebooks, dashboards | `documents`, `direct-shares`, `environment-shares` |
+| `environment` | Classic roles | `roles` (`environment:roles:*`) |
+| `state` | App state storage | `app-states`, `user-app-states` |
+| `automation` | Workflows, AutomationEngine | `workflows`, `calendars`, `rules` |
 
 ### Common Actions
 
@@ -156,21 +156,22 @@ ALLOW document:documents:read;
 | `read` | View/query data |
 | `write` | Create/modify data |
 | `delete` | Remove data |
-| `share` | Share with others |
-| `execute` | Run (for workflows) |
+| `run` | Run (workflows: `automation:workflows:run`) |
+| `admin` | Administer all objects of a type (e.g. `document:documents:admin`, `automation:workflows:admin`) |
 
 ### Storage Service Details
 
 | Resource | Description | Actions |
 |----------|-------------|----------|
 | `logs` | Log records | read, write |
-| `spans` | Distributed traces | read, write |
+| `spans` | Distributed traces | read |
 | `metrics` | Metric data | read, write |
 | `events` | Platform events | read, write |
-| `bizevents` | Business events | read, write |
+| `bizevents` | Business events | read |
 | `entities` | Smartscape entities (Classic surface) | read |
 | `system` | System/audit data (query events, internal) | read |
-| `buckets` | Storage buckets | read, write, delete |
+| `buckets` | Read records from Grail buckets (required in addition to a table permission) | read |
+| `bucket-definitions` | Create and manage bucket definitions | read, write, delete, truncate |
 
 Specialized record tables follow the same `storage:<table>:read` shape — e.g. `storage:security.events:read`, `storage:user.sessions:read`, `storage:user.replays:read`, `storage:application.snapshots:read`, `storage:smartscape:read`.
 
@@ -202,8 +203,11 @@ ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
 
 | Resource | Description | Actions |
 |----------|-------------|----------|
-| `documents` | Dashboards, notebooks | read, write, delete, share |
-| `directShares` | Direct share links | write |
+| `documents` | Dashboards, notebooks | read, write, delete, admin |
+| `direct-shares` | Direct shares with users and groups | read, write, delete |
+| `environment-shares` | Shares with the whole environment | read, write, delete, claim |
+
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — permission list read 09/24/2026.</sub>
 
 ### Environment Roles (`environment:roles:*`)
 
@@ -282,7 +286,7 @@ ALLOW <service>:<resource>:<action> WHERE <condition>
 | `startsWith` | Prefix match | `settings:schemaId startsWith "builtin:alerting"` |
 | `MATCH` | Wildcard pattern match | `storage:dt.security_context MATCH('*/app:easytrade')` |
 
-> **`MATCH()` vs `startsWith`:** Use `MATCH()` for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use `startsWith` when matching a fixed leading prefix. **And use `MATCH()` whenever the field can hold an array** — on an array, `=`, `startsWith` and `IN` *"always return `false`"*, silently. See **IAM-05** for where that bites in a boundary.
+> **`MATCH()` vs `startsWith`:** Use `MATCH()` for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use `startsWith` when matching a fixed leading prefix. **And use `MATCH()` whenever the field can hold an array** — on an array, `=`, `startsWith` and `IN` *"always return `false`"*, silently. The exception is `storage:entities:read` (classic entities), which offers no `MATCH`; there, `startsWith` is the documented operator for the multi-value field (see below). See **IAM-05** for where that bites in a boundary.
 
 > **Corrected 09/10/2026 — `contains` is not an IAM condition operator.** An earlier revision of this table listed `contains` (`settings:schemaId contains "custom"`). The IAM policy statement syntax reference gives the operator set as `= != < > IN startsWith NOT IN NOT startsWith MATCH`, and the IAM policy reference lists `IN`, `=`, `!=`, `startsWith` and `NOT startsWith` for `settings:schemaId` — `contains` appears in neither. Use `startsWith` for a prefix, or `MATCH` for a pattern.
 >
@@ -372,7 +376,7 @@ comp:<component>/bu:<business-unit>/app:<application>
 | Easytrade database | `comp:db/bu:digital/app:easytrade` |
 | Easytrade load balancer | `comp:lb/bu:digital/app:easytrade` |
 
-> **⚠️ Dimension order matters for Smartscape/Classic entities.** Place the dimension you need transversal access on **first** — typically `comp` for infrastructure teams. Use `MATCH('comp:db*')` to anchor at the start (equivalent to a prefix match). **Do not use `startsWith` on `storage:smartscape:read` or `storage:entities:read`** — there is a known bug; `MATCH` with a trailing `*` is the supported alternative.
+> **⚠️ Dimension order matters for Smartscape/Classic entities.** Place the dimension you need transversal access on **first** — typically `comp` for infrastructure teams. On `storage:smartscape:read` and the record tables, use `MATCH('comp:db*')` to anchor at the start. **`storage:entities:read` (classic entities) supports `=`, `IN` and `startsWith` only** — no `MATCH` — and Dynatrace documents `startsWith` as evaluating for any matching value of the multi-value entity context.
 
 **Using `MATCH()` for flexible policy conditions:**
 
@@ -390,12 +394,14 @@ Transversal database team — access all database components across all applicat
 ALLOW storage:metrics:read WHERE storage:dt.security_context MATCH('comp:db*');
 ALLOW storage:logs:read    WHERE storage:dt.security_context MATCH('comp:db*');
 ALLOW storage:spans:read   WHERE storage:dt.security_context MATCH('comp:db*');
-// Smartscape/Classic entities — use MATCH (NOT startsWith — known bug)
-ALLOW storage:entities:read  WHERE storage:dt.security_context MATCH('comp:db*');
+// Classic entities — storage:entities:read has no MATCH; startsWith matches any value of the array
+ALLOW storage:entities:read  WHERE storage:dt.security_context startsWith "comp:db";
 ALLOW storage:smartscape:read WHERE storage:dt.security_context MATCH('comp:db*');
 ```
 
-> **Note:** `MATCH()` is the recommended operator for both Grail signals (`storage:logs:read` etc.) and Smartscape/Classic entity access (`storage:smartscape:read`, `storage:entities:read`). Anchor at the start with a trailing `*` to mimic prefix matching (e.g. `MATCH('comp:db*')`). `startsWith` has a known bug on `storage:smartscape:read` and is no longer recommended. See **IAM-05** for the corresponding boundary patterns.
+> **Note:** `storage:entities:read` (classic entities) supports `=`, `IN` and `startsWith` only — Dynatrace documents `startsWith` as evaluating for any matching value of the multi-value entity context. `storage:smartscape:read` and the record tables (`storage:logs:read` etc.) also accept `MATCH`; anchor at the start with a trailing `*` to mimic a prefix match (e.g. `MATCH('comp:db*')`). See **IAM-05** for the corresponding boundary patterns.
+>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements), [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"the security context of this entity. Can be a multi-value field and startsWith will evaluate for any matching value."*</sub>
 
 <a id="common-policy-patterns"></a>
 ## 5. Common Policy Patterns
@@ -403,9 +409,9 @@ ALLOW storage:smartscape:read WHERE storage:dt.security_context MATCH('comp:db*'
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Need | Policy Type | Recommendation |
 |------|-------------|----------------|
-| Simple read-only | Default | Use environment-viewer |
+| Simple read-only | Default | Use the Standard User default policy |
 | Read + limited write | Custom | Create scoped policy |
-| Full access | Default | Use environment-admin |
+| Full access | Default | Use the Admin User default policy |
 | Specific capability | Custom | Create targeted policy |
 -->
 
@@ -591,11 +597,11 @@ Dynatrace provides default policies for common use cases:
 
 | Policy | Description | Use Case |
 |--------|-------------|----------|
-| `environment-viewer` | Read-only access | Stakeholders, auditors |
-| `environment-editor` | Read + write (most things) | Team members |
-| `environment-admin` | Full environment control | Administrators |
-| `account-viewer` | View account settings | Cross-team visibility |
-| `account-iam-admin` | Manage IAM | IAM administrators |
+| **Standard User** | Access the environment and run Dynatrace apps | Most users |
+| **Pro User** | Standard, plus build and run apps and workflows | Team members |
+| **Admin User** | Administrative access across all platform services | Administrators |
+| `account-viewer` (account permission) | View account | Cross-team visibility |
+| `account-user-management` (account permission) | Manage users, groups, policies | IAM administrators |
 
 ### Reach for Managed Policies First
 
@@ -605,16 +611,13 @@ Commonly used managed policies for Grail and AppEngine onboarding:
 
 | Managed policy | Grants |
 |----------------|--------|
-| **Storage Default Monitoring Read** | Read on default buckets; auto-adjusts as new tables are added |
-| **Storage `<table>` Read** | Per-table read (e.g. *Storage logs Read*) |
-| **Storage All System Data Read** | System/audit + query-event data |
-| **Storage All Grail Data Read** | Unrestricted Grail read |
-| **AppEngine User** | `apps:run` + `functions:run` (+ document/state access) |
-| **AppEngine Admin** | Full app lifecycle (install/delete) + settings |
-| **AppEngine Developer** | App install/delete scoped to own apps |
-| **AutomationEngine Access** | Workflows app + automation run access |
+| **All Grail data read access** | Unrestricted Grail read |
+| **Read `<table>`** | Per-table read (e.g. *Read Logs*, *Read Metrics*, *Read Spans*, *Read System Events*) |
+| **Standard User / Pro User / Admin User** | App use, app and workflow building, administration (see the table above) |
 
-> Environment-admin groups typically receive *AppEngine Admin*, *AutomationEngine Access*, and *Storage All Grail Data Read* automatically. Verify the exact managed-policy set in your tenant's Account Management — the catalog evolves.
+**Legacy default policies.** *AppEngine - User*, *AppEngine - Admin*, *AppEngine - Developer access*, *AutomationEngine - User access*, *AutomationEngine - Admin access*, *Storage All System Data Read* and *Storage Default Monitoring Read* are now listed as legacy: Dynatrace states they *"are not accessible for new policy assignments, but existing assignments of these policies remain until removed."* Use the role policies and the *Read `<table>`* policies for new bindings, and verify the current catalog in your tenant's Account Management — it evolves.
+
+> <sub>**Sources:** [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
 
 ### When to Use Default Policies
 
@@ -639,7 +642,7 @@ Groups can have both:
 
 ```
 Group: dt-checkout-editors
-├── Default Policy: environment-viewer (base access)
+├── Default Policy: Standard User (base access)
 └── Custom Policy: checkout-write-access (team-specific writes)
 ```
 
@@ -697,59 +700,45 @@ iam-config/
 
 ### Policy YAML Format (Monaco)
 
-> **Recommended (parameterized):** One policy template, bound to each team's group with a different `team` value. Source-control the policy AND the bindings — that's how you safely shepherd parameter-shape changes across N bindings (see **IAM REFERENCE.md § Change-Management Caveat**).
+Monaco manages IAM as **account resources** — `policies:`, `groups:` and `boundaries:` are dedicated top-level types in YAML, not Settings schemas, and no JSON templates are needed. `monaco deploy` ignores account configuration — Monaco has dedicated commands for account resources, which authenticate with an OAuth client configured under `accounts:` in `manifest.yaml`.
 
-**Parameterized policy:**
-
-```yaml
-# policies/team-data-access.yaml
-configs:
-  - id: team-data-access-policy
-    type:
-      settings:
-        schema: builtin:iam.policy
-    config:
-      name: team-data-access
-      description: "Parameterized: data access scoped to ${bindParam:team}"
-      statements:
-        - effect: ALLOW
-          service: storage
-          resource: "*"
-          action: read
-          condition: "storage:dt.security_context = '${bindParam:team}'"
-        - effect: ALLOW
-          service: storage
-          resource: "*"
-          action: write
-          condition: "storage:dt.security_context = '${bindParam:team}'"
-```
-
-**Bindings (one per team, same policy, different parameter values):**
+**Policy and group (documented account format):**
 
 ```yaml
-# bindings/team-bindings.yaml
-configs:
-  - id: checkout-team-binding
-    type:
-      settings:
-        schema: builtin:iam.binding
-    config:
-      policyId: "{{ .team-data-access-policy }}"
-      groupId: "{{ .dt-checkout-team }}"
-      parameters:
-        team: "checkout"
-  - id: payments-team-binding
-    type:
-      settings:
-        schema: builtin:iam.binding
-    config:
-      policyId: "{{ .team-data-access-policy }}"
-      groupId: "{{ .dt-payments-team }}"
-      parameters:
-        team: "payments"
+# account/iam.yaml
+policies:
+  - name: team-data-reader
+    id: team-data-reader
+    level:
+      type: account
+    description: Read logs and spans — scoped per team by the boundary on each binding
+    policy: |-
+      ALLOW storage:logs:read;
+      ALLOW storage:spans:read;
+
+boundaries:
+  - id: bnd-team-checkout
+    name: bnd-team-checkout
+    query: storage:dt.security_context IN ("checkout");
+
+groups:
+  - name: dt-checkout-team
+    id: dt-checkout-team
+    description: Checkout team
+    environments:
+      - environment: abc12345
+        policies:
+          - policy:
+              type: reference
+              id: team-data-reader
+            boundaries:
+              - type: reference
+                id: bnd-team-checkout
 ```
 
-Adding a new team is a binding (values-file edit), not a policy review. The policy YAML stays unchanged. See **IAM-10: Templated Policy-Group Assignments** for the full Monaco + IAM API integration pattern.
+> **Binding parameters are not in Monaco's documented account format.** The page documents policies, groups, boundaries and the policy-to-group binding (with boundaries), but not binding `parameters`, so a `${bindParam:team}` template cannot be given its value here. Bind templated policies with parameters through the IAM API or Terraform (`dynatrace_iam_policy_bindings_v2`) — see **IAM-10** and **IAM-95**. The example above keeps the policy unparameterized and scopes it with a per-team boundary instead.
+>
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."*</sub>
 
 ### GitOps Workflow
 
@@ -776,8 +765,12 @@ See **AUTOM-03: Monaco** for full implementation details.
 ## 9. Policy Assessment Queries
 Use these queries to audit policy-related activity.
 
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
+
 ```dql
-// Track policy changes in the audit trail
+// IAM API activity in this environment (policy changes themselves: account audit log)
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -792,6 +785,7 @@ Use these queries to audit policy-related activity.
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "iam")
+| filter not startsWith(resource, "/lookups/")
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50

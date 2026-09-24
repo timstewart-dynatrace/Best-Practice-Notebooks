@@ -1,6 +1,6 @@
 # ONBRD-09: Setting Up Alerts
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
 
 ## Getting Notified When Things Go Wrong
 Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.
@@ -106,13 +106,14 @@ Workflows are event-driven automations that can:
 
 ### Step 3: Add Conditions (Optional)
 
-Filter which problems trigger the workflow:
+Filter which problems trigger the workflow. Use the trigger's own options first (problem state, event category, severity, affected-entity tags). Anything more goes in **Additional custom filter query**, which takes a *"DQL matcher expression to further refine which problems start the trigger"* — DQL matcher syntax on the problem record, not JavaScript ([Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)):
 
-```javascript
-// Example: Only production problems
-event["event.category"] == "AVAILABILITY" 
-  && event["affected_entity_ids"].some(id => id.includes("prod"))
+```text
+// Example: availability problems only
+event.category == "AVAILABILITY"
 ```
+
+To limit it to production, use the trigger's **Affected entities** tag filter (for example an `environment:production` tag). Do not match on entity IDs: an ID such as `CLOUD_APPLICATION-EADC52AF343668DE` carries no environment or application name — none of 3,210 problems on a validation tenant had `prod` in an affected-entity ID (09/24/2026).
 
 ### Step 4: Add Actions
 
@@ -124,7 +125,7 @@ event["event.category"] == "AVAILABILITY"
 
 ```
 Trigger: detected problem opens
-Condition: event["event.category"] == "ERROR"
+Condition (custom filter): event.category == "ERROR"
 Action: Send Slack message to #alerts channel
 ```
 
@@ -171,11 +172,13 @@ Use Jinja2 templates for dynamic messages:
 
 ```
 🚨 *Problem Detected*
-*Title:* {{ event["title"] }}
-*Severity:* {{ event["event.category"] }}
-*Status:* {{ event["event.status"] }}
-*Link:* {{ event["problem_url"] }}
+*Title:* {{ event()["event.name"] }}
+*Category:* {{ event()["event.category"] }}
+*Status:* {{ event()["event.status"] }}
+*Link:* {{ problem_link() }}
 ```
+
+> **Template fields come from the problem record.** The Problem trigger's `event()` is the `dt.davis.problems` record — run `fetch dt.davis.problems, from:-24h | limit 1` to see every field a template can read. It has no `title` or `problem_url` field (0 of 3,209 problem records on a validation tenant, 09/24/2026): the title is `event.name`, the kind of problem is `event.category`, and the link is `{{ problem_link() }}`, which *"evaluates correctly in workflows with Davis problem event triggers only."* ([Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger))
 
 ### Setting Up Email Notifications
 
@@ -208,21 +211,21 @@ Use workflow conditions to route alerts to the right teams.
 
 ### Routing by Entity Name
 
-```javascript
-// Route checkout team alerts
-event["affected_entity_ids"].some(id => 
-  id.toLowerCase().includes("checkout")
-)
+Entity IDs never contain names, so match on `affected_entity_names`. In a DQL matcher, `matchesValue` *"works with multi-value attributes (matching any value), and supports wildcards"* ([DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline)). On a validation tenant (09/24/2026) `matchesValue(affected_entity_names, "*payment*")` matched 268 problems; searching the entity IDs for `payment` matched none.
+
+```text
+// Additional custom filter query — route checkout team alerts
+matchesValue(affected_entity_names, "*checkout*")
 ```
 
 ### Routing by Problem Category
 
-```javascript
+```text
 // Route availability issues to SRE
-event["event.category"] == "AVAILABILITY"
+event.category == "AVAILABILITY"
 
 // Route performance issues to app team
-event["event.category"] == "SLOWDOWN"
+event.category == "SLOWDOWN"
 ```
 
 ### Example Multi-Team Setup
@@ -272,11 +275,11 @@ Analyzers can detect anomalies in metrics:
 ### Example: High CPU Alert
 
 1. Create workflow with detected problem trigger
-2. Add condition:
-   ```javascript
-   event["title"].includes("CPU") && 
-   event["event.category"] == "RESOURCE"
+2. Add condition (Additional custom filter query):
+   ```text
+   event.category == "RESOURCE_CONTENTION" and matchesPhrase(event.name, "CPU")
    ```
+   The category is `RESOURCE_CONTENTION` — there is no `RESOURCE` category — and the problem title is `event.name`. On a validation tenant (7 days to 09/24/2026) this matched 1,385 of 1,464 resource-contention problems; `event.category == "RESOURCE"` matched none.
 3. Add Slack notification action
 
 ```dql

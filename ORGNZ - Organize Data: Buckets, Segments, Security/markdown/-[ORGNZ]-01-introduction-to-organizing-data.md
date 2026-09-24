@@ -1,6 +1,6 @@
 # ORGNZ-01: Introduction to Organizing Data in Grail
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 09/21/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -143,12 +143,23 @@ Grail supports permissions at multiple levels:
 | **Bucket** | All records in a bucket | Team owns entire bucket |
 | **Table** | All records of a data type | Access to all logs |
 | **Record** | Individual records by attribute | By host group, namespace, security context |
-| **Field** | Specific fields on records | Mask sensitive fields |
+| **Field** | Specific fields on records | Hide sensitive fields (fieldsets) |
 
 > **Important**: Without permissions, users cannot query data from Grail. Permissions must be explicitly granted.
 
 <a id="exploring-your-data-organization"></a>
 ## Exploring Your Data Organization
+
+### DQL: Bucket Discovery
+
+Use the following query to explore your Grail bucket configuration:
+
+```dql
+// List all buckets — foundational discovery query for your Grail environment
+fetch dt.system.buckets
+| fields name, display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| sort dt.system.table asc, name asc
+```
 
 <a id="organization-decision-framework"></a>
 ## Organization Decision Framework
@@ -199,14 +210,3 @@ Continue with the ORGNZ series:
 ---
 
 <sub>*This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-### DQL: Bucket Discovery
-
-Use the following query to explore your Grail bucket configuration:
-
-```dql
-// List all buckets — foundational discovery query for your Grail environment
-fetch dt.system.buckets
-| fields name, display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
-| sort dt.system.table asc, name asc
-```

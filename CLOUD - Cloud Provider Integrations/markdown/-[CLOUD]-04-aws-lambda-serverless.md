@@ -1,20 +1,22 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
 This notebook covers serverless monitoring with Dynatrace, focusing on AWS Lambda. You will learn how to monitor Lambda function performance (cold starts, duration, errors, throttles), integrate API Gateway tracing, analyze Step Functions workflows, assess DynamoDB performance, and build end-to-end serverless application tracing.
 
-### Sprint 1.337 (April 2026): Service Detection v2 for Lambda
+### Service Detection v2 for Lambda (Early Access in SaaS 1.337; GA per current docs)
 
-Sprint 1.337 SaaS introduced **Service Detection v2 (SDv2) for AWS Lambda** in Early Access — a major upgrade for serverless monitoring:
+Sprint 1.337 SaaS introduced **Service Detection v2 (SDv2) for AWS Lambda** in Early Access; the SDv2 configuration docs now describe it as generally available. It is a major upgrade for serverless monitoring:
 
 1. **Unified rules for OTel and OneAgent.** SDv2 detects Lambda functions whether they emit traces via OneAgent (Lambda layer) or via the OpenTelemetry Lambda extension. The same service entity is enriched from both paths — no more parallel services for the same function.
-2. **Three FaaS-specific metrics:**
-   - **Invocation/failure counts** — `dt.faas.invocations` and `dt.faas.failures`
-   - **Duration** — `dt.faas.duration` (cold-start vs warm split)
-   - **Trigger type breakdown** — `dt.faas.trigger.type` dimension (HTTP, S3, EventBridge, SQS, etc.)
+2. **FaaS-specific metrics.** Sprint 1.337 names them by function only:
+   - **Invocation count and failure count**
+   - **Invocation duration**
+   - **Trigger type breakdown**
+
+   They surface in Grail as `dt.service.faas_invoke.count`, split by `faas.trigger` and a boolean `failed` dimension (see the DQL below).
 3. **OTel `service.name` enrichment** — when Lambda functions emit OTel spans with `service.name`, Dynatrace uses that value to enrich the SDv2-detected service rather than creating a parallel one.
 
 **Sample DQL — Lambda failure rate by trigger type:**
@@ -34,7 +36,9 @@ timeseries invocations = sum(dt.service.faas_invoke.count), from:-1h, by:{faas.t
 | sort failure_rate_pct desc
 ```
 
-**Status:** Early Access — confirm tenant availability before production rollout. Existing Lambda monitoring via OneAgent layer or OTel extension keeps working.
+**Status:** *"SDv2 is generally available for AWS Lambda services monitored by OneAgent. This feature is deactivated by default."* It has a prerequisite: *"SDv2 for AWS Lambda services only works when the [Built-in] FaaS name service detection rule is enabled."* Existing Lambda monitoring via OneAgent layer or OTel extension keeps working.
+
+> <sub>**Sources:** [SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the Early Access introduction and the three metric functions, [Configure SDv2 for OneAgent (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v2/configure-sdv2-for-oneagent) — the GA status and the FaaS-name-rule prerequisite.</sub>
 
 ---
 
@@ -72,7 +76,7 @@ Dynatrace monitors Lambda functions through two complementary approaches:
 
 | Approach | Data Source | What It Provides |
 |---|---|---|
-| **Cloud Integration** | CloudWatch metrics via ActiveGate | Invocations, duration, errors, throttles, concurrent executions |
+| **Cloud Integration** | CloudWatch metrics via the Clouds app connection (or a classic ActiveGate on Managed) | Invocations, duration, errors, throttles, concurrent executions |
 | **Dynatrace Lambda Layer** | OneAgent in Lambda runtime | Distributed traces, code-level visibility, custom metrics |
 
 ### Key Lambda Metrics — the key name depends on how the metrics arrive
@@ -95,22 +99,24 @@ result, not an error, so it reads as "this function has no traffic".
 | Concurrent executions | `dt.cloud.aws.lambda.conc_executions` | `cloud.aws.lambda.ConcurrentExecutions.By.FunctionName` | < reserved concurrency |
 
 **The DQL cells in this notebook use the Metric Streams scheme**, which is what the validation tenant ingests
-(08/27/2026: 25 `cloud.aws.lambda.*` keys present, **0** `dt.cloud.aws.lambda.*`). If your environment polls
+(09/24/2026: 5 distinct `cloud.aws.lambda.*` keys, **0** `dt.cloud.aws.lambda.*`). If your environment polls
 instead, substitute the left-hand column throughout. Settle it in one query rather than guessing:
 
 ```dql
-metrics
+metrics from:now()-9d
 | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda")
-| fields metric.key
+| summarize n = count(), by:{metric.key}
 | sort metric.key asc
 ```
+
+Group by `metric.key` rather than listing it: bare `metrics` output repeats a key once per series, so a row count is not a key count.
 
 An empty result from *both* prefixes means no Lambda metrics are arriving at all — a different problem from
 picking the wrong scheme, and worth separating before you debug either.
 
 ### List Monitored Lambda Functions
 
-> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the polling key scheme, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the streaming path that produces the CamelCase `.By.<Dimension>` keys, [AWS metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest) — the two ingestion routes. Key presence measured on the validation tenant 08/27/2026: 25 Metric Streams keys, 0 polling keys. **Derived:** the side-by-side key mapping is this entry's reconciliation of the two schemes — no page tabulates them together.</sub>
+> <sub>**Sources:** [Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail) — the `builtin:` → `dt.` transformation behind the polling key scheme, [CloudWatch Metric Streams (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest/cloudwatch-metric-streams) — the streaming path that produces the CamelCase `.By.<Dimension>` keys, [AWS metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-metrics-ingest) — the two ingestion routes. Key presence measured on the validation tenant 09/24/2026: 5 distinct Metric Streams keys, 0 polling keys. **Derived:** the side-by-side key mapping is this entry's reconciliation of the two schemes — no page tabulates them together.</sub>
 
 ```dql
 // List all monitored Lambda functions with runtime and code size
@@ -134,13 +140,13 @@ fetch dt.entity.aws_lambda_function, from:-7d
 ```dql
 // Lambda average execution duration over the last 6 hours
 //
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
-// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
-// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
-// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
+// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd avgDurationValue = arrayAvg(avgDuration)
 | sort avgDurationValue desc
@@ -227,18 +233,20 @@ Lambda errors fall into two categories:
 >
 > This applies to the metric-based error analysis below and to trace-based failure analysis alike, and it is a cross-cloud change — Azure Functions and GCP Cloud Functions are named alongside Lambda, so the same re-baselining applies in CLOUD-05 and CLOUD-06.
 
+> <sub>**Sources:** [SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346).</sub>
+
 ### Error Rate by Function
 
 ```dql
 // Lambda error count by function over the last 24 hours
 //
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
-// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
-// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
-// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
+// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:{FunctionName}
 | fieldsAdd totalErrors = arraySum(errors)
 | filter totalErrors > 0
@@ -257,13 +265,13 @@ timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-24h, by:
 // null for every row even with valid keys. Request both series inside ONE timeseries block, which
 // is what actually aligns them on a shared timeline and grouping.
 //
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
-// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
-// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
-// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
+// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries {
   invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName),
   errors = sum(cloud.aws.lambda.Errors.By.FunctionName)
@@ -289,18 +297,17 @@ Throttling occurs when Lambda cannot allocate an execution environment, typicall
 ```dql
 // Lambda throttles over the last 24 hours by function
 //
-// Corrected 08/12/2026: the key is Throttles, not `throttlers`.
-// The `filter totalThrottles > 0` guard was also dropped — on a healthy estate every function
+// The `filter totalThrottles > 0` guard was dropped (08/12/2026) — on a healthy estate every function
 // throttles zero times, so the guard emptied the table and made a correct result look like a
 // broken query. Seeing the zeros is the point.
 //
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
-// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
-// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
-// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
+// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24h, by:{FunctionName}
 | fieldsAdd totalThrottles = arraySum(throttles)
 | fields FunctionName, totalThrottles
@@ -313,15 +320,13 @@ timeseries throttles = sum(cloud.aws.lambda.Throttles.By.FunctionName), from:-24
 ```dql
 // Concurrent Lambda executions over the last 6 hours
 //
-// Corrected 08/12/2026: the key is ConcurrentExecutions, not `conc_executions`.
-//
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The `dt.cloud.aws.lambda.*` names used before
-// do not exist in any spelling, and a timeseries against a missing key returns an EMPTY result
-// instead of an error, so every one of these tiles silently drew nothing. The split dimension is
-// FunctionName — dt.entity.aws_lambda_function is null on these metrics. Enumerate with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see §1's table); a key from the other scheme returns an empty
+// result, not an error. The split dimension is FunctionName — dt.entity.aws_lambda_function is
+// null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries concurrency = max(cloud.aws.lambda.ConcurrentExecutions.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd peakConcurrency = arrayMax(concurrency)
 | sort peakConcurrency desc
@@ -442,10 +447,19 @@ Dynatrace traces the entire flow as a single distributed trace when the Lambda L
 ### Trace Analysis Across Services
 
 ```dql
-// Slowest traces involving Lambda functions in the last hour
+// Slowest traces that include a Lambda invocation, last hour.
+//
+// Corrected 09/24/2026: the old cell filtered only span.kind == "server" and never selected on
+// Lambda, so it ranked every single-span server trace in the estate. faas.name marks the Lambda
+// spans; the join then measures each of those traces end to end.
 fetch spans, from:-1h
-| filter span.kind == "server"
-| summarize {trace_duration = max(duration), span_count = count()}, by:{trace.id}
+| filter isNotNull(faas.name)
+| fields trace.id
+| join [
+    fetch spans, from:-1h
+    | summarize {trace_duration = max(duration), span_count = count()}, by:{trace.id}
+  ], on:{trace.id}, fields:{trace_duration, span_count}
+| dedup trace.id
 | sort trace_duration desc
 | limit 10
 ```

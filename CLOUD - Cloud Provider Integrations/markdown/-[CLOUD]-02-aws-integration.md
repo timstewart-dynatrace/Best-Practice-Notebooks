@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -37,7 +37,7 @@ This notebook covers how to set up and optimize Dynatrace's AWS integration. You
 
 ## 1. Authentication Methods
 
-Dynatrace AWS integration is **role-based** today. Key-based (access key + secret) authentication was **removed for new credentials starting with Dynatrace 1.267**; existing key-based connections still function but cannot be created or rotated through the modern UI. New AWS connections must use IAM role assumption.
+Dynatrace AWS integration is **role-based** today. Key-based (access key + secret) authentication was **removed for new credentials starting with Dynatrace 1.267**; existing key-based credentials keep working, and Dynatrace recommends switching them to role-based authentication. New AWS connections must use IAM role assumption.
 
 ### Current — IAM Role via CloudFormation (Clouds App)
 
@@ -53,8 +53,8 @@ This is the default and recommended path. The Clouds App onboarding wizard gener
 Pre-1.267 connections that used an IAM-user access key + secret continue to function but should be migrated:
 
 - New tenants cannot create key-based connections
-- Existing keys cannot be rotated through the new Clouds App flow
 - IAM-user access keys are long-lived, manually rotated, and are a known credential-exposure risk
+- **Exception:** key-based authentication remains allowed only for AWS GovCloud and China partitions, which the Clouds app does not support
 
 > **Migration:** if you still have key-based connections, plan their conversion to role-based via the Clouds App onboarding. Old connections will remain monitored but new services or regions should be added to a fresh role-based connection.
 
@@ -68,7 +68,12 @@ The Dynatrace monitoring role uses a **scoped read-only policy** authored as par
 
 > **Practical note:** the role does not need write permissions for monitoring. If your security team requires a custom least-privilege policy in place of the Dynatrace-generated one, derive it from the nested template and pin it via your IaC pipeline. Re-verify after each Dynatrace release that adds new monitored services — additional services usually need new `Describe*` / `List*` permissions.
 
-> <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Manage your AWS connections (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/manage-aws-connections), [Set up AWS Connector for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-setup) — March 31 2026 legacy-schema deprecation. **Derived:** the "1.267 removed key-based for new credentials" cutover is confirmed in DT release-notes summaries; existing-key behaviour and migration urgency are field-observed guidance, not a documented sunset date. **Softened:** the "review the nested template" recommendation is community / SE practice — the exact `da-aws-nested-integration.yaml` permission scope evolves per Dynatrace release.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"From Dynatrace version 1.267+, only role-based access can be used. Key-based authorization is no longer available for new credentials. For existing key-based credentials, you can keep using keys indefinitely."* and *"Key-based authentication is allowed only for AWS GovCloud and China partitions."*</sub>
+> - <sub>[Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings) — *"GovCloud and China partitions are not supported"*</sub>
+> - <sub>[Manage your AWS connections (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/manage-aws-connections)</sub>
+> - <sub>[Set up AWS Connector for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/aws/aws-workflows-setup) — March 31 2026 legacy-schema deprecation</sub>
+> - <sub>**Softened:** the "review the nested template" recommendation is community / SE practice — the exact `da-aws-nested-integration.yaml` permission scope evolves per Dynatrace release.</sub>
 
 <a id="supported-services"></a>
 
@@ -211,12 +216,6 @@ The Clouds App's **EventBridge** option (Advanced path) registers an [EventBridg
 
 ### List All EC2 Instances
 
-
-
-### Governance Pattern — Find Resources Missing a Required Tag
-
-A common operational pattern: identify AWS resources that haven't been onboarded into your tagging governance scheme. This becomes a recurring dashboard tile or a Davis-triggered Workflow.
-
 > <sub>**Sources:** [DQL fetch reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands#fetch), [Entity model (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-entities). Entity types verified at [All AWS cloud services (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/aws-all-services).</sub>
 
 ```dql
@@ -234,10 +233,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### Count EC2 Instances by Instance Type
@@ -251,10 +252,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 ### List Lambda Functions
@@ -288,15 +291,17 @@ fetch dt.entity.relational_database_service, from:-30d
 | sort entity.name asc
 | limit 20
 
-// Returns no rows unless the AWS integration has RDS enabled — an empty result here means no RDS
-// instance was seen in the window, NOT that the query is wrong. Distinguish the two by widening
-// the window before concluding anything.
-
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
+
+### Governance Pattern — Find Resources Missing a Required Tag
+
+A common operational pattern: identify AWS resources that haven't been onboarded into your tagging governance scheme. This becomes a recurring dashboard tile or a Davis-triggered Workflow.
 
 ```dql
 // Find EC2 instances missing the required cost-allocation tag
@@ -315,10 +320,12 @@ fetch dt.entity.ec2_instance, from:-7d
 // Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
 // only entities SEEN in the query window, not the standing inventory. Without an explicit from:
 // this counted 5 of 13 EC2 instances against the notebook default window and looked correct.
-// Smartscape note (dt.entity.* is deprecated but still functional): this cloud resource type
-// (EC2 / Azure VM / RDS / Azure SQL / Azure Web App) is not modeled as a Smartscape node — such
-// hosts surface as smartscapeNodes "HOST" with cloud.provider and aws.*/azure.* fields. Keep the
-// classic query above for the cloud-resource inventory.
+// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
+// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
+// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
+// classic dt.entity.* type can under-count or return nothing for the same estate (validation
+// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
+// query.
 ```
 
 <a id="aws-metrics"></a>
@@ -342,14 +349,13 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
 ```dql
 // Lambda invocations over the last 6 hours by function
 
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
-// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
-// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
-// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
-// Enumerate what your tenant has with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
+// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// is null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd totalInvocations = arraySum(invocations)
 | sort totalInvocations desc
@@ -361,14 +367,13 @@ timeseries invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName), from
 ```dql
 // Lambda error count over the last 6 hours by function
 
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
-// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
-// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
-// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
-// Enumerate what your tenant has with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
+// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// is null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries errors = sum(cloud.aws.lambda.Errors.By.FunctionName), from:-6h, by:{FunctionName}
 | fieldsAdd totalErrors = arraySum(errors)
 | filter totalErrors > 0
@@ -383,14 +388,13 @@ Inspired by the [Cost Allocation Dashboard (Dynatrace community-examples)](https
 ```dql
 // Lambda error rate (errors/invocations) over 24h by function
 
-// Metric keys corrected 08/12/2026. The AWS CloudWatch Lambda metrics are named
+// Metric keys: these are the CloudWatch Metric Streams keys, named
 // cloud.aws.lambda.<CloudWatchName>.By.FunctionName — e.g. Invocations / Errors / Duration /
-// Throttles / ConcurrentExecutions / IteratorAge. The lowercase short forms used before
-// (cloud.aws.lambda.invocations, dt.cloud.aws.lambda.errors, ...) do not exist, and a timeseries
-// against a missing key returns an EMPTY result instead of an error — the tile just drew nothing.
-// The split dimension is FunctionName; dt.entity.aws_lambda_function is null on these metrics.
-// Enumerate what your tenant has with:
-//   metrics | filter startsWith(metric.key, "cloud.aws.lambda") | fields metric.key | sort metric.key asc
+// Throttles / ConcurrentExecutions / IteratorAge. The AWS polling integration produces
+// dt.cloud.aws.lambda.* instead (see CLOUD-04 §1's table); a key from the other scheme returns an
+// empty result, not an error. The split dimension is FunctionName; dt.entity.aws_lambda_function
+// is null on these metrics. Enumerate what your tenant has, one row per key, with:
+//   metrics from:now()-9d | filter startsWith(metric.key, "cloud.aws.lambda") or startsWith(metric.key, "dt.cloud.aws.lambda") | summarize n = count(), by:{metric.key} | sort metric.key asc
 timeseries {
   invocations = sum(cloud.aws.lambda.Invocations.By.FunctionName),
   errors = sum(cloud.aws.lambda.Errors.By.FunctionName)
@@ -686,7 +690,7 @@ Resources are grouped by source tier — official Dynatrace docs are authoritati
 
 ### Official Dynatrace Documentation
 
-Primary references for everything in this notebook. See REFERENCE.md for the full bibliography.
+Primary references for everything in this notebook.
 
 - [AWS Cloud Platform Monitoring](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding) — the canonical onboarding entry point
 - [Manage your AWS connections](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/manage-aws-connections) — post-onboarding lifecycle
@@ -715,7 +719,7 @@ Maintained by Dynatrace on GitHub. Pin to a release before deploying to producti
 - [AWS Well-Architected Framework — Operational Excellence Pillar](https://docs.aws.amazon.com/wellarchitected/latest/operational-excellence-pillar/welcome.html) — observability and telemetry guidance; pair with this notebook for governance reviews
 - [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html) — the AWS-side primitive for the `dt.cost.product` mapping pattern in §3
 
-> <sub>**Sources:** all links above are primary or Dynatrace-published. Recency verified 06/05/2026 against each repo's last-pushed date and each docs page's last-published indicator. **Derived:** the three-tier framing (DT docs / DT GitHub / community) is this notebook's editorial convention per `.claude/rules/code-style.md` § 6, not a Dynatrace-published tiering.</sub>
+> <sub>**Sources:** all links above are primary or Dynatrace-published. Recency verified 06/05/2026 against each repo's last-pushed date and each docs page's last-published indicator. **Derived:** the three-tier framing (DT docs / DT GitHub / community) is this notebook's editorial convention, not a Dynatrace-published tiering.</sub>
 
 <a id="summary"></a>
 

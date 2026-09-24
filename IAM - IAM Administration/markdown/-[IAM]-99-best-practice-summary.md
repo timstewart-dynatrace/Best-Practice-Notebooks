@@ -1,6 +1,6 @@
 # IAM-99: Best Practice Summary
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 04/27/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -52,7 +52,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 4 | Include groups attribute in SAML assertion | IdP attribute statement: name = `groups`, value = user group memberships | **Critical** | Auth |
 | 5 | Enforce MFA at the IdP level for all Dynatrace users | IdP sign-on policy: Require MFA for the Dynatrace SAML application | **Critical** | Auth |
 | 6 | Use phishing-resistant MFA factors | Factor priority: WebAuthn > TOTP > Push > SMS. Disable SMS if possible | **Recommended** | Auth |
-| 7 | Maintain at least one local admin account | Local Dynatrace account (not SSO-dependent) with `account-iam-admin`, stored in enterprise vault | **Critical** | Auth |
+| 7 | Maintain at least one local admin account | Local Dynatrace account (not SSO-dependent) with `account-user-management`, stored in enterprise vault | **Critical** | Auth |
 | 8 | Test both SP-initiated and IdP-initiated login | Verify: Dynatrace login redirects to IdP AND IdP portal tile lands in Dynatrace | **Recommended** | Auth |
 | 9 | Enable encrypted assertions for sensitive environments | IdP SAML configuration: Encrypt assertions = Enabled | **Optional** | Auth |
 
@@ -69,10 +69,10 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 12 | Use explicit SAML group mappings, not auto-create | Account Management > Identity providers > Group mapping: do NOT enable auto-create groups | **Critical** | Groups |
 | 13 | Assign all access via groups, never directly to users | Direct user assignment only for break-glass, time-limited scenarios | **Critical** | Groups |
 | 14 | Designate an owner for every group | Group description must include owner name/team and purpose | **Recommended** | Groups |
-| 15 | Create a default viewer group for all authenticated users | Group `dt-all-viewers` with `environment-viewer` policy, mapped to IdP all-employees group | **Recommended** | Groups |
-| 16 | Create a break-glass admin group, empty by default | Group `dt-breakglass-admins` with `account-iam-admin` + environment admin. Membership = 0 at rest. Temporary membership < 24h only | **Critical** | Groups |
+| 15 | Create a default viewer group for all authenticated users | Group `dt-all-viewers` with the Standard User default policy, mapped to IdP all-employees group | **Recommended** | Groups |
+| 16 | Create a break-glass admin group, empty by default | Group `dt-breakglass-admins` with `account-user-management` + the Admin User default policy. Membership = 0 at rest. Temporary membership < 24h only | **Critical** | Groups |
 | 17 | Enforce separation of duties via incompatible group pairs | Users must NOT be in both: Production Admins + Development Editors, Security Auditors + Platform Admins, Token Managers + Application Users | **Recommended** | Groups |
-| 18 | Review admin group membership monthly | Admin groups: monthly. Editor groups: quarterly. Viewer groups: semi-annually | **Critical** | Groups |
+| 18 | Review admin group membership quarterly | Admin groups: quarterly. Account admins: monthly. Editor groups: semi-annually. Viewer groups: annually (same cadence as #56 and IAM-07) | **Critical** | Groups |
 
 <a id="policy-design"></a>
 
@@ -82,8 +82,8 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 19 | Start with default policies, add custom only when needed | Use `environment-viewer`, `environment-editor`, `environment-admin` as baseline. Create custom policies for team-scoped or capability-scoped access | **Recommended** | Policies |
-| 20 | Layer default + custom policies per group | Group gets `environment-viewer` (base read) + custom policy (scoped write). Never rely on custom policy alone for read access | **Recommended** | Policies |
+| 19 | Start with default policies, add custom only when needed | Use the Standard User, Pro User and Admin User default policies as baseline. Create custom policies for team-scoped or capability-scoped access | **Recommended** | Policies |
+| 20 | Layer default + custom policies per group | Group gets Standard User (base access) + custom policy (scoped write). Never rely on custom policy alone for read access | **Recommended** | Policies |
 | 21 | Use `${bindParam:...}` templated policies for multi-team scoping | One template policy + N bindings instead of N identical policies. Naming: `tpl-<scope>-<permission>` | **Recommended** | Policies |
 | 22 | Apply least privilege: grant minimum required service:resource:action | Each policy statement = `ALLOW <service>:<resource>:<action>`. No wildcards unless role genuinely needs broad access | **Critical** | Policies |
 | 23 | Use WHERE conditions to scope storage access by security context | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-name"` | **Critical** | Policies |
@@ -100,14 +100,14 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 28 | Split Gen2 + Gen3 conditions across separate boundaries | Don't bundle inside one boundary. Boundary 1 (Gen3): `storage:dt.security_context IN (...)` + `settings:dt.security_context IN (...)`. Boundary 2 (Gen2 transitional): `environment:management-zone IN (...)`. Attach both to the policy — multiple boundaries on one policy is supported, and the split lets MZ retirement remove a boundary cleanly | **Critical** | **Boundaries** |
+| 28 | Split Gen2 + Gen3 into separate policies and bindings, each with its own boundary | Gen3 policy + boundary (`storage:dt.security_context IN (...)`, `settings:dt.security_context IN (...)`); Gen2 transitional policy + boundary (`environment:management-zone IN (...)`). Never attach two boundaries to one policy that mixes `storage:`/`settings:` and `environment:` permissions — Dynatrace evaluates each boundary separately, which can leave permissions unconditional. The split also lets MZ retirement remove the Gen2 binding cleanly | **Critical** | **Boundaries** |
 | 29 | Include "shared" context in team boundaries | `storage:dt.security_context IN ("team-a", "shared", "infrastructure")` for infrastructure visibility | **Recommended** | Boundaries |
 | 30 | Achieve >95% security context coverage on entities | Query: `fetch dt.entity.service` and check `countIf(isNotNull(dt.security_context)) / count()`. Target: >95% | **Critical** | Boundaries |
 | 31 | Use Entity Enrichment rules (not auto-tags) for security context | Settings > Entity Enrichment: assign `dt.security_context` based on host group, K8s namespace, or host property | **Recommended** | Boundaries |
-| 32 | Plan Grail buckets carefully: names are immutable, data cannot move | Naming: `<org>_<datatype>_<retention>` (e.g., `teamA_logs_90d`). Max 80 buckets per environment. 1 data type per bucket | **Critical** | Boundaries |
-| 33 | Set bucket ingest target at ~1 TB/day per bucket | Optimal: ~1 TB/day. Acceptable: 1-3 TB/day. Hard limit: 3 TB/day | **Recommended** | Boundaries |
+| 32 | Plan Grail buckets carefully: names are immutable, data cannot move | Naming: `<org>_<datatype>_<retention>` (e.g., `team_a_logs_90d`). Max 80 buckets per environment. 1 data type per bucket | **Critical** | Boundaries |
+| 33 | Set bucket ingest target at ~1 TB/day per bucket | Optimal: ~1 TB/day. Acceptable: 1-3 TB/day. No per-bucket cap is documented, but the 500 GB scan limit shrinks the queryable window as a bucket grows; Dynatrace's split guidance varies between pages (IAM-05) | **Recommended** | Boundaries |
 | 34 | Use Primary Grail Fields for pipeline routing | Route to buckets based on `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription.id`, `dt.host_group.id` | **Recommended** | Boundaries |
-| 35 | Use wildcards only for admin/platform groups | `environment:management-zone IN ("*")` only for groups that genuinely need cross-team access | **Critical** | Boundaries |
+| 35 | Give broad access by leaving bindings unbounded, not by wildcards | Leave admin/platform bindings **unbounded** rather than writing a wildcard; `IN ("*")` matches a zone literally named `*` | **Critical** | Boundaries |
 
 <a id="user-lifecycle-and-provisioning"></a>
 
@@ -168,7 +168,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 59 | Adopt the hybrid governance model | Central IAM team owns: account-level policies, production access, policy templates, audit. Team leads own: non-prod access, group membership | **Recommended** | Governance |
-| 60 | Restrict account-level permissions to IAM and platform teams | `account-iam-admin`: IAM team only. `account-viewer`: limited distribution. No developers with account-level permissions | **Critical** | Governance |
+| 60 | Restrict account-level permissions to IAM and platform teams | `account-user-management`: IAM team only. `account-viewer`: limited distribution. No developers with account-level permissions | **Critical** | Governance |
 | 61 | Separate production and non-production access into distinct groups | Use environment-specific groups (e.g., `dt-prod-checkout-viewers`, `dt-nonprod-checkout-editors`) or environment-scoped policy bindings | **Critical** | Governance |
 | 62 | Document and drill break-glass procedures | Written procedure: authorized situations, retrieval steps, notification requirements, mandatory credential rotation after use, post-incident review within 24h | **Critical** | Governance |
 | 63 | Synchronize IAM config across environments via config-as-code | Store groups, policies, boundaries in git. Deploy with Monaco or Terraform. PR > review > test in dev > staging > production | **Recommended** | Governance |
@@ -205,9 +205,9 @@ This notebook consolidates **72 best practices** across 9 categories from the IA
 
 | Priority | Count | Action |
 |----------|-------|--------|
-| **Critical** | 30 | Must implement before production |
-| **Recommended** | 36 | Implement for enterprise-grade operations |
-| **Optional** | 6 | Beneficial for mature or compliance-heavy organizations |
+| **Critical** | 34 | Must implement before production |
+| **Recommended** | 33 | Implement for enterprise-grade operations |
+| **Optional** | 5 | Beneficial for mature or compliance-heavy organizations |
 
 ### Cross-References
 
