@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -69,7 +69,7 @@ Dynatrace Intelligence is **not one AI** — it is four distinct surfaces with v
 |---------|-----------|-------------------|------------------|
 | Causal AI | Tenant topology → on-tenant graph correlation → problem card | No | Determinism, explainability, no external call |
 | Predictive AI | Tenant metrics → on-tenant statistical model → forecast/anomaly | No | Confidence bands, operator decides |
-| Generative AI (CoPilot) | User prompt + tenant context → foundation model (Dynatrace-hosted) → grounded response | Yes (Dynatrace-managed) | RAG, no-training boundary, HITL, IAM, audit |
+| Generative AI (CoPilot) | User prompt + tenant context → foundation model (hosted by an enterprise vendor — e.g. Microsoft Azure AI, AWS Bedrock) → grounded response | Yes (vendor-hosted, reached through Dynatrace) | RAG, no-training boundary, HITL, IAM, audit |
 | AI Observability | Customer's LLM app telemetry → Dynatrace ingest | (monitors customer's models) | Standard ingest controls; OpenTelemetry GenAI semconv |
 For environments where SVG doesn't render
 -->
@@ -104,16 +104,16 @@ CoPilot is the surface where the data path is more nuanced. A prompt from a user
 2. Context that Dynatrace assembles to ground the answer — relevant tenant data (entities, recent problems, schemas), Dynatrace documentation, DQL grammar references.
 3. The conversation history.
 
-This composite prompt is sent to a foundation model. The Dynatrace posture is that this model is hosted within Dynatrace's infrastructure boundary — the foundation model is not a public API call to a third-party provider with your tenant data riding along.
+This composite prompt is sent to a foundation model that an enterprise vendor hosts, not Dynatrace: *"Your prompts are sent to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock, which power Dynatrace Intelligence agentic and generative AI."* Each request travels *"over an SSL-encrypted service, processed by respective enterprise vendors, and sent back to Dynatrace."* The vendors *"don't store the data you submit or the responses you receive"* — but Dynatrace itself *"may store the prompts submitted to Dynatrace Intelligence agentic and generative AI and the responses provided by the LLMs"*, and for Agentic Dynatrace Assist the results of intermediate tool calls too. A security review should treat the vendor as a sub-processor on the prompt path.
 
-**What does cross a boundary**: prompt content goes to the foundation model (within Dynatrace infrastructure). **What does not cross a boundary**: bulk tenant data, your raw logs/spans/metrics in aggregate. RAG-style grounding sends *the slice relevant to the question*, not the corpus.
+**What does cross a boundary**: prompt content goes to the vendor-hosted foundation model and back. PII masking applies to standard generative AI (1.305+); for agentic AI, PII *blocking* is the control, and *"Starting with Dynatrace version 1.345+, PII blocking is disabled by default for new environments and environments where Agentic AI was not already enabled."* If prompts may carry PII, turn it on under **Settings > Dynatrace Intelligence > Generative and agentic AI**. **What does not cross a boundary**: bulk tenant data, your raw logs/spans/metrics in aggregate. RAG-style grounding sends *the slice relevant to the question*, not the corpus.
 
 ### Tenant region
 
-CoPilot inference is region-bound consistent with the rest of the platform — the same region your tenant data lives in is the region CoPilot operates in. For region-sensitive customers (EU data residency, FedRAMP), this is the load-bearing claim: CoPilot does not transport your prompts to a different region for inference.
+CoPilot inference is region-bound at **continental** granularity, not at your tenant's region: *"If your environment is located in EMEA, your prompts are processed in an EU region. If your environment is located in NORAM, LATAM, or APAC, your prompts are processed in a US region."* For EMEA tenants that keeps prompts in the EU. For **APAC and LATAM tenants it means prompts are processed in the US** — check that against your data-residency requirement before enabling generative or agentic AI. The page does not address FedRAMP.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy) — verbatim: *"If your environment is located in EMEA, your prompts are processed in an EU region. If your environment is located in NORAM, LATAM, or APAC, your prompts are processed in a US region."* Prompts are routed to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock. Also:</sub>
+> - <sub>[Davis CoPilot data privacy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy) — the vendor-hosting, storage, region and PII-blocking statements above, all quoted verbatim (page updated 09/11/2026, read 09/24/2026). Also:</sub>
 > - <sub>[Davis CoPilot (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai)</sub>
 > - <sub>[Trusted AI — Dynatrace Trust Center](https://www.dynatrace.com/company/trust-center/trusted-ai/)</sub>
 > - <sub>[Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls)</sub>

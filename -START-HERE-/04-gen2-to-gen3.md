@@ -1,7 +1,7 @@
 # Doorway 4 — Classic → Gen3 Platform
 
 > **Purpose:** Reading order for existing Dynatrace SaaS customers moving off classic surfaces onto platform equivalents — management zones used as permissions, metric events, alerting profiles, classic dashboards, Classic Logs, USQL. Same tenant, same deployment model; what changes is which surface you operate.
-> **Last Updated:** 07/31/2026
+> **Last Updated:** 09/24/2026
 
 ![Classic to Gen3 Migration Phases](images/04-gen2-to-gen3-phases.svg)
 
@@ -120,7 +120,7 @@ Working the scan top-to-bottom means rewriting your queries twice: once against 
 | OpenPipeline adoption | Log or business-event volume still on the classic pipeline | 2 | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/), [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) |
 | Log Classic | Ingest still landing in the classic store | 2 | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/), [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) |
 | Alerting | Metric-event alerts and classic disk detection to recreate | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/), [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) |
-| Calculated service metrics | A metric key with no successor concept — needs a replacement plan, not a port | 2 | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/), [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) |
+| Calculated service metrics | Most convert to Grail automatically, gated on cardinality; the rest need a manual toggle or a DQL / OpenPipeline rebuild — inventory which is which before planning | 2 | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) (entry 11 § 5.3), [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/), [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) |
 | Service detection & rule settings | A rule scoped by management zone, service tag or non-primary process-group tag | 4 | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) |
 | Classic cloud integrations | Classic AWS/Azure connections and the automation driving them | 1 | [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) |
 | Cloud telemetry enrichment | Enrichment embedded in a connection rather than configured centrally | 1 | [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) |
@@ -128,7 +128,7 @@ Working the scan top-to-bottom means rewriting your queries twice: once against 
 | ActiveGate & network readiness | ActiveGate below the floor, bad auth token, multi-environment mode, or zones that will misroute | 0 | [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/), [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 10 |
 | Cloud automations | A guardian objective pointing at a classic SLO, or a classic issue-tracking integration | 4 | [SLO](../SLO%20-%20Service%20Level%20Objectives/), [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) |
 | Digital experience | A frontend not yet on the Grail RUM experience | 3 | [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/), [MOBL](../MOBL%20-%20Mobile%20Monitoring/) |
-| Synthetic monitoring | Private locations to redeploy, third-party monitors, unsupported maintenance windows | 3 | [SYNTH](../SYNTH%20-%20Synthetic%20Monitoring/) |
+| Synthetic monitoring | Private locations to redeploy, third-party monitors, maintenance windows (Settings-app maintenance windows reach Synthetic only with SaaS 1.348 — staged rollout; until then they are unsupported) | 3 | [SYNTH](../SYNTH%20-%20Synthetic%20Monitoring/) |
 | Application Security | The new monitoring rules are off, so the current Vulnerabilities experience is unavailable | 4 | [APPSEC](../APPSEC%20—%20Application%20Security/) |
 | Problem & event processing | Events that will not correlate, plus classic alerting objects still in place | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/), [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) |
 
@@ -205,14 +205,14 @@ Every classic query language and selector has a DQL equivalent. This phase is mo
 | 5. Classic Logs → OpenPipeline | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series; [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — full series | The one genuinely structural workstream here; treat as its own project |
 | 6. Log metric extraction | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — notebook 07 (metric event extraction) | Classic log metrics map onto OpenPipeline extraction |
 | 7. Pipelines beyond logs | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — full series; [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) — notebook 07 (Gen2 vs Gen3 adoption paths) | Business events, spans, metrics and events have their own classic processing surfaces, on the same removal path as the log ones |
-| 8. Calculated service metrics | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 01 (multi-scope platform) | These have no Gen3 equivalent concept — each one in use needs a replacement built on pipeline extraction, not a port |
+| 8. Calculated service metrics | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 01 (multi-scope platform) | Most existing calculated service metrics are upgraded to Grail automatically; switch on manual conversion where cardinality is above the automatic threshold, and rebuild with DQL or OpenPipeline extraction only those that cannot convert — see [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) entry 11 § 5.3 |
 
 ---
 
 <a id="phase-3--dashboards-and-app-surfaces"></a>
 ## Phase 3 — Dashboards and App Surfaces
 
-Classic dashboards do not convert automatically. Treat this as a rebuild against a rationalized list, not a port — most tenants find a large fraction of classic dashboards are unused. The same phase covers the classic domain apps, which fold into their Gen3 equivalents rather than being rebuilt.
+Classic dashboards convert only partly. Dynatrace's built-in dashboard converter handles standard tiles automatically; complex tiles, USQL, and management-zone filters must be recreated by hand. Run the converter on each prioritized dashboard, then repair what it skipped — convert-then-repair against a rationalized list, not a wholesale port — most tenants find a large fraction of classic dashboards are unused. The same phase covers the classic domain apps, which fold into their Gen3 equivalents rather than being rebuilt.
 
 | Step | Reading | Notes |
 |---|---|---|

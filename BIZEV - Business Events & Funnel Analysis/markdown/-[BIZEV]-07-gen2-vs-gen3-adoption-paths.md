@@ -1,6 +1,6 @@
 # BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 09/18/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -166,7 +166,7 @@ Raw business-event *records* can only be queried with DQL in Gen3 apps. But Dyna
 
 - **Business event metric extraction (classic pipeline)** — configured at Settings > Business Observability > Metric extraction. Each rule matches events and emits a metric keyed with the **`bizevents.` prefix** (for example `bizevents.easytrade.TradingVolume`), either counting matching events or aggregating a numeric attribute value, with up to 50 dimensions.
 - The resulting metrics are usable **in Data Explorer, classic dashboards, Notebooks (`timeseries`), and metric events for anomaly detection/alerting** — i.e., your existing classic executive dashboard can chart business-event KPIs without itself being migrated.
-- **The classic pipeline is closing to new environments** (docs updated 09/15/2026): *"For new accounts created from September 2026, classic pipeline is not available. Use OpenPipeline to process your data."* Older environments keep it for now, but *"Processing with the classic pipeline will be deprecated in a future release."* So build **new** `bizevents.*` extraction in OpenPipeline (BIZEV-05 §5) — either way the output is a plain metric that classic dashboards can chart — and treat existing classic rules as something to migrate, not extend.
+- **The classic pipeline is closing to new environments** (docs updated 09/15/2026): *"For new accounts created from September 2026, classic pipeline is not available. Use OpenPipeline to process your data."* Environments created before September 2026 keep it for now, but the stated end state is removal, not just deprecation: *"Processing with the classic pipeline will be deactivated in a future release."* (no date published, checked 09/24/2026). So build **new** `bizevents.*` extraction in OpenPipeline (BIZEV-05 §5) — either way the output is a plain metric that classic dashboards can chart — and plan to migrate existing classic rules rather than extend them, since they stop processing once deactivation reaches your environment.
 
 This is what makes the "new dashboards only" move even softer than it sounds: deep analysis (funnels, segmentation, revenue joins) happens in Notebooks/Dashboards on raw events, while steady-state KPI tiles — the things executives actually look at — can keep living on classic dashboards fed by `bizevents.*` metrics.
 

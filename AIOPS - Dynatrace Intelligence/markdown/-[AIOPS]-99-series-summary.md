@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 09/09/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -72,12 +72,20 @@ Confirm before you rely on it: the dictionary ships with the platform version, a
 checked on 09/09/2026 still returned `experimental`, so 1.348 had not reached it. Until it does,
 the original caution stands.
 
+SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) also changes the value itself:
+*"Davis events and problems no longer default event.severity to 3."* Once that reaches your tenant,
+an unset severity is null — the query below tests for it first and labels it `not set`, rather than
+letting it fall through to `5 - info`.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Semantic Dictionary changelog 1.348 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348).</sub>
+
 ```dql
 fetch dt.davis.problems, from:-7d
-| fieldsAdd severity_label = if(event.severity == 1, "1 - critical",
+| fieldsAdd severity_label = if(isNull(event.severity), "not set",
+                             else: if(event.severity == 1, "1 - critical",
                              else: if(event.severity == 2, "2 - high",
                              else: if(event.severity == 3, "3 - medium",
-                             else: if(event.severity == 4, "4 - low", else: "5 - info"))))
+                             else: if(event.severity == 4, "4 - low", else: "5 - info")))))
 | summarize problem_count = count(), by:{event.severity, severity_label}
 | sort event.severity asc
 ```
@@ -105,18 +113,20 @@ fetch dt.davis.events, from:-1h
 | sort signal_count desc
 ```
 
-**Signal-to-problem compression trend:**
+**Signal-to-problem compression trend:** count problem-eligible signals only — INFO / WARNING
+events never open a problem, and PROBLEM_UPDATE records are lifecycle updates, not signals.
 
 ```dql
 // Run both, compare:
 fetch dt.davis.events, from:-7d
+| filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
 | makeTimeseries signals = count(), interval:1d
 
 fetch dt.davis.problems, from:-7d
 | makeTimeseries problems = count(), interval:1d
 ```
 
-Full reference set in [REFERENCE.md](../docs/REFERENCE.md).
+Each query above is a text-only copy of one executed in AIOPS-01, AIOPS-03 or AIOPS-07.
 
 <a id="cross"></a>
 ## 3. Cross-Series Pointers
@@ -145,8 +155,8 @@ Full reference set in [REFERENCE.md](../docs/REFERENCE.md).
 
 If you came here looking for a starting point, pick one based on where you are:
 
-- **No detectors tuned yet** → AIOPS-02, then AUTOM-05/06 to put settings in code
-- **Problems flooding the on-call rotation** → AIOPS-03 to understand grouping; WFLOW for notification design; ADOPT-04 for maturity framing
+- **No detectors tuned yet** → AIOPS-02, then AUTOM-03 (Monaco) / AUTOM-04 (Terraform) to put settings in code
+- **Problems flooding the on-call rotation** → AIOPS-03 to understand grouping; WFLOW for notification design; ADOPT-01 for maturity framing
 - **Team not using Assist productively** → AIOPS-04; pair with a working session reviewing the prompt patterns
 - **Considering BYO LLM or external AI in workflows** → AIOPS-05 (model boundaries) and AIOPS-06 (integration surfaces)
 - **Building an end-to-end loop** → AIOPS-07 scenarios, then operationalize with the WFLOW patterns
@@ -154,13 +164,13 @@ If you came here looking for a starting point, pick one based on where you are:
 Three high-value next initiatives most teams should consider:
 
 1. **Audit topology completeness.** RCA quality is bounded by Smartscape coverage. Inventory untraced services and undeclared dependencies; treat each gap as a backlog item.
-2. **Move detectors to config-as-code.** Shift the Anomaly Detection app from primary configuration tool to exploration tool. AUTOM-05/06.
+2. **Move detectors to config-as-code.** Shift the Anomaly Detection app from primary configuration tool to exploration tool. AUTOM-03 / AUTOM-04.
 3. **Introduce one workflow with an AI task.** Start with the *Summarize Open Problems* pattern — high value, low risk, builds team familiarity with AI in workflows.
 
 <a id="sources"></a>
 ## 5. Source Currency
 
-All notebooks in this series cite the official Dynatrace docs in [REFERENCE.md](../docs/REFERENCE.md). Last verified: **2026-05-05**.
+Last verified: **09/24/2026** (all DQL executed; citations checked).
 
 Areas that are evolving fast in 2026 — re-check before relying on screenshots or specific UI flows:
 - Dynatrace Assist surfaces (UI placement, conversation starters, action-suggesting features)
@@ -168,7 +178,7 @@ Areas that are evolving fast in 2026 — re-check before relying on screenshots 
 - Workflow AI task templates (new templates ship monthly)
 - MCP server tool catalog (new tools added; existing tools sometimes renamed)
 
-When you find drift, update REFERENCE.md and bump the *Last Verified* date. If a query stops returning expected results, validate against `mcp__dynatrace__execute-dql` first — the data model is more stable than the UI.
+If a query stops returning expected results, validate against `mcp__dynatrace__execute-dql` first — the data model is more stable than the UI.
 
 ---
 

@@ -1,6 +1,6 @@
 # FAQ-21: How Do I Get the Right Alerts to the Right People?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 09/17/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 21 — Alert Notification Routing | **Created:** August 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -266,6 +266,8 @@ For anything ownership does not express, the additional custom filter query take
 
 **Severity tiers the urgency.** Severity is a first-class trigger filter. Route the top level to whatever wakes someone up; route the lower levels to a channel read during business hours.
 
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): severity is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter that was silently matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Before relying on severity tiers, check which of your event sources actually **set** a severity; for those that do not, route on ownership tags or a custom attribute instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies.
+
 **Pair every open-notification with a close-notification.** The problem state option takes *active* or *active and closed*. Responders need the all-clear as much as the alarm, and on the ITSM side it is what resolves the ticket rather than leaving a queue of incidents describing conditions that ended days ago.
 
 **Duration suppression is a documented trigger option.** The **Minimum duration** setting (formerly **Delay**) postpones *"the trigger until the problem has been open for at least the configured duration."* Allowed values, in minutes: **5, 10, 15, 30, 60, 120, 240, 1440 (one day), 10080 (one week)**. It evaluates `dt.duration_marker`, *"a field set by Dynatrace Intelligence that accumulates from the moment the problem was first created,"* and *"the trigger fires once when the threshold is crossed on the active phase"* — and where the filter also detects the closed phase, *"the trigger will additionally fire once when the problem is closed"*
@@ -274,7 +276,7 @@ This is the mechanism for suppressing transient blips: a problem that resolves i
 
 > **A documentation conflict, resolved 09/17/2026.** Earlier versions of this entry recorded that the alert-notification upgrade guide described the classic **Duration** filter as having no alternative — which contradicted the **Minimum duration** option above. The guide was rewritten on 09/07/2026 and that statement is gone. It now lists `dt.duration_marker` as *"How long the problem has been open, as a stepped threshold"*, and says *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* The two pages now agree: duration suppression is a workflow-trigger option.
 
-> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the Minimum duration option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from **Delay**, and the docs still use the lowercase word "delay" in the `dt.duration_marker` sentence, which is how the rename went unnoticed). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — `dt.duration_marker` and the delay capability on the workflow trigger, quoted verbatim (page rewritten 09/07/2026, which resolved the earlier conflict).</sub>
+> <sub>**Sources:** [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the Minimum duration option, its allowed values, `dt.duration_marker`, and the firing behavior, all quoted verbatim (re-verified 08/27/2026; the option was renamed from **Delay**, and the docs still use the lowercase word "delay" in the `dt.duration_marker` sentence, which is how the rename went unnoticed). [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — `dt.duration_marker` and the delay capability on the workflow trigger, quoted verbatim (page rewritten 09/07/2026, which resolved the earlier conflict). [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — the `event.severity` default removal quoted above (pre-release, read 09/24/2026).</sub>
 
 <a id="three-ways-this-goes-wrong"></a>
 ## 7. Three Ways This Goes Wrong

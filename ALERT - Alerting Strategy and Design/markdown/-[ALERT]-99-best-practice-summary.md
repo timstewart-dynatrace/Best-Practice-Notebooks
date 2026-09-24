@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 08/27/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -52,7 +52,7 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 **Enrichment**
 - [ ] Detector event templates carry team / zone / service properties
 - [ ] Entity tags and Smartscape ownership populated for OOTB problems
-- [ ] `event.severity` used to drive priority
+- [ ] `event.severity` used to drive priority, and each event source confirmed to actually *set* it: from SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) Davis events and problems no longer default it to 3, so severity filters and priority mappings need a plan for a missing value (ALERT-04 §5)
 - [ ] Custom detector event templates set `dt.smartscape_source.id` to a real entity ID, so alerts correlate against the thing that broke instead of falling back to the environment entity and merging with unrelated alerts
 
 **Routing**
@@ -185,7 +185,7 @@ fetch dt.davis.events, from:-30d
 | ServiceNow incident integration | ALERT-04 |
 | Cost / DPS framing | FINOPS, FAQ-09 |
 
-> <sub>**Sources:** [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the checklist and funnel synthesise the ALERT, AIOPS, SLO, and WFLOW series into one operational sequence.</sub>
+> <sub>**Sources:** [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). **Derived:** the checklist and funnel synthesise the ALERT, AIOPS, SLO, and WFLOW series into one operational sequence.</sub>
 
 ---
 
