@@ -1,6 +1,6 @@
 # FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 09/21/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -198,13 +198,13 @@ On the validation tenant this returned **28 mappings across 23 distinct classic 
 
 Every Smartscape node carries **`id_classic`**, holding the classic `HOST-…` / `SERVICE-…` identifier. It is the natural thing to reconcile a migrated query against an unmigrated one — and the obvious way to use it does not work.
 
-`id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them with `==` is always `false`, even when the two values print identically side by side. Grail does notice, but it reports it as an **INFO-severity notification** attached to the result rather than as an error, so a query runs, returns a full set of rows, and quietly answers the opposite of the question:
+`id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them with `==` is always `false`, even when the two values print identically side by side. Grail never raises an error — at most it attaches an **INFO-severity notification**, and on a later re-run not even that — so a query runs, returns a full set of rows, and quietly answers the opposite of the question:
 
 ```dql
 // The id / id_classic comparison trap. Both columns print the SAME value,
 // yet `naive` says "different" on every row: `id` is a smartscape_id and
 // `id_classic` is a string, so `==` between them is always false.
-// Grail flags this only as an INFO notification, never an error.
+// Grail never raises an error, and may not attach a notification either.
 //
 // `toString(id)` is the fix — compare like with like.
 smartscapeNodes "HOST"
@@ -214,17 +214,19 @@ smartscapeNodes "HOST"
 | limit 5
 ```
 
-On the validation tenant (09/21/2026) every row came back `naive = "different"` and `correct = "same"`, with the `id` and `id_classic` columns visibly identical — `HOST-0C9138C82CB5F432` in both. Grail attached:
+On the validation tenant (09/21/2026) every row came back `naive = "different"` and `correct = "same"`, with the `id` and `id_classic` columns visibly identical — `HOST-0C9138C82CB5F432` in both. On that run Grail attached an INFO notification:
 
 > *"The `==` operation will always return `false` as `id` is a smartscape id, while `id_classic` is a string."*
 
 Reproduced on a second node type: `smartscapeNodes "SERVICE"` with `toString(id) == id_classic` matched on **23 of 23** services; the bare `==` matched **0 of 23**.
 
+**Do not rely on that notification.** Re-run on 09/24/2026, the same queries gave the same wrong answer with **no notification at all** — the response's `notifications` array was empty, while a control query in the same session still carried its own INFO notification. When the notification appears it is a bonus, not the check: the only reliable guard is comparing like types, which is what `toString(id)` does.
+
 **Why this one matters more than it looks.** Reconciliation is the entire mitigation for class 2 — it is how you prove the target tenant found everything the source tenant had. A reconciliation query built on `id == id_classic` reports that *nothing* matches, which reads exactly like a failed migration. The plausible response to that result is to go looking for a migration problem that does not exist. Worse, the inverse mistake is silent in the other direction: a `filter id == id_classic` used to *narrow* a result set returns zero rows, which reads as "nothing to fix."
 
 The general rule this is an instance of: **in DQL, a comparison between two fields of different types is a false negative, not an error.** It belongs with the corpus's other silent-zero traps — an integer compared against a `duration`, or `==` against an array field.
 
-> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response.</sub>
+> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with `==`, 5 of 5 with `toString`; SERVICE 0 of 22 / 22 of 22), with an empty `notifications` array.</sub>
 
 ### Can your estate even be reconciled by name?
 

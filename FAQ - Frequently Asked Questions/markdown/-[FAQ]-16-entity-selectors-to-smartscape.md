@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/21/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -275,7 +275,7 @@ The same applies to `getNodeName()` versus `name`. Both `getNode*` functions bel
 
 **`id_classic` is the bridge between the two id spaces — and you cannot compare it with `==`.** Every Smartscape node carries it, holding the classic `HOST-…` / `SERVICE-…` identifier, which makes it the obvious key for joining migrated and unmigrated queries. The obvious way to use it does not work.
 
-`id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them directly is **always false**, even when the two values print identically side by side. Grail notices, but reports it as an **INFO-severity notification** attached to an otherwise-successful result rather than as an error — so the query runs, returns a full set of rows, and answers the opposite of the question:
+`id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them directly is **always false**, even when the two values print identically side by side. Grail never raises an error — on 09/21/2026 it attached an **INFO-severity notification** to the otherwise-successful result, and on 09/24/2026 not even that — so the query runs, returns a full set of rows, and answers the opposite of the question:
 
 ```
 // Wrong — "no" on every row, and no error. Both columns print the SAME value.
@@ -299,7 +299,7 @@ smartscapeNodes "SERVICE" | fields id, id_classic, name
 
 **A zero-row result is ambiguous.** A wrong edge-type case, a genuinely absent relationship, a wrong traversal direction, and a missing read scope all return nothing. Work down that list before assuming the query is wrong.
 
-> <sub>**Sources:** all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — `getNodeField` null result, `"RUNS_ON"` zero-row return, `NO_PARAMETERS_FOR_COMMAND` on bare `smartscapeEdges`, `PARSE_ERROR` on the `traverse` block form, and identical `id`/`id_classic` values on HOST and SERVICE nodes. The `==` type-mismatch behaviour was reproduced separately on 09/21/2026 — SERVICE 23 of 23 and HOST 7 of 7 matched with `toString(id)`, 0 of each without, with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response.</sub>
+> <sub>**Sources:** all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — `getNodeField` null result, `"RUNS_ON"` zero-row return, `NO_PARAMETERS_FOR_COMMAND` on bare `smartscapeEdges`, `PARSE_ERROR` on the `traverse` block form, and identical `id`/`id_classic` values on HOST and SERVICE nodes. The `==` type-mismatch behaviour was reproduced separately on 09/21/2026 — SERVICE 23 of 23 and HOST 7 of 7 matched with `toString(id)`, 0 of each without, with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result, with an empty `notifications` array.</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 8. Summary and Next Steps

@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 09/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent vs OpenTelemetry — A Decision Framework | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -569,7 +569,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | | OneAgent on Windows | OpenTelemetry on Windows |
 |---|---------------------|--------------------------|
 | Install | MSI installer; runs as SYSTEM service; Server Core via headless-mode | Collector MSI registers a "OpenTelemetry Collector" Windows service; logs to Event Log |
-| App instrumentation | Auto-injects IIS application pools (w3wp.exe); classic .NET Framework 4.5.2–4.8 + 3.5 SP1; modern .NET 5–10 + Core 3.0/3.1 | .NET auto-instrumentation injector; per-IIS-app-pool env vars; strong for ASP.NET Core, narrower for .NET Framework |
+| App instrumentation | Auto-injects IIS application pools (w3wp.exe); classic .NET Framework 4.5.2–4.8 + 3.5 SP1; modern .NET 5–10 + Core 3.0/3.1 (.NET Core 3.1 and .NET 5 / 6 / 7 reach Dynatrace end of support on 12/31/2026 — last supported OneAgent **1.353**) | .NET auto-instrumentation injector; per-IIS-app-pool env vars; strong for ASP.NET Core, narrower for .NET Framework |
 | Signals | Logs (Event Log + IIS/text), traces (PurePath), metrics, **Smartscape dependency map** — automatic | Logs (`windowseventlog` + `filelog` receivers), OTLP traces, metrics (`hostmetrics` receiver) — **no Smartscape topology** |
 | Best fit | Lowest-effort deep monitoring on a .NET Framework / IIS estate | Custom spans + multi-backend portability; layer alongside OneAgent |
 | Decisive factor | Classic ASP.NET / WCF / MSMQ on IIS → OneAgent auto-instruments | OTel .NET coverage of .NET Framework is narrower and more manual |
@@ -648,6 +648,7 @@ Container monitoring on Windows is **host-based, not in-cluster-injected**. The 
 > <sub>**Sources:**</sub>
 > - <sub>[Install OneAgent on Windows (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows) — *"Creates entries in the Windows Registry that start OneAgent as a `SYSTEM` service"*; `--unpack-msi` extraction for scripted install</sub>
 > - <sub>[.NET technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/dotnet) — Framework 4.5.2–4.8 + 3.5 SP1 and modern .NET 5–10 + Core 3.0/3.1 supported; IIS application-pools have built-in instrumentation rules</sub>
+> - <sub>[End-of-support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"2026-12-31 End of Support .NET Core 3.1 Vendor end of support: 2022-12-13 Last supported OneAgent version: 1.353"*; .NET 5, 6 and 7 are listed under the same date with the same last OneAgent version.</sub>
 > - <sub>[OneAgent platform and capability support matrix (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix) — current supported Windows Server versions + Server Core / headless-mode notes</sub>
 > - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; .NET single-file self-contained app monitoring, gRPC status codes for .NET, Kong Gateway Enterprise 3.10–3.14</sub>
 > - <sub>[Install the Collector on Windows (opentelemetry.io)](https://opentelemetry.io/docs/collector/install/binary/windows/) — MSI installs the Collector as a Windows service ("OpenTelemetry Collector") with an Event Log source</sub>

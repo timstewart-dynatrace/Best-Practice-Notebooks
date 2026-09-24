@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -69,11 +69,11 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 
 ### A second lever, at a different layer
 
-**Available (SaaS 1.344):** problem-event trigger delays are configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344's rollout started **07/29/2026** and two later sprints have shipped since, so it has reached tenants broadly; verify it has reached your tenant before designing around it.
+**Available (SaaS 1.344):** the workflow **Problem trigger** has a **Minimum duration** option (under *Advanced options*) that postpones the trigger until the problem has been open for at least the configured duration: 5 minutes up to one week. SaaS 1.344's rollout started **07/29/2026**; verify it has reached your tenant before designing around it.
 
-This is **not** a fifth analyzer knob, and it does not replace the sliding-window minimum above. The analyzer parameters decide whether a series is anomalous; the trigger delay decides how long the resulting event must hold before a problem opens. They act on different steps, so they compose — and because the delay applies platform-side, it damps flapping from detectors you do not own, which is exactly the case a template standard cannot reach. Until it arrives, the violating-samples / sliding-window minimum remains the control to rely on for transient-spike noise.
+This is **not** a fifth analyzer knob, and it does not replace the sliding-window minimum above. The analyzer parameters decide whether a series is anomalous; Minimum duration decides how long a problem must stay open before the workflow runs. The problem itself opens immediately. They act on different steps, so they compose — and because the delay applies at the workflow trigger, it damps notifications from flapping detectors you do not own, which is exactly the case a template standard cannot reach. Where it is not available yet, the violating-samples / sliding-window minimum remains the control to rely on for transient-spike noise.
 
-> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344). **Derived:** the "composes rather than substitutes" placement follows from the delay acting on the event-to-problem step while analyzer parameters act on the series.</sub>
+> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."* **Derived:** the "composes rather than substitutes" placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub>
 
 <a id="prototype"></a>
 ## 4. Prototype Before You Commit

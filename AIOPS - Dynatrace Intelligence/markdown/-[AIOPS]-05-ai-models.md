@@ -1,6 +1,6 @@
 # AIOPS-05: AI Models — Causal, Predictive, and Generative
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -51,7 +51,7 @@ For environments where SVG doesn't render
 |----------|--------------|---------------|---------------|
 | **Causal** | Topology-aware root cause | Davis backend | No (Smartscape itself is the configuration) |
 | **Predictive** | Baselines, forecasts, novelty | Davis analyzer engine | Yes — sensitivity, lookback, scope |
-| **Generative** | LLM-backed Assist & summaries | Hosted / managed by Dynatrace | Limited — you can't swap the LLM |
+| **Generative** | LLM-backed Assist & summaries | Enterprise-vendor LLMs (Azure AI, AWS Bedrock) via Dynatrace; DQL generation uses a custom Dynatrace model | Limited — you can't swap the LLM |
 
 Three different model families. Three different architectural approaches. Treat them differently.
 
@@ -116,15 +116,17 @@ timeseries cpu = avg(dt.host.cpu.usage),
 <a id="generative"></a>
 ## 5. Generative Models — Where They Live
 
-Generative AI in Dynatrace is hosted and managed — you do not see or swap the underlying LLM. Three things live in this category:
+Generative AI in Dynatrace is managed by Dynatrace — you do not see or swap the underlying LLM. Three things live in this category:
 
 1. **DQL2NL skill** — translates DQL ↔ natural language
 2. **Problem summaries** — narrative explanations in the Problems app
 3. **Dynatrace Assist** — chat surface across the product
 
-**What you don't get:** model selection, fine-tuning on customer data, prompt-template customization. Dynatrace owns the model surface so the data privacy guarantees are stable across customers.
+**What you don't get:** model selection, fine-tuning on customer data, prompt-template customization. Dynatrace chooses the vendor models; the data-handling terms are the ones on the privacy page cited below — prompts go to LLMs hosted by enterprise vendors, and the DQL generation model is trained on internally generated data rather than customer data.
 
-**What you do get:** vector-based grounding over Dynatrace docs and (via problem context) your own observability data when the assistant is invoked from a problem. Refer to the Davis CoPilot data privacy and security policy for current details.
+**What you do get:** vector-based grounding over Dynatrace docs and (via problem context) your own observability data when the assistant is invoked from a problem. AIOPS-04 §7 walks through what that page says about where prompts go and what is retained.
+
+> <sub>**Sources:** [Agentic and generative AI data privacy and security (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy).</sub>
 
 <a id="byo"></a>
 ## 6. Bring Your Own Model — What's Possible
@@ -148,7 +150,7 @@ What that means in practice:
 
 - **AIOPS-02** — the operator's perspective on the predictive models
 - **AIOPS-06** — agentic / BYO model integrations via workflows and MCP
-- **AUTOM-05/06** — anomaly detection settings as code
+- **AUTOM-03 / AUTOM-04** — anomaly detection settings as code (Monaco / Terraform)
 
 ---
 

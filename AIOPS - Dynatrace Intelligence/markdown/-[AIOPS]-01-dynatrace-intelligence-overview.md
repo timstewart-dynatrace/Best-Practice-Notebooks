@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -79,7 +79,7 @@ Most surfaces compose categories. The Problems app is the clearest example — C
 
 **The last row is the inverse of the other eight.** Rows 1–8 are Dynatrace applying AI to *your* data. AI Observability is *your team observing your own GenAI applications* — Dynatrace is the observability tool, not the intelligence. It earns a place in this table only because readers asking "where does AI show up in the product?" land here first and would otherwise miss it entirely. For ingest mechanics, the `gen_ai.*` attribute namespace, and the conversation-tracking pattern, see **AIOPS-06 § 1**.
 
-> **Forthcoming / rolling out (SaaS 1.344).** The dedicated Smartscape view and the standalone Evaluations screen arrive with SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026) — verify they have reached your tenant. Until then, prompt evaluations surface inside the general app views, which remains the working path.
+> **SaaS 1.344 (rollout from 07/29/2026)** added the dedicated Smartscape view and the standalone Evaluations screen. On a tenant still below 1.344, prompt evaluations surface inside the general app views.
 
 <a id="foundation"></a>
 ## 3. The Data Foundation: Smartscape + Grail
@@ -112,13 +112,13 @@ fetch dt.davis.problems, from:-2h
 
 ```dql
 // Raw Davis signal volume in the last hour
-// (these are the events that Causal AI groups into problems)
+// (all Davis events — including INFO/WARNING observations that never open a problem)
 fetch dt.davis.events, from:-1h
 | summarize signal_count = count(), by:{event.category}
 | sort signal_count desc
 ```
 
-**Reading the result:** Compare the two queries. The signal-to-problem ratio is the Causal AI compression factor — the higher the ratio, the more noise the platform is keeping off your alerting plate.
+**Reading the result:** Compare the two queries. The signal-to-problem ratio is the Causal AI compression factor — the higher the ratio, the more noise the platform is keeping off your alerting plate. Compute the compression factor from the non-INFO/WARNING categories only; the full stream on a tenant with observation-mode detectors is dominated by events that never become problems.
 
 > **Note on data objects:** `dt.davis.problems` carries grouped problems (`event.kind == "DAVIS_PROBLEM"`). `dt.davis.events` carries raw signals (`event.kind == "DAVIS_EVENT"`). They are sibling streams. `fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"` returns zero rows — **not because the form was deprecated, but because it filters the wrong table**: `dt.davis.events` has only ever carried `DAVIS_EVENT`. It is a category error, so there is no migration to look for; use `fetch dt.davis.problems` for problem-shaped queries. Verified 08/27/2026: over 7 days `dt.davis.events` returned 206,023 rows, all `DAVIS_EVENT`, and 0 when filtered to `DAVIS_PROBLEM`, while `dt.davis.problems` returned 2,774.
 

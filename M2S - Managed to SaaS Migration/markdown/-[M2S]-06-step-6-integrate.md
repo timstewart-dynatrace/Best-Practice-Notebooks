@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 09/24/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -464,6 +464,8 @@ curl -s "https://{tenant}.live.dynatrace.com/api/v2/apiTokens/lookup" \
   -H "Content-Type: application/json" \
   -d '{"token": "{SAAS_TOKEN}"}' | jq '.scopes'
 ```
+
+> **Deprecation — Dynatrace API 1.348 (pre-release; staged rollout planned from 09/22/2026).** The API 1.348 changelog marks the whole `/apiTokens` endpoint family deprecated — *"The following endpoints are deprecated"*, covering `POST /apiTokens`, `POST /apiTokens/lookup` and the per-token `GET`/`PUT`/`DELETE`. No successor is named. Deprecated endpoints keep working during the deprecation period, so the scope check above (`POST /api/v2/apiTokens/lookup`) and the classic token it inspects remain the working path — re-check the [API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) at GA before building new automation on `/apiTokens/lookup`.
 
 <a id="synthetic-monitor-migration"></a>
 

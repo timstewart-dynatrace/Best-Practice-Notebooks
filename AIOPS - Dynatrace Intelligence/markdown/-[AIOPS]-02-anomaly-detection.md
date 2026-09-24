@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -48,7 +48,7 @@ For environments where SVG doesn't render
 | **Dynatrace Environment** | SaaS Gen3 with Anomaly Detection app installed |
 | **Permissions** | `davis:analyzers:execute`, `settings:objects:read/write`, `events:read` |
 | **MCP** | Dynatrace MCP server (for AIOPS-04 / AIOPS-06 integration); analyzers also exposed in the app |
-| **Optional** | Monaco / Terraform for config-as-code (see AUTOM-05/06) |
+| **Optional** | Monaco / Terraform for config-as-code (see AUTOM-03 / AUTOM-04) |
 
 <a id="mechanisms"></a>
 ## 1. The Five Detection Mechanisms
@@ -109,7 +109,7 @@ Three places to configure detection — pick one per environment, not one per de
 | **Settings 2.0 (UI)** | Steady-state detection that's been validated; lives under specific settings schemas. |
 | **Config-as-code (Monaco / Terraform)** | Anything you want versioned, reviewable, and reproducible across environments. |
 
-Production teams should converge on config-as-code. The app is the right place to *discover* what to alert on — but the moment a detector matters in production, it should live in source control. See **AUTOM-05** and **AUTOM-06** for the patterns.
+Production teams should converge on config-as-code. The app is the right place to *discover* what to alert on — but the moment a detector matters in production, it should live in source control. See **AUTOM-03** (Monaco) and **AUTOM-04** (Terraform) for the patterns.
 
 <a id="building"></a>
 ## 4. Building a Davis Anomaly Detector
@@ -178,18 +178,18 @@ The tuning parameters that control noise:
 
 **The `violatingSamples` / `slidingWindow` pair is your primary noise control** — requiring, say, 3 violations out of a 5-point window suppresses single-spike flapping while still catching sustained breaches.
 
-### Step 2a — Problem-event trigger delay (a different layer)
+### Step 2a — Workflow problem-trigger delay (a different layer)
 
-**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026): **problem-event trigger delays are configurable** — how long a Davis event must persist before it opens a *problem*. Verify it has reached your tenant before you plan around it.
+**SaaS 1.344 (rollout from 07/29/2026): problem triggers in Workflows can be delayed.** In a workflow's Dynatrace Intelligence problem trigger you can set a delay, and *"the trigger will fire only if a problem remains open for the configured period."* This damps **notifications**, not detection — Davis still opens the problem on schedule, and every other workflow on the same problem fires on its own settings. See FAQ-21 for the Minimum duration option.
 
 **This is not an analyzer parameter, and it is deliberately not a row in the table above.** The two sit at different layers, and conflating them is how tuning goes wrong:
 
 | Layer | Decides | Configured in |
 |-------|---------|---------------|
 | **Analyzer parameters** (`violatingSamples`, `slidingWindow`, `dealertingSamples`, tolerance) | Whether *this series* is anomalous — i.e. whether a Davis event fires at all | Per detector, in the Anomaly Detection app or `builtin:davis.anomaly-detectors` |
-| **Problem-event trigger delay** | How long a Davis event must persist before it is promoted to a *problem* | Platform-side, applying across events |
+| **Workflow problem-trigger delay** | Whether *this workflow* acts on a problem that has already opened — short-lived problems close before it fires | Per workflow, on the problem trigger |
 
-So the trigger delay **complements** `violatingSamples` / `slidingWindow` rather than replacing it. Its distinct value is reach: because it applies platform-side, it damps flapping from detectors **you do not own** — built-in detections, and detectors configured by other teams — which no amount of analyzer tuning on your own detectors can touch.
+So the trigger delay **complements** `violatingSamples` / `slidingWindow` rather than replacing it. Its distinct value is reach: it suppresses paging for short-lived problems from detectors **you do not own** — built-in detections, and detectors configured by other teams — which no amount of analyzer tuning on your own detectors can touch. But it acts only for the workflow you set it on: the problem count does not change, and any notifying workflow without the delay keeps paging.
 
 **For any detector you build yourself, `violatingSamples` / `slidingWindow` remains the control to rely on and the right first lever.** Tune the detector to stop firing spurious events; reach for the trigger delay for noise arriving from events you cannot tune at source.
 
@@ -209,7 +209,7 @@ Those properties are the metadata a downstream workflow filters on. **Enrich her
 
 **Attribute the event to a real entity, or it correlates against the wrong one.** Alongside name, description, type and properties, a Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal is *about*. Davis's universal correlation rule merges every event naming the same entity into a single problem (AIOPS-03 §1). Set it to an actual host, service, or workload ID, normally interpolated from a `by:{}` dimension the query already groups on.
 
-A detector that leaves this unset does not produce an unattributed event — it produces an event attributed to the **environment**. The ingest API states that when no entity is selected, "the event is associated with the environment (`dt.entity.environment`) entity", and the event still carries `affected_entity_ids` naming it. Every such event across the whole tenant therefore shares one entity, and the correlation rule welds them into the same problem: **the failure is over-merge, not a problem per firing.** On a validation tenant over 7 days on 08/11/2026, environment-fallback events ran at **596 firings per correlation against a single entity**, versus 11 for properly attributed events. No amount of threshold tuning fixes that, because the fault is structural rather than sensitivity-related — what you lose is the ability to tell which service the alert was ever about. Section 8 has a query that finds these in your own tenant.
+A detector that leaves this unset does not produce an unattributed event — it produces an event attributed to the **environment**. The ingest API states that when no entity is selected, "the event is associated with the environment (`dt.entity.environment`) entity", and the event still carries `affected_entity_ids` naming it. Every such event across the whole tenant therefore shares one entity, and the correlation rule welds them into the same problem: **the failure is over-merge, not a problem per firing.** On a validation tenant over 7 days on 08/11/2026, environment-fallback events ran at **583 firings per correlation against a single entity**, versus **1.1** for events naming a real entity. No amount of threshold tuning fixes that, because the fault is structural rather than sensitivity-related — what you lose is the ability to tell which service the alert was ever about. Section 8 has a query that finds these in your own tenant.
 
 **Two event types that never open a problem.** `CUSTOM_INFO` and `WARNING` are both severity SEV-5: they are stored in Grail, are fully queryable, and can trigger workflows, but they do not raise problems. That makes them useful for chronic issues already tracked elsewhere, for routing an observation to Slack or Jira without cluttering the Problems app, and — most valuably — for calibration:
 
@@ -238,29 +238,27 @@ Three checks, run before a detector leaves the notebook-as-scratchpad stage — 
 
 None of these three are analyzer tuning — they're structural, and a mistuned analyzer sitting on a structurally broken detector still fires wrong.
 
-> <sub>**Sources:** [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Set up anomaly detectors via API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api).</sub>
+> <sub>**Sources:** [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Set up anomaly detectors via API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api), [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event), [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344).</sub>
 
 <a id="dql-alerts"></a>
 ## 5. Custom Alerts via DQL
 
 Beyond pre-canned detectors, Anomaly Detection app supports **DQL-based custom alerts**. You write the query, the app evaluates it on a schedule, and a breach generates a Davis event.
 
-Example — alert when a service's error rate breaches 5% for 5 minutes:
+Example — alert when a service's error rate breaches 5% for 5 minutes. Following the Step 1 contract in §4, the detector returns the error-rate series and the static-threshold analyzer applies the 5% line:
 
 ```dql
-// Custom alert: service error rate > 5% in the last hour
-// (When wired into the Anomaly Detection app, this evaluates on a schedule.)
+// Detector query: return the error-rate SERIES per service - no threshold filter.
+// Configure the threshold in the analyzer: Static threshold 5, alertCondition ABOVE,
+// violatingSamples 5 / slidingWindow 5 = "above 5% for 5 minutes".
 timeseries {
-    failures = sum(dt.service.request.failure_count),
+    failures = sum(dt.service.request.failure_count, default:0),
     total    = sum(dt.service.request.count)
   },
   by:{dt.smartscape.service},
   from:-1h, interval:1m
 | fieldsAdd error_rate = (failures[] / total[]) * 100
-| fieldsAdd avg_error_rate = arrayAvg(error_rate)
-| filter avg_error_rate > 5
-| sort avg_error_rate desc
-| limit 20
+| fieldsKeep timeframe, interval, dt.smartscape.service, error_rate
 ```
 
 **Watchpoints when writing custom-alert DQL:**
@@ -268,7 +266,8 @@ timeseries {
 - Always include a `from:` time range. Detectors that omit it are rejected.
 - Use named-parameter `decimals:`, `then:`, `else:` where required (`round`, `if`, `substring`).
 - Aggregations used downstream need explicit aliases (`error_rate = ...`, `mttr = ...`).
-- Element-wise array operations on timeseries: `failures[] / total[]` returns an array; wrap in `arrayAvg()` (or similar) to collapse to a scalar before `filter`.
+- Element-wise array operations on timeseries: `failures[] / total[]` returns an array. Keep the series as an array for a detector — `arrayAvg` + `filter` is an ad-hoc notebook check, not a detector query.
+- Use `default:0` on sparse counters so zero-failure intervals count as 0, not null. Without it, an average over the array covers only the minutes that had failures and overstates the rate.
 
 <a id="schemas"></a>
 ## 6. Metric Events and Settings 2.0 Schemas
@@ -284,7 +283,7 @@ Not every alert needs the DQL-based detector. **Metric events** are the classic 
 
 That reverses the older advice in this section. A metric event is still the lighter-weight mechanism, and one you already own is fine to leave running for now — but it is a construct with an expiry, so new work should not be authored against it, and a static threshold ported as-is is in any case the main source of Gen3 alert noise (ALERT-02).
 
-The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-05 / AUTOM-06**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
+The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-03 (Monaco) / AUTOM-04 (Terraform)**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
 
 > <sub>**Sources:** [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events), [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — states that only metric selectors can be transformed, that metric key events cannot, and that automated verification cannot confirm the metric's data or tags are present. **Derived:** the blocked-at-upgrade status is read from the ready-made *Check your upgrade readiness* dashboard, observed 07/31/2026; public documentation does not currently publish it as a breaking change.</sub>
 
@@ -341,7 +340,7 @@ fetch dt.davis.events, from:-7d
 | limit 20
 ```
 
-Real output from a demonstration tenant over seven days, **measured 08/11/2026**, abbreviated to the top rows. Treat the absolute counts as a snapshot, not a constant — they move with what the tenant is doing; the *shape* (a high-volume detector with a null `dt.smartscape_source.id`) is the durable part:
+Real output from a demonstration tenant over seven days, **measured 07/30/2026**, abbreviated to the top rows. Treat the absolute counts as a snapshot, not a constant — they move with what the tenant is doing; the *shape* (a high-volume detector with a null `dt.smartscape_source.id`) is the durable part:
 
 | `event.name` | `alerts` | `dt.settings.object_id` | `dt.smartscape_source.id` |
 |--------------|---------:|-------------------------|---------------------------|
@@ -351,7 +350,7 @@ Real output from a demonstration tenant over seven days, **measured 08/11/2026**
 | `DYNATRACE USER LOGIN` | 285 | `builtin:davis.anomaly-detectors` … | *null* |
 | `Backoff event` | 254 | `builtin:anomaly-detection.kubernetes.workload` … | `K8S_DEPLOYMENT-79081F0B98463CC2` |
 
-**Read the top row first.** A custom detector firing 5,378 times in seven days with **no `dt.smartscape_source.id`** is the anti-pattern from Section 4 in its natural habitat. What it is *not* is one problem per firing — that reading is wrong, and it sends you hunting the wrong symptom. These events are still attributed; the attribution has simply fallen back to whatever entity the platform could reach, and where that is the environment entity they all merge together. Re-measured on the same tenant over 7 days on 08/11/2026, this detector's firings collapsed to roughly **11 firings per correlation**, and the tenant's environment-fallback events collapsed at **596 firings per correlation onto one entity**. The damage is unrelated alerts sharing a problem and no usable root cause — not problem-count inflation. Re-tuning the threshold would not help either way. The event template has to name a real entity.
+**Read the top row first.** A custom detector firing 5,378 times in seven days with **no `dt.smartscape_source.id`** is the anti-pattern from Section 4 in its natural habitat. What it is *not* is one problem per firing — that reading is wrong, and it sends you hunting the wrong symptom. These events are still attributed; the attribution has simply fallen back to whatever entity the platform could reach, and where that is the environment entity they all merge together. Re-measured on the same tenant over 7 days on 08/11/2026, this detector's firings collapsed to roughly **11 firings per correlation**, and the tenant's environment-fallback events collapsed at **583 firings per correlation onto one entity**. The damage is unrelated alerts sharing a problem and no usable root cause — not problem-count inflation. Re-tuning the threshold would not help either way. The event template has to name a real entity.
 
 **Then read the two ID columns, which answer different questions:**
 
@@ -362,7 +361,7 @@ Real output from a demonstration tenant over seven days, **measured 08/11/2026**
 
 `dt.settings.object_id` is the Settings API `objectId`, so a populated value leads straight to the detector's configuration. A useful property: it encodes both the settings **schema** and the **scope**. The values abbreviated above resolve to `builtin:davis.anomaly-detectors` scoped to the tenant, and `builtin:anomaly-detection.kubernetes.workload` scoped to one specific `KUBERNETES_CLUSTER`. That scoping is why a single event name legitimately appears under several distinct object IDs — one per cluster — rather than indicating duplicated configuration.
 
-> **Two caveats.** `dt.settings.object_id` is marked **experimental** in the semantic dictionary (`dt.smartscape_source.id` is `stable`) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of `dt.davis.events` is not cheap: the run above scanned 12.9 GB, and the 30-day version below scanned 52.6 GB. Narrow the window for routine checks (FAQ-09, FINOPS-03).
+> **Two caveats.** `dt.settings.object_id` is marked **experimental** in the semantic dictionary (`dt.smartscape_source.id` is `stable`) — fine for triage, not something to hard-code an integration against. And a seven-day unfiltered scan of `dt.davis.events` is not cheap: the run above scanned 12.9 GB and the 30-day version below 52.6 GB on 07/30/2026; the same 7-day scan read about 5.9 GB on 09/24/2026 — scan cost moves with event volume. Narrow the window for routine checks (FAQ-09, FINOPS-03).
 
 For what counts as "too noisy" in the first place, ALERT-99 §3 carries the 0.1%-of-observed-time yardstick and the audit cadence that uses it.
 
@@ -381,7 +380,7 @@ fetch dt.davis.events, from:-30d
 | limit 10
 ```
 
-Run against a ported static threshold held in observation mode, the ten most recent daily counts came back **236, 347, 459, 504, 470, 474, 502, 490, 480, 470** — the first of those a still-running partial day.
+Measured 07/30/2026: run against a ported static threshold held in observation mode, the ten most recent daily counts came back **236, 347, 459, 504, 470, 474, 502, 490, 480, 470** — the first of those a still-running partial day.
 
 **That detector must not be promoted.** Roughly 470 firings a day would mean up to roughly 470 problems a day from a single rule — correlation would merge some of them, but nothing like enough — against a healthy-detector expectation of one or two firings a *month* (ALERT-99 §3). The evidence says retune before promoting: widen the sliding window, raise the threshold, or — since this is CPU on hosts, a traffic-correlated signal — move it off a static threshold onto auto-adaptive entirely (Section 1).
 
@@ -392,7 +391,7 @@ That is the whole value of the shadow deploy. Promoted straight to `CUSTOM_ALERT
 <a id="cross"></a>
 ## 9. Cross-Series Pointers
 
-- **AUTOM-05, AUTOM-06** — anomaly detection settings as code (Monaco, Terraform)
+- **AUTOM-03, AUTOM-04** — anomaly detection settings as code (Monaco, Terraform)
 - **WFLOW** — once a detector fires, route the resulting Davis event into a notification or remediation workflow
 - **DBMON, CLOUD, K8S** — domain-specific anomaly patterns sit in those series; this notebook is the canonical reference for the *mechanisms*
 - **AIOPS-05** — the AI models behind these detectors (causal correlation, predictive baseline, seasonal)

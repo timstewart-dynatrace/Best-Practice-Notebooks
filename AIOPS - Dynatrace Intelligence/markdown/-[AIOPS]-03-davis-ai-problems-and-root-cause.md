@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 09/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -103,7 +103,7 @@ That last one is worth knowing before you conclude a detector has broken. A dete
 
 **Categories:** `ERROR`, `RESOURCE_CONTENTION`, `AVAILABILITY`, `SLOWDOWN`, `CUSTOM_ALERT`. Categories are stable; counts vary widely by environment.
 
-**Severity** is a separate axis from category. The unified `event.severity` field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below. **It is typed `experimental` in the semantic dictionary** (verified 08/27/2026), while `event.category` and `event.kind` are `stable`: fine for triage and reporting, but do not hard-code an integration or an SLA contract against it without a fallback.
+**Severity** is a separate axis from category. The unified `event.severity` field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below. **It is typed `experimental` in the semantic dictionary** (verified 08/27/2026), while `event.category` and `event.kind` are `stable`: fine for triage and reporting, but do not hard-code an integration or an SLA contract against it without a fallback. Semantic Dictionary 1.348 (published 08/25/2026) promotes it to `stable` for Davis events and problems; a tenant checked 09/24/2026 still reported `experimental` — confirm on yours, and treat this caution as lifted once it reads `stable`.
 
 **Key fields on a problem record:**
 
@@ -175,11 +175,17 @@ fetch dt.davis.problems, from:-2h
 
 ```dql
 // Active problems for a specific host group
+// dt.host_group.id is NOT carried on problem records - resolve the group through the affected hosts.
+// Host groups are identified by NAME, not by a HOST_GROUP- entity ID.
 fetch dt.davis.problems, from:-2h
 | filter event.status == "ACTIVE"
-| filter dt.host_group.id == "HOST_GROUP-XXXXXXXX"
+| expand host_id = dt.entity.host
+| lookup [smartscapeNodes "HOST" | fields host_id = id_classic, host_group = dt.host_group.id],
+    sourceField:host_id, lookupField:host_id, fields:{host_group}
+| filter host_group == "my-host-group"
+| dedup event.id
 | sort event.start desc
-| fields display_id, event.name, event.category, root_cause_entity_name
+| fields display_id, event.name, event.category, root_cause_entity_name, host_group
 | limit 50
 ```
 
@@ -188,19 +194,25 @@ fetch dt.davis.problems, from:-2h
 
 Two different axes, both useful in weekly operational reviews and for trending detection volume month over month:
 
-- **Severity** (`event.severity`, integer 1–5) — *how bad* — for prioritization, SLA reporting, and routing. 1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational (ITIL-aligned). **`experimental` stability** (08/27/2026) — usable, but pin a fallback before routing on it. Expect a narrow spread in practice: on the validation tenant 2,773 of 2,774 problems over 7 days were severity 3, so a one- or two-row rollup is the normal result, not a broken query.
+- **Severity** (`event.severity`, integer 1–5) — *how bad* — for prioritization, SLA reporting, and routing. 1=Critical, 2=High, 3=Medium, 4=Low, 5=Informational (ITIL-aligned). **`experimental` stability** (until SD 1.348 reaches your tenant) — usable, but pin a fallback before routing on it. Expect a narrow spread in practice: on the validation tenant 2,773 of 2,774 problems over 7 days were severity 3, so a one- or two-row rollup is the normal result, not a broken query.
 - **Category** (`event.category`) — *what kind* — for spotting which failure modes dominate.
 
 Start with the severity rollup, then break down by category.
 
+> **Breaking change — SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026):** *"Davis events and problems no longer default event.severity to 3."* Once it reaches your tenant, a problem with no severity set carries a null rather than 3 — the rollup below labels those *Not set* instead of letting them fall through to *Informational*, and a workflow filtering on `event.severity == 3` stops matching them. Until then, every unset severity still defaults to 3.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Semantic Dictionary changelog 1.348 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348).</sub>
+
 ```dql
 // Last 7 days — problem count by severity (1=Critical … 5=Informational)
+// Null is tested first: from SaaS 1.348 an unset severity is no longer defaulted to 3.
 fetch dt.davis.problems, from:-7d
-| fieldsAdd severity_label = if(event.severity == 1, "Critical",
+| fieldsAdd severity_label = if(isNull(event.severity), "Not set",
+    else: if(event.severity == 1, "Critical",
     else: if(event.severity == 2, "High",
     else: if(event.severity == 3, "Medium",
     else: if(event.severity == 4, "Low",
-    else: "Informational"))))
+    else: "Informational")))))
 | summarize problem_count = count(), by:{event.severity, severity_label}
 | sort event.severity asc
 ```
@@ -298,7 +310,7 @@ fetch dt.davis.problems, from:-30d
 ## 9. Cross-Series Pointers
 
 - **WFLOW-04** — wire active problems into notification workflows
-- **DASH-05** — problem-driven SLO and executive dashboards
+- **DASH-03** — executive dashboards; **DASH-05** — engineering dashboards
 - **AIOPS-04** — Dynatrace Assist generates problem-summary narratives via Generative AI
 - **AIOPS-06** — Workflow tutorial: Summarize open problems with AI
 

@@ -1,6 +1,6 @@
 # AIOPS-07: Putting It Together — Detect, Investigate, Remediate
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 08/12/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ For environments where SVG doesn't render
 | **Dynatrace Environment** | SaaS Gen3 |
 | **Apps** | Problems, Anomaly Detection, Notebooks, Workflows |
 | **Series Background** | AIOPS-01 through AIOPS-06; this notebook composes those building blocks |
-| **Permissions** | All read permissions and `davis:analyzers:execute`, `workflows:run` |
+| **Permissions** | All read permissions and `davis:analyzers:execute`, `automation:workflows:run` |
 
 <a id="loop"></a>
 ## 1. The Three-Phase Loop
@@ -62,7 +62,7 @@ Each loop has a metric. Each metric should be on a dashboard.
 <a id="scenario-a"></a>
 ## 2. Scenario A: Capacity Planning (Disk Exhaustion)
 
-**Detect:** scheduled workflow runs `mcp__dynatrace__timeseries-forecast` against host disk usage. Forecasts 7 days ahead. Branches when any host's projected usage exceeds 85%.
+**Detect:** scheduled workflow runs the **Analyze data** action with the *Generic Forecast Analysis* analyzer against host disk usage. Forecasts 7 days ahead. Branches when any host's projected usage exceeds 85%.
 
 **Investigate:** workflow generates a summary table — which hosts, which volumes, current trajectory, predicted exhaustion date. Posts to capacity-planning channel.
 
@@ -113,20 +113,23 @@ Subtler than incident response — slow drift, not sudden spike.
 **Remediate:** quality / release team reviews. Decision is human — pin a release? rollback? add a feature flag? The workflow surfaces the data, not the action.
 
 ```dql
-// Weekly error rate trend by service — last 8 weeks
+// Weekly error rate trend by service — last 8 weeks, services with real traffic only
 //
 // Corrected 08/12/2026: `interval:1w` is a CALENDAR duration and `interval` does not accept them
 // (NAMED_PARAMETER_MUST_NOT_BE_CALENDAR_DURATION). Use the fixed-length equivalent, `interval:7d`.
+// default:0 makes zero-failure weeks count as 0, not null; the volume floor keeps services that
+// handled a handful of requests (and so sit at 100%) from filling the top 25.
 timeseries {
-    failures = sum(dt.service.request.failure_count),
+    failures = sum(dt.service.request.failure_count, default:0),
     total    = sum(dt.service.request.count)
   },
   by:{dt.entity.service},
   from:-8w,
   interval:7d
 | fieldsAdd error_rate = (failures[] / total[]) * 100
-| fieldsAdd avg_error_rate = arrayAvg(error_rate)
-| sort avg_error_rate desc
+| fieldsAdd requests = arraySum(total), overall_error_rate = arraySum(failures) / arraySum(total) * 100
+| filter requests >= 1000
+| sort overall_error_rate desc
 | limit 25
 ```
 
@@ -139,12 +142,14 @@ If AIOps is doing its job, three numbers on one dashboard tell the story:
 2. **Median MTTR by category over the last 30 days** (effectiveness)
 3. **Davis signal-to-problem compression ratio over time** (Causal AI value)
 
-The first two are obvious. The third is interesting — a high compression ratio means Causal AI is keeping noise off the team. A dropping ratio means topology is degrading or detectors are getting noisier.
+The first two are obvious. The third is interesting — a high compression ratio means Causal AI is keeping noise off the team. A dropping ratio means topology is degrading or detectors are getting noisier. Count only problem-eligible signals: INFO and WARNING events never open a problem, so on a tenant running observation-mode detectors the unfiltered event stream inflates the ratio many times over, and shadow-deploying a detector would raise it without any change in grouping.
 
 ```dql
-// Davis signal-to-problem compression — last 7 days
-// (Run side-by-side with the problem rollup from AIOPS-03.)
+// Davis signal-to-problem compression — problem-eligible signals only, last 7 days
+// INFO / WARNING never open problems and PROBLEM_UPDATE is lifecycle, not signal - exclude them.
+// (Run side-by-side with the problem volume query below.)
 fetch dt.davis.events, from:-7d
+| filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
 | makeTimeseries signals = count(), interval:1d
 ```
 
@@ -159,7 +164,7 @@ Higher signals-per-problem ratio = better Causal AI compression. Track this numb
 <a id="maturity"></a>
 ## 6. Maturity Pointers
 
-AIOps maturity sits in **ADOPT-04**. Briefly:
+The broader observability maturity model is **ADOPT-01**; the AIOps stages below are this series' own:
 
 | Stage | What's in place |
 |-------|----------------|

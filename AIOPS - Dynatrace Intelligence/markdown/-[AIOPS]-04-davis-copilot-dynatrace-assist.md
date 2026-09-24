@@ -1,6 +1,6 @@
 # AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 05/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -159,12 +159,17 @@ On any active or recent problem in the Problems app, a Generative AI summary pan
 <a id="privacy"></a>
 ## 7. Data Privacy and Grounding
 
-Two grounding principles to be aware of:
+What happens to a prompt, per the current Dynatrace data-privacy page:
 
-1. **Vector-based document retrieval is grounded in Dynatrace documentation, not your tenant data.** Asking Assist *"how do I configure host groups?"* triggers retrieval over public docs — not over your customer data.
-2. **Generated DQL targets your tenant's Grail data when executed.** The query itself is generated from natural language; the *results* come from your data. The data does not leave the tenant boundary as part of generation.
+1. **Prompts leave the environment, to an enterprise-vendor LLM.** *"Your prompts are sent to LLMs hosted by enterprise vendors such as Microsoft Azure AI and AWS Bedrock, which power Dynatrace Intelligence agentic and generative AI."* *"If your environment is located in EMEA, your prompts are processed in an EU region."* NORAM, LATAM and APAC environments are processed in a US region. The page states that the vendors *"don't store the data you submit or the responses you receive"* and *"don't use the prompts to fine-tune or improve any models"*.
+2. **Dynatrace may retain prompts and responses.** *"Dynatrace may store the prompts submitted to Dynatrace Intelligence agentic and generative AI and the responses provided by the LLMs"*; with agentic Assist, *"Dynatrace may also store results of intermediate tool calls."*
+3. **Agentic Assist reads your live data (SaaS 1.346).** In agentic mode Assist *"can reason over tools and your live environment data"*, so "grounded only in documentation" no longer describes a conversation started inside an app. A documentation question such as *"how do I configure host groups?"* is still answered from the Dynatrace docs.
+4. **Generated DQL runs against your Grail data.** The query is generated from natural language; the *results* come from your tenant when it executes.
+5. **PII masking and PII blocking.** Masking applies to prompts for standard generative AI (Dynatrace 1.305+). Blocking applies to agentic AI, and *"Starting with Dynatrace version 1.345+, PII blocking is disabled by default for new environments and environments where Agentic AI was not already enabled."* If prompts may carry PII, turn it on under **Settings > Dynatrace Intelligence > Generative and agentic AI**. The page recommends masking data on ingest as the first control.
 
-Refer to the official **Davis CoPilot data privacy and security policy** for the full details. Sensitive deployments should validate the policy before enabling Assist.
+Sensitive deployments should review the privacy page with their governance lead before enabling Assist.
+
+> <sub>**Sources:** [Agentic and generative AI data privacy and security (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/agentic-and-generative-ai/agentic-and-generative-ai-data-privacy), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346).</sub>
 
 <a id="cross"></a>
 ## 8. Cross-Series Pointers

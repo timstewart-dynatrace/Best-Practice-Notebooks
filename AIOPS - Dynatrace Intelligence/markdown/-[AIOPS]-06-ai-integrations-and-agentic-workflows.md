@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 09/18/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -44,7 +44,7 @@ For environments where SVG doesn't render
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 |
 | **Apps** | Workflows app; Notebooks app |
-| **Permissions** | `davis:analyzers:execute`, `events:read`, `workflows:run` |
+| **Permissions** | `davis:analyzers:execute`, `events:read`, `automation:workflows:run`, `automation:workflows:write` (§2–§4 build workflows) |
 | **For MCP integrations** | Dynatrace MCP server installed in your IDE / CLI agent (Claude Code, Cursor, GitHub Copilot) |
 | **For external LLMs** | Provider credentials (OpenAI / Anthropic / Bedrock / Vertex) configured as Dynatrace credentials |
 
@@ -68,7 +68,7 @@ These three are complementary, not exclusive. A mature observability practice us
 
 #### Where it surfaces
 
-**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026) and adds two dedicated surfaces: a **Smartscape view** for GenAI topology, and a standalone **Evaluations** screen for prompt evaluations. Verify they have reached your tenant. Until then, prompt evaluations surface inside the general app views — that remains the working path, and the underlying span data is identical either way.
+**SaaS 1.344 (rollout from 07/29/2026)** added two dedicated surfaces: a **Smartscape view** for GenAI topology, and a standalone **Evaluations** screen for prompt evaluations. On a tenant still below 1.344, prompt evaluations surface inside the general app views — the underlying span data is identical either way.
 
 #### The conversation-reconstruction problem
 
@@ -101,7 +101,7 @@ Steps 4 and 5 are the part people skip. Setting the attribute at span *creation*
 
 #### Reconstructing a conversation
 
-The queries below are the documented reconstruction pattern. **Neither was executed against a live tenant for this revision** — see the note under each cell.
+The queries below are the documented reconstruction pattern. Both queries were executed against a live tenant (07/30/2026, re-run 09/24/2026): they parse and run, but that tenant carries no GenAI spans at all, so field population is unconfirmed — see the note under each cell.
 
 ```dql
 // Reconstruct one conversation, turn by turn.
@@ -181,7 +181,9 @@ fetch dt.system.query_executions, from:-7d
 | limit 25
 ```
 
-Drop `user.email` from the `by:` clause and add `query_string` (truncated) to surface the biggest individual queries. Pair with the **`mcp__dynatrace__explain-dql`** tool in a workflow to attach a plain-English description to each high-cost query before notifying.
+Drop `user.email` from the `by:` clause and add `query_string` (truncated) to surface the biggest individual queries. Then pass the top queries to a Dynatrace Intelligence generative AI task in the same workflow for a plain-English explanation and optimization suggestion — the pattern in the *Optimize DQL cost with Workflows* tutorial. (The MCP `explain-dql` tool does the same job for an external agent; a workflow cannot call MCP tools.)
+
+> <sub>**Sources:** [Optimize DQL cost with Workflows (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/dynatrace-generative-ai-in-workflows-dql) — tutorial built on Dynatrace Intelligence (Preview).</sub>
 
 <a id="wf-summary"></a>
 ## 3. Workflow Tutorial: Summarize Open Problems
@@ -196,6 +198,8 @@ Drop `user.email` from the `by:` clause and add `query_string` (truncated) to su
 3. **Summarize** — Generative AI task composes the digest
 4. **Post** — Slack / Teams / email notification
 
+> <sub>**Sources:** [Summarize open problems with Workflows (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/generative-ai-in-workflows-examples) — tutorial built on Dynatrace Intelligence (Preview).</sub>
+
 ```dql
 // Active and recently-closed problems for a daily digest
 fetch dt.davis.problems, from:-24h
@@ -208,7 +212,7 @@ fetch dt.davis.problems, from:-24h
 <a id="wf-forecast"></a>
 ## 4. Workflow Tutorial: Forecast Resource Utilization
 
-**Pattern:** scheduled workflow forecasts capacity-relevant series (host disk, namespace CPU, ingestion volume) using `mcp__dynatrace__timeseries-forecast` (and its analyzer GUI equivalent), and notifies when projected exhaustion hits the threshold.
+**Pattern:** scheduled workflow forecasts capacity-relevant series (host disk, namespace CPU, ingestion volume) using the workflow **Analyze data** action with the *Generic Forecast Analysis* analyzer, and notifies when projected exhaustion hits the threshold.
 
 **When to use:** capacity planning. Catching disk-full / quota-exhaust scenarios before they fire is the canonical forecast use case.
 
@@ -218,6 +222,10 @@ fetch dt.davis.problems, from:-24h
 3. **Forecast** — analyzer task with confidence interval
 4. **Branch** — if projected exhaustion within N days → escalate
 5. **Notify** — workflow notification
+
+The tutorial is explicit that this is a workflow action, not an MCP call: *"To trigger the forecast from a workflow, you need the Analyze data action."* External agents reach the same forecasting capability through the MCP `timeseries-forecast` tool (§5).
+
+> <sub>**Sources:** [Forecast disk and resource utilization (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/dynatrace-intelligence-for-workflows) — tutorial built on Dynatrace Intelligence (Preview).</sub>
 
 ```dql
 // Disk usage timeseries — input to the forecast analyzer
@@ -238,11 +246,13 @@ The MCP server is how your agent (Claude Code, Cursor, GitHub Copilot, etc.) cal
 
 | Family | Tools |
 |--------|-------|
-| **DQL** | `create-dql`, `execute-dql`, `verify-dql`, `explain-dql` |
-| **Davis analyzers** | `static-threshold-analyzer`, `seasonal-baseline-anomaly-detector`, `adaptive-anomaly-detector`, `timeseries-novelty-detection`, `timeseries-forecast` |
+| **DQL** | `create-dql`, `execute-dql`, `explain-dql` |
+| **Davis analyzers** | `static-threshold-analyzer`, `seasonal-baseline-anomaly-detector`, `adaptive-anomaly-detector`, `timeseries-novelty-detection`, `timeseries-forecast`, `log-pattern-extractor` |
 | **Discovery** | `find-documents`, `find-troubleshooting-guides`, `ask-dynatrace-docs` |
 | **Topology** | `get-entity-id`, `get-entity-name` |
-| **Davis problems** | `get-problem-by-id`, `query-problems`, `get-vulnerabilities`, `get-events-for-kubernetes-cluster` |
+| **Davis problems & security** | `query-problems`, `get-problem-by-id`, `get-events-for-kubernetes-cluster`, `get-dynatrace-vulnerabilities`, `get-dynatrace-compliance-findings`, `get-security-events-summary`, `get-security-event-details` |
+
+Tool names as registered by the Dynatrace MCP gateway, 09/24/2026 — the catalog changes; list your server's tools before scripting against a name.
 
 **Setup outline:**
 1. Create a Platform Token with the scopes you need (`davis:analyzers:execute`, `events:read`, etc.)
@@ -261,7 +271,7 @@ Auth and IAM bind the MCP integration to your IAM policy — same `davis:analyze
 
 Agentic workflows are an emerging area in 2026. The intent: detect a problem (Causal AI), propose a remediation (Generative AI), execute under policy guardrails (workflow + AutomationEngine), surface the human approval / post-action audit.
 
-> **Two platform moves in this space (SaaS 1.344 and 1.346 — staged rollouts).** An **SRE Agent workflow template** ships with 1.344 (released 07/29/2026): production problems trigger automated root-cause analysis and impact annotations. It is a worked instance of exactly the pattern below — detect, analyse, annotate — and lands on the *suggest* side of the line, annotating rather than acting, which is why it is a reasonable first agentic workflow to adopt. Separately, **Dynatrace Assist gains an agentic mode** in 1.346, where embedded conversation starters perform live environment analysis rather than answering from documentation; 1.344 added role, expertise-level, language, and tone personalisation. Assist moving from answering to analysing puts it inside the guardrail model below — the Scope, Policy and Audit questions now apply to it, not just to workflows you author. Verify both have reached your tenant before designing against them; the suggest-mode posture below is unchanged by either.
+> **Two platform moves in this space (SaaS 1.344 and 1.346).** An **SRE Agent workflow template** ships with 1.344 (rollout from 07/29/2026): production problems trigger automated root-cause analysis and impact annotations. It is a worked instance of exactly the pattern below — detect, analyse, annotate — and lands on the *suggest* side of the line, annotating rather than acting, which is why it is a reasonable first agentic workflow to adopt. Separately, **Dynatrace Assist gains an agentic mode** in 1.346 (rollout from 08/25/2026), where embedded conversation starters perform live environment analysis rather than answering from documentation; 1.344 added role, expertise-level, language, and tone personalisation. Assist moving from answering to analysing puts it inside the guardrail model below — the Scope, Policy and Audit questions now apply to it, not just to workflows you author. The suggest-mode posture below is unchanged by either.
 >
 > <sub>Sources: [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346)</sub>
 

@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 09/18/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -48,13 +48,17 @@ This is the cost decision that the field most often gets wrong.
 <a id="pattern"></a>
 ## 2. The Routing Pattern
 
-1. Create a workflow with a **Problem trigger**.
-2. Configure the trigger to **filter the problems** relevant to this channel — filter on the metadata you enriched upstream (team, zone, service, severity).
-3. Add the **notification action** for the channel.
-4. Set up the **connection** to that channel if not already present.
-5. Compose the message, using `{` to embed problem details (name, link, severity, affected entity).
+1. Create a workflow with a **Problem trigger**, and set **Problem state** to *active or closed* so every open notification has a matching close.
+2. Configure the trigger to **filter the problems** relevant to this channel, on the metadata you enriched upstream (team, zone, service, severity).
+3. Under *Advanced options*, enable **Wait for root cause analysis**. Without it the workflow can fire before the affected entities and tags your filter depends on have been attached.
+4. Add the **notification action** for the channel, and set up its **connection** if not already present.
+5. Compose the message with Jinja over the problem record, for example `{{ event()['event.name'] }}`, and include `{{ problem_link() }}` so recipients reach the problem in one click.
 
 Routing dimensions — severity, team/ownership, service, time of day — and escalation patterns are covered in depth in WFLOW-04. Sprint-1.337 made Smartscape ownership a first-class routing attribute, so workflows can read the owning team directly rather than maintaining a side-table.
+
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* If step 2 filters on severity, a filter that was silently matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Before routing on severity, check which of your event sources actually **set** one. Until 1.348 reaches your tenant, the defaulting behavior still applies and severity filtering works as described above.
+
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Enable Wait for root cause analysis. Without this option enabled, the workflow can trigger on a problem whose root cause and affected entities are still being assembled."* [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release, read 09/24/2026.</sub>
 
 <a id="destinations"></a>
 ## 3. Destination Landscape
@@ -64,7 +68,7 @@ Routing dimensions — severity, team/ownership, service, time of day — and es
 | Slack / Teams | Native workflow connector | WFLOW-03/04 |
 | PagerDuty / on-call | Native connector — use for fast-burn pages | WFLOW-04, SLO-04 |
 | Jira | Native connector — create/comment/assign issues | WFLOW-04 |
-| Jira Service Management | Native JSM connector (SaaS 1.343, staged rollout — verify in tenant) — send Dynatrace events to JSM for alert management | WFLOW-04 |
+| Jira Service Management | Native JSM connector (SaaS 1.343) — send Dynatrace events to JSM for alert management | WFLOW-04 |
 | ServiceNow | Native connector / HTTP Table API / ITOM app | ALERT-04 |
 | Email | Native action | WFLOW-03 |
 | xMatters | Legacy alerting-profile path (see below) | — |
@@ -78,13 +82,14 @@ If you are converting classic problem notifications to workflows, this is the do
 
 | Classic notification | Workflow equivalent |
 |---------------------|--------------------|
-| Ansible | RedHat Ansible connector |
-| Custom integration | HTTP Request action |
+| Ansible | Red Hat Ansible connector |
+| Custom integration (generic webhook) | HTTP Request action |
 | Email | Microsoft 365 / Email connector |
 | Jira | Jira connector |
 | PagerDuty | PagerDuty connector |
 | ServiceNow | ServiceNow connector |
 | Slack | Slack connector |
+| Microsoft Teams | Microsoft Teams connector |
 
 ### The three with no native connector
 
@@ -92,9 +97,11 @@ If you are converting classic problem notifications to workflows, this is the do
 
 Rebuild the payload against the destination's live API contract; do not port the classic webhook body verbatim.
 
-> ⚠️ **A classic integration scoped by a Management Zone is only as durable as that Management Zone.** The MZ filter has **no successor** inside the alerting model — Dynatrace's upgrade guide states it is *"no longer supported."* If you are retiring Management Zones, those notifications must be rebuilt as problem-triggered workflows first, filtered on affected-entity tags. **MZ2POL-09** covers that conversion end to end, including the capability regressions.
+> ⚠️ **A classic integration scoped by a Management Zone is only as durable as that Management Zone.** Workflows have no Management Zone filter. The upgrade guide describes the replacement: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* *"There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* If you are retiring Management Zones, rebuild those notifications as problem-triggered workflows first, filtered on entity tags or primary Grail tags. **MZ2POL-09** covers that conversion end to end, including the capability regressions.
 
 > **Available (SaaS 1.343):** a dedicated **Jira Service Management connector** is part of the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector. SaaS 1.343's rollout started **July 14, 2026** (page updated July 28, 2026), so it has reached tenants broadly — verify in yours, then treat it as the first-choice JSM path. The existing Jira connector and custom-webhook paths described in this section remain valid where it has not landed.
+
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the classic-to-workflow mapping table and the Management Zone replacement, quoted above.</sub>
 
 <a id="legacy"></a>
 ## 4. The Legacy Path

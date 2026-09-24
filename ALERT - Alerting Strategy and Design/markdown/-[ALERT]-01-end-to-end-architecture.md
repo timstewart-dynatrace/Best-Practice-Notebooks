@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 08/27/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ Every Dynatrace alert, regardless of source, follows the same spine: **telemetry
 |-------|--------|------------------|
 | Detect | OOTB Davis · anomaly detector · OpenPipeline metric · SLO burn-rate | Davis automatic / Anomaly Detection app / OpenPipeline / SLO app |
 | Converge | one enriched Davis problem (team, zone, tags) | event template + tags/ownership |
-| Route | workflow — simple (free) vs multi-step (charged) | AutomationEngine |
+| Route | workflow — simple (no workflow-hours) vs multi-step (workflow-hours) | AutomationEngine |
 | Notify/act | Slack · Teams · PagerDuty · Jira · ServiceNow · xMatters(legacy) | workflow connectors / classic profiles |
 | Closed loop | remediation · ServiceNow state sync | workflow / ServiceNow-side app |
 For environments where SVG doesn't render
@@ -72,21 +72,21 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 | Detection — cheap custom metric | Metric extraction from logs/spans | OpenPipeline | ingest cost, no query cost |
 | Detection — reliability | SLO + burn-rate alert | SLO app | included |
 | Convergence | Enrichment (team, zone, tags) so routing has something to filter | event template / tags / ownership | — |
-| Routing | Problem-trigger workflow | AutomationEngine — simple (free) vs multi-step (charged) | choose deliberately |
+| Routing | Problem-trigger workflow | AutomationEngine — simple (no workflow-hours) vs multi-step (workflow-hours) | choose deliberately |
 | Destinations | Connector per channel | workflow connectors; legacy via alerting profiles | — |
 | Closed loop | Remediation / bi-directional sync | workflow / ServiceNow-side app | — |
 
-### A noise control between detection and convergence
+### A noise control on the routing side
 
-**Available (SaaS 1.344):** problem-event trigger delays are configurable — how long a Davis event must persist before it opens a problem. SaaS 1.344's rollout started **07/29/2026** and two later sprints have shipped since, so it has reached tenants broadly; verify in yours before designing around it.
+**Available (SaaS 1.344):** the workflow **Problem trigger** has a **Minimum duration** option (under *Advanced options*) that postpones the trigger until the problem has been open for at least the configured duration: 5 minutes up to one week. SaaS 1.344's rollout started **07/29/2026**; verify it has reached your tenant before designing around it.
 
-Note *where* this sits on the board, because it is easy to file in the wrong place. It is **not** an analyzer parameter. Analyzer settings such as `violatingSamples` and `slidingWindow` decide whether a metric series is anomalous at all; a trigger delay decides how long the resulting event must hold before a problem is opened. The two compose rather than substitute — and because the delay applies platform-side, it damps flapping from detectors you do not own, which no analyzer setting can do for you.
+Note *where* this sits on the board, because it is easy to file in the wrong place. It is **not** an analyzer parameter, and it does not delay the problem. The problem opens, and shows in the Problems app, as soon as Davis creates it. What Minimum duration holds back is the *notification*: a problem that closes before reaching the threshold never triggers the workflow. Analyzer settings such as `violatingSamples` and `slidingWindow` decide whether a series is anomalous at all; Minimum duration decides whether a problem has lasted long enough to tell someone. The two compose rather than substitute. Because it applies at the trigger, it damps notifications from flapping detectors you do not own. It does not reduce problem counts or the alert-state time the 0.1% yardstick measures (ALERT-99 §3). That is still the detector's job.
 
-Until it reaches your tenant, the sliding-window minimum on the analyzer remains the control to rely on for exactly this class of noise (ALERT-02, AIOPS-02 §4).
+Where Minimum duration is not available yet, the sliding-window minimum on the analyzer remains the control to rely on for this class of noise (ALERT-02, AIOPS-02 §4).
 
 ALERT-02 covers choosing detection; ALERT-03 covers routing and cost; ALERT-04 covers ServiceNow.
 
-> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344). **Derived:** the "different layer, composes rather than substitutes" placement follows from the trigger delay acting on the event-to-problem step while analyzer parameters act on the series.</sub>
+> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."* **Derived:** the "different layer, composes rather than substitutes" placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub>
 
 <a id="rule"></a>
 ## 4. The One Rule That Makes Routing Work
@@ -111,7 +111,7 @@ A problem that fires with no team or ownership metadata forces every workflow to
 | Create ServiceNow incidents (and sync state) | ALERT-04 |
 | See the complete setup checklist | ALERT-99 |
 
-> <sub>**Sources:** [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting), [Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app). **Derived:** the anti-noise funnel ordering is a synthesis of OOTB-first guidance and the query-cost economics in OPIPE/FINOPS.</sub>
+> <sub>**Sources:** [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications), [Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app). **Derived:** the anti-noise funnel ordering is a synthesis of OOTB-first guidance and the query-cost economics in OPIPE/FINOPS.</sub>
 
 ---
 
