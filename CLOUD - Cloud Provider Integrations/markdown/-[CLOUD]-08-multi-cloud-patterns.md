@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -27,7 +27,7 @@ This notebook covers strategies for building unified observability across multip
 | Requirement | Details |
 |---|---|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:logs:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **Cloud Integrations** | At least two cloud providers configured (AWS, Azure, or GCP) |
 | **Prior Knowledge** | CLOUD-01 through CLOUD-06 |
 
@@ -309,7 +309,7 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-24h, by:{dt.entity.host}
 
 ```dql
 // Kubernetes namespaces with highest resource consumption (cost proxies)
-timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgCpu = arrayAvg(nsCpu)
 | sort avgCpu desc
 | limit 10

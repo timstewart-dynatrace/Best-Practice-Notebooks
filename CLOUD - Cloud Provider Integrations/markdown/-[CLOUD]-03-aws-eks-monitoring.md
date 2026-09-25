@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -25,8 +25,8 @@ This notebook provides a deep dive into monitoring Amazon Elastic Kubernetes Ser
 
 | Requirement | Details |
 |---|---|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:logs:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **AWS EKS Cluster** | At least one EKS cluster with Dynatrace Operator installed |
 | **Dynatrace Operator** | 1.8+ (installs the current `v1beta6` DynaKube API; latest release line 1.10.x) via Helm or kubectl — `v1beta5` with Operator 1.6+ still works and auto-migrates on upgrade |
 | **Prior Knowledge** | CLOUD-01 fundamentals, basic Kubernetes concepts |
@@ -144,7 +144,7 @@ fetch dt.entity.kubernetes_cluster, from:-7d
 //   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key} | sort metric.key asc
 // (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
 //  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
-timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
+timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgCpu = arrayAvg(used)
 | sort avgCpu desc
 | limit 15
@@ -166,7 +166,7 @@ timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entit
 //
 // The node-CPU sibling was corrected on 08/11/2026 and this cell was missed, so it kept drawing
 // an empty tile for a further day — when a key turns out not to exist, sweep the whole namespace.
-timeseries nodeMemory = sum(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.kubernetes_node}
+timeseries nodeMemory = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgMemory = arrayAvg(nodeMemory)
 | sort avgMemory desc
 | limit 15
@@ -215,16 +215,16 @@ spec:
 ### Pod CPU and Memory by Namespace
 
 ```dql
-// Pod CPU usage by namespace over the last hour
-timeseries avgContainerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.namespace.name}
-| fieldsAdd avgCpu = arrayAvg(avgContainerCpu)
+// Namespace CPU: SUM of container CPU per namespace (avg would report the per-container mean)
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpu = arrayAvg(nsCpu)
 | sort avgCpu desc
 | limit 10
 ```
 
 ```dql
-// Container memory working set by namespace over the last hour
-timeseries containerMem = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{k8s.namespace.name}
+// Namespace memory: SUM of container working set per namespace (avg would report the per-container mean)
+timeseries containerMem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h, by:{k8s.namespace.name}
 | fieldsAdd avgMem = arrayAvg(containerMem)
 | sort avgMem desc
 | limit 10
@@ -285,7 +285,10 @@ One of the key benefits of Kubernetes monitoring is the ability to allocate cost
 
 ```dql
 // Namespace CPU usage (sum over the namespace's containers) over the last 24 hours
-timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.namespace.name}
+// rollup: avg averages each container WITHIN a time bucket before summing across containers.
+// Without it, sum() also adds up the 1-minute points in each bucket: at 24h (10-min buckets)
+// every value reads ~10x high (verified 09/25/2026: 19,512 vs 1,955 millicores for one namespace).
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgCpu = arrayAvg(nsCpu)
 | sort avgCpu desc
 | limit 15
@@ -295,7 +298,10 @@ timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage), from:-24h, by:{k8s.na
 
 ```dql
 // Namespace memory usage over the last 24 hours
-timeseries nsMem = sum(dt.kubernetes.container.memory_working_set), from:-24h, by:{k8s.namespace.name}
+// rollup: avg averages each container WITHIN a time bucket before summing across containers.
+// Without it, sum() also adds up the 1-minute points in each bucket: at 24h (10-min buckets)
+// every value reads ~10x high (verified 09/25/2026: 19,512 vs 1,955 millicores for one namespace).
+timeseries nsMem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-24h, by:{k8s.namespace.name}
 | fieldsAdd avgMemBytes = arrayAvg(nsMem)
 | fieldsAdd avgMemGB = avgMemBytes / 1073741824.0
 | sort avgMemGB desc

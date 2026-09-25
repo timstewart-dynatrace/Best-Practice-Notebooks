@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -26,7 +26,7 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 | Requirement | Details |
 |---|---|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `logs.read`, `logs.ingest`, `openpipeline.read` |
+| **Permissions** | `storage:logs:read` + `storage:buckets:read`, `logs.ingest`, `openpipeline.read` |
 | **AWS Integration** | CloudWatch log groups generating data |
 | **Prior Knowledge** | CLOUD-01 and CLOUD-02 fundamentals |
 

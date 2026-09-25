@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -24,8 +24,8 @@ This notebook introduces how Dynatrace integrates with major cloud providers (AW
 
 | Requirement | Details |
 |---|---|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `ReadConfig` |
+| **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `settings:objects:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **Cloud Integration** | At least one cloud provider connected (AWS, Azure, or GCP) |
 | **Prior Knowledge** | Basic Dynatrace navigation and DQL fundamentals |
 
@@ -47,7 +47,7 @@ Dynatrace supports multiple approaches for cloud integration, with **direct conn
 1. Open the **Clouds app** in your Dynatrace environment.
 2. Select the cloud provider (AWS, Azure, or GCP) and follow the guided onboarding flow.
 3. For **AWS**: Dynatrace deploys a CloudFormation stack in your account that creates IAM roles, Secrets Manager entries, and optional log forwarding resources.
-4. For **Azure**: Use the Azure Native Dynatrace Service from the Azure Marketplace, or connect via Entra ID app registration.
+4. For **Azure**: Create an Azure connection in the Clouds app (Entra ID app registration with a federated identity credential and the Monitoring Reader role), or use the Azure Native Dynatrace Service from the Azure Marketplace.
 5. For **GCP**: Deploy the integration via Helm on a GKE cluster, using Pub/Sub for metric and log forwarding.
 6. Dynatrace connects directly to cloud APIs — **no ActiveGate required** for SaaS deployments.
 7. Discovered resources are mapped to the Dynatrace entity model, enriched with cloud-native metadata (tags, account IDs, regions).
@@ -292,8 +292,8 @@ Establish consistent naming across providers:
 | Element | Convention | Example |
 |---|---|---|
 | **Tags** | `cloud-provider:aws`, `cloud-provider:azure` | Identify cloud origin |
-| **Management Zones** | `Cloud - AWS - Production`, `Cloud - Azure - Staging` | Scope views by provider/env |
-| **Alerting Profiles** | `cloud-aws-critical`, `cloud-azure-warning` | Route alerts by provider |
+| **Segments** | `Cloud - AWS - Production`, `Cloud - Azure - Staging` | Scope views by provider/env (filtering only — access is granted by IAM policies, not segments; Management Zones are the classic equivalent) |
+| **Workflow triggers** | `cloud-aws-critical`, `cloud-azure-warning` | Route problems by provider with problem-triggered workflows (alerting profiles are the classic equivalent) |
 
 ### Deployment Pattern
 
