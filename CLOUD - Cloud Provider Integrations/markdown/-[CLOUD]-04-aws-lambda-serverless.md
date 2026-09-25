@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -63,7 +63,7 @@ timeseries invocations = sum(dt.service.faas_invoke.count), from:-1h, by:{faas.t
 | Requirement | Details |
 |---|---|
 | **Dynatrace Environment** | SaaS with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `spans.read` |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:spans:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **AWS Integration** | AWS cloud integration configured (CLOUD-02) |
 | **Lambda Functions** | At least one Lambda function with Dynatrace layer or OneAgent extension |
 | **Prior Knowledge** | CLOUD-01 fundamentals, CLOUD-02 AWS integration |

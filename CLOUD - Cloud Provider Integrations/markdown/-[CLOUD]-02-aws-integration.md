@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -27,8 +27,8 @@ This notebook covers how to set up and optimize Dynatrace's AWS integration. You
 
 | Requirement | Details |
 |---|---|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `ReadConfig`, `WriteConfig` |
+| **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `settings:objects:read`, `settings:objects:write`, `storage:buckets:read` (Grail IAM permissions) |
 | **AWS Account** | With IAM permissions for Dynatrace integration |
 | **Connection** | Clouds app direct connection (recommended) or Environment ActiveGate (classic) |
 | **Prior Knowledge** | CLOUD-01 fundamentals |

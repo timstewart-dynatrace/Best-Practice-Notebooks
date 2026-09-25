@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -25,8 +25,8 @@ This notebook covers Dynatrace integration with Google Cloud Platform (GCP). You
 
 | Requirement | Details |
 |---|---|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
+| **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:logs:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **GCP Project** | With service account configured for Dynatrace |
 | **Connection** | Clouds app or Helm-based GKE integration (recommended for SaaS) or Environment ActiveGate (classic) |
 | **Prior Knowledge** | CLOUD-01 fundamentals |
@@ -219,7 +219,7 @@ Google Kubernetes Engine (GKE) is monitored with the DynaKube Operator, similar 
 ### GKE Container Metrics
 
 ```dql
-// Top 10 containers by CPU usage in the last hour
+// Top 10 container names by CPU, averaged across every replica that shares the name
 timeseries containerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.container.name}
 | fieldsAdd avgCpu = arrayAvg(containerCpu)
 | sort avgCpu desc
@@ -241,7 +241,7 @@ timeseries containerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{
 //   metrics | filter startsWith(metric.key, "dt.kubernetes") | summarize n = count(), by:{metric.key} | sort metric.key asc
 // (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
 //  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
-timeseries used = sum(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.kubernetes_node}
+timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
 | fieldsAdd avgCpu = arrayAvg(used)
 | sort avgCpu desc
 | limit 10
@@ -362,7 +362,7 @@ GCP uses a project-based hierarchy that maps to Dynatrace as follows:
 |---|---|
 | **Tag by project** | Ensure GCP project ID is propagated as a Dynatrace tag |
 | **Use label conventions** | Standard labels: `env`, `team`, `service`, `cost-center` |
-| **Segment by project** | Create Dynatrace segments per GCP project for access control |
+| **Segment by project** | Create Dynatrace segments per GCP project for scoped views — segments filter, they do not restrict access; restrict access with IAM policies (for example on a security context) or bucket permissions |
 | **Monitor billing exports** | Forward BigQuery billing data to Dynatrace for cost correlation |
 
 <a id="summary"></a>

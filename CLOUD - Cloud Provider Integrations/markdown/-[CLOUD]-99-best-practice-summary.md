@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/25/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 3 | AWS: Use IAM role-based auth (STS AssumeRole) | IAM Role with trust policy to Dynatrace AWS account; never use long-lived access keys in production | Critical | CLOUD-02 |
 | 4 | AWS: Use the Dynatrace-generated scoped read-only policy | Use the Dynatrace-generated scoped read-only policy from the CloudFormation template (or a least-privilege policy derived from it); never `AdministratorAccess` | Critical | CLOUD-02 |
 | 5 | Azure: Use Azure Native Dynatrace Service | Deploy from Azure Marketplace for zero-infrastructure setup with unified billing | Recommended | CLOUD-05 |
-| 6 | Azure: Use managed identity when ActiveGate runs on Azure VM | Eliminates credential rotation entirely | Critical | CLOUD-05 |
+| 6 | Azure: Use managed identity only for a classic ActiveGate on an Azure VM | For Clouds-app connections the federated identity credential (row 8) is the recommended method; managed identity applies only to the classic ActiveGate path | Recommended | CLOUD-05 |
 | 7 | Azure: Assign `Monitoring Reader` role at subscription scope | Scope: subscription or management group; role: `Monitoring Reader` (the role the Azure connection docs assign); `Reader` only for the classic integration | Critical | CLOUD-05 |
 | 8 | Azure: Use a federated identity credential (non-native) | Use a federated identity credential for Clouds-app Azure connections; client secret only where federation is unavailable (keep expiry < 12 months) | Recommended | CLOUD-05 |
 | 9 | GCP: Create dedicated service account with minimal roles | Assign `roles/monitoring.viewer`, `roles/compute.viewer`, `roles/container.viewer`, `roles/cloudasset.viewer` | Critical | CLOUD-06 |
@@ -63,10 +63,10 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 19 | Map Azure resource groups to Dynatrace Segments | One Segment per resource group or application for access control and scoped views | Critical | CLOUD-05 |
+| 19 | Map Azure resource groups to Segments (views) and IAM policies (access) | Segments filter by `azure.resource.group` / `azure.subscription` but grant no access — restrict access with IAM policies or bucket permissions | Critical | CLOUD-05 |
 | 20 | Propagate Azure tags to Dynatrace | Tags must flow through automatically; verify `environment`, `team`, `cost-center` appear in Dynatrace | Recommended | CLOUD-05 |
 | 21 | Use naming convention for resource groups | Pattern: `rg-<application>-<environment>-<region>` (e.g., `rg-myapp-prod-eastus`) | Recommended | CLOUD-05 |
-| 22 | Forward Azure logs via Event Hub or Diagnostic Settings | Use Azure Diagnostic Settings to stream to Dynatrace; Event Hub for high-volume | Recommended | CLOUD-07 |
+| 22 | Forward Azure logs through Diagnostic Settings → Event Hubs | Diagnostic settings stream activity, Entra ID and resource logs to regional Event Hubs that Dynatrace pulls from (no function code to host); the Azure Native service can create the settings for you | Recommended | CLOUD-05 |
 
 > <sub>**Sources:** [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
@@ -79,7 +79,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 23 | Use Workload Identity for GKE pods | Replace service account JSON keys with Workload Identity for DynaKube and integration pods | Critical | CLOUD-06 |
 | 24 | Tag all GCP resources with standard labels | Required labels: `env`, `team`, `service`, `cost-center`; propagate as Dynatrace tags | Recommended | CLOUD-06 |
 | 25 | Propagate GCP project ID as a Dynatrace tag | Tag key: `gcp.project`; enables cross-project filtering and Segment creation | Recommended | CLOUD-06 |
-| 26 | Create Dynatrace Segments per GCP project | One Segment per project for access control, cost attribution, and scoped dashboards | Recommended | CLOUD-06 |
+| 26 | Create Dynatrace Segments per GCP project | One Segment per project for cost attribution and scoped dashboards (segments filter; access is an IAM-policy job) | Recommended | CLOUD-06 |
 | 27 | Monitor Pub/Sub message volume for cost control | Filter logs at Cloud Logging export to reduce Pub/Sub throughput and costs | Recommended | CLOUD-06 |
 | 28 | Use Cloud Monitoring metrics scope for multi-project | Aggregate metrics from multiple projects into a single metrics scope rather than separate integrations | Optional | CLOUD-06 |
 
@@ -132,7 +132,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 52 | Use OpenPipeline for enrichment, routing, and fine-grained filtering | Add `cloud.provider`, route by log group to specific Grail buckets, drop remaining noise | Recommended | CLOUD-07 |
 | 53 | Route logs to purpose-specific Grail buckets | Route `/aws/lambda/*` → `lambda_logs`, `/ecs/*` → `application_logs`, `/aws/rds/*` → `database_logs` | Recommended | CLOUD-07 |
 | 54 | Enable S3 backup on Firehose delivery stream | Backup failed or all records to S3 for disaster recovery and compliance | Recommended | CLOUD-07 |
-| 55 | Azure: Use Event Hub or Diagnostic Settings for log forwarding | Stream activity and resource logs directly to Dynatrace | Recommended | CLOUD-07 |
+| 55 | Azure: One diagnostic setting per resource, regional Event Hubs | Event Hubs must be in the resource's region; each resource allows at most five diagnostic settings | Recommended | CLOUD-05 |
 | 56 | GCP: Use Pub/Sub via GKE integration for log forwarding | Push-based delivery; filter at Cloud Logging export level to reduce volume | Recommended | CLOUD-07 |
 
 <a id="cost-optimization"></a>
@@ -159,7 +159,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 |---|---|---|---|---|
 | 66 | Apply consistent tag schema across all providers | Required tags: `cloud-provider`, `environment`, `team`, `application`, `cost-center`, `region` | Critical | CLOUD-08 |
 | 67 | Normalize region names across providers | Use normalized values: `us-east`, `eu-west`, `ap-south` — not provider-specific names | Recommended | CLOUD-08 |
-| 68 | Create Dynatrace Segments per cloud provider + environment | One Segment per combination (e.g., `AWS-Production`, `Azure-Staging`) for access control | Critical | CLOUD-08 |
+| 68 | Create Dynatrace Segments per cloud provider + environment | One Segment per combination (e.g., `AWS-Production`, `Azure-Staging`) for scoped views; pair with IAM policies for access control, which segments do not provide | Critical | CLOUD-08 |
 | 69 | Enforce tagging compliance with automation | Reject or alert on untagged cloud resources; query: `fetch dt.entity.host \| filter isNull(tags)` | Critical | CLOUD-08 |
 | 70 | Define SLOs at the service level, not infrastructure level | SLOs are cloud-agnostic: measure user experience (latency, error rate, availability) | Recommended | CLOUD-08 |
 | 71 | Route alerts by team, not by cloud provider | Dynatrace Workflows route to the application owner regardless of which cloud has the issue | Critical | CLOUD-08 |
@@ -178,7 +178,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 77 | Combine cloud integration with OneAgent on all compute | Cloud integration: infrastructure context. OneAgent: processes, traces, code-level diagnostics. Both required for full-stack visibility | Critical | CLOUD-01 |
 | 78 | Build unified health dashboards showing all providers | Components: host CPU (all providers), active detected problems, service error rates, log error trends, K8s container metrics | Recommended | CLOUD-08 |
 | 79 | Deduplicate alerts using Dynatrace Intelligence correlation | Dynatrace Intelligence automatically correlates related issues across providers; do not create redundant static alerts | Recommended | CLOUD-08 |
-| 80 | Forward control plane logs to Dynatrace for unified analysis | EKS: Container Insights logs. AKS: Azure Monitor logs. GKE: Cloud Logging. Forward all to Grail for cross-platform analysis | Recommended | CLOUD-03, CLOUD-06 |
+| 80 | Forward control plane logs to Dynatrace for unified analysis | EKS: Container Insights logs. AKS: control-plane resource logs via diagnostic settings (prefer `kube-audit-admin` over `kube-audit` for cost). GKE: Cloud Logging. Forward all to Grail for cross-platform analysis | Recommended | CLOUD-03, CLOUD-06 |
 
 ---
 
