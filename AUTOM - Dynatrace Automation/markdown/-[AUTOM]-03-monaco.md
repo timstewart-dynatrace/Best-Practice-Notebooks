@@ -1,6 +1,6 @@
 # AUTOM-03: Monaco Configuration-as-Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 09/29/2026
 
 Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.
 
@@ -132,7 +132,20 @@ monaco download \
   --only-slo-v2 --only-segments --only-automation --only-documents
 ```
 
-The full set of `--only-*` flags is `--only-settings`, `--only-apis`, `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets` and `--only-openpipeline` (read from the download command's source, `cmd/monaco/download/download_command.go`).
+The full set of `--only-*` flags is `--only-settings`, `--only-apis`, `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets` and `--only-openpipeline` (read from the download command's source, `cmd/monaco/download/download_command.go`, at v2.30.0).
+
+**Settings owned by other users (Monaco CLI 2.30.0+).** A download returns the settings objects the credential's user can see. For OpenPipeline, `--admin-access` also returns pipelines other users own — the release note: *"enabling this flag will also download configurations of different owners (other than the user that is assigned to the platform token or OAuth client). Requires `settings:objects:admin`."* The flag applies to owner-based OpenPipeline schemas only (`builtin:openpipeline.*`); on older CLI versions there is no equivalent. See [Using a Download as a Backup](#using-a-download-as-a-backup) for what else a download leaves out.
+
+```bash
+monaco download \
+  --url "$DT_TENANT_URL" \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./downloaded-config \
+  --only-settings --admin-access
+```
+
+> <sub>**Sources:** [Monaco v2.30.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0) — *"If settings-based OpenPipeline configurations (`builtin:openpipeline.*`) are downloaded, enabling this flag will also download configurations of different owners"*; [settings client (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/dtclient/settings_client.go) — *"supportsAdminAccess returns true if the schema is an owner-based OpenPipeline schema."*</sub>
 
 **Classic — inventorying what you still have before the upgrade.** Download specific Settings 2.0 schemas with `--settings-schema` (`--api` is for **classic** Configuration APIs only):
 
@@ -447,6 +460,53 @@ Every non-classic entry needs **`project` and `id` together** (the Monaco config
 
 ---
 
+<a id="using-a-download-as-a-backup"></a>
+### Using a Download as a Backup — What It Does Not Capture
+
+`monaco download` is a good **configuration** backup: Settings 2.0 objects, workflows, business calendars and scheduling rules, bucket definitions, dashboards, notebooks, launchpads, segments and `slo-v2` SLOs all land in version control. It is not a **tenant** backup. Some things are filtered out by design, some are invisible to the credential you run it with, and some have no Monaco type at all. Keep the list below next to the export, so that a restore does not discover the gaps for you.
+
+| What is missing | Why | What to do |
+|---|---|---|
+| **Credentials and secrets** — `aws-credentials`, `azure-credentials`, `kubernetes-credentials`, `credential-vault`, `extension` | Excluded by default: *"Typically, these types contain secrets that must not be exported"* | Inventory every credential; recreate by hand on restore. Turning the filter off does not help — the API does not return the secret |
+| **Read-only settings** | *"Read-only configurations are also excluded."* | Usually platform defaults you would not restore. `MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS_UNMODIFIABLE=false` downloads them |
+| **Settings Monaco filters by default** — notably `builtin:host.monitoring.mode`, skipped entirely, plus a handful of built-in defaults (the `Default` alerting profile, `default` bucket rules) | The source skips host monitoring mode because it *"is not reliable during download"* | If per-host monitoring modes matter to a restore, run a separate download with `MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS=false`. Dynatrace warns that an unfiltered download needs *"some manual post-processing"* before it deploys |
+| **OpenPipeline owned by other users** | Without `--admin-access` (Monaco CLI 2.30.0+), only the credential user's pipelines are returned | Add `--admin-access` with `settings:objects:admin`. Back up OpenPipeline through `settings`: the `openpipeline` type *"is deprecated and has been moved to Settings"* |
+| **Other settings owned by other users** | Objects created with `allUsers: none` are visible only to their owner, and `--admin-access` covers OpenPipeline schemas only | In community practice, run the download as a dedicated service identity and have owners share objects with it — then compare object counts per schema against the UI before trusting the export |
+| **Documents** | *"Monaco does not download Ready-made documents."* Documents the credential cannot see are not returned, and a public document the Monaco user does not own may fail to redeploy | Ready-made documents ship with the platform. For the rest, transfer ownership of shared documents to the backup identity, or accept that private documents stay with their owners |
+| **Account resources** | Users, service users, groups and policies are a separate command; *"existing commands like `monaco deploy` ignore any account configuration"* | Run `monaco account download` alongside the environment download. The current account example shows no boundary type — verify that boundaries come back before relying on them |
+| **Things with no Monaco type** | The type-fields page (read 09/29/2026) lists no type for lookup tables, installed Hub or custom apps, access tokens, platform tokens or OAuth clients | Record them in the runbook; reinstall apps and re-mint tokens and clients on restore |
+| **Anything that is not configuration** | Grail data (a `bucket` config is the bucket's definition, not its contents), Davis baselines and problem history | Not recoverable from any configuration export — see FAQ-25 on accumulated state |
+
+A backup run that closes the gaps Monaco can close:
+
+```bash
+export MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS_UNMODIFIABLE=false   # optional: include read-only settings
+
+monaco download \
+  --url "$DT_TENANT_URL" \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./backup/environment \
+  --admin-access                          # Monaco CLI 2.30.0+, needs settings:objects:admin
+
+monaco account download \
+  --uuid "$DT_ACCOUNT_UUID" \
+  --oauth-client-id DT_OAUTH_CLIENT_ID \
+  --oauth-client-secret DT_OAUTH_CLIENT_SECRET \
+  --output-folder ./backup/account        # account resources need an OAuth client
+```
+
+Commit both folders together with the gap list above. Checking the export against the tenant — object counts per config-type folder — is what turns "we ran download" into "we have a backup".
+
+> <sub>**Sources:**</sub>
+> - <sub>[Monaco commands — Filtering of downloaded files (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — *"Typically, these types contain secrets that must not be exported"*; *"Read-only configurations are also excluded."*</sub>
+> - <sub>[Monaco YAML configuration — type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"Monaco does not download Ready-made documents."*; *"This resource is deprecated and has been moved to Settings."*; *"existing commands like monaco deploy ignore any account configuration"*</sub>
+> - <sub>[Default settings download filters (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/settings/filter.go) — *"builtin:host.monitoring.mode is not reliable during download"*</sub>
+> - <sub>[Monaco v2.30.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0) — *"Requires `settings:objects:admin`."*</sub>
+> - <sub>**Derived:** the "no Monaco type" row is the absence of those items from the type-fields page's type list, read 09/29/2026.</sub>
+
+---
+
 ### Download vs Deploy Workflow
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -558,6 +618,7 @@ monaco deploy manifest.yaml --project web-application --group production
 | **Version control** | Commit all changes with meaningful messages |
 | **Dry run first** | Run `monaco deploy --dry-run` before applying — it catches YAML/JSON structure errors, not payload errors |
 | **Document parameters** | Comment complex configurations |
+| **Treat a download as a partial backup** | `monaco download` omits secrets, filtered and read-only settings, other users' objects and everything that is not configuration — keep the gap list from [Using a Download as a Backup](#using-a-download-as-a-backup) beside the export |
 | **Check upgrade status before you invest** | Before building a long-lived project around a schema, confirm it is not marked **Blocked at upgrade** in AUTOM-02's catalog — a blocked schema takes the whole Monaco config type with it |
 
 ### Common Issues and Solutions
