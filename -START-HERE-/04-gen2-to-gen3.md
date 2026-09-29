@@ -1,7 +1,7 @@
 # Doorway 4 — Classic → Gen3 Platform
 
 > **Purpose:** Reading order for existing Dynatrace SaaS customers moving off classic surfaces onto platform equivalents — management zones used as permissions, metric events, alerting profiles, classic dashboards, Classic Logs, USQL. Same tenant, same deployment model; what changes is which surface you operate.
-> **Last Updated:** 09/24/2026
+> **Last Updated:** 09/29/2026
 
 ![Classic to Gen3 Migration Phases](images/04-gen2-to-gen3-phases.svg)
 
@@ -84,7 +84,9 @@ Estimates are calendar weeks for a small to mid-sized team, assuming the migrati
 <a id="the-readiness-scan"></a>
 ## The Readiness Scan
 
-Dynatrace ships a ready-made dashboard, **Check your upgrade readiness**, to tenants on the latest SaaS. It is read-only, curated and auto-distributed by Dynatrace, and it scores your tenant across nineteen classic-surface domains plus a licensing gate. Open it from the ready-made documents in the Dashboards app.
+Dynatrace ships a ready-made dashboard, **Check your upgrade readiness**, to tenants on the latest SaaS. It is read-only, curated and auto-distributed by Dynatrace, and it scores your tenant across twenty-one classic-surface domains plus a licensing gate. Open it from the ready-made documents in the Dashboards app.
+
+Dynatrace revises the dashboard in place, so the section list drifts. The table below reflects the revision read on 09/29/2026, which split alerting into separate baselining and metric-event sections and added OpenTelemetry metrics, RUM agent versions and security notifications.
 
 Run it before you plan the phases. It replaces the guesswork in the inventory this doorway used to ask you to assemble by hand — but it answers *what* is outstanding, not *in what order* or *whether it is worth fixing at all*. That is what the rest of this page is for.
 
@@ -101,11 +103,34 @@ Several constructs are the second without being the first. Public documentation 
 
 **Plan against the stricter signal.** Where the two disagree, treat the scan as the constraint and the documentation as the explanation. Blocking is triggered by *your* tenant's upgrade rather than a published calendar date, so the timing is yours to choose — the scope is not.
 
+### Where the scan and the documentation disagree today
+
+Four of the scan's checks go further than any public documentation page we could find on 09/29/2026. Plan against them anyway, but know which statements come only from the scan, because that is where a question to Dynatrace is worth asking before you commit effort:
+
+| The scan says | What public documentation says |
+|---|---|
+| Baselining and baseline alerts are retired for web, mobile and custom applications and for database and external services; internal services keep theirs | The metric-alerting upgrade guide still describes an automated multi-dimensional baselining detector for applications, services and database services. No page describes the retirement |
+| Network zones become permanently enabled after the upgrade and can no longer be switched off | The network-zones pages still describe *Enable network zones in this environment* as a toggle |
+| Web frontends need RUM JavaScript agent 347 and mobile frontends need agent 349; data from agents below 329 cannot be used | No version floor is published on the RUM upgrade or RUM JavaScript version pages |
+| Every ActiveGate needs 1.225+ with a valid auth token | The ActiveGate security page ties token-based security to 1.225+, but describes tenant-token-only connections as a temporary transitional state rather than a hard upgrade gate |
+
+Neither side is wrong about its own question. The docs describe how a construct behaves today, and the scan describes what your upgrade will test for.
+
 ### Read it in this order, not the order it renders
 
 The scan leads with its cheapest signals — deprecated REST calls and classic-entity DQL — because those are the easiest to compute and the most visible. That is not the order to fix them in.
 
 Working the scan top-to-bottom means rewriting your queries twice: once against today's field names, and again after bucket assignment and `security_context` land and change what those queries can see. The phase order on this page already encodes the dependency. Use the scan to populate the phases, not to sequence them.
+
+### Re-running the scan's checks yourself
+
+The scan is read-only and cannot be exported, filtered or scheduled. Several of its checks are plain DQL over self-monitoring data, and the series below carry verified versions that you can put in your own dashboard or workflow and track after the scan's 30-day window has moved on:
+
+| Check | Where the query lives |
+|---|---|
+| Which dashboards, notebooks and workflows still run classic-entity DQL | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 16, section 8 |
+| How much log and business-event volume still takes the classic pipeline | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — notebook 09 |
+| Which classic metric events actually raised anything, as opposed to merely being enabled | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 02, section 4 |
 
 ### Where each finding goes
 
@@ -113,33 +138,36 @@ Working the scan top-to-bottom means rewriting your queries twice: once against 
 |---|---|---|---|
 | DPS license | Not on the subscription the latest Dynatrace requires — everything else is moot until this is resolved | — | [FINOPS](../FINOPS%20-%20Cost%20Management%20&%20FinOps/) |
 | Deprecated REST API & settings | A token, workflow, dashboard or detector calls something that stops answering | 5 | [AUTOM](../AUTOM%20-%20Dynatrace%20Automation/), [IAM](../IAM%20-%20IAM%20Administration/) |
-| Classic entity model in DQL | A named document runs classic-entity DQL | 2 | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 16 |
+| Classic entity model in DQL | A named document runs classic-entity DQL | 2 | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 16 (section 8 reproduces the check) |
 | Management zone usage | The zone is actively queried, so it is real work rather than a stale object | 1 | [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) |
 | Classic RBAC roles | Groups still receive permissions through classic roles | 1 | [IAM](../IAM%20-%20IAM%20Administration/), [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) |
 | Classic app usage | Named users depend on an app that is being removed | 3 | [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) |
-| OpenPipeline adoption | Log or business-event volume still on the classic pipeline | 2 | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/), [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) |
+| OpenPipeline adoption | Log or business-event volume still on the classic pipeline | 2 | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) (notebook 09 reproduces the check), [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) |
 | Log Classic | Ingest still landing in the classic store | 2 | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/), [ORGNZ](../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/) |
-| Alerting | Metric-event alerts and classic disk detection to recreate | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/), [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) |
+| OpenTelemetry metrics | The *Advanced OTLP metric dimensions* opt-in is off. Turning it on changes which OTLP attributes become metric dimensions and stops key normalization, so charts and alerts built on today's dimension set can change. Turn it on and review them before the upgrade forces the question | 2 | [OTEL](../OTEL%20-%20OpenTelemetry%20Integration/) — notebook 05 |
+| Auto-baselining & baseline alerts | An application, database service or external service still alerts on a classic baseline, or overrides one. Treat this as scan-only (see the disagreement table above) | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/), [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) |
+| Classic metric events | An enabled metric event, ranked by how many alerts it raised in the last 7 days, plus classic disk detection settings | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 02 section 4, [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) |
 | Calculated service metrics | Most convert to Grail automatically, gated on cardinality; the rest need a manual toggle or a DQL / OpenPipeline rebuild — inventory which is which before planning | 2 | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) (entry 11 § 5.3), [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/), [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) |
 | Service detection & rule settings | A rule scoped by management zone, service tag or non-primary process-group tag | 4 | [SPANS](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/) |
 | Classic cloud integrations | Classic AWS/Azure connections and the automation driving them | 1 | [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) |
 | Cloud telemetry enrichment | Enrichment embedded in a connection rather than configured centrally | 1 | [CLOUD](../CLOUD%20-%20Cloud%20Provider%20Integrations/) |
-| Infrastructure readiness | Operator, DynaKube mode, image source or agent version below the floor | 0 | [K8S](../K8S%20-%20Kubernetes%20Monitoring/), [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) |
-| ActiveGate & network readiness | ActiveGate below the floor, bad auth token, multi-environment mode, or zones that will misroute | 0 | [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/), [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 10 |
+| Infrastructure readiness | Operator, DynaKube mode, image source or agent version below the floor, or Kubernetes enrichment rules not yet moved to the central configuration | 0 | [K8S](../K8S%20-%20Kubernetes%20Monitoring/) (notebook 10 section 9 for the enrichment move and its version floors), [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/) |
+| ActiveGate & network readiness | ActiveGate below 1.225 or with an absent, invalid or unsupported auth token; or network zones that are defined, or have ActiveGates pinned to them, while zones are still switched off. The scan treats zones as permanently on after the upgrade | 0 | [ONBRD](../ONBRD%20-%20Dynatrace%20Onboarding/), [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 10 |
 | Cloud automations | A guardian objective pointing at a classic SLO, or a classic issue-tracking integration | 4 | [SLO](../SLO%20-%20Service%20Level%20Objectives/), [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) |
-| Digital experience | A frontend not yet on the Grail RUM experience | 3 | [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/), [MOBL](../MOBL%20-%20Mobile%20Monitoring/) |
+| Digital experience | A frontend not yet on the Grail RUM experience, cookies not upgraded, or RUM overload prevention off; separately, a web frontend below RUM JavaScript agent 347 or a mobile frontend below agent 349. Mobile agents ship inside your app, so a mobile red light means an app release, not a setting | 3 | [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/), [MOBL](../MOBL%20-%20Mobile%20Monitoring/) |
 | Synthetic monitoring | Private locations to redeploy, third-party monitors, maintenance windows (Settings-app maintenance windows reach Synthetic only with SaaS 1.348 — staged rollout; until then they are unsupported) | 3 | [SYNTH](../SYNTH%20-%20Synthetic%20Monitoring/) |
-| Application Security | The new monitoring rules are off, so the current Vulnerabilities experience is unavailable | 4 | [APPSEC](../APPSEC%20—%20Application%20Security/) |
+| Application Security | The new monitoring rules are off, so the current Vulnerabilities experience is unavailable; or legacy security notifications are still active and need rebuilding as workflows | 4 | [APPSEC](../APPSEC%20—%20Application%20Security/) — notebook 08 for the notifications |
 | Problem & event processing | Events that will not correlate, plus classic alerting objects still in place | 4 | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/), [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) |
 
-### Two findings that mean "retire", not "migrate"
+### Three findings that mean "retire", not "migrate"
 
-Two of the scan's signals are usage counts rather than configuration checks, and they are the most valuable numbers on the page:
+Three of the scan's signals are usage counts rather than configuration checks, and they are the most valuable numbers on the page:
 
 - **Management zone usage** counts how often each zone is actually queried. A zone nobody queries does not need a policy, a boundary, or a segment — it needs deleting.
 - **Classic app usage** counts views *per user*. A classic dashboard with two viewers is a conversation; one with two hundred is a rebuild.
+- **Classic metric events** are ranked by the alerts each one raised recently. An enabled metric event that has not raised anything in weeks may still guard a rare condition, so each one needs a decision. It is not an automatic port. On the tenant used to validate this playbook, 19 of 125 classic metric events were enabled and none had raised an alert in 30 days (09/29/2026).
 
-The scan reports both and draws no conclusion from either. Deciding retire-versus-migrate before you start is the single largest cost lever in this doorway, and Phase 0's deliverable is where it belongs.
+The scan reports all three and draws no conclusion from any of them. Deciding retire-versus-migrate before you start is the single largest cost lever in this doorway, and Phase 0's deliverable is where it belongs.
 
 ### What the scan does not check
 
@@ -202,7 +230,7 @@ Every classic query language and selector has a DQL equivalent. This phase is mo
 | 2. Metric selectors → `timeseries` | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 11 (how metrics work) | Covers selector → DQL conversion and the `builtin:` ↔ `dt.*` mapping |
 | 3. Entity selectors → Smartscape | [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) — entry 16 (migrating classic entity selectors to Smartscape) | `dt.entity.*` is deprecated in favour of `dt.smartscape.*` and `smartscapeNodes`; legacy form still runs |
 | 4. USQL → DQL for RUM | [WEBRUM](../WEBRUM%20-%20Web%20Real%20User%20Monitoring/) — notebook 09 (migrating USQL to DQL) | Grammar and field mapping, plus the classic-RUM-on-Grail vs New RUM split that decides which field names apply |
-| 5. Classic Logs → OpenPipeline | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series; [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — full series | The one genuinely structural workstream here; treat as its own project |
+| 5. Classic Logs → OpenPipeline | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — full series; [OPLOGS](../OPLOGS%20-%20OpenPipeline%20Logs/) — full series | The one genuinely structural workstream here; treat as its own project. OPMIG notebook 09 measures what is still on the classic pipeline, which is how you know it is finished |
 | 6. Log metric extraction | [OPMIG](../OPMIG%20-%20OpenPipeline%20Migration/) — notebook 07 (metric event extraction) | Classic log metrics map onto OpenPipeline extraction |
 | 7. Pipelines beyond logs | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — full series; [BIZEV](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) — notebook 07 (Gen2 vs Gen3 adoption paths) | Business events, spans, metrics and events have their own classic processing surfaces, on the same removal path as the log ones |
 | 8. Calculated service metrics | [OPIPE](../OPIPE%20-%20OpenPipeline%20Beyond%20Logs/) — notebook 01 (multi-scope platform) | Most existing calculated service metrics are upgraded to Grail automatically; switch on manual conversion where cardinality is above the automatic threshold, and rebuild with DQL or OpenPipeline extraction only those that cannot convert — see [FAQ](../FAQ%20-%20Frequently%20Asked%20Questions/) entry 11 § 5.3 |
@@ -235,7 +263,7 @@ Metric events and alerting profiles map onto anomaly detectors and workflows, bu
 | Step | Reading | Notes |
 |---|---|---|
 | 1. Target architecture | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 01 (end-to-end architecture) | Read before migrating any individual alert |
-| 2. Metric events → detection | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 02 (choosing and building detection); [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) — notebook 02 (anomaly detection) | Static thresholds ported as-is are the main source of Gen3 alert noise; many should become baselines |
+| 2. Metric events → detection | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 02 (choosing and building detection); [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) — notebook 02 (anomaly detection) | Measure which metric events still raise anything before rebuilding them (ALERT-02 section 4). Static thresholds ported as-is are the main source of Gen3 alert noise; many should become baselines |
 | 3. Alerting profiles → workflows | [MZ2POL](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) — notebook 09; [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) — notebooks 04 (notification routing), 05 (incident management) | MZ-scoped alerting profiles become problem-triggered workflows |
 | 4. Routing and cost | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 03 (routing, destinations, cost) | Simple vs multi-step workflow billing differs — check before fanning out |
 | 5. ITSM integration | [ALERT](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) — notebook 04 (ServiceNow integration) | If alerting profiles fed ServiceNow, rebuild the payload rather than translating it |

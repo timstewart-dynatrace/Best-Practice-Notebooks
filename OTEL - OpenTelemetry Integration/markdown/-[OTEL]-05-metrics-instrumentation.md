@@ -1,6 +1,6 @@
 # OTEL-05: Metrics Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 09/29/2026
 
 ## Creating Custom Metrics with OpenTelemetry
 OpenTelemetry metrics provide quantitative measurements of your application's behavior over time. This notebook covers metric types, instrumentation patterns, and integration with Dynatrace.
@@ -211,6 +211,21 @@ request_counter.add(1, {
     "timestamp": "2026-01-26T10:00:00"  # Every second different
 })
 ```
+
+### Advanced OTLP metric dimensions changes which attributes you pay for
+
+Everything above assumes Dynatrace keeps only some of your attributes as dimensions. Without the setting below, the *Allow list: resource and scope attributes* setting decides which resource and scope attributes become dimensions. One setting changes that. With **Advanced OTLP metric dimensions** turned on:
+
+> *"Dynatrace ingests all resource, scope, and data-point attributes as metric dimensions by default, except for attributes on the Deny list: all attributes."*
+
+The same page gives the consequence for existing content: *"dimension keys that were previously normalized are now ingested as-is. For example, ingested dimension keys will preserve uppercase characters. This can increase the cardinality of some metrics and may affect dashboards, charts, alerts, and saved queries that depend on specific dimension sets."* It also notes that *"Relaxed ingestion limits apply when this feature is enabled."*
+
+Two practical consequences:
+
+- **The cardinality table above now depends on your code, not on the allow list.** A high-cardinality data-point attribute that used to be dropped at ingest becomes a dimension. Use **Deny list: all attributes** to drop anything you do not want. Attribute names there are case-sensitive and must match the original name.
+- **Turn it on deliberately, and early, if you are heading to the latest Dynatrace.** The ready-made *Check your upgrade readiness* dashboard lists this setting as a pre-upgrade opt-in, so that nothing built on today's dimension set changes unnoticed at upgrade time. Enable it, then check the dashboards and alerts that group or filter by OTLP dimensions, and look especially for keys whose case changed.
+
+> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics) — all quotes above. The pre-upgrade opt-in comes from the ready-made *Check your upgrade readiness* dashboard (OpenTelemetry metrics section, read 09/29/2026), which has no public URL.</sub>
 
 <a id="aggregation-and-views"></a>
 ## 5. Aggregation and Views

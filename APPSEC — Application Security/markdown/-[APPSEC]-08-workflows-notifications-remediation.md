@@ -1,6 +1,6 @@
 # APPSEC-08: Workflows, Notifications and Remediation
 
-> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 8 of 10 | **Created:** June 2026 | **Last Updated:** 09/29/2026
 
 ## Overview
 
@@ -71,7 +71,9 @@ In community practice, a common routing split looks like this — verify it agai
 
 A finding can fire into multiple destinations — there's no requirement to pick one. What matters is that each destination has a clear ownership boundary so no finding falls between teams.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the workflow + notification framing.</sub>
+**Coming from classic security notifications.** If your tenant still sends security alerts through the global notification settings in Settings (Classic), those do not carry over. The upgrade guide lists the difference in one line, *"You create and orchestrate alerts via Workflows"* versus *"You configure security notifications globally in Settings (Classic)"*, and gives the action as *"Recreate notifications using workflows."* The routing matrix above is where to start: a global classic notification usually becomes several narrower workflows, one per destination. The ready-made *Check your upgrade readiness* dashboard lists any legacy security notification that is still active.
+
+> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the workflow + notification framing, [Upgrade Third‑party and Code‑level vulnerabilities to the Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/vulnerabilities-upgrade-classic-to-latest) — the three quotes on classic security notifications.</sub>
 
 <a id="ack-loopback"></a>
 ## 3. Acknowledgement Loopback
@@ -135,6 +137,7 @@ fetch security.events, from:-7d
 | Source | Coverage |
 |--------|----------|
 | [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) | Workflow + notification framing |
+| [Upgrade Third‑party and Code‑level vulnerabilities to the Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/vulnerabilities-upgrade-classic-to-latest) | Classic security notifications → workflows |
 | [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) | Problem trigger vs Event trigger on `security.events` |
 | [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) | Status-change events and transition values |
 | [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) | vulnerability-service:vulnerabilities:write scope |
