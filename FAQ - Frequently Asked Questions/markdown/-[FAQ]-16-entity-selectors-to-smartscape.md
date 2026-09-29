@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/29/2026
 
 ## Overview
 
@@ -29,7 +29,8 @@ So the first step is not translation. It is working out which of three things yo
 5. [Topology Navigation](#topology-navigation)
 6. [Things That Are Fields, Not Entities](#things-that-are-fields-not-entities)
 7. [Gotchas Worth Knowing First](#gotchas-worth-knowing-first)
-8. [Summary and Next Steps](#summary-and-next-steps)
+8. [Finding the Queries to Migrate](#finding-the-queries-to-migrate)
+9. [Summary and Next Steps](#summary-and-next-steps)
 
 ---
 
@@ -301,8 +302,50 @@ smartscapeNodes "SERVICE" | fields id, id_classic, name
 
 > <sub>**Sources:** all five behaviours reproduced against a Dynatrace tenant, 07/23/2026 — `getNodeField` null result, `"RUNS_ON"` zero-row return, `NO_PARAMETERS_FOR_COMMAND` on bare `smartscapeEdges`, `PARSE_ERROR` on the `traverse` block form, and identical `id`/`id_classic` values on HOST and SERVICE nodes. The `==` type-mismatch behaviour was reproduced separately on 09/21/2026 — SERVICE 23 of 23 and HOST 7 of 7 matched with `toString(id)`, 0 of each without, with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result, with an empty `notifications` array. `id_classic` population by node type executed 09/28/2026.</sub>
 
+<a id="finding-the-queries-to-migrate"></a>
+## 8. Finding the Queries to Migrate
+
+Everything above assumes you already know which queries to migrate. In practice that is the hard part: classic-entity DQL is spread across dashboard tiles, notebook sections, workflow tasks and segment variables that nobody has opened in months.
+
+Grail records every query it runs in `dt.system.query_executions`, including the query text and the app that sent it, so you can get the list from execution history instead of opening every document. The query engine also sets a flag, `CLASSIC_ENTITY_MIGRATION_ADVISED`, on executions it recognizes as classic-entity DQL. That value comes from the tenant, not from a docs page. Dynatrace's own **Check your upgrade readiness** dashboard filters on it, and on the validation tenant it was set on about 365,000 of 2.4 million successful executions over 30 days (09/29/2026).
+
+Do not rely on the flag alone. The query below also matches the classic constructs in the query text, which catches executions the flag misses. On the same tenant, text matching found about 408,000 executions against 365,000 flagged.
+
+```dql
+// Which dashboards, notebooks and workflows still run classic-entity DQL?
+// Ranked by executions: the top rows are the documents people actually use.
+fetch dt.system.query_executions, from:-30d
+| filter status == "SUCCEEDED"
+| filter in(client.application_context, {"dynatrace.dashboards", "dynatrace.notebooks", "dynatrace.automations"})
+| filter in("CLASSIC_ENTITY_MIGRATION_ADVISED", flags)
+    or contains(query_string, "classicEntitySelector")
+    or contains(query_string, "entityName(")
+    or contains(query_string, "entityAttr(")
+    or contains(query_string, "dt.entity.")
+// Dashboards and notebooks carry their document id in the client URL; workflows carry it in their own field.
+| parse client.source, "LD '/ui/dashboard/' [a-zA-Z0-9._-]+:dashboard_id"
+| parse client.source, "LD '/ui/notebook/' [a-zA-Z0-9._-]+:notebook_id"
+| fieldsAdd document_id = coalesce(dashboard_id, notebook_id, client.workflow_context)
+| summarize executions = count(), users = countDistinct(user.email), by:{client.application_context, document_id}
+| sort executions desc
+| limit 50
+```
+
+On the validation tenant this returned 14 documents: two workflows at the top (2,140 and 200 executions), then a notebook and a run of dashboards, nearly all with a single user. One workflow on a schedule can run more classic-entity DQL than all your dashboards together, so the ranking tends to put scheduled automation first. That is also the right order to fix things in.
+
+**Reading the result.**
+
+- `document_id` is the id that appears in the document's own URL (`…/ui/dashboard/<id>`, `…/ui/notebook/<id>`) or, for a workflow, its workflow id. Ids that read as names rather than UUIDs, such as `com-dynatrace-extension-postgres-overview` or `dynatrace.upgrade.readiness.migration-status`, belong to ready-made or extension content. The second one is the readiness dashboard itself. It runs `fetch dt.entity.*` queries of its own, so its own checks will list it. Find out who owns a document before you plan to edit it.
+- `users` separates a document one person runs from one a team depends on. A document with one user and a handful of executions is a candidate to retire rather than migrate.
+- **A document missing from the list has not run in the window, which is different from being clean.** A dashboard nobody opened in 30 days has no executions to find. Widen `from:` before you conclude the migration is done.
+- `contains(query_string, "dt.entity.")` also matches `dt.entity.*` *dimensions* in a `by:` or `filter:`. That is intended, since those are situation 1 and 2 queries from [section 1](#start-by-classifying-the-query). It also means the text match never proves a query is a pure entity list.
+
+Segment variables and Site Reliability Guardian objectives run classic-entity DQL too. The readiness dashboard finds them through `client.client_context` and the `dynatrace.site.reliability.guardian` application context. Add those to the `in(client.application_context, …)` list if your tenant uses them.
+
+> <sub>**Sources:** query executed against a Dynatrace tenant 09/29/2026: 14 documents returned; 364,711 flagged and 407,789 text-matched out of 2,360,811 successful executions in 30 days. **Dictionary:** the `query_execution_event` model lists `query_string`, `client.application_context`, `client.source`, `status` and `flags`, read 09/29/2026. The `CLASSIC_ENTITY_MIGRATION_ADVISED` value appears in no public documentation page found on 09/29/2026; it is observed tenant behaviour and is also the filter the ready-made *Check your upgrade readiness* dashboard uses. `client.workflow_context` is not in that model's field list but was populated on every workflow row returned.</sub>
+
 <a id="summary-and-next-steps"></a>
-## 8. Summary and Next Steps
+## 9. Summary and Next Steps
 
 **The four things to carry away:**
 
@@ -311,7 +354,7 @@ smartscapeNodes "SERVICE" | fields id, id_classic, name
 3. **Verify values, not row counts.** The host-group example returns the same four entities under both forms with *different* `name` strings. Downstream string matching breaks silently.
 4. **Inspect a node before writing the migration.** `smartscapeNodes "<TYPE>" | limit 1` answers most field questions faster than any mapping table.
 
-**Nothing is on a deadline.** `dt.entity.*` still works. Migrate on next touch rather than sweeping, and verify each query's output against the classic form as you go.
+**Nothing is on a deadline.** `dt.entity.*` still works. Migrate on next touch rather than sweeping, starting from the ranked list in [section 8](#finding-the-queries-to-migrate), and verify each query's output against the classic form as you go.
 
 | If you need… | Read |
 |---|---|

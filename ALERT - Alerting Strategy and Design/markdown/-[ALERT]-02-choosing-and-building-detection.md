@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 09/29/2026
 
 ## Overview
 
@@ -13,8 +13,9 @@ Detection is a choice between four mechanisms, and picking the wrong one is the 
 1. [The Four Mechanisms](#mechanisms)
 2. [The Decision](#decision)
 3. [Anti-Patterns](#antipatterns)
-4. [Prototype Before You Commit](#prototype)
-5. [Hand-Off](#handoff)
+4. [Migrating Classic Metric Events: Measure First](#classic-metric-events)
+5. [Prototype Before You Commit](#prototype)
+6. [Hand-Off](#handoff)
 
 ---
 
@@ -75,8 +76,50 @@ This is **not** a fifth analyzer knob, and it does not replace the sliding-windo
 
 > <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."* **Derived:** the "composes rather than substitutes" placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub>
 
+<a id="classic-metric-events"></a>
+## 4. Migrating Classic Metric Events: Measure First
+
+If you are moving off classic alerting, the decision above applies to every classic metric event you own, not just to new signals. The mistake to avoid is porting them all one-to-one. A tenant accumulates metric events over years: some were created by an extension or a cloud integration, some guarded a system that is gone, and some still matter. The configuration list cannot tell those apart. The alert history can.
+
+**First, what is configured.** Classic metric events are Settings 2.0 objects under `builtin:anomaly-detection.metric-events`, so one read lists them, with the enabled flag and the query type:
+
+```bash
+dtctl get settings --schema builtin:anomaly-detection.metric-events -o json --limit 0
+```
+
+The query type matters because the Anomaly Detection app's transformation only covers one of the two kinds:
+
+> *"You can only transform metric selectors."*
+
+Events built on a plain metric key (`METRIC_KEY`) cannot go through the transformation and have to be rebuilt by hand. When a transformation does run, *"the metric event we selected for transformations is automatically disabled, and the newly created configuration is active instead."* Before you transform an event, decide whether you still want it.
+
+**Then, what actually fires.** Every alert a metric event raises lands in `dt.davis.events` carrying the settings object it came from, so the history joins back to the configuration on `dt.settings.object_id`:
+
+```dql
+// Which classic metric events raised anything in the last 30 days?
+// Filter on the settings schema, NOT on event.provider: "METRIC_EVENTS" is also the
+// provider for the new DQL anomaly detectors and for built-in infrastructure detection.
+fetch dt.davis.events, from:-30d
+| filter dt.settings.schema_id == "builtin:anomaly-detection.metric-events"
+| summarize alerts = count(), last_raised = max(timestamp), by:{dt.settings.object_id, event.name}
+| sort alerts desc
+```
+
+Compare the two lists. An enabled metric event that does not appear in the history has raised nothing in the window.
+
+**What this looked like on a real tenant (09/29/2026).** 125 classic metric events were configured and 19 were enabled: 18 on a metric key and 1 on a metric selector. The query above returned **zero rows**. Over the same 30 days, the identical query with the schema set to `builtin:davis.anomaly-detectors` returned 35 detectors, which rules out an empty result caused by the query itself. So the whole migration came down to 19 decisions. Of those, 18 could not be transformed, and not one had raised an alert in a month.
+
+**Two traps.**
+
+- **`event.provider == "METRIC_EVENTS"` is not "classic metric events".** On the same tenant that provider covered 1,054 events from `builtin:anomaly-detection.infrastructure-hosts`, 500 from the new `builtin:davis.anomaly-detectors`, and a few from `builtin:anomaly-detection.infrastructure-disks`, but none from classic metric events. A migration inventory built on the provider mostly counts detectors you have already migrated.
+- **Silence is not the same as useless.** A metric event that guards a rare condition, such as a certificate about to expire or a batch job that failed, may stay quiet for months and still be the only thing watching that condition. Widen the window, check the event's name and owner, and make a *retire* or *migrate* decision per event. Do not delete everything that did not fire.
+
+For each event you keep, run it through [the decision](#decision) above. A static threshold is where the classic event started, and it is not necessarily where it should end up.
+
+> <sub>**Sources:** [Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — both quotes above. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), `event.provider` (`stable`), read 09/29/2026. Tenant counts from `dtctl get settings` and the query above, both run 09/29/2026, with the `builtin:davis.anomaly-detectors` run as the control.</sub>
+
 <a id="prototype"></a>
-## 4. Prototype Before You Commit
+## 5. Prototype Before You Commit
 
 Whichever mechanism you choose, develop the underlying query in a notebook first — run it, confirm it returns a sane result over a representative window, *then* wire it into the detector or SLO. A detector built on a query that silently returns nothing never fires and is worse than no alert, because the team believes it is covered. This notebook-as-scratchpad discipline is covered in AIOPS-02 §4 and SLO-02 §6.
 
@@ -89,7 +132,7 @@ The rigorous version of this makes the observation window explicit rather than i
 > <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting).</sub>
 
 <a id="handoff"></a>
-## 5. Hand-Off
+## 6. Hand-Off
 
 | Mechanism chosen | Build it in |
 |------------------|-------------|

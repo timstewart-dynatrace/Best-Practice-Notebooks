@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/29/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -74,6 +74,7 @@ Use this checklist to validate your migration:
 - [ ] Logs routed to correct pipelines
 - [ ] Bucket assignments are correct
 - [ ] No unrouted data accumulating
+- [ ] Nothing still processed by the classic pipeline — see *Verify nothing still takes the classic pipeline* below
 
 ### Security Validation
 
@@ -109,6 +110,48 @@ fetch dt.system.events, from: now() - 24h
 | summarize sources = count(), by:{coverage}
 | sort sources desc
 ```
+
+### Verify nothing still takes the classic pipeline
+
+The classic pipeline does not go away when you create your first OpenPipeline route. It stays as the **default route**, and every record that no route matches keeps going through it:
+
+> *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*
+
+That makes "how much still takes the classic pipeline" the most direct measure of whether this migration is finished. The classic pipeline is also what the ready-made **Check your upgrade readiness** dashboard reports under *OpenPipeline adoption*. Records it processed carry the pipeline id `logs:default` (or `bizevents:default`) in `dt.openpipeline.pipelines`. That field is populated for classic records too, which is why the *Final migration validation summary* at the end of this notebook counts them separately. A plain `isNotNull(dt.openpipeline.pipelines)` check reads as fully routed even when nothing has been migrated.
+
+**Record-level check, the method the migration guide documents.** This scans raw records, so keep the window short:
+
+```dql
+// Records still processed by the classic pipeline, last 24 hours.
+// For business events: fetch bizevents and "bizevents:default".
+fetch logs, from: now() - 24h
+| summarize total = count(), classic = countIf(in(dt.openpipeline.pipelines, "logs:default"))
+| fieldsAdd classic_pct = round(100.0 * classic / total, decimals: 2)
+```
+
+**Trend across both data types, from self-monitoring.** OpenPipeline records how many records each pipeline received in the `dt.sfm.openpipeline.routing.records` metric, so you can follow the classic share over weeks without scanning a single log line. `pipeline_id == "default"` is the classic pipeline, the same identifier as `logs:default` above:
+
+```dql
+// Classic vs OpenPipeline record volume over 30 days, logs and business events.
+// Reads a self-monitoring metric: no raw records are scanned.
+timeseries records = sum(dt.sfm.openpipeline.routing.records, default: 0), from: now() - 30d,
+  filter: { in(configuration, {"logs", "bizevents"}) },
+  by: { configuration, pipeline_id }
+| fieldsAdd path = if(pipeline_id == "default", "classic pipeline", else: "OpenPipeline")
+| fieldsAdd total = arraySum(records)
+| summarize records = sum(total), by:{ configuration, path }
+| sort configuration asc, records desc
+```
+
+On the validation tenant (09/29/2026) the two methods agreed. Logs showed **0** classic records in 24 hours out of 24.7 million, and the metric showed no classic log volume over 30 days. Business events, which had never been migrated, showed **993,927** classic records over 30 days in the metric and **993,375** by record count. The small gap is the difference between metric and record-scan timing at the window edges. **Check business events explicitly.** They migrate separately from logs, so a tenant that has finished logs can still be sending all its business events through the classic pipeline.
+
+**Zero is necessary, not sufficient.** The migration guide is explicit about what the number does not prove:
+
+> *"Zero classic pipeline usage does not guarantee that all data is fully converted, only that it was not routed via the Classic route."*
+
+Data that arrives rarely, such as a monthly batch job or an audit source that only logs on failure, may simply not have arrived in your window. Before you turn off a classic processing rule, account for every source the rule handled, not just the ones that showed up this week.
+
+> <sub>**Sources:** [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — the `in(dt.openpipeline.pipelines, "logs:default")` filter and both quotes above. **Dictionary:** `dt.openpipeline.pipelines` (`experimental`), read 09/29/2026. The metric's `pipeline_id` / `configuration` dimensions were read from the `metrics` command, and both queries were executed against a Dynatrace tenant on 09/29/2026 with the counts shown. **Derived:** reading `pipeline_id == "default"` as the classic pipeline rests on the two methods agreeing on that tenant, not on a docs statement about the metric.</sub>
 
 ---
 
@@ -1153,6 +1196,7 @@ Final validation before declaring migration complete.
 - [ ] Bucket assignments verified
 - [ ] Dynamic routing working
 - [ ] No orphaned data
+- [ ] Classic pipeline share at zero for logs **and** business events, sustained over a full business cycle
 
 ### Security ✅
 
@@ -1195,6 +1239,9 @@ fetch logs, from: now() - 24h
 | summarize {
     total_logs = count(),
     with_pipeline = countIf(isNotNull(dt.openpipeline.pipelines)),
+    // The classic pipeline also sets dt.openpipeline.pipelines ("logs:default"),
+    // so with_pipeline alone cannot tell migrated from unmigrated records.
+    classic_pipeline = countIf(in(dt.openpipeline.pipelines, "logs:default")),
     with_loglevel = countIf(isNotNull(loglevel)),
     with_masking = countIf(contains(content, "REDACTED")),
     unique_sources = countDistinct(log.source),
@@ -1202,6 +1249,7 @@ fetch logs, from: now() - 24h
   }
 | fieldsAdd 
     routing_health = if(with_pipeline > total_logs * 0.95, "✅ Good", else: "⚠️ Check routing"),
+    classic_health = if(classic_pipeline == 0, "✅ None on classic", else: "⚠️ Still on classic pipeline"),
     parsing_health = if(with_loglevel > total_logs * 0.90, "✅ Good", else: "⚠️ Check parsing")
 ```
 
