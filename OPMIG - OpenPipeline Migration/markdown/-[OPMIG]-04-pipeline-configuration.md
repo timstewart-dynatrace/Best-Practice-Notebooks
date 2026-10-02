@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -47,9 +47,11 @@ By the end of this notebook, you will:
 
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — pipeline *Types* table, *Permissions* row.</sub>
 
-### Sprint 1.337 (April 2026): Configuration API → Settings v2 Acceleration
+### SaaS 1.337: Certain Configuration API endpoints are deprecated
 
-Sprint 1.337 SaaS announced that **many remaining Configuration API endpoints** are now covered by Settings endpoints in Environment API v2. The legacy Configuration API paths remain active, but **new automation should target Settings v2 paths exclusively**.
+SaaS 1.337 deprecated certain Configuration API endpoints: *"Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2."* The affected endpoints *"remain fully active"* and have no sunset date, but *"these endpoints may be removed in a future release"* — so point new automation at the Settings endpoints rather than the deprecated paths.
+
+> <sub>**Sources:** [What's new in SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Affected endpoints remain fully active. While we haven't set a sunset date, these endpoints may be removed in a future release."*</sub>
 
 **Migration impact for OpenPipeline / log-monitoring config:**
 
@@ -259,11 +261,12 @@ isNotNull(bytes)
 ### Step 4: Configure Storage
 
 **Actions:**
-1. Go to **Storage** tab
-2. Select target bucket: `default_logs`
-3. Click **[Save]**
+1. Go to the **Bucket assignment** stage
+2. Add a **Bucket assignment** processor, give it a name and a matching condition (for example `true`)
+3. In the **Storage** list, choose the bucket — for example a custom `web_logs` bucket with 14-day retention
+4. Click **[Save]**
 
-> 💡 **Tip:** If you created custom buckets, select the appropriate one here (e.g., `web_logs` with 14-day retention)
+> 💡 **Tip:** Bucket assignment is *first match only* — the first processor whose condition matches decides the bucket. In community practice, records that match no bucket-assignment processor land in the scope's default bucket (`default_logs`); confirm where yours land with the bucket query in [Verifying Pipeline Processing](#verifying-pipeline-processing). To keep a record out of storage entirely (for example after extracting a metric), use **No storage assignment** instead.
 
 ---
 
@@ -333,8 +336,10 @@ parse content, "'[' TIMESTAMP('yyyy-MM-dd HH:mm:ss'):log_time ']' SPACE '[' LD:l
 
 **Processor 2: Extract Request ID**
 ```dql
-parse content, "'requestId=' LD:request_id"
+parse content, "LD? 'requestId=' NSPACE:request_id"
 ```
+
+`parse` matches from the **start** of the field. A pattern that opens with `'requestId='` returns null on every line that does not *begin* with that text, and a trailing `LD` runs to the end of the line. `LD?` skips any prefix (or none); `NSPACE` stops at the next space.
 
 **Processor 3: Classify Errors**
 ```dql
@@ -352,9 +357,9 @@ fieldsAdd error_type = if(contains(message, "NullPointerException"), "NPE",
 - **Counter:** `log.java.request_count` (dimensions: level, thread)
 
 **Event Extraction:**
-- **Event Name:** `application.error`
-- **Description:** `Error in {class}: {error_type}`
-- **Type:** ERROR
+Davis stage → **Davis event** processor:
+- **Event name:** `Error in {class}: {error_type}`
+- **Event properties:** `event.type = CUSTOM_ALERT` (`event.type` is required)
 - **Matching:** `level == "ERROR"`
 
 **Storage:** `default_logs` (35 days)
@@ -381,10 +386,10 @@ fieldsAdd content = replacePattern(content, "('cvv='|'cvc=') [0-9]{3,4}", replac
 
 **Processor 3: Parse Payment Data**
 ```dql
-parse content, "'orderId=' INT:order_id ','"
-| parse content, "'amount=' DOUBLE:amount"
-| parse content, "'currency=' LD:currency"
-| parse content, "'status=' LD:payment_status"
+parse content, "LD? 'orderId=' INT:order_id"
+| parse content, "LD? 'amount=' DOUBLE:amount"
+| parse content, "LD? 'currency=' NSPACE:currency"
+| parse content, "LD? 'status=' NSPACE:payment_status"
 ```
 
 **Processor 4: Add Tags**
@@ -452,13 +457,20 @@ fieldsAdd app = k8s.deployment.name
 
 Each pipeline has these configuration sections:
 
-| Tab | Purpose | Key Actions |
-|-----|---------|-------------|
-| **Processing** | Transform and enrich data | Add DQL processors, parsers |
-| **Metric extraction** | Create metrics from data | Define value/counter metrics |
-| **Event extraction** | Generate events | Create platform events |
-| **Bizevent extraction** | Create business events | Generate bizevents |
-| **Storage** | Configure bucket routing | Set target bucket |
+| Stage | Purpose | Processors |
+|-------|---------|------------|
+| **Processing** | Transform, mask, drop and enrich records | DQL, Add/Remove/Rename fields, Drop record, Technology bundle, Inline lookup |
+| **Smartscape node / edge** | Create topology from records | Smartscape node, Smartscape edge |
+| **Permission** | Set `dt.security_context` | Set security context (first match only) |
+| **Product / Cost allocation** | DPS cost allocation | First match only |
+| **Bucket assignment** | Choose the Grail bucket | Bucket assignment, No storage assignment (first match only) |
+| **Metric extraction** | Create metrics from records | Counter, Value, Histogram metric |
+| **Davis** | Raise Davis events | Davis event |
+| **Data extraction** | Create new records | Business event, SDLC event |
+
+The stage order is fixed; only the processor order *within* a stage is yours (see OPMIG-02 § Understanding Processing Order).
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage and processor table.</sub>
 
 > **Two additions in SaaS 1.345 (August 2026 — staged tenant rollout).** The **Inline lookup** processor maps an attribute to a new value from a lookup table defined inside the processor, with no external system — useful for error-code descriptions, app-ID-to-cost-centre mapping, and deriving `dt.security_context`. Separately, any field named with the **`dt.temp`** prefix is available throughout processing but is **not persisted to Grail**, so intermediate values feeding metric/event/bizevent extraction no longer have to be stored on the record. Both apply across every scope with a Processing stage. Verify each has reached your tenant before designing against it.
 
@@ -546,8 +558,10 @@ fieldsAdd severity = if(loglevel == "ERROR", "critical",
 
 #### Parse with DPL Pattern
 ```
-parse content, "'userId=' LD:user_id ','"
+parse content, "LD? 'userId=' LD:user_id ','"
 ```
+
+Start the pattern with `LD?` unless the field always begins with your literal — `parse` anchors at the start of the field and returns null otherwise.
 
 #### Remove Sensitive Fields
 ```
@@ -572,16 +586,11 @@ Drop processors remove records matching conditions:
 
 > Matchers accept `matchesValue` (with `*` wildcards, any substring) and `matchesPhrase` (whole tokens); `contains()` is not enabled in a matching condition.
 
-### Technology Parsers
+### Technology Bundle Processor
 
-Built-in parsers for common formats:
+For common formats, add a **Technology bundle** processor instead of writing the pattern yourself. It *"matches records for the selected technology and processes them according to predefined context-sensitive processing statements."* The fields each bundle adds are defined by the bundle — run its preview on a sample record before you depend on them downstream.
 
-| Parser | Applies To | Extracted Fields |
-|--------|------------|------------------|
-| **Apache** | Apache access logs | client_ip, method, path, status |
-| **Nginx** | Nginx access logs | Similar to Apache |
-| **JSON** | JSON-formatted logs | All JSON fields flattened |
-| **Syslog** | Syslog format | facility, severity, hostname |
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — processor table, *Technology bundle*.</sub>
 
 ---
 
@@ -706,7 +715,7 @@ Everything else — Smartscape, permission, cost allocation, bucket assignment, 
 | No masking | Sensitive data stored | Add masking before processing |
 | Complex conditions | Hard to maintain | Break into multiple pipelines |
 | Untested patterns | Parsing fails on real data | Always test with samples |
-| Missing fallback | Unknown data lost | Configure default pipeline |
+| Assuming unmatched data is lost | It is not — the default route still stores it, unprocessed (classic pipeline for logs and business events) | Watch default-route volume with the query below and add routes for what lands there |
 
 ---
 
@@ -751,10 +760,11 @@ fetch logs, from: now() - 1h
 ```
 
 ```dql
-// Check logs going to default pipeline (may need routing)
-// High counts here suggest missing routing rules
+// Check logs taking the default route (may need routing)
+// For logs, the default route is the classic pipeline: pipeline id "logs:default".
+// dt.openpipeline.pipelines is an array, so use in(), never ==.
 fetch logs, from: now() - 1h
-| filter isNull(dt.openpipeline.pipelines) OR dt.openpipeline.pipelines == "[]"
+| filter in(dt.openpipeline.pipelines, "logs:default")
 | summarize {unrouted = count()}, by: {log.source}
 | sort unrouted desc
 | limit 20
@@ -799,7 +809,7 @@ k8s.namespace.name == "payments" OR log.source == "payment-service"
 
 3. **Parse Payment Logs** (DQL)
    - Matching: `matchesValue(content, "*transaction*")`
-   - Definition: `parse content, "'transaction_id=' LD:transaction_id ',' 'amount=' DOUBLE:amount ',' 'status=' LD:payment_status"`
+   - Definition: `parse content, "LD? 'transaction_id=' LD:transaction_id ',' SPACE? 'amount=' DOUBLE:amount ',' SPACE? 'status=' NSPACE:payment_status"`
 
 4. **Add Environment Tag** (DQL)
    - Matching: (none - applies to all)

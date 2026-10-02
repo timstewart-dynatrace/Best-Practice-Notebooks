@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ---
 
@@ -74,7 +74,7 @@ The extraction processors generate derived signals (metrics, events, business ev
 
 <a id="metric-extraction"></a>
 ## Metric Extraction
-OpenPipeline supports two types of metrics:
+OpenPipeline's Metric extraction stage has three processors — **Counter**, **Value** and **Histogram** metric. Value and Counter are covered here; Histogram captures a distribution for percentiles.
 
 ### Value Metrics (Gauge)
 
@@ -206,24 +206,32 @@ Dimensions: latency_bucket, service.name, endpoint
 ## Event Extraction
 Extract events that Dynatrace Intelligence can analyze for root cause analysis.
 
-### Event Configuration
+### Davis Event Configuration
+
+Davis events are extracted in the **Davis** stage with the **Davis event** processor.
 
 | Field | Description |
 |-------|-------------|
-| **Event Name** | Unique event type identifier |
-| **Event Description** | Template for event description |
-| **Matching Condition** | When to generate event |
-| **Event Type** | Category: INFO, AVAILABILITY, ERROR, RESOURCE, CUSTOM |
+| **Event name** | Title template — if the event opens a problem, this is the problem title |
+| **Event description** | Template for the description (placeholders allowed) |
+| **Matching condition** | When to generate the event |
+| **Event properties** | Key/value pairs. **`event.type` is required**; everything else is optional |
 
 ### Event Types
 
+`event.type` takes the custom-event type values — the Events API v2 list is `AVAILABILITY_EVENT`, `CUSTOM_ALERT`, `CUSTOM_ANNOTATION`, `CUSTOM_CONFIGURATION`, `CUSTOM_DEPLOYMENT`, `CUSTOM_INFO`, `ERROR_EVENT`, `MARKED_FOR_TERMINATION`, `PERFORMANCE_EVENT`, `RESOURCE_CONTENTION_EVENT` and `WARNING`. Short forms such as `ERROR`, `INFO` or `AVAILABILITY` are **not** event types.
+
 | Type | Use Case |
 |------|----------|
-| `INFO` | Informational events |
-| `AVAILABILITY` | Service up/down events |
-| `ERROR` | Error conditions |
-| `RESOURCE` | Resource contention events |
-| `CUSTOM` | Custom event types |
+| `CUSTOM_ALERT` | Alert-worthy condition (the type the OpenPipeline docs use in their example) |
+| `ERROR_EVENT` | Error conditions |
+| `AVAILABILITY_EVENT` | Service up/down events |
+| `RESOURCE_CONTENTION_EVENT` | Resource contention events |
+| `CUSTOM_INFO` | Informational events |
+
+On the validation tenant over 7 days (10/02/2026), `dt.davis.events` held `WARNING`, `CUSTOM_INFO`, `AVAILABILITY_EVENT`, `ERROR_EVENT`, `RESOURCE_CONTENTION_EVENT` and `CUSTOM_ALERT` among others.
+
+> <sub>**Sources:** [Davis stage in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage) — *"event.type is required; all other properties are optional."*, example `event.type = CUSTOM_ALERT`; [Events API v2 - POST an event (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `eventType` enumeration.</sub>
 
 ### Event Description Templates
 
@@ -238,9 +246,9 @@ Authentication failure for user {user_id} from IP {client_ip}
 ### Example Event Extraction
 
 ```
-Event Name: payment.failure
-Event Description: Payment failed for order {order_id}: {error_message}
-Event Type: ERROR
+Event name: Payment failed for order {order_id}
+Event description: Payment failed for order {order_id}: {error_message}
+Event properties: event.type = ERROR_EVENT
 Matching: matchesPhrase(content, "payment") AND matchesPhrase(content, "failed")
 ```
 
@@ -250,7 +258,7 @@ A Davis event only earns its place if Dynatrace can tell what it is *about*. Mos
 
 What a validation tenant showed over 7 days, 09/28/2026: none of its 4,312 OpenPipeline-extracted Davis events carried `dt.smartscape_source.id`; all carried `dt.source_entity` — 4,118 a process group instance, 183 a service, 10 another monitored entity, and **1 the environment entity**. Attribution tracked the entities available on the source records. An event attributed to the environment, or to nothing, has no root cause to point at and nothing to route on.
 
-**Extraction reads the record; it cannot resolve an entity that is not on it.** A log OneAgent collected from a monitored process arrives already carrying `dt.entity.host`, `dt.entity.process_group_instance`, and on Kubernetes `dt.entity.cloud_application`. A log pushed through the generic ingest API or forwarded by a third-party shipper frequently arrives with none of that, and no extraction rule can conjure it. Enrichment is therefore a **prerequisite** of event extraction, not a nice-to-have alongside it.
+**Extraction reads the record; it cannot resolve an entity that is not on it.** A log OneAgent collected from a monitored process carries `dt.entity.host` and `dt.entity.process_group_instance`, and on Kubernetes gains `dt.entity.cloud_application` from entity detection after the Processing stage — in time for the Davis stage. A log pushed through the generic ingest API or forwarded by a third-party shipper frequently arrives with none of that, and no extraction rule can conjure it. Enrichment is therefore a **prerequisite** of event extraction, not a nice-to-have alongside it.
 
 Check the source stream before you configure the extraction, not after:
 
@@ -414,7 +422,8 @@ Use any field available after processing:
 **Pipeline Processing:**
 ```dql
 // First, parse the log
-parse content, "LD:method ' ' LD:path ' completed in ' INT:duration_ms 'ms, status=' INT:status_code"
+// LD? skips the timestamp and level; without the ' - ' anchor, LD:method would capture the timestamp
+parse content, "LD? ' - ' LD:method ' ' LD:path ' completed in ' INT:duration_ms 'ms, status=' INT:status_code"
 ```
 
 **Metric Extraction 1: Request duration**
@@ -443,9 +452,9 @@ Matching: isNotNull(path)
 
 **Event Extraction:**
 ```
-Event Name: payment.transaction.failed
-Event Description: Transaction failed for order {order_id}: {error_reason}
-Event Type: ERROR
+Event name: Transaction failed for order {order_id}
+Event description: Transaction failed for order {order_id}: {error_reason}
+Event properties: event.type = ERROR_EVENT
 Matching: loglevel == "ERROR" AND matchesPhrase(content, "Transaction failed")
 ```
 
@@ -470,7 +479,7 @@ From a single payment log line, extract:
 
 1. **Metric**: `log.payment.amount` (value: amount)
 2. **Metric**: `log.payment.count` (counter)
-3. **Event**: Payment processed (INFO)
+3. **Event**: Payment processed (`CUSTOM_INFO`)
 4. **Business Event**: Order transaction
 
 ---
@@ -509,7 +518,7 @@ fetch events, from: now() - 24h
 ```dql
 // View specific event details
 fetch events, from: now() - 24h
-| filter event.name == "payment.transaction.failed"
+| filter matchesValue(event.name, "Transaction failed for order*")
 | fields timestamp, event.name, event.description, event.type
 | sort timestamp desc
 | limit 25
@@ -591,7 +600,7 @@ Option 1: Store logs (35 days)
   - Cost: ~$140/month (placeholder rate — use your rate card)
 
 Option 2: Extract metrics + No storage assignment for the logs
-  - 10 time series, 10 years retention = ~10 MB
+  - 10 time series, kept for the metrics bucket's retention (15 months by default) = ~10 MB
   - Cost: ~$1/month (placeholder rate — use your rate card)
   - Savings: 99.3% 🎉
 ```
@@ -662,10 +671,11 @@ This pattern reduces storage while preserving observability.
 **Processing Stage (from OPMIG-06):**
 ```dql
 // Parse order details
-parse content, "'orderId=' INT:order_id ','"
-| parse content, "'amount=' DOUBLE:amount"
-| parse content, "'status=' LD:order_status"
-| parse content, "'duration=' INT:duration_ms 'ms'"
+// LD? lets each key sit anywhere in the line; NSPACE stops at the next space
+parse content, "LD? 'orderId=' INT:order_id"
+| parse content, "LD? 'amount=' DOUBLE:amount"
+| parse content, "LD? 'status=' NSPACE:order_status"
+| parse content, "LD? 'duration=' INT:duration_ms 'ms'"
 ```
 
 **Metric Extraction 1: Order Amount**
@@ -696,9 +706,9 @@ Matching: isNotNull(duration_ms)
 
 **Event Extraction: Order Failure**
 ```
-Event Name: checkout.order.failed
-Event Description: Order {order_id} failed with status {order_status}
-Event Type: ERROR
+Event name: Order {order_id} failed
+Event description: Order {order_id} failed with status {order_status}
+Event properties: event.type = ERROR_EVENT
 Matching: order_status == "failed" OR order_status == "error"
 ```
 

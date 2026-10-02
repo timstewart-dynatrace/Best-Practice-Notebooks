@@ -1,6 +1,6 @@
 # MOBL-02: iOS SDK Setup (Swift & SwiftUI)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 2 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -30,12 +30,14 @@ The Dynatrace iOS SDK provides:
 
 | Requirement | Details |
 |-------------|----------|
-| **Xcode** | Version 15.0 or later |
-| **iOS Deployment Target** | iOS 13.0 or later |
-| **Dynatrace Environment** | SaaS with Grail, with Mobile App monitoring enabled |
+| **Xcode** | 16.0 or later |
+| **iOS Deployment Target** | iOS 15.0 or later (tvOS 15.0+). From April 2027 Dynatrace stops supporting iOS 15 and 16; the minimum becomes iOS 17 |
+| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** turned on for mobile and the **New Real User Monitoring Experience** turned on for the frontend (Section 1) |
 | **Mobile App Configuration** | A mobile app created in Dynatrace (or you will create one in Section 1) |
 | **Language** | Swift 5.7+ |
 | **Permissions** | `storage:user.events:read`, `storage:user.sessions:read` (mobile RUM on Grail), `storage:smartscape:read` (app inventory) |
+
+> <sub>**Sources:** [Initial setup for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup) — *"iOS 15.0+ tvOS 15.0+ Xcode 16.0+"*, *"Starting April 2027 Dynatrace will stop supporting iOS 15 and iOS 16."*</sub>
 
 <a id="creating-mobile-app"></a>
 
@@ -48,14 +50,16 @@ Before integrating the SDK into your iOS project, you need to create a **mobile 
 
 ### Steps
 
-1. In your Dynatrace environment, navigate to **Mobile** from the left-hand menu.
-2. Click **Create mobile app** (or **Set up mobile monitoring** if this is your first app).
-3. Enter a descriptive **Application name** (e.g., `MyCompany iOS App`).
-4. Select **iOS** as the platform.
-5. Dynatrace generates the **Application ID** and **Beacon URL**. Copy both values -- you will need them in the configuration steps below.
-6. Optionally enable **Crash reporting**, **Session replay**, or **User tagging** from the app settings.
+1. **Turn on RUM for mobile at the environment level:** **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **Enable RUM**.
+2. **Create the frontend:** open **Experience Vitals**, select **Add Frontend**, and follow the Frontend creation wizard with **iOS** as the platform. The wizard gives you the **Application ID** and **Beacon URL** — copy both.
+3. **Turn on the New Real User Monitoring Experience for the frontend:** **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → **Enablement and cost control** → **New Real User Monitoring Experience**.
+4. Optionally enable **Crash reporting**, **Session replay**, or **User tagging** from the frontend settings.
 
-> **Tip:** You can find your Application ID and Beacon URL at any time under **Mobile > Your App > Settings > General**.
+> ⚠️ **Do not skip step 3.** The `user.events` / `user.sessions` queries in this series read the data the New RUM Experience sends to Grail. The setup guide makes turning it on the first step; with it off, the verification queries in Section 7 return nothing.
+
+> **Tip:** The instrumentation wizard in Experience Vitals shows your Application ID and Beacon URL at any time. (RUM Classic tenants find them under **Mobile > Your App > Settings > General**.)
+
+> <sub>**Sources:** [Initial setup for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup) — *"Under Enablement and cost control, turn on New Real User Monitoring Experience."*; *"Go to Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile. Turn on Enable RUM."*</sub>
 
 <a id="installing-sdk"></a>
 
@@ -80,17 +84,19 @@ dependencies: [
 ]
 ```
 
+The repository is `github.com/Dynatrace/swift-mobile-sdk` (tags follow the agent version, for example `8.347.1`).
+
 ### Option B: CocoaPods
 
 If your project uses CocoaPods, add the Dynatrace pod to your `Podfile`:
 
 ```ruby
 # Podfile
-platform :ios, '13.0'
+platform :ios, '15.0'
 use_frameworks!
 
 target 'MyApp' do
-  pod 'Dynatrace', '~> 8.x'
+  pod 'Dynatrace', '~> 8.0'
 end
 ```
 
@@ -130,7 +136,10 @@ Add the following keys to your `Info.plist`:
 | `DTXAutoStart` | Boolean | When `true`, the SDK starts automatically at app launch |
 | `DTXCrashReportingEnabled` | Boolean | When `true`, enables crash reporting with symbolicated stack traces |
 | `DTXHybridApplication` | Boolean | Set to `true` if the app uses WKWebView hybrid content |
-| `DTXUserOptIn` | Boolean | When `true`, monitoring only starts after explicit user consent |
+| `DTXUserOptIn` | Boolean | When `true`, OneAgent captures no data until the user opts in via `Dynatrace.applyUserPrivacyOptions(...)` |
+| `DTXStartupWithGrailEnabled` | Boolean | When `true`, sends data to Grail from the **first** app start (default `false`) |
+
+> <sub>**Sources:** [Configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-03-configuration) — *"DTXAutoStart Boolean true When true, OneAgent starts automatically when your app launches."*; [Initial setup for iOS frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-01-initial-setup) — *"DTXStartupWithGrailEnabled false Sends data to Grail from the first app start"*.</sub>
 
 > **Important:** Replace `YOUR_APP_ID` and `YOUR_BEACON_URL` with the actual values from your Dynatrace mobile app configuration (see Section 1).
 
@@ -216,7 +225,7 @@ checkout?.leave()
 
 ## 6. Manual Startup Configuration
 
-If you need more control over when and how the SDK starts (for example, to defer initialization until after user consent, or to inject configuration values from a remote config service), you can disable `DTXAutoStart` in `Info.plist` and start the SDK programmatically.
+If you need more control over when and how the SDK starts (for example, to inject configuration values from a remote config service), set `DTXAutoStart` to `false` in `Info.plist` and start the SDK programmatically — *"Make sure to disable auto-start if you plan on starting the agent manually."* Values passed at startup take precedence over `Info.plist`. Manual startup runs later than automatic startup, so early lifecycle events such as the application start are not captured until the agent is initialized.
 
 ### AppDelegate (UIKit Lifecycle)
 
@@ -230,11 +239,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
 
-        Dynatrace.startup(withConfig: [
-            "DTXApplicationID": "YOUR_APP_ID",
-            "DTXBeaconURL": "YOUR_BEACON_URL",
-            "DTXAutoStart": true,
-            "DTXCrashReportingEnabled": true
+        Dynatrace.startupWithConfig([
+            kDTXApplicationID: "YOUR_APP_ID",
+            kDTXBeaconURL: "YOUR_BEACON_URL"
         ])
 
         return true
@@ -253,11 +260,9 @@ import Dynatrace
 @main
 struct MyApp: App {
     init() {
-        Dynatrace.startup(withConfig: [
-            "DTXApplicationID": "YOUR_APP_ID",
-            "DTXBeaconURL": "YOUR_BEACON_URL",
-            "DTXAutoStart": true,
-            "DTXCrashReportingEnabled": true
+        Dynatrace.startupWithConfig([
+            kDTXApplicationID: "YOUR_APP_ID",
+            kDTXBeaconURL: "YOUR_BEACON_URL"
         ])
     }
 
@@ -273,25 +278,25 @@ struct MyApp: App {
 
 If your app requires user opt-in before monitoring:
 
-1. Set `DTXAutoStart` to `false` in `Info.plist` (or omit the key).
-2. Call `Dynatrace.startup(withConfig:)` only after the user grants consent.
-3. Optionally set `DTXUserOptIn` to `true` for granular consent management.
+For consent, the documented mechanism is **user opt-in mode**, not deferring startup: set `DTXUserOptIn` to `true`, and OneAgent captures nothing until you apply the user's choice with `Dynatrace.applyUserPrivacyOptions(...)` (MOBL-09). `DTXAutoStart` is `true` by default — omitting it does **not** defer startup.
 
 > **Important:** Replace `YOUR_APP_ID` and `YOUR_BEACON_URL` with the actual values from your Dynatrace mobile app configuration.
+
+> <sub>**Sources:** [Configuration (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-03-configuration) — *"Make sure to disable auto-start if you plan on starting the agent manually."*, *"Manual startup occurs later, meaning those early events aren't captured until the agent is initialized."*</sub>
 
 <a id="verifying-data"></a>
 
 ## 7. Verifying Data in Dynatrace
 
-After installing and configuring the SDK, launch your iOS app on a device or simulator and interact with a few screens. Data should begin appearing in Dynatrace within 1-2 minutes.
+After installing and configuring the SDK, launch your iOS app on a device or simulator and interact with a few screens. Data should begin appearing within a few minutes. Without `DTXStartupWithGrailEnabled`, the very first app start may not reach Grail — launch the app a second time before concluding that nothing arrives.
 
 ### Where to Check
 
 | Location | What to Verify |
 |----------|----------------|
-| **Mobile > Your App > User Sessions** | Sessions are being recorded with user actions |
-| **Mobile > Your App > Crashes** | Crash reporting is active (trigger a test crash if needed) |
-| **Mobile > Your App > Network Requests** | HTTP calls from URLSession appear |
+| **Experience Vitals > Overview > Mobile > your frontend** | Sessions and user actions appear (RUM Classic: **Mobile > Your App**) |
+| **Error Inspector** | Crash reporting is active (trigger a test crash if needed) |
+| **Your frontend's requests view** | HTTP calls from URLSession appear |
 | **Notebooks / DQL** | Query for mobile entities and actions programmatically |
 
 The following DQL queries help confirm that data is arriving from your iOS app.

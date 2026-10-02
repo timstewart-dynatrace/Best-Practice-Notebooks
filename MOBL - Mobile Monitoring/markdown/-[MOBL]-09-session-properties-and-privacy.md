@@ -1,6 +1,6 @@
 # MOBL-09: Session Properties & Data Privacy
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 9 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -92,15 +92,20 @@ action.leaveAction()
 
 > <sub>**Sources:** [OneAgent SDK for Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android) — *"The reported values must be part of a user action."*, [OneAgent SDK for iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios).</sub>
 
-### Server-Side Session Properties
+### Where Mobile Properties Come From
 
-In addition to SDK-reported properties, Dynatrace can extract session properties from:
+In the New RUM Experience, properties land in two namespaces on Grail: **event properties** (`event_properties.*` on `user.events`) and **session properties** (`session_properties.*` on `user.sessions`). For a mobile frontend there are three ways to get them:
 
-- **Request attributes** -- Values captured from HTTP headers, query parameters, or response bodies on the server side
-- **CSS selectors** -- Values extracted from web view content (hybrid apps)
-- **JavaScript variables** -- Values read from the web view's JavaScript context
+| Method | Scope | Mobile? |
+|--------|-------|---------|
+| **Reported via the RUM APIs** (from your app code) | Event and session properties | Yes |
+| **Enriched in OpenPipeline** (aggregated from event properties at ingest) | Session properties | Yes |
+| **Config-less via the API** *(Preview)* | Event and session properties | Yes |
+| Captured by rules set in the Dynatrace web UI (extracted from a web page) | Event properties | **Web frontends only** |
 
-Server-side properties are configured in the Dynatrace UI under **Mobile > Application settings > Session and user action properties**.
+So mobile properties always start in your code. CSS selectors and JavaScript variables are web capture methods — for a hybrid app they apply to the web content, which is monitored as web RUM. In RUM Classic, values reported with `reportValue()` become properties once they are defined in the mobile app's **Session and user action properties** settings.
+
+> <sub>**Sources:** [RUM data model (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/data-model) — *"Event properties apply to individual user events and are stored in the event_properties namespace. Session properties are aggregated across user sessions and stored in the session_properties namespace."*; method table: rule capture is *"Extracted from a web page, without any code changes required."* (web frontends only); API reporting is *"Sent from your frontend through the RUM APIs."* (web and mobile frontends).</sub>
 
 ### Best Practices for Session Properties
 
@@ -108,8 +113,8 @@ Server-side properties are configured in the Dynatrace UI under **Mobile > Appli
 |----------|--------|
 | Use descriptive, consistent key names | Makes DQL queries readable and maintainable |
 | Set properties early in the session | Ensures they are available for all subsequent actions |
-| Limit to 20-30 properties per app | Excessive properties increase beacon size and processing overhead |
-| Avoid PII in property values | Session properties are not subject to data masking |
+| Keep the property set small and deliberate | Every property is data you send, store and must justify under data minimization |
+| Keep PII out of property values | A property is stored as sent — treat it like any other field you would have to delete on request |
 | Use enum-like values for strings | Facilitates aggregation (e.g., `"tier" = "free"` vs `"tier" = "Free Trial Account"`) |
 
 <a id="user-tagging"></a>
@@ -234,7 +239,7 @@ OneAgent **persists** these preferences and applies them again when the app rest
 
 ## 4. Opt-In Mode
 
-**Opt-in mode** means OneAgent starts with the `OFF` data collection level and waits for the user to explicitly consent before collecting data. This is the recommended approach for GDPR compliance in the European Union.
+**Opt-in mode** means OneAgent starts with the `OFF` data collection level and waits for the user to explicitly consent before collecting data. In community practice, it is the usual basis for consent-before-collection under the EU GDPR — confirm the legal position with your privacy counsel.
 
 ### How Opt-In Mode Works
 
@@ -414,7 +419,7 @@ Dynatrace Grail stores mobile RUM data in built-in buckets whose retention you c
 | User events and sessions (`user.events`, `user.sessions` — actions, crashes, errors, requests) | 35 days | No — built-in RUM buckets |
 | Mobile session replay (`default_mobile_user_replays`) | 35 days | No — built-in RUM bucket |
 | Business events your app sends (`bizevents`) | 35 days | Yes, per bucket |
-| Metrics (aggregated performance data) | 5 years | Limited |
+| Metrics (aggregated performance data, `default_metrics`) | 15 months | Longer retention depends on your subscription (ORGNZ series) |
 | Entities (mobile app configurations) | Lifetime of entity | N/A |
 
 ### RUM Retention Is Not Configurable Today
@@ -435,6 +440,8 @@ A dedicated bucket applies only to data you can route, such as business events y
 | **Regulatory audit** | Ensure retention periods are documented in your data processing records |
 | **Cross-border data** | Verify that Grail storage regions comply with data residency requirements |
 | **Session replay** | Replay retention is fixed at 35 days today, so limit what is captured instead — masking and replay sampling (MOBL-08) |
+
+> <sub>**Sources:** [Organize data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — built-in bucket table: `default_metrics` metrics 15 months.</sub>
 
 ---
 

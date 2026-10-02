@@ -1,6 +1,6 @@
 # MOBL-12: Advanced Instrumentation & Optimization
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 12 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 12 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -129,7 +129,7 @@ parentAction.leaveAction()
 
 ### Long-Running Actions
 
-By default, the SDK auto-closes actions after a timeout (typically 500ms of inactivity). For long-running operations like file uploads, background syncs, or multi-screen wizards, you need to manage the action lifecycle explicitly:
+Auto-generated actions close after a short inactivity timeout set by the agent. For long-running operations like file uploads, background syncs, or multi-screen wizards, you need to manage the action lifecycle explicitly:
 
 ```swift
 // iOS -- long-running action for file upload
@@ -283,13 +283,16 @@ webAction.leaveAction()
 
 | Scenario | Auto-tagged? | Manual Tagging Needed? |
 |----------|-------------|------------------------|
-| URLSession / HttpURLConnection | Yes (usually) | No |
-| Custom networking libraries (Alamofire, OkHttp) | Depends on version | Often yes |
-| WebSocket connections | No | Yes |
+| URLSession (iOS), and libraries built on it such as Alamofire | Yes | No |
+| HttpURLConnection and OkHttp (Android), and libraries built on them | Yes | No |
+| Other HTTP frameworks | No | Yes |
+| WebSocket connections (`ws://`, `wss://`) | No | Yes |
 | gRPC calls | No | Yes |
 | GraphQL over custom transport | No | Yes |
 
 > **Note:** Most standard HTTP libraries are auto-instrumented by the SDK. Manual tagging is primarily needed for custom or non-standard network transports.
+
+> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"Only web requests from the frameworks HttpURLConnection and OkHttp (including frameworks that are based on these frameworks) are automatically instrumented"*; *"webSocket requests (ws://, wss://) and other non-HTTP protocols require manual instrumentation."*</sub>
 
 <a id="ab-testing-feature-flags"></a>
 
@@ -340,7 +343,7 @@ App version adoption is closely related to feature flag rollouts. Use this query
 fetch user.sessions, from:-7d
 | filter dt.rum.application.type == "mobile"
 | filter isNotNull(app.short_version)
-| makeTimeseries session_count = count(), by:{app.short_version}, time:start_time, interval:1d
+| makeTimeseries session_count = count(), by:{app.short_version}, time:start_time, interval:24h
 ```
 
 <a id="sdk-performance-optimization"></a>
@@ -354,25 +357,30 @@ The Dynatrace mobile SDK is designed to be lightweight, but in performance-sensi
 | Optimization | Description | Impact |
 |-------------|-------------|--------|
 | **Beacon batching** | SDK batches beacons before sending | Reduces network overhead |
-| **Action timeout** | Tune action close timeout (default 500ms) | Balances accuracy vs. payload size |
 | **Excluded URLs** | Skip monitoring for analytics/CDN URLs | Reduces beacon volume |
 | **Data collection level** | `OFF` / `PERFORMANCE` / `USER_BEHAVIOR` per user (MOBL-09 §3); crash reporting is a separate opt-in | Captures only what the user agreed to |
 | **Cost and traffic control** | Monitored-session percentage in the app settings | Reduces DEM unit consumption |
 
 ### Configuring Excluded URLs
 
-Exclude third-party analytics and CDN URLs that generate noise without providing actionable insight:
+Exclude third-party analytics and CDN URLs that generate noise without providing actionable insight. The filters work on the device, so excluded requests are never captured.
+
+**iOS** — `DTXURLFilters` in `Info.plist`, an array of URL patterns (wildcards supported):
 
 ```xml
-<!-- Android -- dynatrace.config.xml -->
-<monitoring>
-    <excludeURLs>
-        <exclude pattern="https://analytics.google.com/*" />
-        <exclude pattern="https://cdn.myapp.com/*" />
-        <exclude pattern="https://firebaselogging.googleapis.com/*" />
-    </excludeURLs>
-</monitoring>
+<key>DTXURLFilters</key>
+<array>
+    <string>https://analytics.google.com/*</string>
+    <string>https://cdn.myapp.com/*</string>
+    <string>https://firebaselogging.googleapis.com/*</string>
+</array>
 ```
+
+**Android** — the `urlFilters` property of the `webRequests` block in the Dynatrace Android Gradle plugin configuration (OneAgent for Mobile 8.339+). The plugin documentation's *Filter web requests by URL* page has the exact syntax.
+
+> **Correction (10/02/2026).** Earlier revisions showed an Android `dynatrace.config.xml` with `<excludeURLs>` entries. No such file is documented; Android configuration lives in the Gradle plugin DSL.
+
+> <sub>**Sources:** [Configuration — iOS (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-03-configuration) — *"DTXURLFilters Array [] An array of URL patterns to exclude from automatic instrumentation. Supports wildcards."*; [What's new in OneAgent for Mobile 8.339 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-339) — *"The Dynatrace Android Gradle plugin now supports a new urlFilters property in the webRequests configuration."*</sub>
 
 ### Data Collection Levels
 
@@ -428,7 +436,7 @@ Use this query to compare daily session volumes (distinct `dt.rum.session.id` pe
 // Session volume comparison across all mobile apps
 fetch user.events, from:-7d
 | filter dt.rum.application.type == "mobile"
-| makeTimeseries session_count = countDistinct(dt.rum.session.id), by:{frontend.name}, interval:1d
+| makeTimeseries session_count = countDistinct(dt.rum.session.id), by:{frontend.name}, interval:24h
 ```
 
 ---

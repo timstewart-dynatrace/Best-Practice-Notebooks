@@ -1,6 +1,6 @@
 # OPMIG-05: Dynamic Routing & Bucket Management
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ---
 
@@ -60,7 +60,7 @@ Dynamic routing is the mechanism that directs incoming data to specific pipeline
 | Route 1 | k8s.namespace.name == "production" | prod-logs |
 | Route 2 | log.source == "nginx" | nginx-logs |
 | Route 3 | matchesPhrase(content, "payment") | payment-logs |
-| Default | (no match) | default |
+| Default route | (no match) | classic pipeline (logs, business events) / default pipeline |
 -->
 
 ### Key Routing Concepts
@@ -68,10 +68,12 @@ Dynamic routing is the mechanism that directs incoming data to specific pipeline
 | Concept | Description |
 |---------|-------------|
 | **Matching Condition** | DQL expression that evaluates to true/false |
-| **Route Priority** | Routes are evaluated in order (top to bottom) |
-| **Multi-match** | One record can match multiple routes (max 5 pipelines) |
-| **Default Pipeline** | Catches all records not matching any route |
-| **Exclusive Routing** | Use specific conditions to prevent multi-match |
+| **Route Priority** | Routes are evaluated in order (top to bottom) — the **first matching route wins** |
+| **One route per record** | A record that matches several routes still goes to only the first one |
+| **Default route** | Catches all records not matching any route — for logs and business events, the classic pipeline |
+| **More than one pipeline** | Route to a member pipeline of a **pipeline group**; the group's base pipelines run with it |
+
+> <sub>**Sources:** [Data flow in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow) — *"The route order is relevant—the position in the list establishes the order of execution."*; [Pipeline groups — multi-cloud ingest governance (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud) — *"Each record is routed to and processed by only one member pipeline, according to the first matching route."*</sub>
 
 ---
 
@@ -141,9 +143,13 @@ Grail buckets are storage containers with configurable retention and access poli
 | Bucket | Data Type | Default Retention |
 |--------|-----------|-------------------|
 | `default_logs` | Log records | 35 days |
-| `default_spans` | Span/trace data | 35 days |
+| `default_spans` | Span/trace data | 10 days |
 | `default_bizevents` | Business events | 35 days |
 | `default_events` | Platform events | 35 days |
+
+Run `fetch dt.system.buckets | filter startsWith(name, "default_")` to see the built-in buckets and retention in your own tenant.
+
+> <sub>**Sources:** [Organize data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — built-in bucket table: `default_logs` 35 days, `default_spans` 10 days, `default_bizevents` 35 days, `default_events` 35 days.</sub>
 
 ### Custom Bucket Use Cases
 
@@ -173,26 +179,26 @@ Grail buckets are storage containers with configurable retention and access poli
 Each pipeline can route data to a specific bucket:
 
 1. Open your pipeline in OpenPipeline settings
-2. Go to **Storage** tab
-3. Select target bucket from dropdown
+2. Go to the **Bucket assignment** stage and add a **Bucket assignment** processor
+3. Give it a matching condition and choose the bucket from the **Storage** list
 4. Save pipeline
 
 ### Bucket Routing Rules
 
 | Rule | Behavior |
 |------|----------|
-| **Pipeline bucket** | Records go to pipeline's configured bucket |
-| **No bucket set** | Records go to default bucket for data type |
-| **Multi-pipeline** | Record stored once in first pipeline's bucket |
+| **First match only** | The first Bucket assignment processor whose condition matches decides the bucket |
+| **No storage assignment** | The record runs through every later stage (metric, Davis, data extraction) and is then not stored |
+| **No processor matched** | In community practice the record lands in the scope's default bucket (`default_logs`) — confirm with the bucket queries below |
 
-> ⚠️ **Important:** A record is stored only ONCE, even if processed by multiple pipelines. It goes to the bucket of the FIRST matching pipeline.
+> ⚠️ **Important:** A record is stored at most **once**, in one bucket. Bucket assignment is first-match-only, so order the processors from most specific to least specific.
 
 ### Creating Custom Buckets
 
 Custom buckets are created via Grail settings:
 
 ```
-Settings → Data and storage → Grail buckets → + Create bucket
+Settings → Storage management → Bucket storage management → Bucket
 ```
 
 Configure:
@@ -241,7 +247,7 @@ For logs needed only for metrics:
 
 1. Extract metrics (with dimensions) from logs in the **Metric extraction** stage
 2. Assign the raw logs **No storage assignment** (Bucket assignment stage) so each record still runs through Metric extraction but is not stored
-3. Metrics persist for 10 years; the raw logs are never written to a bucket
+3. The metrics are kept for the metrics bucket's retention (`default_metrics`: 15 months); the raw logs are never written to a bucket
 
 Do not use a **Drop record** processor for this — it runs in the Processing stage, before Metric extraction, so nothing would be extracted.
 
@@ -366,8 +372,8 @@ Savings Percentage:  34%
 ### Scenario 3: Global Retailer - Compliance + Cost
 
 **Requirements:**
-- Payment logs: PCI-DSS requires 90 days
-- Audit logs: SOC 2 requires 365 days
+- Payment logs: PCI DSS Requirement 10.5.1 — at least 12 months of audit log history, the most recent three months immediately available
+- Audit logs: 365 days — SOC 2 sets no fixed period; a year matching the audit window is common practice
 - Application logs: 35 days standard
 - Debug logs: Drop immediately
 
@@ -382,13 +388,13 @@ TOTAL:         100 GB/day
 
 **Cost Calculation:**
 ```text
-Payment (90d):  10,000 × 90 × 0.0001 × 30 × $0.08 = $216/month
+Payment (365d): 10,000 × 365 × 0.0001 × 30 × $0.08 = $876/month
 Audit (365d):   5,000 × 365 × 0.0001 × 30 × $0.08 = $438/month
 App (35d):      60,000 × 35 × 0.0001 × 30 × $0.08 = $504/month
 Debug (drop):   $0/month
 Ingestion:      75,000 × 30 × 0.001 × $0.08 = $180/month
 
-TOTAL:          $1,338/month
+TOTAL:          $1,998/month
 ```
 
 **vs. No Optimization (all 35 days):**
@@ -440,7 +446,7 @@ fetch logs, from: now() - 7d
 ```dql
 // Bucket usage trend over time
 fetch logs, from: now() - 7d
-| makeTimeseries {record_count = count()}, by: {dt.system.bucket}, interval: 1d
+| makeTimeseries {record_count = count()}, by: {dt.system.bucket}, interval: 24h
 ```
 
 ```dql
@@ -518,12 +524,13 @@ Route 2 (Ephemeral):
   Pipeline:  ephemeral-logs
   Bucket:    ephemeral_logs (7 days)
 
-Default Route:
+Route 3 (Standard, catch-all — last in the list):
+  Condition: true
   Pipeline:  standard-logs
   Bucket:    default_logs (35 days)
 ```
 
-**Expected Savings:** 25-35% vs. single-bucket approach
+**Expected savings:** depends on your level mix — run *Estimate storage reduction from tiered retention* above on your own data before committing to a number.
 
 ### 5-Tier Strategy (Enterprise Organizations)
 
@@ -537,7 +544,7 @@ Default Route:
 | **Standard** | `default_logs` | 35 days | INFO logs, standard operations | 40-50% |
 | **Development** | `dev_logs` | 7 days | Dev/staging, DEBUG, testing | 30-40% |
 
-**Expected Savings:** 40-60% vs. single-bucket approach
+**Expected savings:** measure, as above — the volume percentages in the table are illustrative.
 
 ### Hybrid Strategy (Compliance + Cost)
 
@@ -548,7 +555,7 @@ Default Route:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Priority | Check | Destinations |
 |----------|-------|--------------|
-| 1st | Compliance | Payment → payment_logs (90d, PCI-DSS), Audit → audit_logs (365d, SOC 2), Healthcare → phi_logs (7 yrs, HIPAA) |
+| 1st | Compliance | Payment → payment_logs (1 yr, PCI-DSS), Audit → audit_logs (365d, SOC 2), Healthcare → phi_logs (7 yrs, HIPAA) |
 | 2nd | Environment | Production → prod_logs (35d), Staging → staging_logs (14d), Development → dev_logs (7d) |
 | 3rd | Severity | ERROR/FATAL → Keep, WARN/INFO → Keep, DEBUG/TRACE → DROP or 3-day bucket |
 -->
@@ -561,9 +568,9 @@ Default Route:
 
 <a id="multi-pipeline-processing"></a>
 ## Multi-Pipeline Processing
-A single record can be processed by multiple pipelines (up to 5). This enables powerful patterns:
+Routing sends each record to **one** route — the first that matches. To run a record through more than one pipeline, use a **pipeline group**: a route targets a *member* pipeline, and the group's *base* pipelines (shared processing such as masking, cost and permission assignment) run with it.
 
-### Use Case: Extraction + Storage Pipeline
+### Use Case: Shared Base + Team Member Pipeline
 
 ![Multi-Pipeline Processing](images/multi-pipeline-processing.png)
 
@@ -575,30 +582,17 @@ A single record can be processed by multiple pipelines (up to 5). This enables p
 | **Result** | Both outputs from single log | Metric ✓ + Log ✓ |
 -->
 
-### Use Case: Security + Operational Logs
+You do **not** need two pipelines to extract a metric and store the log — one pipeline does both (Metric extraction and Bucket assignment are stages of the same pipeline). Use a group when several teams need the same baseline processing and their own additions on top.
 
-```
-Pipeline 1: security-analysis
-  - Extract security events
-  - Generate security alerts
+### Configuring a Pipeline Group
 
-Pipeline 2: operational-logs
-  - Standard parsing
-  - Normal storage
-```
+1. Create the shared processing as a **base pipeline** and the team-specific processing as a **member pipeline**, both in one pipeline group
+2. Route the data to the **member pipeline** with a dynamic route
+3. The record is processed by the base pipelines and that member pipeline — overlapping *routes* do not do this; the second route never sees a record the first one matched
 
-### Configuring Multi-Pipeline Routes
+> ⚠️ **Limit:** Data extraction happens in at most 5 pipelines for one record (`dt.openpipeline.pipelines`). Beyond that, extraction stops; the record is still processed and persisted.
 
-Create overlapping route conditions:
-
-```
-Route 1: log.source == "auth-service"  → security-logs
-Route 2: log.source == "auth-service"  → app-logs
-
-Both pipelines process the same record
-```
-
-> ⚠️ **Limit:** A record can be processed by maximum 5 pipelines. Beyond this, extraction stops.
+> <sub>**Sources:** [Pipeline groups — multi-cloud ingest governance (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud) — *"A record is processed by base pipelines and a member pipeline, according to the first matching route."*; [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"You can extract data on a single record in a maximum of five different pipelines"*.</sub>
 
 ```dql
 // Identify records processed by multiple pipelines
@@ -629,127 +623,118 @@ Proper bucket governance ensures compliance, security, and operational efficienc
 
 #### Pattern 1: Role-Based Bucket Access
 
+People read log buckets; only the pipeline writes to them. Bucket access is therefore a **read** grant through an IAM policy, and the pattern is about *who can read which bucket*.
+
 | Role | Bucket Access | Permissions |
 |------|---------------|-------------|
-| **Developers** | `dev_logs` | Read/Write |
-| | `staging_logs` | Read/Write |
-| | `prod_logs` | Read-only |
-| **SRE/Platform** | All buckets | Read/Write |
-| **Security Team** | `security_logs` | Read/Write |
-| | `audit_logs` | Read-only (immutable) |
-| | `compliance_logs` | Read-only (immutable) |
-| **Auditors** | `audit_logs` | Read-only |
-| | `compliance_logs` | Read-only |
-| **Finance** | `payment_logs` | Read-only |
+| **Developers** | `dev_logs` | Read |
+| | `staging_logs` | Read |
+| | `prod_logs` | Read |
+| **SRE/Platform** | All buckets | Read |
+| **Security Team** | `security_logs` | Read |
+| | `audit_logs` | Read |
+| | `compliance_logs` | Read |
+| **Auditors** | `audit_logs` | Read |
+| | `compliance_logs` | Read |
+| **Finance** | `payment_logs` | Read |
 
 #### Pattern 2: Least Privilege by Environment
 
 ```
 Development Team:
-  - FULL access to dev_logs
+  - READ access to dev_logs
   - READ access to staging_logs
   - NO access to prod_logs
 
 QA Team:
-  - FULL access to staging_logs
+  - READ access to staging_logs
   - READ access to dev_logs
   - READ access to prod_logs (for troubleshooting only)
 
 Production SRE:
-  - FULL access to prod_logs, error_logs, security_logs
+  - READ access to prod_logs, error_logs, security_logs
   - READ access to all other buckets
 ```
 
-### Retention Policy Enforcement
+### What a bucket can and cannot enforce
 
-| Bucket | Min Retention | Max Retention | Enforcement |
-|--------|---------------|---------------|-------------|
-| `dev_logs` | 1 day | 14 days | Auto-delete after max |
-| `staging_logs` | 7 days | 30 days | Auto-delete after max |
-| `default_logs` | 35 days | 35 days | Standard retention |
-| `prod_logs` | 90 days | 90 days | Protected |
-| `audit_logs` | 365 days | 2555 days | Immutable after 30d |
-| `payment_logs` | 90 days | 2555 days | PCI-DSS compliant |
-| `phi_logs` | 2555 days | 2555 days | HIPAA 7-year rule |
+A Grail bucket is created *"with a specified name, table type (for example, logs, events, bizevents, or spans), and retention period"* — **one** retention period, 1 day to 10 years plus a week. Access is granted with IAM policies on the bucket. None of those is a minimum/maximum retention range, a write-once or immutability switch, or an encryption choice, so do not plan a compliance control around one. Requirements beyond retention and access (immutability, an access audit trail, encryption standards) are met at the platform or account level, or outside Dynatrace — confirm them with your Dynatrace account team and your compliance owner, not with a bucket setting.
 
-**Enforcement Methods:**
-1. **Automated**: Grail automatically purges data after retention period
-2. **Immutability**: Compliance buckets can be configured as write-once (after grace period)
-3. **Audit Trail**: All retention changes logged in audit_logs
+| Bucket | Retention | Driven by |
+|--------|-----------|-----------|
+| `dev_logs` | 7–14 days | Cost |
+| `staging_logs` | 14–30 days | Cost |
+| `default_logs` | 35 days | Built-in default |
+| `prod_logs` | 90 days | Operations |
+| `audit_logs` | 365+ days | Your audit window |
+| `payment_logs` | 365+ days | PCI DSS 10.5.1 |
+| `phi_logs` | 2,190–2,555 days | HIPAA documentation retention |
 
-### Compliance Audit Trail Requirements
+Shortening a bucket's retention **deletes** the data older than the new period — *"Shortening the retention period on update requests will delete the data that is over the new period."*
 
-#### SOC 2 Compliance
+### Compliance retention — what the standards say
 
-**Required Logs (365 days minimum):**
+#### SOC 2
+
+SOC 2 does not prescribe a log-retention period. In community practice, audit logs are kept for at least the 12-month window a Type 2 report covers. Typical content:
 - Authentication events (login, logout, MFA)
 - Authorization changes (role assignments, permission changes)
 - Data access (who accessed what, when)
 - Configuration changes (pipeline edits, bucket changes)
 - Security events (failed auth, suspicious activity)
 
-**Bucket Configuration:**
-```
-Bucket: soc2_audit_logs
-Retention: 365 days (minimum)
-Immutability: Write-once after 30-day grace period
-Access: Security team + auditors only
-Encryption: At-rest encryption enforced
+```text
+Bucket:     soc2_audit_logs
+Retention:  365 days or longer (match your audit window)
+Access:     IAM policy — security team + auditors only
 ```
 
-#### PCI-DSS Compliance
+#### PCI DSS
 
-**Required Logs (90 days minimum, 12 months recommended):**
-- Payment transaction logs (amounts MASKED, card numbers REDACTED)
+PCI DSS Requirement 10.5.1 requires **at least 12 months** of audit log history, with at least the most recent three months immediately available for analysis. A 90-day bucket does not meet it.
+- Payment transaction logs (card numbers masked at ingest — OPMIG-08)
 - Access to cardholder data environments
 - Authentication to payment systems
 - Database queries touching payment data
 
-**Bucket Configuration:**
-```
-Bucket: pci_payment_logs
-Retention: 365 days (exceeds 90-day minimum)
-Processing: MASK credit card numbers, CVV codes
-Access: Payment team + security + auditors
-Encryption: TLS 1.2+ in transit, AES-256 at rest
-Monitoring: Alert on access attempts
+```text
+Bucket:     pci_payment_logs
+Retention:  365 days or longer
+Processing: Mask card numbers and CVV in the Processing stage (OPMIG-08)
+Access:     IAM policy — payment team + security + auditors
 ```
 
-#### HIPAA Compliance
+#### HIPAA
 
-**Required Logs (6 years minimum, 7 years recommended):**
+HIPAA requires covered entities to retain required documentation for six years (45 CFR §164.316(b)(2)); in community practice that period is applied to PHI access logs too, often rounded up to seven years.
 - PHI access logs (who viewed which patient records)
 - Authentication to healthcare systems
 - Prescription and medical record changes
 - Breach detection events
 
-**Bucket Configuration:**
-```
-Bucket: hipaa_phi_logs
-Retention: 2555 days (7 years)
-Processing: MASK patient IDs, SSNs, dates of birth
-           HASH medical record numbers
-Access: Healthcare IT + compliance officers only
-Encryption: FIPS 140-2 compliant
-Audit: All bucket access logged to separate audit bucket
+```text
+Bucket:     hipaa_phi_logs
+Retention:  2,190–2,555 days (6–7 years)
+Processing: Mask patient IDs, SSNs, dates of birth; hash record numbers (OPMIG-08)
+Access:     IAM policy — healthcare IT + compliance officers only
 ```
 
-#### GDPR Compliance
+#### GDPR
 
 **Special Considerations:**
-- **Right to Erasure:** Logs with EU citizen PII must be deletable on request
+- **Right to Erasure:** Logs with EU citizen PII must be deletable on request — Grail supports record deletion via API, which must be enabled as a capability in your DPS
 - **Data Minimization:** Only collect necessary personal data
 - **Retention Limits:** Cannot retain personal data longer than necessary
 
-**Bucket Strategy:**
+```text
+Bucket:     eu_customer_logs
+Retention:  90 days (balancing security and data minimization)
+Processing: Mask email addresses, IP addresses; add customer_id_hash (for erasure lookup)
+Erasure:    Record deletion API, driven by your erasure-request process
+Residency:  Set by the tenant's hosting region — a bucket cannot change where data is stored
 ```
-Bucket: eu_customer_logs
-Retention: 90 days (balancing security and data minimization)
-Processing: MASK email addresses, IP addresses
-           ADD customer_id_hash (for erasure lookup)
-Deletion API: Integrate with GDPR erasure requests
-Data Residency: EU-only bucket (if required)
-```
+
+> <sub>**Sources:** [Organize data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"Creates a new user-defined bucket with a specified name, table type (for example, logs, events, bizevents, or spans), and retention period."*, *"For custom buckets, the possible retention periods range from 1 day to 10 years, with an additional week."*, *"Shortening the retention period on update requests will delete the data that is over the new period."*; [Record deletion in Grail via API (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail) — *"This must be enabled as a capability in your Dynatrace Platform Subscription (DPS)."* PCI DSS v4.0.1 Requirement 10.5.1 and 45 CFR §164.316(b)(2) are cited from the standards themselves.</sub>
 
 ### Bucket Naming Conventions
 
@@ -808,7 +793,7 @@ ephemeral_healthcheck_logs
 | **Test conditions** | Validate matching conditions with sample data |
 | **Avoid overlap** | Unless intentional multi-pipeline is needed |
 | **Document routes** | Keep a map of route → pipeline → bucket |
-| **Monitor default** | High default pipeline volume = missing routes |
+| **Monitor the default route** | High default-route volume = missing routes |
 
 ### Bucket Best Practices
 
@@ -824,9 +809,9 @@ ephemeral_healthcheck_logs
 
 | Practice | Impact |
 |----------|--------|
-| Drop DEBUG/TRACE | 30-50% volume reduction |
-| Drop health checks | 5-20% volume reduction |
-| Short retention for dev | 70-80% cost reduction |
+| Drop DEBUG/TRACE | Volume reduction equal to your DEBUG/TRACE share — measure it with the queries above |
+| Drop health checks | Varies widely by workload — measure before you plan to it |
+| Short retention for dev | Storage for that data falls in proportion to retention (7 of 35 days ≈ 80% less) |
 | Extract metrics, don't store logs | Metrics persist; assign the raw logs **No storage assignment** (a Drop record processor would run before extraction) |
 | Sample high-volume noise | Keep visibility, reduce storage |
 

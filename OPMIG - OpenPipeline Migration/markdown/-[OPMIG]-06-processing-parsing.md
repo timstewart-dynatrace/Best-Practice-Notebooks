@@ -1,6 +1,6 @@
 # OPMIG-06: Processing, Parsing & Transformation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ---
 
@@ -73,7 +73,12 @@ The DQL processor supports a subset of DQL commands for data transformation.
 | `fieldsAdd` | Add new fields | `fieldsAdd env = "production"` |
 | `fieldsRemove` | Remove fields | `fieldsRemove sensitive_field` |
 | `fieldsRename` | Rename fields | `fieldsRename old = new_name` |
-| `parse` | Extract with DPL | `parse content, "INT:count"` |
+| `parse` | Extract with DPL | `parse content, "LD? 'count=' INT:count"` |
+| `jsonExtract` | Lift a JSON string's root-level keys to fields | JSON logs |
+| `fieldsFlatten` | Flatten a nested record into fields | after `parse … "JSON:x"` |
+| `fields` / `fieldsKeep` | Keep only the listed fields | |
+
+> <sub>**Sources:** [DQL commands in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-commands) — *"jsonExtract Parses a JSON string and extracts the root-level keys of the JSON object to root-level record fields."*</sub>
 
 ### fieldsAdd Examples
 
@@ -172,18 +177,25 @@ DPL is a powerful pattern matching language for extracting structured data from 
 ### Basic Parse Examples
 
 ```dql
-// Extract user ID after "user="
-parse content, "'user=' LD:user_id"
+// Extract user ID after "user=", anywhere in the line
+parse content, "LD? 'user=' NSPACE:user_id"
 
-// Extract error code (integer)
-parse content, "'error_code=' INT:error_code"
+// Extract error code (integer), anywhere in the line
+parse content, "LD? 'error_code=' INT:error_code"
 
-// Extract IP and port
+// Extract IP and port (line starts with the IP)
 parse content, "IPADDR:client_ip ':' INT:port"
 
 // Extract JSON payload
 parse content, "LD JSON:payload"
 ```
+
+> **Three rules that decide whether a pattern returns anything** (each verified with `data record(...)` on 10/02/2026):
+> 1. **`parse` anchors at the start of the field.** A pattern that opens with `'user='` returns **null** on every line that does not *begin* with `user=` — no error. Prefix it with `LD?` to skip any leading text (or none). `parse` does *not* need to consume the whole field; trailing text is ignored.
+> 2. **A trailing `LD:x` runs to the end of the line**, not the end of the value — `'requestId=' LD:id` on `requestId=abc-123 status=OK` returns `abc-123 status=OK`. End with `NSPACE:x`, a typed matcher, or a closing literal.
+> 3. **`LD` never crosses a line break.** In a multi-line record (a stack trace), `LD? 'at ' …` cannot reach line 2. Use `DATA? 'at ' …` for the first match, or `parseAll(content, "…")` to collect every match as an array.
+>
+> FAQ-15 covers DPL matching semantics in depth.
 
 ---
 
@@ -226,11 +238,9 @@ parse content, """
 
 **Sample:** `{"timestamp":"2024-12-12T10:30:45.123Z","level":"ERROR","service":"payment-api","message":"Payment gateway timeout"}`
 
-**Option 1: Use Technology Parser** (Recommended)
-- Add **Technology** processor → Select **JSON** parser
-- All fields automatically flattened
+**Option 1: `jsonExtract`** — lifts the root-level keys of the JSON in `content` to fields (OpenPipeline DQL processor command).
 
-**Option 2: DQL Parsing**
+**Option 2: Parse, then pick or flatten**
 ```dql
 parse content, "JSON:log_data"
 | fieldsAdd service = log_data[service]
@@ -249,6 +259,7 @@ parse content, """
   LD:hostname SPACE LD:app_name '[' INT:pid ']:' SPACE
   DATA:message
 """
+// RFC 3164 timestamps carry no year: the parsed value gets the current year
 | fieldsAdd facility = toLong(priority / 8)
 | fieldsAdd severity = toLong(priority % 8)
 ```
@@ -269,7 +280,10 @@ parse content, """
 **Stack Trace Extraction:**
 ```dql
 parse content, "LD:exception_class ':' SPACE LD:exception_message EOL"
-| parse content, "'at ' LD:error_location '(' LD:file ':' INT:line_number ')'"
+// Frames are on later lines, and LD stops at a line break — DATA? reaches the first frame
+| parse content, "DATA? 'at ' LD:error_location '(' LD:file ':' INT:line_number ')'"
+// or collect every frame as an array of records
+| fieldsAdd frames = parseAll(content, "LD? 'at ' LD:method '(' LD:file ':' INT:line ')'")
 ```
 
 ### Kubernetes / Container Logs
@@ -315,11 +329,11 @@ userId=12345, action=login, status=success, duration=150ms
 
 **DPL Patterns:**
 ```dql
-// Extract each key-value pair
-parse content, "'userId=' INT:user_id"
-parse content, "'action=' LD:action ','"
-parse content, "'status=' LD:status ','"
-parse content, "'duration=' INT:duration_ms 'ms'"
+// Extract each key-value pair, wherever it sits in the line
+parse content, "LD? 'userId=' INT:user_id"
+| parse content, "LD? 'action=' LD:action ','"
+| parse content, "LD? 'status=' LD:status ','"
+| parse content, "LD? 'duration=' INT:duration_ms 'ms'"
 ```
 
 ### Flexible User ID Extraction
@@ -333,7 +347,7 @@ Request from user_id=john123 received
 
 **DPL Pattern (alternatives):**
 ```dql
-parse content, "('user='|'userId='|'user_id=') LD:user_id"
+parse content, "LD? ('user='|'userId='|'user_id=') NSPACE:user_id"
 ```
 
 ### Timestamp Parsing
@@ -361,7 +375,8 @@ parse content, "'Request to ' LD:server (':' INT:port)? ' completed'"
 
 **DPL Pattern:**
 ```dql
-parse content, "LD:exception_class ':' LD:exception_message"
+parse content, "LD:exception_class ':' SPACE LD:exception_message"
+// first line of the record only — LD stops at the line break
 ```
 
 ---
@@ -382,8 +397,8 @@ parse content, "'[' TIMESTAMP('yyyy-MM-ddTHH:mm:ss'):log_time ']' SPACE LD:level
 
 **Processor 2: Extract payment details**
 ```dql
-parse content, "'orderId=' INT:order_id ','"
-| parse content, "'amount=' DOUBLE:amount"
+parse content, "LD? 'orderId=' INT:order_id"
+| parse content, "LD? 'amount=' DOUBLE:amount"
 ```
 
 **Processor 3: Add computed fields**
@@ -404,7 +419,7 @@ fieldsAdd severity = if(level == "ERROR", "critical", else: "normal")
 parse content, "JSON:json_data"
 ```
 
-Using a Technology Parser (JSON) is often easier for JSON logs.
+To lift the keys to top-level fields, follow with `fieldsFlatten json_data` — or use `jsonExtract` instead of `parse`.
 
 ### Example 3: Multi-Format Log Normalization
 
@@ -437,13 +452,13 @@ fieldsAdd normalized_level = if(contains(content, "ERROR") OR contains(content, 
 
 ```dql
 // Full request line (a literal " inside the DQL string is escaped as \")
-parse content, "'\"' LD:method SPACE LD:path SPACE LD:protocol '\"'"
+parse content, "LD? '\"' LD:method SPACE LD:path SPACE LD:protocol '\"'"
 
 // Separate path and query
-parse content, "'\"' LD:method SPACE LD:path ('?' LD:query)? SPACE LD:protocol '\"'"
+parse content, "LD? '\"' LD:method SPACE LD:path ('?' LD:query)? SPACE LD:protocol '\"'"
 
 // RESTful API paths (/api/v1/users/12345)
-parse content, "'/api/v' INT:api_version '/' LD:resource '/' INT:id"
+parse content, "LD? '/api/v' INT:api_version '/' LD:resource '/' INT:id"
 ```
 
 ### Key-Value Patterns
@@ -462,17 +477,17 @@ parse content, "'level=' LD:level SPACE 'msg=\"' LD:msg '\"' SPACE 'duration=' I
 ### Stack Trace Patterns
 
 ```dql
-// Java exception
+// Java exception (first line)
 parse content, "LD:exception_class ':' SPACE LD:exception_message EOL"
 
-// Stack trace line
-parse content, "'at ' LD:class_method '(' LD:file ':' INT:line ')'"
+// Stack trace lines — every frame, as an array (LD cannot cross a line break)
+fieldsAdd frames = parseAll(content, "LD? 'at ' LD:class_method '(' LD:file ':' INT:line ')'")
 
-// Caused by
-parse content, "'Caused by: ' LD:caused_by ':' SPACE LD:message"
+// Caused by — anywhere in the record
+fieldsAdd causes = parseAll(content, "'Caused by: ' LD:caused_by ':' SPACE LD:message")
 
-// Python traceback
-parse content, "'File \"' LD:file '\", line ' INT:line ', in ' LD:function"
+// Python traceback — first frame
+parse content, "DATA? 'File \"' LD:file '\", line ' INT:line ', in ' NSPACE:function"
 ```
 
 ### PII Masking Patterns
@@ -495,14 +510,14 @@ fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "****-***
 ### Network Patterns
 
 ```dql
-// IP and port
-parse content, "IPADDR:ip ':' INT:port"
+// IP and port, anywhere in the line
+parse content, "LD? IPADDR:ip ':' INT:port"
 
 // IPv4 only
-parse content, "IPV4ADDR:ipv4"
+parse content, "LD? IPV4ADDR:ipv4"
 
 // IPv6 only
-parse content, "IPV6ADDR:ipv6"
+parse content, "LD? IPV6ADDR:ipv6"
 
 // URL parsing (an LD must be followed by something it can stop at, so the path starts at '/')
 parse content, "LD:protocol '://' LD:hostname (':' INT:port)? '/' LD:path"
@@ -548,7 +563,7 @@ parse content, """
 | `mutate { remove_field }` | `fieldsRemove field` |
 | `mutate { rename }` | `fieldsRename old = new` |
 | `drop { }` | Drop processor |
-| `json { }` | JSON Technology Parser |
+| `json { }` | `jsonExtract`, or `parse content, "JSON:x"` + `fieldsFlatten x` |
 | `date { }` | TIMESTAMP in parse |
 
 ### Complete Migration Example
@@ -573,18 +588,18 @@ filter {
 
 <a id="technology-bundle-parsers"></a>
 ## Technology Bundle Parsers
-OpenPipeline includes built-in parsers for common log formats.
+The **Technology bundle** processor applies a library of predefined processors for a selected technology. The documented library is grouped by category, for example:
 
-### Available Technology Parsers
+| Category | Examples from the library |
+|----------|---------------------------|
+| Servers | Apache HTTP (access, error logs), Nginx (access, error log), Apache Tomcat, HAProxy |
+| Syslog | RFC 3164, RFC 5424, Generic, Cisco switch |
+| Applications | Java (Spring Boot, Slf4j, Log4j, Logback, Util Logging, exception stack trace), Node.js, Go |
+| AWS / Azure | API Gateway, CloudFront, EKS control plane, AKS, and more |
 
-| Parser | Log Format | Extracted Fields |
-|--------|------------|------------------|
-| **Apache** | Apache access logs | client_ip, method, path, status, bytes |
-| **Nginx** | Nginx access logs | Similar to Apache |
-| **JSON** | JSON-formatted logs | All JSON fields flattened |
-| **Syslog** | RFC 3164/5424 syslog | facility, severity, hostname, message |
-| **Log4j** | Java Log4j format | level, logger, thread, message |
-| **AWS CloudWatch** | AWS logs | AWS-specific fields |
+There is no generic "JSON" bundle — for JSON logs use `jsonExtract` or `parse … "JSON:x"` in a DQL processor. The fields a bundle adds are defined by the bundle; check its output on a sample record before you rely on a field name.
+
+> <sub>**Sources:** [Technology bundle processors for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-tech-bundles-processors) — *"The following table lists the technology bundles available in OpenPipeline."* (library read 10/02/2026).</sub>
 
 ### When to Use Technology Parsers
 
@@ -598,9 +613,9 @@ OpenPipeline includes built-in parsers for common log formats.
 ### Configuring Technology Parsers
 
 1. Open pipeline in OpenPipeline settings
-2. Go to **Processing** tab
-3. Click **+ Processor** → **Technology**
-4. Select parser type
+2. Go to the **Processing** stage
+3. Click **+ Processor** → **Technology bundle**
+4. Select the technology
 5. Configure matching condition
 6. Save
 
@@ -679,8 +694,8 @@ fieldsAdd loglevel = if(contains(content, "[ERROR]") OR contains(content, "ERROR
 When JSON is embedded in a log message:
 
 ```dql
-// Extract JSON from text
-parse content, "LD JSON:embedded_json LD"
+// Extract JSON from text (trailing text after the JSON is ignored)
+parse content, "LD JSON:embedded_json"
 ```
 
 ### Pattern 4: Compute Response Time Categories
@@ -701,8 +716,8 @@ fieldsAdd is_success = if(status == "success" OR status == "ok" OR status == "20
 ### Pattern 6: Extract Service Name from Path
 
 ```dql
-// From /api/v1/users → users
-parse content, "'/api/v' INT '/' LD:service_name"
+// From "GET /api/v1/users HTTP/1.1" → users
+parse content, "LD? '/api/v' INT '/' NSPACE:service_name"
 ```
 
 ---
@@ -817,7 +832,7 @@ parse content, "'[' TIMESTAMP('yyyy-MM-dd HH:mm:ss'):log_ts ']' SPACE '[' LD:lev
 
 **Processor 3: Extract Request ID (DQL)**
 ```dql
-parse content, "'requestId=' LD:request_id"
+parse content, "LD? 'requestId=' NSPACE:request_id"
 ```
 
 **Processor 4: Add Environment Tags (DQL)**

@@ -1,6 +1,6 @@
 # MOBL-04: Cross-Platform Frameworks
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 4 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -26,7 +26,7 @@ This notebook walks through instrumenting **Flutter**, **React Native**, **Cordo
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Grail, with Mobile App monitoring enabled |
+| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** on for mobile and the **New Real User Monitoring Experience** on for each frontend (MOBL-02 §1) — the `user.events` queries here return nothing without it |
 | **Permissions** | `Mobile app settings` write access; `storage:user.events:read`, `storage:user.sessions:read`, `storage:smartscape:read` for the queries |
 | **Flutter** | Flutter 3.x with Dart 3.x (for Flutter sections) |
 | **React Native** | React Native 0.72+ with Node.js 18+ (for RN sections) |
@@ -73,7 +73,7 @@ In `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  dynatrace_flutter_plugin: ^3.x.x
+  dynatrace_flutter_plugin: ^3.347.1   # current release on pub.dev, 10/02/2026
 ```
 
 Run `flutter pub get` to install the plugin.
@@ -120,7 +120,7 @@ MaterialApp(
 
 > <sub>**Sources:** [dynatrace_flutter_plugin (pub.dev)](https://pub.dev/packages/dynatrace_flutter_plugin) — *"void main() => Dynatrace().start(MyApp());"*</sub>
 
-> **Tip:** You can find the Application ID and Beacon URL in **Dynatrace > Mobile App > Settings > Instrumentation**. Each platform (Android, iOS) has its own Application ID.
+> **Tip:** The instrumentation wizard of your frontend shows the Application ID and Beacon URL for each platform. Use exactly what it gives you for the Android and iOS sections.
 
 <a id="react-native-setup"></a>
 
@@ -179,8 +179,10 @@ module.exports = {
 |--------|-------------|---------|
 | `autoStart` | Start monitoring automatically on app launch | `true` |
 | `debug` | Enable verbose logging for troubleshooting | `false` |
-| `lifecycleUpdate` | Automatically track lifecycle actions | `true` |
-| `userOptIn` | Require explicit user consent before monitoring | `false` |
+| `lifecycleUpdate` | Also report update cycles on lifecycle actions (creates many more actions) | `false` |
+| `userOptIn` | Privacy mode: user consent must be queried and set before data is collected | `false` |
+
+> <sub>**Sources:** [@dynatrace/react-native-plugin README (npm)](https://www.npmjs.com/package/@dynatrace/react-native-plugin) — *"lifecycleUpdate boolean false Decide if you want to see update cycles on lifecycle actions as well."*</sub>
 
 > **Important:** After changing `dynatrace.config.js`, re-run `npx instrumentDynatrace` to apply the updated configuration to native project files.
 
@@ -201,7 +203,7 @@ Cross-platform Dynatrace plugins do not implement their own monitoring logic. In
 
 ### What This Means in Practice
 
-- **Separate Application IDs**: iOS and Android are distinct mobile applications in Dynatrace. Each requires its own Application ID and Beacon URL.
+- **Per-platform configuration**: the Android and iOS sections of the config file are applied to different native agents, each with its Application ID and Beacon URL from the instrumentation wizard. Whether both platforms report under one frontend or two depends on how you set them up — the inventory query below shows what you have.
 - **Platform-specific behavior**: Some features (like WebView monitoring or specific crash formats) differ between iOS and Android because the underlying native SDK handles them.
 - **Native crashes**: Native crashes (Objective-C/Swift on iOS, Java/Kotlin on Android) are captured by the native SDK, not the cross-platform plugin.
 - **Dart/JS crashes**: Unhandled exceptions in Dart (Flutter) or JavaScript (React Native) are caught by the plugin and forwarded to the native SDK for reporting.
@@ -214,8 +216,8 @@ Query all configured mobile applications to confirm both Android and iOS entries
 
 ```dql
 // Full mobile app inventory
-// PREFERRED -- Smartscape. For a cross-platform app, expect one FRONTEND node per
-// platform configuration (separate Application IDs for iOS and Android).
+// PREFERRED -- Smartscape. Lists every mobile FRONTEND node; a cross-platform app
+// appears once per frontend you created for it.
 smartscapeNodes "FRONTEND"
 | filter frontend.type == "mobile"
 | fields name, id, id_classic, tags
@@ -234,7 +236,7 @@ smartscapeNodes "FRONTEND"
 // | limit 50
 ```
 
-You should see separate entries for your Android and iOS applications. If either is missing, revisit the configuration and ensure the Application ID and Beacon URL are correctly set for that platform.
+You should see the frontend (or frontends) your cross-platform app reports to. To confirm **both** platforms are sending data, use the `os.name` breakdown in *Platform Distribution* (§6) — if one platform is missing there, revisit that platform's section of the config file.
 
 <a id="rn-symbolication"></a>
 
@@ -244,39 +246,17 @@ React Native apps ship with minified JavaScript bundles. When a crash or error o
 
 ### How It Works
 
-1. During the build, React Native generates a `.map` file alongside the minified JS bundle.
-2. The `npx instrumentDynatrace` command can be configured to automatically upload source maps to Dynatrace.
-3. When a crash is reported, Dynatrace uses the uploaded source map to symbolicate the stack trace.
+1. Generate the source map with a **release** build (Hermes and JavaScriptCore are both supported) — see the React Native *debugging release builds* guide.
+2. Upload it to Dynatrace: **Settings > Web and mobile monitoring > Source maps and symbol files** → **React Native** → **Upload files**. Select the application and platform, enter the JavaScript bundle's file name (Android default `index.android.bundle`, iOS default `main.jsbundle`), and the bundle name and version.
+3. When a crash is reported, Dynatrace uses the uploaded source map to symbolicate the JavaScript stack trace.
 
-### Enabling Automatic Upload
+Upload one source map per platform for every release you ship — a release without one stays minified. Source maps and symbol files share a **1 GiB** storage quota per SaaS environment; older files are deleted automatically when it fills, unless you **pin** the ones you need to keep.
 
-In your `dynatrace.config.js`, ensure the React section includes source map settings:
+> **Correction (10/02/2026).** Earlier revisions showed a `sourceMap: { android: true, ios: true }` option in `dynatrace.config.js` and a `POST /api/v2/rum/sourcemap` upload endpoint. Neither exists — the plugin README has no such option and points to the symbol-file upload instead.
 
-```javascript
-react: {
-  autoStart: true,
-  debug: false,
-  sourceMap: {
-    android: true,
-    ios: true,
-  },
-},
-```
+> **Note:** Flutter crashes are symbolicated with the native artifacts — dSYM symbol extract files (iOS) and R8/ProGuard mapping files (Android), see MOBL-03 §6.
 
-### Manual Upload
-
-If your CI/CD pipeline requires manual upload, use the Dynatrace API:
-
-```bash
-curl -X POST "https://YOUR_ENVIRONMENT.live.dynatrace.com/api/v2/rum/sourcemap" \
-  -H "Authorization: Api-Token YOUR_API_TOKEN" \
-  -F "file=@index.android.bundle.map" \
-  -F "appId=YOUR_ANDROID_APP_ID" \
-  -F "version=1.0.0" \
-  -F "bundleUrl=index.android.bundle"
-```
-
-> **Note:** Source map upload applies to React Native and Cordova. Flutter uses Dart stack traces that are symbolicated differently via dSYM (iOS) and ProGuard/R8 mapping files (Android).
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform lets you manage Android mapping files, iOS or tvOS symbol extract files and React Native source maps"*, *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [@dynatrace/react-native-plugin README (npm)](https://www.npmjs.com/package/@dynatrace/react-native-plugin) — *"Once generated, upload your sourcemaps to Dynatrace."*</sub>
 
 ### Event Volume by Application
 

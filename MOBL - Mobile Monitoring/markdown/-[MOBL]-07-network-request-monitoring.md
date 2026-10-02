@@ -1,13 +1,13 @@
 # MOBL-07: Network Request Monitoring
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
 Every mobile app depends on the network. Whether it is fetching user profiles, loading product catalogs, or submitting orders, HTTP(S) requests are the lifeline between a mobile frontend and its backend services. Dynatrace automatically captures these network requests from instrumented mobile apps, providing deep visibility into:
 
 - **What** is being requested (URL, method, status code)
-- **How long** each request takes (with full timing breakdown)
+- **How long** each request takes (`duration`)
 - **How much** data is transferred (request and response sizes)
 - **What connection** the device is using (WiFi, 5G, LTE, 3G)
 - **Where** the request goes on the backend (distributed trace correlation)
@@ -66,8 +66,7 @@ For each intercepted network request, the SDK captures:
 | **URL** | Full request URL (query parameters may be redacted based on privacy settings) |
 | **HTTP Method** | GET, POST, PUT, DELETE, PATCH, etc. |
 | **Status Code** | HTTP response status code (200, 404, 500, etc.) |
-| **Request Size** | Size of the request body in bytes |
-| **Response Size** | Size of the response body in bytes |
+| **Request / Response Size** | Body sizes in bytes (`http.request.body.size`, `http.response.body.size`) where the agent reports them |
 | **Duration** | Total time from request initiation to response completion |
 | **Connection Type** | Network connection type at the time of the request (WiFi, LTE, 5G, etc.) |
 
@@ -95,7 +94,7 @@ For environments where SVG doesn't render
 
 ### Connection Types
 
-The SDK detects the following connection types at the time each request is made:
+The SDK records the connection type at the time of each request in `network.connection.type` (with detail in `network.connection.subtype`). Typical categories are below; run `summarize count(), by:{network.connection.type}` on your own data to see the exact values your agents report:
 
 | Type | Description |
 |------|-------------|
@@ -104,7 +103,6 @@ The SDK detects the following connection types at the time each request is made:
 | **LTE/4G** | 4th generation cellular network |
 | **3G** | 3rd generation cellular network |
 | **2G** | 2nd generation cellular network |
-| **Offline** | No connectivity (request buffered for later transmission) |
 
 Connection type is stored alongside each network request event, enabling you to:
 
@@ -116,7 +114,9 @@ Connection type is stored alongside each network request event, enabling you to:
 
 ## 3. Request Timing Breakdown
 
-A single network request goes through multiple phases, each of which can contribute to perceived latency. Understanding these phases helps pinpoint whether a performance issue originates from the network, the server, or the client.
+A single network request goes through multiple phases, each of which can contribute to perceived latency. This section is a **diagnostic framework**, not a list of captured fields: a mobile request event reports the overall `duration`, status and sizes. The phase-level timings in the `rum_request` model come from the browser's W3C Resource Timing API (`characteristics.has_w3c_resource_timings`) and apply to web frontends. For a slow mobile request, compare `duration` across connection types (Section 2) and follow the backend trace (Section 4) to separate network time from server time.
+
+> <sub>**Dictionary:** model `rum_request` (`user.events`) lists `characteristics.has_w3c_resource_timings`, `characteristics.has_w3c_navigation_timings`, `http.request.method`, `http.response.status_code` — no DNS/TCP/TLS phase fields; `network.connection.type` (`experimental`); `http.response.body.size` (`stable`), read 10/02/2026.</sub>
 
 ### Timing Phases
 
@@ -139,7 +139,7 @@ A single network request goes through multiple phases, each of which can contrib
 | High TTFB | Backend performance | Check backend traces, database queries, cold starts |
 | High Response time | Large payloads | Enable compression, paginate responses, reduce payload size |
 
-> **Tip:** When TTFB is the dominant phase, the problem is almost always on the backend. Use the frontend-to-backend correlation (Section 4) to trace the request into your server-side services.
+> **Tip:** When the backend span accounts for most of the request's `duration`, the problem is on the backend. Use the frontend-to-backend correlation (Section 4) to trace the request into your server-side services.
 
 <a id="frontend-backend-correlation"></a>
 
@@ -279,7 +279,7 @@ Once you have visibility into your mobile network requests, apply these optimiza
 
 | Strategy | Impact |
 |----------|--------|
-| **Enable gzip/brotli compression** | Reduces response size by 60-80% |
+| **Enable gzip/brotli compression** | Substantially smaller text payloads (JSON compresses well) |
 | **Use pagination** | Avoid loading entire datasets at once |
 | **Return only needed fields** | Use GraphQL or sparse fieldsets to minimize JSON payloads |
 | **Optimize images** | Serve appropriately sized images via CDN with content negotiation |
@@ -318,7 +318,7 @@ In this notebook, we covered:
 
 - **Automatic HTTP capture** across iOS, Android, Flutter, and React Native platforms
 - **Connection type detection** and how network conditions affect request performance
-- **Request timing breakdown** with the six phases of an HTTP request and diagnostic guidance
+- **Request timing** — the phases of an HTTP request as a diagnostic framework, and what a mobile request event actually records
 - **Frontend-to-backend correlation** via the `x-dynatrace` header and, from OneAgent for Mobile 8.333, W3C trace context
 - **DQL queries** on `user.events` to retrieve, aggregate, and visualize mobile network request data
 - **Slow and failed request analysis** using status code grouping and time-series trends
@@ -343,7 +343,7 @@ Continue to **MOBL-08: Session Replay for Mobile** to see how Session Replay rec
 - [Dynatrace Mobile App Monitoring](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications)
 - [Dynatrace Mobile SDK Documentation](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/instrument-hybrid-app)
 - [Distributed tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing)
-- [DQL Business Events Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 
 ---
 

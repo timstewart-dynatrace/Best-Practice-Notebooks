@@ -1,6 +1,6 @@
 # MOBL-03: Android SDK Setup (Kotlin & Jetpack Compose)
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 3 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -24,12 +24,13 @@ This notebook walks through setting up Dynatrace Mobile RUM (Real User Monitorin
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Grail, with Mobile RUM enabled |
-| **Android Studio** | Arctic Fox (2020.3.1) or later |
-| **Minimum SDK** | `minSdk 21` (Android 5.0 Lollipop) or higher |
-| **Kotlin** | 1.8+ recommended |
+| **Dynatrace Environment** | SaaS with Grail, with **Enable RUM** turned on for mobile and the **New Real User Monitoring Experience** turned on for the frontend (Section 1) |
+| **Minimum versions** | Android API level 23, Gradle 8.0, Android Gradle Plugin 8.1.1, Java 17, Kotlin 2.1.0 (an Android Studio release that supports AGP 8.1.1+) |
+| **Jetpack Compose** | 1.4 – 1.10 |
 | **Permissions** | Dynatrace admin access to create mobile applications; `storage:user.events:read` and `storage:smartscape:read` for the verification queries |
 | **Prior Knowledge** | MOBL-01 and MOBL-02 recommended |
+
+> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"Android API level 23 Gradle 8.0 Android Gradle Plugin 8.1.1 Java 17 Kotlin 2.1.0 Jetpack Compose 1.4 - 1.10"* (minimum versions, read 10/02/2026).</sub>
 
 <a id="creating-mobile-app"></a>
 ## 1. Creating a Mobile App in Dynatrace
@@ -38,11 +39,10 @@ Before instrumenting your Android project, you need to register the application 
 
 ### Steps
 
-1. Navigate to **Settings > Mobile & custom applications > Mobile applications** in your Dynatrace environment.
-2. Click **Create mobile application**.
-3. Enter a meaningful name (e.g., `My Android App - Production`).
-4. Select **Android** as the platform.
-5. After creation, open the application settings and note:
+1. **Turn on RUM for mobile at the environment level:** **Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile** → **Enable RUM**.
+2. **Create the frontend:** open **Experience Vitals**, select **Add Frontend**, and follow the Frontend creation wizard with **Android** as the platform and a meaningful name (e.g., `My Android App - Production`).
+3. **Turn on the New Real User Monitoring Experience for the frontend:** **Experience Vitals > Overview > Mobile** → select the frontend → **Settings** → **Enablement and cost control** → **New Real User Monitoring Experience**. The `user.events` queries in Section 7 read the data this sends to Grail; with it off they return nothing.
+4. From the instrumentation wizard, note:
 
 | Property | Description | Example |
 |----------|-------------|----------|
@@ -61,6 +61,8 @@ While in the Dynatrace UI, review these settings:
 | **User action naming** | Configure meaningful rules for key screens |
 | **Session replay** | Enable if you need visual session data (increases data volume) |
 | **Data privacy** | Configure according to your organization's requirements |
+
+> <sub>**Sources:** [Initial setup for Android frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup) — *"Under Enablement and cost control, turn on New Real User Monitoring Experience."*; *"Turn on Enable RUM."*</sub>
 
 <a id="gradle-plugin"></a>
 ## 2. Gradle Plugin Setup
@@ -304,29 +306,30 @@ fun onSearchClicked(query: String) {
 <a id="proguard-r8"></a>
 ## 6. ProGuard & R8 Configuration
 
-If your release builds use ProGuard or R8 (the default in Android Gradle Plugin 3.4+), you must add keep rules for the Dynatrace SDK to prevent critical classes from being obfuscated or removed.
+**With R8 (the default), you add nothing.** OneAgent for Android and its transitive dependencies ship their own keep rules for R8, and R8 applies them. Two cases need attention:
 
-### ProGuard / R8 Rules
+| Situation | What to do |
+|-----------|-----------|
+| A **third-party obfuscator** instead of R8 | Configure it to honor OneAgent's keep rules — otherwise you can get runtime errors from incorrectly obfuscated classes |
+| AGP features that **filter dependency keep rules** (for example `ignoreFrom`) | Make sure OneAgent's rules are not filtered out |
 
-Add the following to your `proguard-rules.pro` file:
+A blanket `-keep class com.dynatrace.** { *; }` is not required with R8; add it only if a third-party tool cannot read the shipped rules.
 
-```text
--keep class com.dynatrace.** { *; }
--dontwarn com.dynatrace.**
+### Mapping Files for Crash Deobfuscation
+
+Readable Android stack traces need the build's `mapping.txt` in Dynatrace. Upload it for **every released version** — through the UI, or from CI with the Mobile Symbolication API:
+
+```bash
+# token scope: DssFileManagement
+curl -X PUT "https://{your-environment-id}.live.dynatrace.com/api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}" \
+  -H "Authorization: Api-Token {token}" \
+  -H "Content-Type: text/plain" \
+  --data-binary @app/build/outputs/mapping/release/mapping.txt
 ```
 
-### What These Rules Do
+The upload limit is 100 MiB per file (500 MiB uncompressed). A crash from a version with no mapping file stays obfuscated, so make the upload part of the release pipeline rather than a manual step. MOBL-06 covers crash analysis.
 
-| Rule | Purpose |
-|------|----------|
-| `-keep class com.dynatrace.** { *; }` | Preserves all Dynatrace SDK classes and their members from obfuscation and shrinking |
-| `-dontwarn com.dynatrace.**` | Suppresses warnings from the Dynatrace SDK during the R8/ProGuard step |
-
-> **Note:** The Dynatrace Gradle plugin typically adds consumer ProGuard rules automatically. These manual rules serve as a safety net. Verify by checking your merged ProGuard configuration in `build/outputs/mapping/`.
-
-### Symbol Upload for Crash Deobfuscation
-
-To get readable stack traces in Dynatrace crash reports, the Gradle plugin automatically uploads the `mapping.txt` file during release builds. Verify this is working by checking the Dynatrace mobile app settings under **Symbol files**.
+> <sub>**Sources:** [Support and limitations — Android (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations) — *"OneAgent for Android and its transitive dependencies provide ProGuard rules designed for R8. If you use third-party obfuscation tools instead of R8, you are responsible for configuring them to honor the required keep rules."*; [Mobile Symbolication API — PUT upload file (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"Uploads a symbol file (Android mapping file and iOS/tvOS symbol extract file) for the specified version of a mobile app."*, *"you need an access token with DssFileManagement scope"*.</sub>
 
 <a id="verifying-data"></a>
 ## 7. Verifying Data in Dynatrace
@@ -399,6 +402,7 @@ If no data appears:
 
 | Check | Action |
 |-------|--------|
+| **New RUM Experience** | Turned on for the frontend (Section 1) — with it off, `user.events` stays empty for this app |
 | **Application ID** | Verify it matches the Dynatrace mobile app configuration |
 | **Beacon URL** | Confirm the URL is reachable from the device/emulator |
 | **Network access** | Ensure the device has internet connectivity |
@@ -416,7 +420,7 @@ In this notebook, you learned:
 - How to apply the Dynatrace Android Gradle plugin in the top-level `build.gradle.kts` and configure variant-specific configurations
 - The full range of auto-instrumented interactions (Activities, Fragments, clicks, HTTP requests)
 - That Jetpack Compose is auto-instrumented from plugin 8.271, and when a manual business-level action still helps
-- ProGuard / R8 keep rules for the Dynatrace SDK
+- That R8 keep rules ship with the agent, and that mapping files must be uploaded for every release
 - How to verify Android monitoring data using DQL queries
 
 ---
