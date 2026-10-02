@@ -6,8 +6,8 @@ Humans: see [README.md](README.md).
 10 notebooks on Dynatrace Application Security in Gen3 SaaS: the three pillars
 — Runtime Vulnerability Analytics (RVA), Runtime Application Protection (RAP),
 and Security Posture Management (SPM) — plus Kubernetes/container security,
-Security Investigator and Davis CoPilot, workflow remediation, the dual-surface
-IAM model, and governance dashboards. All findings live in Grail
+Investigations and Dynatrace Assist, workflow remediation, the Grail +
+vulnerability-service IAM model, and governance dashboards. All findings live in Grail
 `security.events` and the `vulnerability-service`.
 
 ## Routing table
@@ -17,14 +17,14 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When the question is about… | Read |
 |---|---|
 | What RVA/RAP/SPM are, Grail `security.events` vs `vulnerability-service`, deployment-mode coverage (Full-Stack vs Infrastructure/Discovery), Dynatrace Security Score (DSS) as a per-vulnerability score | `-[APPSEC]-01-fundamentals.md` |
-| Third-party library CVEs, reachability/exposure signals, triage DQL over `security.events` (dedup to the latest snapshot — current open vulnerabilities), acknowledge/mute/exception lifecycle | `-[APPSEC]-02-runtime-vulnerability-analytics.md` |
-| First-party code vulnerabilities, supported runtimes (Java/.NET/Go), `vulnerability.stack == "CODE"` query, vulnerable-function information, process-group scoping | `-[APPSEC]-03-code-level-vulnerability-analytics.md` |
-| Attack detection and blocking (RAP): SQL/command injection, SSRF, JNDI, `DETECTION_FINDING` (RAP) queries, Monitor→Block promotion per technology and custom rule | `-[APPSEC]-04-runtime-application-protection.md` |
+| Third-party library CVEs, loaded-component and exposure signals, triage DQL over `security.events` (dedup to the latest snapshot — current open vulnerabilities), vulnerable-function status (Java, not a DSS input), Open/Resolved/Muted states | `-[APPSEC]-02-runtime-vulnerability-analytics.md` |
+| First-party code vulnerabilities, supported runtimes (Java/.NET/Go), `vulnerability.stack == "CODE"` query, entry point and code location, the three enablement steps, process-group scoping | `-[APPSEC]-03-code-level-vulnerability-analytics.md` |
+| Attack detection and blocking (RAP): SQL/command injection (Java/.NET/Go), SSRF and JNDI (Java only), `DETECTION_FINDING` (RAP) queries, Monitor→Block promotion per technology and custom rule | `-[APPSEC]-04-runtime-application-protection.md` |
 | Compliance standards (CIS, PCI DSS, NIST, DORA, …), KSPM/CSPM/VSPM scope, currently-failing `COMPLIANCE_FINDING` query, finding lifecycle | `-[APPSEC]-05-security-posture-management.md` |
 | Kubernetes/container security: DynaKube `applicationMonitoring`, image vulnerabilities, cluster SPM findings, namespace-scoped access | `-[APPSEC]-06-kubernetes-and-container-security.md` |
-| Investigating a security problem: Security Investigator entity pivots, Davis CoPilot NL-to-DQL, investigation log as audit artifact | `-[APPSEC]-07-investigator-and-davis-copilot.md` |
-| Routing findings to Jira/ServiceNow/PagerDuty/Slack, Event trigger on `security.events` (not the Problem trigger), ack loopback, SLA and backlog burn-rate alerts | `-[APPSEC]-08-workflows-notifications-remediation.md` |
-| AppSec permissions: `environment:roles:view-security-problems`, `storage:security.events:read`, `storage:buckets:read`, persona policies, boundaries, `view-sensitive-request-data` | `-[APPSEC]-09-iam-and-gen3-permissions.md` |
+| Investigating a vulnerability or attack: the Investigations app (queries, evidence, IP enrichment), Dynatrace Assist NL-to-DQL (formerly Davis CoPilot), investigation log as audit artifact | `-[APPSEC]-07-investigator-and-davis-copilot.md` |
+| Routing findings to Jira/ServiceNow/PagerDuty/Slack, Event trigger on `security.events` (not the Problem trigger), ticket linkage (no acknowledge state), SLA and backlog burn-rate alerts | `-[APPSEC]-08-workflows-notifications-remediation.md` |
+| AppSec permissions: `storage:security.events:read` + `storage:buckets:read`, `vulnerability-service:vulnerabilities:read`/`:write`, Vulnerabilities-app default policies, persona policies, namespace limits, sensitive data (`storage:fieldsets:read`), classic `environment:roles:*` | `-[APPSEC]-09-iam-and-gen3-permissions.md` |
 | Executive dashboards: open vulnerabilities by DSS level (trend), severity mix, MTTR by team, compliance coverage, governance cadence, DPS cost (RVA/RAP billed per GiB-hour) | `-[APPSEC]-10-dashboards-reporting-governance.md` |
 
 ## Related series

@@ -24,7 +24,7 @@
 | **ADOPT** | [Observability Adoption & Maturity](../ADOPT%20-%20Observability%20Adoption%20&%20Maturity/) | 7 | Maturity model, success metrics, optimization roadmap, coverage audit & staged enablement |
 | **AIOPS** | [Dynatrace Intelligence](../AIOPS%20-%20Dynatrace%20Intelligence/) | 8 | Davis problems, anomaly detection, generative AI, agentic workflows |
 | **ALERT** | [Alerting Strategy and Design](../ALERT%20-%20Alerting%20Strategy%20and%20Design/) | 5 | End-to-end alerting architecture, detection choices, routing, ServiceNow |
-| **APPSEC** | [Application Security](../APPSEC%20—%20Application%20Security/) | 10 | RVA, RAP, SPM; security.events; dual-surface IAM; Security Investigator |
+| **APPSEC** | [Application Security](../APPSEC%20—%20Application%20Security/) | 10 | RVA, RAP, SPM; security.events; Grail + vulnerability-service IAM; Investigations |
 | **AUTOM** | [Dynatrace Automation](../AUTOM%20-%20Dynatrace%20Automation/) | 14 | Settings API, Monaco, Terraform, workflows-as-code, GitOps, CI/CD |
 | **BIZEV** | [Business Events & Funnel Analysis](../BIZEV%20-%20Business%20Events%20&%20Funnel%20Analysis/) | 8 | Business event ingestion, conversion funnels, revenue impact, executive reporting; Gen2 vs Gen3 adoption paths (what works without Grail) |
 | **CLOUD** | [Cloud Provider Integrations](../CLOUD%20-%20Cloud%20Provider%20Integrations/) | 9 | AWS, Azure, GCP integrations; Lambda, EKS, multi-cloud patterns |
