@@ -15,8 +15,8 @@ Best practices for keeping a self-hosted Dynatrace Managed cluster healthy: its 
 4. [Elasticsearch Store Health](markdown/-[MCH]-04-elasticsearch-store.md) — User sessions (3 copies) and log events (2 copies), sizing, retention as the size lever, _cluster/health and events, log ingest pressure, storage location, the incremental backup, failover and versions
 5. [Cluster ActiveGates and Mission Control Connectivity](markdown/-[MCH]-05-activegates-mission-control-connectivity.md) — The agent traffic path and ActiveGate hierarchy, load balancers, endpoints and DNS, certificates, the Mission Control link and what breaks without it, offline clusters, remote access, and Cluster ActiveGate health
 6. [Capacity and Scaling](markdown/-[MCH]-06-capacity-and-scaling.md) — The sizing model (host units, peak user actions, Premium HA), scaling out, up and storage, one-third headroom, capacity signals and which email you, environment quotas and overload prevention, and adding or removing nodes
-7. [Backup, Upgrade, and Disaster Recovery](markdown/-[MCH]-07-backup-upgrade-disaster-recovery.md) — Outline: backup scope, restore readiness, upgrades, version support, Premium High Availability
-99. [Best Practice Summary and Health-Check Checklist](markdown/-[MCH]-99-best-practice-summary.md) — Outline: five-layer checklist, review cadence, anti-patterns
+7. [Backup, Upgrade, and Disaster Recovery](markdown/-[MCH]-07-backup-upgrade-disaster-recovery.md) — What a backup protects and what it doesn't, setting up backups (and the boot-time mount risk), restore preconditions and order, upgrade paths and their 24-hour rules, version support, Premium HA failover, and choosing a recovery path
+99. [Best Practice Summary and Health-Check Checklist](markdown/-[MCH]-99-best-practice-summary.md) — The series on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts
 
 ## Usage
 1. Choose a format: read markdown/ for browsing or pdfs/ for print.
