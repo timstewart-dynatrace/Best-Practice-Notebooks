@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -265,6 +265,10 @@ Tool names as registered by the Dynatrace MCP gateway, 09/24/2026 — the catalo
 - *Custom agents* — your own LangChain / LangGraph agent uses Dynatrace MCP as one of many tools
 
 Auth and IAM bind the MCP integration to your IAM policy — same `davis:analyzers:execute` scope as the Anomaly Detection app, same `events:read` for problem queries.
+
+> **Custom alerts move from the app to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and it is the app the scope comparison above refers to.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 <a id="agentic"></a>
 ## 6. Agentic Patterns: AutomationEngine and Approval-Based Remediation

@@ -1,6 +1,6 @@
 # AIOPS-05: AI Models — Causal, Predictive, and Generative
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 5 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -72,6 +72,10 @@ Causal AI does not run a statistical model over symptom signals to guess at co-o
 ## 3. Predictive AI — Baselines and Forecasts
 
 Predictive AI is a **family of statistical models** wrapped as Davis analyzers. Each model is purpose-built; each is callable directly from MCP and from the Anomaly Detection app.
+
+> **Custom alerts built on these models move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and that is the GUI surface this section names.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 | Model | Purpose | MCP tool |
 |-------|---------|----------|

@@ -1813,7 +1813,9 @@ spec:
 ## 10. Dynatrace Operator GitOps Patterns
 When deploying the Dynatrace Operator via GitOps, follow these patterns for production environments.
 
-> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` remains accepted). Operator 1.9.0 removed `v1beta3` from the CRD, and Operator 1.10.0 (July 15, 2026) deprecates `v1beta4` — audit committed DynaKube manifests for stale API versions before an Operator upgrade rolls through the pipeline.
+> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` is still served, but flagged deprecated from Operator 1.10.0). Operator 1.9.0 removed `v1beta3` from the CRD and deprecated `v1beta4`, Operator 1.10.0 (July 15, 2026) stopped serving `v1beta4`, and Operator **1.11.0** (released 10/01/2026) removes it from the CRD — *"Applying DynaKube resources that still use v1beta4 will fail."* Audit committed DynaKube manifests for stale API versions before an Operator upgrade rolls through the pipeline.
+>
+> <sub>**Sources:** [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."* `served` / `deprecated` per version read from the DynaKube CRD in each release's `kubernetes.yaml` ([Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)), 10/02/2026.</sub>
 
 ### Multi-Cluster Deployment Pattern
 
@@ -1848,9 +1850,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
-  - https://github.com/Dynatrace/dynatrace-operator/releases/latest/download/kubernetes.yaml
+  - https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
   - dynakube.yaml
 ```
+
+> **Pin the Operator manifest.** A `releases/latest/download/…` URL resolves to whichever Operator release is newest at build time — on 10/02/2026 that is **1.11.0**, the release that removes `v1beta4`. Every sync would then roll out an Operator upgrade nobody chose. Pin the version you validated (`v1.10.2` here) and move it in a reviewed commit, after reading the release notes for every version you cross.
 
 **Cluster overlay (production-east):**
 ```yaml

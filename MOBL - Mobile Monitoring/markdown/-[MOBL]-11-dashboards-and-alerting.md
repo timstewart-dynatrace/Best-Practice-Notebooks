@@ -198,6 +198,10 @@ fetch user.events, from:-2h
 
 Set the static threshold (for example, above 10 crashes per hour, expressed at the 5-minute interval you choose) and the event template in the detector. Confirm in the detector preview that the query is accepted as a source before relying on it. AIOPS-02 §4 walks through the analyzer, tuning and event-template settings, and ALERT-02 covers choosing between mechanisms.
 
+> **Where the detector is created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the steps above describe that path.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+
 ### Classic path: metric events
 
 The classic surface is **Settings** > **Anomaly Detection** > **Metric Events**. `builtin:anomaly-detection.metric-events` is flagged **Blocked at upgrade**, so metric events built there have to be recreated as DQL-based detectors (`builtin:davis.anomaly-detectors`) when the tenant moves to the latest Dynatrace; existing metric events keep working until then. Use it only while your tenant is still on the classic surface.

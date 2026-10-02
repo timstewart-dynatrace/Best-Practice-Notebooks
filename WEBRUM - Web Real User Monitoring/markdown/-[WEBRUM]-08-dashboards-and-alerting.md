@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -248,6 +248,10 @@ Effective RUM alerting requires the right balance — too sensitive triggers ale
 ### Alert Configuration
 
 **Modern path (recommended for new alerting):** build these conditions as **Davis anomaly detectors** (`builtin:davis.anomaly-detectors`), configured in the Anomaly Detection app and driven by DQL. Detectors read Grail, so they work against the New RUM field vocabulary the rest of this series uses, and they carry forward past the upgrade.
+
+> **Where detectors are created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the modern path above is built there.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 **Legacy path — metric events:** the classic surface below still works and is what most existing RUM alerting uses, but `builtin:anomaly-detection.metric-events` is flagged **Blocked at upgrade**, and the `builtin:apps.web.*` metric keys it alerts on are Metrics Classic keys that **DQL cannot query** (FAQ entry 11 §3.1). Both facts point the same way: do not author new RUM alerting here.
 

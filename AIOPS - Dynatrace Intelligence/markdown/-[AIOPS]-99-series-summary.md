@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -166,6 +166,10 @@ Three high-value next initiatives most teams should consider:
 1. **Audit topology completeness.** RCA quality is bounded by Smartscape coverage. Inventory untraced services and undeclared dependencies; treat each gap as a backlog item.
 2. **Move detectors to config-as-code.** Shift the Anomaly Detection app from primary configuration tool to exploration tool. AUTOM-03 / AUTOM-04.
 3. **Introduce one workflow with an AI task.** Start with the *Summarize Open Problems* pattern — high value, low risk, builds team familiarity with AI in workflows.
+
+> **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and initiative 2 refers to that app.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 <a id="sources"></a>
 ## 5. Source Currency

@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -42,7 +42,7 @@ For environments where SVG doesn't render
 |-------------|---------|
 | **Dynatrace Environment** | SaaS with Grail (Dynatrace Platform / Gen3) |
 | **Permissions** | `events:read` and `storage:events:read` for problem queries; `davis:analyzers:execute` for analyzer notebooks (introduced later in series) |
-| **Apps** | Problems app, Anomaly Detection app, Notebooks app |
+| **Apps** | Problems app, Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 2), Notebooks app |
 | **Optional** | Dynatrace Assist enabled (most modern tenants); MCP server for AIOPS-06 |
 
 <a id="three-categories"></a>
@@ -80,6 +80,10 @@ Most surfaces compose categories. The Problems app is the clearest example — C
 **The last row is the inverse of the other eight.** Rows 1–8 are Dynatrace applying AI to *your* data. AI Observability is *your team observing your own GenAI applications* — Dynatrace is the observability tool, not the intelligence. It earns a place in this table only because readers asking "where does AI show up in the product?" land here first and would otherwise miss it entirely. For ingest mechanics, the `gen_ai.*` attribute namespace, and the conversation-tracking pattern, see **AIOPS-06 § 1**.
 
 > **SaaS 1.344 (rollout from 07/29/2026)** added the dedicated Smartscape view and the standalone Evaluations screen. On a tenant still below 1.344, prompt evaluations surface inside the general app views.
+
+> **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the *Anomaly Detection app* row above describes that path.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 <a id="foundation"></a>
 ## 3. The Data Foundation: Smartscape + Grail
@@ -147,7 +151,7 @@ fetch dt.davis.events, from:-1h
 ## 6. Next Steps
 
 1. **Open the Problems app** and scan the last 24 hours. Are problems grouped by Causal AI in a way that matches your operational mental model?
-2. **Open Anomaly Detection app** to see what detectors are active. (We go deep in AIOPS-02.)
+2. **Open Anomaly Detection app** to see what detectors are active — on SaaS 1.344 and later, custom alerts are in **Settings** instead (§ 2). (We go deep in AIOPS-02.)
 3. **Open a notebook and try Dynatrace Assist** — ask in plain English: *"show me the slowest services in the last hour."* (We go deep in AIOPS-04.)
 4. **Read AIOPS-02** if you want to start tuning detectors. **Read AIOPS-03** if a problem in production has your attention right now.
 

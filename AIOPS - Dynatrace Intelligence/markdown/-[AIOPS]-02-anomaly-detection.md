@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -45,7 +45,7 @@ For environments where SVG doesn't render
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS Gen3 with Anomaly Detection app installed |
+| **Dynatrace Environment** | SaaS Gen3 with Anomaly Detection app installed (custom alerts are created in **Settings** from SaaS 1.344 — § 3) |
 | **Permissions** | `davis:analyzers:execute`, `settings:objects:read/write`, `events:read` |
 | **MCP** | Dynatrace MCP server (for AIOPS-04 / AIOPS-06 integration); analyzers also exposed in the app |
 | **Optional** | Monaco / Terraform for config-as-code (see AUTOM-03 / AUTOM-04) |
@@ -109,12 +109,16 @@ Three places to configure detection — pick one per environment, not one per de
 | **Settings 2.0 (UI)** | Steady-state detection that's been validated; lives under specific settings schemas. |
 | **Config-as-code (Monaco / Terraform)** | Anything you want versioned, reviewable, and reproducible across environments. |
 
+> **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the app-based build in § 4 and § 5 is the working path there.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+
 Production teams should converge on config-as-code. The app is the right place to *discover* what to alert on — but the moment a detector matters in production, it should live in source control. See **AUTOM-03** (Monaco) and **AUTOM-04** (Terraform) for the patterns.
 
 <a id="building"></a>
 ## 4. Building a Davis Anomaly Detector
 
-Sections 1–3 told you *which* mechanism to pick and *where* to configure it. This section walks the actual build in the **Anomaly Detection app** — the four steps that turn a DQL query into a routable Davis event.
+Sections 1–3 told you *which* mechanism to pick and *where* to configure it. This section walks the actual build in the **Anomaly Detection app** — the four steps that turn a DQL query into a routable Davis event. On SaaS 1.344 and later, custom alerts are created in **Settings** instead (§ 3).
 
 ![Building a Davis anomaly detector](images/02-anomaly-detector-setup-flow_930x500.png)
 
@@ -248,7 +252,7 @@ None of these three are analyzer tuning — they're structural, and a mistuned a
 <a id="dql-alerts"></a>
 ## 5. Custom Alerts via DQL
 
-Beyond pre-canned detectors, Anomaly Detection app supports **DQL-based custom alerts**. You write the query, the app evaluates it on a schedule, and a breach generates a Davis event.
+Beyond pre-canned detectors, Anomaly Detection app supports **DQL-based custom alerts** (created in **Settings** from SaaS 1.344 — § 3). You write the query, the app evaluates it on a schedule, and a breach generates a Davis event.
 
 Example — alert when a service's error rate breaches 5% for 5 minutes. Following the Step 1 contract in §4, the detector returns the error-rate series and the static-threshold analyzer applies the 5% line:
 

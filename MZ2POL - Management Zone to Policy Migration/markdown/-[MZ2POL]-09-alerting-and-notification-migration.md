@@ -71,6 +71,10 @@ Dynatrace's alert-notification upgrade guide moves that filtering into the workf
 
 Segments touch alerting in exactly one documented place: **scoping an anomaly detector** (Anomaly Detection app → *Set scope* → *Segments*). That scopes **detection** — which signals are evaluated — not **routing**.
 
+> **Where anomaly detectors are created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the *Set scope* path above is in that app.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+
 > **Where the misconception came from.** The claim traces to a Dynatrace community forum answer rather than to documentation, and it propagated into this series: MZ2POL-01, -03, -05, -06, and -99 all carried some version of "alerting profiles → Segments (upcoming)" until July 2026. Independent corroboration that it was never the direction: Dynatrace's current [alerting and notifications hub](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) links to problem triggers, Davis event triggers, the Anomaly Detection app, and workflow connectors — and does not link to alerting profiles at all.
 
 ### It is a problem-triggered workflow

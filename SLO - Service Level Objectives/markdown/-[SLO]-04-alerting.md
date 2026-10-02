@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -85,6 +85,10 @@ Dynatrace surfaces SLO health as events you can alert on. The SLO documentation 
 - **Anomaly Detection on the burn-rate query** — when you want the full multiwindow fast/slow-burn logic, evaluate a burn-rate query in the Anomaly Detection app and let it raise a Davis event. See AIOPS-02 §4 for the detector build flow and event template.
 
 It does not describe an alert raised by the SLO object itself, so build on the Anomaly Detection route. The resulting event carries the SLO context you set in its event properties — which is what a workflow routes on.
+
+> **Where the burn-rate custom alert is created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the Anomaly Detection route above is built there.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 **The documented recipe for the burn-rate query** is to append two lines to the SLI definition, then feed that into Anomaly Detection:
 

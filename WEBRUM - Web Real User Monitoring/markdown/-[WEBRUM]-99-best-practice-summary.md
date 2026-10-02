@@ -1,6 +1,6 @@
 # WEBRUM-99: Best Practice Summary
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 07/23/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -165,6 +165,10 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | 77 | Prefer Dynatrace Intelligence anomaly detection over static thresholds in production | Dynatrace Intelligence automatically baselines normal behavior, reducing false positives from seasonal patterns | Recommended | WEBRUM-08 |
 | 78 | Combine RUM and synthetic in a single dashboard | Use `append` to show side-by-side comparison: RUM real-user metrics vs synthetic clean-room metrics | Recommended | WEBRUM-08 |
 | 79 | Track CWV pass rate as executive KPI | Target: **> 75% of page loads meeting all three CWV thresholds** | Recommended | WEBRUM-08 |
+
+> **Where new alerts are created (SaaS 1.344).** Row 76 configures the legacy metric-events surface; WEBRUM-08 recommends Davis anomaly detectors (custom alerts) for new RUM alerting. *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and WEBRUM-08 builds the modern path there.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 <a id="dql-query-patterns"></a>
 
