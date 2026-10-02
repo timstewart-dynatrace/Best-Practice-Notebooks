@@ -1,6 +1,6 @@
 # SPANS-01: Spans & Distributed Tracing Fundamentals
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 04/25/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Understanding the Building Blocks of Observability
 
@@ -32,7 +32,7 @@ This notebook introduces distributed tracing concepts and demonstrates how to qu
 Before starting this notebook, ensure you have:
 
 - ✅ Access to a Dynatrace environment with span data
-- ✅ DQL query permissions (viewer role minimum)
+- ✅ Permission to read spans (`storage:spans:read`)
 - ✅ Basic understanding of microservices architecture
 
 <a id="what-is-distributed-tracing"></a>
@@ -94,8 +94,8 @@ Every span contains these essential fields:
 | span.kind | Role: server, client, internal, etc. |
 | start_time | When the operation started |
 | end_time | When the operation completed |
-| duration | How long it took (in nanoseconds) |
-| span.status_code | ok, error, or unset |
+| duration | How long it took (duration type, nanosecond precision) |
+| span.status_code | ok or error; absent when the status is unset |
 | attributes{} | Additional context (HTTP, DB, custom) |
 -->
 
@@ -103,28 +103,35 @@ Every span contains these essential fields:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `trace.id` | string | Unique identifier linking all spans in a trace |
-| `span.id` | string | Unique identifier for this specific span |
-| `span.parent_id` | string | ID of parent span (null for root spans) |
+| `trace.id` | uid | Unique identifier linking all spans in a trace (16 bytes, hex when shown as a string) |
+| `span.id` | uid | Unique identifier for this specific span (8 bytes) |
+| `span.parent_id` | uid | ID of parent span (null for root spans) |
 | `span.name` | string | Operation name (e.g., "GET /api/products") |
 | `start_time` | timestamp | When the span started |
 | `end_time` | timestamp | When the span ended |
-| `duration` | long | Duration in nanoseconds |
+| `duration` | duration | `end_time` − `start_time`, nanosecond precision — compare it with duration literals (`duration > 100ms`), never bare integers |
 
 ### Service Context Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `service.name` | string | Name of the service |
-| `dt.entity.service` | string | Dynatrace entity ID (reliable for joins) |
-| `service.namespace` | string | Namespace or environment |
+| `dt.service.name` | string | Dynatrace service name from service detection — present on every span |
+| `dt.smartscape.service` | smartscape ID | Service ID for joins (`dt.entity.service` is the `deprecated` predecessor) |
+| `service.name` | string | Logical service name set by OpenTelemetry SDKs — absent on OneAgent spans |
+| `service.namespace` | string | Optional OpenTelemetry grouping that scopes `service.name` (`experimental`) |
+
+> **Which service field?** On the validation tenant, `dt.service.name` was set on all 322,799 spans in an hour and `service.name` on 21,586 (6.7%) — the OpenTelemetry ones. Grouping by `service.name` puts every OneAgent span in one null row, so this series uses `dt.service.name`. Names are not unique, though: on the validation tenant `dt.service.name == "frontend"` covered **4** different services (and `image-provider` 2), from different applications. Where identity matters — error counts per service, dependency maps — group by `dt.smartscape.service`, or by both.
 
 ### Status Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `span.status_code` | string | Status: `ok`, `error`, or `unset` |
-| `span.status_message` | string | Error message when status is error |
+| `span.status_code` | string | `ok` or `error` — the field is **absent** when the status is unset, which is most spans |
+| `span.status_message` | string | Optional error text when the status is `error` (`experimental`) |
+
+Because unset is stored as a missing field, `span.status_code != "error"` does not count successes — on the validation tenant 307,312 of 318,628 spans in an hour had no status at all, against 240 `ok` and 11,076 `error`. Count failures with `span.status_code == "error"` and derive successes as total minus errors.
+
+> <sub>**Sources:** [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace) — *"The span status is only present if it is explicitly set to error or ok."* **Dictionary:** `trace.id`/`span.id`/`span.parent_id` (`stable`, `uid`), `duration` (`stable`, `duration`), `span.status_code` (`stable`), `span.status_message` (`experimental`), `dt.service.name` (`stable`), `service.name` (`stable`), `service.namespace` (`experimental`), `dt.entity.service` (`deprecated`), read 10/02/2026.</sub>
 
 <a id="span-kinds"></a>
 ## 4. Span Kinds
@@ -168,7 +175,7 @@ A **trace** is a tree of spans connected by parent-child relationships:
 - Each span (except root) has a `span.parent_id` pointing to its parent
 - Root spans have `span.parent_id = null`
 - All spans in a trace share the same `trace.id`
-- Child span's `start_time` is always >= parent's `start_time`
+- A child span normally starts at or after its parent — but spans from different hosts carry their own clocks, so small skews can make a child appear to start first
 
 <a id="your-first-span-query"></a>
 ## 6. Your First Span Query
@@ -177,7 +184,7 @@ Let's explore span data using DQL. We'll start with the most basic query and pro
 > ⚠️ **Important:** Always use `limit` when exploring data to avoid processing millions of spans.
 
 ```dql
-// Basic span query - fetch all spans from the last 2 hours
+// Basic span query - fetch spans from the last hour
 fetch spans, from:-1h
 | limit 100
 ```
@@ -194,7 +201,7 @@ fetch spans, from:-1h
          span.id,
          span.name,
          span.kind,
-         service.name,
+         dt.service.name,
          duration,
          span.status_code
 | sort start_time desc
@@ -203,16 +210,16 @@ fetch spans, from:-1h
 
 ### Understanding Duration
 
-Span duration in Dynatrace is stored in **nanoseconds**. Here's how to convert to more readable formats:
+`duration` is a **duration** value with nanosecond precision. Divide it by a duration literal to get a plain number in the unit you want:
 
-> 💡 **Tip:** 1 millisecond = 1,000,000 nanoseconds
+> 💡 **Tip:** `duration / 1ms` gives milliseconds as a number. `duration / 1000000` does not — dividing a duration by a plain number is still a duration.
 
 ```dql
 // Convert duration from nanoseconds to milliseconds and seconds
 fetch spans, from:-1h
 | fields start_time,
          span.name,
-         service.name,
+         dt.service.name,
          duration,
          duration_ms = duration / 1ms,     // Convert to milliseconds
          duration_sec = duration / 1s  // Convert to seconds
@@ -230,7 +237,7 @@ fetch spans, from:-1h
 | filter span.kind == "server"
 | filter duration > 100ms
 | fields start_time,
-         service.name,
+         dt.service.name,
          span.name,
          duration_ms = duration / 1ms,
          span.status_code
@@ -246,7 +253,7 @@ Find all services that are generating span data:
 // Discover all services with span data
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize {span_count = count()}, by:{service.name}
+| summarize {span_count = count()}, by:{dt.service.name}
 | sort span_count desc
 | limit 50
 ```
@@ -263,7 +270,7 @@ In this notebook, you learned:
 ✅ **Span kinds** (server, client, internal, producer, consumer)  
 ✅ **Trace structure** with parent-child relationships  
 ✅ **Basic DQL queries** to fetch and explore span data  
-✅ **Duration conversion** from nanoseconds to human-readable formats  
+✅ **Duration conversion** with duration literals (`duration / 1ms`)  
 
 ---
 
@@ -274,6 +281,14 @@ Continue to **SPANS-02: Querying Spans with DQL** to learn:
 - Finding specific traces by trace.id
 - Querying HTTP and database spans
 - Combining multiple filters for precise analysis
+
+---
+
+## References
+
+- [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
+- [Distributed traces (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces)
+- [Traces (opentelemetry.io)](https://opentelemetry.io/docs/concepts/signals/traces/)
 
 ---
 

@@ -1,6 +1,6 @@
 # SPANS-05: Advanced Span Analytics
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Time-Series Analysis and Complex Aggregations
 This notebook covers advanced analytical techniques for span data, including time-series analysis, trend detection, and complex aggregations for building dashboards and reports.
@@ -40,10 +40,15 @@ Use `makeTimeseries` to create time-series data for visualization and trend anal
 | avg() | Average value | ✅ Yes |
 | sum() | Total sum | ✅ Yes |
 | min()/max() | Extremes | ✅ Yes |
-| percentile() | Distribution | ❌ No - use bin() |
+| percentile() | Distribution | ✅ Yes |
 -->
 
-> ⚠️ **Important:** `makeTimeseries` does NOT support `percentile()` or arithmetic expressions in aggregations. Use time-bucketed `summarize` for those.
+> ⚠️ **Important:** in `makeTimeseries`, each entry must **be** an aggregation — arithmetic on its result is rejected with the error `The parameter has to be an expression-based timeseries aggregation.` Put the conversion **inside** the aggregation instead:
+>
+> - ✅ `p95_ms = percentile(duration / 1ms, 95)` — works
+> - ❌ `p95_ms = percentile(duration, 95) / 1ms` — rejected
+>
+> `percentile()` itself is supported (verified 10/02/2026). Ratios such as an error rate need the counts first: produce both series, then compute the ratio element-wise with a later `fieldsAdd`, or use a time-bucketed `summarize`.
 
 ```dql
 // Request volume over time by service
@@ -52,7 +57,7 @@ fetch spans, from:-24h
 | makeTimeseries {
     request_count = count(),
     error_count = countIf(span.status_code == "error")
-  }, by:{service.name}, interval: 5m
+  }, by:{dt.service.name}, interval: 5m
 ```
 
 ```dql
@@ -66,17 +71,14 @@ fetch spans, from:-24h
 ```
 
 ```dql
-// For percentile trends, use time-bucketed summarize instead
+// Percentile trend as a time series: keep the unit conversion INSIDE the aggregation
 fetch spans, from:-1h
 | filter span.kind == "server"
-| fieldsAdd time_bucket = bin(start_time, 10m)
-| summarize {
+| makeTimeseries {
     request_count = count(),
-    p95_duration_ms = percentile(duration, 95) / 1ms,
+    p95_duration_ms = percentile(duration / 1ms, 95),
     error_count = countIf(span.status_code == "error")
-  }, by:{time_bucket, service.name}
-| sort time_bucket asc
-| limit 200
+  }, by:{dt.service.name}, interval: 10m
 ```
 
 ---
@@ -87,7 +89,7 @@ Identify trends and patterns in your span data over time.
 
 ```dql
 // Hourly error rate trend
-fetch spans, from:-1h
+fetch spans, from:-24h
 | filter span.kind == "server"
 | fieldsAdd hour_bucket = bin(start_time, 1h)
 | summarize {
@@ -108,8 +110,8 @@ fetch spans, from:-1h
     request_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     p90_duration_ms = percentile(duration, 90) / 1ms
-  }, by:{time_bucket, service.name}
-| sort time_bucket asc, service.name
+  }, by:{time_bucket, dt.service.name}
+| sort time_bucket asc, dt.service.name
 | limit 300
 ```
 
@@ -121,7 +123,7 @@ fetch spans, from:-1h
 | summarize {
     request_count = count(),
     p95_ms = percentile(duration, 95) / 1ms
-  }, by:{time_bucket, service.name}
+  }, by:{time_bucket, dt.service.name}
 | filter p95_ms > 500
 | sort time_bucket desc, p95_ms desc
 | limit 50
@@ -145,7 +147,7 @@ fetch spans, from:-1h
     p95_duration_ms = percentile(duration, 95) / 1ms,
     p99_duration_ms = percentile(duration, 99) / 1ms,
     max_duration_ms = max(duration) / 1ms
-  }, by:{service.name}
+  }, by:{dt.service.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / total_requests
 | fieldsAdd health_score = if(error_rate_pct > 5, "Critical", 
                             else: if(error_rate_pct > 1, "Warning", 
@@ -164,7 +166,7 @@ fetch spans, from:-1h
     slow_count = countIf(duration > 1s),  // > 1 second
     avg_duration_ms = avg(duration) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms
-  }, by:{service.name, span.name}
+  }, by:{dt.service.name, span.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / request_count
 | fieldsAdd slow_rate_pct = (slow_count * 100.0) / request_count
 | filter request_count > 10
@@ -180,7 +182,7 @@ fetch spans, from:-1h
     request_count = count(),
     error_count = countIf(span.status_code == "error"),
     avg_duration_ms = avg(duration) / 1ms
-  }, by:{http.request.method, service.name}
+  }, by:{http.request.method, dt.service.name}
 | sort request_count desc
 | limit 30
 ```
@@ -212,8 +214,8 @@ fetch spans, from:-1h
     span_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     p95_duration_ms = percentile(duration, 95) / 1ms
-  }, by:{span.status_code, service.name}
-| sort service.name, span.status_code
+  }, by:{span.status_code, dt.service.name}
+| sort dt.service.name, span.status_code
 | limit 50
 ```
 
@@ -225,8 +227,8 @@ fetch spans, from:-1h
                             else: if(http.response.status_code >= 400, "4xx",
                             else: if(http.response.status_code >= 300, "3xx",
                             else: "2xx")))
-| summarize {count = count()}, by:{status_class, service.name}
-| sort service.name, status_class
+| summarize {count = count()}, by:{status_class, dt.service.name}
+| sort dt.service.name, status_class
 ```
 
 ---
@@ -254,7 +256,7 @@ fetch spans, from:-1h
 | summarize {
     total_requests = count(),
     total_errors = countIf(span.status_code == "error"),
-    unique_services = countDistinct(service.name),
+    unique_services = countDistinct(dt.service.name),
     avg_latency_ms = avg(duration) / 1ms
   }
 | fieldsAdd overall_error_rate_pct = (total_errors * 100.0) / total_requests
@@ -268,7 +270,7 @@ fetch spans, from:-1h
     requests = count(),
     errors = countIf(span.status_code == "error"),
     p95_ms = percentile(duration, 95) / 1ms
-  }, by:{service.name}
+  }, by:{dt.service.name}
 | fieldsAdd error_rate = (errors * 100.0) / requests
 | sort requests desc
 | limit 10
@@ -278,7 +280,7 @@ fetch spans, from:-1h
 // Dashboard: Recent errors list
 fetch spans, from:-1h
 | filter span.status_code == "error"
-| fields start_time, service.name, span.name, span.status_message
+| fields start_time, dt.service.name, span.name, span.status_message
 | sort start_time desc
 | limit 20
 ```
@@ -289,7 +291,7 @@ fetch spans, from:-1h
 
 In this notebook, you learned:
 
-✅ **Time-series analysis** with makeTimeseries and its limitations  
+✅ **Time-series analysis** with makeTimeseries — percentiles included, with conversions inside the aggregation  
 ✅ **Time-bucketed summarize** for percentile trends  
 ✅ **Trend analysis** to identify patterns over time  
 ✅ **Complex aggregations** for multi-dimensional analysis  
@@ -305,6 +307,14 @@ Continue to **SPANS-06: Security Analysis with Spans** to learn:
 - Analyzing authentication and authorization flows
 - Finding anomalous behavior
 - Security audit queries
+
+---
+
+## References
+
+- [makeTimeseries command (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands#makeTimeseries)
+- [Aggregation functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions)
+- [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
 
 ---
 

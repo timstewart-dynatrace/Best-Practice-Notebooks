@@ -1,6 +1,6 @@
 # OTEL-08: Troubleshooting OTel Pipelines
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 8 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Debugging OpenTelemetry Data Flows
 When telemetry data doesn't arrive as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic techniques, and resolution steps for OpenTelemetry pipelines.
@@ -174,14 +174,16 @@ grpcurl -plaintext collector:4317 list
 ### Test Dynatrace Connectivity
 
 ```bash
-# Test OTLP endpoint (set DT_API_TOKEN env var first)
+# Test OTLP endpoint (set DT_API_TOKEN env var first).
+# Dynatrace accepts binary protobuf only ("JSON is not supported for Protocol Buffers"),
+# so send an empty protobuf body — a valid, empty export request.
 curl -v https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp/v1/traces \
   -X POST \
   -H "Authorization: Api-Token ${DT_API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+  -H "Content-Type: application/x-protobuf" \
+  --data-binary ''
 
-# Expected: 200 OK (empty body is fine)
+# Expected: a 2xx status. 401 = token or auth scheme (Api-Token vs Bearer); 403 = missing scope.
 ```
 
 ### Common Connectivity Errors
@@ -189,7 +191,7 @@ curl -v https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp/v1/traces \
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `connection refused` | Wrong port/host | Verify endpoint |
-| `401 Unauthorized` | Invalid token | Check token, regenerate |
+| `401 Unauthorized` | Invalid token, or wrong scheme (`Api-Token` for classic tokens, `Bearer` for platform tokens) | Check token and scheme |
 | `403 Forbidden` | Missing scope | Add required scope to token |
 | `certificate error` | TLS issue | Check certs, disable verify for test |
 | `timeout` | Network/firewall | Check firewall rules |
@@ -227,7 +229,7 @@ service:
 
 ### service.name Missing
 
-Without `service.name`, Dynatrace can't create service entities:
+Without `service.name`, OpenTelemetry SDKs report the service as `unknown_service` (plus the process name, in some SDKs), so its spans land under a meaningless service. Set it in the SDK or, as a fallback, in the Collector:
 
 ```yaml
 # Add default service.name in collector
@@ -239,15 +241,9 @@ processors:
         action: insert  # Only adds if missing
 ```
 
-### Wrong Time Zone
+### Wrong Timestamps in File Logs
 
-```yaml
-# Ensure collector uses UTC
-# In Kubernetes:
-env:
-  - name: TZ
-    value: UTC
-```
+OTLP timestamps are Unix-epoch nanoseconds and carry no time zone, so the Collector's own `TZ` does not affect OTLP data. Time-zone errors appear when a receiver **parses** a timestamp written without a zone, for example a `file_log` time parser reading local times. Set the parser's location there, rather than changing the container's `TZ`.
 
 ### Data Being Filtered
 
@@ -258,7 +254,7 @@ processors:
     traces:
       span:
         # This filters OUT matching spans
-        - 'attributes["http.url"] == "/health"'
+        - 'attributes["url.path"] == "/health"'
 ```
 
 <a id="performance-issues"></a>
@@ -357,17 +353,21 @@ go tool pprof http://collector:1777/debug/pprof/heap
 ```
 
 ```dql
-// Check OTel data arrival
-fetch spans, from: now() - 1h
-| filter isNotNull(otel.scope.name)
+// Check OTel data arrival (OTLP-ingested spans, 5-minute buckets)
+fetch spans, from:-1h
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
 | summarize count = count(), by:{time_bucket = bin(start_time, 5m)}
 | sort time_bucket asc
 ```
 
 ```dql
-// Find services without service.name
-fetch spans, from: now() - 1h
-| filter isNull(service.name) or service.name == ""
+// Find OTLP-ingested spans with no usable service.name.
+// Restrict to OTLP: OneAgent spans rarely carry service.name (1,739 of 303,492 in an hour on
+// 10/02/2026 — they use dt.service.name), so an unrestricted isNull(service.name) lists
+// nearly every OneAgent span as a false positive.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
+| filter isNull(service.name) or service.name == "" or startsWith(service.name, "unknown_service")
 | summarize count = count(), by:{otel.scope.name}
 | sort count desc
 ```

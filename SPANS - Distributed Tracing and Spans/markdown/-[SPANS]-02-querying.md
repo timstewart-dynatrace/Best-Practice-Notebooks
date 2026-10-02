@@ -1,6 +1,6 @@
 # SPANS-02: Querying Spans with DQL
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 09/09/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Mastering Span Queries in Dynatrace
 This notebook covers essential techniques for querying and filtering span data to find exactly what you need. You'll learn to filter by service, operation, and attributes to quickly locate relevant traces.
@@ -31,7 +31,7 @@ Before starting this notebook, ensure you have:
 
 - ✅ Completed **SPANS-01: Fundamentals**
 - ✅ Access to a Dynatrace environment with span data
-- ✅ DQL query permissions
+- ✅ Permission to read spans (`storage:spans:read`)
 
 <a id="dql-is-not-sql"></a>
 ## 1. DQL is NOT SQL!
@@ -45,7 +45,7 @@ Before starting this notebook, ensure you have:
 | fetch | Retrieve data source | fetch spans |
 | filter | Narrow down records | filter span.kind == "server" |
 | fieldsAdd | Compute new fields | fieldsAdd duration_ms = duration / 1ms |
-| summarize | Aggregate data | summarize count(), by:{service.name} |
+| summarize | Aggregate data | summarize n = count(), by:{dt.service.name} |
 | sort | Order results | sort duration desc |
 | limit | Restrict output | limit 100 |
 -->
@@ -65,14 +65,16 @@ Before starting this notebook, ensure you have:
 
 <a id="filtering-by-service"></a>
 ## 2. Filtering by Service
-Filter spans to focus on specific services. Use `dt.entity.service` for reliable filtering (entity ID), or `service.name` for display name.
+Filter spans to focus on specific services. Use `dt.service.name` for the service name and `dt.smartscape.service` for the service ID.
 
-> 💡 **Tip:** `dt.entity.service` is always populated and indexed. `service.name` may not always be available.
+> 💡 **Tip:** On the validation tenant both were set on every span in an hour (322,799 of 322,799), while `service.name` — the OpenTelemetry attribute — was set on 6.7%. `dt.entity.service` still carries the same ID but is `deprecated` in the semantic dictionary.
+
+> <sub>**Dictionary:** `dt.service.name` (`stable`; the dictionary describes it as equal to the Smartscape service node name); `dt.smartscape.service` (`stable`); `service.name` (`stable`); `dt.entity.service` (`deprecated`), read 10/02/2026.</sub>
 
 ```dql
 // Filter spans for a specific service using exact match
 fetch spans, from:-1h
-| filter service.name == "checkout"
+| filter dt.service.name == "checkout"
 | fields start_time, span.name, span.kind, duration
 | sort start_time desc
 | limit 50
@@ -81,17 +83,17 @@ fetch spans, from:-1h
 ```dql
 // Use in() with curly braces {} for multiple values (NOT parentheses!)
 fetch spans, from:-1h
-| filter in(service.name, {"checkout", "payment", "cart"})
-| fields start_time, service.name, span.name, span.kind, duration
+| filter in(dt.service.name, {"checkout", "payment", "cart"})
+| fields start_time, dt.service.name, span.name, span.kind, duration
 | sort start_time desc
 | limit 100
 ```
 
 ```dql
-// Count spans by service entity (more reliable)
+// Count spans by service ID
 fetch spans, from:-1h
-| filter isNotNull(dt.entity.service)
-| summarize {span_count = count()}, by: {dt.entity.service}
+| filter isNotNull(dt.smartscape.service)
+| summarize {span_count = count()}, by: {dt.smartscape.service}
 | sort span_count desc
 | limit 20
 ```
@@ -117,7 +119,7 @@ Filter spans based on their role in the distributed transaction.
 // Note: "server" is lowercase, not "SERVER"
 fetch spans, from:-1h
 | filter span.kind == "server"
-| fields start_time, service.name, span.name, duration
+| fields start_time, dt.service.name, span.name, duration
 | sort duration desc
 | limit 50
 ```
@@ -126,7 +128,7 @@ fetch spans, from:-1h
 // Find CLIENT spans (outbound calls to dependencies)
 fetch spans, from:-1h
 | filter span.kind == "client"
-| fields start_time, service.name, span.name, duration
+| fields start_time, dt.service.name, span.name, duration
 | sort duration desc
 | limit 50
 ```
@@ -148,7 +150,7 @@ Find spans for specific operations or endpoints using the `span.name` attribute:
 // Find spans for a specific operation/endpoint
 fetch spans, from:-1h
 | filter contains(span.name, "checkout")
-| fields start_time, service.name, trace.id, span.name, duration, span.status_code
+| fields start_time, dt.service.name, trace.id, span.name, duration, span.status_code
 | sort start_time desc
 | limit 50
 ```
@@ -157,27 +159,31 @@ fetch spans, from:-1h
 // Find all POST operations (write operations)
 fetch spans, from:-1h
 | filter startsWith(span.name, "POST")
-| fields start_time, service.name, span.name, duration, span.status_code
+| fields start_time, dt.service.name, span.name, duration, span.status_code
 | sort start_time desc
 | limit 50
 ```
 
-### 4.1. Endpoint-Name Span Identity (Enhanced Endpoints)
+### 4.1. Endpoint Names (Enhanced Endpoints)
 
-Since Dynatrace v1.329, the **Enhanced Endpoints for SDv1** setting changes what populates `span.name` for HTTP server spans on auto-instrumented services. Environments created at v1.333+ have it always on; older environments may need to enable it explicitly at *Settings → Process and contextualize → Services → Service detection v1*.
+`span.name` is whatever the instrumentation set — a templated route for some frameworks, a literal path for others — so it is a poor key for "which endpoint was slow". **Endpoints** are Dynatrace's answer: the semantic dictionary describes `endpoint.name` as derived from endpoint detection rules and detected exclusively on request root spans. **Enhanced endpoints for SDv1** brings that endpoint model, and per-endpoint `dt.service.request.*` metrics, to services detected with Service Detection v1.
+
+| Environment created in | Enhanced endpoints available in | Default | Configurable? |
+|---|---|---|---|
+| Dynatrace 1.329 and earlier | 1.333+ | Off | Yes — *Settings → Process and contextualize → Services → Service detection v1* |
+| Dynatrace 1.330 – 1.332 | 1.330+ | On | Yes |
+| Dynatrace 1.333+ | 1.330+ | On | No — *"always on"* |
 
 **Practical impact on DQL queries:**
 
-| Before Enhanced Endpoints | After Enhanced Endpoints |
+| Without Enhanced Endpoints | With Enhanced Endpoints |
 |---|---|
-| `span.name == "GET /users/42"` matched one literal path | `span.name == "GET /users/{id}"` matches the endpoint template; the per-request URL goes elsewhere |
-| Every distinct URL produced a distinct `span.name` value | Endpoint templates collapse path-variable variations into one named endpoint |
-| Metrics aggregated into `NON_KEY_REQUESTS` for unmarked requests | Each detected endpoint emits individual `dt.service.request.*` metrics |
+| Unmarked requests aggregated into one `NON_KEY_REQUEST` bucket | Each detected endpoint gets its own `dt.service.request.*` metrics |
+| No endpoint field to group by on SDv1 services | `endpoint.name` on request root spans, named from `http.route` where the framework provides it |
 
 **Filtering rule of thumb:**
-
-- Use `contains(span.name, "/users")` or `startsWith(span.name, "GET /users")` for portable filtering — both forms work before and after the setting is enabled.
-- Exact equality on a literal URL (`span.name == "GET /users/42"`) only worked when endpoints weren't templated. Switch to `contains()` on the path stem.
+- Group and filter by `endpoint.name` on request root spans (`isNotNull(endpoint.name)`) when you mean "endpoint". Use `span.name` for the raw operation name.
+- On `span.name`, prefer `contains()` / `startsWith()` on the path stem over equality with a literal URL — span names differ by framework and instrumentation.
 - For services without the `http.route` span attribute (often Nginx, Apache, IIS in front of a backend), endpoints may collapse to `GET /*`. Use request-naming rules to recover named endpoints — see [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1).
 
 > **Changed (SaaS 1.346 — staged rollout from 08/25/2026): fewer `/*` endpoints on SDv2.** Verbatim: *"SDv2 now derives a `http.route` in cases where OneAgent sent the fallback value of `/*`."* On services detected by **SDv2**, endpoints that previously collapsed to `GET /*` may now carry a real derived route — which is the outcome you want, and also a change in the data your saved queries match against. Two things to check once it reaches your tenant: queries or dashboards that **filter for `/*`** as a proxy for "unnamed endpoint" will match fewer rows (that population is shrinking by design, not disappearing), and any **request-naming rule you added purely to work around `/*`** may now be redundant or, worse, competing with a derived route. The `isNull(http.route)` diagnostic in §10 remains the right way to find genuinely missing routes. SDv1 services are unaffected.
@@ -186,7 +192,7 @@ Since Dynatrace v1.329, the **Enhanced Endpoints for SDv1** setting changes what
 
 **Services not affected:** external services, background activity, queue listeners, key-value stores — Enhanced Endpoints does not create endpoints for these.
 
-> <sub>**Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the derived `http.route` change quoted above.</sub>
+> <sub>**Dictionary:** `endpoint.name` (`stable`), read 10/02/2026. **Sources:** [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — the derived `http.route` change quoted above.</sub>
 
 ---
 
@@ -206,7 +212,7 @@ DQL provides several string matching functions:
 // Contains - partial match anywhere in the string
 fetch spans, from:-1h
 | filter contains(span.name, "Get")
-| fields span.name, service.name
+| fields span.name, dt.service.name
 | dedup span.name
 | limit 20
 ```
@@ -233,9 +239,9 @@ fetch spans, from:-1h
 // Use dedup to see unique span names per service
 fetch spans, from:-1h
 | filter span.kind == "server"
-| fields service.name, span.name
-| dedup service.name, span.name
-| sort service.name asc
+| fields dt.service.name, span.name
+| dedup dt.service.name, span.name
+| sort dt.service.name asc
 | limit 50
 ```
 
@@ -249,7 +255,7 @@ Locate all spans belonging to a specific trace:
 // First, find some trace IDs to work with
 fetch spans, from:-1h
 | filter span.kind == "server"
-| fields start_time, trace.id, span.name, service.name
+| fields start_time, trace.id, span.name, dt.service.name
 | sort start_time desc
 | limit 10
 ```
@@ -258,8 +264,9 @@ fetch spans, from:-1h
 // Find all spans for a specific trace ID
 // Replace YOUR_TRACE_ID with an actual trace.id from above
 fetch spans, from:-1h
-// | filter trace.id == "YOUR_TRACE_ID"
-| fields start_time, span.id, span.parent_id, span.name, service.name, duration
+// trace.id is a uid: keep the toUid() wrapper — a plain string never matches.
+// | filter trace.id == toUid("YOUR_TRACE_ID")
+| fields start_time, span.id, span.parent_id, span.name, dt.service.name, duration
 | sort start_time asc
 | limit 100
 ```
@@ -268,7 +275,7 @@ fetch spans, from:-1h
 // Find root spans (entry points) - spans without a parent
 fetch spans, from:-1h
 | filter isNull(span.parent_id)
-| fields start_time, trace.id, span.name, service.name, duration, span.status_code
+| fields start_time, trace.id, span.name, dt.service.name, duration, span.status_code
 | sort start_time desc
 | limit 50
 ```
@@ -291,7 +298,7 @@ Query HTTP-specific span attributes for API troubleshooting:
 fetch spans, from:-1h
 | filter isNotNull(http.response.status_code)
 | fields start_time, 
-         service.name, 
+         dt.service.name, 
          http.request.method, 
          http.route,
          http.response.status_code,
@@ -306,7 +313,7 @@ fetch spans, from:-1h
 | filter http.response.status_code >= 500 
       and http.response.status_code < 600
 | fields start_time, 
-         service.name, 
+         dt.service.name, 
          http.request.method, 
          http.route,
          http.response.status_code,
@@ -380,7 +387,7 @@ fetch spans, from:-1h
 
 ### gRPC status codes and the OneAgent version
 
-**Forthcoming / rolling out (OneAgent 1.343).** OneAgent 1.343 released 07/28/2026 and adds **gRPC status-code support for .NET**. Rollout is **per fleet, not per tenant** — the tenant version is not the agent version, and agent fleets routinely lag a sprint or more. **Confirm the OneAgent version on the hosts concerned** before you build alerting on `rpc.grpc.status_code` for .NET services.
+**OneAgent 1.343+.** OneAgent 1.343 (released 07/28/2026) adds **gRPC status-code support for .NET**. Rollout is **per fleet, not per tenant** — the tenant version is not the agent version, and agent fleets routinely lag a sprint or more. **Confirm the OneAgent version on the hosts concerned** before you build alerting on `rpc.grpc.status_code` for .NET services.
 
 Until 1.343 reaches those hosts, .NET gRPC spans are **still captured** — you filter on `span.status_code` and the `rpc.*` attributes above, exactly as this section shows. What is missing is only the gRPC-specific status code. So on a mixed fleet, treat a null `rpc.grpc.status_code` as "not yet instrumented on this host", not as a healthy call: `0` means `OK`, and null means you do not know.
 
@@ -404,7 +411,7 @@ fetch spans, from:-1h
 
 ### Feature-flag context on spans
 
-**Forthcoming / rolling out (OneAgent 1.343).** OneAgent 1.343 also adds **OpenFeature SDK support for Java**, enriching traces with feature-flag evaluation data. The value is attribution rather than novelty: a latency or error difference can be tied to the flag *variant* that produced it, instead of inferred from deploy timing and a change log. As with gRPC status codes, this ships per agent fleet — **verify the OneAgent version on the Java hosts concerned.**
+**OneAgent 1.343+.** OneAgent 1.343 also adds **OpenFeature SDK support for Java**, enriching traces with feature-flag evaluation data. The value is attribution rather than novelty: a latency or error difference can be tied to the flag *variant* that produced it, instead of inferred from deploy timing and a change log. As with gRPC status codes, this ships per agent fleet — **verify the OneAgent version on the Java hosts concerned.**
 
 **The pre-1.343 working path is unchanged and stays valid:** set the flag variant yourself as a custom span attribute at instrumentation time (see **OTEL-04 § 5 — Span Attributes and Events**) and query it like any other business attribute. That approach is also the portable one — it works on any runtime and any agent version, and it is what you fall back to for languages the platform-native enrichment does not cover.
 
@@ -419,9 +426,12 @@ Analyze database operations captured as spans:
 | Attribute | Description |
 |-----------|-------------|
 | `db.system` | Database type (mysql, postgresql, redis) |
-| `db.name` | Database name |
-| `db.operation` | Operation type (SELECT, INSERT, UPDATE) |
-| `db.statement` | The database query (may contain sensitive data) |
+| `db.namespace` | Database name (was `db.name`) |
+| `db.operation.name` | Operation type (SELECT, INSERT, UPDATE) (was `db.operation`) |
+| `db.query.text` | The database query — may contain sensitive data (was `db.statement`) |
+| `db.collection.name` | Table or collection (was `db.mongodb.collection` and similar) |
+
+The older names in brackets are the pre-1.0 OpenTelemetry database conventions. They are null on Grail spans, so a filter on them matches nothing without raising an error.
 
 ```dql
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
@@ -438,7 +448,7 @@ Analyze database operations captured as spans:
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | fields start_time,
-         service.name,
+         dt.service.name,
          db.system,
          db.namespace,
          db.operation.name,
@@ -454,7 +464,7 @@ fetch spans, from:-1h
       and duration > 100ms
 | fieldsAdd duration_ms = duration / 1ms
 | fields start_time,
-         service.name,
+         dt.service.name,
          db.system,
          db.operation.name,
          db.query.text,
@@ -478,15 +488,15 @@ fetch spans, from:-1h
 
 <a id="working-with-null-values"></a>
 ## 9. Working with NULL Values
-⚠️ **DQL uses tri-state boolean logic.** Comparisons with NULL don't work like SQL!
+⚠️ **DQL has no `== null`.** Comparing a field with the `null` literal is rejected outright, so null checks always go through `isNull()` / `isNotNull()`. A comparison with a field that happens to be null (`span.status_code != "error"` on a span with no status) does not return true either — test for the null case explicitly.
 
 ![NULL Handling in DQL](images/02-null-handling-dql.png)
 
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Expression | Returns | Explanation |
 |------------|---------|-------------|
-| `field == null` | NULL | Does NOT return true! |
-| `field != null` | NULL | Does NOT return true! |
+| `field == null` | Query error | Rejected: *"`null` isn't allowed here"* |
+| `field != null` | Query error | Rejected the same way |
 | `isNull(field)` | true/false | Returns true if field is null |
 | `isNotNull(field)` | true/false | Returns true if field is NOT null |
 -->
@@ -503,8 +513,8 @@ fetch spans, from:-1h
 // Find HTTP spans with missing route (potential instrumentation issue)
 fetch spans, from:-1h
 | filter isNotNull(http.request.method) and isNull(http.route)
-| fields service.name, span.name, http.request.method, url.path
-| dedup service.name, span.name
+| fields dt.service.name, span.name, http.request.method, url.path
+| dedup dt.service.name, span.name
 | limit 20
 ```
 
@@ -519,7 +529,7 @@ Build complex queries by combining multiple filter conditions:
 ```dql
 // Complex filter: Find slow SERVER spans in the checkout service
 fetch spans, from:-1h
-| filter service.name == "checkout"
+| filter dt.service.name == "checkout"
       and span.kind == "server"
       and duration > 500ms
 | fieldsAdd duration_ms = duration / 1ms
@@ -535,11 +545,11 @@ fetch spans, from:-1h
 // Find error spans for specific services and operations
 fetch spans, from:-1h
 | filter span.status_code == "error"
-      and in(service.name, {"payment", "checkout"})
+      and in(dt.service.name, {"payment", "checkout"})
       and span.kind == "server"
 | fieldsAdd duration_ms = duration / 1ms
 | fields start_time,
-         service.name,
+         dt.service.name,
          span.name,
          span.status_message,
          trace.id,
@@ -557,7 +567,7 @@ fetch spans, from:-1h
           and duration > 1s)
 | fieldsAdd duration_ms = duration / 1ms
 | fields start_time,
-         service.name,
+         dt.service.name,
          http.request.method,
          http.route,
          http.response.status_code,

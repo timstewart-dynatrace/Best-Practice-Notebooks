@@ -1,6 +1,6 @@
 # OTEL-05: Metrics Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 09/29/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 5 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Creating Custom Metrics with OpenTelemetry
 OpenTelemetry metrics provide quantitative measurements of your application's behavior over time. This notebook covers metric types, instrumentation patterns, and integration with Dynatrace.
@@ -95,7 +95,7 @@ request_counter = meter.create_counter(
 request_duration = meter.create_histogram(
     name="http.server.request.duration",
     description="HTTP request duration",
-    unit="ms"
+    unit="s"   # the semantic convention's unit — seconds, not ms
 )
 
 # UpDownCounter
@@ -105,6 +105,10 @@ active_requests = meter.create_up_down_counter(
     unit="1"
 )
 ```
+
+> **Keep the semantic-convention unit.** `http.server.request.duration` is defined as a **Histogram in seconds (`s`)**. Auto-instrumentation libraries emit it in seconds; a hand-written instrument with the same name in milliseconds puts two units under one metric key, and every average or percentile across services becomes meaningless. Use your own metric name if you need different units.
+>
+> <sub>**Sources:** [HTTP metrics semantic conventions (opentelemetry.io)](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/).</sub>
 
 ### Using Metrics
 
@@ -124,8 +128,8 @@ def handle_request(request):
         raise
     finally:
         # Record duration
-        duration_ms = (time.time() - start) * 1000
-        request_duration.record(duration_ms, {
+        duration_s = time.time() - start
+        request_duration.record(duration_s, {
             "method": request.method,
             "status": str(status)
         })
@@ -180,8 +184,8 @@ network_counter = meter.create_observable_counter(
 
 | Attribute | Example | Use |
 |-----------|---------|-----|
-| `http.method` | `GET`, `POST` | HTTP method breakdown |
-| `http.status_code` | `200`, `500` | Response status |
+| `http.request.method` | `GET`, `POST` | HTTP method breakdown (was `http.method`) |
+| `http.response.status_code` | `200`, `500` | Response status (was `http.status_code`) |
 | `service.name` | `checkout-api` | Service identification |
 | `environment` | `production` | Environment |
 
@@ -241,7 +245,7 @@ from opentelemetry.sdk.metrics.view import View, ExplicitBucketHistogramAggregat
 duration_view = View(
     instrument_name="http.server.request.duration",
     aggregation=ExplicitBucketHistogramAggregation(
-        boundaries=[5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+        boundaries=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]  # seconds
     )
 )
 
@@ -532,25 +536,25 @@ This path is rarer in greenfield Dynatrace deployments — it preserves the Prom
 
 ```dql
 // Query OTel metrics in Dynatrace
-timeseries avg(http.server.request.duration), from:-1h, by:{http.method}
+// Dimension names follow the stable semantic conventions: http.request.method,
+// not the pre-1.0 http.method (which groups everything into one null series).
+timeseries avg(http.server.request.duration), from:-1h, by:{http.request.method}
 | limit 10
 ```
 
 ```dql
-// Request rate by status
+// Request count by status — from spans, not from the duration metric.
 //
-// Corrected 08/12/2026 — two defects, each of which alone returned an empty result:
-//   1. `http.server.request.count` does not exist. OpenTelemetry publishes the server-side request
-//      signal as the HISTOGRAM `http.server.request.duration`; the request count is the histogram's
-//      count, reached with count() — there is no separate counter metric.
-//   2. `http.status_code` is the pre-1.0 semconv attribute name. The stable name is
-//      `http.response.status_code`, and grouping by the old one yields a single null bucket.
-// Enumerate the real dimensions with:
-//   metrics | filter metric.key == "http.server.request.duration" | limit 1
-timeseries requests = count(http.server.request.duration), from:-1h, by:{http.response.status_code}
-| fieldsAdd total = arraySum(requests)
-| fields http.response.status_code, total
-| sort total desc
+// count(http.server.request.duration) is NOT the number of requests: it counts data
+// points (its rollup is "availability"). On 10/02/2026 it returned 112 for both status
+// codes of one service over an hour — one per series per minute, whatever the traffic.
+// Without Advanced OTLP metric dimensions, an explicit-bucket histogram is stored as a
+// Dynatrace Counter, so the per-request count is not in the metric. Count the server spans.
+// gRPC services have no http.response.status_code, so they appear with a null status.
+fetch spans, from:-1h
+| filter span.kind == "server" and dt.openpipeline.source == "/api/v2/otlp/v1/traces"
+| summarize {requests = count()}, by:{dt.service.name, http.response.status_code}
+| sort requests desc
 | limit 10
 ```
 
@@ -560,7 +564,7 @@ timeseries requests = count(http.server.request.duration), from:-1h, by:{http.re
 
 | Pattern | Example | Description |
 |---------|---------|-------------|
-| `<domain>.<component>.<metric>` | `http.server.request.count` | Hierarchical naming |
+| `<domain>.<component>.<metric>` | `myapp.orders.processed` | Hierarchical naming; reuse semantic-convention names only with their defined instrument and unit |
 | Use lowercase | `request_count` not `RequestCount` | Consistency |
 | Include units | `duration_ms`, `size_bytes` | Clarity |
 
@@ -602,6 +606,8 @@ In this notebook, you learned:
 - [OTel Python Metrics](https://opentelemetry.io/docs/languages/python/instrumentation/)
 - [Dynatrace OTLP Metrics Ingest](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics)
 - [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
+- [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — instrument-to-metric-type mapping
+- [HTTP metrics semantic conventions (opentelemetry.io)](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/)
 
 ---
 
