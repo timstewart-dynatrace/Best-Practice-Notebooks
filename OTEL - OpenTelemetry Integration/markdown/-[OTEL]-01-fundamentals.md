@@ -1,6 +1,6 @@
 # OTEL-01: OpenTelemetry Fundamentals
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Introduction to OpenTelemetry and Dynatrace
 OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics.
@@ -24,7 +24,7 @@ OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with OTLP ingestion enabled |
-| **Permissions** | `openpipeline.events`, `metrics.ingest`, `logs.ingest` |
+| **Permissions** | Platform token: `openpipeline:traces:ingest`, `openpipeline:metrics:ingest`, `openpipeline:logs:ingest`. Classic access token: `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest` |
 | **Knowledge** | Basic observability concepts |
 
 <a id="what-is-opentelemetry"></a>
@@ -40,7 +40,7 @@ OpenTelemetry is a vendor-neutral, open-source observability framework that prov
 
 ### CNCF Project
 
-OpenTelemetry is a Cloud Native Computing Foundation (CNCF) project, formed from the merger of OpenTracing and OpenCensus. It's the second-most active CNCF project after Kubernetes.
+OpenTelemetry is a Cloud Native Computing Foundation (CNCF) project, formed from the merger of OpenTracing and OpenCensus.
 
 ### Key Benefits
 
@@ -171,7 +171,7 @@ Semantic conventions define standard attribute names for consistent telemetry.
 |-----------|---------|-------------|
 | `service.name` | `checkout-api` | Logical service name |
 | `service.version` | `1.2.3` | Service version |
-| `service.namespace` | `production` | Service namespace |
+| `service.namespace` | `shop` | Groups services (team, system or application); scopes `service.name` |
 | `deployment.environment.name` | `prod` | Deployment environment |
 
 > **Note:** `deployment.environment` was renamed to `deployment.environment.name` in the stable resource semantic conventions.
@@ -183,7 +183,7 @@ Semantic conventions define standard attribute names for consistent telemetry.
 | `http.method` | `http.request.method` | HTTP method |
 | `http.url` | `url.full` | Full URL |
 | `http.status_code` | `http.response.status_code` | Response status code |
-| `http.route` | `url.path` / `http.route` | URL path or route template |
+| `http.route` | `http.route` (unchanged) | Route template |
 | `http.target` | `url.path` + `url.query` | Request target |
 | `http.host` | `server.address` | Server hostname |
 
@@ -212,7 +212,7 @@ Semantic conventions define standard attribute names for consistent telemetry.
 ## 6. Dynatrace OTel Integration
 ### OTLP Endpoints
 
-Dynatrace accepts OTLP data natively via **HTTP only** (gRPC is not supported for direct ingest):
+Dynatrace accepts OTLP data natively via **HTTP only**, with binary Protocol Buffers: *"gRPC is not supported. API calls need to use HTTP."* and *"JSON is not supported for Protocol Buffers. Binary format must be used."*
 
 | Protocol | Endpoint | Notes |
 |----------|----------|-------|
@@ -223,13 +223,14 @@ Dynatrace accepts OTLP data natively via **HTTP only** (gRPC is not supported fo
 
 ### Authentication
 
-Use Dynatrace API token with required scopes:
+Two token types work, with different schemes and scopes:
 
-| Signal | Required Scope |
-|--------|----------------|
-| Traces | `openTelemetryTrace.ingest` |
-| Metrics | `metrics.ingest` |
-| Logs | `logs.ingest` |
+| Token | Header | Traces | Metrics | Logs |
+|-------|--------|--------|---------|------|
+| Platform token | `Authorization: Bearer <token>` | `openpipeline:traces:ingest` | `openpipeline:metrics:ingest` | `openpipeline:logs:ingest` |
+| Classic access token | `Authorization: Api-Token <token>` | `openTelemetryTrace.ingest` | `metrics.ingest` | `logs.ingest` |
+
+> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"Platform token: Use Bearer in the Authorization header. The required scopes are openpipeline:logs:ingest, openpipeline:metrics:ingest, and openpipeline:traces:ingest."*</sub>
 
 ### Configuration Example
 
@@ -271,18 +272,20 @@ OpenTelemetry data is billed exactly like any other ingested data under the Dyna
 > <sub>**Sources:** [OpenTelemetry licensing (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/opentelemetry-licensing) — *"With Dynatrace, OpenTelemetry data is treated like any other ingested data."* **Derived:** OTel data from sources outside Full-Stack Monitoring has no included volume, because the page scopes the allowance to trace and metric data from those sources.</sub>
 
 ```dql
-// View OpenTelemetry traces in Dynatrace
+// View OpenTelemetry traces that arrived over OTLP
+// dt.openpipeline.source identifies the ingest path. otel.scope.name is NOT a reliable
+// "is OTel" test: OneAgent spans can carry an instrumentation scope too.
 fetch spans, from:-1h
-| filter isNotNull(otel.scope.name)
-| fields start_time, trace.id, span.name, otel.scope.name, duration
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
+| fields start_time, trace.id, service.name, span.name, otel.scope.name, duration
 | sort start_time desc
 | limit 20
 ```
 
 ```dql
-// OTel instrumentation libraries in use
+// OTel instrumentation libraries in use (OTLP-ingested spans)
 fetch spans, from:-1h
-| filter isNotNull(otel.scope.name)
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
 | summarize count = count(), by:{otel.scope.name, otel.scope.version}
 | sort count desc
 | limit 20

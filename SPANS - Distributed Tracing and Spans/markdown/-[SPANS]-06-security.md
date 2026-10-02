@@ -1,6 +1,6 @@
 # SPANS-06: Security Analysis with Spans
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 08/12/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Protecting Distributed Traces and Ensuring Compliance
 This notebook demonstrates how to use span data for security analysis, audit for sensitive data exposure, and ensure compliance with regulations.
@@ -29,7 +29,7 @@ Before starting this notebook, ensure you have:
 
 - ✅ Completed previous SPANS notebooks (01-05)
 - ✅ Understanding of HTTP status codes and security concepts
-- ✅ Access to span data containing HTTP attributes
+- ✅ Access to span data containing HTTP attributes (`storage:spans:read`)
 - ✅ Familiarity with OpenPipeline basics
 
 <a id="understanding-sensitive-data-in-spans"></a>
@@ -52,12 +52,16 @@ Distributed traces can inadvertently capture sensitive information:
 
 | Field | Risk | Recommendation |
 |-------|------|----------------|
-| `url.path` | PII in path/params | Mask or use http.route |
-| `http.request.header.*` | Auth tokens/cookies | Drop sensitive headers |
-| `db.statement` | SQL with user data | Parameterize or mask |
-| `exception.stacktrace` | Variable values | Truncate or filter |
-| `messaging.payload` | Message content | Drop or encrypt |
-| Custom attributes | Business data | Evaluate case by case |
+| `url.path` | PII in the path | Mask, or group by `http.route` |
+| `url.query` / `url.full` | Tokens and credentials in query parameters | Mask parameter values |
+| `http.request.header.<name>` | Auth tokens/cookies (only headers you configured for capture) | Don't capture them; remove if captured |
+| `db.query.text` (was `db.statement`) | SQL with user data | Parameterize or mask |
+| `span.events` → `exception.message` / `exception.stack_trace` | Values in exception text | Mask or limit capture |
+| Request attributes / custom attributes | Business data | Evaluate case by case |
+
+Exceptions are recorded as **span events**, not span fields: on the validation tenant 6,004 spans in an hour carried an `exception` event with `exception.message` and `exception.stack_trace` inside `span.events`, while a top-level `exception.stacktrace` field has no dictionary row and was set on none.
+
+> <sub>**Dictionary:** `url.path`, `url.query`, `url.full`, `db.query.text`, `exception.message`, `http.request.header.__key__` (all `stable`); no row for `exception.stacktrace` or `messaging.payload`, read 10/02/2026 (control: `exception.message` returned a row).</sub>
 
 ---
 
@@ -74,7 +78,7 @@ fetch spans, from:-1h
 | filter isNotNull(url.path)
 | filter contains(url.path, "@") or contains(url.path, "%40")
 | fields start_time,
-         dt.entity.service,
+         dt.service.name,
          http.route,
          url.path
 | dedup http.route
@@ -91,7 +95,7 @@ fetch spans, from:-1h
         contains(url.path, "email") or
         contains(url.path, "customer") or
         contains(url.path, "account")
-| fields dt.entity.service,
+| fields dt.service.name,
          http.route,
          url.path
 | dedup http.route
@@ -101,18 +105,17 @@ fetch spans, from:-1h
 ### Step 3: Find Sensitive Query Parameters
 
 ```dql
-// Find URLs with sensitive query parameters
-// These suggest credentials or tokens in URLs
+// Find URLs that suggest credentials or tokens.
+// Query strings are carried in url.query (or url.full), NOT url.path — a path-only check
+// never sees "?token=…". Check all three, case-insensitively.
 fetch spans, from:-1h
-| filter isNotNull(url.path)
-| filter contains(url.path, "password") or
-        contains(url.path, "token") or
-        contains(url.path, "key") or
-        contains(url.path, "secret") or
-        contains(url.path, "auth")
-| fields dt.entity.service,
-         http.route,
-         url.path
+| fieldsAdd url_text = concat(coalesce(url.path, ""), "?", coalesce(url.query, ""), " ", coalesce(url.full, ""))
+| filter contains(url_text, "password", caseSensitive: false)
+    or contains(url_text, "token", caseSensitive: false)
+    or contains(url_text, "secret", caseSensitive: false)
+    or contains(url_text, "apikey", caseSensitive: false)
+    or contains(url_text, "auth", caseSensitive: false)
+| fields dt.service.name, http.route, url.path, url.query
 | dedup http.route
 | limit 20
 ```
@@ -138,7 +141,7 @@ fetch spans, from:-1h
         contains(db.query.text, "credit") or
         contains(db.query.text, "email") or
         contains(db.query.text, "phone")
-| fields dt.entity.service,
+| fields dt.service.name,
          db.system,
          db.namespace,
          db.query.text
@@ -152,7 +155,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter span.status_code == "error"
 | filter isNotNull(span.status_message)
-| fields dt.entity.service,
+| fields dt.service.name,
          span.name,
          span.status_message
 | limit 20
@@ -167,7 +170,7 @@ fetch spans, from:-1h
     total_spans = count(),
     has_url = countIf(isNotNull(url.path)),
     has_db_statement = countIf(isNotNull(db.query.text)),
-    has_exception = countIf(isNotNull(exception.stacktrace))
+    has_exception = countIf(iAny(span.events[][span_event.name] == "exception"))
   }
 | fieldsAdd url_percent = (has_url * 100.0) / total_spans
 | fieldsAdd db_percent = (has_db_statement * 100.0) / total_spans
@@ -207,7 +210,7 @@ fetch spans, from:-1h
 | filter in(http.response.status_code, {401, 403, 429})
 | summarize {
     count = count()
-  }, by:{http.response.status_code, dt.entity.service, http.route}
+  }, by:{http.response.status_code, dt.service.name, http.route}
 | sort count desc
 | limit 50
 ```
@@ -237,7 +240,7 @@ Monitor authentication endpoints for potential brute force or credential stuffin
 fetch spans, from:-1h
 | filter http.response.status_code == 401
 | fields start_time,
-         dt.entity.service,
+         dt.service.name,
          http.request.method,
          http.route,
          url.path,
@@ -253,7 +256,7 @@ fetch spans, from:-1h
 | summarize {
     failure_count = count(),
     unique_traces = countDistinct(trace.id)
-  }, by:{dt.entity.service, http.route}
+  }, by:{dt.service.name, http.route}
 | sort failure_count desc
 | limit 30
 ```
@@ -280,7 +283,7 @@ fetch spans, from:-1h
 | filter span.status_code == "error" or http.response.status_code == 401 or http.response.status_code == 403
 | summarize {
     failure_count = count()
-  }, by:{dt.entity.service, span.name, http.response.status_code}
+  }, by:{dt.service.name, span.name, http.response.status_code}
 | filter failure_count > 10
 | sort failure_count desc
 ```
@@ -300,7 +303,7 @@ fetch spans, from:-1h
     total_requests = count(),
     error_4xx = countIf(http.response.status_code >= 400 and http.response.status_code < 500),
     error_5xx = countIf(http.response.status_code >= 500)
-  }, by:{dt.entity.service, http.route}
+  }, by:{dt.service.name, http.route}
 | fieldsAdd error_rate_4xx = (error_4xx * 100.0) / total_requests
 | fieldsAdd error_rate_5xx = (error_5xx * 100.0) / total_requests
 | filter error_rate_4xx > 20 or error_rate_5xx > 5
@@ -315,7 +318,7 @@ fetch spans, from:-1h
 | summarize {
     not_found_count = count(),
     unique_paths = countDistinct(url.path)
-  }, by:{dt.entity.service}
+  }, by:{dt.service.name}
 | filter not_found_count > 100
 | sort not_found_count desc
 | limit 20
@@ -326,7 +329,7 @@ fetch spans, from:-1h
 fetch spans, from:-1h
 | filter http.response.status_code == 429
 | fields start_time,
-         dt.entity.service,
+         dt.service.name,
          http.route,
          trace.id
 | sort start_time desc
@@ -341,7 +344,7 @@ fetch spans, from:-1h
     requests = count(),
     unique_operations = countDistinct(span.name),
     error_rate = (countIf(span.status_code == "error") * 100.0) / count()
-  }, by:{dt.entity.service}
+  }, by:{dt.service.name}
 | filter error_rate > 20
 | sort error_rate desc
 ```
@@ -361,7 +364,7 @@ fetch spans, from:-1h
       or contains(url.path, "settings")
       or contains(span.name, "admin")
 | fields start_time,
-         dt.entity.service,
+         dt.service.name,
          http.request.method,
          url.path,
          http.response.status_code,
@@ -380,7 +383,7 @@ fetch spans, from:-1h
 | summarize {
     access_count = count(),
     unique_traces = countDistinct(trace.id)
-  }, by:{dt.entity.service, http.route}
+  }, by:{dt.service.name, http.route}
 | sort access_count desc
 | limit 20
 ```
@@ -396,7 +399,7 @@ fetch spans, from:-1h
 | summarize {
     span_count = count(),
     unique_operations = countDistinct(span.name)
-  }, by:{dt.entity.service}
+  }, by:{dt.service.name}
 | sort span_count desc
 ```
 
@@ -406,64 +409,42 @@ fetch spans, from:-1h
 ## 7. OpenPipeline for Data Masking
 Use OpenPipeline to mask sensitive data **before** it is stored in Grail.
 
-### Email Masking Configuration
+### Masking with a DQL processor
 
-```yaml
-# Mask email addresses in URLs and attributes
-processing:
-  - type: replace
-    field: http.url
-    pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-    replacement: "***@***.***"
+There is no dedicated masking processor. Masking is a **DQL** processor in the **Processing** stage of the spans pipeline, using `replacePattern` with **DPL** patterns (not regex). One processor can mask several fields:
+
+```text
+fieldsAdd url.path = replacePattern(url.path, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
+| fieldsAdd url.query = replacePattern(url.query, "<<(('token' | 'key' | 'secret' | 'password') '=') [^&]+", "[REDACTED]")
+| fieldsAdd url.path = replacePattern(url.path, "<<'/' CREDITCARD (>>'/' | >>'?' | EOF)", "[CARD-MASKED]")
 ```
 
-### Credit Card Masking
+Each statement was run against sample values on 10/02/2026: `/users/john.doe@example.com/orders` → `/users/[EMAIL-MASKED]/orders`; `token=abc123XYZ&page=2&password=hunter2` → `token=[REDACTED]&page=2&password=[REDACTED]`; `/pay/4111111111111111/confirm` → `/pay/[CARD-MASKED]/confirm`. The card statement is bounded to a whole path segment on purpose: a bare `CREDITCARD` matcher also hits Luhn-valid digit runs **inside** hex identifiers — on the validation tenant it rewrote `/session/c05e365fe5eee852102159234007ec45/element` to `/session/c05e365fe5eee8[CARD]7ec45/element`, and all 30 "card" hits in an hour were session hashes of that kind. `<<(…)` is a lookbehind, so the parameter name stays and only the value is replaced. `replacePattern` has no back-references, so partial masking ("keep the last four digits") is not possible this way. Apply the same statements to `url.full` if your spans carry it. For the DPL syntax in depth, see **OPLOGS-08** and **FAQ-15**.
 
-```yaml
-# Mask credit card numbers (13-16 digits)
-processing:
-  - type: replace
-    field: http.url
-    pattern: "\\b[0-9]{13,16}\\b"
-    replacement: "****-****-****-****"
-```
+### Routing sensitive spans to restricted buckets
 
-### Token/API Key Masking
+Routing chooses a **pipeline**; the pipeline's **Bucket assignment** stage chooses the bucket. Matchers accept `matchesValue` / `matchesPhrase` / comparisons, not `contains()` or `in()`:
 
-```yaml
-# Mask tokens, keys, secrets in query parameters
-processing:
-  - type: replace
-    field: http.url
-    pattern: "(token|key|secret|password)=([^&]+)"
-    replacement: "$1=***REDACTED***"
-```
+| Route matcher (first match wins) | Target pipeline | Its Bucket assignment |
+|----------------------------------|-----------------|-----------------------|
+| `matchesValue(dt.service.name, "payment*") or matchesValue(dt.service.name, "auth*")` | `sensitive-spans` | `spans_sensitive` |
+| `matchesValue(deployment.environment, "production")` | `production-spans` | `spans_production` |
+| *(default route)* | default pipeline | `default_spans` |
 
-### Routing Sensitive Data to Restricted Buckets
-
-```yaml
-# Route sensitive spans to restricted buckets
-routing:
-  - condition: contains(service.name, "payment") or contains(service.name, "auth")
-    bucket: spans_sensitive
-    
-  - condition: matchesValue(deployment.environment, "production")
-    bucket: spans_production
-    
-  - condition: true
-    bucket: spans_default
-```
+Spans OpenPipeline configuration is covered in **SPANS-07** and **OPIPE-02**.
 
 ### Verify Masking Is Working
 
 ```dql
-// Verify email masking is working
-// Result should be empty if masking is effective
+// Verify masking is working — leak check.
+// Counts values the masking patterns would STILL change. All three should be 0 after masking.
 fetch spans, from:-1h
-| filter isNotNull(url.path)
-| filter contains(url.path, "@") and not(contains(url.path, "***@"))
-| fields url.path
-| limit 10
+| summarize {
+    total = count(),
+    unmasked_email = countIf(replacePattern(url.path, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "") != url.path),
+    unmasked_secret_param = countIf(replacePattern(url.query, "<<(('token' | 'key' | 'secret' | 'password') '=') [^&]+", "") != url.query),
+    unmasked_card = countIf(replacePattern(url.path, "<<'/' CREDITCARD (>>'/' | >>'?' | EOF)", "") != url.path)
+  }
 ```
 
 ---
@@ -479,9 +460,9 @@ fetch spans, from:-1h
 
 ### PCI DSS Compliance
 
-- **Never store** full credit card numbers
+- **Do not let** full card numbers reach traces — PCI DSS calls for stored card numbers to be rendered unreadable; confirm the controls that apply to you with your compliance team
 - **Mask** cardholder data in all traces
-- **Encrypt** sensitive data at rest
+- **Mask** at ingestion rather than relying on storage encryption alone
 - **Audit** access to payment-related traces
 
 ### HIPAA Compliance
@@ -503,7 +484,7 @@ fetch spans, from:-1h
     request_count = count(),
     unique_routes = countDistinct(http.route),
     error_count = countIf(span.status_code == "error")
-  }, by:{dt.entity.service}
+  }, by:{dt.service.name}
 | sort request_count desc
 ```
 
@@ -519,7 +500,7 @@ fetch spans, from:-1h
 | summarize {
     requests = count(),
     avg_ms = avg(duration) / 1ms
-  }, by:{dt.entity.service, http.route, http.request.method}
+  }, by:{dt.service.name, http.route, http.request.method}
 | sort requests desc
 | limit 20
 ```
@@ -533,7 +514,7 @@ fetch spans, from:-1h
 | summarize {
     error_count = count(),
     sample_trace = takeFirst(trace.id)
-  }, by:{dt.entity.service, span.name}
+  }, by:{dt.service.name, span.name}
 | sort error_count desc
 | limit 10
 ```
@@ -577,7 +558,7 @@ fetch spans, from:-1h
 | summarize {
     total_requests = count(),
     security_events = countIf(in(http.response.status_code, {401, 403, 429}))
-  }, by:{dt.entity.service}
+  }, by:{dt.service.name}
 | fieldsAdd security_event_rate = (security_events * 100.0) / total_requests
 | filter security_events > 0
 | sort security_event_rate desc
@@ -645,7 +626,7 @@ In this notebook, you learned:
 ✅ **Authentication failure detection** to identify potential attacks  
 ✅ **Anomalous traffic pattern detection** for enumeration and abuse  
 ✅ **Sensitive endpoint monitoring** for admin and data access  
-✅ **OpenPipeline masking** configurations for emails, credit cards, tokens  
+✅ **OpenPipeline masking** with DQL-processor `replacePattern` statements for emails, card numbers and tokens  
 ✅ **Compliance considerations** for GDPR, PCI DSS, and HIPAA  
 ✅ **Security audit queries** for compliance and reporting  
 ✅ **Security checklist** for ongoing protection  
@@ -659,6 +640,15 @@ Continue to **SPANS-07: Grail Buckets & OpenPipeline** to learn:
 - Configuring OpenPipeline for span processing
 - Data routing and retention strategies
 - Access control for span data
+
+---
+
+## References
+
+- [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
+- [Processing stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage)
+- [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline)
+- [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language)
 
 ---
 

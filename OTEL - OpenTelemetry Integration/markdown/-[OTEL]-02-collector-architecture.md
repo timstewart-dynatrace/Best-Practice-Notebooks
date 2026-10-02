@@ -1,6 +1,6 @@
 # OTEL-02: OpenTelemetry Collector Architecture
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 2 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Understanding the OTel Collector Pipeline
 The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnostic service for receiving, processing, and exporting telemetry data. This notebook covers its architecture, components, and configuration.
@@ -98,8 +98,12 @@ Receivers ingest telemetry data from external sources.
 | `jaeger` | Jaeger (gRPC/HTTP) | Traces | Jaeger clients |
 | `zipkin` | Zipkin HTTP | Traces | Zipkin clients |
 | `prometheus` | Prometheus scrape | Metrics | Prometheus targets |
-| `file_log` (formerly `filelog` — old name kept as a deprecated alias) | File tailing | Logs | Log files |
-| `host_metrics` (formerly `hostmetrics` — old name kept as a deprecated alias) | Host stats | Metrics | CPU, memory, disk |
+| `file_log` (`filelog` before contrib v0.149.0) | File tailing | Logs | Log files |
+| `host_metrics` (`hostmetrics` before contrib v0.151.0) | Host stats | Metrics | CPU, memory, disk |
+
+> **Component renames are version-dependent.** Collector-contrib renamed `filelog` → `file_log` in **v0.149.0** and `hostmetrics` → `host_metrics`, `spanmetrics` → `span_metrics` in **v0.151.0**; each component's `metadata.yaml` keeps the old name as `deprecated_type`, so both spellings load on those versions and later. Older Collectors — including Dynatrace Collector builds based on an earlier upstream — know **only** the old names. If one config must run on a mixed fleet, use the old names until every Collector is on v0.151.0+.
+>
+> <sub>**Sources:** [filelogreceiver metadata.yaml (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/filelogreceiver/metadata.yaml) — `type: file_log`, `deprecated_type: filelog`; same pattern in `hostmetricsreceiver` and `spanmetricsconnector`. Release versions read from the tagged files, 10/02/2026.</sub>
 
 ### OTLP Receiver Configuration
 
@@ -181,7 +185,7 @@ processors:
   filter:
     traces:
       span:
-        - 'attributes["http.url"] == "/health"'
+        - 'attributes["url.path"] == "/health"'   # url.path, not the full URL
 ```
 
 ### Masking Sensitive Data (redaction / transform)
@@ -314,7 +318,7 @@ Connectors link pipelines, acting as both exporter and receiver.
 
 | Connector | Function |
 |-----------|----------|
-| `span_metrics` (formerly `spanmetrics` — old name kept as a deprecated alias) | Generate metrics from spans |
+| `span_metrics` (`spanmetrics` before contrib v0.151.0) | Generate metrics from spans |
 | `servicegraph` | Build service dependency graph |
 | `count` | Count data points |
 
@@ -324,8 +328,8 @@ Connectors link pipelines, acting as both exporter and receiver.
 connectors:
   span_metrics:
     dimensions:
-      - name: http.method
-      - name: http.status_code
+      - name: http.request.method
+      - name: http.response.status_code
     histogram:
       explicit:
         buckets: [100ms, 500ms, 1s, 5s]

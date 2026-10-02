@@ -1,6 +1,6 @@
 # SPANS-04: Service Dependencies & Flow Analysis
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 07/30/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Mapping Your Distributed System
 This notebook teaches you how to use span data to understand service relationships, analyze request flows, and identify critical dependencies in your system.
@@ -29,12 +29,11 @@ Before starting this notebook, ensure you have:
 - ✅ Access to a Dynatrace environment with distributed trace data
 - ✅ Understanding of span kinds (server, client, producer, consumer)
 
-### Sprint 1.337 (April 2026): OpenTelemetry service.name Enrichment
+### SaaS 1.337: OpenTelemetry `service.name` in SDv1 Service Names
 
-When OpenTelemetry-instrumented spans carry the OTel **`service.name`** resource attribute, Dynatrace Service Detection v1 now uses that value to enrich the existing service rather than creating a parallel one. Two visible effects:
+Per the SaaS 1.337 release notes, *"You can now use the OTel service.name attribute to customize the name of SDv1 services."* Smartscape shows the result as `service.name (detected name)`, and the change *"affects the service name in all Smartscape use cases, and the dt.service.name attribute on spans and metrics."*
 
-- **Smartscape display**: services show as `service.name (detected name)` — for example `checkout-api (com.example.checkout.OrderService)` — keeping both the OTel-canonical name and the auto-detected name visible.
-- **Span/metric field**: the value populates a new `dt.service.name` field on spans and metrics, queryable directly:
+So `dt.service.name` — present on every span, OneAgent and OpenTelemetry alike — carries the enriched name where an OTel `service.name` exists, and the detected name otherwise. That makes it the service field this series groups by:
 
 ```dql
 fetch spans, from:-1h
@@ -44,24 +43,20 @@ fetch spans, from:-1h
 | limit 50
 ```
 
-This eliminates the historical "two services for one process" pattern when teams add OpenTelemetry SDKs alongside OneAgent for vendor-neutral instrumentation.
-
-### Ktor service technology now recognized
-
-Sprint 1.337 also added **`KTOR_CLIENT`** and **`KTOR_SERVER`** values to the service technology enum across request attributes and extension host availability endpoints. If you have Ktor (Kotlin async HTTP framework) services in your environment, they now appear with explicit Ktor technology in Smartscape, calculated metrics, and request-naming rules — no more `KOTLIN_GENERIC` fallback.
+> <sub>**Sources:** [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337). **Dictionary:** `dt.service.name` (`stable`; described as equal to the Smartscape service node name), read 10/02/2026.</sub>
 
 ---
 
-### Sprint 1.344 (July 2026): Frontend nodes in the service dependency graph
+### SaaS 1.344: Frontend nodes in the service dependency graph
 
-**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026) — verify it has reached your tenant before relying on either change below.
+**SaaS 1.344+** (staged tenant rollout from 07/29/2026). Per the release notes, *"the Service dependency graph now shows FRONTEND nodes"*, and spans with frontend links can be followed into the related user events and sessions from Distributed Tracing.
 
 Two topology-facing changes:
 
 1. **The Smartscape service dependency graph now displays `FRONTEND` nodes.** The frontend that originates a request appears as a node in its own right rather than as an implicit off-graph caller — the topology view starts where the user does, instead of at the first server span it can see.
 2. **Distributed tracing can explore frontend events and sessions without switching apps.** A slow backend dependency and the user session that hit it can be read on one surface.
 
-**Neither change alters any DQL in this notebook.** The `span.kind == "client"` / `peer.service` / `server.address` techniques in **Section 3** remain how you *derive* dependencies from span data — and on a pre-1.344 tenant they remain the only way to do it. The graph is a reading surface layered over the same relationships; it does not replace the queries, and a dependency you need in a dashboard tile, a report, or an SLO still has to be queried.
+**Neither change alters any DQL in this notebook.** The `span.kind == "client"` / `server.address` techniques in **Section 3** remain how you *derive* dependencies from span data — and on a pre-1.344 tenant they remain the only way to do it. The graph is a reading surface layered over the same relationships; it does not replace the queries, and a dependency you need in a dashboard tile, a report, or an SLO still has to be queried.
 
 ### The frontend-to-backend link in span data
 
@@ -113,7 +108,7 @@ fetch spans, from:-1h
 | summarize {
     span_count = count(),
     operations = countDistinct(span.name)
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | sort span_count desc
 | limit 30
 ```
@@ -127,7 +122,7 @@ fetch spans, from:-1h
     internal_spans = countIf(span.kind == "internal"),
     producer_spans = countIf(span.kind == "producer"),
     consumer_spans = countIf(span.kind == "consumer")
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | sort server_spans desc
 | limit 30
 ```
@@ -139,8 +134,8 @@ fetch spans, from:-1h
 | summarize {
     request_count = count(),
     avg_duration_ms = avg(duration) / 1ms
-  }, by: {service.name, span.name}
-| sort service.name asc, request_count desc
+  }, by: {dt.service.name, span.name}
+| sort dt.service.name asc, request_count desc
 | limit 50
 ```
 
@@ -154,10 +149,12 @@ Use CLIENT spans to understand which services call which other services:
 
 | Attribute | Description |
 |-----------|-------------|
-| `peer.service` | Target service name (if instrumented) |
-| `server.address` | Target host/address |
-| `server.port` | Target port |
-| `http.host` | HTTP host header |
+| `server.address` | Target host/address (`stable`) |
+| `server.port` | Target port (`stable`) |
+
+`peer.service`, which older material uses for the target service, has no row in the semantic dictionary and was set on 0 of 8,286,060 spans over 24 hours on the validation tenant. Map dependencies from `server.address` on client spans, or by joining each client span to the server span it called (same `trace.id`, server `span.parent_id` = client `span.id`). The join below groups by service **name** for readability; service names can repeat across applications (`frontend` was 4 services on the validation tenant), so add `dt.smartscape.service` on both sides when one name covers several services.
+
+> <sub>**Dictionary:** `server.address` (`stable`), `server.port` (`stable`); no row for `peer.service` or `http.host`, read 10/02/2026 (control: `server.address` returned a row).</sub>
 
 ```dql
 // Map service-to-service calls using CLIENT spans
@@ -167,21 +164,25 @@ fetch spans, from:-1h
     call_count = count(),
     avg_latency_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / call_count
 | sort call_count desc
 | limit 50
 ```
 
 ```dql
-// Find services called by other services using peer.service attribute
-// peer.service shows the target service name when available
+// Which service calls which: join each client span to the server span it called.
+// The server span's parent is the client span (same trace.id).
 fetch spans, from:-1h
-| filter span.kind == "client" and isNotNull(peer.service)
-| summarize {
-    call_count = count(),
-    avg_latency_ms = avg(duration) / 1ms
-  }, by: {service.name, peer.service}
+| filter span.kind == "server" and isNotNull(span.parent_id)
+| fields trace.id, callee = dt.service.name, parent = span.parent_id
+| join [
+    fetch spans, from:-1h
+    | filter span.kind == "client"
+    | fields trace.id, caller = dt.service.name, client_span = span.id, call_duration = duration
+  ], on:{trace.id, left[parent] == right[client_span]}, fields:{caller, call_duration}
+| filter caller != callee
+| summarize {call_count = count(), avg_latency_ms = avg(call_duration) / 1ms}, by:{caller, callee}
 | sort call_count desc
 | limit 30
 ```
@@ -194,7 +195,7 @@ fetch spans, from:-1h
     call_count = count(),
     avg_latency_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name, server.address}
+  }, by: {dt.service.name, server.address}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / call_count
 | sort call_count desc
 | limit 30
@@ -215,7 +216,7 @@ fetch spans, from:-1h
     avg_latency_ms = avg(duration) / 1ms,
     p99_latency_ms = percentile(duration, 99) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / outbound_calls
 | sort outbound_calls desc
 | limit 20
@@ -230,7 +231,7 @@ fetch spans, from:-1h
     avg_latency_ms = avg(duration) / 1ms,
     p99_latency_ms = percentile(duration, 99) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / inbound_requests
 | sort inbound_requests desc
 | limit 20
@@ -242,9 +243,9 @@ fetch spans, from:-1h
 | summarize {
     inbound = countIf(span.kind == "server"),
     outbound = countIf(span.kind == "client")
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | filter inbound > 0
-| fieldsAdd outbound_ratio = outbound / inbound
+| fieldsAdd outbound_ratio = toDouble(outbound) / toDouble(inbound)
 | sort outbound_ratio desc
 | limit 20
 ```
@@ -271,7 +272,7 @@ Analyze asynchronous messaging patterns using PRODUCER and CONSUMER spans:
 |-----------|-------------|
 | `messaging.system` | Kafka, RabbitMQ, etc. |
 | `messaging.destination.name` | Topic/queue name |
-| `messaging.operation` | publish, receive, etc. |
+| `messaging.operation.type` | publish, receive, etc. (`messaging.operation` has no dictionary row) |
 
 ### Trace Context Across Message Brokers
 
@@ -299,7 +300,7 @@ fetch spans, from:-1h
     messages_sent = count(),
     avg_duration_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | sort messages_sent desc
 | limit 20
 ```
@@ -312,7 +313,7 @@ fetch spans, from:-1h
     messages_received = count(),
     avg_processing_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | fieldsAdd error_rate_pct = (error_count * 100.0) / messages_received
 | sort messages_received desc
 | limit 20
@@ -339,7 +340,7 @@ fetch spans, from:-1h
 | filter span.kind == "producer" or span.kind == "consumer"
 | summarize {
     span_count = count()
-  }, by: {service.name, span.kind, messaging.destination.name}
+  }, by: {dt.service.name, span.kind, messaging.destination.name}
 | sort messaging.destination.name, span.kind
 | limit 30
 ```
@@ -352,12 +353,16 @@ Analyze parent-child relationships within traces to understand call depth:
 
 ```dql
 // Count spans per trace to understand trace complexity
+// trace_duration_ms is wall-clock (last end minus first start), not a sum of span durations.
 fetch spans, from:-1h
 | summarize {
     span_count = count(),
-    services_involved = countDistinct(service.name),
-    total_duration_ms = sum(duration) / 1ms
+    services_involved = countDistinct(dt.service.name),
+    first_start = min(start_time),
+    last_end = max(end_time)
   }, by: {trace.id}
+| fieldsAdd trace_duration_ms = (last_end - first_start) / 1ms
+| fields trace.id, span_count, services_involved, trace_duration_ms
 | sort span_count desc
 | limit 25
 ```
@@ -366,12 +371,13 @@ fetch spans, from:-1h
 // Examine a complete trace hierarchy
 // Replace YOUR_TRACE_ID with an actual trace ID from above
 fetch spans, from:-1h
-// | filter trace.id == "YOUR_TRACE_ID"
+// trace.id is a uid: keep the toUid() wrapper — a plain string never matches.
+// | filter trace.id == toUid("YOUR_TRACE_ID")
 | fieldsAdd duration_ms = duration / 1ms
 | fields start_time,
          span.id,
          span.parent_id,
-         service.name,
+         dt.service.name,
          span.name,
          span.kind,
          duration_ms
@@ -386,7 +392,7 @@ fetch spans, from:-1h
 | summarize {
     entry_count = count(),
     avg_duration_ms = avg(duration) / 1ms
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | sort entry_count desc
 | limit 20
 ```
@@ -406,7 +412,7 @@ fetch spans, from:-1h
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     p99_ms = percentile(duration, 99) / 1ms
-  }, by: {service.name, server.address}
+  }, by: {dt.service.name, server.address}
 | sort p95_ms desc
 | limit 20
 ```
@@ -418,7 +424,7 @@ fetch spans, from:-1h
     total_time_ms = sum(duration) / 1ms,
     span_count = count(),
     avg_per_span_ms = avg(duration) / 1ms
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | sort total_time_ms desc
 | limit 20
 ```
@@ -432,7 +438,7 @@ fetch spans, from:-1h
     slow_call_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     max_duration_ms = max(duration) / 1ms
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | sort avg_duration_ms desc
 | limit 20
 ```
@@ -455,15 +461,18 @@ Identify the services and operations that contribute most to end-to-end latency:
 -->
 
 ```dql
-// Find services contributing most to total trace time
+// Find services contributing most span time.
+// sum(duration) is INCLUSIVE time: a span's duration includes the child calls it waits on,
+// so a caller is credited with its callees' time as well. Use it to rank where time is
+// spent, not as each service's own (self) time.
 fetch spans, from:-1h
 | summarize {
-    total_self_time_ms = sum(duration) / 1ms,
+    total_span_time_ms = sum(duration) / 1ms,
     span_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     max_duration_ms = max(duration) / 1ms
-  }, by: {service.name}
-| sort total_self_time_ms desc
+  }, by: {dt.service.name}
+| sort total_span_time_ms desc
 | limit 15
 ```
 
@@ -476,7 +485,7 @@ fetch spans, from:-1h
     avg_duration_ms = avg(duration) / 1ms,
     p99_duration_ms = percentile(duration, 99) / 1ms,
     total_time_ms = sum(duration) / 1ms
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | filter call_count > 10
 | sort p99_duration_ms desc
 | limit 20
@@ -491,7 +500,7 @@ fetch spans, from:-1h
     call_count = count(),
     avg_duration_ms = avg(duration) / 1ms,
     total_time_ms = sum(duration) / 1ms
-  }, by: {service.name, span.name}
+  }, by: {dt.service.name, span.name}
 | filter call_count > 50
 | fieldsAdd impact_score = call_count * avg_duration_ms
 | sort impact_score desc
@@ -505,7 +514,7 @@ fetch spans, from:-1h
 In this notebook, you learned:
 
 ✅ **Service discovery** - Find all services and their operations  
-✅ **Dependency mapping** - Use CLIENT spans with `peer.service` and `server.address`  
+✅ **Dependency mapping** - Use CLIENT spans with `server.address`, or join client spans to the server spans they called  
 ✅ **Client-server patterns** - Analyze inbound/outbound call ratios  
 ✅ **Async messaging** - Track PRODUCER/CONSUMER spans through message queues  
 ✅ **Trace hierarchy** - Understand span parent-child relationships  
@@ -521,6 +530,15 @@ Continue to **SPANS-05: Advanced Span Analytics** to learn:
 - Complex aggregations and calculations
 - Building dashboard-ready queries
 - Alerting patterns
+
+---
+
+## References
+
+- [Trace semantic conventions (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace)
+- [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337)
+- [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344)
+- [Span and trace context propagation (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions)
 
 ---
 

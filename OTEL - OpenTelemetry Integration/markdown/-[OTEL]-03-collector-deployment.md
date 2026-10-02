@@ -1,6 +1,6 @@
 # OTEL-03: Collector Deployment Patterns
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 3 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Deploying the OpenTelemetry Collector
 The OTel Collector can be deployed in various patterns depending on your infrastructure. This notebook covers deployment modes, Kubernetes configurations, and best practices for production.
@@ -749,6 +749,8 @@ spec:
 <a id="resource-sizing"></a>
 ## 8. Resource Sizing
 ### Sizing Guidelines
+
+These are community starting points, not published limits — measure your own spans per second and memory headroom, and resize from there:
 
 | Throughput | CPU | Memory | Replicas |
 |------------|-----|--------|----------|

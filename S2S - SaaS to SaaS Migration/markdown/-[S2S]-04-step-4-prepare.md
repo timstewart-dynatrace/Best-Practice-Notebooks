@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -234,7 +234,7 @@ monaco download \
   --force
 ```
 
-`--token` names an environment variable — the Monaco command reference: *"The name of the environment variable that contains the API token (classic Dynatrace only)."* Passing `"$DT_SOURCE_TOKEN"` hands Monaco the secret where it expects a variable name. Platform configurations (documents, automations, buckets, segments, SLOs, OpenPipeline) are downloaded with a platform token (`--platform-token`) or an OAuth client (`--oauth-client-id` and `--oauth-client-secret`), each likewise naming an environment variable. To narrow a download, use `--only-settings`, `--only-apis`, `--only-openpipeline`, `--only-slo-v2` (and the other `--only-*` flags), `--settings-schema <schema>` or `--api <api>`.
+`--token` names an environment variable — the Monaco command reference: *"The name of the environment variable that contains the API token (classic Dynatrace only)."* Passing `"$DT_SOURCE_TOKEN"` hands Monaco the secret where it expects a variable name. Platform configurations (documents, automations, buckets, segments, SLOs, OpenPipeline) are downloaded with a platform token (`--platform-token`) or an OAuth client (`--oauth-client-id` and `--oauth-client-secret`), each likewise naming an environment variable. To narrow a download, use `--only-settings`, `--only-apis`, `--only-slo-v2` (and the other `--only-*` flags), `--settings-schema <schema>` or `--api <api>`. OpenPipeline configuration is Settings 2.0 objects: export it with `--settings-schema` and the `builtin:openpipeline.*` schemas, plus `--admin-access` to include pipelines other users own (S2S-07 §1). The command reference marks `--only-openpipeline` as **Deprecated**.
 
 > <sub>**Sources:** [Monaco CLI commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [monaco download flags, v2.30.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go).</sub>
 

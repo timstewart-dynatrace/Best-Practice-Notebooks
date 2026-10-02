@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -29,25 +29,18 @@ This notebook provides end-to-end configuration for sending OpenTelemetry data t
 | **Permissions** | Token creation access |
 | **Knowledge** | OTEL-01 through OTEL-06 |
 
-### Sprint 1.337 (April 2026): Major OpenTelemetry Updates
+### SaaS 1.337: OpenTelemetry-relevant changes
 
-Sprint 1.337 brought several OpenTelemetry-relevant changes:
-
-1. **OTel `service.name` enrichment** — Dynatrace now uses the OpenTelemetry `service.name` resource attribute to **enrich** the Dynatrace service entity rather than creating a parallel one. Smartscape displays `service.name (detected name)`; spans/metrics gain a `dt.service.name` field, queryable directly:
-
+1. **OTel `service.name` in SDv1 service names.** Per the release notes, *"You can now use the OTel service.name attribute to customize the name of SDv1 services."* Smartscape shows `service.name (detected name)`, and the change *"affects the service name in all Smartscape use cases, and the dt.service.name attribute on spans and metrics."* `dt.service.name` is on every span — OneAgent and OTLP alike — so it is the field to group by:
    ```dql
    fetch spans, from:-1h
    | filter isNotNull(dt.service.name)
    | summarize span_count = count(), by:{dt.service.name, dt.smartscape.service}
    ```
+2. **OneAgent + OpenTelemetry-injector coexistence matrix** — documented in **K8S-11 § 2a**. Covers double-instrumentation symptoms, init-container ordering, `LD_PRELOAD`/`JAVA_TOOL_OPTIONS` clobber, trace-context conflicts, and a per-namespace decision flow. Read it before planning OTel auto-instrumentation where OneAgent is also deployed.
+3. **SDv2 for AWS Lambda (Early Access).** *"It provides a single unified ruleset for both OpenTelemetry and OneAgent instrumentation."* See **CLOUD-04 § Sprint 1.337**.
 
-   This eliminates the historical "two services per process" pattern when OTel SDKs run alongside OneAgent.
-
-2. **Ktor service technology recognized** — `KTOR_CLIENT` and `KTOR_SERVER` enum values added across request attributes, calculated metrics, and extension host availability. Ktor (Kotlin async HTTP framework) services now appear with explicit technology in Smartscape, no more `KOTLIN_GENERIC` fallback.
-
-3. **OneAgent + OpenTelemetry-injector coexistence matrix** — newly documented in **K8S-11 § 2a** (added in Tier 2 Wave 0). Covers double-instrumentation symptoms, init-container ordering, `LD_PRELOAD`/`JAVA_TOOL_OPTIONS` clobber, trace-context conflicts, and a per-namespace decision flow. Reference this when planning OTel auto-instrumentation in environments where OneAgent is also deployed (ToDo #3).
-
-4. **SDv2 unified rules for AWS Lambda** — Service Detection v2 now supports Lambda functions with unified rules for both OTel and OneAgent. New FaaS-specific metrics: invocation/failure counts, duration, trigger type breakdown. See **CLOUD-04 § Sprint 1.337**.
+> <sub>**Sources:** [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337).</sub>
 
 ---
 
@@ -55,7 +48,7 @@ Sprint 1.337 brought several OpenTelemetry-relevant changes:
 ## 1. Dynatrace OTLP Endpoints
 ### SaaS Endpoints
 
-Dynatrace supports **OTLP/HTTP only** for native ingest. gRPC is not supported for direct ingest — use a Collector to convert gRPC to HTTP.
+Dynatrace supports **OTLP/HTTP only** for native ingest, with binary Protocol Buffers — *"gRPC is not supported. API calls need to use HTTP."* and *"JSON is not supported for Protocol Buffers. Binary format must be used."* Use a Collector to convert gRPC to HTTP.
 
 | Signal | HTTP Endpoint |
 |--------|---------------|
@@ -81,7 +74,7 @@ Dynatrace provides its own **Collector distribution** with verified, production-
 | Aspect | Detail |
 |--------|--------|
 | Image | `ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector` |
-| Features | Pre-configured for Dynatrace, upstream-compatible, monthly releases |
+| Features | Pre-configured for Dynatrace, upstream-compatible components |
 | Docs | [Dynatrace Collector](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) |
 
 > **Tip:** The Dynatrace Collector distribution is recommended for production deployments. It includes verified components and stays current with upstream releases.
@@ -107,7 +100,6 @@ Find your environment ID:
 | `openTelemetryTrace.ingest` | Traces | Yes (for traces) |
 | `metrics.ingest` | Metrics | Yes (for metrics) |
 | `logs.ingest` | Logs | Yes (for logs) |
-| `events.ingest` | Events | Optional |
 
 ### Token Format
 
@@ -143,7 +135,9 @@ Authorization: Api-Token dt0c01.XXXXXXXX...
 Authorization: Bearer dt0u01.XXXXXXXX...
 ```
 
-Using the wrong scheme returns **401 Unauthorized** even when the token has the correct scopes — a frequent first-deployment failure mode. Platform Tokens are preferred in Gen3 environments because they support fine-grained scopes via IAM policies. For OTLP ingest both token types work; the scope to grant is `metrics.ingest` (Platform Token) or the equivalent classic-token scope from the table above.
+Using the wrong scheme returns **401 Unauthorized** even when the token has the correct scopes — a frequent first-deployment failure mode. Platform Tokens are preferred in Gen3 environments because they support fine-grained scopes via IAM policies. For OTLP ingest both token types work, with different scopes: a Platform Token needs `openpipeline:traces:ingest`, `openpipeline:metrics:ingest` and `openpipeline:logs:ingest`; a classic token needs the scopes in the table above.
+
+> <sub>**Sources:** [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — *"Platform token: Use Bearer in the Authorization header. The required scopes are openpipeline:logs:ingest, openpipeline:metrics:ingest, and openpipeline:traces:ingest."*</sub>
 
 <a id="collector-configuration"></a>
 ## 3. Collector Configuration
@@ -321,11 +315,13 @@ sdk.start();
 
 | OTel Resource Attribute | Dynatrace Entity | Notes |
 |-------------------------|------------------|-------|
-| `service.name` | Service | Required for service detection |
-| `service.namespace` | Service group | Optional grouping |
+| `service.name` | Service | Names the service; without it OTel SDKs report `unknown_service` |
+| `service.namespace` | — | Scopes `service.name`; two services may share a name in different namespaces |
 | `host.name` | Host | Links to host entity |
 | `k8s.namespace.name` | K8s namespace | Links to K8s entities |
-| `k8s.pod.name` | Process group | Links to pod |
+| `k8s.pod.name` | K8s pod | Links to the pod |
+
+For the exact attributes Dynatrace uses to map OTLP data to entities, see the enrichment and resource-attribute guidance on the [OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) page — *"make sure your traces have the correct mapping resource attributes set."*
 
 ### Essential Resource Attributes
 
@@ -350,13 +346,11 @@ resource = Resource.create({
 
 <a id="span-attributes-for-dynatrace"></a>
 ## 6. Span Attributes for Dynatrace
-### Dynatrace-Specific Attributes
+### Dynatrace fields you should not set yourself
 
-| Attribute | Purpose | Example |
-|-----------|---------|----------|
-| `dt.entity.process_group_instance` | Link to PGI | `PROCESS_GROUP_INSTANCE-XXX` |
-| `dt.span.type` | Override span type | `DATABASE`, `MESSAGING` |
-| `dt.source` | Data source | `opentelemetry` |
+Fields in the `dt.*` namespace are populated by Dynatrace. `dt.span.type` and `dt.source`, which older material lists as attributes to set, have no row in the semantic dictionary, and `dt.entity.*` fields are `deprecated`. Send standard semantic-convention attributes and let Dynatrace derive its own fields.
+
+> <sub>**Dictionary:** no row for `dt.span.type` or `dt.source`, read 10/02/2026 (control: `dt.openpipeline.source` returned a row).</sub>
 
 ### Semantic Conventions Dynatrace Uses
 
@@ -372,9 +366,9 @@ resource = Resource.create({
 ```python
 with tracer.start_as_current_span("checkout") as span:
     # Standard semantic conventions
-    span.set_attribute("http.method", "POST")
-    span.set_attribute("http.url", "https://api.example.com/checkout")
-    span.set_attribute("http.status_code", 200)
+    span.set_attribute("http.request.method", "POST")
+    span.set_attribute("url.full", "https://api.example.com/checkout")
+    span.set_attribute("http.response.status_code", 200)
     span.set_attribute("http.route", "/checkout")
     
     # Business context
@@ -384,7 +378,7 @@ with tracer.start_as_current_span("checkout") as span:
 
 ### Complex attribute types (SaaS 1.344)
 
-**Forthcoming / rolling out (SaaS 1.344).** SaaS 1.344 released 07/27/2026 with a **staged tenant rollout** (from 07/29/2026): OTLP span attributes accept **complex data types** — nested arrays and maps — instead of scalars only.
+**SaaS 1.344+** (staged tenant rollout from 07/29/2026). Per the release notes, *"Dynatrace now preserves complex attribute values on ingested OTLP spans. Nested key-value list attributes (maps) are now supported, keeping their structure intact."* ([SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344))
 
 **Verify the release has reached your tenant before you start exporting nested attributes.** How a pre-1.344 tenant treats a nested attribute is not something to discover from production trace data; send one span from a test service and confirm the structure arrives intact.
 
@@ -400,26 +394,19 @@ Reach for nesting only in the second case. If you find yourself planning to aggr
 <a id="otlp-metric-dimensions"></a>
 ## 7. OTLP Metric Dimensions
 
-### Advanced OTLP Metric Dimensions (January 2026)
+### Advanced OTLP Metric Dimensions
 
-Dynatrace introduced an opt-in setting for **advanced OTLP metric dimensions**:
+An opt-in setting changes which attributes become metric dimensions. With **Advanced OTLP metric dimensions** on, *"Dynatrace ingests all resource, scope, and data-point attributes as metric dimensions by default, except for attributes on the Deny list: all attributes."* The same page notes that *"dimension keys that were previously normalized are now ingested as-is"*, and that *"Relaxed ingestion limits apply when this feature is enabled."*
 
-| Feature | Details |
-|---------|---------|
-| **Primary Grail Fields** | Metrics can carry Primary Grail Fields as dimensions |
-| **Higher Cardinality** | Increased cardinality limits for metric dimensions |
-| **Faster Queries** | Performance improvements for high-cardinality metrics |
-| **Special Characters** | Dimension names can include slashes and other special characters |
+It also changes how explicit-bucket histograms are stored: with the setting on they map to a Dynatrace **Histogram**; with it off, to a **Counter**.
 
-> **Warning:** After enabling advanced OTLP metric dimensions, OTLP metrics will **no longer** be automatically enriched with the `dt.entity.service` dimension. If you use `dt.entity.service` in SLOs, alerts, or dashboards, update your queries to filter using the underlying attributes (e.g., `service.name`) instead.
+Before enabling it, list the dimensions your SLOs, alerts and dashboards filter on (including any `dt.entity.service` filters on OTLP metrics). Afterwards, check that each still exists with the same key and case.
 
 ### Scope Attributes as Dimensions
 
-When **Add Meter name and version as metric dimensions** is enabled:
-- `otel.scope.name` (instrumentation library/scope name)
-- `otel.scope.version` (instrumentation library/scope version)
+With Advanced OTLP metric dimensions on, *"Meter name and version are always added as dimensions (otel.scope.name and otel.scope.version) for Grail-ingested metrics, regardless of the Add Meter name and version as metric dimensions setting."* With it off, the **Add Meter name and version as metric dimensions** setting controls them.
 
-These are automatically added as dimensions to ingested OTLP metrics.
+> <sub>**Sources:** [Configure OTLP metrics ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics), [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — instrument mapping table.</sub>
 
 ### OTLP Auto-Configuration for Kubernetes
 
@@ -435,27 +422,28 @@ Dynatrace Operator (v1.8+) supports **automatic OTLP exporter configuration** fo
 For more details, see [Configure OTLP Metrics Ingestion](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics).
 
 ```dql
-// Verify OTel traces are arriving
+// Verify OTel traces are arriving over OTLP
+// dt.openpipeline.source identifies the ingest path; otel.scope.name also appears on OneAgent spans.
 fetch spans, from:-1h
-| filter isNotNull(otel.scope.name)
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
 | summarize count = count(), by:{service.name, otel.scope.name}
 | sort count desc
 | limit 20
 ```
 
 ```dql
-// Check recent OTel spans
-fetch spans, from: now() - 1h
-| filter isNotNull(otel.scope.name)
+// Check recent OTel spans (OTLP-ingested)
+fetch spans, from:-1h
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
 | fields start_time, service.name, span.name, duration
 | sort start_time desc
 | limit 30
 ```
 
 ```dql
-// View OTel data by instrumentation scope
+// View OTel data by instrumentation scope (OTLP-ingested spans)
 fetch spans, from:-1h
-| filter isNotNull(otel.scope.name)
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"
 | summarize count = count(), by:{otel.scope.name}
 | sort count desc
 | limit 10
@@ -485,7 +473,8 @@ fetch spans, from:-1h
 |-------|-------|-----|
 | 401 Unauthorized | Invalid token | Check token, regenerate |
 | 403 Forbidden | Missing scope | Add required scopes |
-| No data | service.name missing | Add resource attribute |
+| Service shows as `unknown_service` | service.name missing | Add the resource attribute |
+| Request rejected over payload format | JSON payload — *"Binary format must be used"* | Send binary protobuf (`OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`) |
 | Partial data | Network timeout | Check batch size, retry config |
 
 <a id="hybrid-with-oneagent"></a>

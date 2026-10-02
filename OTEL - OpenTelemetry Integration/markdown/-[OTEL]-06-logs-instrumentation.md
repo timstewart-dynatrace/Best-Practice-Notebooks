@@ -1,6 +1,6 @@
 # OTEL-06: Logs and Events
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 6 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Integrating Logs with OpenTelemetry
 OpenTelemetry logs bridge traditional logging with distributed tracing, enabling correlation between log events and traces. This notebook covers log instrumentation, correlation, and best practices.
@@ -94,7 +94,7 @@ logger.error("Connection failed", extra={"host": "db.example.com"})
 <dependency>
     <groupId>io.opentelemetry.instrumentation</groupId>
     <artifactId>opentelemetry-log4j-appender-2.17</artifactId>
-    <version>1.26.0-alpha</version>
+    <version><!-- current release from Maven Central --></version>
 </dependency>
 ```
 
@@ -157,8 +157,9 @@ When logs include trace_id:
 
 ```dql
 // Find logs with trace correlation
+// Some sources write the placeholder "unknown"; exclude it.
 fetch logs, from:-1h
-| filter isNotNull(trace_id)
+| filter isNotNull(trace_id) and trace_id != "unknown"
 | fields timestamp, trace_id, span_id, content, loglevel
 | sort timestamp desc
 | limit 20
@@ -166,6 +167,8 @@ fetch logs, from:-1h
 
 ```dql
 // Find logs for a specific trace
+// On logs, trace_id is a STRING (on spans, trace.id is a uid). Compare it to a string here;
+// to join logs to spans, compare against toString(trace.id).
 fetch logs, from:-1h
 | filter trace_id == "REPLACE_WITH_TRACE_ID"
 | fields timestamp, span_id, content, loglevel
@@ -220,7 +223,7 @@ service:
 
 <a id="file-based-log-collection"></a>
 ## 5. File-Based Log Collection
-### File Log Receiver (`file_log`, formerly `filelog` — old name kept as a deprecated alias)
+### File Log Receiver (`file_log`; `filelog` before collector-contrib v0.149.0 — see OTEL-02 §3)
 
 ```yaml
 receivers:

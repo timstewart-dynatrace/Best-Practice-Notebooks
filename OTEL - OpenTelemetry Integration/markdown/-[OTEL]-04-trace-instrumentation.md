@@ -1,6 +1,6 @@
 # OTEL-04: Trace Instrumentation
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 4 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Instrumenting Applications for Distributed Tracing
 Traces provide visibility into request flows across services. This notebook covers automatic and manual instrumentation techniques for popular languages with OpenTelemetry.
@@ -84,9 +84,13 @@ curl -L -o opentelemetry-javaagent.jar \
 # Run with agent
 java -javaagent:opentelemetry-javaagent.jar \
   -Dotel.service.name=my-java-app \
-  -Dotel.exporter.otlp.endpoint=http://collector:4317 \
+  -Dotel.exporter.otlp.endpoint=http://collector:4318 \
   -jar app.jar
 ```
+
+> **Port 4318, not 4317.** *"versions 2.0+ of the Java agent and OpenTelemetry Spring Boot starter use http/protobuf as the default protocol, not grpc"*, and OTLP/HTTP listens on 4318. Pointing a 2.x agent at the gRPC port 4317 fails to export. To use gRPC, also set `-Dotel.exporter.otlp.protocol=grpc`.
+>
+> <sub>**Sources:** [Java agent configuration (opentelemetry.io)](https://opentelemetry.io/docs/zero-code/java/agent/configuration/).</sub>
 
 ### Node.js Auto-Instrumentation
 
@@ -380,7 +384,7 @@ def checkout():
 ```
 
 ```dql
-// View spans with custom attributes
+// View spans with custom attributes — order.id is an example; use an attribute your code sets
 fetch spans, from:-1h
 | filter isNotNull(order.id)
 | fields start_time, trace.id, span.name, order.id, duration
@@ -394,6 +398,7 @@ fetch spans, from:-1h
 // (no row in dt.semantic_dictionary.fields). Likewise span.status_message, not
 // otel.status_message. Values are LOWERCASE in Grail: "error", never "ERROR".
 fetch spans, from:-1h
+| filter dt.openpipeline.source == "/api/v2/otlp/v1/traces"   // OTLP-ingested spans only
 | filter span.status_code == "error"
 | fields start_time, trace.id, span.id, span.name, span.kind, span.status_message
 | sort start_time desc

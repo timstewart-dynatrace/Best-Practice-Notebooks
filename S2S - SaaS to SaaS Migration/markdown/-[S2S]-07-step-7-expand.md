@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -33,10 +33,14 @@ With agents reporting to the target tenant (Step 5) and cloud integrations recon
 |-------------|----------|
 | **Step 5 Complete** | OneAgents and DynaKube operators redirected to target tenant and reporting data |
 | **Step 6 Complete** | Cloud integrations (AWS, Azure, GCP) reconnected in target tenant |
-| **Source Tenant Access** | Admin access with `settings.read`, `openpipeline.read` scopes |
-| **Target Tenant Access** | Admin access with `settings.write` and `openpipeline.write`; for SLOs, an OAuth client with `slo:slos:read` / `slo:slos:write` (modern SLO app) — classic `slo.write` only if the target still runs classic SLOs |
+| **Source Tenant Access** | `settings.read` (API token) or `settings:objects:read` (platform token, OAuth) — OpenPipeline pipelines, ingest sources and routing are Settings 2.0 objects. To export pipelines and ingest sources owned by other users, `settings:objects:admin` (see §1) |
+| **Target Tenant Access** | `settings.write` (API token) or `settings:objects:write` (platform token, OAuth); routing writes also need `settings:objects:admin`, or a policy granting `settings:objects:write` on `builtin:openpipeline.<scope>.routing`; for SLOs, an OAuth client with `slo:slos:read` / `slo:slos:write` (modern SLO app) — classic `slo.write` only if the target still runs classic SLOs |
 | **Monaco CLI** | v2.x installed for bulk export/import of OpenPipeline and SLO configuration |
 | **Terraform** | v1.5+ with Dynatrace provider (for IAM-gated SLO policies only) |
+
+> Older guides list `openpipeline.read` / `openpipeline.write` or `openpipeline:configurations:read` / `:write`. The first pair does not exist. The second belonged to the OpenPipeline Configurations API, which reached end of life on June 29, 2026; the Settings permissions above replace it.
+
+> <sub>**Sources:** [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."*, [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*</sub>
 
 <a id="openpipeline-rule-migration"></a>
 
@@ -89,15 +93,26 @@ For consolidation scenarios where multiple source tenants have different OpenPip
 
 ### Export and Import with Monaco
 
+OpenPipeline configuration is Settings 2.0 objects, so export it by schema with `--settings-schema`. The Monaco command reference marks `--only-openpipeline` as **Deprecated**.
+
 ```bash
-# Export OpenPipeline rules from source tenant
-monaco download --manifest manifest.yaml --environment source-tenant --only-openpipeline
+# Export OpenPipeline configuration from the source tenant (logs shown).
+# Add every builtin:openpipeline.* schema the tenant uses (for example .pipeline-groups,
+# or the spans / bizevents equivalents). The audit query below lists those changed in the last 30 days.
+# --admin-access includes pipelines and ingest sources owned by other users.
+monaco download --manifest manifest.yaml --environment source-tenant \
+  --settings-schema builtin:openpipeline.logs.pipelines,builtin:openpipeline.logs.ingest-sources,builtin:openpipeline.logs.routing \
+  --admin-access
 
 # Review and update bucket references in the exported YAML
 # Then deploy to target tenant
 monaco deploy manifest.yaml --environment target-tenant --dry-run
 monaco deploy manifest.yaml --environment target-tenant
 ```
+
+> **Ownership matters on export.** Pipelines and ingest sources have owners. `--admin-access` downloads *"openpipeline configurations of all owners, not just those owned by the current user"*, so an export without it can miss pipelines other users own. It *"Requires the settings:objects:admin permission"*. Routing is a single object per configuration scope, and deploying it overwrites the target's routing for that scope. In a consolidation, merge the source tenants' routes into one routing table and deploy it once.
+>
+> <sub>**Sources:** [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"a single object for the configuration scope routing"*, [`openpipeline_v2_logs_routing` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md) — *"Deploying an OpenPipeline routing configuration will overwrite the existing one of the same kind"*.</sub>
 
 > **Warning:** If routing rules reference buckets that do not exist in the target tenant, the deploy will succeed but data will be routed to the `default_logs` bucket instead. Always verify bucket existence first.
 

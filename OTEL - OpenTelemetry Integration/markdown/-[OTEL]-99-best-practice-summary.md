@@ -1,6 +1,6 @@
 # OTEL-99: Best Practice Summary
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 07/01/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Introduction
 
@@ -47,14 +47,14 @@ This notebook consolidates every actionable best practice from the OTEL series (
 |---|---|---|---|---|
 | 11 | Use DaemonSet (agent mode) for per-node collection | `kind: DaemonSet` in K8s manifest | Recommended | OTEL-03 |
 | 12 | Use Deployment (gateway mode) for centralized processing | `kind: Deployment` with `replicas: 2+` | Recommended | OTEL-03 |
-| 13 | Size gateway resources by throughput | <1k spans/s: 100m/256Mi; <10k: 500m/1Gi; <100k: 2/4Gi; >100k: 4+/8Gi+ | Critical | OTEL-03 |
+| 13 | Size gateway resources by measured throughput | Community starting points — <1k spans/s: 100m/256Mi; <10k: 500m/1Gi; <100k: 2/4Gi; >100k: 4+/8Gi+ — then resize from your own memory headroom | Critical | OTEL-03 |
 | 14 | Set `memory_limiter.limit_mib` to 80% of container memory limit | Container limit 1Gi -> `limit_mib: 800` | Critical | OTEL-03 |
 | 15 | Deploy gateway with minimum 2 replicas for HA | `spec.replicas: 2` | Recommended | OTEL-03 |
 | 16 | Add PodDisruptionBudget for gateway | `minAvailable: 1` | Recommended | OTEL-03 |
 | 17 | Use HorizontalPodAutoscaler at 70% CPU target | `averageUtilization: 70`, `minReplicas: 2`, `maxReplicas: 10` | Recommended | OTEL-03 |
 | 18 | Enable persistent queue for gateway exporters | `sending_queue.enabled: true`, `queue_size: 1000`, `storage: file_storage` | Recommended | OTEL-03 |
 | 19 | Install via Helm for K8s deployments | `helm install otel-collector open-telemetry/opentelemetry-collector --set mode=deployment` | Recommended | OTEL-03 |
-| 20 | Set `TZ=UTC` on Collector containers | `env: [{name: TZ, value: UTC}]` | Recommended | OTEL-08 |
+| 20 | Fix time zones where text timestamps are parsed | OTLP timestamps are epoch nanoseconds with no zone; set the location on the `file_log` time parser, not the container `TZ` | Recommended | OTEL-08 |
 
 <a id="security"></a>
 ## 3. Security
@@ -74,14 +74,14 @@ This notebook consolidates every actionable best practice from the OTEL series (
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 28 | Use OTLP/HTTP for direct Dynatrace ingest | `exporters.otlphttp.endpoint: https://{env-id}.live.dynatrace.com/api/v2/otlp` | Critical | OTEL-01, OTEL-07 |
+| 28 | Use OTLP/HTTP with binary protobuf for direct Dynatrace ingest | `exporters.otlphttp.endpoint: https://{env-id}.live.dynatrace.com/api/v2/otlp` — JSON payloads are not supported | Critical | OTEL-01, OTEL-07 |
 | 29 | Route gRPC through a Collector (gRPC is not supported for direct DT ingest) | Collector with `otlp` gRPC receiver + `otlphttp` exporter to Dynatrace | Critical | OTEL-01, OTEL-07 |
-| 30 | Use `Api-Token` prefix in Authorization header | `headers: {Authorization: "Api-Token <token>"}` | Critical | OTEL-07 |
-| 31 | Create a dedicated token with minimum required scopes | `openTelemetryTrace.ingest` + `metrics.ingest` + `logs.ingest` | Critical | OTEL-01, OTEL-07 |
+| 30 | Match the auth scheme to the token | Classic token: `Authorization: Api-Token <token>`. Platform token: `Authorization: Bearer <token>` | Critical | OTEL-07 |
+| 31 | Create a dedicated token with minimum required scopes | Platform: `openpipeline:traces:ingest` + `openpipeline:metrics:ingest` + `openpipeline:logs:ingest`. Classic: `openTelemetryTrace.ingest` + `metrics.ingest` + `logs.ingest` | Critical | OTEL-01, OTEL-07 |
 | 32 | Use Dynatrace Collector distribution for production | `ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector` | Recommended | OTEL-07 |
 | 33 | Use ActiveGate endpoint for on-prem or network-restricted envs | `https://{activegate-host}:9999/e/{env-id}/api/v2/otlp` | Recommended | OTEL-07 |
 | 34 | Use Dynatrace Operator OTLP auto-config for K8s (v1.8+) | Annotation `otlp-exporter-configuration.dynatrace.com/inject` for per-pod control | Recommended | OTEL-07 |
-| 35 | After enabling advanced OTLP metric dimensions, stop relying on auto-enriched `dt.entity.service` | Filter using `service.name` instead of `dt.entity.service` in SLOs, alerts, dashboards | Critical | OTEL-07 |
+| 35 | Inventory OTLP metric dimensions before enabling Advanced OTLP metric dimensions | All attributes become dimensions, keys keep their case, and histograms change type (Counter → Histogram) — re-check SLOs, alerts and dashboards afterwards | Critical | OTEL-05, OTEL-07 |
 
 <a id="resource-attributes-and-entity-mapping"></a>
 ## 5. Resource Attributes and Entity Mapping
@@ -119,9 +119,9 @@ This notebook consolidates every actionable best practice from the OTEL series (
 |---|---|---|---|---|
 | 53 | Choose the correct instrument type | Counter for monotonic; Histogram for durations/sizes; UpDownCounter for gauges; ObservableGauge for current state | Critical | OTEL-05 |
 | 54 | Use hierarchical metric naming | `<domain>.<component>.<metric>` e.g. `http.server.request.duration` | Recommended | OTEL-05 |
-| 55 | Include units in metric names or unit field | `unit="ms"` for duration, `unit="By"` for bytes | Recommended | OTEL-05 |
+| 55 | Use the semantic-convention unit | `http.server.request.duration` is a Histogram in `s` (seconds); `unit="By"` for bytes. Never reuse a convention name with a different unit | Recommended | OTEL-05 |
 | 56 | Keep attribute cardinality low | Use route templates (`/users/{id}`), status classes (`2xx`), never user IDs or timestamps | Critical | OTEL-05 |
-| 57 | Configure explicit histogram bucket boundaries | `boundaries: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]` for response times | Recommended | OTEL-05 |
+| 57 | Configure explicit histogram bucket boundaries | `boundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]` (seconds) for response times | Recommended | OTEL-05 |
 | 58 | Use Views to drop noisy internal metrics | `View(instrument_name="internal.debug.*", aggregation=DropAggregation())` | Optional | OTEL-05 |
 | 59 | Use `ObservableGauge` / `ObservableCounter` for system stats | Avoid polling in the request hot path | Recommended | OTEL-05 |
 | 60 | Set appropriate export interval | `PeriodicExportingMetricReader(exporter, export_interval_millis=60000)` (60s default) | Recommended | OTEL-05 |
@@ -138,7 +138,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 65 | Use structured JSON logging | Output logs as JSON objects with `timestamp`, `level`, `message`, and structured fields | Recommended | OTEL-06 |
 | 66 | Filter DEBUG/TRACE logs at the Collector, not in the app | `processors.filter.logs.log_record: ['severity_number < 9']` | Recommended | OTEL-06 |
 | 67 | Use `BatchLogRecordProcessor` for log export | Never use synchronous log export in production | Critical | OTEL-06 |
-| 68 | Use file_log receiver for container/file-based log collection (formerly `filelog` — old name kept as a deprecated alias) | `receivers.file_log.include: ["/var/log/containers/*.log"]` with JSON and severity parsers | Recommended | OTEL-06 |
+| 68 | Use the file log receiver for container/file-based log collection | `receivers.file_log.include: ["/var/log/containers/*.log"]` — `file_log` from collector-contrib v0.149.0; older Collectors only know `filelog` | Recommended | OTEL-02, OTEL-06 |
 | 69 | Set log severity appropriately | ERROR: unexpected failures; WARN: recoverable issues; INFO: business events; DEBUG: dev only | Recommended | OTEL-06 |
 | 70 | Never log PII or secrets | Exclude passwords, tokens, personal data from log bodies and attributes | Critical | OTEL-06 |
 
@@ -158,8 +158,8 @@ This notebook consolidates every actionable best practice from the OTEL series (
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 76 | Use `span_metrics` connector to derive metrics from traces (formerly `spanmetrics` — old name kept as a deprecated alias) | `connectors.span_metrics` with histogram buckets `[100ms, 500ms, 1s, 5s]` | Optional | OTEL-02 |
-| 77 | Filter health-check spans at the Collector | `processors.filter.traces.span: ['attributes["http.url"] == "/health"']` | Recommended | OTEL-02 |
+| 76 | Derive RED metrics from traces before sampling | `span_metrics` connector (`spanmetrics` before contrib v0.151.0) with histogram buckets `[100ms, 500ms, 1s, 5s]` | Optional | OTEL-02, OTEL-04 |
+| 77 | Filter health-check spans at the Collector | `processors.filter.traces.span: ['attributes["url.path"] == "/health"']` | Recommended | OTEL-02 |
 | 78 | Use fan-out to send data to multiple backends | Define multiple named exporters under `exporters` and list all in pipeline | Optional | OTEL-02 |
 | 79 | Increase `sending_queue.num_consumers` for high throughput | `num_consumers: 10` | Recommended | OTEL-08 |
 | 80 | Do not over-instrument | Only create spans for meaningful operations; avoid spans on every function call | Recommended | OTEL-04 |
@@ -176,7 +176,7 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 85 | Use `debug` exporter during development | `exporters.debug.verbosity: detailed` alongside production exporter | Recommended | OTEL-02, OTEL-08 |
 | 86 | Set Collector log level to `info` in production, `debug` for troubleshooting | `service.telemetry.logs.level: info` (default), switch to `debug` when investigating | Recommended | OTEL-08 |
 | 87 | Verify tracer provider is not NoOp | In Python: `print(trace.get_tracer_provider())` must not show `NoOpTracerProvider` | Critical | OTEL-08 |
-| 88 | Test connectivity with curl before deploying | `curl -v https://{env}.live.dynatrace.com/api/v2/otlp/v1/traces -X POST -H "Authorization: Api-Token <token>"` | Recommended | OTEL-08 |
+| 88 | Test connectivity with curl before deploying | `curl -v https://{env}.live.dynatrace.com/api/v2/otlp/v1/traces -X POST -H "Authorization: Api-Token <token>" -H "Content-Type: application/x-protobuf" --data-binary ''` | Recommended | OTEL-08 |
 | 89 | Troubleshoot systematically: SDK -> Collector -> Backend | Follow the data path; isolate which component is failing | Recommended | OTEL-08 |
 | 90 | Enable `pprof` extension for Go heap profiling | `extensions.pprof.endpoint: 0.0.0.0:1777` | Optional | OTEL-08 |
 
