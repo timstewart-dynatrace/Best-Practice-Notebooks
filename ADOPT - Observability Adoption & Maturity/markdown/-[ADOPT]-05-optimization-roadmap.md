@@ -1,13 +1,13 @@
 # ADOPT-05: Optimization Roadmap
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
 An optimization roadmap translates maturity assessment results and success metrics into a prioritized plan of action. This notebook covers monthly milestone planning, the distinction between quick wins and strategic investments, cost optimization opportunities (bucket management, sampling, retention tuning), automation candidates, and methods for measuring the return on observability investment. The roadmap framework is designed to be adapted to any organization's size and pace.
 
 
-> **OneAgent Attribute Enrichment (1.331+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via `oneagentctl --set-host-tag` or `--set-host-tag` at install time. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+> **OneAgent primary-field enrichment (OneAgent 1.333+):** OneAgent can enrich telemetry at the source — metrics, spans, logs, events and entities — with the primary Grail fields `dt.security_context`, `dt.cost.costcenter` and `dt.cost.product`, and with primary tags such as `primary_tags.environment`. The values travel with the data into OpenPipeline routing, bucket assignment and record-level permissions, with no processing rule needed. Set them at install time or on an existing host with `--set-host-tag` (for example `oneagentctl --set-host-tag="dt.cost.costcenter=12345"`), or per process with `DT_TAGS`. See [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
 ### Dynatrace Version Support Policy
 
@@ -17,19 +17,26 @@ An optimization roadmap translates maturity assessment results and success metri
 | **ActiveGate** | 9 months | 12 months |
 | **Dynatrace Operator** | Independent release cycle — check [release notes](https://docs.dynatrace.com/docs/whats-new) |
 
-### Technology Support Tiers
+Support periods start on each version's release date, so an agent fleet ages out of support even if nothing changes.
 
-| Tier | Meaning |
+### Capability Support Statuses
+
+The OneAgent platform and capability support matrix labels each capability with one of these statuses (quoted from the matrix legend):
+
+| Status | Meaning |
 |------|---------|
-| **Full Support** | All monitoring features maintained, bugs fixed, enhancements delivered |
-| **Early Adopter** | Newly introduced — functional but may lack full feature parity; feedback welcome |
-| **End of Life (EOL)** | No updates, fixes, or enhancements; monitoring may still work but issues won't be addressed |
+| **GA** | "Generally available and fully supported." |
+| **Preview** | "Preview features aren't production-ready and they aren't officially supported." |
+| **Future** | "A feature or technology support that is either on the roadmap or may be considered on-demand." |
+| **Not planned** | "A feature or technology support that Dynatrace does not currently plan to pursue." |
+
+Do not build a production roadmap item on a Preview capability.
 
 ### Third-Party Technology EOL Policy
 
-Dynatrace continues to support monitoring a third-party technology for **6 months beyond the vendor's end-of-life date**. End-of-support announcements are published 6 months in advance.
+"Dynatrace typically supports technologies and their versions six months longer than the vendor to give you enough time to upgrade your environment." "End of support announcements are provided six months in advance."
 
-> **Reference:** [Technology Support Model](https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues) | [End-of-Support Announcements](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) | [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/)
+> **Reference:** [OneAgent platform and capability support matrix](https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix) | [End-of-Support Announcements](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) | [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/)
 
 ---
 
@@ -50,8 +57,8 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read`, `storage:buckets:read` |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail) on DPS for § 5.3. The DQL does not apply to Dynatrace Managed, which has no Grail. |
+| **Permissions** | `storage:logs:read`, `storage:spans:read`, `storage:events:read`, `storage:entities:read`, `storage:system:read`, `storage:buckets:read` |
 | **Context** | Completed ADOPT-01 through ADOPT-04 |
 | **Audience** | Platform team leads, engineering directors, VP of Engineering, CTO |
 
@@ -93,51 +100,48 @@ Quick wins require minimal effort but deliver visible results. They establish cr
 
 ### 2.1 Alert Noise Cleanup
 
-**Goal:** Reduce alert noise ratio by 50%.
+**Goal:** Halve the share of problems that close within five minutes, and remove the top recurring problems from the notification path.
 
 **Actions:**
-- Identify the top 5 noisiest alert sources
-- Configure maintenance windows for known noisy periods
-- Adjust Dynatrace Intelligence sensitivity for over-alerting entity types
+- Identify the problem types that most often close within five minutes (query below)
+- Set a **Minimum duration** on the problem-triggered workflows that notify people, so transient problems never page anyone (FAQ-21)
+- Tune the detector behind each short-lived type (ALERT-02)
+- Configure maintenance windows for planned work
 - Document alerting ownership per service
 
-Use this query to identify the noisiest problem sources:
+Use this query to find the problem types worth tuning first:
 
 ```dql
-// Top 10 most frequent problem types in the last 30 days
+// Top 10 problem types by volume, with the share that closed within 5 minutes, 30 days
 fetch dt.davis.problems, from:-30d
-| summarize
+| filter dt.davis.is_duplicate == false
+| summarize {
     total = count(),
-    frequent = countIf(dt.davis.is_frequent_event == true),
-    by:{event.name}
-| fieldsAdd noise_pct = round(toDouble(frequent) / toDouble(total) * 100, decimals: 1)
+    closed_within_5min = countIf(resolved_problem_duration < 5m)
+  }, by:{event.name}
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(total) * 100, decimals: 1)
 | sort total desc
 | limit 10
 ```
 
 ### 2.2 Agent Version Standardization
 
-**Goal:** Reduce OneAgent version sprawl to 2 or fewer major versions.
+**Goal:** Every host on a OneAgent release that is still inside its support window, with as few distinct releases as practical.
 
 **Actions:**
-- Identify outdated agent versions
+- Identify hosts on releases older than the support window (see the version policy above)
 - Enable auto-update for non-production hosts
-- Schedule coordinated updates for production
+- Schedule coordinated updates for production (FAQ-04)
 
 ```dql
-// Agent version distribution — identify outdated versions
-//
-// Corrected 08/12/2026: `agentVersion` is NOT a field on dt.entity.host — the cell failed outright
-// with FIELD_DOES_NOT_EXIST. The host model carries `installerVersion` (the OneAgent installer build,
-// e.g. 1.343.90.20260806-093919); `agentVersion` exists only on dt.entity.process_group_instance.
-// Time range added because dt.entity.* returns only entities seen in the query window.
-fetch dt.entity.host, from:-7d
-| summarize host_count = count(), by:{installerVersion}
+// Agent version distribution — identify outdated releases on hosts seen in the last 24 hours.
+// The host property is installerVersion; agentVersion exists only on process group instances.
+fetch dt.entity.host, from:-24h
+| summarize {host_count = count()}, by:{installerVersion}
 | sort host_count desc
 | limit 20
 
-// No Smartscape equivalent: OneAgent version is not a Smartscape node field. Keep the classic
-// query above for agent-version distribution.
+// No Smartscape equivalent: the OneAgent version is not a Smartscape HOST node field.
 ```
 
 ### 2.3 Dashboard Consolidation
@@ -177,7 +181,7 @@ Foundation work addresses platform hygiene and establishes the infrastructure fo
 ```dql
 // Analyze log volume by source to inform bucket strategy
 fetch logs, from:-24h
-| summarize record_count = count(), by:{log.source}
+| summarize {record_count = count()}, by:{log.source}
 | sort record_count desc
 | limit 20
 ```
@@ -189,7 +193,7 @@ fetch logs, from:-24h
 **Actions:**
 - Identify the 10 services with the highest business impact
 - Define availability and latency SLOs for each
-- Configure burn-rate alerting
+- Build burn-rate alerting for each SLO as described in SLO-04 — a native burn-rate alert announced for SaaS 1.347 was withdrawn from the release notes, so plan to build it
 - Create an SLO dashboard for leadership visibility
 
 ### 3.4 IAM Policy Implementation
@@ -199,7 +203,7 @@ fetch logs, from:-24h
 **Actions:**
 - Define IAM groups per team (see IAM series for detailed guidance)
 - Implement least-privilege policies
-- Configure data-scoped access (segments, management zones)
+- Scope data access with security context and policy boundaries (ORGNZ, IAM) — segments filter what a user sees on screen but do not restrict access to data (FAQ-24)
 
 <a id="strategic-investments"></a>
 
@@ -217,15 +221,15 @@ Strategic investments are higher-effort initiatives that deliver transformative 
 - Progress to automated remediation for problems with known runbooks
 - Measure MTTR improvement for automated vs manual resolution
 
-### 4.2 Configuration-as-Code (Monaco)
+### 4.2 Configuration as Code (Monaco or Terraform)
 
 **Goal:** Manage Dynatrace configuration through version-controlled code.
 
 **Actions:**
-- Export current configuration to Monaco format
+- Export current configuration with Monaco or the Terraform provider (AUTOM)
 - Establish a Git repository for Dynatrace configuration
 - Implement CI/CD pipeline for configuration deployment
-- Enable drift detection to catch manual changes
+- Check for drift on a schedule — Terraform's `plan` reports it natively; with Monaco it is a scheduled download compared against the repository
 
 ### 4.3 OpenTelemetry Integration
 
@@ -258,9 +262,9 @@ Cost optimization is not about reducing observability — it is about ensuring e
 Identify the sources generating the most log data. High-volume sources are candidates for filtering, sampling, or reduced retention.
 
 ```dql
-// Top 15 log sources by volume in the last 7 days
+// Top 15 log sources by record count in the last 7 days
 fetch logs, from:-7d
-| summarize record_count = count(), by:{log.source}
+| summarize {record_count = count()}, by:{log.source}
 | sort record_count desc
 | limit 15
 ```
@@ -270,30 +274,28 @@ fetch logs, from:-7d
 Debug-level logs are often the largest contributor to ingestion volume but rarely needed in production. This query quantifies the opportunity.
 
 ```dql
-// Log volume breakdown by severity level over the last 24 hours
+// Log record count by severity level over the last 24 hours
 fetch logs, from:-24h
-| summarize record_count = count(), by:{loglevel}
+| summarize {record_count = count()}, by:{loglevel}
 | sort record_count desc
 ```
 
 > **Cost optimization actions for high-volume logs:**
-> - **Filter at source:** Configure OpenPipeline to drop DEBUG/TRACE logs in production
+> - **Drop at ingest:** Configure an OpenPipeline rule to drop DEBUG/TRACE records from production sources — or stop shipping them at the source
 > - **Reduce retention:** Route verbose logs to buckets with shorter retention (7-14 days)
 > - **Sample:** Use sampling for high-cardinality, low-value data
 > - **Aggregate:** Replace raw log storage with metric extraction for patterns you only need to count
 
 ### 5.3 Entity Monitoring Mode Review
 
-Not every host requires full-stack monitoring. Infrastructure-only mode costs fewer host units and may be appropriate for non-application hosts.
+Not every host requires Full-Stack monitoring. Infrastructure Monitoring is billed per host-hour rather than per GiB-hour of host memory, and may be appropriate for hosts that run no application you need to trace. Read each host's mode from the billing events — the classic `monitoringMode` host property is empty for many hosts (ADOPT-02 § 1.2).
 
 ```dql
-// Host count by monitoring mode — identify over-provisioned monitoring
-fetch dt.entity.host
-| summarize host_count = count(), by:{monitoringMode}
-| sort host_count desc
-
-// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
-// field. Keep the classic query above for monitoring-mode breakdowns.
+// Hosts by the capability they were billed under (DPS), last 24 hours
+fetch dt.system.events, from:-24h
+| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
+| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| sort hosts desc
 ```
 
 ### 5.4 Span Volume Analysis
@@ -303,18 +305,20 @@ Distributed tracing can generate significant data volume. Identify services prod
 ```dql
 // Top 10 services by span volume in the last 24 hours
 fetch spans, from:-24h
-| summarize span_count = count(), by:{dt.entity.service}
+| summarize {span_count = count()}, by:{dt.entity.service}
 | sort span_count desc
 | limit 10
 ```
 
 ### Cost Optimization Decision Matrix
 
+A starting point from community practice — adjust each cell to your own value judgments and compliance requirements.
+
 | Data Type | Low Value | Medium Value | High Value |
 |-----------|-----------|-------------|------------|
-| **Logs** | Drop DEBUG/TRACE | 7-day retention | 35-day retention |
+| **Logs** | Drop DEBUG/TRACE at ingest | Short-retention bucket (7-14 days) | Default or longer retention (35+ days) |
 | **Spans** | Sample at 10:1 | Sample at 2:1 | Full retention |
-| **Metrics** | Reduce resolution | Standard resolution | Full resolution |
+| **Metrics** | Drop unused dimensions; stop extracting unused metrics | Standard ingest | Standard ingest |
 | **Events** | Filter noise | Standard retention | Full retention |
 
 <a id="automation-candidates"></a>
@@ -329,31 +333,32 @@ Automation reduces toil and improves consistency. Prioritize automating tasks th
 |------|-----------|--------------|-----------------|----------|
 | Alert triage and routing | Daily | 30 min/day | Dynatrace Workflows | High |
 | Agent deployment on new hosts | Weekly | 1 hour/week | Cloud-init / Ansible | High |
-| Dashboard creation for new services | Monthly | 2 hours/service | Monaco templates | Medium |
-| Configuration drift detection | Weekly | 1 hour/week | Monaco CI/CD | Medium |
+| Dashboard creation for new services | Monthly | 2 hours/service | Monaco or Terraform templates | Medium |
+| Configuration drift detection | Weekly | 1 hour/week | Terraform `plan`, or scheduled Monaco download + diff | Medium |
 | Report generation for leadership | Weekly | 2 hours/week | Scheduled DQL notebooks | Medium |
 | Incident postmortem data collection | Per incident | 1 hour/incident | Workflow + DQL | Low (high value) |
 | Capacity forecasting | Monthly | 4 hours/month | Dynatrace Intelligence forecasting | Low (high value) |
 
-### Quick-Start Automation: Noisy Alert Suppression
+### Quick-Start Automation: Transient-Problem Suppression
 
-The simplest and highest-impact automation is routing noisy alerts. Use this query to identify candidates:
+The simplest and highest-impact automation is keeping transient problems away from people. Use this query to identify candidates:
 
 ```dql
-// Problems that auto-resolve within 5 minutes — candidates for suppression
+// Problems that closed within 5 minutes — candidates for a Minimum duration on the notifying workflow
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
+| filter dt.davis.is_duplicate == false
 | fieldsAdd duration_minutes = resolved_problem_duration / 1m
 | filter duration_minutes < 5
-| summarize auto_resolve_count = count(), by:{event.name}
+| summarize {auto_resolve_count = count()}, by:{event.name}
 | sort auto_resolve_count desc
 | limit 10
 ```
 
 > **Interpretation:** Problems that consistently resolve within 5 minutes are strong candidates for:
-> - Delayed notification (wait 5 minutes before alerting)
-> - Automated acknowledgment
+> - A **Minimum duration** on the problem-triggered workflow that notifies people, so a problem that resolves inside the window never notifies (FAQ-21)
 > - Workflow-based triage that only escalates if the problem persists
+> - Detector tuning, when the type is never worth acting on (ALERT-02)
 
 <a id="measuring-roi"></a>
 
@@ -397,7 +402,7 @@ Create a monthly ROI report combining:
 
 <a id="summary"></a>
 
-## 8. Summary and Series Conclusion
+## 8. Summary and Next Steps
 
 ### Key Takeaways
 
@@ -413,20 +418,23 @@ Create a monthly ROI report combining:
 |----------|-------|-------------|
 | **ADOPT-01** | Maturity Model | Understand where you are today |
 | **ADOPT-02** | Platform Health | Assess deployment completeness |
-| **ADOPT-03** | Success Metrics | Define MTTR, MTTD, and baselines |
+| **ADOPT-03** | Success Metrics | Define MTTD, problem duration, alert quality, and baselines |
 | **ADOPT-04** | Team Enablement | Build organizational capability |
 | **ADOPT-05** | Optimization Roadmap | Plan the path forward |
+| **ADOPT-06** | Coverage Audit and Staged Enablement | Close coverage gaps in waves, each proven at a value gate |
+| **ADOPT-99** | Best Practice Summary | One checklist of every practice in the series |
 
 ### What Comes Next
 
-With the ADOPT series complete, your organization has:
-- A clear understanding of its current maturity level
-- A platform health baseline
-- Defined success metrics with targets
-- A team enablement plan
-- A prioritized optimization roadmap
+Proceed to **ADOPT-06: Maximizing Platform Value** to turn the coverage gaps found in ADOPT-02 into a staged enablement program. Use the other notebook series in this repository (ONBRD, K8S, IAM, AUTOM, WFLOW, etc.) as practical guides for implementing each roadmap initiative.
 
-The next step is execution. Use the other notebook series in this repository (ONBRD, K8S, IAM, AUTOM, WFLOW, etc.) as practical guides for implementing each roadmap initiative.
+## References
+
+- [Support policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/) — OneAgents and ActiveGates: 9 months Standard Support, 12 months Enterprise Support; *"Timeframes indicated commence upon version release date."*
+- [OneAgent platform and capability support matrix (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix) — *"Preview features aren't production-ready and they aren't officially supported."*
+- [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"End of support announcements are provided six months in advance."*
+- [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment) — *"OneAgent version 1.333"*
+- [Infrastructure Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring) — *"Infrastructure Monitoring consumption is measured in host hours"*
 
 ---
 

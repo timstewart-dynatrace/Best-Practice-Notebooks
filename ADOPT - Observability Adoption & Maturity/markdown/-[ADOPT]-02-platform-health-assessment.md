@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 08/12/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -25,8 +25,8 @@ A healthy observability platform is the foundation for everything else — alert
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `storage:entities:read`, `storage:metrics:read`, `storage:logs:read`, `storage:events:read` |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail) on the Dynatrace Platform Subscription (DPS) for § 1.2 and § 6. The DQL does not apply to Dynatrace Managed, which has no Grail. |
+| **Permissions** | `storage:entities:read`, `storage:smartscape:read`, `storage:metrics:read`, `storage:logs:read`, `storage:spans:read`, `storage:system:read` |
 | **Data** | At least 24 hours of OneAgent data |
 | **Audience** | Platform engineers, Dynatrace administrators |
 
@@ -39,29 +39,35 @@ OneAgent coverage is the most fundamental health indicator. Gaps in deployment m
 ### 1.1 Total Monitored Hosts
 
 ```dql
-// Count all monitored hosts and break down by monitoring mode
-fetch dt.entity.host
+// Count hosts seen in the last 24 hours
+fetch dt.entity.host, from:-24h
 | summarize total_hosts = count()
 
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "HOST"
-//   | summarize total_hosts = count()
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration discovery inventory keep the classic query above.
+// Without from:, dt.entity.* returns only entities seen in the default two-hour window — on the
+// validation tenant that was 15 hosts against 33 over 24 hours. Every inventory query in this
+// notebook uses the same from:-24h so the counts agree with each other.
+//
+// Smartscape equivalent: smartscapeNodes "HOST", from:-24h | summarize total_hosts = count()
+// The two surfaces can report different counts (FAQ-16); for an inventory, keep the classic query.
+
 ```
 
 ### 1.2 Hosts by Monitoring Mode
 
-Dynatrace supports multiple monitoring modes. Full-stack provides the deepest visibility, while infrastructure-only and cloud-only modes have limited capabilities.
+Dynatrace supports multiple monitoring modes. Full-Stack provides the deepest visibility; Infrastructure and Foundation & Discovery collect progressively less.
+
+**Read the mode from billing, not from the host entity.** The classic `monitoringMode` property on `dt.entity.host` is not populated for every host. On the validation tenant (10/01/2026), 29 of the 36 hosts billed as Full-Stack in the last 24 hours had `monitoringMode` empty, so a `by:{monitoringMode}` breakdown put four in five Full-Stack hosts in a null bucket. On DPS, each monitored host emits billing usage events that name the capability it was charged under — that is the mode that counts.
 
 ```dql
-// Break down hosts by monitoring mode
-fetch dt.entity.host
-| summarize host_count = count(), by:{monitoringMode}
-| sort host_count desc
+// Hosts by the capability they were billed under (DPS), last 24 hours.
+// A host can appear in more than one row — on the validation tenant 19 of 39 hosts did,
+// typically Full-Stack plus Code Monitoring. Non-host capabilities have no dt.entity.host
+// and are filtered out.
+fetch dt.system.events, from:-24h
+| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
+| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| sort hosts desc
 
-// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
-// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 ### 1.3 Agent Version Distribution
@@ -69,22 +75,19 @@ fetch dt.entity.host
 Running outdated OneAgent versions can lead to missed features, security vulnerabilities, and compatibility issues. This query identifies the distribution of agent versions across your environment.
 
 ```dql
-// Identify OneAgent version distribution across hosts
-//
-// Corrected 08/12/2026: `agentVersion` is NOT a field on dt.entity.host — the cell failed outright
-// with FIELD_DOES_NOT_EXIST. The host model carries `installerVersion` (the OneAgent installer build,
-// e.g. 1.343.90.20260806-093919); `agentVersion` exists only on dt.entity.process_group_instance.
-// Time range added because dt.entity.* returns only entities seen in the query window.
-fetch dt.entity.host, from:-7d
-| summarize host_count = count(), by:{installerVersion}
+// Identify OneAgent version distribution across hosts seen in the last 24 hours.
+// The host property is installerVersion (e.g. 1.343.90.20260806-093919); agentVersion exists
+// only on dt.entity.process_group_instance and fails here with FIELD_DOES_NOT_EXIST.
+fetch dt.entity.host, from:-24h
+| summarize {host_count = count()}, by:{installerVersion}
 | sort host_count desc
 | limit 20
 
-// No Smartscape equivalent: OneAgent version is not a Smartscape node field. Keep the classic
-// query above for agent-version distribution.
+// No Smartscape equivalent: the OneAgent version is not a Smartscape HOST node field.
+
 ```
 
-> **Tip:** If you see more than 3-4 distinct agent versions, consider enabling auto-update or scheduling a coordinated update. A single major version across the fleet reduces support complexity.
+> **Tip — what "current" means for OneAgent.** Every OneAgent is version 1.x, so "major version" says nothing; what matters is the release (1.343, 1.345, …) and whether it is still supported. Dynatrace supports a OneAgent or ActiveGate release for **9 months (Standard Support) or 12 months (Enterprise Support) from its release date**. Treat any host on a release older than that window as out of support, and use FAQ-04 to choose between auto-update and coordinated update windows.
 
 <a id="host-monitoring"></a>
 
@@ -124,8 +127,8 @@ Auto-discovered services and process groups indicate the depth of application-le
 
 ```dql
 // Count services by service type
-fetch dt.entity.service
-| summarize service_count = count(), by:{serviceType}
+fetch dt.entity.service, from:-24h
+| summarize {service_count = count()}, by:{serviceType}
 | sort service_count desc
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
@@ -141,8 +144,8 @@ fetch dt.entity.service
 
 ```dql
 // Count process groups by technology type
-fetch dt.entity.process_group
-| summarize pg_count = count(), by:{softwareTechnologies}
+fetch dt.entity.process_group, from:-24h
+| summarize {pg_count = count()}, by:{softwareTechnologies}
 | sort pg_count desc
 | limit 15
 
@@ -198,22 +201,13 @@ smartscapeNodes "ACTIVEGATE"
 | fields name, version = dt.active_gate.version, group = dt.active_gate.group.name, zone = dt.network_zone.id, is_containerized, modules
 | sort name asc
 
-// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
-// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
-// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
-// environment_activegate), so the classic query returned zero rows in every tenant —
-// indistinguishable from "no ActiveGates deployed". `smartscapeNodes "ACTIVEGATE"` (no
-// underscore) is the working path, and it works on tenants today.
-// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
-// networkZone → dt.network_zone.id.
-// The node also makes this cell's stated intent achievable: the previous version could only count,
-// because the classic entity exposed no properties — and in fact returned nothing at all.
-// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
-// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
-// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
-// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
-// (GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")) is a different surface and
-// may still respond; the DQL `fetch dt.entity.*` form does not.
+// ActiveGates are read from the Smartscape ACTIVEGATE node. There is no classic DQL entity type for
+// ActiveGates in any spelling (active_gate, environment_active_gate, environment_activegate):
+// `fetch dt.entity.active_gate` returns zero rows on every tenant, which looks exactly like
+// "no ActiveGates deployed".
+// ActiveGate 1.343 deprecates GET /api/v2/activeGates, /api/v2/activeGates/{agId} and
+// /api/v2/activeGates/groups: "These are replaced by the ACTIVEGATE Smartscape node."
+
 ```
 
 ### 5.2 ActiveGate Metric Health
@@ -224,23 +218,15 @@ Self-monitoring metrics confirm ActiveGates are processing data. A flat or zero 
 // Connected agent modules per ActiveGate over the last 1 hour.
 // A healthy routing ActiveGate holds a steady, non-zero count; a flat zero means agents are not
 // reaching it, and a sudden drop means they stopped.
+// dt.active_gate.id is the same identity the ACTIVEGATE Smartscape node carries, so the ids
+// (0xd54e5d57, …) resolve to names via smartscapeNodes "ACTIVEGATE".
 //
-// Grouped by dt.active_gate.id — the ActiveGate identity field, and the same field the ACTIVEGATE
-// Smartscape node carries, so `smartscapeNodes "ACTIVEGATE"` resolves these hex ids (0xd54e5d57, …)
-// to names. Live-verified 07/30/2026: 4 series returned, ids matching the node exactly.
-//
-// Two corrections here, both verified 07/30/2026:
-//  1. The metric key was `dt.sfm.active_gate.connections`, which DOES NOT EXIST. No such key is in
-//     the catalogue, and `timeseries` against a non-existent key returns an EMPTY RESULT rather
-//     than an error — so the cell read as "no ActiveGate data" instead of "wrong metric name".
-//  2. The grouping was by:{dt.entity.environment_active_gate}, an entity type that does not exist
-//     in any spelling.
-//
-// Discover the real keys yourself rather than trusting a remembered name:
-//   metrics | filter startsWith(metric.key, "dt.sfm.active_gate") | fields metric.key
-// Note `metrics` takes `from:` with NO leading comma — `metrics from:now()-2h`. Writing
-// `metrics, from:…` is a PARSE_ERROR, which is easy to misread as "no such metrics exist".
+// Discover self-monitoring keys rather than trusting a remembered name — timeseries against a key
+// that does not exist returns an empty result, not an error:
+//   metrics from:now()-2h | filter startsWith(metric.key, "dt.sfm.active_gate") | fields metric.key
+// (`metrics` takes from: with no leading comma; `metrics, from:` is a PARSE_ERROR.)
 timeseries connected = avg(dt.sfm.active_gate.communication.agent_modules.connected), from:-1h, by:{dt.active_gate.id}
+
 ```
 
 <a id="license-consumption"></a>
@@ -249,46 +235,52 @@ timeseries connected = avg(dt.sfm.active_gate.communication.agent_modules.connec
 
 Tracking license consumption helps prevent unexpected overages and ensures you are getting value from your investment.
 
-### 6.1 Host Unit Estimate
+### 6.1 Host Monitoring Consumption
 
-Host units are a primary consumption metric. Each host consumes units based on its memory size and monitoring mode.
+A host count is not a consumption estimate. On DPS, Full-Stack Monitoring is measured in **GiB-hours** — host memory multiplied by hours monitored — and Infrastructure Monitoring in **host-hours**. A 64 GiB host and a 4 GiB host are one host each, but under Full-Stack one consumes sixteen times the other. Read consumption from the billing usage events instead. (On classic host-unit licensing, host units also scale with memory, so the same caution applies.) FINOPS-01 covers every capability's unit field.
 
 ```dql
-// Estimate host unit consumption by monitoring mode
-fetch dt.entity.host
-| summarize host_count = count(), by:{monitoringMode}
-| fieldsAdd estimated_hu = if(monitoringMode == "FULL_STACK", then: host_count, else: host_count * 0)
+// Full-Stack consumption per host over the last 7 days, in GiB-hours
+fetch dt.system.events, from:-7d
+| filter event.kind == "BILLING_USAGE_EVENT" and event.type == "Full-Stack Monitoring"
+| summarize {gib_hours = sum(billed_gibibyte_hours)}, by:{dt.entity.host}
+| sort gib_hours desc
+| limit 20
 
-// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
-// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
-### 6.2 Log Ingestion Volume for Cost Awareness
+### 6.2 Log Ingest Volume for Cost Awareness
+
+Log ingest is billed by volume, not by record count, so read it from the billing events in GiB.
 
 ```dql
-// Daily log record count over the last 7 days
-fetch logs, from:-7d
-| makeTimeseries daily_logs = count(), interval:1d
+// Billed log ingest per day over the last 7 days, in GiB
+fetch dt.system.events, from:-7d
+| filter event.kind == "BILLING_USAGE_EVENT"
+| filter event.type == "Log Management & Analytics - Ingest & Process"
+| summarize {billed_gib = sum(billed_bytes) / 1073741824.0}, by:{day = bin(timestamp, 24h)}
+| sort day asc
+
 ```
 
 <a id="health-scorecard"></a>
 
 ## 7. Building a Platform Health Scorecard
 
-Combine the results from the queries above into a regular health scorecard. Review this scorecard weekly or monthly to track platform health trends.
+Combine the results from the queries above into a regular health scorecard. Review this scorecard weekly or monthly to track platform health trends. The targets are community starting points, not Dynatrace-published thresholds — set your own once you have a baseline.
 
 ### Recommended Scorecard Metrics
 
 | Metric | Target | How to Measure |
 |--------|--------|----------------|
 | **Host Coverage** | > 95% of known hosts monitored | Compare entity count vs CMDB |
-| **Agent Version Currency** | All agents within 1 major version | Version distribution query |
+| **Agent Version Currency** | Every host on a OneAgent release still inside its support window | Version distribution query (§ 1.3) |
 | **Service Discovery** | All known services auto-detected | Compare service count vs app inventory |
-| **Log Ingestion Stability** | < 10% daily variance | 7-day ingestion trend |
+| **Log Ingestion Stability** | < 10% daily variance | Billed log ingest per day (§ 6.2) |
 | **Span Ingestion Active** | > 0 spans per hour | Span count query |
 | **ActiveGate Health** | All AGs reporting metrics | AG connection metrics |
 | **Dynatrace Intelligence Active** | Problems detected in last 7 days | Problem count query |
-| **Alert Noise Ratio** | < 20% duplicate/frequent | Noise ratio query from ADOPT-01 |
+| **Alert Quality** | Short-lived problem share flat or falling | Alerting quality check from ADOPT-01 § 7.4 |
 
 ### Scoring Guide
 
@@ -315,6 +307,13 @@ Combine the results from the queries above into a regular health scorecard. Revi
 - Proceed to **ADOPT-03: Success Metrics** to define MTTR, MTTD, and other outcome-based metrics
 - Schedule a recurring health scorecard review (weekly recommended for new deployments)
 - Compare discovered entities against your CMDB to identify coverage gaps
+
+## References
+
+- [Full-Stack Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring) — *"Dynatrace uses GiB-hours (referred to as "memory-gibibyte-hours" in your rate card) as the unit of measure"*
+- [Infrastructure Monitoring (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring) — *"Infrastructure Monitoring consumption is measured in host hours"*
+- [Support policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/) — OneAgent and ActiveGate releases: 9 months Standard Support, 12 months Enterprise Support, from the release date
+- [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — *"These are replaced by the ACTIVEGATE Smartscape node."*
 
 ---
 

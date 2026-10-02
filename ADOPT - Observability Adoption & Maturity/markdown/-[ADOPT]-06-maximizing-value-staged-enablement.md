@@ -1,6 +1,6 @@
 # ADOPT-06: Maximizing Platform Value — Coverage Audit and Staged Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 07/24/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 6 of 6 | **Created:** July 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -26,7 +26,7 @@ This is a maturity play, not a switch-flip: it deliberately builds on ADOPT-01 (
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS on DPS (Discovery mode and the mode-split billing series are DPS constructs). |
-| **Permissions** | Settings access for monitoring modes and process-group monitoring rules; `storage:*:read` scopes for the audit DQL. |
+| **Permissions** | Settings access for monitoring modes and process-group monitoring rules; `storage:system:read`, `storage:logs:read` and `storage:metrics:read` for the audit DQL. |
 | **Companion reading** | **FAQ-12** — the per-capability impact matrix this program operationalizes; ADOPT-01/02/03 for maturity level, health baseline, and metrics. |
 | **Audience** | Platform / Observability Lead running an enablement program; account teams building the customer business case. |
 
@@ -57,41 +57,45 @@ For environments where SVG doesn't render
 
 Run the audit before any enablement conversation — most estates find at least one surprise. Four measurements:
 
-**Hosts by monitoring mode** (note: reads the classic entity surface — `monitoringMode` is not exposed on `smartscapeNodes "HOST"` on current tenants, verified 07/08/2026):
+**Hosts by monitoring mode** — read from the billing usage events, which name the capability each host was charged under. Do not use the classic `monitoringMode` host property for this: it is empty for many hosts. On the validation tenant (10/01/2026), 29 of the 36 hosts billed as Full-Stack had no `monitoringMode` value, so a breakdown by that field hid most of the Full-Stack estate in a null bucket. `smartscapeNodes "HOST"` does not expose a mode field either.
 
 ```dql
-// Wave 0 — hosts by OneAgent monitoring mode
-fetch dt.entity.host
-| fieldsAdd mode = monitoringMode
-| summarize hosts = count(), by:{mode}
+// Wave 0 — hosts by the capability they were billed under (DPS), last 24 hours.
+// A host can appear in more than one row (e.g. Full-Stack and Code Monitoring).
+fetch dt.system.events, from:-24h
+| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
+| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
 | sort hosts desc
-
-// No Smartscape equivalent: monitoringMode is a classic host property, not a Smartscape node
-// field. Keep the classic query above for monitoring-mode breakdowns.
 ```
 
 **Log coverage** — hosts actually shipping logs vs. the inventory above:
 
 ```dql
-// Wave 0 — log coverage in the last 24 h
+// Wave 0 — log coverage in the last 24 h: hosts attributed to log records
 fetch logs, from:-24h
-| summarize hosts_reporting_logs = countDistinctExact(host.name), log_records = count()
+| summarize {hosts_reporting_logs = countDistinctExact(dt.entity.host), log_records = count()}
+
+// Count dt.entity.host, not host.name: on the validation tenant (10/01/2026) the same day of logs
+// carried 22 distinct dt.entity.host values but only 9 distinct host.name values.
 ```
 
 **Consumption by mode** — the cost-side mirror of the mode audit, using the pre-aggregated billing series (worked patterns in FINOPS-01 §5):
 
 ```dql
-// Wave 0 — consumption split across the three host-monitoring tiers, last 7 days
+// Wave 0 — consumption split across the three host-monitoring tiers, last 7 days.
+// rate:1h turns each daily bucket into GiB-hours (Full-Stack) or host-hours (Infrastructure,
+// Discovery) per hour — that is, the average monitored footprint that day. Multiply by 24 for the
+// day's total.
 timeseries {
   full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
   infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:1h),
   discovery = sum(dt.billing.foundation_and_discovery.usage, rate:1h)
-}, from:-7d, interval:1d
+}, from:-7d, interval:24h
 ```
 
 **Deep-monitoring exceptions** are configuration, not telemetry: review **Settings → Processes and containers → Process group monitoring** for rules that switch off service/code-level monitoring — a Full-Stack host whose main workload is excluded delivers Infrastructure value at Full-Stack cost (FAQ-12 gotcha #1). Record all four measurements as the Wave-0 baseline; every value gate re-runs them.
 
-> **Query provenance:** the mode and log queries were executed live on a SaaS tenant 07/08/2026 (10 FULL_STACK hosts; 17 hosts shipping 17.5M records/24h); the billing series were validated in FINOPS-01 (05/19/2026). RUM coverage (`fetch user.sessions, from:-24h | summarize sessions = count()`) passed the DQL verifier but the validation token lacked `storage:user.sessions:read` — verify in your tenant.
+> **Query provenance:** all three queries were executed live on a SaaS tenant 10/01/2026 (36 hosts billed as Full-Stack and 22 as Code Monitoring over 24 h; 22 hosts shipping 24.7M log records in 24 h; the daily Full-Stack series averaged about 170 GiB-hours per hour, matching the billing events). RUM coverage (`fetch user.sessions, from:-24h | summarize sessions = count()`) passed the DQL verifier but the validation token lacked `storage:user.sessions:read` — verify in your tenant.
 
 <a id="segment"></a>
 ## 3. Segment the Estate

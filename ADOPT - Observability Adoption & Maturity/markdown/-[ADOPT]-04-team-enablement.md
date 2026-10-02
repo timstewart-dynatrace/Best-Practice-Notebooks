@@ -1,6 +1,6 @@
 # ADOPT-04: Team Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -25,8 +25,8 @@ Technology alone does not drive observability maturity — people do. This noteb
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read` |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail). The exercises do not apply to Dynatrace Managed, which has no Grail. |
+| **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read`, `storage:events:read` |
 | **Audience** | Engineering managers, platform team leads, learning & development |
 | **Context** | Completed ADOPT-01 (maturity model) and ADOPT-02 (platform health) assessments |
 
@@ -108,8 +108,11 @@ Map roles to notebook series from this repository for structured learning.
 | 1 | ONBRD | Dynatrace fundamentals | 2 weeks |
 | 2 | OPLOGS | Log management with OpenPipeline | 1 week |
 | 3 | SPANS | Distributed tracing | 1 week |
-| 4 | WFLOW | Workflows and alert notifications | 1 week |
-| 5 | SYNTH | Synthetic monitoring | 1 week |
+| 4 | ALERT | Alerting strategy — detection, routing, cost | 1 week |
+| 5 | WFLOW | Workflows and alert notifications | 1 week |
+| 6 | SLO | Service level objectives and burn-rate alerting | 1 week |
+| 7 | SYNTH | Synthetic monitoring | 1 week |
+| 8 | AIOPS | Dynatrace Intelligence — problems, root cause, Dynatrace Assist | 1 week |
 
 ### 3.2 Developer Track
 
@@ -119,6 +122,7 @@ Map roles to notebook series from this repository for structured learning.
 | 2 | SPANS | Understanding distributed traces | 1 week |
 | 3 | OTEL | OpenTelemetry integration | 1 week |
 | 4 | ORGNZ (notebooks 1-3) | Data organization basics | 3 days |
+| 5 | FAQ-03, FAQ-15 | OneAgent vs OpenTelemetry decision; DPL for parsing | 2 days |
 
 ### 3.3 Platform Engineer Track
 
@@ -130,6 +134,7 @@ Map roles to notebook series from this repository for structured learning.
 | 4 | AUTOM | Configuration automation | 1 week |
 | 5 | ORGNZ | Full data organization series | 2 weeks |
 | 6 | OPMIG | OpenPipeline migration | 1 week |
+| 7 | FINOPS | Consumption tracking and cost levers | 3 days |
 
 ### 3.4 Manager Track
 
@@ -138,6 +143,8 @@ Map roles to notebook series from this repository for structured learning.
 | 1 | ADOPT (this series) | Strategy and metrics | 1 week |
 | 2 | ONBRD (notebooks 1-3) | Platform overview | 3 days |
 | 3 | ORGNZ (notebook 1) | Data organization concepts | 1 day |
+| 4 | ALERT-01, SLO-01 | How alerting and SLOs fit together | 1 day |
+| 5 | FINOPS-01 | What the platform costs and how to read consumption | 1 day |
 
 <a id="skill-assessment"></a>
 
@@ -211,7 +218,7 @@ The following DQL queries serve as starter exercises for new users. Each one ans
 
 ```dql
 // List all monitored services with their types
-fetch dt.entity.service
+fetch dt.entity.service, from:-24h
 | fieldsAdd entity.name, serviceType
 | sort entity.name asc
 | limit 25
@@ -229,9 +236,9 @@ fetch dt.entity.service
 ### Exercise 2: "What happened in the last hour?"
 
 ```dql
-// Count error logs in the last hour by log level
+// Count logs in the last hour by log level
 fetch logs, from:-1h
-| summarize log_count = count(), by:{loglevel}
+| summarize {log_count = count()}, by:{loglevel}
 | sort log_count desc
 ```
 
