@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 09/18/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -267,7 +267,7 @@ Documented connector mapping:
 
 **Trello, VictorOps, and xMatters have no dedicated connector** — the guide: *"No dedicated connector. Use HTTP Request."*
 
-**Opsgenie moves to the Jira Service Management connector.** Atlassian is retiring Opsgenie in favour of Jira Service Management (JSM), and Dynatrace ships a [Jira Service Management Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management): *"The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts."* It arrived with [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) (staged rollout) — confirm it is in your tenant. The alert-notification upgrade guide still says *"No official JSM connector is available yet. Use HTTP Request."*; the dedicated connector page and the release note are the more specific and more recent sources, so this notebook follows them.
+**Opsgenie moves to the Jira Service Management connector.** Atlassian is retiring Opsgenie in favour of Jira Service Management (JSM), and Dynatrace ships a [Jira Service Management Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management): *"The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts."* It arrived with [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) (staged rollout) — confirm it is in your tenant. The [alert-notification upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) now agrees: *"Opsgenie is being retired by Atlassian and replaced by Jira Service Management (JSM). Use Jira Service Management Connector or HTTP Request."*
 
 Each of the three becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.
 

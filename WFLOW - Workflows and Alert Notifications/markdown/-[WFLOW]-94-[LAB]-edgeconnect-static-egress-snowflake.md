@@ -1,6 +1,6 @@
 # WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 08/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -42,6 +42,8 @@ The worked example is the **Snowflake for Workflows** connector against a Snowfl
 | **Tooling** | Terraform ≥ 1.5 for the AWS samples; SnowSQL (or a worksheet) for the Snowflake SQL |
 
 > **Note on EdgeConnect version:** run **EdgeConnect ≥ 1.724.3**. The June 2026 release fixed a vulnerability where *"secrets could be leaked in HTTP error messages"* — relevant here because EdgeConnect carries authenticated Snowflake traffic.
+>
+> <sub>**Sources:** [EdgeConnect 1.724.3 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3) — *"Fixed an issue where secrets could be leaked in HTTP error messages."*</sub>
 
 <a id="the-problem"></a>
 ## 2. The Problem: Shared Egress vs IP Allow-Lists

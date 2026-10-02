@@ -1,6 +1,6 @@
 # FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -92,7 +92,7 @@ Two structural points worth internalizing:
 - **The metric namespace is `sql-server.*`** — these are documented, versioned keys maintained by Dynatrace, not names you invented in a Telegraf config.
 - **Job outcomes arrive as log streams, not metrics.** That is an upgrade: the failure message text lands in Grail and is queryable with DQL, which polling `sysjobhistory` into a numeric metric never gave you.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — feature sets, metric keys, and log-stream attributes are documented on this page; *"are only reported for the database the extension is currently connected to"*; *"Current jobs are fetched by the extension every 5 minutes."*</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — feature sets, metric keys, and log-stream attributes are documented on this page; *"are only reported for the database the extension is currently connected to"*; *"Current jobs are fetched by the extension every five minutes."*</sub>
 
 <a id="mapping"></a>
 ## 4. Mapping a Typical Homegrown Monitor Set
@@ -190,7 +190,7 @@ If you skip the extension entirely and bring everything in through Telegraf, you
 
 Verification once data flows — blocked processes from the Default feature set:
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — Hub install, ActiveGate-group placement and failover, monitoring-user grants, and the feature-set list, [Microsoft SQL Server local extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local), [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference) — the SQL data source executes queries only. The sizing figure is published: *"Each monitoring configuration can handle hundreds of active endpoints simultaneously on a single ActiveGate with 2vCPU and 4GiB RAM."*; the failed-jobs query below uses the documented `failed_jobs` fields (*"job_name, step_name, outcome, content, duration, instance, server, sql_severity, retries_attempted, start_execution_date, stop_execution_date"*) and *"Failed jobs are fetched by extension every 5 minutes."*</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — Hub install, ActiveGate-group placement and failover, monitoring-user grants, and the feature-set list, [Microsoft SQL Server local extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local), [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference) — the SQL data source executes queries only. The sizing figure is published: *"Each monitoring configuration can handle hundreds of active endpoints simultaneously on a single ActiveGate with 2vCPU and 4GiB RAM."*; the failed-jobs query below uses the documented `failed_jobs` fields (*"job_name, step_name, outcome, content, duration, instance, server, sql_severity, retries_attempted, start_execution_date, stop_execution_date"*) and *"Failed jobs are fetched by the extension every five minutes."*</sub>
 
 ```dql
 // Blocked processes from the SQL Server extension (Default feature set)

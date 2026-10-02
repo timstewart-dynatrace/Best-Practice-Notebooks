@@ -98,7 +98,7 @@ This LAB works on a **service-level objective** (`type: slo-v2`), a platform con
 
 Add the scopes for the other platform types only if the project will manage them — workflows, documents, segments and buckets each have their own `<service>:<object>:read` / `:write` pair. Create the token under **Account Management → Identity & access management → Platform tokens**, ideally on a service user (AUTOM-04 §3).
 
-> The SLO scope names are the ones the Terraform provider's `platform_slo` resource docs list (*"View SLOs (`slo:slos:read`) and Create and edit SLOs (`slo:slos:write`)"*). Checking the deployed SLO's evaluation in the app is done as *you*, so your own user needs read access to the data its SLI queries.
+> The SLO scope names are the ones the Terraform provider's [`platform_slo` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) list (*"View SLOs (`slo:slos:read`) and Create and edit SLOs (`slo:slos:write`)"*). Checking the deployed SLO's evaluation in the app is done as *you*, so your own user needs read access to the data its SLI queries.
 
 ### Access Token Scopes (Settings 2.0 and classic configuration)
 

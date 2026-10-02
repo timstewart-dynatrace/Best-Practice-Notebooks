@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 09/29/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -118,7 +118,7 @@ Two vocabularies, and they differ in case. **Field names are lowercase dotted; n
 | `dt.entity.cloud_application` | several workload fields | several K8s workload types |
 | *no classic entity type* | *no model* | `"ACTIVEGATE"` — see below |
 
-> **The transition is now underway in-product, starting with Cost Intelligence (SaaS 1.347 — staged rollout from 09/08/2026).** Verbatim: *"Dynatrace is transitioning customers from the Dynatrace Classic Monitored Entity (ME) model to the latest Dynatrace Smartscape IDs."* The release note names the same three mappings this table already carries — `dt.entity.host` → `dt.smartscape.host`, `dt.entity.kubernetes_cluster` → `dt.smartscape.k8s_cluster`, `dt.entity.cloud_application_namespace` → `dt.smartscape.k8s_namespace`.
+> **The transition is now underway in-product, starting with Cost Intelligence (SaaS 1.347 — staged rollout from 09/08/2026).** Verbatim: *"Dynatrace is transitioning entity ID attributes in billing usage events from the Classic Monitored Entity (ME) model to Smartscape-based IDs."* The release note names the same three mappings this table already carries — `dt.entity.host` → `dt.smartscape.host`, `dt.entity.kubernetes_cluster` → `dt.smartscape.k8s_cluster`, `dt.entity.cloud_application_namespace` → `dt.smartscape.k8s_namespace`.
 >
 > Two things this does and does not mean. It **does** confirm the direction of travel this entry describes, and it makes the migration concrete in one surface first — so a Cost Intelligence query written against classic IDs is the one to re-check now. It **does not** retire classic entity IDs corpus-wide: the rest of the platform still accepts them, and the dimension-first strategy in §1 remains the right default for mass-data queries. Migrate where the product has moved, not everywhere at once.
 
