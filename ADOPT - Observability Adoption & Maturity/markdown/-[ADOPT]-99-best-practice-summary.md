@@ -1,10 +1,10 @@
 # ADOPT-99: Best Practice Summary
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 08/04/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
-This notebook consolidates every actionable best practice from the ADOPT series (notebooks 01 through 06) into definitive, categorized guidance. Each practice specifies exactly what to set, the priority level, and the source notebook. Use this as a checklist for platform maturity and adoption readiness.
+This notebook consolidates every actionable best practice from the ADOPT series (notebooks 01 through 06) into definitive, categorized guidance. Each practice specifies exactly what to set, the priority level, and the source notebook. Use this as a checklist for platform maturity and adoption readiness. Numeric targets are community starting points, not Dynatrace-published thresholds — replace them with your own once you have a baseline.
 
 ---
 
@@ -30,8 +30,8 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read`, `storage:events:read`, `storage:buckets:read` |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail). Not applicable to Dynatrace Managed, which has no Grail. |
+| **Permissions** | `storage:logs:read`, `storage:spans:read`, `storage:metrics:read`, `storage:entities:read`, `storage:smartscape:read`, `storage:events:read`, `storage:system:read`, `storage:buckets:read` |
 | **Context** | Familiarity with ADOPT-01 through ADOPT-06 |
 | **Audience** | Platform engineers, SREs, engineering managers, leadership |
 
@@ -43,11 +43,12 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 |---|--------------|----------------|----------|--------|
 | 1.1 | **OneAgent host coverage** | > 95% of all known hosts monitored (compare entity count against CMDB) | Critical | ADOPT-02 |
 | 1.2 | **Monitoring mode for application hosts** | Set to `FULL_STACK` for all hosts running application workloads | Critical | ADOPT-01, ADOPT-02 |
-| 1.3 | **Monitoring mode for non-application hosts** | Set to `INFRASTRUCTURE` for hosts that only need OS-level metrics (reduces host unit cost) | Recommended | ADOPT-05 |
-| 1.4 | **Agent version currency** | Maintain all agents within 1 major version; maximum 2 distinct major versions across the fleet | Critical | ADOPT-02, ADOPT-05 |
+| 1.3 | **Monitoring mode for non-application hosts** | Set to `INFRASTRUCTURE` for hosts that only need OS-level metrics (billed per host-hour instead of per GiB-hour of memory) | Recommended | ADOPT-05 |
+| 1.4 | **Agent version currency** | Every host on a OneAgent release still inside its support window (9 months Standard, 12 months Enterprise, from release); keep the number of distinct releases small | Critical | ADOPT-02, ADOPT-05 |
 | 1.5 | **Auto-update for non-production** | Enable OneAgent auto-update on all non-production hosts | Recommended | ADOPT-05 |
 | 1.6 | **Automated agent deployment** | Use cloud-init, Ansible, or equivalent to deploy OneAgent on every new host automatically | Recommended | ADOPT-05 |
 | 1.7 | **Host CPU/memory health check** | Run a weekly health query confirming all hosts report CPU and memory metrics; any host with no data = agent issue | Recommended | ADOPT-02 |
+| 1.8 | **Read monitoring mode from billing** | Use the billing usage events, not the classic `monitoringMode` property, which is empty for many hosts | Recommended | ADOPT-02, ADOPT-06 |
 
 <a id="data-ingestion"></a>
 
@@ -56,13 +57,13 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
 | 2.1 | **Multi-signal ingestion** | Ingest all 5 telemetry types: metrics, logs, spans, events, and business events | Critical | ADOPT-01 |
-| 2.2 | **Log ingestion stability** | Daily variance < 10%; monitor with a 7-day rolling trend query | Recommended | ADOPT-02 |
+| 2.2 | **Log ingestion stability** | Daily variance < 10%; monitor billed log ingest (GiB per day) over 7 days | Recommended | ADOPT-02 |
 | 2.3 | **Span ingestion active** | Confirm > 0 spans per hour at all times; a zero reading means broken instrumentation | Critical | ADOPT-02 |
 | 2.4 | **Grail bucket naming convention** | `<team>_<datatype>_<env>` (e.g., `checkout_logs_prod`) | Recommended | ADOPT-05 |
-| 2.5 | **Bucket-specific retention** | High-value data: 35 days. Medium-value: 7 days. Debug/verbose: 7-14 days | Recommended | ADOPT-05 |
+| 2.5 | **Bucket-specific retention** | High-value logs: 35+ days. Medium-value: 7-14 days. Debug/verbose: drop at ingest, or 7 days | Recommended | ADOPT-05 |
 | 2.6 | **OpenPipeline log routing** | Route logs to the correct bucket by source using OpenPipeline rules; never leave all data in `default_logs` | Recommended | ADOPT-05 |
-| 2.7 | **Drop DEBUG/TRACE in production** | Configure OpenPipeline to discard `DEBUG` and `TRACE` log levels in production environments | Recommended | ADOPT-05 |
-| 2.8 | **Use bucket targeting in queries** | Always specify `bucket:{"name"}` in DQL fetch commands to reduce scan cost | Optional | ADOPT-05 |
+| 2.7 | **Drop DEBUG/TRACE in production** | Configure an OpenPipeline rule to discard `DEBUG` and `TRACE` records from production sources | Recommended | ADOPT-05 |
+| 2.8 | **Use bucket targeting in queries** | Specify `bucket:{"name"}` in recurring DQL fetch commands when you know which bucket holds the data, to reduce scanned bytes | Optional | ORGNZ |
 
 <a id="alerting-davis"></a>
 
@@ -70,13 +71,13 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
-| 3.1 | **Alert noise ratio** | Keep below 20% (frequent + duplicate problems / total problems); above 50% = overhaul needed | Critical | ADOPT-01, ADOPT-03 |
+| 3.1 | **Alert quality** | Track the share of problems that close within 5 minutes and the problems that recur on one component; both should trend down. Do not use the frequent-issue flag — frequent issue detection is being phased out | Critical | ADOPT-01, ADOPT-03 |
 | 3.2 | **Dynatrace Intelligence enabled** | Dynatrace Intelligence problem detection must be active; verify by confirming problems are detected in the last 7 days | Critical | ADOPT-01, ADOPT-02 |
-| 3.3 | **Suppress auto-resolving problems** | Problems that consistently resolve within 5 minutes: configure delayed notification (5-minute wait) or workflow-based triage | Recommended | ADOPT-05 |
-| 3.4 | **Maintenance windows** | Configure maintenance windows for all planned change periods to suppress known-noisy alerts | Recommended | ADOPT-03, ADOPT-05 |
-| 3.5 | **Alert ownership** | Assign every alerting profile to a specific team; no unowned alerts | Recommended | ADOPT-05 |
-| 3.6 | **Monthly alert review** | Review the top 10 noisiest problem types monthly; adjust sensitivity or suppress non-actionable alerts | Recommended | ADOPT-05 |
-| 3.7 | **Filter frequent/duplicate events from metrics** | Always exclude `dt.davis.is_frequent_event == true` and `dt.davis.is_duplicate == true` when calculating MTTD/MTTR | Critical | ADOPT-03 |
+| 3.3 | **Keep transient problems away from people** | For problem types that consistently resolve within 5 minutes, set a Minimum duration on the notifying problem-triggered workflow (FAQ-21), or tune the detector | Recommended | ADOPT-05 |
+| 3.4 | **Maintenance windows** | Configure maintenance windows for all planned change periods; a high share of problems raised during maintenance is a prompt to check detection sensitivity | Recommended | ADOPT-03, ADOPT-05 |
+| 3.5 | **Alert ownership** | Route every problem to an owning team through ownership tags and problem-triggered workflows; no unowned alerts (FAQ-21) | Recommended | ADOPT-05 |
+| 3.6 | **Monthly alert review** | Review the top 10 problem types by volume and short-lived share monthly; tune detectors or set a Minimum duration on notifications | Recommended | ADOPT-05 |
+| 3.7 | **Filter duplicate problems from metrics** | Exclude `dt.davis.is_duplicate == true` when calculating MTTD and problem duration | Critical | ADOPT-03 |
 | 3.8 | **Exclude maintenance from MTTR** | Always exclude `maintenance.is_under_maintenance == true` when calculating MTTR | Recommended | ADOPT-03 |
 
 <a id="slos-metrics"></a>
@@ -86,12 +87,12 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
 | 4.1 | **Define SLOs for top 10 services** | Set availability and latency SLOs for the 10 most business-critical services | Critical | ADOPT-05 |
-| 4.2 | **SLO burn-rate alerting** | Enable burn-rate alerting on every SLO; static thresholds are insufficient | Critical | ADOPT-01, ADOPT-05 |
-| 4.3 | **Track MTTD** | Target: < 5 minutes average. Measure weekly using detected problem `event.start` vs detection timestamp | Critical | ADOPT-03 |
-| 4.4 | **Track MTTR** | Target: < 1 hour average (DORA Elite). Measure weekly; trend by problem category | Critical | ADOPT-03 |
+| 4.2 | **SLO burn-rate alerting** | Build burn-rate alerting for every SLO as described in SLO-04; static thresholds are insufficient | Critical | ADOPT-01, ADOPT-05 |
+| 4.3 | **Track MTTD** | Target: median under 5 minutes. Measure weekly as the gap between `event.start` and the problem's `CREATED` transition on `fetch events` | Critical | ADOPT-03 |
+| 4.4 | **Track problem duration (MTTR)** | Set the target from your own 30-day baseline; measure weekly and trend by category. It measures how long a problem stayed open, not DORA's failed deployment recovery time | Critical | ADOPT-03 |
 | 4.5 | **Track weekly problem count** | Trend must be flat or declining; an increasing trend signals environmental degradation | Recommended | ADOPT-03 |
-| 4.6 | **Track change failure rate** | Target: < 5% (DORA Elite). Correlate deployment events with post-deployment detected problems | Recommended | ADOPT-03 |
-| 4.7 | **Establish 30-day baselines** | Record current MTTD, MTTR, noise ratio, problem count, and CFR using a 30-day window before setting targets | Critical | ADOPT-03 |
+| 4.6 | **Track change failure rate** | Send deployment events, then measure the share of deployments followed within an hour by a problem on the same entity; compare with current DORA benchmarks | Recommended | ADOPT-03 |
+| 4.7 | **Establish 30-day baselines** | Record current MTTD, problem duration, short-lived problem share, problem count, and CFR using a 30-day window before setting targets | Critical | ADOPT-03 |
 | 4.8 | **Re-baseline quarterly** | Recalculate baselines every 90 days to account for growth and environmental changes | Recommended | ADOPT-03 |
 | 4.9 | **Set 3-month and 6-month targets** | Define explicit improvement targets for each metric at 3-month and 6-month horizons | Recommended | ADOPT-03 |
 
@@ -102,13 +103,13 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
 | 5.1 | **Audit high-volume log sources** | Identify top 15 log sources by volume weekly; evaluate each for filtering, sampling, or reduced retention | Recommended | ADOPT-05 |
-| 5.2 | **Log retention tiers** | High-value logs: 35 days. Standard logs: 14 days. Debug/verbose: 7 days | Recommended | ADOPT-05 |
+| 5.2 | **Log retention tiers** | High-value logs: 35+ days. Standard logs: 7-14 days. Debug/verbose: drop at ingest, or 7 days | Recommended | ADOPT-05 |
 | 5.3 | **Span sampling for high-volume services** | Low-value spans: sample at 10:1. Medium-value: 2:1. High-value: full retention | Recommended | ADOPT-05 |
-| 5.4 | **Use `samplingRatio` for exploratory queries** | Set `samplingRatio:10` or `samplingRatio:100` on ad-hoc DQL queries against large datasets; multiply results back | Optional | ADOPT-05 |
-| 5.5 | **Use `scanLimitGBytes` on expensive queries** | Set `scanLimitGBytes:100` (or lower) to cap data scanning cost | Optional | ADOPT-05 |
+| 5.4 | **Use `samplingRatio` for exploratory queries** | Set `samplingRatio:10` or `samplingRatio:100` on ad-hoc `fetch logs` queries against large datasets; multiply counts back up | Optional | OPLOGS-99 |
+| 5.5 | **Use `scanLimitGBytes` on expensive queries** | Set `scanLimitGBytes:100` (or lower) to cap data scanning cost | Optional | ORGNZ-03 |
 | 5.6 | **Replace raw log storage with metric extraction** | For log patterns you only need to count (not inspect), extract as metrics via OpenPipeline instead of storing raw records | Optional | ADOPT-05 |
-| 5.7 | **Review monitoring mode quarterly** | Verify that `FULL_STACK` hosts genuinely need full-stack; downgrade infrastructure-only hosts to `INFRASTRUCTURE` mode | Recommended | ADOPT-05 |
-| 5.8 | **Track daily log ingestion over 7 days** | Run a 7-day daily log count query monthly; flag any day exceeding 2x the baseline as a cost anomaly | Recommended | ADOPT-02, ADOPT-05 |
+| 5.7 | **Review monitoring mode quarterly** | Verify from the billing events that Full-Stack hosts genuinely need Full-Stack; move hosts that run nothing you trace to Infrastructure | Recommended | ADOPT-05, ADOPT-06 |
+| 5.8 | **Track daily log ingestion over 7 days** | Run the 7-day billed-log-ingest query monthly; flag any day exceeding 2x the baseline as a cost anomaly | Recommended | ADOPT-02, ADOPT-05 |
 
 <a id="automation-workflows"></a>
 
@@ -118,7 +119,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 |---|--------------|----------------|----------|--------|
 | 6.1 | **Automate alert triage and routing** | Create a Dynatrace Workflow that routes detected problems to the correct team channel; run daily | Critical | ADOPT-05 |
 | 6.2 | **Automate top 5 frequent problem responses** | Build Workflows for the 5 most frequent, well-understood problem types; start with triage, progress to remediation | Recommended | ADOPT-05 |
-| 6.3 | **Delayed notification for transient problems** | Configure a 5-minute delay before alerting on problem types that auto-resolve within 5 minutes | Recommended | ADOPT-05 |
+| 6.3 | **Minimum duration for transient problems** | Set a 5-minute Minimum duration on the problem-triggered workflows that notify people, for problem types that auto-resolve within 5 minutes (FAQ-21) | Recommended | ADOPT-05 |
 | 6.4 | **Scheduled DQL reports for leadership** | Create a weekly scheduled notebook that runs MTTR, MTTD, noise ratio, and problem count queries automatically | Recommended | ADOPT-05 |
 | 6.5 | **Automated postmortem data collection** | Build a Workflow triggered by problem closure that collects timeline, root cause, affected entities, and duration into a structured record | Optional | ADOPT-05 |
 | 6.6 | **Dynatrace Intelligence forecasting for capacity** | Enable Dynatrace Intelligence metric forecasting for CPU, memory, and disk on all production hosts; review monthly | Optional | ADOPT-01, ADOPT-05 |
@@ -131,7 +132,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 |---|--------------|----------------|----------|--------|
 | 7.1 | **Eliminate shared admin accounts** | Replace shared admin credentials with individual user accounts bound to IAM groups | Critical | ADOPT-05 |
 | 7.2 | **Least-privilege IAM policies** | Define policies per team granting only the permissions required for their role | Critical | ADOPT-05 |
-| 7.3 | **Data-scoped access** | Use segments (or management zones for Gen2) to restrict data visibility by team | Recommended | ADOPT-05 |
+| 7.3 | **Data-scoped access** | Restrict data access with security context and policy boundaries (ORGNZ, IAM). Segments only filter what a user sees on screen — they are not access control (FAQ-24). Management zones remain the classic equivalent | Recommended | ADOPT-05 |
 | 7.4 | **IAM group per team** | Create an IAM group for every team that uses Dynatrace (e.g., `sre-team`, `platform-team`, `app-dev`) | Recommended | ADOPT-05 |
 
 <a id="team-enablement"></a>
@@ -147,7 +148,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | 8.5 | **Reduce escalation tickets by 50%** | Track escalation tickets to the platform team; target 50% reduction within 3 months of champion program launch | Recommended | ADOPT-04 |
 | 8.6 | **Monthly champion sync** | Hold a monthly meeting for all Dynatrace champions to share learnings and review platform changes | Recommended | ADOPT-04 |
 | 8.7 | **Quarterly skills refresh** | Run a quarterly training session for champions covering new features and advanced patterns | Optional | ADOPT-04 |
-| 8.8 | **Role-based learning paths** | Assign the correct notebook study sequence per role: SRE (ONBRD, OPLOGS, SPANS, WFLOW, SYNTH), Developer (ONBRD 1-5, SPANS, OTEL, ORGNZ 1-3), Platform (ONBRD, K8S, IAM, AUTOM, ORGNZ, OPMIG), Manager (ADOPT, ONBRD 1-3, ORGNZ 1) | Recommended | ADOPT-04 |
+| 8.8 | **Role-based learning paths** | Assign the notebook study sequence per role: SRE (ONBRD, OPLOGS, SPANS, ALERT, WFLOW, SLO, SYNTH, AIOPS), Developer (ONBRD 1-5, SPANS, OTEL, ORGNZ 1-3, FAQ-03/15), Platform (ONBRD, K8S, IAM, AUTOM, ORGNZ, OPMIG, FINOPS), Manager (ADOPT, ONBRD 1-3, ORGNZ 1, ALERT-01/SLO-01, FINOPS-01) | Recommended | ADOPT-04 |
 
 <a id="dashboards-reporting"></a>
 
@@ -157,7 +158,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 |---|--------------|----------------|----------|--------|
 | 9.1 | **3 standard dashboard templates** | Create exactly 3 organizational templates: Infrastructure Health, Application Health, Business KPIs | Recommended | ADOPT-05 |
 | 9.2 | **Retire unused dashboards** | Audit dashboards quarterly; delete any dashboard with no views in the last 90 days | Optional | ADOPT-05 |
-| 9.3 | **Weekly platform health scorecard** | Review 8 metrics weekly: host coverage, agent version currency, service discovery, log ingestion stability, span ingestion, ActiveGate health, Dynatrace Intelligence activity, alert noise ratio | Critical | ADOPT-02 |
+| 9.3 | **Weekly platform health scorecard** | Review 8 metrics weekly: host coverage, agent version currency, service discovery, log ingestion stability, span ingestion, ActiveGate health, Dynatrace Intelligence activity, alert quality | Critical | ADOPT-02 |
 | 9.4 | **Scorecard thresholds** | 8/8 green = Healthy. 6-7 = Minor gaps (fix this sprint). 4-5 = Significant (prioritize). < 4 = Critical (escalate) | Critical | ADOPT-02 |
 | 9.5 | **Monthly ROI report** | Combine MTTR/MTTD trends, problem count trends, data volume, enablement progress, and estimated cost avoidance into a single monthly report for leadership | Recommended | ADOPT-05 |
 | 9.6 | **SLO dashboard for leadership** | Create a dedicated SLO dashboard showing burn rate and compliance for the top 10 services | Recommended | ADOPT-05 |
@@ -168,10 +169,10 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
-| 10.1 | **Configuration-as-code with Monaco** | Export all Dynatrace configuration to Monaco format and store in a Git repository | Recommended | ADOPT-01, ADOPT-05 |
+| 10.1 | **Configuration as code** | Export Dynatrace configuration with Monaco or the Terraform provider and store it in a Git repository | Recommended | ADOPT-01, ADOPT-05 |
 | 10.2 | **CI/CD pipeline for config deployment** | Deploy Dynatrace configuration changes through a CI/CD pipeline; never apply changes manually in production | Recommended | ADOPT-05 |
-| 10.3 | **Drift detection** | Enable Monaco drift detection to catch manual configuration changes; run weekly | Recommended | ADOPT-05 |
-| 10.4 | **Dashboard-as-code templates** | Store dashboard JSON templates in the config repo; provision new service dashboards from templates via Monaco | Optional | ADOPT-05 |
+| 10.3 | **Drift detection** | Check weekly for manual configuration changes — Terraform `plan` reports drift natively; with Monaco, download the live configuration on a schedule and diff it against the repository | Recommended | ADOPT-05 |
+| 10.4 | **Dashboard-as-code templates** | Store dashboard JSON templates in the config repo; provision new service dashboards from templates via Monaco or Terraform | Optional | ADOPT-05 |
 
 <a id="tracing-spans"></a>
 
@@ -180,7 +181,7 @@ This notebook consolidates every actionable best practice from the ADOPT series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|----------------|----------|--------|
 | 11.1 | **OpenTelemetry for uninstrumented services** | Implement OpenTelemetry SDKs for any service not covered by OneAgent auto-instrumentation | Recommended | ADOPT-05 |
-| 11.2 | **OTLP endpoint routing** | Send all OTel data through the Dynatrace OTLP endpoint; do not use a separate collector unless required | Recommended | ADOPT-05 |
+| 11.2 | **OTLP endpoint routing** | Send OTel data to the Dynatrace OTLP endpoint; add an OpenTelemetry Collector when you need batching, sampling, or fan-out (OTEL) | Recommended | ADOPT-05 |
 | 11.3 | **Validate trace context propagation** | Verify end-to-end trace context propagation across all service boundaries; broken propagation = blind spots | Critical | ADOPT-05 |
 | 11.4 | **Span volume monitoring** | Query top 10 services by span count weekly; apply head-based or tail-based sampling to high-volume, low-value services | Recommended | ADOPT-05 |
 

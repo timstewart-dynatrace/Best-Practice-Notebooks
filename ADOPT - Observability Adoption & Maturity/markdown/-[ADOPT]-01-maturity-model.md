@@ -1,24 +1,22 @@
 # ADOPT-01: Observability Maturity Model
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 07/24/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
 Observability maturity is not a binary state — organizations progress through distinct levels as their practices, tooling, and culture evolve. This notebook introduces a five-level maturity model for Dynatrace-powered observability, provides assessment criteria for each level, and demonstrates how to use DQL queries to gauge your current position. Understanding where you stand today is the first step toward building a roadmap for improvement.
 
-### Sprint 1.337 (April 2026): Platform-Evolution Markers for Maturity Assessment
+> **This is a community framework, not a Dynatrace-published model.** The five levels, their indicators, and the feature mapping below are a planning aid assembled from community practice. Use them to structure a conversation about where to invest next, not as a benchmark Dynatrace measures you against.
 
-Sprint 1.337 brought three changes that map directly onto the adoption maturity model documented in this series — they each represent a platform-evolution marker that mature programs should be tracking:
+### Platform-Evolution Markers Worth Tracking
 
-1. **OneAgent primary fields/tags at the source** (top-level `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` + customer-defined primary tags) — **maturity marker:** `ADOPTING` programs surface these in 1-3 dashboards; `MATURE` programs use them to drive bucket routing, IAM ABAC, and cost allocation; `OPTIMIZED` programs have phased out OpenPipeline parse processors for OneAgent-instrumented data.
-2. **Extensions 2.0 adoption** (managed via the Dynatrace API Application → Extensions surface, Platform tokens) — **maturity marker:** measure migration off Extensions Framework 1.0 onto **Extensions 2.0**, the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Track this as a target for the next quarterly health review (ADOPT-02).
-3. **OneAgent + OpenTelemetry-injector coexistence guidance** (K8S-11 § 2a) — **maturity marker:** programs running both injectors need explicit per-namespace decisions. `MATURE` programs document the canonical split (e.g., OTel-managed namespaces excluded from OneAgent injection); `OPTIMIZED` programs enforce it via OPA/Conftest gates.
+Three platform changes give a maturity program concrete, measurable milestones. Each maps onto the levels in this notebook:
 
-Add these to the platform-health-assessment checklist in ADOPT-02 and the success metrics in ADOPT-03.
+1. **Primary Grail fields and tags enriched at the source** (OneAgent 1.333+) — OneAgent can stamp `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` and `primary_tags.*` onto every signal it sends. **Level 3** programs surface these fields in dashboards; **Level 4** programs drive bucket routing, access control and cost allocation from them; **Level 5** programs set them at deployment time so no host or process ships without them. Configuration lives in ORGNZ and FAQ-02.
+2. **Extensions Framework 1.0 retirement** — Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31). JMX and PMI extensions on Framework 1.0 were carried past that date as deprecated, and now have their own end-of-support date: **July 1, 2027**. Count the Framework 1.0 extensions still running and track that number to zero in the quarterly health review (ADOPT-02).
+3. **OneAgent and OpenTelemetry-injector coexistence** (K8S-11 § 2a) — clusters that run both injectors need an explicit per-namespace decision. A **Level 3** program documents which namespaces each injector owns; a **Level 5** program enforces that split with an admission or policy gate.
 
-**Configuration API → Settings v2 acceleration** also belongs in this list as a deprecation marker — automation pipelines targeting legacy Configuration API endpoints are now on the legacy path; mature programs should be planning the migration.
-
----
+Add these to the platform-health checklist in ADOPT-02 and the success metrics in ADOPT-03.
 
 ---
 
@@ -40,8 +38,8 @@ Add these to the platform-health-assessment checklist in ADOPT-02 and the succes
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
-| **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:entities:read`, `storage:events:read` |
+| **Dynatrace Environment** | Dynatrace SaaS (Grail). The DQL in this notebook does not apply to Dynatrace Managed, which has no Grail — the MCH series covers Managed. |
+| **Permissions** | `storage:entities:read`, `storage:smartscape:read`, `storage:logs:read`, `storage:spans:read`, `storage:events:read` |
 | **Data** | At least 24 hours of ingested monitoring data |
 | **Audience** | Platform engineers, SREs, engineering managers, and leadership stakeholders |
 
@@ -115,7 +113,7 @@ Most organizations operate between Level 1 and Level 3. The goal is not necessar
 
 - Full-stack OneAgent deployment
 - Dynatrace Intelligence problem detection enabled
-- Custom metric alerting profiles
+- Custom anomaly detectors for known failure modes (ALERT-02)
 - Basic synthetic monitoring for key URLs
 
 <a id="level-3-data-driven"></a>
@@ -144,7 +142,7 @@ Most organizations operate between Level 1 and Level 3. The goal is not necessar
 
 - Grail data lakehouse with DQL queries
 - OpenPipeline for log routing and enrichment
-- SLO definitions and burn-rate alerting
+- SLO definitions, with burn-rate alerting built as described in SLO-04
 - Distributed tracing with span analytics
 - Real User Monitoring (RUM) and Session Replay
 
@@ -200,8 +198,8 @@ Most organizations operate between Level 1 and Level 3. The goal is not necessar
 ### Dynatrace Features at This Level
 
 - Dynatrace Workflows for automated remediation
-- AutomationEngine with event-driven triggers
-- Configuration-as-code (Monaco) for drift detection
+- Event-driven workflow triggers (problems, events, schedules)
+- Configuration as code (Monaco or Terraform) with a drift check — Terraform's `plan` reports drift natively; with Monaco it is a scheduled download-and-diff (AUTOM)
 - Full API-driven operations
 
 <a id="assessing-current-level"></a>
@@ -215,16 +213,19 @@ The following DQL queries help you assess where your organization stands today. 
 Understanding how many entities Dynatrace is monitoring gives a baseline for agent deployment coverage.
 
 ```dql
-// Count monitored entities by type to assess coverage breadth
-fetch dt.entity.host
+// Count monitored entities seen in the last 24 hours, by type
+fetch dt.entity.host, from:-24h
 | summarize host_count = count()
-| append [fetch dt.entity.service | summarize service_count = count()]
-| append [fetch dt.entity.process_group | summarize process_group_count = count()]
-| append [fetch dt.entity.application | summarize application_count = count()]
+| append [fetch dt.entity.service, from:-24h | summarize service_count = count()]
+| append [fetch dt.entity.process_group, from:-24h | summarize process_group_count = count()]
+| append [smartscapeNodes "FRONTEND", from:-24h | summarize frontend_count = count()]
 
-// Keep classic: this is a completeness inventory spanning types not all present on Grail
-// Smartscape (e.g. application, process groups). Smartscape would count live topology, not
-// the full monitored inventory — the wrong basis for a coverage-breadth assessment.
+// Frontends (web and mobile apps) are counted on Smartscape: on a tenant using the current RUM,
+// classic dt.entity.application returned 0 while smartscapeNodes "FRONTEND" returned 34
+// (validated 10/01/2026). Hosts, services and process groups stay on the classic surface here
+// because this is an inventory, and FAQ-16 explains why the two surfaces can disagree on counts.
+// Every subquery carries from:-24h so all four counts cover the same window.
+
 ```
 
 ### 7.2 Data Ingestion Diversity
@@ -234,13 +235,13 @@ Mature organizations ingest multiple telemetry types. This query checks which da
 ```dql
 // Check log ingestion volume over the last 24 hours
 fetch logs, from:-24h
-| summarize log_count = count(), distinct_sources = countDistinct(log.source)
+| summarize {log_count = count(), distinct_sources = countDistinct(log.source)}
 ```
 
 ```dql
 // Check span ingestion to verify distributed tracing is active
 fetch spans, from:-24h
-| summarize span_count = count(), distinct_services = countDistinct(dt.entity.service)
+| summarize {span_count = count(), distinct_services = countDistinct(dt.entity.service)}
 ```
 
 ### 7.3 Dynatrace Intelligence Problem Detection Activity
@@ -256,48 +257,59 @@ fetch dt.davis.problems, from:-7d
 
 ### 7.4 Alerting Quality Check
 
-A high ratio of duplicate or frequent events suggests noisy alerting — a characteristic of lower maturity levels.
+Two signals separate a noisy problem feed from a useful one, and both can be read straight from problem records:
+
+- **Short-lived problems** — problems that close within a few minutes usually mean a detector that is too sensitive, or a transient nobody needs to be woken for.
+- **Problems raised during maintenance** — if a large share of problems open inside maintenance windows, the windows are doing the suppression work that detection should not need.
+
+Earlier versions of this notebook measured noise with `dt.davis.is_frequent_event`. Do not use that flag for this: frequent issue detection is being phased out on the latest Dynatrace platform, and on the validation tenant it was set on **0 of 15,227 problems** in 30 days — a "noise ratio" built on it reads near zero however noisy alerting actually is.
 
 ```dql
-// Assess alerting noise: frequent and duplicate problems vs unique problems
+// Alert-quality signals over 7 days: short-lived problems and problems raised during maintenance
 fetch dt.davis.problems, from:-7d
-| summarize
-    total = count(),
-    frequent = countIf(dt.davis.is_frequent_event == true),
-    duplicate = countIf(dt.davis.is_duplicate == true)
-| fieldsAdd unique = total - frequent - duplicate
-| fieldsAdd noise_ratio = round((toDouble(frequent + duplicate) / toDouble(total)) * 100, decimals: 1)
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_min = resolved_problem_duration / 1m
+| summarize {
+    problems = count(),
+    closed_within_5min = countIf(duration_min < 5),
+    during_maintenance = countIf(maintenance.is_under_maintenance == true)
+  }
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(problems) * 100, decimals: 1)
+| fieldsAdd maintenance_pct = round(toDouble(during_maintenance) / toDouble(problems) * 100, decimals: 1)
+
 ```
 
-> **Interpreting the noise ratio:**
-> - **< 20%** — Healthy alerting (Level 3+)
-> - **20-50%** — Moderate noise, review alerting profiles (Level 2)
-> - **> 50%** — Significant noise, alerting needs overhaul (Level 1)
+> **Interpreting the result.** Dynatrace does not publish a healthy value for either percentage, so treat them as trends rather than grades. On the validation tenant (10/01/2026) the query returned 20.8% short-lived and 34.2% during maintenance. In community practice a short-lived share that keeps rising, or a maintenance share above roughly a third, are both signs that problems reach people who do not need to act on them. ADOPT-03 § 5 breaks the short-lived share down by problem type, which is where the fix usually is.
 
 <a id="feature-mapping"></a>
 
 ## 8. Mapping Dynatrace Features to Maturity Levels
 
-Use this table to identify which Dynatrace capabilities to adopt next based on your target maturity level.
+Use this table to identify which Dynatrace capabilities to adopt next based on your target maturity level. The level assignments are community guidance, not a product requirement — any feature can be adopted earlier.
 
-| Feature | L1 | L2 | L3 | L4 | L5 |
-|---------|----|----|----|----|----|
-| OneAgent (Infrastructure) | X | X | X | X | X |
-| OneAgent (Full-Stack APM) | | X | X | X | X |
-| Dynatrace Intelligence Problem Detection | | X | X | X | X |
-| Synthetic Monitoring | | X | X | X | X |
-| Log Management (Grail) | | | X | X | X |
-| Distributed Tracing (Spans) | | | X | X | X |
-| OpenPipeline | | | X | X | X |
-| SLO Definitions | | | X | X | X |
-| DQL / Notebooks | | | X | X | X |
-| Real User Monitoring | | | X | X | X |
-| Business Events | | | | X | X |
-| Dynatrace Intelligence Forecasting | | | | X | X |
-| Ownership & Teams | | | | X | X |
-| Workflows (Automation) | | | | | X |
-| Configuration-as-Code (Monaco) | | | | | X |
-| AutomationEngine | | | | | X |
+| Feature | L1 | L2 | L3 | L4 | L5 | Series |
+|---------|----|----|----|----|----|--------|
+| OneAgent (Infrastructure) | X | X | X | X | X | ONBRD |
+| OneAgent (Full-Stack) | | X | X | X | X | ONBRD, ADOPT-06 |
+| Kubernetes monitoring | | X | X | X | X | K8S |
+| Dynatrace Intelligence problem detection | | X | X | X | X | AIOPS |
+| Synthetic Monitoring | | X | X | X | X | SYNTH |
+| Log Management (Grail) | | | X | X | X | OPLOGS |
+| Distributed Tracing (Spans) | | | X | X | X | SPANS |
+| OpenTelemetry ingest | | | X | X | X | OTEL |
+| OpenPipeline | | | X | X | X | OPLOGS, OPIPE |
+| Buckets, security context, segments | | | X | X | X | ORGNZ |
+| SLO definitions | | | X | X | X | SLO |
+| DQL / Notebooks / Dashboards | | | X | X | X | DASH |
+| Real User Monitoring | | | X | X | X | WEBRUM, MOBL |
+| Application Security | | | X | X | X | APPSEC |
+| Business Events | | | | X | X | BIZEV |
+| Dynatrace Intelligence forecasting | | | | X | X | AIOPS |
+| Ownership and routing by team | | | | X | X | FAQ-21, ALERT |
+| Cost allocation and consumption tracking | | | | X | X | FINOPS |
+| Workflows (AutomationEngine) | | | | | X | WFLOW |
+| Site Reliability Guardian (release gates) | | | | | X | SLO-06 |
+| Configuration as code (Monaco / Terraform) | | | | | X | AUTOM |
 
 > **Tip:** You do not need to adopt every feature at every level. Focus on the features that address your most pressing gaps.
 
@@ -317,6 +329,13 @@ Use this table to identify which Dynatrace capabilities to adopt next based on y
 - Proceed to **ADOPT-02: Platform Health Assessment** to build a detailed scorecard of your current Dynatrace deployment
 - Use the maturity assessment results to prioritize features for adoption
 - Share the maturity model with leadership to align on observability investment priorities
+
+## References
+
+- [Detection of frequent issues (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis/detection-of-frequent-issues)
+- [Transition from frequent issue detection (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/frequent-issue-detection) — *"Frequent issue detection is being phased out on the latest Dynatrace platform."*
+- [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment) — *"OneAgent version 1.333"*
+- [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027."*
 
 ---
 
