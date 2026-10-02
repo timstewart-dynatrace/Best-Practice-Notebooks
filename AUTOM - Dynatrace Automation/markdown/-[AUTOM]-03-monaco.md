@@ -1,6 +1,6 @@
 # AUTOM-03: Monaco Configuration-as-Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 09/29/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.
 
@@ -132,7 +132,7 @@ monaco download \
   --only-slo-v2 --only-segments --only-automation --only-documents
 ```
 
-The full set of `--only-*` flags is `--only-settings`, `--only-apis`, `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets` and `--only-openpipeline` (read from the download command's source, `cmd/monaco/download/download_command.go`, at v2.30.0).
+The full set of `--only-*` flags is `--only-settings`, `--only-apis`, `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets` and `--only-openpipeline` (read from the download command's source, `cmd/monaco/download/download_command.go`, at v2.30.0). `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
 
 **Settings owned by other users (Monaco CLI 2.30.0+).** A download returns the settings objects the credential's user can see. For OpenPipeline, `--admin-access` also returns pipelines other users own — the release note: *"enabling this flag will also download configurations of different owners (other than the user that is assigned to the platform token or OAuth client). Requires `settings:objects:admin`."* The flag applies to owner-based OpenPipeline schemas only (`builtin:openpipeline.*`); on older CLI versions there is no equivalent. See [Using a Download as a Backup](#using-a-download-as-a-backup) for what else a download leaves out.
 

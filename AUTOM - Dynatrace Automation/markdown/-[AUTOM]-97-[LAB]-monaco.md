@@ -1,6 +1,6 @@
 # AUTOM-97 LAB: Monaco Configuration as Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -232,7 +232,7 @@ Monaco organizes downloaded configuration by type:
 | `settings` | Settings 2.0 objects | `builtin:davis.anomaly-detectors`, `builtin:ownership.teams`; classic estates also `builtin:alerting.profile`, `builtin:management-zones` |
 | `classic` | Classic Config API v1 | Request attributes, dashboards (classic) |
 
-The type names are Monaco's own config-type identifiers (`pkg/config/types.go`). The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` and `--only-openpipeline`, and can be combined.
+The type names are Monaco's own config-type identifiers (`pkg/config/types.go`). The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` and `--only-openpipeline`, and can be combined. `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
 
 > **Platform types need platform auth.** `slo-v2`, `document`, `automation`, `bucket` and `segment` configs come through the Platform APIs, so they appear only when the manifest environment has `auth.platformToken` or `auth.oAuth` (see §3).
 
@@ -384,7 +384,9 @@ configs:
 
 ### Classic — the alerting-profile version of this exercise
 
-> **Dynatrace Classic — unupgraded tenants only.** Kept for estates that still maintain alerting profiles. *"Alerting profiles and problem notifications are Dynatrace Classic."* Delay (`delayInMinutes`) has no field on the successor object; it becomes the workflow trigger's minimum problem duration.
+> **Dynatrace Classic — unupgraded tenants only.** Kept for estates that still maintain alerting profiles. *"Alerting profiles and problem notifications are Dynatrace Classic."* Delay (`delayInMinutes`) has no field on the successor object; it becomes the workflow trigger's **Minimum duration** option.
+>
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."*, [Problem and event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."*</sub>
 
 `dynatrace-config/my-project/alerting-profiles/config.yaml`:
 
