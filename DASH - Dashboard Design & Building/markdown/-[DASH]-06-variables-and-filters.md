@@ -1,6 +1,6 @@
 # DASH-06: Variables and Filters
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ Variables transform a static dashboard into a dynamic, reusable tool. Instead of
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:spans:read`, `storage:entities:read` |
 | **Dashboard Access** | `document:documents:write` for creating dashboards with variables |
 | **Prior Reading** | DASH-01 through DASH-05 |
@@ -149,6 +149,10 @@ fetch spans, from:-1h
 
 Once variables are defined on a dashboard, reference them in tile DQL queries using the `$key` syntax.
 
+> **Do not put quotes around the variable.** By default the value is substituted already wrapped in double quotes — *"the variable value is wrapped in doublequote"* characters — so `== $service` is right and `== "$service"` produces `""checkout-service""`, which matches nothing. The variables page documents other substitution strategies for when you need the raw value.
+>
+> <sub>**Sources:** [Dashboard variables (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-variable)</sub>
+
 ### Patterns for Using Variables in DQL
 
 | Pattern | DQL Example | Notes |
@@ -211,7 +215,7 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-2h, by:{dt.entity.host}
 |------|--------------|
 | 1. Variable definition | Dashboard config defines $service with a query-based dropdown |
 | 2. User selects value | "checkout-service" picked from dropdown |
-| 3. DQL substitution | `| filter service.name == "$service"` becomes `| filter service.name == "checkout-service"` in tile queries |
+| 3. DQL substitution | `| filter service.name == $service` becomes `| filter service.name == "checkout-service"` in tile queries (the substitution adds the quotes) |
 | 4. Tiles re-execute | Tiles referencing $service re-run; tiles not referencing it stay unchanged |
 Tiles that reference $service: P95 Latency, Error Rate, Top Endpoints (all update). Tiles that don't: Total Hosts, Active Problems, Recent Deployments (unchanged).
 For environments where SVG doesn't render

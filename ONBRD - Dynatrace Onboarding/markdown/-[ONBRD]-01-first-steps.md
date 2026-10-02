@@ -1,6 +1,6 @@
 # ONBRD-01: Getting Started: Your First Steps in Dynatrace
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Finding Your Way Around
 Welcome to Dynatrace. This notebook helps you get oriented in your new environment—where to find things, how to navigate, and what to do first.
@@ -169,14 +169,15 @@ fetch dt.entity.host
 ```dql
 // List all discovered hosts
 fetch dt.entity.host
-| fields entity.name, state, monitoringMode
+| fields entity.name, state
 | sort entity.name
 | limit 50
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 // Other fields do map: entity.name -> name.
 ```
 

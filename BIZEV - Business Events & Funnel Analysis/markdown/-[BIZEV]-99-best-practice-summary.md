@@ -1,6 +1,6 @@
 # BIZEV-99: Best Practice Summary
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -55,7 +55,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 9 | Start with OneAgent auto-capture for web apps | Configure capture rules in **Settings > Collect and Capture > Business events** | Critical | Ingestion |
 | 10 | Use CloudEvents format for API ingestion | `Content-Type: application/cloudevents+json` with `specversion`, `type`, `source`, `data` fields | Critical | Ingestion |
 | 11 | Use batch ingestion for high-volume scenarios | `Content-Type: application/cloudevents-batch+json` — send arrays of events in a single POST | Recommended | Ingestion |
-| 12 | Implement retry logic with exponential backoff | Required when sustained throughput exceeds 1,000 events/second | Recommended | Ingestion |
+| 12 | Implement retry logic with exponential backoff | Retry on `429` and `5xx`; keep each request under the documented 5 MB payload limit (no request-rate figure is published) | Recommended | Ingestion |
 | 13 | Use the RUM and mobile APIs for client-side capture | `dynatrace.sendBizEvent(type, fields)` (RUM JavaScript API) or the mobile agents' equivalent; backend code without a capture rule uses the ingest API — there is no OneAgent SDK method for business events | Recommended | Ingestion |
 | 14 | Use OpenPipeline for span-to-bizevent mapping | A **Business event** processor in the OpenPipeline **Data extraction** stage emits a new bizevent per matching span — no second instrumentation | Recommended | Ingestion |
 | 15 | Never double-instrument | If spans already carry business data, extract it with a Business event processor (Data extraction stage) — do not add a second telemetry call in code | Critical | Ingestion |
@@ -94,7 +94,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 34 | Measure time between funnel steps | Convert timestamps to millis, subtract, divide by 1000 for seconds: `(unixMillisFromTimestamp(step2_time) - unixMillisFromTimestamp(step1_time)) / 1000.0` | Recommended | Analysis |
 | 35 | Report `avg`, `median`, and `p95` for inter-step timing | All three are needed to understand the distribution of user behavior | Recommended | Analysis |
 | 36 | Segment funnels by `event.provider` and `event.category` | Reveals which channels and business lines convert best | Recommended | Segmentation |
-| 37 | Track daily conversion rate trends over 7+ days | Use `bin(timestamp, 1d)` with `summarize by:{day}` to measure campaign/release impact | Recommended | Trending |
+| 37 | Track daily conversion rate trends over 7+ days | Use `bin(timestamp, 24h)` with `summarize by:{day}` to measure campaign/release impact (`1d` is rewritten to `24h` with a notification; days are UTC-aligned) | Recommended | Trending |
 
 <a id="revenue-and-impact-analysis"></a>
 
@@ -105,9 +105,9 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 38 | Correlate detected problems with business event volume | Overlay `fetch dt.davis.problems` timelines with `fetch bizevents` volume to visualize impact | Critical | Incident Impact |
 | 39 | Use `spread:` for concurrent problem timelines | `makeTimeseries count = count(), spread: timeframe(from: event.start, to: coalesce(event.end, now()))` | Recommended | DQL Pattern |
 | 40 | Compare incident periods against baselines | Compare same hour yesterday or same day last week using `bin(now(), 24h)` offsets | Critical | Incident Impact |
-| 41 | Filter to business hours for impact assessment | `getDayOfWeek(timestamp) >= 1 AND getDayOfWeek(timestamp) <= 5 AND getHour(timestamp) >= 9 AND getHour(timestamp) < 17` | Recommended | Context |
+| 41 | Filter to business hours for impact assessment | Pass your timezone, or 9–5 is UTC: `getDayOfWeek(timestamp, timezone: "<tz>") <= 5 AND getHour(timestamp, timezone: "<tz>") >= 9 AND getHour(timestamp, timezone: "<tz>") < 17` (ISO days: 1 = Monday) | Recommended | Context |
 | 42 | Convert Dynatrace Intelligence `resolved_problem_duration` from nanoseconds to hours | `resolved_problem_duration / 1h` — the field is in nanoseconds, not milliseconds | Critical | Data Conversion |
-| 43 | Exclude duplicate and frequent problems from impact analysis | `filter dt.davis.is_duplicate == false AND dt.davis.is_frequent_event == false` | Critical | Data Quality |
+| 43 | Exclude duplicate problems from impact analysis | `filter dt.davis.is_duplicate == false`. Do not add `dt.davis.is_frequent_event` — frequent issue detection is being phased out and the flag no longer separates anything (ADOPT-03 §5) | Critical | Data Quality |
 | 44 | Exclude maintenance windows from SLA calculations | `filter maintenance.is_under_maintenance == false` | Recommended | Data Quality |
 | 45 | Use `sum(toDouble(amount))` for revenue calculations | Always cast `amount` to double before aggregation | Critical | DQL Pattern |
 | 46 | Track hourly revenue to detect incident-correlated dips | `makeTimeseries hourly_revenue = sum(toDouble(amount)), interval:1h` | Recommended | Monitoring |
@@ -174,7 +174,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 |---|---------------|-----------------|----------|----------|
 | 79 | Define a Transaction Success Rate SLO | Target: 99.5% — Formula: `successful / total * 100` from payment events | Critical | SLO |
 | 80 | Define a Business Availability SLO | Target: 99.9% — Formula: hours with at least 1 business event / total hours * 100 | Critical | SLO |
-| 81 | Define an MTTR SLO | Target: < 2 hours — Formula: `avg(resolved_problem_duration)` in hours, excluding duplicates and frequent events | Recommended | SLO |
+| 81 | Define an MTTR SLO | Target: < 2 hours — Formula: `avg(resolved_problem_duration)` in hours, excluding duplicates | Recommended | SLO |
 | 82 | Define a Revenue Impact per Incident SLO | Target: < $5,000 — Formula: baseline revenue minus incident-period revenue | Recommended | SLO |
 | 83 | Do not derive SLA availability from summed problem durations | Problems overlap, so summed durations are entity-hours of impact, not downtime — they can exceed the period many times over (BIZEV-04 §6). Define availability as an SLO on good ÷ total events (SLO-02/03) | Critical | SLA |
 | 84 | Include SLO status indicator in every report | `if(success_rate >= 99.5, then: "MET", else: "MISSED")` | Critical | Reporting |

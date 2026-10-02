@@ -1,6 +1,6 @@
 # DASH-99: Best Practice Summary
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -30,7 +30,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | Requirement | Details |
 |-------------|----------|
 | **Prior Reading** | DASH-01 through DASH-07 for full context |
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:events:read`, `storage:spans:read`, `document:documents:write` |
 
 <a id="dashboard-architecture"></a>
@@ -43,7 +43,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 2 | One purpose per dashboard | Each dashboard answers one audience's questions; never build an "everything" dashboard | Critical | DASH-01 |
 | 3 | Connect tiers with drill-down links | Add markdown tiles with dashboard links so users navigate Executive > Operations > Engineering | Recommended | DASH-02 |
 | 4 | Use dashboards for monitoring, notebooks for investigation | Dashboards = continuous monitoring, team visibility, stakeholder reporting. Notebooks = ad-hoc exploration, incident investigation, training | Critical | DASH-01 |
-| 5 | Organize tiles into sections | Group related tiles into named sections (e.g., "Service Health", "Infrastructure"); sections can be collapsed | Recommended | DASH-01 |
+| 5 | Group related tiles under header tiles | Dashboards have no collapsible section container — place related tiles together under a Markdown header tile (e.g., "Service Health", "Infrastructure") | Recommended | DASH-01 |
 
 <a id="design-and-layout"></a>
 
@@ -88,7 +88,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 26 | Track error budget for SLA targets | 99.9% SLA = 43.2 min/month budget. 99.5% = 3.6 hours. 99.0% = 7.2 hours | Recommended | DASH-03 |
 | 27 | Use 7d-30d time ranges | Executive dashboards show weekly or monthly trends, not minute-by-minute data | Critical | DASH-02 |
 | 28 | No technical jargon | "Availability" not "HTTP 200 ratio". "Resolution Time" not "MTTR" if audience is non-technical | Recommended | DASH-02 |
-| 29 | Exclude duplicate and frequent detected problems | Always filter: `dt.davis.is_duplicate == false` and `dt.davis.is_frequent_event == false` | Critical | DASH-03 |
+| 29 | Exclude duplicate detected problems | Always filter `dt.davis.is_duplicate == false`. Do not add `dt.davis.is_frequent_event` — frequent issue detection is being phased out and the flag no longer separates anything (ADOPT-03 §5) | Critical | DASH-03 |
 | 30 | Dashboard must be understandable in <30 seconds | If it takes longer, push detail down to operations tier | Critical | DASH-02 |
 
 <a id="operations-tier"></a>
@@ -158,7 +158,7 @@ This notebook consolidates every actionable best practice from the DASH series (
 | 66 | Use DQL variables for services and hosts | Variable type: DQL, with a query over `smartscapeNodes` or `dt.entity.service` / `dt.entity.host`. The Dashboards app has no entity-selector type | Critical | DASH-06 |
 | 67 | Use List variables for fixed sets: namespaces, log levels, environments | Values discovered from actual data via DQL; switch to a DQL variable when the set changes often | Recommended | DASH-06 |
 | 68 | Reference the variable key, not its display name | DQL uses the key, derived from the name with every non-alphanumeric character replaced by `_`. Keep keys lowercase with underscores: `$k8s_namespace`, `$service`, `$environment` | Critical | DASH-06 |
-| 69 | Reference variables in filter clauses | `filter dt.entity.host == $host` for DQL entity variables; `filter k8s.namespace.name == $namespace` for List or Free-text; `filter in(loglevel, array($log_levels))` for multi-select | Critical | DASH-06 |
+| 69 | Reference variables in filter clauses | `filter dt.entity.host == $host` for DQL entity variables; `filter k8s.namespace.name == $namespace` for List or Free-text; `filter in(loglevel, array($log_levels))` for multi-select Never wrap `$var` in quotes — the substitution adds them | Critical | DASH-06 |
 | 70 | Provide an "All" option on every variable | Let users remove the filter to see aggregate data | Recommended | DASH-06 |
 | 71 | Use the same variable name across all related tiles | Ensures filter propagation: changing the dropdown updates every tile that references it | Critical | DASH-06 |
 | 72 | Chain variables for hierarchical filtering | Second variable's query-based options reference the first variable (e.g., cluster > namespace) | Optional | DASH-06 |

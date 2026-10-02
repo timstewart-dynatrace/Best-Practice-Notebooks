@@ -1,6 +1,6 @@
 # BIZEV-02: Instrumentation
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -115,7 +115,9 @@ For high-volume scenarios, send multiple events in a single request using `appli
 ]
 ```
 
-> **Important:** The API has rate limits. For sustained high throughput (>1000 events/second), use batch ingestion and implement retry logic with exponential backoff.
+> **Important:** The documented limit is on payload size — *"The Business events API limits payload size to 5 MB per request."* No request-rate figure is published, so for high throughput send batches under that size and retry with exponential backoff on `429` and `5xx` responses.
+>
+> <sub>**Sources:** [Ingest business events via API (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources)</sub>
 
 ```dql
 // Verify API-ingested events are arriving
@@ -185,13 +187,13 @@ OpenPipeline matchers accept **double-quoted** strings only; a single-quoted val
 > **Note:** This approach avoids double-instrumentation. If your spans already carry business data, extract it in OpenPipeline rather than adding a second telemetry call to the code.
 
 ```dql
-// Look for business events that may have originated from spans
-// These often have trace/span correlation fields
+// Which trace-correlation fields do your business events actually carry?
+// The bizevents model in the semantic dictionary lists none, and the field names differ by
+// capture path — so discover them on your own records before filtering on any of them.
+// Wildcard fieldsKeep returns only the matching fields that exist.
 fetch bizevents, from:-24h
-| filter isNotNull(trace_id) or isNotNull(span_id)
-| summarize correlated_count = count(), by:{event.type}
-| sort correlated_count desc
-| limit 10
+| fieldsKeep event.type, event.provider, "*trace*", "*span*"
+| limit 20
 ```
 
 <a id="event-naming-best-practices"></a>

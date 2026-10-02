@@ -1,6 +1,6 @@
 # SPANS-07: Grail Buckets & OpenPipeline
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Data Architecture and Processing for Distributed Traces
 This notebook covers Dynatrace Grail's bucket architecture for span storage, OpenPipeline configuration patterns, and data governance strategies.
@@ -32,9 +32,9 @@ Before starting this notebook, ensure you have:
 - ✅ Understanding of Dynatrace Grail architecture
 - ✅ Admin access for bucket/pipeline configuration (optional)
 
-### OneAgent Attribute Enrichment (OneAgent 1.331+)
+### OneAgent Attribute Enrichment (OneAgent 1.333+)
 
-> **Requires:** OneAgent version **1.331** or later
+> **Requires:** OneAgent version **1.333** or later
 
 OneAgent can enrich **all telemetry signals** (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.
 

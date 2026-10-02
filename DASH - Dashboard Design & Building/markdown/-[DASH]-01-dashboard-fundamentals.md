@@ -1,6 +1,6 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -14,11 +14,11 @@ Dashboards are the primary visualization layer in Dynatrace, turning raw observa
 >
 > <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"Starting with Dynatrace version 1.346, Dynatrace applies stricter validation rules to dashboards and won't display dashboards that fail validation until you fix them."*</sub>
 
-### Sprint 1.337 (April 2026): New Dashboard Building Blocks
+### New Dashboard Building Blocks
 
-Sprint 1.337 introduced data shapes that make several dashboard patterns simpler:
+Recent platform changes make several dashboard patterns simpler:
 
-1. **OneAgent primary fields/tags as top-level fields** on all signals (Latest Dynatrace). Filters and `by:` groupings can dispatch on `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, and customer-defined `primary_tags.<key>` directly — no more `parse(content, ...)` in dashboard tile queries. Particularly impactful for executive dashboards (DASH-03) that need cost-by-business-unit views.
+1. **OneAgent primary fields/tags as top-level fields** (OneAgent 1.333+, Latest Dynatrace) on metrics, spans, logs, events and entities. Filters and `by:` groupings can dispatch on `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, and customer-defined `primary_tags.<key>` directly — no more `parse(content, ...)` in dashboard tile queries. Particularly impactful for executive dashboards (DASH-03) that need cost-by-business-unit views.
 2. **Ownership by team** — split by owning team with primary Grail tags, not a node attribute. There is no `ownership.*` field on Smartscape nodes: on a validation tenant (09/24/2026) `getNodeField(id, "ownership.team")` returned null for 35 of 35 services while `getNodeField(id, "name")` resolved all 35, and `dt.semantic_dictionary.fields` has no field containing `ownership`. Primary tags do reach metrics: *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags"* ([Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags)). So a tile can split by `primary_tags.team` directly:
 
    ```dql
@@ -27,7 +27,7 @@ Sprint 1.337 introduced data shapes that make several dashboard patterns simpler
 
    The split is only as good as the tag — where no `team` primary tag is set, every series lands in one null group. For notifying the owning team from a workflow, the Ownership app's *Get owners* action *"Retrieves owners from entities and team identifiers"* ([Actions for Ownership (DT docs)](https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions)).
 
-3. **OTel `service.name` enrichment** + new **`dt.service.name`** field — splitting service-level dashboards by OTel-canonical name now works without joining through entity enrichment.
+3. **`dt.service.name`** (semantic dictionary: `stable`, *"equal to the Smartscape service node name"*) sits beside the OTel `service.name` — split service-level tiles by name without joining through entity enrichment.
 
 ---
 
@@ -48,7 +48,7 @@ Sprint 1.337 introduced data shapes that make several dashboard patterns simpler
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:events:read` |
 | **Access** | Dashboard creation privileges (`document:documents:write`) |
 | **Data** | At least 1 hour of ingested logs and metrics |
@@ -67,7 +67,7 @@ Dynatrace provides two primary visualization tools, each designed for different 
 | **Interactivity** | Variables, filters, drill-down links | Inline DQL editing, iterative queries |
 | **Refresh** | Auto-refresh (configurable interval) | Manual execution per cell |
 | **Sharing** | Access for all, user/group shares, share links; scheduled delivery via Workflows (DASH-07 §3) | Share as document or export |
-| **Persistence** | Saved as Dynatrace documents | Saved as Dynatrace documents or `.ipynb` |
+| **Persistence** | Saved as Dynatrace documents | Saved as Dynatrace documents |
 
 ### When to Use a Dashboard
 
@@ -102,7 +102,7 @@ Dynatrace provides two primary visualization tools, each designed for different 
 For environments where SVG doesn't render
 -->
 
-A Dynatrace dashboard is composed of three core building blocks:
+A Dynatrace dashboard is built from three things: tiles, the way you group them, and variables.
 
 ### Tiles
 
@@ -118,9 +118,9 @@ Tiles are the individual visualization units. Each tile contains a single DQL qu
 | **Honeycomb** | Entity health at a glance | Host health grid |
 | **Markdown** | Static text, instructions | Section headers, links |
 
-### Sections
+### Grouping Tiles
 
-Sections group related tiles visually. Use sections to organize dashboards by theme — for example, a "Service Health" section alongside an "Infrastructure" section. Sections can be collapsed and rearranged.
+A dashboard is a free-form grid of tiles; it has no collapsible "section" container (sections belong to Notebooks). Group related tiles by placing them together under a **Markdown tile** used as a header — for example, a "Service Health" header above the service tiles and an "Infrastructure" header above the host tiles.
 
 ### Variables
 
@@ -177,7 +177,7 @@ If a tile does not lead to a decision, consider removing it.
 
 - **Top-left anchor** — place the most critical KPI in the top-left (first thing the eye hits)
 - **Z-pattern reading** — arrange tiles so the dashboard reads left-to-right, top-to-bottom
-- **Group related tiles** — use sections to cluster related metrics
+- **Group related tiles** — place them together under a Markdown header tile
 - **Limit tile count** — aim for 8-12 tiles per dashboard; more than 15 creates cognitive overload
 
 <a id="dashboard-creation-workflow"></a>

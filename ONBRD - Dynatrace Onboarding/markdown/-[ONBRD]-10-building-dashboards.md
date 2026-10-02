@@ -1,6 +1,6 @@
 # ONBRD-10: Building Dashboards
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 10 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Visualizing Your Data
 Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.
@@ -200,9 +200,10 @@ fetch dt.entity.host
 | summarize host_count = count()
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 ```
 
 ```dql
@@ -229,9 +230,10 @@ fetch dt.entity.host
 | limit 25
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 // Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; entity.name -> name.
 ```
 

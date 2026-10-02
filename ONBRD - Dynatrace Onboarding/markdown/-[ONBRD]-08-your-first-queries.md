@@ -1,6 +1,6 @@
 # ONBRD-08: Your First Queries
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Learning DQL Fundamentals
 Dynatrace Query Language (DQL) is how you access data in Grail. This notebook introduces the core concepts and patterns you'll use daily.
@@ -206,9 +206,10 @@ fetch dt.entity.host
 | limit 20
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 // Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); entity.name -> name.
 ```
 
@@ -396,9 +397,10 @@ fetch dt.entity.host
 | limit 50
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 // Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; entity.name -> name.
 ```
 

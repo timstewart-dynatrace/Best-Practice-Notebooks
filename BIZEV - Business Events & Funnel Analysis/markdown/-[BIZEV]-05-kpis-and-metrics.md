@@ -1,6 +1,6 @@
 # BIZEV-05: KPIs and Metrics
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -77,7 +77,7 @@ fetch bizevents, from:-24h
 ```dql
 // Daily transaction volume for the past 7 days by event type
 fetch bizevents, from:-7d
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize daily_volume = count(), by:{day, event.type}
 | sort day asc, daily_volume desc
 ```
@@ -115,7 +115,7 @@ fetch bizevents, from:-24h
 fetch bizevents, from:-7d
 | filter event.type == "com.myapp.order.completed"
 | filter isNotNull(amount)
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize {aov = avg(toDouble(amount)),
            daily_revenue = sum(toDouble(amount)),
            orders = count()}, by:{day}
@@ -130,7 +130,7 @@ Business process error rates measure the percentage of transactions that fail. T
 
 ```dql
 // Business error rate by event type
-// Assumes failed events have a status or result field
+// Assumes failures are their own event type (com.myapp.payment.failed)
 fetch bizevents, from:-24h
 | filter in(event.type, {"com.myapp.payment.processed", "com.myapp.payment.failed"})
 | summarize {total = count(),
@@ -246,7 +246,7 @@ Trends reveal whether KPIs are improving or degrading over time. Use `makeTimese
 ```dql
 // Weekly trend — transaction volume per day for the past 4 weeks
 fetch bizevents, from:-28d
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize daily_volume = count(), by:{day}
 | sort day asc
 ```
@@ -254,8 +254,8 @@ fetch bizevents, from:-28d
 ```dql
 // Week-over-week comparison using day-of-week grouping
 fetch bizevents, from:-14d
-| fieldsAdd week = getWeekOfYear(timestamp),
-           dow = getDayOfWeek(timestamp)
+| fieldsAdd week = getWeekOfYear(timestamp, timezone: "America/New_York"),
+           dow = getDayOfWeek(timestamp, timezone: "America/New_York")
 | summarize volume = count(), by:{week, dow}
 | sort week asc, dow asc
 ```

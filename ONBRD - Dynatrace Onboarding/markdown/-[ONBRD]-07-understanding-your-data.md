@@ -1,6 +1,6 @@
 # ONBRD-07: Understanding Your Data
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Exploring What Dynatrace Discovered
 With OneAgent deployed, Dynatrace has automatically discovered your infrastructure, processes, and services. This notebook helps you understand what's been found and how to explore your data.
@@ -197,7 +197,6 @@ fetch dt.entity.host | summarize hosts = count()
 fetch dt.entity.host
 | fields entity.name, 
          state, 
-         monitoringMode, 
          osType,
          cpuCores,
          physicalMemory
@@ -205,9 +204,10 @@ fetch dt.entity.host
 | limit 100
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
 // Other fields do map: osType -> os.type (LINUX -> OS_TYPE_LINUX); cpuCores -> cores; physicalMemory -> host.physical.memory; entity.name -> name.
 ```
 
