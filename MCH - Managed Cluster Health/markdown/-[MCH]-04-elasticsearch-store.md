@@ -1,6 +1,6 @@
 # MCH-04: Elasticsearch Store Health
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 4 of 8 | **Created:** September 2026 | **Last Updated:** 09/28/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 4 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -155,6 +155,8 @@ du -sh /var/opt/dynatrace-managed/elasticsearch/
 
 The backup-sizing guide expects *"The size should vary only slightly between nodes."* In community practice, a node that is much larger than its peers is raised with support before it fills — verify against your own trend. Trend the numbers weekly against the size table in §3.
 
+A Dynatrace community KB article explains uneven sizes and gives the thresholds behind them: Elasticsearch does not rebalance data until its own disk watermarks are crossed, with the low, high and flood-stage watermarks at 85%, 90% and 95% ([Elasticsearch store usage differences (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Why-there-is-difference-in-Elasticsearch-store-usage-between/ta-p/200631), 2023). Those are Elasticsearch's upstream defaults; the article doesn't say whether Dynatrace changes them. In community practice, the 85% line is the one to alert on — verify against your own cluster.
+
 ### 5.3 Events
 
 None of these email you. They appear only in CMC Events and Mission Control:
@@ -261,9 +263,9 @@ Checked against the Managed documentation on 09/28/2026 and **not found**:
 
 | Gap | Working assumption in this notebook |
 |-----|-------------------------------------|
-| Disk watermarks or percentage thresholds for the store | Rely on the generic *Insufficient disk space* event and your own trend (§5.2) |
+| Disk watermarks set by Dynatrace for the store | A community KB article cites Elasticsearch's upstream 85/90/95% watermarks (§5.2); rely on the *Insufficient disk space* event and your own trend |
 | What *"might be overloaded"* means, or what to do about it | Treat it like the log-pressure events (§6) |
-| Where Davis problems and events are stored | Unknown — neither store is documented as holding them |
+| Where Davis problems and events are stored | Not in the docs. A Dynatrace product manager's 2019 forum answer puts *events* and *problems* in Elasticsearch ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)) |
 | A `dsfm:` self-monitoring metric for the store's own disk or health | Measure on the node (§5). Only log-*ingest* metrics are documented (§6) |
 
 **Two conflicts in the docs:**

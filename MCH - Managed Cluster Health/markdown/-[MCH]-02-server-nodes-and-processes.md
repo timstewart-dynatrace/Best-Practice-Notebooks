@@ -1,6 +1,6 @@
 # MCH-02: Server Nodes and Processes
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 2 of 8 | **Created:** September 2026 | **Last Updated:** 09/28/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 2 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -49,11 +49,11 @@ This notebook covers how to see node and process state (in the Cluster Managemen
 <a id="short-answer"></a>
 ## 1. Short Answer
 
-- **Two views of node state.** CMC **Deployment status** is for people. `GET /api/v1.0/onpremise/cluster` is for automation, and its `operationState` field is the only node state the API documents. `RUNNING` is the only value the docs show.
+- **Two views of node state.** CMC **Deployment status** is for people. `GET /api/v1.0/onpremise/cluster` is for automation, and its `operationState` field is the only node state the API documents. `RUNNING` is the only value the docs show; a Dynatrace product manager has posted the full list of 12 (§2).
 - **`dynatrace.sh status` and `check` are your on-node health check.** Between them they cover the seven Dynatrace services, the firewall rules, and the listening ports.
 - **Services start in a fixed order**: firewall → Elasticsearch → Cassandra → Server → everything else. Each storage layer must be healthy on every node before the next one starts.
 - **At three or more nodes, don't stop a node with `dynatrace.sh`.** The docs reserve it for clusters of fewer than three nodes. Larger clusters use the cluster procedure.
-- **Planned work goes one node at a time.** That applies to OS patches, updates, removals and IP changes. Three copies of the data survive one missing node, not two.
+- **Planned work goes one node at a time.** That applies to OS patches, updates, removals and IP changes. Three copies of the data survive one missing node, not two — a Dynatrace blog allows two only from five nodes up.
 - **Most node and process events never email you.** A component going down, memory emergency mode, clock drift and a node that can't receive agent traffic all appear only in the CMC **Events** list and in Mission Control.
 
 > <sub>**Sources:** [Get cluster information about known cluster nodes (DT docs)](https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers), [Start/stop/restart a node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node), [Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
@@ -75,6 +75,25 @@ All four calls below are v1 and need the `ServiceProviderAPI` permission. MCH-01
 | `GET /api/v1.0/onpremise/cluster/configuration` | *"the cluster nodes configuration"* | `id`, `ipAddress`, `webUI`, `agent`, `datacenter` |
 | `GET /api/v1.0/onpremise/cluster/configuration/status` | *"the current configuration status for cluster nodes"* | `state`, with per-step states for `DOMAIN_UPDATE`, `OPERATION_STATE`, `AGENT_TRAFFIC`, `WEB_UI` |
 | `GET /api/v1.0/cluster/maintenance` | *"details about the current cluster maintenance state"* | `reason` — the only documented value is `IP_MIGRATION` |
+
+**The full list of states.** The docs show only `RUNNING`. In 2020 a Dynatrace product manager posted the whole list on the Dynatrace community ([state of nodes (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/state-of-nodes/m-p/113564)). It is a community source, not documentation, so treat it as community practice and confirm against your own cluster:
+
+| `operationState` | Meaning, as posted |
+|------------------|--------------------|
+| `OFFLINE` | Initial — server not running |
+| `STARTUP` | Startup in progress |
+| `STARTUP_CANCELED` | Startup canceled due to a severe problem |
+| `RUNNING` | Fully operational, accepts all data, fully visible |
+| `RUNNING_FORSAKEN` | Fully operational but invisible to all agents |
+| `SHUTDOWN_PHASED_OUT` | Before shutdown — still processing, no longer visible to agents |
+| `SHUTDOWN` | Shutdown in progress |
+| `EMERGENCY` | An emergency situation, for example low memory |
+| `STARTUP_SUSPENDED` | Basic startup finished, but not connected to the cluster or database |
+| `DATABASE_DISCONNECTED` | Database disconnected during runtime |
+| `UNDEFINED` | Not known |
+| `SHUTDOWN_IMMINENT` | The state before `SHUTDOWN_PHASED_OUT` |
+
+Two practical readings: `RUNNING_FORSAKEN` is a node that is up but receiving no agent traffic, and in community practice `EMERGENCY` is read alongside the heap-memory emergency events (§7.1) — the post describes it only as *an emergency situation, e.g. low memory*. The same answer names `/rest/state` (no authentication) as a lightweight status check for synthetic monitoring.
 
 Three uses for these calls — this series' checks built on documented fields, not documented alert rules:
 
@@ -181,6 +200,8 @@ Then allow for the Server's start time: *"It can take up to ~10 minutes to fully
 |--------------|-----------|
 | Fewer than 3 nodes | `dynatrace.sh start` / `stop` / `restart` on each node. It *"Starts all Dynatrace Managed required services in the recommended order."* |
 | 3 or more nodes | The cluster procedure in §4: *"For Dynatrace Managed deployments containing three (3) or more nodes, use the cluster procedure"* |
+
+**A recorded conflict.** On the Dynatrace community, a Dynatrace product manager confirmed restarting a three-node cluster one node at a time with `dynatrace.sh restart`, and described a per-node **Restart** button in the CMC (Deployment status → Cluster nodes → a node). He added that OneAgent traffic needn't be disabled for the restart ([How to restart Dynatrace nodes on the cluster (Dynatrace community)](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/How-to-restart-Dynatrace-nodes-on-the-cluster/td-p/117644), 2020). The docs page says to use the cluster procedure at three or more nodes. This notebook keeps the documented procedure as the default; the community answer describes how a single-node restart is handled in practice — verify with Dynatrace support before relying on it.
 
 The docs also say that below three nodes the cluster is exposed during maintenance: *"If your cluster consists of less than 3 nodes, Dynatrace Managed won't be accessible during the update process."*
 
@@ -301,9 +322,9 @@ Searched for in the Managed documentation on 09/28/2026 and **not found**:
 
 | Gap | Working assumption in this notebook |
 |-----|-------------------------------------|
-| The possible values of `operationState` | Treat anything other than `RUNNING` as unhealthy |
-| A procedure for restarting **one** node in a 3+ node cluster | Follow the OS-patch guidance: one node at a time, and confirm the other nodes are healthy first |
-| What "memory emergency mode" does to processing | Treat it as a capacity alarm (MCH-06) |
+| An official list of `operationState` values | A community-posted list of 12 exists (§2); treat anything other than `RUNNING` as unhealthy |
+| A documented procedure for restarting **one** node in a 3+ node cluster | Follow the OS-patch guidance: one node at a time, other nodes healthy first. A community answer describes a CMC per-node Restart (§5) — a recorded conflict with the docs page |
+| What "memory emergency mode" does to processing | The community-posted `EMERGENCY` state describes it only as *an emergency situation, e.g. low memory* (§2); treat it as a capacity alarm (MCH-06) |
 | A Managed troubleshooting page, or the directories of `server.log` and the Nodekeeper logs (the one Server-side path found is `<datastore_dir>/log/server/audit.rest.proxy.log`, on the Mission Control data-exchange page) | Use the diagnostic archive |
 | A dedicated "disable node" API | The documented route is the `agent` / `webUI` flags on the configuration endpoint (§5.3) |
 

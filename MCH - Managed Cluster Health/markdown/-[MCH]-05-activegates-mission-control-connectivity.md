@@ -1,6 +1,6 @@
 # MCH-05: Cluster ActiveGates and Mission Control Connectivity
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 5 of 8 | **Created:** September 2026 | **Last Updated:** 09/29/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 5 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -142,7 +142,9 @@ openssl rsa -in encrypted.ssl.key -out decrypted.ssl.key
 | *"Your SSL certificate will expire soon."* | WARNING | **No** |
 | *"Let's Encrypt SSL certificate fetching failure."* | WARNING | **No** |
 
-The docs don't say what stops working when the certificate expires (§10). Beacon traffic needs a valid certificate on the Cluster ActiveGate (§2.3), so in community practice certificate expiry dates are tracked outside the cluster, in whatever system already watches your other certificates — verify the expiry dates your cluster presents against that system.
+The docs don't say what stops working when the certificate expires (§10). Two Dynatrace community threads fill some of it. In 2019 a Dynatrace product manager wrote that an expired certificate shows as a browser warning on the web UI and that monitoring should not be affected, and that the automatically managed certificate is refreshed 14 days before it expires ([SSL certificate of the cluster hosts (Dynatrace community)](https://community.dynatrace.com/t5/Open-Q-A/We-are-seeing-that-the-SSL-certificate-of-the-cluster-hosts/td-p/122772)). In 2021, OneAgent and ActiveGate downloads from Managed clusters failed with *certificate has expired* errors during Let's Encrypt's certificate-chain change ([download fails — certificate expired (Dynatrace community)](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/Dynatrace-Managed-OneAgent-and-ActiveGate-download-fails-cannot/td-p/173678)). Both are community sources; treat them as community practice.
+
+The docs don't settle it either way. Beacon traffic needs a valid certificate on the Cluster ActiveGate (§2.3), so in community practice certificate expiry dates are tracked outside the cluster, in whatever system already watches your other certificates — verify the expiry dates your cluster presents against that system.
 
 > <sub>**Sources:** [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments).</sub>
 
@@ -241,7 +243,20 @@ The ActiveGate update page was published in 2020 and carries no later update dat
 
 The last two are what connectivity trouble looks like from the cluster's side. One node refusing agent traffic, or the cluster turning off monitoring on new hosts to protect itself, is the point where layer 4 meets layer 3 (capacity, MCH-06).
 
-### 9.3 Sizing and currency
+### 9.3 Self-monitoring metrics
+
+ActiveGates report self-monitoring metrics under `dsfm:active_gate.*`. The Managed docs list 70 of them, with descriptions. Four worth charting for Cluster ActiveGates:
+
+| Metric | What the docs say |
+|--------|-------------------|
+| `dsfm:active_gate.communication.messages.dropped` | *"Number of messages dropped due to timeouts. Non-zero value may indicate data loss."* |
+| `dsfm:active_gate.communication.queue.outgoing.usage` | *"Number of messages queued. Growing value indicates messages are being received at a faster pace than sent out."* |
+| `dsfm:active_gate.jvm.heap_memory_used` | JVM heap in use, against `dsfm:active_gate.jvm.heap_memory_available` |
+| `dsfm:active_gate.system.cpu_usage` | Host CPU, for the 50% guidance below |
+
+Some keys on that page apply only to SaaS, and the page doesn't say which environment a Cluster ActiveGate reports into. Find them in the metric browser of the environment where your ActiveGates appear.
+
+### 9.4 Sizing and currency
 
 The hardware guide for routing/monitoring ActiveGates, which is the role a *Route traffic* Cluster ActiveGate plays, says the machine *"should not exceed 50% CPU and 80% memory"*, and that *"operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates"*.
 
@@ -253,6 +268,7 @@ Two release changes affect Cluster ActiveGates:
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics)</sub>
 > - <sub>[ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
 > - <sub>[Managed 1.332 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-332), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344) release notes, [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate)</sub>
 > - <sub>**Derived:** applying the routing/monitoring ActiveGate sizing guide to Cluster ActiveGates combines its scope with the *Route traffic* purpose on the install page</sub>
@@ -260,12 +276,11 @@ Two release changes affect Cluster ActiveGates:
 <a id="doc-gaps"></a>
 ## 10. What the Documentation Does Not Say
 
-**Not found**, in the Managed documentation read 09/29/2026:
+**Not found**, in the Managed documentation read 09/29/2026 (the `dsfm:active_gate.*` gap recorded here earlier was filled on 10/02/2026 — §9.3):
 
 | Gap | Working assumption in this notebook |
 |-----|-------------------------------------|
-| `dsfm:active_gate.*` metric keys and descriptions (the self-monitoring page names only display names, such as *ActiveGate - JVM - CPU Usage*) | Use the CMC ActiveGate status and events (§9) |
-| What stops working when the cluster certificate expires | Track expiry outside the cluster (§5) |
+| What stops working when the cluster certificate expires | Community answers say monitoring continues and the UI warns (§5); track expiry outside the cluster |
 | A procedure for revoking remote access | Change the scope under Settings > Remote access permissions (§8) |
 | How agents fail over when a node is removed | The remove-node procedure disables OneAgent traffic on the node first (MCH-02 §5) |
 

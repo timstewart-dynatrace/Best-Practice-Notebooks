@@ -1,6 +1,6 @@
 # MCH-06: Capacity and Scaling
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 6 of 8 | **Created:** September 2026 | **Last Updated:** 09/29/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 6 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -141,11 +141,14 @@ The docs name the long-term fixes: *"Adding hardware and a new Dynatrace Managed
 ### 5.3 The dashboard and the metrics
 
 - **Capacity indicator.** The *Cluster health self-monitoring* dashboard *"shows aggregated data for all environments in your Managed Cluster, including current utilization and an indicator of whether your Managed Cluster has sufficient capacity for the current load."* It lives in the local self-monitoring environment. Whether every cluster has one is contradicted between two pages (§8).
+- **Reading the indicator.** A Dynatrace blog on Managed self-monitoring (Managed 1.230) explains the scale: *"a cluster utilization of 50% should allow you to roughly double the currently processed load before the cluster reaches its maximum capacity."* At the top end, *"Red status: When utilization reaches the red area, the cluster is at maximum capacity."* It adds a caution: *"cluster utilization might show healthy operation (green status) when only 80% of the service calls are captured"*. Read utilization together with the capture rate and adaptive load reduction (§5.1).
+- **As a Hub extension.** The *Dynatrace Self-Monitoring (Managed)* extension packages the same intent: *"Check if Dynatrace cluster is properly sized to handle current load."*
 - **Throughput.** The self-monitoring metrics `dsfm:server.service_calls.received`, `dsfm:server.spans.received`, `dsfm:server.rum.action_count` and `dsfm:cluster.oneagent.agent_modules` track what reaches the cluster. *"A steady number of monitored hosts and modules, service calls received, and user sessions/actions per minute together indicate a healthy Dynatrace environment. A significant drop in these metrics might indicate a problem"*.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-managed)</sub>
 > - <sub>[Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications)</sub>
+> - <sub>[Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Dynatrace Self-Monitoring (Managed) (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/)</sub>
 > - <sub>[Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics)</sub>
 
 <a id="controls"></a>
@@ -189,13 +192,13 @@ MCH-02 §5 covers the operations and MCH-03 §7 what they do to Cassandra. From 
 
 | Gap | Working assumption in this notebook |
 |-----|-------------------------------------|
-| A numeric threshold behind the dashboard's "sufficient capacity" indicator, or behind adaptive load reduction | Treat the events and the indicator as the thresholds |
+| A numeric threshold behind the dashboard's "sufficient capacity" indicator, or behind adaptive load reduction | The blog's utilization scale (§5.3) is the closest; treat the events and the indicator as the thresholds |
 | How the one-third headroom is measured (CPU, memory, host units, or service calls) | Keep typical load at no more than three-quarters of total capacity on every dimension you can see (§4) |
 | Whether the hardware page's *"ingest limit"* is the same setting as the entry-point-traces quota in Cluster overload prevention | Review every setting in that section after a hardware change (§6) |
 
-**One conflict.** Whether every cluster has a local self-monitoring environment. The hosted self-monitoring page says *"All Managed Clusters have a local self-monitoring environment with internal metrics."*; the local self-monitoring page says *"The self-monitoring environment is available only for Dynatrace Managed customers using DDU licensing."* MCH-01 §6.3 follows the local page. Check your own CMC before planning around the capacity dashboard.
+**One conflict.** Whether every cluster has a local self-monitoring environment. The hosted self-monitoring page says *"All Managed Clusters have a local self-monitoring environment with internal metrics."*; the local self-monitoring page says *"The self-monitoring environment is available only for Dynatrace Managed customers using DDU licensing."* A Dynatrace blog (2022, updated 2024) sides with the hosted page: *"A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters."* MCH-01 §6.3 records both. Check your own CMC before planning around the capacity dashboard.
 
-> <sub>**Sources:** [Hosted self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring), [Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-managed). **Observed 09/29/2026:** the three gaps were searched for across the Managed cluster, self-monitoring and adaptive-traffic-management pages; none is filled.</sub>
+> <sub>**Sources:** [Hosted self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring), [Local self-monitoring (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-managed). **Observed 09/29/2026:** the three gaps were searched for across the Managed cluster, self-monitoring and adaptive-traffic-management pages; none is filled.</sub>
 
 <a id="recommendation"></a>
 ## 9. Recommended Approach
