@@ -14,7 +14,7 @@ For K8s rollout patterns themselves (DynaKube CR, operator install, namespace se
 | Layer | Dynatrace surface |
 |-------|---------------------|
 | Application | RVA + RAP (via code module) |
-| Container image | Image-tier RVA |
+| Container image | Vulnerability findings (incl. ingested third-party image scanners) |
 | Cluster config | SPM |
 -->
 
@@ -38,7 +38,7 @@ For K8s rollout patterns themselves (DynaKube CR, operator install, namespace se
 |-------------|---------|
 | **Dynatrace Environment** | Gen3 SaaS with Grail; AppSec entitlement enabled |
 | **OneAgent** | Full-Stack mode (or code-module attached) on monitored hosts |
-| **Read access** | At minimum `environment:roles:view-security-problems` and `storage:security.events:read` — see APPSEC-09 for the full model |
+| **Read access** | To run the DQL: `storage:security.events:read` **plus** `storage:buckets:read` (a table permission alone reads nothing). The Vulnerabilities and Threats & Exploits apps have their own requirements — see APPSEC-09 for the full model |
 | **Background** | APPSEC-01 (fundamentals + three-pillar framing) |
 
 <a id="dynakube"></a>
@@ -78,11 +78,13 @@ For cluster rollout the K8S series covers per-namespace targeting, monitoring mo
 <a id="image-vulns"></a>
 ## 2. Container Image Vulnerabilities
 
-Image-tier findings are a subset of RVA: Dynatrace inventories the libraries in running container images and reports CVEs against them. The result lands in `security.events` with the same vulnerability event-type as host-level RVA but with K8s-specific context fields (cluster, namespace, workload, image name + digest).
+RVA reports vulnerable libraries loaded by processes running in containers, plus vulnerabilities on Kubernetes nodes. A container image is a *related* entity of those findings, not the thing RVA scans. RVA vulnerability events identify the cluster and workload through the arrays `related_entities.kubernetes_clusters.names` and `related_entities.kubernetes_workloads.names`; they carry no `k8s.namespace.name`.
 
-Practical pattern: report image-tier vulnerabilities **by namespace** rather than by individual workload — namespaces are usually a stable team/service boundary, while workload names churn with deployments.
+Container-*image* findings are a different record: `VULNERABILITY_FINDING` events with `object.type == "CONTAINER_IMAGE"`, `container_image.registry` / `container_image.repository`, and the Kubernetes resource fields (`k8s.cluster.name`, `k8s.namespace.name`). These come from vulnerability findings, including ingested third-party image scanners.
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the K8s + image scope. **Softened:** the namespace-as-stable-boundary recommendation is community practice — verify the namespace-naming discipline in your tenant before relying on it for reports.</sub>
+Practical pattern: report image findings **by namespace** rather than by individual workload — namespaces are usually a stable team/service boundary, while workload names churn with deployments.
+
+> <sub>**Sources:** [Vulnerabilities concepts (DT docs)](https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts) — *"Affected entities Entities (process groups, processes, and Kubernetes nodes) for which a vulnerability was detected"* and *"Related container image In Kubernetes environments, the container image used by the affected processes."*; [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) — the Kubernetes resource fields appear under the vulnerability finding and scan events, whose example query filters `object.type == "CONTAINER_IMAGE"` (re-read 10/02/2026). **Softened:** the namespace-as-stable-boundary recommendation is community practice — verify the namespace-naming discipline in your tenant before relying on it for reports.</sub>
 
 <a id="cluster-spm"></a>
 ## 3. Cluster SPM Findings
@@ -105,16 +107,25 @@ These findings are durable — they reflect the cluster's declared state and don
 Filter AppSec events to a specific cluster + namespace to slice findings by team boundary.
 
 ```dql
-// AppSec findings in a specific cluster + namespace, last 24h
-fetch security.events, from:-24h
-| filter k8s.cluster.name == "prod-cluster-01"
-| filter k8s.namespace.name == "team-payments"
-| summarize count = count(), by:{event.type, vulnerability.risk.level}
-| sort count desc
+// Currently failing compliance rules in one cluster + namespace (latest result per object + rule)
+// Counting every record counts scan results, most of them PASSED or NOT_RELEVANT (APPSEC-05 § 3).
+fetch security.events, from:-7d
+| filter event.type == "COMPLIANCE_FINDING"
+| filter k8s.cluster.name == "prod-cluster-01" and k8s.namespace.name == "team-payments"
+| dedup {object.id, compliance.rule.id}, sort:{timestamp desc}
+| filter compliance.result.status.level == "FAILED"
+| summarize {failing = count()}, by:{compliance.standard.short_name, compliance.rule.severity.level}
+| sort failing desc
 
+// Container-image vulnerability findings in the same namespace (docs pattern; run separately):
+// fetch security.events, from:-7d
+// | filter event.type == "VULNERABILITY_FINDING" and object.type == "CONTAINER_IMAGE"
+// | filter k8s.namespace.name == "team-payments"
+// | dedup {object.id, vulnerability.id, component.name, component.version}, sort:{timestamp desc}
+// | summarize {findings = count()}, by:{dt.security.risk.level}
 ```
 
-> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) lists `storage:k8s.cluster.name` and `storage:k8s.namespace.name` as conditions on `storage:security.events:read`. **Dictionary:** `k8s.namespace.name` (`stable`), `vulnerability.risk.level` (`stable`), read 09/18/2026. **Live-verified 09/18/2026:** `k8s.namespace.name` is populated on `COMPLIANCE_FINDING` records on the validation tenant; the cluster and namespace names in the query are placeholders, so replace them with your own. `vulnerability.risk.level` is populated only on vulnerability events — for compliance records group by `compliance.rule.severity.level` instead.</sub>
+> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) lists `storage:k8s.cluster.name` and `storage:k8s.namespace.name` as conditions on `storage:security.events:read`; [Vulnerability events (DT semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability) for the `VULNERABILITY_FINDING` dedup pattern (re-read 10/02/2026). **Dictionary:** `k8s.namespace.name` (`stable`), read 09/18/2026. **Live-verified 10/02/2026:** on one validation namespace the previous count-everything form returned 31,400 `COMPLIANCE_FINDING` records; the deduplicated, `FAILED`-only form returns 16. The cluster and namespace names above are placeholders — replace them with your own. The image query is the docs' pattern; the validation tenant has no vulnerability findings to run it against.</sub>
 
 <a id="namespace-scoping"></a>
 ## 5. Namespace Scoping for IAM
@@ -127,7 +138,7 @@ ALLOW storage:security.events:read
   WHERE storage:k8s.namespace.name IN ("team-payments-prod", "team-payments-staging");
 ```
 
-Two details make or break this policy. IAM lists use `IN ("…", "…")` with parentheses — DQL's `{…}` array syntax does not validate here. And `storage:buckets:read` is required in addition to the table permission; without it the namespace-scoped grant reads nothing. `vulnerability-service:vulnerabilities:read` takes no conditions, so it cannot be namespace-scoped — grant it separately only if the team needs the API (APPSEC-09 § 3).
+Two details make or break this policy. IAM lists use `IN ("…", "…")` with parentheses — DQL's `{…}` array syntax does not validate here. And `storage:buckets:read` is required in addition to the table permission; without it the namespace-scoped grant reads nothing. Two limits follow from the data. RVA vulnerability state and change events carry no `k8s.namespace.name`, so this condition cannot match them — the team sees compliance and vulnerability *findings* only; scope RVA visibility by `dt.security_context` instead (APPSEC-09 § 3). And `vulnerability-service:vulnerabilities:read` takes no conditions, so granting it shows every vulnerability in the tenant in the Vulnerabilities app.
 
 See APPSEC-09 for the full pattern including the policy-vs-managed-policy decision and the privacy carve-out for `view-sensitive-request-data`.
 

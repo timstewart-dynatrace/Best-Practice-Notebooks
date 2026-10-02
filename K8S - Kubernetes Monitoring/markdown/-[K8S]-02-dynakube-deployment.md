@@ -46,7 +46,7 @@ The Dynatrace Operator manages the complete lifecycle of Dynatrace monitoring co
 | **OneAgent DaemonSet** | Node-level monitoring | Operator |
 | **ActiveGate StatefulSet** | Routing and K8s API access | Operator |
 | **Webhook** | Code module injection | Operator |
-| **CSI Driver** | Volume-based code modules | Operator (optional from 1.10.0) |
+| **CSI Driver** | Volume-based code modules, cached per node | Operator — on by default with Helm; absent from the plain `kubernetes.yaml` manifest (`kubernetes-csi.yaml` adds it) |
 | **Image volumes** | Code modules from a node-shared image volume — no CSI DaemonSet (Operator 1.11.0+, Kubernetes 1.35+) | Kubernetes, configured by the Operator |
 
 ### Operator Architecture
@@ -279,12 +279,12 @@ kubectl -n dynatrace get dynakube -w
 ```yaml
 oneAgent:
   cloudNativeFullStack:
-    # Injected via webhook — CSI driver volumes (default) or ephemeral volumes (Operator 1.10.0+)
+    # Injected via webhook — CSI driver volumes (Helm default), ephemeral volumes (no CSI driver) or image volumes (Operator 1.11.0+)
 ```
 
 | Pros | Cons |
 |------|------|
-| No privileged containers for apps | CSI driver by default (ephemeral volumes from Operator 1.10.0, image volumes from 1.11.0 — see below and K8S-12 §2) |
+| No privileged containers for apps | CSI driver by default with Helm (ephemeral volumes without it; image volumes from Operator 1.11.0 — see below and K8S-12 §2) |
 | Best for multi-tenant clusters | Slightly more complex |
 | Independent app/infra monitoring | |
 

@@ -1,6 +1,6 @@
 # APPSEC-05: Security Posture Management
 
-> **Series:** APPSEC — Application Security | **Notebook:** 5 of 10 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 5 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -37,7 +37,7 @@ Where RVA and RAP are *runtime* signals (what's executing right now), SPM is a *
 |-------------|---------|
 | **Dynatrace Environment** | Gen3 SaaS with Grail; AppSec entitlement enabled |
 | **Monitoring mode** | SPM works independently of OneAgent monitoring mode. KSPM collects from the Kubernetes API server and the Node Configuration Collector via ActiveGate; CSPM and VSPM ingest Runecast Analyzer findings |
-| **Read access** | At minimum `environment:roles:view-security-problems` and `storage:security.events:read` — see APPSEC-09 for the full model |
+| **Read access** | To run the DQL: `storage:security.events:read` **plus** `storage:buckets:read` (a table permission alone reads nothing). The Vulnerabilities and Threats & Exploits apps have their own requirements — see APPSEC-09 for the full model |
 | **Background** | APPSEC-01 (fundamentals + three-pillar framing) |
 
 <a id="scope"></a>
@@ -67,12 +67,13 @@ A single finding (e.g., "S3 bucket without encryption") often maps to controls i
 <a id="dql-spm"></a>
 ## 3. DQL: SPM Findings
 
-SPM results are `COMPLIANCE_FINDING` records — and most of them are **not** failures. Each scan writes one result per rule × object, with `compliance.result.status.level` set to `FAILED`, `PASSED`, `MANUAL`, or `NOT_RELEVANT`, and every scan writes a fresh set. Counting records therefore counts scan results, not misconfigurations. The query below keeps the latest result per object and rule, then counts only the ones still failing.
+SPM results are `COMPLIANCE_FINDING` records with `product.name == "Security Posture Management"` (other `product.name` values are ingested third-party compliance findings, such as AWS Security Hub) — and most of them are **not** failures. Each scan writes one result per rule × object, with `compliance.result.status.level` set to `FAILED`, `PASSED`, `MANUAL`, or `NOT_RELEVANT`, and every scan writes a fresh set. Counting records therefore counts scan results, not misconfigurations. The query below keeps the latest result per object and rule, then counts only the ones still failing.
 
 ```dql
 // Currently failing compliance rules by standard and severity (latest result per object + rule)
 fetch security.events, from:-7d
 | filter event.type == "COMPLIANCE_FINDING"
+| filter product.name == "Security Posture Management"  // SPM only; third-party compliance findings share the event type
 | dedup {object.id, compliance.rule.id}, sort:{timestamp desc}
 | filter compliance.result.status.level == "FAILED"
 | summarize failing = count(), by:{compliance.standard.short_name, compliance.rule.severity.level}
@@ -80,17 +81,19 @@ fetch security.events, from:-7d
 
 ```
 
-> <sub>**Sources:** [Compliance (Semantic Dictionary) (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance) — `compliance.result.status.level` (*"Result status of the given resource object as evaluated by a scan."*, values `FAILED ; PASSED ; MANUAL ; NOT_RELEVANT`), `compliance.rule.id`, `object.id` (re-read 09/18/2026). **Live-verified 09/18/2026** against a tenant with KSPM enabled (last scan 08/28/2026, so run at `from:-60d`): of 313,391 `COMPLIANCE_FINDING` records, 302,281 were `NOT_RELEVANT`, 8,320 `PASSED`, 1,191 `MANUAL`, and only 1,599 `FAILED`. After keeping the latest result per object and rule, the query above returns 60 current failures — CIS CRITICAL 1 · HIGH 3 · MEDIUM 47 · LOW 9. Counting every record for the same state reports CIS CRITICAL 107,841 · MEDIUM 152,839 · HIGH 44,359 · LOW 8,352: always filter on `compliance.result.status.level` and deduplicate to the latest scan. If scans have stopped, the `-7d` window returns nothing — widen it before concluding the environment is compliant. An earlier revision of this entry filtered `event.type == "POSTURE_FINDING"` and grouped by `compliance.framework` / `finding.severity`; **all three identifiers were wrong** and returned nothing. That is the failure mode SPM queries are most prone to: a wrong identifier — or a wrong grain — is valid DQL, executes cleanly, and returns a result that looks plausible.</sub>
+> <sub>**Sources:** [Compliance (Semantic Dictionary) (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance) — `compliance.result.status.level` (*"Result status of the given resource object as evaluated by a scan."*, values `FAILED ; PASSED ; MANUAL ; NOT_RELEVANT`), `compliance.rule.id`, `object.id` (re-read 10/02/2026); the same page: *"Both Dynatrace-generated and third-party ingested data are supported."* **Dictionary (docs page):** `compliance.rule.id`, `compliance.standard.short_name`, `compliance.rule.severity.level`, `object.id` (all `experimental`), read 10/02/2026. **Live-verified 09/18/2026, re-run 10/02/2026** against a tenant with KSPM enabled (last scan 08/28/2026, so it was run at `from:-60d` at the time of verification): of 313,391 `COMPLIANCE_FINDING` records, 302,281 were `NOT_RELEVANT`, 8,320 `PASSED`, 1,191 `MANUAL`, and only 1,599 `FAILED`. After keeping the latest result per object and rule, the query above returns 60 current failures — CIS CRITICAL 1 · HIGH 3 · MEDIUM 47 · LOW 9. Counting every record for the same state reports CIS CRITICAL 107,841 · MEDIUM 152,839 · HIGH 44,359 · LOW 8,352: always filter on `compliance.result.status.level` and deduplicate to the latest scan. If scans have stopped, the `-7d` window returns nothing — widen it before concluding the environment is compliant. An earlier revision of this entry filtered `event.type == "POSTURE_FINDING"` and grouped by `compliance.framework` / `finding.severity`; **all three identifiers were wrong** and returned nothing. That is the failure mode SPM queries are most prone to: a wrong identifier — or a wrong grain — is valid DQL, executes cleanly, and returns a result that looks plausible.</sub>
 
 <a id="lifecycle"></a>
 ## 4. Finding Lifecycle
 
-SPM findings move through the same lifecycle as RVA findings: OPEN → RESOLVED (config fixed) or OPEN → MUTED / EXCEPTION. In community practice, two SPM-specific patterns stand out — verify both against your own findings:
+SPM results do **not** have the open / resolved / muted lifecycle of RVA vulnerabilities — the compliance event model has no mute or status field. Each scan re-evaluates every rule and writes a fresh result, so a fixed configuration shows up as `PASSED` (or the object disappears) on the next scan. Which standards are assessed is configurable: for KSPM in the Dynatrace Settings (*Configure assessment scope*), for CSPM/VSPM in the Runecast Analyzer.
 
-1. **Resolution is often automatic** — teams typically fix the config and let the next SPM assessment close the finding. Manual acknowledgement tends to be more common in RVA than SPM.
-2. **Exceptions are common in SPM** — many compliance findings reflect legitimate architectural choices (a public-facing bucket holding intentionally-public assets), so an exception with a documented reason is widely treated as a normal posture.
+In community practice, two patterns follow — verify both against your own findings:
 
-> <sub>**Sources:** [Application Security (DT docs)](https://docs.dynatrace.com/docs/secure/application-security) for the SPM framing.</sub>
+1. **Fix and let the next scan close it** — there is nothing to acknowledge in the product.
+2. **Record accepted deviations outside the product** — many failing rules reflect legitimate architectural choices (a public-facing bucket holding intentionally-public assets). Without a per-finding mute, keep a register of accepted deviations with a documented reason, and exclude them in your reporting query.
+
+> <sub>**Sources:** [Compliance (Semantic Dictionary) (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/compliance) — the result values are *"FAILED ; PASSED ; MANUAL ; NOT_RELEVANT"*, and the page defines no mute or status field (read 10/02/2026); [Security Posture Management (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/spm) — *"For Dynatrace Kubernetes Security Posture Management (KSPM) , you can manage compliance standards in the Dynatrace Settings , see Configure assessment scope ."* **Softened:** the deviation-register pattern is community practice.</sub>
 
 <a id="next"></a>
 ## 5. Next Steps

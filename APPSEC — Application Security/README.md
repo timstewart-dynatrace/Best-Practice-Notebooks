@@ -11,12 +11,12 @@ End-to-end application security observability with Dynatrace — covering Runtim
 
 ## Notebook Lineup
 1. [Fundamentals and the Three Pillars of Application Security](markdown/-[APPSEC]-01-fundamentals.md) — RVA, RAP, and SPM architecture; the Gen3 Grail foundation for security findings
-2. [Runtime Vulnerability Analytics](markdown/-[APPSEC]-02-runtime-vulnerability-analytics.md) — Third-party library CVE detection, reachability analysis, and risk prioritization
-3. [Code-Level Vulnerability Analytics](markdown/-[APPSEC]-03-code-level-vulnerability-analytics.md) — First-party vs. third-party detection, supported runtimes, vulnerable-function information, and process-group scoping
+2. [Runtime Vulnerability Analytics](markdown/-[APPSEC]-02-runtime-vulnerability-analytics.md) — Third-party library CVE detection, exposure and vulnerable-function signals, and risk prioritization
+3. [Code-Level Vulnerability Analytics](markdown/-[APPSEC]-03-code-level-vulnerability-analytics.md) — First-party vs. third-party detection, supported runtimes, entry point and code location, and process-group scoping
 4. [Runtime Application Protection](markdown/-[APPSEC]-04-runtime-application-protection.md) — Detection-to-blocking promotion, protection rules, and attack class coverage
 5. [Security Posture Management](markdown/-[APPSEC]-05-security-posture-management.md) — Compliance baseline evaluation (CIS, PCI, NIST) and misconfiguration findings
 6. [Kubernetes and Container Security](markdown/-[APPSEC]-06-kubernetes-and-container-security.md) — Cross-pillar AppSec coverage for Kubernetes workloads and container images
-7. [Security Investigator and Davis CoPilot for Security](markdown/-[APPSEC]-07-investigator-and-davis-copilot.md) — Visual entity pivoting and NL-to-DQL for security investigation workflows
+7. [Investigations and Dynatrace Assist for Security](markdown/-[APPSEC]-07-investigator-and-davis-copilot.md) — Evidence-driven investigation over Grail data and NL-to-DQL for security work
 8. [Workflows, Notifications and Remediation](markdown/-[APPSEC]-08-workflows-notifications-remediation.md) — Routing findings to SOC, AppDev, and platform teams via Dynatrace Workflows
 9. [IAM and Gen3 Permissions for AppSec](markdown/-[APPSEC]-09-iam-and-gen3-permissions.md) — Permission catalog, persona policies, boundary patterns, and sensitive-data access controls
 10. [Dashboards, Reporting and Governance](markdown/-[APPSEC]-10-dashboards-reporting-governance.md) — Executive dashboard composition, governance cadence, and FinOps angle for AppSec DPS billing

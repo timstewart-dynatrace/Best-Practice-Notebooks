@@ -1,10 +1,10 @@
 # APPSEC-04: Runtime Application Protection
 
-> **Series:** APPSEC — Application Security | **Notebook:** 4 of 10 | **Created:** June 2026 | **Last Updated:** 09/18/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 4 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
-**Runtime Application Protection (RAP)** sits in the OneAgent code module and watches request traffic for four documented attack classes — SQL injection, command injection, JNDI injection, and SSRF — on Java, .NET, and Go. Each technology's attack control is **Off**, **Monitor** (detect only), or **Block**, and custom monitoring rules scoped to process groups or vulnerability types override that global control. Run in Monitor first and promote to Block once detection has been tuned.
+**Runtime Application Protection (RAP)** sits in the OneAgent code module and watches request traffic for four documented attack classes: SQL injection and command injection on Java, .NET and Go, and JNDI injection and SSRF on Java only. Each technology's attack control is **Off**, **Monitor** (detect only), or **Block**, and custom monitoring rules scoped to process groups or vulnerability types override that global control. Run in Monitor first and promote to Block once detection has been tuned.
 
 RAP is unique among the AppSec pillars in that it has a *real-time enforcement* dimension. RVA and SPM tell you what's wrong; RAP can stop the request mid-flight. This power is also the reason the rollout discipline matters — blocking the wrong traffic is a customer-visible incident.
 
@@ -38,7 +38,7 @@ RAP is unique among the AppSec pillars in that it has a *real-time enforcement* 
 |-------------|---------|
 | **Dynatrace Environment** | Gen3 SaaS with Grail; AppSec entitlement enabled |
 | **OneAgent** | Full-Stack mode (or code-module attached) on monitored hosts |
-| **Read access** | At minimum `environment:roles:view-security-problems` and `storage:security.events:read` — see APPSEC-09 for the full model |
+| **Read access** | To run the DQL: `storage:security.events:read` **plus** `storage:buckets:read` (a table permission alone reads nothing). The Vulnerabilities and Threats & Exploits apps have their own requirements — see APPSEC-09 for the full model |
 | **Background** | APPSEC-01 (fundamentals + three-pillar framing) |
 
 <a id="how-it-works"></a>
@@ -63,14 +63,22 @@ The documented attack catalog covers four classes:
 
 - **SQL Injection** — untrusted input reaching a SQL query
 - **Command Injection** — OS command spawned with untrusted input
-- **SSRF (Server-Side Request Forgery)** — outbound requests with untrusted target URLs (with OneAgent 1.309+, SSRF attack evaluation must also be enabled in the OneAgent features settings)
-- **JNDI Injection** — Log4Shell-class lookups
+- **SSRF (Server-Side Request Forgery)** — outbound requests with untrusted target URLs (Java only; with OneAgent 1.309+, also enable *Java SSRF code-level vulnerability and attack evaluation* in OneAgent features)
+- **JNDI Injection** — Log4Shell-class lookups (Java only)
 
 Other runtime attack classes — path traversal, for example — are **not** in the documented catalog; do not assume RAP protects against them.
 
-Supported technologies: **Java 8+, .NET, and Go** — see the RAP docs for the minimum OneAgent version per technology. The catalog evolves per OneAgent release; re-check the docs rather than inferring it from a static document.
+| Technology | Minimum OneAgent | SQL injection | Command injection | JNDI injection | SSRF |
+|---|---|---|---|---|---|
+| Java 8+ (Windows x86 and Linux x86 only) | 1.241 | ✓ | ✓ | ✓ | ✓ |
+| .NET (Framework 4.5, Core 3.0+, 64-bit) | 1.289 | ✓ | ✓ | — | — |
+| Go | 1.311 | ✓ | ✓ | — | — |
 
-> <sub>**Sources:** [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Detection of SQL injection, JNDI injection, command injection, and SSRF attacks"*, plus the page's *Supported technologies* table (Java 8 or higher, .NET, Go) and its SSRF enablement step (re-read 09/18/2026).</sub>
+A .NET or Go service therefore has no JNDI or SSRF protection from RAP. The catalog evolves per OneAgent release; re-check the docs rather than inferring it from a static document.
+
+Setup has a OneAgent step that is easy to miss: enable *code-level attack evaluation* for each technology under **Settings > Collect and capture > General monitoring settings > OneAgent features**, then restart the processes. Detection findings are triaged in the **Threats & Exploits** app.
+
+> <sub>**Sources:** [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Detection of SQL injection, JNDI injection, command injection, and SSRF attacks"*, plus the page's *Supported technologies* table, which marks JNDI injection and SSRF for Java 8 or higher only (footnote: *"Only supported on Windows x86 and Linux x86 systems."*); *"Filter by code-level attack evaluation and enable the feature for the technologies you want to monitor. Select Save changes . Restart your processes."*; and *"Evaluate, triage, and investigate findings with Threats & Exploits"* (re-read 10/02/2026).</sub>
 
 <a id="detect-vs-block"></a>
 ## 3. Detection vs Blocking Modes
@@ -125,7 +133,7 @@ fetch security.events, from:-24h
 <a id="next"></a>
 ## 6. Next Steps
 
-1. Confirm RAP is producing `DETECTION_FINDING` records by running the queries above. Zero rows can mean no attacks in the window — widen it to `from:-30d` first; if it is still empty on a public-facing service, confirm RAP is enabled, the technology's attack control is not **Off**, and deep monitoring is on for the process group.
+1. Confirm RAP is producing `DETECTION_FINDING` records by running the queries above. Zero rows can mean no attacks in the window — widen it to `from:-30d` first; if it is still empty on a public-facing service, confirm RAP is enabled, *code-level attack evaluation* is on in OneAgent features for the technology, the attack control is not **Off**, deep monitoring is on for the process group, and the processes were restarted after each change. On .NET and Go, JNDI and SSRF findings never appear (§ 2).
 2. Build a per-class, per-process-group precision baseline before promoting anything to Block.
 3. Read **APPSEC-08** for the workflow patterns that route attack alerts to the SOC.
 4. Read **APPSEC-09** — `view-sensitive-request-data` controls whether attack payloads are visible; the SOC may need it, AppDev probably should not.

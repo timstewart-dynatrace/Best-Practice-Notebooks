@@ -78,9 +78,9 @@ The order is a guideline, not a rule. Skip what doesn't apply; reorder based on 
 |---|---|
 | Prerequisites | Foundation in progress; OneAgent or OTel on applications |
 | Time | 1–3 weeks (varies by maturity of security program) |
-| Mandatory entry | Notebooks 01 (fundamentals), 02 (platform overview) |
-| Recommended next | 03 (RVA — runtime vulnerability analytics), 04 (RAP — runtime application protection), 05 (SPM — security posture management) |
-| Optional | 06 (Investigator), 07 (Davis CoPilot for security), 08 (workflow remediation), 09 (governance dashboards) |
+| Mandatory entry | Notebooks 01 (fundamentals), 09 (IAM and permissions) |
+| Recommended next | 02 (RVA — runtime vulnerability analytics), 04 (RAP — runtime application protection), 05 (SPM — security posture management) |
+| Optional | 03 (code-level vulnerabilities), 06 (Kubernetes and containers), 07 (Investigations and Dynatrace Assist), 08 (workflow remediation), 10 (governance dashboards) |
 | Cross-references | [AIOPS](../AIOPS%20-%20Dynatrace%20Intelligence/) for Davis intelligence; [DASH](../DASH%20-%20Dashboard%20Design%20&%20Building/) for security dashboards; [WFLOW](../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/) for remediation |
 
 ### [SPANS — Distributed Tracing and Spans](../SPANS%20-%20Distributed%20Tracing%20and%20Spans/)

@@ -123,13 +123,23 @@ The CSI (Container Storage Interface) Driver provides OneAgent code modules to a
 
 There are three ways to get OneAgent code modules into application pods. Operator 1.10.0 (released 07/15/2026) added a CSI-to-ephemeral-volume migration mode, and **Operator 1.11.0 (released 10/01/2026) adds image volumes**, which the release notes call *"a more secure, storage-efficient, and reliable way to instrument application pods that replaces the CSI driver as the recommended approach."*
 
-| | **Image volumes** (Operator 1.11.0+) | **CSI driver** | **Ephemeral volumes** (Operator 1.10.0+) |
+| | **Image volumes** (Operator 1.11.0+) | **CSI driver** | **Ephemeral volumes** (no CSI driver) |
 |---|---|---|---|
 | **How modules reach the pod** | Each node pulls the code-modules image once and shares that copy with every instrumented pod | Cached once per node by the CSI DaemonSet, then mounted into each injected pod | Provisioned into each pod's own ephemeral volume |
 | **Cluster footprint** | No DaemonSet, no elevated privileges | A 5-container privileged DaemonSet per node, with a host-path CSI socket | No DaemonSet; work moves into the injection path |
-| **Requirements** | Kubernetes 1.35+, containerd 2.2+ or CRI-O 1.33+; not compatible with the built-in tenant registry | Any supported cluster | Any supported cluster |
-| **Density behavior** | One copy per node | One cached copy per node | Churn and pod-start latency scale with pod count |
+| **Requirements** | Kubernetes 1.35+, containerd 2.2+ or CRI-O 1.33+; not compatible with the built-in tenant registry | Any supported cluster; Helm default, or the `kubernetes-csi.yaml` manifest | Any supported cluster; `csidriver.enabled: false`, or the plain `kubernetes.yaml` manifest |
+| **Density behavior** | One copy per node | One cached copy per node | One copy per pod — *"storage-inefficient"* per the docs: 1 GB of ephemeral storage per monitored pod, against 0.1 GB per injected pod with the CSI driver |
 | **Choose it when** | Operator 1.11.0+ and the node requirements are met — Dynatrace's recommended approach | The cluster cannot meet the image-volume requirements and can run a privileged DaemonSet | Neither: a CSI DaemonSet is unacceptable (see FAQ-13 for OpenShift SCCs) and image volumes are unavailable |
+
+**What you get without choosing.** It depends on how you install. The Helm chart turns the CSI driver on (`csidriver.enabled: true` in the 1.9.0, 1.10.2 and 1.11.0 charts). With manifests it depends on the file: every release from 1.0.0 to 1.11.0 ships both `kubernetes.yaml`, which contains no CSI driver, and `kubernetes-csi.yaml`, which adds it. So running without the CSI driver is not new in 1.10.0; what 1.10.0 added is the migration mode below. Without the CSI driver, injected pods get their code modules through an ephemeral volume. The image-volume guide calls that *"Node Image Pull via ephemeral volume injection, which is the default since Dynatrace Operator version 1.10"*, and the 1.10.0 notes say *"CSI-less codeModulesImage injection does not require this flag"* (`feature.dynatrace.com/node-image-pull`). Read that as the default *for CSI-less injection*, not as ephemeral volumes becoming the Operator's overall default: a Helm install still starts on CSI.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Operator Helm chart values, v1.11.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.11.0/config/helm/chart/default/values.yaml) — `csidriver.enabled: true`; the same default read at v1.9.0 and v1.10.2, 10/02/2026</sub>
+> - <sub>[Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — `kubernetes.yaml` and `kubernetes-csi.yaml` assets at v1.0.0, v1.9.0, v1.10.0 and v1.11.0; the CSI DaemonSet is present only in the `-csi` file (read 10/02/2026)</sub>
+> - <sub>[Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0) — *"The feature.dynatrace.com/node-image-pull feature flag now only affects the CSI driver."*</sub>
+> - <sub>[Use image volumes for code modules injection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes) — *"ephemeral volume injection needs no privileged access but is storage-inefficient"*</sub>
+> - <sub>[Storage requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/storage) — `applicationMonitoring`, CSI driver disabled: *"1 GB per monitored pod from local ephemeral storage"*; enabled: 0.1 GB per injected pod plus 1 GB per tenant and OneAgent version on the node</sub>
+> - <sub>**Derived:** "not the overall default" combines the chart default with the guide's sentence, which describes what pods revert to *"If the CSI driver is disabled"*</sub>
 
 **Decision guidance:** on Operator 1.11.0+ with Kubernetes 1.35+ and a supported runtime, move to image volumes. Otherwise stay on the CSI driver unless platform policy rules out a privileged DaemonSet, in which case use ephemeral volumes.
 
@@ -137,7 +147,7 @@ There are three ways to get OneAgent code modules into application pods. Operato
 
 > <sub>**Sources:** [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"replaces the CSI driver as the recommended approach"*.</sub>
 
-**Staged-rollout caveat.** Image volumes need **Operator 1.11.0**, the ephemeral migration mode **Operator 1.10.0**, and estates upgrade on their own schedule. **On Operator 1.9.x and earlier the CSI driver is the only supported mode**, so `csidriver.enabled: true` remains the correct and only setting there — verify your operator version before planning a migration:
+**Staged-rollout caveat.** Image volumes need **Operator 1.11.0** and the one-step CSI → ephemeral migration mode needs **Operator 1.10.0**, and estates upgrade on their own schedule. Running without the CSI driver does not depend on either. What a 1.9.x or older cluster lacks is `csidriver.migrationMode`, so moving an *existing* CSI cluster off the driver is not the single-restart procedure below. The how-to measures migration mode as *"a single pod-restart cycle instead of two"*, so without it plan for two — or upgrade to 1.10.0+ first. Verify your operator version before planning a migration:
 
 ```bash
 kubectl -n dynatrace get deployment dynatrace-operator \
@@ -202,7 +212,7 @@ The CSI Driver DaemonSet runs **5 containers** in a sidecar pattern:
 <a id="csi-driver-resource-configuration"></a>
 ## 3. CSI Driver Resource Configuration
 
-> **This section applies only on the CSI path.** If you chose image volumes (Operator 1.11.0+) or ephemeral volumes (Operator 1.10.0+, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. On Operator 1.9.x and earlier the CSI path is the only supported mode, so this section always applies.
+> **This section applies only on the CSI path.** If you chose image volumes (Operator 1.11.0+) or run without the CSI driver (ephemeral volumes, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. That includes clusters installed from the plain `kubernetes.yaml` manifest, which has no CSI driver on any Operator version. On a Helm install the CSI driver is on unless you turned it off, so by default this section applies.
 
 ### Helm Values for CSI Driver
 

@@ -1,6 +1,6 @@
 # APPSEC-10: Dashboards, Reporting and Governance
 
-> **Series:** APPSEC — Application Security | **Notebook:** 10 of 10 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** APPSEC — Application Security | **Notebook:** 10 of 10 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ This is the final notebook in the series. The other nine cover the data sources;
 |-------------|---------|
 | **Dynatrace Environment** | Gen3 SaaS with Grail; AppSec entitlement enabled |
 | **OneAgent** | Full-Stack mode (or code-module attached) on monitored hosts |
-| **Read access** | At minimum `environment:roles:view-security-problems` and `storage:security.events:read` — see APPSEC-09 for the full model |
+| **Read access** | To run the DQL: `storage:security.events:read` **plus** `storage:buckets:read` (a table permission alone reads nothing). The Vulnerabilities and Threats & Exploits apps have their own requirements — see APPSEC-09 for the full model |
 | **Background** | APPSEC-01 (fundamentals + three-pillar framing) |
 
 <a id="dss-trend"></a>
@@ -99,7 +99,7 @@ In community practice, accountability dashboards group by team or by namespace o
 <a id="compliance-coverage"></a>
 ## 4. Compliance Framework Coverage
 
-For organizations subject to specific compliance regimes (PCI, HIPAA, SOC 2, ISO 27001), in community practice the dashboard view that matters is *percent of controls in compliance* by framework, not total finding counts.
+For organizations subject to specific compliance regimes (PCI DSS, HIPAA, ISO 27001, DORA — all SPM standards; SOC 2 is not one, so map it through your own control matrix), in community practice the dashboard view that matters is *percent of controls in compliance* by framework, not total finding counts.
 
 Pick the primary framework (one) for governance reporting and use the others as secondary views — community guidance is that cross-framework rollups mislead because the same finding lands in multiple frameworks; verify against your audit regime.
 
@@ -125,17 +125,17 @@ The artifacts above (open-vulnerability trend by DSS level, severity mix, MTTR, 
 Runtime Vulnerability Analytics and Runtime Application Protection are DPS-billed in **GiB-hours** — per monitored host or container, based on its memory — not per `security.events` record. Cost is therefore driven by *which hosts have RVA and RAP enabled*, not by how many findings or detections they produce. Three FinOps practices:
 
 1. **Scope enablement, not events.** Use monitoring rules to enable RVA and RAP where the risk justifies it; dropping or sampling detection records saves nothing and discards attack evidence.
-2. **Track consumption per capability and host** — in community practice AppSec is tracked as one tenant-wide consumer among many; FINOPS-01 § 5 covers the host-based capability queries, and FINOPS-02 the forecasting model.
+2. **Track consumption per capability and host** — in community practice AppSec is tracked as one tenant-wide consumer among many; FINOPS-01 § 5 covers the host-based capability queries, and FINOPS-02 the forecasting model. Forthcoming in SaaS 1.347 (pre-release; staged tenant rollout planned from 09/08/2026): RVA and RAP billing usage events key on `dt.smartscape.host` instead of `dt.entity.host`, and SPM gains `dt.smartscape.k8s_cluster`. Verify which identifier your tenant emits — `dt.entity.host` remains the working path until the change arrives.
 3. **Watch detection volume as a signal-quality metric, not a cost metric.** In community practice, a spike in RAP detections with no matching incident is read as rules generating false positives — tune them (APPSEC-04 § 3) for the analysts' sake.
 
 Don't sacrifice security signal for cost savings without an explicit risk acceptance. But don't ignore cost either — it's a budget reality.
 
-> <sub>**Sources:** [Runtime Vulnerability Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics) — *"The unit of measure for Runtime Vulnerability Analytics is the GiB-hour"*; [Runtime Application Protection (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection) — *"The unit of measure for Runtime Application Protection is a GiB hour"* (both re-read 09/18/2026); [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"You can also define custom monitoring rules based on certain criteria."*; [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"If you define custom monitoring rules based on certain process groups or vulnerability types, the custom rules override the global attack control"* (both re-read 09/28/2026). **Derived:** practice 1 follows from the GiB-hour unit plus rule-based enablement.</sub>
+> <sub>**Sources:** [Runtime Vulnerability Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics) — *"The unit of measure for Runtime Vulnerability Analytics is the GiB-hour"*; [Runtime Application Protection (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection) — *"The unit of measure for Runtime Application Protection is a GiB hour"* (both re-read 09/18/2026); [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"You can also define custom monitoring rules based on certain criteria."*; [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"If you define custom monitoring rules based on certain process groups or vulnerability types, the custom rules override the global attack control"* (both re-read 09/28/2026). **Derived:** practice 1 follows from the GiB-hour unit plus rule-based enablement. [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Runtime Vulnerability Analytics dt.entity.host dt.smartscape.host"* (pre-release page, read 10/02/2026).</sub>
 
 <a id="series-wrap"></a>
 ## 7. Series Wrap
 
-The series in one paragraph: AppSec in Gen3 SaaS is **three pillars** (RVA + RAP + SPM) over **one Grail data plane** (security.events + vulnerability-service), with **dual-surface IAM** (Grail + environment roles), consumed via **dashboards / workflows / Davis CoPilot**, and governed at the **monthly + quarterly** cadence with **open vulnerabilities by DSS level** as the headline metric. The OneAgent code module is the load-bearing dependency under all of it.
+The series in one paragraph: AppSec in Gen3 SaaS is **three pillars** (RVA + RAP + SPM) over **one Grail data plane** (security.events + vulnerability-service), with **IAM split across Grail and the vulnerability-service** (classic environment roles only for the deprecated classic apps), consumed via **dashboards / workflows / Dynatrace Assist**, and governed at the **monthly + quarterly** cadence with **open vulnerabilities by DSS level** as the headline metric. The OneAgent code module is the load-bearing dependency under RVA and RAP; SPM runs without it.
 
 Where to go from here:
 - Open APPSEC-01 again with the rest of the series fresh and confirm the mental map.
