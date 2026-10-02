@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 13 | **Created:** January 2026 | **Last Updated:** 09/25/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -25,7 +25,7 @@ This notebook provides a comprehensive reference of DQL queries for Kubernetes m
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read`, `events.read` |
+| **Permissions** | `storage:metrics:read`, `storage:logs:read`, `storage:events:read`, `storage:spans:read`, `storage:smartscape:read` |
 | **Knowledge** | K8S-01 through K8S-07 |
 | **Data** | Active Kubernetes cluster monitored |
 
@@ -33,14 +33,17 @@ This notebook provides a comprehensive reference of DQL queries for Kubernetes m
 ## 1. Entity Queries
 ### Kubernetes Entity Types
 
-| Entity Type | DQL Table | Description |
+| Object | Smartscape node (`smartscapeNodes`) | Classic entity (`fetch`) |
 |-------------|-----------|-------------|
-| Cluster | `dt.entity.kubernetes_cluster` | K8s clusters |
-| Node | `dt.entity.kubernetes_node` | Worker nodes |
-| Namespace | `dt.entity.cloud_application_namespace` | Namespaces |
-| Workload | `dt.entity.cloud_application` | Deployments, StatefulSets |
-| Container | `dt.entity.container_group_instance` | Container instances |
-| Service | `dt.entity.service` | Detected services |
+| Cluster | `K8S_CLUSTER` | `dt.entity.kubernetes_cluster` |
+| Node | `K8S_NODE` | `dt.entity.kubernetes_node` |
+| Namespace | `K8S_NAMESPACE` | `dt.entity.cloud_application_namespace` |
+| Workload | `K8S_DEPLOYMENT`, `K8S_STATEFULSET`, `K8S_DAEMONSET`, `K8S_REPLICASET`, `K8S_JOB`, `K8S_CRONJOB` | `dt.entity.cloud_application` (all kinds) |
+| Pod | `K8S_POD` | `dt.entity.cloud_application_instance` |
+| Container | `CONTAINER` | `dt.entity.container_group_instance` |
+| Service | `SERVICE` | `dt.entity.service` |
+
+> <sub>**Dictionary:** classic-to-Smartscape mappings from `dt.semantic_dictionary.models` (`classic_models` → `smartscape_node_type`), read 10/02/2026.</sub>
 
 ```dql
 // List all Kubernetes clusters (smartscape topology)
@@ -154,7 +157,7 @@ metrics
 > | **1.339+** | App containers and native sidecars (`restartPolicy: Always`) |
 > | **1.343+** | Init containers — a delta where the init phase peaks above the running-phase sum |
 > | **1.345+** (rollout from 08/25/2026) | Pod-level `spec.resources` (Kubernetes 1.34+) and RuntimeClass `overhead` — including a **negative** delta where a pod-level *limit* caps the total below the container sum |
-> | **1.347** (pre-release; rollout planned from 09/22/2026) | Fix for a miscalculated effective value when a native sidecar precedes one or more non-restartable init containers |
+> | **1.347** (rollout from 09/30/2026) | Fix for a miscalculated effective value when a native sidecar precedes one or more non-restartable init containers |
 >
 > | Metric family | Affected by the effective-resource changes? |
 > |---|---|
@@ -171,25 +174,43 @@ metrics
 >
 > Each version rolls out per ActiveGate, not per tenant, and ActiveGate fleets lag tenant version — so **verify the version of the ActiveGate carrying the `kubernetes-monitoring` capability for the cluster in question** before deciding which side of a boundary a data point sits on. Until a given version reaches that ActiveGate, the earlier reading is what your data shows, and everything above about baselines and alert thresholds still describes it correctly.
 >
-> <sub>Sources: [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources), [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345), [ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — read 09/18/2026.</sub>
+> <sub>Sources: [Effective pod resources (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources), [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345), [ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Fixed incorrect calculation of effective pod resource requests and limits when a restartable init container (native sidecar) preceded one or more non-restartable init containers."* Read 10/02/2026.</sub>
 
 ```dql
-// Container CPU usage - top consumers
-timeseries avgCpuMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.container_group_instance}
+// Container CPU usage — top consumers
+// Sort on a scalar. `sort` on the timeseries array itself compares arrays element by element,
+// so the order has nothing to do with the average — reduce with arrayAvg() first.
+timeseries cpu = avg(dt.kubernetes.container.cpu_usage), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpu), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, avgCpuMillicores
 | sort avgCpuMillicores desc
 | limit 15
 ```
 
 ```dql
 // Container memory usage approaching limits
-timeseries avgMemBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.container_group_instance}
-| fieldsAdd avgMemBytesValue = arrayAvg(avgMemBytes)
-| sort avgMemBytesValue desc
+// "Approaching the limit" needs the limit: compare working set with limits_memory per container.
+// Containers with no memory limit drop out (limitMiB is null) — they cannot be OOM-killed for
+// exceeding a limit, only by node pressure.
+timeseries {
+    used = avg(dt.kubernetes.container.memory_working_set),
+    lim = avg(dt.kubernetes.container.limits_memory)
+  }, from:-1h, by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            limitMiB = round(arrayAvg(lim) / 1048576, decimals: 0)
+| filter limitMiB > 0
+| fieldsAdd pctOfLimit = round(100 * usedMiB / limitMiB, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, usedMiB, limitMiB, pctOfLimit
+| sort pctOfLimit desc
+| limit 15
 ```
 
 ```dql
 // CPU throttling detection
-timeseries totalThrottle = sum(dt.containers.cpu.throttled_time), from:-1h, by:{dt.entity.container_group_instance}
+// One series per container instance, so avg() is its own value. A bare sum() would also add the
+// raw points inside each time bucket and read high at wide timeframes.
+timeseries totalThrottle = avg(dt.containers.cpu.throttled_time), from:-1h, by:{dt.entity.container_group_instance}
 | fieldsAdd totalThrottleValue = arrayAvg(totalThrottle)
 | filter totalThrottleValue > 0
 | sort totalThrottleValue desc
@@ -295,16 +316,16 @@ fetch logs, from: now() - 24h
 > **`duration` is a duration type — compare it against a duration literal (`1s`, `500ms`), never a nanosecond integer.** `duration > 1000000000` is a type mismatch: it raises only a `DATATYPE_MISMATCH` warning, evaluates to null, and the filter silently drops every span. Spans also have no `timestamp` field — their time fields are `start_time` and `end_time`.
 
 ```dql
-// Service response times in K8s
+// Service response times in K8s (server spans)
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(k8s.namespace.name)
-| summarize 
-    p50 = percentile(duration, 50),
-    p95 = percentile(duration, 95),
-    p99 = percentile(duration, 99),
-    by:{k8s.namespace.name, dt.entity.service}
-| sort p99 desc
+| summarize {
+    p50_ms = percentile(duration, 50) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+  }, by:{k8s.namespace.name, dt.service.name}
+| sort p99_ms desc
 | limit 15
 ```
 
@@ -321,7 +342,7 @@ fetch spans, from:-1h
 | summarize {
     total = count(),
     errors = countIf(span.status_code == "error")
-  }, by:{k8s.namespace.name, dt.entity.service}
+  }, by:{k8s.namespace.name, dt.service.name}
 | fieldsAdd successes = total - errors
 | fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
 | filter errors > 0
@@ -340,7 +361,7 @@ fetch spans, from:-1h
 ```
 
 ```dql
-// Request throughput by namespace
+// Server-span throughput by namespace (each service hop a request passes through adds one server span)
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(k8s.namespace.name)
@@ -354,13 +375,15 @@ fetch spans, from:-1h
 ### Joining Multiple Data Sources
 
 ```dql
-// High CPU workloads with their names
-timeseries avgCpuMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.cloud_application}
-| fieldsAdd avgCpuMillicoresValue = arrayAvg(avgCpuMillicores)
-| lookup [fetch dt.entity.cloud_application | fields id, entity.name], sourceField:dt.entity.cloud_application, lookupField:id
-| fieldsRename workloadName = lookup.entity.name
-| fields workloadName, avgCpuMillicoresValue
-| sort avgCpuMillicoresValue desc
+// High-CPU workloads, by name
+// k8s.workload.name is a dimension on the container metrics, so no entity lookup is needed.
+// A workload's CPU is the sum of its containers (and replicas): sum(..., rollup: avg), not avg().
+timeseries cpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpu), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, avgCpuMillicores
+| sort avgCpuMillicores desc
+| limit 20
 ```
 
 ```dql
@@ -418,10 +441,22 @@ timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage, rollup: avg), 
 ### Threshold-Based Alerting Patterns
 
 ```dql
-// High memory usage alert query
-timeseries avgMemBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.container_group_instance}
-| fieldsAdd avgMemBytesValue = arrayAvg(avgMemBytes)
-
+// High memory usage alert query — containers above 90% of their memory limit
+// "Approaching the limit" needs the limit: compare working set with limits_memory per container.
+// Containers with no memory limit drop out (limitMiB is null) — they cannot be OOM-killed for
+// exceeding a limit, only by node pressure.
+timeseries {
+    used = avg(dt.kubernetes.container.memory_working_set),
+    lim = avg(dt.kubernetes.container.limits_memory)
+  }, from:-1h, by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            limitMiB = round(arrayAvg(lim) / 1048576, decimals: 0)
+| filter limitMiB > 0
+| fieldsAdd pctOfLimit = round(100 * usedMiB / limitMiB, decimals: 1)
+| filter pctOfLimit > 90
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, usedMiB, limitMiB, pctOfLimit
+| sort pctOfLimit desc
+| limit 50
 ```
 
 ```dql
@@ -431,8 +466,8 @@ timeseries avgMemBytes = avg(dt.kubernetes.container.memory_working_set), from:-
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter dt.kubernetes.event.reason == "BackOff"
-| summarize crashLoopEvents = count(),
-    affectedPods = countDistinctExact(dt.kubernetes.event.involved_object.name)
+| summarize {crashLoopEvents = count(),
+    affectedPods = countDistinctExact(dt.kubernetes.event.involved_object.name)}
 ```
 
 ```dql

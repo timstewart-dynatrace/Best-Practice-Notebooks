@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -200,8 +200,14 @@ fetch spans, from:-6h
 // is a pre-aggregated gauge, so percentile() over it returns an empty result even when the key is
 // spelled correctly. Only avg/min/max/sum are meaningful there. Real percentiles need the
 // underlying distribution, which lives on the spans.
+//
+// Corrected 10/02/2026: filter to the invocation span (span.kind == "server"). faas.name is also
+// carried by the function's outbound and internal child spans, so counting every span with
+// faas.name over-counted invocations ~8x on the validation tenant (2,872 spans vs 359 server
+// spans in 6 h, against 351 CloudWatch invocations) and mixed child-span durations into the
+// percentiles.
 fetch spans, from:-6h
-| filter isNotNull(faas.name)
+| filter isNotNull(faas.name) and span.kind == "server"
 | summarize {
     p50 = percentile(duration, 50) / 1ms,
     p90 = percentile(duration, 90) / 1ms,

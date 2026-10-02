@@ -23,9 +23,9 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Ingesting K8s events and logs, ActiveGate config, filtering (the ingest side — for *querying* events see `-[K8S]-04-cluster-monitoring.md`) | `-[K8S]-07-events-and-logs.md` |
 | DQL query cookbook: entities, metrics, logs, traces, alerting | `-[K8S]-08-dql-for-k8s.md` |
 | Broken monitoring: injection skips, CSI crash-loops, operator errors, support archive, symptom→fix index | `-[K8S]-09-troubleshooting.md` |
-| Enriching telemetry with K8s metadata, oneagentctl, Grail fields, and the Operator 1.10.2 tagging-rule precedence change (first matching rule now wins, previously last) with its knock-on effect on `dt.security_context`, cost attribution, and primary tags | `-[K8S]-10-metadata-telemetry-enrichment.md` |
-| Coexisting with Datadog/Prometheus/etc., infra-only, opt-in mode | `-[K8S]-11-multi-tool-coexistence.md` |
-| NGINX Ingress, CSI driver internals, resource tuning, StatsD; choosing how code modules reach pods — CSI driver vs ephemeral volumes, a deliberate decision only from Operator 1.10.0+ | `-[K8S]-12-specialized-monitoring.md` |
+| Enriching telemetry with K8s metadata: the three methods (dedicated `metadata.dynatrace.com` annotations at namespace/workload/pod level, DynaKube resource attributes, central rules) and their precedence, enrichment rule fields, oneagentctl, Grail fields, and the Operator 1.10.2 tagging-rule precedence change (first matching rule now wins) | `-[K8S]-10-metadata-telemetry-enrichment.md` |
+| Coexisting with Datadog/Prometheus/etc., infra-only, namespace vs pod opt-in (`automatic-injection: "false"` needs per-pod annotations), feature flags, build-version labels | `-[K8S]-11-multi-tool-coexistence.md` |
+| NGINX Ingress, resource tuning, StatsD on Kubernetes, telemetry-ingest endpoints; choosing how code modules reach pods — image volumes (recommended from Operator 1.11.0), CSI driver, or ephemeral volumes | `-[K8S]-12-specialized-monitoring.md` |
 | Kafka observability via Kpow Prometheus metrics | `-[K8S]-13-kafka-monitoring-with-kpow.md` |
 | Hands-on end-to-end deployment walkthrough (lab format) | `-[K8S]-14-[LAB]-deployment-guide.md` |
 | Consolidated checklist: mode selection, token scopes, minimal prod DynaKube, ActiveGate sizing | `-[K8S]-99-best-practice-summary.md` |

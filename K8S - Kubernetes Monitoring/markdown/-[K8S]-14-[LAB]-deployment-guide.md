@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ This is a hands-on deployment notebook. Each section includes commands to run an
 
 | Requirement | Details |
 |-------------|----------|
-| **Kubernetes Cluster** | Version 1.24+ with `kubectl` access and cluster-admin permissions |
+| **Kubernetes Cluster** | A version supported by your Operator release (check the Operator's supported-versions table), with `kubectl` access and cluster-admin permissions |
 | **Helm** | Version 3.x installed locally |
 | **Dynatrace Tenant** | SaaS environment with admin access |
 | **Network** | Outbound 443 to `*.live.dynatrace.com` and `*.apps.dynatrace.com` |
@@ -43,8 +43,8 @@ This is a hands-on deployment notebook. Each section includes commands to run an
 Run these commands to confirm your cluster is ready:
 
 ```bash
-# Verify Kubernetes version (must be 1.24+)
-kubectl version --short
+# Verify Kubernetes version (kubectl 1.28+ removed --short)
+kubectl version
 
 # Verify Helm version (must be 3.x)
 helm version --short
@@ -56,35 +56,31 @@ kubectl get nodes
 <a id="create-access-tokens"></a>
 ## 2. Create Access Tokens
 
-The Dynatrace Operator requires two tokens: an **API token** for cluster communication and a **data ingest token** for sending telemetry.
+The Dynatrace Operator uses two tokens: an **Operator token** for managing Dynatrace components in the cluster and a **Data Ingest token** for sending telemetry. The Kubernetes onboarding flow in the Kubernetes app creates both for you; the current documentation describes them as **platform tokens** on a dedicated service user.
 
-### API Token
-
-1. Navigate to **Access Tokens** > **Generate new token**
-2. Select the template: **Kubernetes: Dynatrace Operator**
-3. This template includes the required scopes:
+### Operator token (platform token)
 
 | Scope | Purpose |
 |-------|----------|
-| `InstallerDownload` | Download OneAgent and ActiveGate binaries |
-| `activeGateTokenManagement.create` | Create ActiveGate auth tokens |
-| `entities.read` | Read entity topology |
-| `settings.read` | Read environment settings |
-| `settings.write` | Write environment settings |
+| `fleet-management:activegate.connection-info:read` | ActiveGate lifecycle information |
+| `fleet-management:activegate.tokens:create` | ActiveGate authentication tokens |
+| `fleet-management:container-images:read` | Image information for managed components |
+| `fleet-management:oneagent.connection-info:read` | OneAgent lifecycle information |
+| `fleet-management:oneagents:download` | OneAgent lifecycle |
+| `settings:objects:read` / `settings:objects:write` | Kubernetes API monitoring, KSPM and log-monitoring settings |
 
-### Data Ingest Token
-
-1. Navigate to **Access Tokens** > **Generate new token**
-2. Select the template: **Kubernetes: Data Ingest**
-3. This template includes the required scopes:
+### Data Ingest token (platform token)
 
 | Scope | Purpose |
 |-------|----------|
-| `metrics.ingest` | Send Kubernetes and Prometheus metrics |
-| `logs.ingest` | Send container and pod logs |
-| `openTelemetryTrace.ingest` | Send distributed traces |
+| `openpipeline:logs:ingest` | Send container and pod logs |
+| `openpipeline:metrics:ingest` | Send Kubernetes and Prometheus metrics |
+| `openpipeline:traces:ingest` | Send distributed traces |
+| `storage:metrics:write` | Write metrics |
 
-> **Important:** Always use the predefined templates. Manually selecting scopes risks missing required permissions, which causes silent failures that are difficult to diagnose.
+Classic access tokens remain accepted (*"existing access tokens continue to be accepted"*), and Operators before 1.10.0 accept only them. If a scope is missing, the DynaKube status **Tokens** condition names it (`kubectl -n dynatrace describe dynakube`).
+
+> <sub>**Sources:** [Tokens and permissions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions) — *"Operator token —assigned the Kubernetes Operator policy. Manages the lifecycle of all Dynatrace components in the cluster."*, [Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0) — *"existing access tokens continue to be accepted"*.</sub>
 
 ### Save Your Tokens
 
@@ -92,8 +88,8 @@ Copy both tokens immediately after generation. You cannot retrieve them later.
 
 ```bash
 # Store tokens as environment variables for the next steps
-export API_TOKEN="dt0c01.XXXXXXXX.YYYYYYYYYYYYYYYY"
-export DATA_INGEST_TOKEN="dt0c01.XXXXXXXX.ZZZZZZZZZZZZZZZZ"
+export OPERATOR_TOKEN="<operator-token>"
+export DATA_INGEST_TOKEN="<data-ingest-token>"
 ```
 
 <a id="install-dynatrace-operator"></a>
@@ -111,13 +107,13 @@ helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
 
 The `--atomic` flag ensures the installation is rolled back automatically if any component fails to start.
 
-> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.2** (released July 30, 2026) is the recommended pin: it fixes a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, and injected pods hanging on the OneAgent-binary download, and it starts logging metadata-enrichment rules it cannot apply. The tagging fix is a **behaviour change** if you have several rules for one key — see K8S-10 before upgrading a cluster that relies on the old ordering. **Skip 1.10.0** (auto-update defect; flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)). Estates adopt operator releases on their own schedule — **1.10.1 remains a working pin** until you upgrade, with the OpenShift-manifest caveat in K8S-09 §2. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2).
+> **Pin `--version` so this lab is reproducible.** Without it Helm takes whatever is newest at run time, so two people running this lab a month apart get different operators. **1.10.2** (released July 30, 2026) is the recommended pin: it fixes a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, and injected pods hanging on the OneAgent-binary download, and it starts logging metadata-enrichment rules it cannot apply. The tagging fix is a **behaviour change** if you have several rules for one key — see K8S-10 before upgrading a cluster that relies on the old ordering. **Skip 1.10.0** (auto-update defect; flagged `prerelease: true` on the [releases page](https://github.com/Dynatrace/dynatrace-operator/releases)). Estates adopt operator releases on their own schedule — **1.10.1 remains a working pin** until you upgrade, with the OpenShift-manifest caveat in K8S-09 §2. Never pin below 1.4.1 (CSI liveness-probe crash-loop window — K8S-09 §2). **Operator 1.11.0** (released 10/01/2026) is the newest release: it removes the `v1beta4` DynaKube API (this lab already uses `v1beta6`) and adds image-volume code-module injection (K8S-12 § 2). Move the pin to 1.11.0 once you have validated it on a non-production cluster.
 
 ### Step 2: Create the Token Secret
 
 ```bash
 kubectl -n dynatrace create secret generic dynakube \
-  --from-literal=apiToken=$API_TOKEN \
+  --from-literal=apiToken=$OPERATOR_TOKEN \
   --from-literal=dataIngestToken=$DATA_INGEST_TOKEN
 ```
 
@@ -155,8 +151,6 @@ metadata:
   annotations:
     # Fail pod startup if injection fails — surfaces problems immediately
     feature.dynatrace.com/injection-failure-policy: "fail"
-    # Opt-in injection — only labeled namespaces get instrumented
-    feature.dynatrace.com/automatic-injection: "false"
     # Enable build label propagation for Release Inventory
     feature.dynatrace.com/label-version-detection: "true"
     # Extend CSI mount timeout for cloud providers with slow volume attachment
@@ -197,7 +191,7 @@ spec:
     capabilities:
       - routing
       - kubernetes-monitoring
-      - metrics-ingest
+      - metrics-ingest      # in-cluster metrics ingest endpoint (optional)
     replicas: 2
     resources:
       requests:
@@ -212,7 +206,7 @@ spec:
         whenUnsatisfiable: ScheduleAnyway
         labelSelector:
           matchLabels:
-            dynatrace.com/component: activegate
+            app.kubernetes.io/component: activegate
 
   # Log monitoring
   logMonitoring: {}
@@ -230,27 +224,29 @@ kubectl apply -f dynakube.yaml
 | Setting | Value | Why It Matters |
 |---------|-------|----------------|
 | `injection-failure-policy: "fail"` | Fail pod startup on injection error | Surfaces misconfiguration immediately instead of running uninstrumented |
-| `automatic-injection: "false"` | Opt-in injection via namespace labels | Prevents accidental injection into system namespaces |
 | `label-version-detection: "true"` | Propagate `app.kubernetes.io/version` | Populates Release Inventory for deployment tracking |
 | `max-csi-mount-timeout: "15m"` | Extended CSI driver timeout | Prevents pod failures on cloud providers with slow EBS/disk attachment |
-| `networkZone` | Per-cluster zone | Isolates ActiveGate traffic; required for multi-cluster |
+| `networkZone` | Per-cluster zone | Keeps OneAgent traffic on this cluster's ActiveGates |
 | `metadataEnrichment.enabled` | `true` | Flows K8s labels/annotations into all telemetry signals |
 | `cloudNativeFullStack` | Full-stack mode | Full code-level visibility with automatic injection |
-| `namespaceSelector` | `dt-monitoring: "true"` | Only labeled namespaces get OneAgent injection |
+| `namespaceSelector` | `dt-monitoring: "true"` | Only labeled namespaces get OneAgent injection — this is the opt-in |
 | `hostGroup` | Per-cluster name | Groups hosts for scoped alerting and dashboards |
 | `args: --set-host-property` | Custom properties | Adds environment, team, cost-center to every host entity |
 | `tolerations` | Control plane toleration | Ensures DaemonSet runs on all nodes including control plane |
-| `activeGate.replicas: 2` | High availability | Survives single-pod failure; required for production |
+| `activeGate.replicas: 2` | High availability | Survives single-pod failure |
 | `topologySpreadConstraints` | Zone-aware scheduling | Distributes ActiveGate pods across availability zones |
 | `capabilities: routing` | ActiveGate routing | Routes OneAgent traffic through ActiveGate |
 | `capabilities: kubernetes-monitoring` | K8s API integration | Enables cluster-level monitoring, events, and workload data |
-| `capabilities: metrics-ingest` | Prometheus scraping | Enables annotation-based Prometheus metric collection |
+| `capabilities: metrics-ingest` | Metrics ingest endpoint | Lets in-cluster sources send metrics to the ActiveGate. Annotation-based Prometheus scraping comes from `kubernetes-monitoring` plus the *Monitor annotated Prometheus exporters* setting (K8S-13 § 3) |
 | `logMonitoring: {}` | Log collection enabled | Collects container stdout/stderr logs |
+
+
+> **Do not add `feature.dynatrace.com/automatic-injection: "false"` here.** That flag switches injection to per-pod opt-in: *"Pods that should be injected have to be annotated with oneagent.dynatrace.com/inject: "true""*. With it set, labelling namespaces alone injects nothing. Earlier versions of this lab set it; K8S-11 § 2 explains both opt-in levels.
 
 <a id="label-namespaces"></a>
 ## 5. Label Namespaces for Monitoring
 
-Because the DynaKube uses `automatic-injection: "false"` with a `namespaceSelector`, only namespaces labeled with `dt-monitoring=true` will receive OneAgent injection.
+Because the DynaKube's `namespaceSelector` matches `dt-monitoring: "true"`, only namespaces with that label receive OneAgent injection.
 
 ### Label Application Namespaces
 
@@ -265,7 +261,7 @@ kubectl get namespaces -l dt-monitoring=true
 
 ### Namespaces to NOT Label
 
-These system namespaces should **never** receive the `dt-monitoring=true` label:
+In community practice, these namespaces are left unlabelled:
 
 | Namespace | Reason |
 |-----------|--------|
@@ -283,11 +279,9 @@ These system namespaces should **never** receive the `dt-monitoring=true` label:
 
 Telemetry enrichment flows Kubernetes labels and annotations into all telemetry signals (logs, metrics, traces, events). This enables filtering, cost allocation, and IAM scoping.
 
-### Settings Path
+### Where the rules live
 
-**Settings** > **Cloud and Virtualization** > **Kubernetes Telemetry Enrichment**
-
-Schema ID: `builtin:kubernetes.generic.metadata.enrichment`
+The **Kubernetes telemetry enrichment** setting, schema `builtin:kubernetes.generic.metadata.enrichment`, at environment or cluster scope. From SaaS 1.345 you can opt into central configuration instead (K8S-10 § 9).
 
 ### Recommended Enrichment Rules
 
@@ -313,13 +307,11 @@ kubectl get namespace <app-namespace> --show-labels
 
 ### Propagation Timing
 
-| Action | Propagation Time |
-|--------|------------------|
-| New enrichment rule created | Up to 45 minutes |
-| Namespace label added | Immediate (next telemetry cycle) |
-| Pod restart after enrichment | Immediate |
+The schema states: *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect."* Treat a new namespace label the same way — restart the pods once the rule is in effect.
 
 > **Important:** If you create enrichment rules after DynaKube is already deployed, existing pods must be restarted to pick up the enriched metadata. Run `kubectl rollout restart deployment -n <namespace>` for affected namespaces.
+
+> <sub>**Sources:** [Kubernetes telemetry enrichment schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-kubernetes-generic-metadata-enrichment) — *"New rules may take up to 45 minutes to take effect."*</sub>
 
 > **See also:** K8S-10 (Metadata Telemetry Enrichment) for a deep dive into enrichment methods, file locations, and advanced use cases.
 
@@ -341,13 +333,13 @@ This tells the Dynatrace Operator to read version information from standard Kube
 
 ### Required Pod Labels
 
-Your pods (or the Deployments/StatefulSets that create them) must carry these standard labels:
+The **pod** must carry these labels — put them in the pod template. *"Only pod labels are detected, not workload (Deployment/StatefulSet) labels."*
 
-| Label | Purpose | Example |
+| Pod label | Maps to | Example |
 |-------|---------|----------|
-| `app.kubernetes.io/version` | Version string | `1.4.2`, `2025.03.15-hotfix` |
-| `app.kubernetes.io/part-of` | Application group | `checkout-platform` |
-| `app.kubernetes.io/name` | Component name | `payment-service` |
+| `app.kubernetes.io/version` | `DT_RELEASE_VERSION` | `1.4.2`, `2025.03.15-hotfix` |
+| `app.kubernetes.io/part-of` | `DT_RELEASE_PRODUCT` | `checkout-platform` |
+| `dynatrace-release-stage` | `DT_RELEASE_STAGE` | `production` |
 
 Example Deployment snippet:
 
@@ -388,51 +380,34 @@ metadata:
 
 After deploying workloads with the required labels:
 
-1. Navigate to **Releases** in the Dynatrace UI
-2. Confirm your services appear with version information
-3. Deploy a new version and verify the Release Inventory updates
+1. Open the **Release Monitoring** dashboard, or run the § 9.5 query
+2. Confirm your workloads appear with version information
+3. Change the version in the pod template, roll out, and confirm the new version appears
+
+> <sub>**Sources:** [Version detection methods (DT docs)](https://docs.dynatrace.com/docs/deliver/release-monitoring/version-detection-strategies-latest) — *"Only pod labels are detected, not workload (Deployment/StatefulSet) labels."*</sub>
 
 <a id="create-segments"></a>
 ## 8. Create Segments
 
-Segments are the Gen3 replacement for Management Zones. They provide scoped views of your environment using enriched metadata fields.
-
-### Settings Path
-
-**Settings** > **Ownership & Organization** > **Segments**
+Segments filter what a view shows across Grail data. They take over the filtering job of Management Zones; access control moves to IAM policies and boundaries (MZ2POL series).
 
 ### Recommended Segments
 
 Create segments based on the enrichment rules configured in Section 6:
 
-| Segment Name | Filter | Use Case |
+| Segment Name | Include condition | Use Case |
 |-------------|--------|----------|
-| Per-team: `Team: Backend` | `dt.security_context == "backend"` | Team-scoped dashboards and alerts |
-| Per-team: `Team: Frontend` | `dt.security_context == "frontend"` | Team-scoped dashboards and alerts |
-| Per-cluster: `Cluster: Production` | `k8s.cluster.name == "prod-us-east-1"` | Cluster-level views |
-| Per-namespace: `Namespace: Checkout` | `k8s.namespace.name == "checkout"` | Application-scoped monitoring |
-| Per-environment: `Environment: Staging` | `k8s.cluster.name == "staging-us-east-1"` | Environment isolation |
+| Per-team: `Team: Backend` | `dt.security_context` equals `backend` | Team-scoped dashboards |
+| Per-team: `Team: Frontend` | `dt.security_context` equals `frontend` | Team-scoped dashboards |
+| Per-cluster: `Cluster: Production` | `k8s.cluster.name` equals `prod-us-east-1` | Cluster-level views |
+| Per-namespace: `Namespace: Checkout` | `k8s.namespace.name` equals `checkout` | Application-scoped monitoring |
+| Per-environment: `Environment: Staging` | `k8s.cluster.name` equals `staging-us-east-1` | Environment isolation |
 
-### Creating a Segment via API
+### Creating Segments as Code
 
-```bash
-curl -X POST "https://<ENVIRONMENT_ID>.apps.dynatrace.com/platform/classic/environment-api/v2/settings/objects" \
-  -H "Authorization: Api-Token <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '[{
-    "schemaId": "builtin:ownership.segments",
-    "scope": "environment",
-    "value": {
-      "name": "Team: Backend",
-      "description": "All telemetry owned by the backend team",
-      "variables": {"type": "query", "value": "fetch logs | filter dt.security_context == \\"backend\\""}
-    }
-  }]'
-```
+Segments are not Settings objects, so the Settings API cannot create them. They have their own **Filter Segments API** at `/platform/storage/filter-segments/v1/filter-segments`, called with a platform token. Build a segment once in the UI, read it back through that API, and version the JSON. ORGNZ-10 covers the API, the include syntax and the permissions (`storage:filter-segments:*`).
 
-> **Note:** Segments replace Management Zones in Dynatrace Gen3. Unlike Management Zones, segments are dynamic and work across all Grail data — not just entity-based data.
-
-> **See also:** ORGNZ-06 (Segments & Data Access) for comprehensive segment design patterns.
+> **See also:** ORGNZ-08 and ORGNZ-10 for segment design patterns.
 
 <a id="verify-deployment"></a>
 ## 9. Verify Deployment
@@ -546,7 +521,7 @@ timeseries oaMem = avg(dt.kubernetes.container.memory_working_set), from:-1h,
 | sort avgMemMB desc
 ```
 
-Healthy range: 300-800 MB per OneAgent pod. If consistently above 1 GB, check for excessive process groups or deep monitoring of high-cardinality applications.
+There is no published healthy range. Record the baseline for your nodes after the first week and alert on sustained growth above it.
 
 ### 10.2 Dynatrace Component Failures
 
@@ -604,11 +579,10 @@ With the base deployment complete, these additional configurations maximize the 
 |----------|---------------|-----------------|------------|
 | **High** | OpenPipeline log routing | Route logs to buckets by namespace, set retention tiers | OPLOGS series |
 | **High** | Custom Grail buckets | Separate retention for prod vs. non-prod, compliance data | ORGNZ-02 |
-| **High** | anomaly detectors | Automated baseline alerting for CPU, memory, pod restarts | K8S-09 |
+| **High** | Kubernetes anomaly detection | Built-in node, workload and namespace alerts, plus custom alerts | K8S-04 § 8 |
 | **Medium** | Kubernetes dashboards | Cluster health overview, workload summary, namespace drill-down | DASH series |
 | **Medium** | Alerting workflows | detected problem → Slack, Teams, PagerDuty, Jira | WFLOW series |
 | **Medium** | Prometheus scraping | Collect custom app metrics via pod annotations | K8S-13 |
-| **Low** | Multi-cluster federation | Unified view across dev/staging/prod clusters | K8S-04 |
 | **Low** | GitOps DynaKube management | Version-control DynaKube CR with ArgoCD or Flux | K8S-03 |
 
 <a id="summary"></a>
@@ -619,7 +593,7 @@ With the base deployment complete, these additional configurations maximize the 
 | Step | Status | Notes |
 |------|--------|-------|
 | 1. Prerequisites verified | [ ] | K8s 1.24+, Helm 3.x, network access |
-| 2. Access tokens created | [ ] | API token + Data Ingest token via templates |
+| 2. Access tokens created | [ ] | Operator token + Data Ingest token |
 | 3. Operator installed | [ ] | Helm chart + token secret |
 | 4. DynaKube applied | [ ] | v1beta6 with all production settings |
 | 5. Namespaces labeled | [ ] | `dt-monitoring=true` on app namespaces |
@@ -633,12 +607,12 @@ With the base deployment complete, these additional configurations maximize the 
 
 | Concept | Recommendation |
 |---------|----------------|
-| Injection model | Opt-in via `namespaceSelector` — never inject into system namespaces |
+| Injection model | Opt-in via `namespaceSelector`; leave system namespaces unlabelled |
 | Failure policy | `fail` — surface problems immediately, do not run uninstrumented |
 | ActiveGate | 2 replicas with zone-aware topology spread |
 | Metadata enrichment | Enable from day one — retrofitting is expensive |
-| Build propagation | Standard K8s labels (`app.kubernetes.io/*`) — no custom tooling needed |
-| Segments | Replace Management Zones for Gen3 — use enriched fields as filters |
+| Build propagation | `app.kubernetes.io/version` and `part-of` on the pod template |
+| Segments | Filtering in Gen3, built on enriched fields; access control is IAM's job |
 | Verification | Run DQL checks after every deployment change |
 
 ---

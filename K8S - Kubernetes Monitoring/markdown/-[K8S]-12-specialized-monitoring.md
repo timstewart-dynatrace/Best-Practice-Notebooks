@@ -1,9 +1,9 @@
 # K8S-12: Specialized Monitoring Scenarios
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 12 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
-## NGINX Ingress, CSI Driver, Resource Tuning, and StatsD Ingestion
-This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, CSI Driver architecture, resource sizing guidelines, and StatsD metric ingestion on Kubernetes.
+## NGINX Ingress, Code-Module Delivery, Resource Tuning, and StatsD Ingestion
+This notebook covers specialized monitoring scenarios including NGINX Ingress Controller instrumentation, how code modules reach pods (image volumes, CSI driver, ephemeral volumes), resource sizing, and StatsD metric ingestion on Kubernetes.
 
 ---
 
@@ -46,9 +46,9 @@ The NGINX Ingress Controller is often the entry point for all external traffic. 
 | Requirement | Details |
 |-------------|----------|
 | OneAgent version | 1.227+ |
-| Pod naming | Must contain `ingress-nginx-` |
-| Architecture | x86-64 only |
-| Controller type | ingress-nginx (not nginx-ingress) |
+| Pod naming | Pod or container name must contain `ingress-nginx-` or `nginx-ingress-` |
+| Architecture | *"ARM64 architecture is not supported."* |
+| Controller type | The official Kubernetes ingress-nginx controller. The F5 NGINX ingress controller is instrumented automatically; derivatives such as Bitnami's are not supported by these steps |
 
 ### Configuration Steps
 
@@ -58,7 +58,7 @@ The NGINX Ingress Controller is often the entry point for all external traffic. 
 kubectl edit configmap ingress-nginx-controller -n ingress-nginx
 ```
 
-**Step 2: Add the OneAgent module loading snippet**
+**Step 2: Add the OneAgent module loading snippet** (path for `cloudNativeFullStack` and `applicationMonitoring`; `classicFullStack` uses `/opt/dynatrace/oneagent/...` instead of `/opt/dynatrace/oneagent-paas/...`)
 
 ```yaml
 data:
@@ -99,11 +99,16 @@ kubectl -n ingress-nginx logs -l app.kubernetes.io/name=ingress-nginx | grep -i 
 
 > **Note:** No DynaKube changes are required for NGINX monitoring - only the ConfigMap edit and pod restart.
 
+> <sub>**Sources:** [Instrument ingress-nginx (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/instrument-nginx) — *"The pod or container name must contain the substring ingress-nginx- or nginx-ingress- to ensure proper instrumentation of the NGINX binary."*</sub>
+
 ```dql
 // Check if NGINX Ingress spans are arriving
+// dt.service.name, not service.name: service.name is the OpenTelemetry resource attribute and is
+// absent on OneAgent spans (on the validation tenant, 10/02/2026, it was set on 4,258 of 304,602
+// spans carrying k8s.namespace.name). dt.service.name is set on every span.
 fetch spans, from:-1h
-| filter contains(service.name, "nginx") or contains(service.name, "ingress")
-| summarize count = count(), by:{service.name, span.name}
+| filter contains(dt.service.name, "nginx") or contains(dt.service.name, "ingress")
+| summarize count = count(), by:{dt.service.name, span.name}
 | sort count desc
 | limit 20
 ```
@@ -114,21 +119,25 @@ fetch spans, from:-1h
 
 The CSI (Container Storage Interface) Driver provides OneAgent code modules to application pods via volumes instead of host mounts.
 
-### Code-Module Delivery Is a Choice (Operator 1.10.0+)
+### Code-Module Delivery Is a Choice
 
-Through Operator 1.9.x the CSI driver was effectively the only production path for `cloudNativeFullStack` and `applicationMonitoring`, so "enable the CSI driver" read as an invariant. **Operator 1.10.0 (released July 15, 2026) adds a CSI-to-ephemeral-volume migration mode**, which turns delivery into a deliberate architectural decision.
+There are three ways to get OneAgent code modules into application pods. Operator 1.10.0 (released 07/15/2026) added a CSI-to-ephemeral-volume migration mode, and **Operator 1.11.0 (released 10/01/2026) adds image volumes**, which the release notes call *"a more secure, storage-efficient, and reliable way to instrument application pods that replaces the CSI driver as the recommended approach."*
 
-| | **CSI driver** | **Ephemeral volumes** (Operator 1.10.0+) |
-|---|---|---|
-| **How modules reach the pod** | Cached once per node by the CSI DaemonSet, then mounted into each injected pod | Provisioned into each pod's own ephemeral volume |
-| **Cluster footprint** | A 5-container privileged DaemonSet per node, with a host-path CSI socket | No DaemonSet; work moves into the injection path |
-| **Sizing and monitoring burden** | Real — five containers to bound (§3), plus a mount-storm failure mode (K8S-09 §2) | Shifts to per-pod volume provisioning |
-| **Density behavior** | Efficient at high pod density — one cached copy serves every pod on the node | Costlier at high density — churn and pod-start latency scale with pod count |
-| **Choose it when** | Default. You can run a privileged DaemonSet and you want per-node caching. | A CSI DaemonSet is unacceptable: restrictive admission policy (see FAQ-13 for the OpenShift SCC surface), a managed platform that constrains CSI drivers, or a node pool where you will not run privileged workloads. |
+| | **Image volumes** (Operator 1.11.0+) | **CSI driver** | **Ephemeral volumes** (Operator 1.10.0+) |
+|---|---|---|---|
+| **How modules reach the pod** | Each node pulls the code-modules image once and shares that copy with every instrumented pod | Cached once per node by the CSI DaemonSet, then mounted into each injected pod | Provisioned into each pod's own ephemeral volume |
+| **Cluster footprint** | No DaemonSet, no elevated privileges | A 5-container privileged DaemonSet per node, with a host-path CSI socket | No DaemonSet; work moves into the injection path |
+| **Requirements** | Kubernetes 1.35+, containerd 2.2+ or CRI-O 1.33+; not compatible with the built-in tenant registry | Any supported cluster | Any supported cluster |
+| **Density behavior** | One copy per node | One cached copy per node | Churn and pod-start latency scale with pod count |
+| **Choose it when** | Operator 1.11.0+ and the node requirements are met — Dynatrace's recommended approach | The cluster cannot meet the image-volume requirements and can run a privileged DaemonSet | Neither: a CSI DaemonSet is unacceptable (see FAQ-13 for OpenShift SCCs) and image volumes are unavailable |
 
-**Decision guidance:** stay on the CSI driver unless something concrete rules it out. It remains the recommended default, and the per-node cache is exactly what makes high-density nodes cheap. Reach for ephemeral volumes when platform policy — not preference — closes the CSI door.
+**Decision guidance:** on Operator 1.11.0+ with Kubernetes 1.35+ and a supported runtime, move to image volumes. Otherwise stay on the CSI driver unless platform policy rules out a privileged DaemonSet, in which case use ephemeral volumes.
 
-**Staged-rollout caveat.** The migration mode arrived with **Operator 1.10.0**, and estates upgrade on their own schedule. **On Operator 1.9.x and earlier the CSI driver is the only supported mode**, so `csidriver.enabled: true` remains the correct and only setting there — verify your operator version before planning a migration:
+**Turning image volumes on.** Set the DynaKube feature flag `feature.dynatrace.com/mount-code-modules-via-image-volume: "true"` (it cannot be combined with `node-image-pull`). Existing pods keep their current mounts until restarted, so a full switch needs a rolling restart of instrumented workloads. To try it on one workload first, annotate that pod `oneagent.dynatrace.com/volume-type: "image"`.
+
+> <sub>**Sources:** [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"replaces the CSI driver as the recommended approach"*.</sub>
+
+**Staged-rollout caveat.** Image volumes need **Operator 1.11.0**, the ephemeral migration mode **Operator 1.10.0**, and estates upgrade on their own schedule. **On Operator 1.9.x and earlier the CSI driver is the only supported mode**, so `csidriver.enabled: true` remains the correct and only setting there — verify your operator version before planning a migration:
 
 ```bash
 kubectl -n dynatrace get deployment dynatrace-operator \
@@ -193,11 +202,11 @@ The CSI Driver DaemonSet runs **5 containers** in a sidecar pattern:
 <a id="csi-driver-resource-configuration"></a>
 ## 3. CSI Driver Resource Configuration
 
-> **This section applies only on the CSI path.** If you chose ephemeral volumes (Operator 1.10.0+, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. On Operator 1.9.x and earlier the CSI path is the only supported mode, so this section always applies.
+> **This section applies only on the CSI path.** If you chose image volumes (Operator 1.11.0+) or ephemeral volumes (Operator 1.10.0+, §2) there is no CSI DaemonSet to size and none of the values below exist — the equivalent work is watching per-pod volume provisioning and pod-start latency instead. On Operator 1.9.x and earlier the CSI path is the only supported mode, so this section always applies.
 
 ### Helm Values for CSI Driver
 
-Configure resources for each CSI Driver container in your Helm `values.yaml`:
+Configure resources for each CSI Driver container in your Helm `values.yaml`. The values below are suggested starting points with more headroom than the chart defaults (compared in the table that follows):
 
 ```yaml
 csidriver:
@@ -256,18 +265,22 @@ csidriver:
 
 ### CSI Driver Resource Summary Table
 
-| Container | CPU Request | CPU Limit | Memory Request | Memory Limit | Notes |
-|-----------|-------------|-----------|----------------|--------------|-------|
-| `csiInit` | 50m | 100m | 100Mi | 128Mi | Init container |
-| `server` | 50m | 100m | 100Mi | 128Mi | Main plugin |
-| `provisioner` | 300m | 500m | 100Mi | 256Mi | **Add limits!** |
-| `registrar` | 20m | 50m | 30Mi | 64Mi | Sidecar |
-| `livenessprobe` | 20m | 50m | 30Mi | 64Mi | Sidecar |
+| Container | Chart default (Operator 1.11.0) requests / limits | Suggested above | Notes |
+|-----------|---------------------------------------------------|-----------------|-------|
+| `csiInit` | 50m, 100Mi / 50m, 100Mi | 50m, 100Mi / 100m, 128Mi | Init container |
+| `server` | 50m, 100Mi / 50m, 100Mi | 50m, 100Mi / 100m, 128Mi | Main plugin |
+| `provisioner` | 300m, 100Mi / **none** | 300m, 100Mi / 500m, 256Mi | **No limits by default** |
+| `registrar` | 20m, 30Mi / 20m, 30Mi | 20m, 30Mi / 50m, 64Mi | Sidecar |
+| `livenessprobe` | 20m, 30Mi / 20m, 30Mi | 20m, 30Mi / 50m, 64Mi | Sidecar |
 
-> **Warning:** Default `values.yaml` may be missing limits for the `provisioner` container. Add them to ensure predictable resource usage.
+> **Warning:** In the Operator 1.11.0 chart the `provisioner` container has requests but no limits. Add limits if your admission policy requires them. The suggested figures are community practice, not Dynatrace guidance — size from what the containers use on your busiest nodes.
+
+> <sub>**Sources:** [Operator Helm chart values, v1.11.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.11.0/config/helm/chart/default/values.yaml).</sub>
 
 <a id="component-sizing-guidelines"></a>
 ## 4. Component Sizing Guidelines
+These tables are starting points from community practice, not Dynatrace-published figures. Measure each component's real usage (the § 7 restart query and K8S-04's usage-versus-requests queries) and adjust; for ActiveGate capacity planning see FAQ-10.
+
 ### ActiveGate Sizing
 
 | Cluster Size | Nodes | CPU Limit | Memory Limit | Replicas |
@@ -320,15 +333,21 @@ spec:
     serviceName: telemetry-ingest
 ```
 
+The Operator deploys the Dynatrace OpenTelemetry Collector behind a Service named `<dynakube-name>-telemetry-ingest` in the `dynatrace` namespace; `serviceName` above renames it to `telemetry-ingest`. The data ingest token needs `openTelemetryTrace.ingest`, `logs.ingest` and `metrics.ingest` (Operator 1.6+).
+
 ### Protocol Endpoints
 
-| Protocol | Default Port | Endpoint |
-|----------|--------------|----------|
-| OTLP gRPC | 4317 | `telemetry-ingest.dynatrace:4317` |
-| OTLP HTTP | 4318 | `http://telemetry-ingest.dynatrace:4318` |
-| Jaeger | 14268 | `http://telemetry-ingest.dynatrace:14268` |
-| Zipkin | 9411 | `http://telemetry-ingest.dynatrace:9411` |
-| StatsD | 8125 | `telemetry-ingest.dynatrace:8125` (UDP) |
+| Protocol | Port | Endpoint (with `serviceName: telemetry-ingest`) |
+|----------|------|----------|
+| OTLP gRPC | 4317 (TCP) | `telemetry-ingest.dynatrace:4317` |
+| OTLP HTTP | 4318 (TCP) | `http://telemetry-ingest.dynatrace:4318` |
+| Zipkin | 9411 (TCP) | `http://telemetry-ingest.dynatrace:9411` |
+| Jaeger gRPC | 14250 (TCP) | `telemetry-ingest.dynatrace:14250` |
+| Jaeger Thrift HTTP | 14268 (TCP) | `http://telemetry-ingest.dynatrace:14268` |
+| Jaeger Thrift Compact / Binary | 6831 / 6832 (UDP) | `telemetry-ingest.dynatrace:6831` |
+| StatsD | 8125 (UDP) | `telemetry-ingest.dynatrace:8125` |
+
+> <sub>**Sources:** [Enable Dynatrace telemetry ingest endpoints (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/telemetry-ingest) — ports reference; *"The data ingest token requires the token scopes openTelemetryTrace.ingest , logs.ingest , and metrics.ingest"*.</sub>
 
 ### Application Configuration
 
@@ -342,19 +361,25 @@ env:
 ```
 
 ```dql
-// Check CSI driver pod status
-fetch logs, from:-1h
-| filter matchesPhrase(content, "csi") and matchesPhrase(content, "dynatrace")
-| fields timestamp, content
-| sort timestamp desc
-| limit 20
+// CSI driver health — container restarts per CSI pod (last 24 h)
+// A provisioner or server container restarting repeatedly is the liveness-probe crash loop
+// described in K8S-09 § 2. The restart counter is written only when a restart happened, so an
+// empty result means no restarts. Executed 10/02/2026.
+timeseries r = sum(dt.kubernetes.container.restarts), from:-24h,
+  filter:{k8s.workload.name == "dynatrace-oneagent-csi-driver"},
+  by:{k8s.cluster.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd restarts = arraySum(r)
+| filter restarts > 0
+| fields k8s.cluster.name, k8s.pod.name, k8s.container.name, restarts
+| sort restarts desc
 ```
 
 ```dql
-// Monitor telemetry ingest volume by protocol
+// Spans that carry an OpenTelemetry instrumentation scope, by service
+// otel.scope.name is set by OpenTelemetry instrumentation; this shows which services send it.
 fetch spans, from:-1h
 | filter isNotNull(otel.scope.name)
-| summarize span_count = count(), by:{service.name}
+| summarize span_count = count(), by:{dt.service.name, otel.scope.name}
 | sort span_count desc
 | limit 15
 ```
@@ -364,20 +389,21 @@ fetch spans, from:-1h
 
 ### The Challenge
 
-Many applications emit custom metrics using the StatsD protocol (UDP port 8125). On VMs, Dynatrace OneAgent includes a built-in StatsD daemon — but this feature is **not available** when OneAgent is deployed on Kubernetes via the Dynatrace Operator.
+Many applications emit custom metrics using the StatsD protocol (UDP port 8125). On VMs, Dynatrace OneAgent includes a built-in StatsD daemon, but the docs state: *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported. For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate."*
 
 ### Ingestion Approaches for Kubernetes
 
 | Approach | Works on K8s? | Notes |
 |----------|---------------|-------|
-| **OpenTelemetry Collector** | **Yes** | Recommended. Officially supported and documented by Dynatrace. |
-| **OneAgent StatsD daemon** | No | Only available on VM/host installs |
-| **ActiveGate remote StatsD** | No | Containerized ActiveGate lacks the required extension module |
-| **Telegraf + Dynatrace plugin** | Yes | Works but not officially documented by Dynatrace |
+| **Environment ActiveGate as remote listener** | Yes | The approach the StatsD docs recommend for Kubernetes |
+| **DynaKube `telemetryIngest` with `statsd`** (Operator 1.6+) | Yes | The Operator deploys and manages the Dynatrace OTel Collector with a StatsD endpoint on UDP 8125 (§ 5) |
+| **Self-managed OpenTelemetry Collector** | Yes | Documented by Dynatrace; the pattern below, when you want to own the collector |
+| **OneAgent StatsD daemon** | No | *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported."* |
+| **Telegraf** | Community practice | Not documented by Dynatrace |
 
-### Recommended: OpenTelemetry Collector with StatsD Receiver
+### Self-managed: OpenTelemetry Collector with StatsD Receiver
 
-Deploy a dedicated OTel Collector that listens for StatsD traffic, converts it to OTLP, and ships it to Dynatrace. The collector is **shared infrastructure** — it gets its own Deployment, separate from your application pods.
+If you run the DynaKube `telemetryIngest` endpoint (§ 5), point StatsD clients at `telemetry-ingest.dynatrace:8125` and skip the rest of this section. To own the collector yourself, deploy a dedicated OTel Collector that listens for StatsD traffic, converts it to OTLP, and ships it to Dynatrace. The collector is **shared infrastructure** — it gets its own Deployment, separate from your application pods.
 
 ### Deployment Pattern Options
 
@@ -515,6 +541,8 @@ env:
 | Requirement | Details |
 |-------------|----------|
 | **API Token** | `metrics.ingest` scope |
+
+> <sub>**Sources:** [StatsD ingestion (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — *"For Kubernetes environments, we recommend remote StatsD monitoring using an environment ActiveGate."*</sub>
 | **Environment URL** | `https://<env-id>.live.dynatrace.com` |
 | **Collector Image** | `otel/opentelemetry-collector-contrib` (includes StatsD receiver) |
 
@@ -525,12 +553,13 @@ env:
 After deploying the collector and pointing StatsD clients at it, verify metrics are flowing:
 
 ```python
-// Verify StatsD metrics are being ingested via OTel Collector
-// StatsD metrics arrive as OTLP metrics — query them by metric key prefix
-timeseries values = avg(statsd.my_app.request_count), from:-1h
-| fieldsAdd avgValue = arrayAvg(values)
-| sort avgValue desc
-| limit 10
+// Verify StatsD metrics are being ingested
+// The StatsD receiver keeps the metric names your client sends, so look them up by your own
+// prefix. metrics takes from: with no leading comma.
+metrics from:-1h
+| filter startsWith(metric.key, "my_app.")
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
 ```
 
 <a id="troubleshooting-specialized-scenarios"></a>
@@ -539,8 +568,8 @@ timeseries values = avg(statsd.my_app.request_count), from:-1h
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Module load fails | Wrong architecture | x86-64 only, no ARM |
-| No spans from ingress | Pod name mismatch | Must contain `ingress-nginx-` |
+| Module load fails | Wrong architecture | ARM64 is not supported |
+| No spans from ingress | Pod name mismatch | Pod or container name must contain `ingress-nginx-` or `nginx-ingress-` |
 | Partial traces | OneAgent version | Upgrade to 1.227+ |
 
 ```bash
@@ -555,7 +584,7 @@ kubectl -n ingress-nginx exec -it deploy/ingress-nginx-controller -- \
 |-------|-------|----------|
 | Volume mount fails | Provisioner OOM | Increase provisioner limits |
 | Slow pod startup | CSI driver overloaded | Add resources, check node count |
-| Code modules missing | CSI not enabled | Enable in Helm values |
+| Code modules missing | No delivery path working | Check the CSI pod on that node, or the image-volume / ephemeral-volume prerequisites (§ 2) |
 
 ```bash
 # Check CSI driver status
@@ -597,11 +626,11 @@ kubectl run statsd-test --rm -it --image=busybox -- \
 In this notebook, you learned:
 
 - **NGINX Ingress monitoring** with OneAgent module loading
-- **CSI Driver architecture** and the 5-container structure
+- **Code-module delivery**: image volumes (Operator 1.11.0+, now recommended), the CSI driver and ephemeral volumes
 - **CSI Driver resource configuration** with per-container limits
 - **Component sizing guidelines** for all Dynatrace components
 - **Telemetry ingest configuration** for multi-protocol support
-- **StatsD ingestion on Kubernetes** via the OpenTelemetry Collector (the only supported approach for K8s)
+- **StatsD ingestion on Kubernetes** via an environment ActiveGate, the DynaKube telemetry ingest endpoint, or a self-managed OpenTelemetry Collector
 - **Troubleshooting** common specialized monitoring issues
 
 ---
@@ -616,6 +645,8 @@ In this notebook, you learned:
 - [StatsD via OpenTelemetry Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/statsd)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [Migrate from CSI driver to ephemeral volumes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/csi-to-ephemeral-volumes)
+- [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0)
+- [Enable Dynatrace telemetry ingest endpoints (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/telemetry-ingest)
 
 ---
 

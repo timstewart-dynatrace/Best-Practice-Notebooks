@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -25,7 +25,7 @@ Kubernetes events and container logs provide crucial insights for debugging and 
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with log ingestion enabled |
 | **DynaKube** | ActiveGate with `kubernetes-monitoring` |
-| **Permissions** | `logs.read`, `logs.ingest`, `events.read` |
+| **Permissions** | `storage:logs:read`, `storage:events:read`; Settings write access to change Kubernetes monitoring settings |
 | **Knowledge** | K8S-01 Fundamentals |
 
 <a id="kubernetes-events-overview"></a>
@@ -60,45 +60,48 @@ Kubernetes events are first-class objects that record what happened in the clust
 | Stored in etcd | Event persisted temporarily |
 | TTL expires (1h) | Event deleted from etcd |
 | Dynatrace Ingests | Captured before deletion |
-| Persisted in Grail | Long-term storage (35+ days) |
+| Persisted in Grail | Bucket `default_davis_k8s_ops_events`, 35 days by default |
 
-**Key:** K8s events have 1h TTL in etcd, but Dynatrace preserves them for 35+ days.
+**Key:** Kubernetes keeps events for 1 hour by default (`--event-ttl`); Dynatrace keeps the ingested copy for the bucket's retention.
 For environments where SVG doesn't render
 -->
 
-**Important:** Kubernetes events are short-lived. Dynatrace captures them for long-term storage and analysis.
+**Important:** Kubernetes events are short-lived. Dynatrace captures them for long-term storage and analysis. On the validation tenant (10/02/2026) they were stored in the `default_davis_k8s_ops_events` bucket, retention 35 days — check `fetch dt.system.buckets` for your own.
 
 <a id="event-ingestion-configuration"></a>
 ## 2. Event Ingestion Configuration
 ### ActiveGate Kubernetes Monitoring
 
-Enable event collection via DynaKube:
+Events are read from the Kubernetes API by the ActiveGate with the `kubernetes-monitoring` capability:
 
 ```yaml
 spec:
   activeGate:
     capabilities:
-      - kubernetes-monitoring  # Enables event collection
+      - kubernetes-monitoring
       - routing
 ```
 
 ### Event Filtering
 
-Configure which events to ingest:
+Which events are ingested is a **Kubernetes monitoring setting** on the cluster's connection (Kubernetes app → cluster → Settings), not a DynaKube field:
 
-| Setting | Location | Purpose |
-|---------|----------|----------|
-| Event types | Settings > Cloud and virtualization | Normal, Warning, or both |
-| Namespace filter | DynaKube spec | Limit to specific namespaces |
-| Event reasons | Settings | Include/exclude specific reasons |
+| Setting | What it does |
+|---------|--------------|
+| **Monitor events** | *"All events are monitored unless event filters are specified. All ingested events are subject to licensing by default."* |
+| **Filter events** | *"Include only events specified by Events Field Selectors"* |
+| **Events field selectors** | Kubernetes field-selector expressions, for example `type=Warning` or `involvedObject.namespace=checkout` |
+| **Include important events** | *"Automatically include all events that are relevant for Davis"* |
 
 ### Recommended Configuration
 
 | Use Case | Configuration |
 |----------|---------------|
-| **Full visibility** | All event types, all namespaces |
-| **Warning focus** | Warning events only, all namespaces |
-| **Cost optimization** | Warning events, specific namespaces |
+| **Full visibility** | Monitor events on, no filters |
+| **Warning focus** | Filter events on, field selector `type=Warning`, Include important events on |
+| **Cost control** | As above, plus field selectors limited to the namespaces you need |
+
+> <sub>**Sources:** [Kubernetes monitoring settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring) — *"Automatically include all events that are relevant for Davis"*.</sub>
 
 ```dql
 // Recent Kubernetes events
@@ -110,12 +113,13 @@ Configure which events to ingest:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-1h
@@ -135,17 +139,18 @@ fetch events, from:-1h
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
-| filter dt.kubernetes.event.important == "true"
+| filter status == "WARN"
 | summarize events = count(), by:{dt.kubernetes.event.reason, k8s.namespace.name}
 | sort events desc
 | limit 25
@@ -157,16 +162,13 @@ fetch events, from:-1h
 
 | Method | Source | Configuration |
 |--------|--------|---------------|
-| **OneAgent** | Container stdout/stderr | Automatic with OneAgent |
-| **Log Monitoring** | Mounted log files | Custom paths in settings |
-| **Fluentd/Fluent Bit** | External forwarder | OTLP endpoint |
+| **OneAgent Log module** (full-stack) | Container stdout/stderr | Included in the host OneAgent; add `spec.logMonitoring: {}` |
+| **Kubernetes Log module** (no host OneAgent) | Container stdout/stderr | DaemonSet deployed by the Operator from `spec.logMonitoring` |
+| **Fluent Bit / other forwarders** | Any file or stream | Log ingest API or OTLP endpoint |
 
-### OneAgent Log Collection
+### What the Log modules collect
 
-OneAgent automatically collects:
-- Container stdout logs
-- Container stderr logs
-- Process-generated log files (with configuration)
+*"It only captures logs that are written to the container's **stdout**/**stderr** streams."* Logs an application writes to files inside the container need a forwarder or a custom log source.
 
 ### Log Attributes
 
@@ -175,19 +177,23 @@ OneAgent automatically collects:
 | `k8s.namespace.name` | Container metadata | `checkout` |
 | `k8s.pod.name` | Container metadata | `checkout-api-abc123` |
 | `k8s.container.name` | Container metadata | `api` |
-| `dt.entity.container_group_instance` | Entity relationship | `CONTAINER_GROUP_INSTANCE-XXX` |
+| `k8s.workload.name` | Container metadata | `checkout-api` |
+| `k8s.cluster.name` | Container metadata | `prod-eu-1` |
 | `loglevel` | Parsed from content | `ERROR`, `WARN`, `INFO` |
 
 ### DynaKube Log Configuration
 
 ```yaml
 spec:
-  oneAgent:
-    cloudNativeFullStack:
-      env:
-        - name: ONEAGENT_ENABLE_LOG_ANALYTICS
-          value: "true"
+  logMonitoring: {}
+  templates:
+    logMonitoring:            # only for the standalone Kubernetes Log module
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-logmodule
+        tag: <tag>
 ```
+
+> <sub>**Sources:** [Kubernetes log monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/k8s-log-monitoring) — *"It only captures logs that are written to the container's **stdout**/**stderr** streams."*</sub>
 
 ```dql
 // Container logs by namespace
@@ -212,46 +218,33 @@ fetch logs, from:-1h
 ## 4. OpenPipeline for K8s Logs
 ### Log Processing Pipeline
 
-OpenPipeline processes logs before storage:
-
-```
-Log Ingest → Routing → Processing → Storage
-                ↓           ↓
-         Match rules   Transform, enrich
-```
+OpenPipeline processes logs between ingest and storage. A record arrives at an ingest source, **dynamic routing** sends it to a pipeline whose matcher it satisfies, the pipeline's **processing** stage transforms it, and the **storage** stage assigns its bucket. Pipelines are configured in the OpenPipeline settings (UI, Settings API or Monaco), not as YAML in the cluster.
 
 ### Common Processing Rules
 
-| Rule Type | Use Case | Example |
+| Processor | Use Case | Example |
 |-----------|----------|----------|
-| **Parse** | Extract fields | JSON parsing, regex |
-| **Transform** | Modify content | Rename fields, mask data |
-| **Filter** | Drop logs | Remove debug logs |
-| **Route** | Direct to bucket | By namespace or app |
+| **DQL** | Extract fields | `parse content, "JSON:parsed"` |
+| **Fields rename / remove** | Tidy fields | Drop a high-cardinality attribute |
+| **Masking** (DQL `replacePattern`) | Remove sensitive data | Card numbers, tokens |
+| **Drop record** | Drop logs | Debug logs from noisy namespaces |
+| **Storage assignment** | Choose the bucket | Retention by namespace or team |
 
-### Example: Parse JSON Logs
+### Example: route Kubernetes logs and parse JSON
 
-```yaml
-# OpenPipeline configuration
-pipelines:
-  - name: k8s-json-logs
-    routes:
-      - match: k8s.namespace.name exists
-    processing:
-      - type: json
-        source: content
+- **Routing matcher:** `isNotNull(k8s.namespace.name)`
+- **Processing — DQL processor, matcher `startsWith(content, "{")`:**
+
+```dql
+parse content, "JSON:parsed"
+| fieldsFlatten parsed
 ```
 
-### Example: Filter Debug Logs
+### Example: drop debug logs
 
-```yaml
-pipelines:
-  - name: k8s-filter-debug
-    routes:
-      - match: k8s.namespace.name exists and loglevel == "DEBUG"
-    processing:
-      - type: drop
-```
+- **Processing — Drop record processor, matcher:** `loglevel == "DEBUG"`
+
+Building, testing and ordering pipelines is covered in the OPLOGS series.
 
 <a id="event-analysis-patterns"></a>
 ## 5. Event Analysis Patterns
@@ -264,7 +257,7 @@ pipelines:
 | **BackOff** | Container restart backoff | Check logs, fix crash |
 | **Unhealthy** | Probe failed | Check probe config, app health |
 | **Evicted** | Pod evicted from node | Check node pressure |
-| **OOMKilled** | Out of memory | Increase limits |
+| **OOM kill** | Container exceeded its memory limit | Not an event reason — read the `dt.kubernetes.container.oom_kills` metric (K8S-04 §5) |
 
 ```dql
 // Failed scheduling events
@@ -276,12 +269,13 @@ pipelines:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-7d
@@ -293,7 +287,9 @@ fetch events, from:-7d
 ```
 
 ```dql
-// Pod restart events (BackOff, CrashLoopBackOff)
+// Restart back-off events (BackOff, BackoffLimitExceeded)
+// CrashLoopBackOff is not a reason of its own: it appears in the message text of BackOff events.
+// For restart counts, use the dt.kubernetes.container.restarts metric (K8S-05 §2).
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
@@ -302,12 +298,13 @@ fetch events, from:-7d
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-24h
@@ -328,12 +325,13 @@ fetch events, from:-24h
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-7d
@@ -354,17 +352,18 @@ fetch events, from:-7d
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
-| summarize events = count(), by:{dt.kubernetes.event.reason, dt.kubernetes.event.important}
+| summarize events = count(), by:{dt.kubernetes.event.reason, status}
 | sort events desc
 | limit 25
 ```
@@ -439,8 +438,8 @@ fetch logs, from: now() - 1h
 | Alert | Condition | Severity |
 |-------|-----------|----------|
 | **Failed Scheduling** | FailedScheduling events > 5 in 10 min | Warning |
-| **Crash Loop** | CrashLoopBackOff events | Warning |
-| **OOM Kills** | OOMKilled events | Critical |
+| **Crash Loop** | BackOff events (reason `BackOff`) | Warning |
+| **OOM Kills** | `dt.kubernetes.container.oom_kills` > 0 (a metric, not an event) | Critical |
 | **Volume Failures** | FailedMount events | Critical |
 
 ### Log-Based Alerts
@@ -451,13 +450,11 @@ fetch logs, from: now() - 1h
 | **Critical Errors** | Specific error patterns | Critical |
 | **No Logs** | Log volume drops to 0 | Warning |
 
-### Custom Metric Events
+### Custom alerts on logs and events
 
-Create metric events for log-based alerting:
+Build the alert as a **custom alert on a DQL query** — a `makeTimeseries` count of matching log records or Kubernetes events — with a static threshold or an adaptive baseline. Where you create it depends on your tenant version: *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages; on earlier versions the **Anomaly Detection** app is where custom alerts are created. ALERT-02 covers choosing the detector, and ALERT-03 routing the problem it raises.
 
-1. Navigate to **Settings > Anomaly detection > Custom events**
-2. Create event based on log count metric
-3. Set thresholds and notification targets
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 ## Next Steps
 

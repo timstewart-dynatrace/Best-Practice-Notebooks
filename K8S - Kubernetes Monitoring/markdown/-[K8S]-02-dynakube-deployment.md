@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 13 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -32,7 +32,7 @@ The DynaKube operator is the recommended way to deploy Dynatrace monitoring in K
 
 > **Operator token type:** new automation should use **Platform Tokens** (`dt0s16`) with `Authorization: Bearer` for the Operator token — note that **the Operator itself accepts platform tokens only from Operator 1.10.0** (released July 15, 2026): *"No immediate action is required and existing access tokens continue to be accepted."* ([Dynatrace Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0)) On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (`dt0c01` with `Authorization: Api-Token`); this is expected and supported. See the [IAM series](../../iam/) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.
 
-> **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)**. Third-party technologies are supported for 6 months beyond vendor EOL. See [Support Policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/).
+> **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)** from release. The Operator is not in that table — for Operator versions, follow the upgrade path in each release's notes (Operator 1.11.0: *"Minimum operator version required for direct upgrade: 1.6.0"*). Third-party technologies are supported for 6 months beyond vendor EOL. See [Support Policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/).
 
 <a id="operator-overview"></a>
 ## 1. Operator Overview
@@ -47,6 +47,7 @@ The Dynatrace Operator manages the complete lifecycle of Dynatrace monitoring co
 | **ActiveGate StatefulSet** | Routing and K8s API access | Operator |
 | **Webhook** | Code module injection | Operator |
 | **CSI Driver** | Volume-based code modules | Operator (optional from 1.10.0) |
+| **Image volumes** | Code modules from a node-shared image volume — no CSI DaemonSet (Operator 1.11.0+, Kubernetes 1.35+) | Kubernetes, configured by the Operator |
 
 ### Operator Architecture
 
@@ -70,26 +71,31 @@ For environments where SVG doesn't render
 
 > **Platform tokens — available now (Dynatrace Operator 1.10.0, released 07/15/2026):** the Operator accepts a **platform token** in the `apiToken` field as the successor to the classic access token. Platform tokens carry fine-grained, user-permission-based scoping, can be rotated or temporarily disabled without deletion, and support configurable expiry. Supplying one also makes the Operator default to the **public registry** for ActiveGate, OneAgent, code modules, log monitoring, EEC, and SQL extension executors — no private-registry pull secret needed. Two conditions from [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry): it requires **Dynatrace SaaS 1.343 or later**, and *"All managed component pods restart when the feature is first enabled."* — so moving an existing DynaKube to a platform token restarts its managed component pods (ActiveGate, OneAgent). Schedule it as a change window, not as a routine credential rotation. **Access tokens remain fully supported**; Dynatrace has committed to lead time before platform tokens become mandatory, so the access-token scopes below stay the working path. Separately, `spec.tokens.paasToken` is deprecated in favour of `apiToken` — new deployments should not set it.
 
-Create two tokens in Dynatrace with these scopes:
+Create two tokens. The current documentation describes **platform tokens** assigned to a dedicated service user — the **Operator token** with the *Kubernetes Operator* policy, the **Data Ingest token** with the *Kubernetes Ingest* policy — and the Kubernetes onboarding flow creates both automatically:
 
-**Operator Token:**
-
-| Scope | Purpose |
-|-------|----------|
-| `activeGateTokenManagement.create` | ActiveGate tokens |
-| `entities.read` | Entity information |
-| `settings.read` | Read settings |
-| `settings.write` | Write settings |
-| `DataExport` | Export data (optional) |
-| `InstallerDownload` | Download OneAgent |
-
-**Data Ingest Token:**
+**Operator token (platform token):**
 
 | Scope | Purpose |
-|-------|----------|
-| `metrics.ingest` | Ingest metrics |
-| `logs.ingest` | Ingest logs |
-| `events.ingest` | Ingest events (optional) |
+|-------|---------|
+| `fleet-management:activegate.connection-info:read` | ActiveGate lifecycle information |
+| `fleet-management:activegate.tokens:create` | ActiveGate authentication tokens |
+| `fleet-management:container-images:read` | Image information for managed components |
+| `fleet-management:oneagent.connection-info:read` | OneAgent lifecycle information |
+| `fleet-management:oneagents:download` | OneAgent lifecycle |
+| `settings:objects:read` / `settings:objects:write` | Kubernetes API monitoring, KSPM and log-monitoring settings |
+
+**Data Ingest token (platform token):**
+
+| Scope | Purpose |
+|-------|---------|
+| `openpipeline:logs:ingest` | Ingest logs |
+| `openpipeline:metrics:ingest` | Ingest metrics |
+| `openpipeline:traces:ingest` | Ingest traces |
+| `storage:metrics:write` | Write metrics |
+
+Classic access tokens remain accepted (*"existing access tokens continue to be accepted"*), and Operators before 1.10.0 accept only them. If a token is missing a scope, the DynaKube status **Tokens** condition names it — check it with `kubectl -n dynatrace describe dynakube` rather than guessing.
+
+> <sub>**Sources:** [Tokens and permissions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions) — *"Operator token —assigned the Kubernetes Operator policy. Manages the lifecycle of all Dynatrace components in the cluster."*</sub>
 
 ### Create Namespace and Secret
 
@@ -201,7 +207,7 @@ The DynaKube CR defines how monitoring is deployed.
 ### Minimal DynaKube (cloudNativeFullStack)
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -229,19 +235,19 @@ spec:
       - dynatrace-api
 ```
 
-> **API Version Note.** `v1beta6` is the current DynaKube API version (introduced in Operator 1.8.0) and is what **new DynaKubes should use** — the production CR in K8S-14 is written against it. `v1beta5` is still *served*, so the minimal example above applies cleanly, but as of Operator 1.10.0 it is itself flagged `deprecated: true` in the CRD — so treat it as the next migration, not a resting place.
+> **API Version Note.** `v1beta6` is the current DynaKube API version (introduced in Operator 1.8.0) and is what the examples in this notebook use — the production CR in K8S-14 is written against it too. `v1beta5` is still *served*, but since Operator 1.10.0 it is flagged `deprecated: true` in the CRD — treat it as the next migration, not a resting place.
 >
 > The deprecation train is what makes this load-bearing at upgrade time:
 >
-> Read from the shipped CRDs rather than from prose (verified 08/27/2026 against the `kubernetes.yaml`
-> released with each version):
+> Read from the shipped CRDs rather than from prose (verified 08/27/2026 and, for 1.11.0, 10/02/2026, against the
+> `kubernetes.yaml` released with each version):
 >
-> | API version | 1.9.0 | 1.10.0 – 1.10.2 | What it means |
-> |---|---|---|---|
-> | `v1beta6` | served, **storage** | served, **storage** | Current — use for new DynaKubes |
-> | `v1beta5` | served | served, **deprecated** | Still applies, but now on the deprecation train |
-> | `v1beta4` | served, deprecated | **NOT served** | **Breaking at 1.10.0** — `kubectl apply` fails |
-> | `v1beta3` | absent | absent | Removed in 1.9.0 |
+> | API version | 1.9.0 | 1.10.0 – 1.10.2 | 1.11.0 | What it means |
+> |---|---|---|---|---|
+> | `v1beta6` | served, **storage** | served, **storage** | served, **storage** | Current — use for new DynaKubes |
+> | `v1beta5` | served | served, **deprecated** | served, **deprecated** | Still applies, but on the deprecation train |
+> | `v1beta4` | served, deprecated | **NOT served** | **removed from the CRD** | **Breaking at 1.10.0**; gone entirely in 1.11.0 |
+> | `v1beta3` | absent | absent | absent | Removed in 1.9.0 |
 >
 > **`v1beta4` is not a "migrate at your convenience" case.** It was deprecated in **1.9.0** (not 1.10.x) and
 > **stopped being served in 1.10.0** — so a cluster still applying `v1beta4` manifests breaks on the 1.10.x
@@ -278,9 +284,13 @@ oneAgent:
 
 | Pros | Cons |
 |------|------|
-| No privileged containers for apps | CSI driver by default (ephemeral volumes from Operator 1.10.0 — see K8S-12 §2) |
+| No privileged containers for apps | CSI driver by default (ephemeral volumes from Operator 1.10.0, image volumes from 1.11.0 — see below and K8S-12 §2) |
 | Best for multi-tenant clusters | Slightly more complex |
 | Independent app/infra monitoring | |
+
+> **Image volumes (Operator 1.11.0+, released 10/01/2026).** Per the 1.11.0 release notes, image volume-based code-module injection *"replaces the CSI driver as the recommended approach"*: each node pulls the code-modules image once and shares it with every instrumented pod, with no CSI DaemonSet and no per-pod copy. Prerequisites: **Kubernetes 1.35+**, **containerd 2.2+ or CRI-O 1.33+**, and a code-modules image from the public registry or a private mirror of it — *"Image volume injection is not compatible with the Dynatrace built-in tenant registry."* Enable it with the DynaKube annotation `feature.dynatrace.com/mount-code-modules-via-image-volume: "true"` (mutually exclusive with `feature.dynatrace.com/node-image-pull`), test first on single pods with `oneagent.dynatrace.com/volume-type: "image"`, and plan a rolling restart: *"A full migration requires a rolling restart of all injected workloads."* On older clusters or Operators, the CSI driver or ephemeral volumes remain the working path.
+>
+> <sub>**Sources:** [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0), [Use image volumes for code modules injection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes), [Migrate to image volumes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-image-volume).</sub>
 
 ### classicFullStack (Legacy — Migrate Existing Clusters, Not Just New Ones)
 
@@ -339,7 +349,7 @@ oneAgent:
 spec:
   oneAgent:
     cloudNativeFullStack:
-      resources:
+      oneAgentResources:      # resources of the OneAgent DaemonSet pods
         requests:
           cpu: 100m
           memory: 256Mi
@@ -365,26 +375,32 @@ spec:
 
 ### Namespace Selectors
 
-Control which namespaces get injection:
+Control which namespaces get injection. The selector belongs to the **injection mode**, not to `spec` — a top-level `spec.namespaceSelector` is not a DynaKube field and is ignored:
 
 ```yaml
 spec:
-  namespaceSelector:
-    matchLabels:
-      dynatrace-injection: enabled
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchLabels:
+          dynatrace-injection: enabled
 ```
 
 Or exclude specific namespaces:
 
 ```yaml
 spec:
-  namespaceSelector:
-    matchExpressions:
-      - key: dynatrace-injection
-        operator: NotIn
-        values:
-          - disabled
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchExpressions:
+          - key: dynatrace-injection
+            operator: NotIn
+            values:
+              - disabled
 ```
+
+`applicationMonitoring` takes the same `namespaceSelector`, and `spec.metadataEnrichment.namespaceSelector` scopes metadata enrichment separately. Field paths checked against the `v1beta6` schema in the Operator 1.11.0 CRD, 10/02/2026.
 
 ### Custom ActiveGate Configuration
 
@@ -415,8 +431,10 @@ Control injection at the pod level:
 | Annotation | Effect |
 |------------|--------|
 | `oneagent.dynatrace.com/inject: "false"` | Disable injection for pod |
-| `oneagent.dynatrace.com/inject: "true"` | Force enable injection |
-| `oneagent.dynatrace.com/technologies: "java,nodejs"` | Limit technologies |
+| `oneagent.dynatrace.com/inject: "true"` | No effect — the inject annotations only **exclude** (*"setting it to true will have no effect"*); inclusion comes from the namespace selector |
+| `oneagent.dynatrace.com/technologies: "java,nodejs"` | Limit the code modules downloaded — *"Ignored if the CSI volume is used or node image pull via ephemeral volume is used"* |
+
+> <sub>**Sources:** [Annotate pods (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/annotate).</sub>
 
 DynaKube feature flags:
 
@@ -533,10 +551,12 @@ fetch dt.entity.kubernetes_cluster
 ```
 
 ```dql
-// Check OneAgent deployment health via events
-fetch logs, from:-1h
-| filter matchesPhrase(content, "dynatrace") and matchesPhrase(content, "oneagent")
-| fields timestamp, content
+// Check Dynatrace component health via Kubernetes events in the dynatrace namespace
+// (Kubernetes events are events, not logs — see K8S-01 §6). BackOff / Unhealthy / Killing
+// here point at OneAgent, ActiveGate, webhook or CSI pods that are not settling.
+fetch events, from:-1h
+| filter event.provider == "KUBERNETES_EVENT" and k8s.namespace.name == "dynatrace"
+| fields timestamp, k8s.pod.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
 | sort timestamp desc
 | limit 20
 ```
@@ -579,7 +599,7 @@ kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'
 grep -r "apiVersion: dynatrace.com/" .
 ```
 
-`v1beta3` was **removed in Operator 1.9.0** and `v1beta4` **stopped being served in 1.10.0** — against either, an apply fails outright once you cross that version. `v1beta4` was deprecated back in 1.9.0, so a cluster that took the deprecation as advisory is the one that breaks here. `v1beta5` is still served but is flagged deprecated from 1.10.0. Target `v1beta6` for anything you are rewriting anyway. Full table in §4.
+`v1beta3` was **removed in Operator 1.9.0**, `v1beta4` **stopped being served in 1.10.0** and was **removed from the CRD in 1.11.0** — against either, an apply fails outright once you cross that version. The 1.11.0 notes add that *"depending on your current version, upgrading directly to 1.11 may not be possible until the migration is done"*. `v1beta4` was deprecated back in 1.9.0, so a cluster that took the deprecation as advisory is the one that breaks here. `v1beta5` is still served but is flagged deprecated from 1.10.0. Target `v1beta6` for anything you are rewriting anyway. Full table in §4.
 
 **3. Will the new injected pod spec still be admitted?**
 
@@ -617,9 +637,10 @@ helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
 | 1.7.x | 1.23 | 1.29 | Supported (verify against your environment) |
 | 1.8.x | 1.24 | 1.30 | Supported |
 | 1.9.x | 1.25 | 1.31 | Supported |
-| 1.10.x | — | — | **Current line.** **Recommended: v1.10.2** (July 30, 2026) — fixes a workload/namespace **tagging-precedence regression** (now only the first matching rule per key applies — a behaviour change, see K8S-10), `dynatrace-webhook` `CrashLoopBackOff` on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. **v1.10.1 remains a working pin** until you upgrade — estates adopt on their own schedule — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged `prerelease: true` on the GitHub releases page. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
+| 1.11.x | — | — | **Newest line: v1.11.0** (released 10/01/2026). Removes `v1beta4` from the CRD; adds image-volume injection, `spec.kubernetesMonitoring` (size the two ActiveGate StatefulSets inside one DynaKube), and workload/pod labels and annotations as enrichment sources. Minimum version for a direct upgrade: 1.6.0. Review the release notes for every minor version you cross before adopting it. |
+| 1.10.x | — | — | **Validated pin in this series: v1.10.2** (July 30, 2026) — fixes a workload/namespace **tagging-precedence regression** (now only the first matching rule per key applies — a behaviour change, see K8S-10), `dynatrace-webhook` `CrashLoopBackOff` on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. **v1.10.1 remains a working pin** until you upgrade — estates adopt on their own schedule — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged `prerelease: true` on the GitHub releases page. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
 
-> **Operator support window:** the Standard 9-month / Enterprise 12-month support policy means versions older than v1.7 are likely past EOL. Plan upgrades accordingly. Older versions may still function but will not receive security or compatibility fixes.
+> **Operator support window:** the trust-center support table covers OneAgents and ActiveGates (9 / 12 months), not the Operator. For the Operator, the release notes state the upgrade floor — *"Minimum operator version required for direct upgrade: 1.6.0"* in 1.11.0 — so a cluster below 1.6.0 has to upgrade in steps.
 
 ### Rollback if Needed
 
@@ -666,6 +687,9 @@ In this notebook, you learned:
 - [Helm chart values.yaml (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml) — every Helm install option
 - [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — recommended pin is **v1.10.2** (July 30, 2026); v1.10.1 remains a working pin until you upgrade. Skip 1.10.0 (auto-update defect; flagged `prerelease: true`). Check before each install
 - [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
+- [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"Removed DynaKube API version v1beta4"*; image volumes; `spec.kubernetesMonitoring`
+- [Tokens and permissions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions)
+- [Support policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/) — 9 / 12 months for OneAgents & ActiveGates
 - [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry) — prerequisites include SaaS 1.343+; component pods restart when first enabled
 
 ---

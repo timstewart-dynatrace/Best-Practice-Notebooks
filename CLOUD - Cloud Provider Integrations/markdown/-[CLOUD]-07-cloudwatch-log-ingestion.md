@@ -41,20 +41,20 @@ This notebook covers strategies for forwarding cloud provider logs into Dynatrac
 | Method | Mechanism | Latency | Status |
 |---|---|---|---|
 | **Amazon Data Firehose** | CloudWatch → Firehose → Dynatrace API | 1-5 min (buffered) | **Recommended** |
-| **S3 direct ingestion** | S3 event notification → **Dynatrace-maintained Lambda forwarder** → Dynatrace AWS S3 logs ingest API. Deployed by a single **CloudFormation** stack; records are **linked to their Smartscape entity**. Bypasses CloudWatch and Firehose entirely | Minutes | **Forthcoming / rolling out** (SaaS 1.344) — see §3 |
+| **S3 direct ingestion** | S3 event notification → **Dynatrace-maintained Lambda forwarder** → Dynatrace AWS S3 logs ingest API. Deployed by a single **CloudFormation** stack; records are **linked to their Smartscape entity**. Bypasses CloudWatch and Firehose entirely | Minutes | **Available from SaaS 1.344** — see §3 |
 | **Lambda Log Collection** | Direct Lambda function log forwarding | Seconds | Supported (Lambda-specific) |
 | **CloudWatch-subscription Lambda forwarder (legacy)** | CloudWatch Subscription Filter → `dynatrace-aws-log-forwarder` Lambda → Dynatrace API | Seconds | **Deprecated** — migrate to Firehose |
 | **OpenTelemetry Collector** | FluentBit/FluentD → OTLP → Dynatrace | Seconds | Supported (agent-based) |
 
 > **Important — what is deprecated, precisely:** the `dynatrace-aws-log-forwarder` Lambda function, on the **CloudWatch Subscription Filter → Lambda → Dynatrace API** path, is **deprecated** and will not receive further updates. For new **CloudWatch** log forwarding, use **Amazon Data Firehose**; existing deployments of that forwarder should plan migration to Firehose.
 >
-> **This is not a prohibition on Lambda-based log forwarding.** It retires one named component serving one source. The **S3 direct-ingestion** path is a *different*, Dynatrace-maintained Lambda forwarder reading a *different* source, and it is supported — forthcoming / rolling out with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) (staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.
+> **This is not a prohibition on Lambda-based log forwarding.** It retires one named component serving one source. The **S3 direct-ingestion** path is a *different*, Dynatrace-maintained Lambda forwarder reading a *different* source, and it is supported — available from [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) (staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.
 
 ### Cross-Cloud Log Forwarding
 
 | Cloud Provider | Primary Method | Alternative |
 |---|---|---|
-| **AWS** | Amazon Data Firehose (CloudWatch logs) | S3 direct ingestion (SaaS 1.344, rolling out), Lambda Layer log collection |
+| **AWS** | Amazon Data Firehose (CloudWatch logs) | S3 direct ingestion (SaaS 1.344), Lambda Layer log collection |
 | **Azure** | Azure Event Hub / Diagnostic Settings | Azure Functions forwarder |
 | **GCP** | Log Router sink → Pub/Sub → `dynatrace-gcp-monitor` (CLOUD-06 §6) | GCP connection in the Clouds app (Preview); the Cloud Function deployment is deprecated and unsupported |
 
@@ -147,7 +147,7 @@ For logs already stored in S3 (e.g., ALB access logs, CloudTrail, VPC Flow Logs)
 | **Parsing** | Out-of-the-box parsing for common AWS log formats |
 | **Multi-region** | Supports cross-region and multi-account setups |
 
-> **Forthcoming / rolling out (SaaS 1.344):** the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — **staged tenant rollout** from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, you do not have to build one: **[dynatrace-aws-s3-log-forwarder (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder)** is Dynatrace-published and actively maintained (verified not archived, 08/27/2026), with out-of-the-box parsing for ELB, CloudFront, CloudTrail, VPC Flow, WAF and MSK, plus cross-region and multi-account rules. ⚠️ **Do not confuse it with `dynatrace-aws-log-forwarder`** — one token shorter, and **archived** (last commit 01/2025). The two names differ by `s3-`, and picking the wrong one lands you on a dead project. The parsing, multi-region and multi-account guidance above applies to **both**.
+> **Available from SaaS 1.344:** the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with [**SaaS 1.344**](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — **staged tenant rollout** from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, you do not have to build one: **[dynatrace-aws-s3-log-forwarder (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder)** is Dynatrace-published and actively maintained (verified not archived, 08/27/2026), with out-of-the-box parsing for ELB, CloudFront, CloudTrail, VPC Flow, WAF and MSK, plus cross-region and multi-account rules. ⚠️ **Do not confuse it with `dynatrace-aws-log-forwarder`** — one token shorter, and **archived** (last commit 01/2025). The two names differ by `s3-`, and picking the wrong one lands you on a dead project. The parsing, multi-region and multi-account guidance above applies to **both**.
 
 ### Lambda Log Collection
 
@@ -309,34 +309,40 @@ Log ingestion is typically the largest cost driver in cloud monitoring. Optimiza
 
 | Layer | Cost Type | Optimization Lever |
 |---|---|---|
-| **CloudWatch** | $0.50/GB ingested + $0.03/GB stored | Reduce log retention, filter at source |
-| **Firehose** | Firehose data processing ($0.029/GB) | Buffer settings, compression |
+| **CloudWatch** | Per GB ingested and per GB-month stored (for example $0.50 and $0.03 in us-east-1 for standard logs — check AWS pricing for your region) | Reduce log retention, filter at source |
+| **Firehose** | Per GB ingested (check AWS pricing for your region) | Buffer settings, compression |
 | **Dynatrace** | DPS/DDU per GB ingested | Source filtering, OpenPipeline drop rules |
 | **Grail storage** | DPS/DDU per GB stored x retention | Bucket-level retention policies |
 
-### Optimization Strategies (Ranked by Impact)
+### Optimization Strategies
 
-| Strategy | Estimated Savings | Complexity |
+| Strategy | Where | Complexity |
 |---|---|---|
-| **1. Drop debug/trace logs at source** | 40-60% | Low |
-| **2. Filter health checks at source** | 10-30% | Low |
-| **3. Route to low-retention buckets** | 20-40% storage | Medium |
-| **4. Downsample repetitive logs in OpenPipeline** | 10-20% | Medium |
-| **5. Use sampling for high-volume services** | Variable | Medium |
-| **6. Compress log payloads** | 5-10% transfer | Low |
+| **Drop debug/trace logs at source** (subscription filter pattern) | AWS | Low |
+| **Filter health checks at source** | AWS | Low |
+| **Drop remaining noise** with a *Drop record* processor | OpenPipeline | Low |
+| **Store low-value logs in a shorter-retention bucket** | OpenPipeline bucket assignment | Medium |
+| **Compress Firehose payloads** | AWS | Low |
+
+How much each saves depends entirely on your log mix. In community practice, dropping debug and trace logs at the source is usually the largest single lever — measure your own split first (`fetch logs, from:-24h | filter cloud.provider == "aws" | summarize n = count(), by:{loglevel}`). OpenPipeline has no sampling processor for logs; anything you do not want stored is dropped, not sampled.
 
 ### Monitoring Your Log Costs
 
 ```dql
-// Log volume trend by hour over the last 7 days
+// CloudWatch log volume trend by hour over the last 7 days
+// Scoped to AWS logs, the subject of this notebook. A 7-day scan of the logs table is billed by
+// bytes read, and an unfiltered version of this cell read hundreds of GB on the validation tenant.
+// For a trend you look at every day, extract a metric in OpenPipeline instead (FAQ-09).
 fetch logs, from:-7d
+| filter cloud.provider == "aws"
 | makeTimeseries log_count = count(), interval:1h
 ```
 
 ```dql
-// Top 10 log sources by volume over the last 24 hours
+// Top 10 CloudWatch log groups by volume over the last 24 hours
 fetch logs, from:-24h
-| summarize log_count = count(), by:{log.source}
+| filter cloud.provider == "aws"
+| summarize log_count = count(), by:{aws.log_group}
 | sort log_count desc
 | limit 10
 ```
@@ -348,7 +354,7 @@ fetch logs, from:-24h
 ### Key Takeaways
 
 - **Amazon Data Firehose** is the recommended approach for AWS CloudWatch log ingestion — fully managed, auto-scaling, no custom code
-- The legacy **CloudWatch-subscription** Lambda forwarder (`dynatrace-aws-log-forwarder`) is **deprecated** — migrate existing CloudWatch deployments to Firehose. This is **not** a blanket rule against Lambda-based forwarding: the **S3 direct-ingestion** forwarder (SaaS 1.344, rolling out) is a separate, supported component — see §3
+- The legacy **CloudWatch-subscription** Lambda forwarder (`dynatrace-aws-log-forwarder`) is **deprecated** — migrate existing CloudWatch deployments to Firehose. This is **not** a blanket rule against Lambda-based forwarding: the **S3 direct-ingestion** forwarder (SaaS 1.344) is a separate, supported component — see §3
 - **Filter at the source** (CloudWatch subscription filters) to reduce costs before logs reach Dynatrace
 - Use **OpenPipeline** for enrichment, routing, and fine-grained filtering within Dynatrace
 - **Monitor log volume** regularly to prevent cost surprises

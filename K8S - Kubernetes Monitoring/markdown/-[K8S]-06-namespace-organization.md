@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 13 | **Created:** January 2026 | **Last Updated:** 09/25/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -25,7 +25,7 @@ Namespaces provide logical boundaries in Kubernetes for resource isolation, acce
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
 | **DynaKube** | Deployed with namespace selector configured |
-| **Permissions** | `entities.read`, `metrics.read` |
+| **Permissions** | `storage:metrics:read`, `storage:smartscape:read` |
 | **Knowledge** | K8S-01 Fundamentals, K8S-05 Workload Monitoring |
 
 <a id="namespace-strategies"></a>
@@ -83,24 +83,28 @@ Control which namespaces receive OneAgent injection:
 
 ```yaml
 spec:
-  cloudNativeFullStack:  # namespaceSelector goes inside the deployment mode section
-    namespaceSelector:
-    matchLabels:
-      monitoring: dynatrace
+  oneAgent:
+    cloudNativeFullStack:        # or applicationMonitoring — the selector sits inside the mode
+      namespaceSelector:
+        matchLabels:
+          monitoring: dynatrace
 ```
 
 Or exclude specific namespaces:
 
 ```yaml
 spec:
-  cloudNativeFullStack:  # namespaceSelector goes inside the deployment mode section
-    namespaceSelector:
-    matchExpressions:
-      - key: monitoring
-        operator: NotIn
-        values:
-          - disabled
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchExpressions:
+          - key: monitoring
+            operator: NotIn
+            values:
+              - disabled
 ```
+
+`namespaceSelector` is not a top-level `spec` field in any DynaKube API version (checked against the Operator 1.11.0 CRD schema). It belongs under the injection mode (`spec.oneAgent.cloudNativeFullStack` or `spec.oneAgent.applicationMonitoring`), and there is a separate one under `spec.metadataEnrichment` for enrichment.
 
 ### Namespace Labels for Filtering
 
@@ -136,9 +140,9 @@ timeseries memBytes = sum(dt.kubernetes.container.memory_working_set, rollup: av
 
 Service detection settings — including **Enhanced Endpoints for SDv1** (Dynatrace v1.329+) — can be overridden per Kubernetes namespace, not just at the environment level. Useful when one namespace runs services that need different endpoint-naming behavior than the tenant default.
 
-**Override path:** *Kubernetes app → select cluster or namespace → Actions menu → Service detection settings → Process and contextualize → Services → Service detection v1*
+**Override path:** *Kubernetes app → select cluster or namespace → Actions menu → Service detection settings → Process and contextualize → Services → Enhanced endpoints for SDv1*
 
-**Scoping precedence (most specific wins):**
+**Scopes the setting can be set at** — the docs list *"the entire environment, a specific host group, or a Kubernetes namespace and cluster"*:
 
 | Scope | When to use |
 |---|---|
@@ -229,46 +233,40 @@ timeseries memReq = sum(dt.kubernetes.container.requests_memory, rollup: avg), f
 
 <a id="namespace-based-access-control"></a>
 ## 4. Namespace-Based Access Control
-### Dynatrace IAM with Boundaries
+### Dynatrace IAM: policies with a namespace condition
 
-Use Dynatrace boundaries to restrict visibility by namespace:
+Grail record permissions take a `WHERE` condition on `storage:k8s.namespace.name`, so a policy can grant read access to one namespace's data:
 
-**Policy Example (Grant access to checkout namespace):**
-
-```json
-{
-  "name": "pol-namespace-checkout-viewer",
-  "statement": {
-    "effect": "ALLOW",
-    "permissions": ["environment:roles:viewer"],
-    "conditions": [
-      {
-        "kubernetes.namespace": "checkout"
-      }
-    ]
-  }
-}
+```text
+ALLOW storage:logs:read, storage:spans:read, storage:events:read, storage:metrics:read
+  WHERE storage:k8s.namespace.name = "checkout";
 ```
+
+The condition supports `=`, `IN`, `startsWith` and `MATCH`. To reuse one policy across teams, keep the permission in the policy and move the condition into a **boundary** bound with the group (IAM series).
 
 ### Segment by Namespace
 
-Create segments for namespace-based filtering:
+Segments filter what a view shows; they do not restrict access.
 
-| Segment | Filter | Use Case |
+| Segment | Include condition on `k8s.namespace.name` | Use Case |
 |---------|--------|----------|
-| `seg-checkout` | `k8s.namespace.name == "checkout"` | Team view |
-| `seg-production` | `k8s.namespace.name matches "*-prod"` | Prod only |
-| `seg-platform` | `k8s.namespace.name in ("monitoring","logging")` | Platform team |
+| `seg-checkout` | equals `checkout` | Team view |
+| `seg-production` | ends with `-prod` (a `*` wildcard in the value) | Prod only |
+| `seg-platform` | is one of `monitoring`, `logging` | Platform team |
+
+Segment filter syntax and the operators each data type accepts are covered in ORGNZ-10 §1.
 
 ### Kubernetes RBAC Alignment
 
-Align Dynatrace access with Kubernetes RBAC:
+Mirror the Kubernetes roles you already bind per namespace:
 
-| K8s Role | Dynatrace Access |
+| Kubernetes binding | Dynatrace equivalent |
 |----------|------------------|
-| `namespace-admin` | Full namespace visibility |
-| `namespace-viewer` | Read-only namespace data |
-| `cluster-admin` | All namespaces |
+| `admin` / `edit` ClusterRole bound in a namespace | Read policy with that namespace's condition, plus write permissions the team needs (for example settings in its own scope) |
+| `view` ClusterRole bound in a namespace | Read policy with that namespace's condition |
+| `cluster-admin` | Read policy without a namespace condition |
+
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"ALLOW storage:events:read WHERE storage:k8s.namespace.name = "production""*.</sub>
 
 <a id="multi-tenant-clusters"></a>
 ## 5. Multi-Tenant Clusters
@@ -276,55 +274,55 @@ Align Dynatrace access with Kubernetes RBAC:
 
 | Level | Mechanism | Dynatrace Support |
 |-------|-----------|-------------------|
-| **Soft** | Namespace + NetworkPolicy | Boundaries, segments |
-| **Hard** | Separate clusters | Separate DynaKubes |
-| **Virtual** | vCluster | Namespace labels |
+| **Soft** | Namespace + NetworkPolicy | IAM namespace conditions, segments |
+| **Hard** | Separate clusters | One DynaKube per cluster, each with its own environment |
 
-### DynaKube per Tenant (Hard Isolation)
+### Separate DynaKubes per namespace group
 
-For strong isolation, use separate DynaKube instances:
+The Operator's own `multipleDynakubes` sample runs two DynaKubes in one cluster, each scoped by a `namespaceSelector` inside its mode. To send different namespaces to different environments, give each DynaKube its own `apiUrl` and use **`applicationMonitoring`**, which injects code modules into pods without deploying a host OneAgent:
 
 ```yaml
 # Tenant A
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube-tenant-a
   namespace: dynatrace
 spec:
   apiUrl: https://tenant-a.live.dynatrace.com/api
-  namespaceSelector:
-    matchLabels:
-      tenant: a
+  oneAgent:
+    applicationMonitoring:
+      namespaceSelector:
+        matchLabels:
+          tenant: a
 ```
+
+Keep the selectors from overlapping, so no namespace matches two DynaKubes. Do not give two DynaKubes a host-level mode (`cloudNativeFullStack`, `hostMonitoring`, `classicFullStack`) on the same nodes: that puts two OneAgents on one host, and Dynatrace documents *"A single OneAgent per host is required to collect all relevant monitoring data"*.
 
 ### Shared DynaKube (Soft Isolation)
 
-Single DynaKube with boundary-based access control:
+Single DynaKube with access controlled in IAM:
 
 ```yaml
 spec:
   oneAgent:
     cloudNativeFullStack: {}
-  # All namespaces monitored, access controlled via IAM
+  # All namespaces monitored, access controlled via IAM namespace conditions
 ```
 
+> <sub>**Sources:** [multipleDynakubes.yaml (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/release-1.11/assets/samples/dynakube/v1beta6/multipleDynakubes.yaml), [Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent) — *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."*</sub>
+
 ```dql
-// Workload count via smartscape topology
-smartscapeNodes "K8S_DEPLOYMENT"
-| summarize workloadCount = count()
-| limit 20
-
-// For StatefulSets / DaemonSets / Pods, substitute the type:
-// smartscapeNodes "K8S_STATEFULSET"
-// smartscapeNodes "K8S_DAEMONSET"
-// smartscapeNodes "K8S_POD"
-
-// Legacy alternative (deprecated for new content):
-// fetch dt.entity.cloud_application
-// | summarize workloadCount = count()
-// | limit 20
-
+// Workload count by namespace and kind — every workload kind, not only Deployments
+// dt.kubernetes.workloads is a gauge per (cluster, namespace, kind); sum with rollup: avg adds
+// them up without also adding the points inside each time bucket. Executed 10/02/2026 —
+// the deployment total matched smartscapeNodes "K8S_DEPLOYMENT" (110 = 110).
+timeseries n = sum(dt.kubernetes.workloads, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.kind}
+| fieldsAdd workloads = round(arrayAvg(n), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.kind, workloads
+| sort workloads desc
+| limit 50
 ```
 
 <a id="cost-allocation-by-namespace"></a>

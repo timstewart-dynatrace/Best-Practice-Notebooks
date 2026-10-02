@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -165,6 +165,9 @@ smartscapeNodes "GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE"
 ```dql
 // Compute Engine VMs (dynatrace-gcp-monitor) — classic generic entity; the colon in the
 // type name requires backticks. dt.entity.* is a look-back view, so it needs from:.
+// The type exists only once the Google Cloud extension has created it. On a tenant without the
+// monitor, the query carries a "The entity type ... wasn't found" warning
+// (ENTITY_DATA_OBJECT_UNDEFINED) and returns zero rows — that means "not set up", not "no VMs".
 fetch `dt.entity.cloud:gcp:gce_instance`, from:-7d
 | fieldsKeep id, entity.name
 | sort entity.name asc
@@ -356,12 +359,13 @@ timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
 //      the only values are DAVIS_EVENT, SYNTHETIC_EVENT, FLEET_EVENT and DAVIS_PROBLEM.
 //      Kubernetes events arrive as DAVIS_EVENT; the discriminator is event.provider.
 //   2. `event.type == "Warning"` — every KUBERNETES_EVENT record carries CUSTOM_INFO
-//      (3,571 of 3,571 checked). Severity lives in dt.kubernetes.event.important.
+//      (3,571 of 3,571 checked). The Warning/Normal split is in status ("WARN" / "INFO");
+//      dt.kubernetes.event.important was "true" on every event over 30 days (10/02/2026).
 //   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
 // Each filter was valid syntax that executed cleanly, which is why this survived review.
 fetch events, from:-6h
 | filter event.provider == "KUBERNETES_EVENT"
-| filter dt.kubernetes.event.important == "true"
+| filter status == "WARN"
 | summarize event_count = count(), by:{dt.kubernetes.event.reason}
 | sort event_count desc
 | limit 10
@@ -422,11 +426,11 @@ OneAgent monitoring of Cloud Run managed is **limited to Java and Node.js**. Clo
 // value on any span in the validation tenant, so `cloud.platform == "gcp_cloud_run"` could only
 // ever return nothing. The dictionary marks `cloud.platform` "Deprecated, no replacement available";
 // `cloud.provider` (stable) is the nearest field, and narrows to provider only (aws / azure / gcp / ...).
-// Note this narrows to provider, not service — add a service.name or faas.name filter to isolate
+// Note this narrows to provider, not service — add a dt.service.name or faas.name filter to isolate
 // Cloud Run specifically. On a tenant with no GCP workloads this correctly returns no rows.
 fetch spans, from:-1h
 | filter span.kind == "server" and cloud.provider == "gcp"
-| summarize {avg_duration_ms = avg(duration) / 1ms, request_count = count()}, by:{service.name}
+| summarize {avg_duration_ms = avg(duration) / 1ms, request_count = count()}, by:{dt.service.name}
 | sort request_count desc
 | limit 10
 ```
