@@ -1,6 +1,6 @@
 # MCH-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 8 of 8 | **Created:** September 2026 | **Last Updated:** 10/01/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 8 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -19,7 +19,8 @@ Use it as the operating reference, and the earlier notebooks for the detail behi
 5. [Numbers Worth Knowing](#numbers)
 6. [Anti-Patterns](#anti-patterns)
 7. [What the Documentation Does Not Say](#doc-gaps)
-8. [Summary and Where to Go Next](#summary)
+8. [Beyond the Docs](#beyond-the-docs)
+9. [Summary and Where to Go Next](#summary)
 
 ---
 
@@ -36,7 +37,7 @@ Use it as the operating reference, and the earlier notebooks for the detail behi
 <a id="short-answer"></a>
 ## 1. Short Answer
 
-1. **Node and process.** Every node `RUNNING`, every service up. The cluster survives one node: *"Dynatrace Managed continues to operate after the loss of one node."*
+1. **Node and process.** Every node `RUNNING`, every service up. The cluster survives one node: *"Dynatrace Managed continues to operate after the loss of one node."* (From five nodes up, a Dynatrace blog allows two.)
 2. **Storage.** Cassandra under 2 TB per node with every node `UN`; Elasticsearch `green`. Elasticsearch retention is a size lever; Cassandra's isn't.
 3. **Capacity.** One-third headroom, and adaptive load reduction that never lasts 15 minutes or more.
 4. **Connectivity.** The cluster kept internal behind Cluster ActiveGates, and a working Mission Control link.
@@ -199,14 +200,14 @@ Each notebook ends with its own gaps. Taken together, they say where to rely on 
 
 | Area | Gap | Notebook |
 |------|-----|----------|
-| Node state | A defined list of CMC node states, or of `operationState` values (only `RUNNING` is shown) | MCH-01, MCH-02 |
+| Node state | An official list of `operationState` values (the docs show only `RUNNING`; a community-posted list of 12 exists) | MCH-01, MCH-02 |
 | Node operations | A procedure for restarting one node of a 3+ node cluster | MCH-02 |
 | Memory | What "memory emergency mode" does to processing | MCH-02 |
-| Storage | Disk-percentage thresholds or watermarks for Cassandra or Elasticsearch | MCH-01, MCH-04 |
-| Storage | Where Davis problems and events are stored | MCH-01, MCH-04 |
-| Self-monitoring | `dsfm:` metrics for the stores' own health, or `dsfm:active_gate.*` keys | MCH-03, MCH-04, MCH-05 |
+| Storage | Dynatrace-set disk thresholds (community KBs cite Elasticsearch's upstream watermarks and Cassandra's compaction headroom) | MCH-03, MCH-04 |
+| Storage | Where Davis problems and events are stored (a 2019 community answer says Elasticsearch) | MCH-01, MCH-04 |
+| Self-monitoring | `dsfm:` metrics for the stores' own health (the `dsfm:active_gate.*` keys are now covered in MCH-05) | MCH-03, MCH-04 |
 | Capacity | A number behind "sufficient capacity" or behind adaptive load reduction | MCH-06 |
-| Connectivity | What stops working when the cluster certificate expires | MCH-05 |
+| Connectivity | What stops working when the cluster certificate expires (community answers: monitoring continues, the UI warns) | MCH-05 |
 | Lifecycle | A way to rehearse a restore without disturbing production | MCH-07 |
 
 **Conflicts between pages:**
@@ -216,13 +217,35 @@ Each notebook ends with its own gaps. Taken together, they say where to rely on 
 | Elasticsearch snapshot interval | Every 2 hours vs. every 2 days | 2 hours, from the backup page (MCH-04) |
 | Cluster ActiveGate inbound port | 9999 vs. HTTPS on 443 | Neither stated (MCH-05) |
 | Mission Control health-check interval | Every 2 minutes vs. every 5 minutes | 2 minutes, from the data-exchange page (MCH-05) |
-| Local self-monitoring | Every cluster vs. DDU licensing only | DDU only, from the local page (MCH-01, MCH-06) |
+| Local self-monitoring | Every cluster vs. DDU licensing only | Both recorded; a Dynatrace blog sides with "every cluster" (MCH-01, MCH-06) |
 | Premium HA copy count | Two copies vs. three copies in each DC | Unresolved; confirm with Dynatrace support (MCH-01) |
 
 > <sub>**Observed 10/01/2026:** this table consolidates the documentation-gap sections of MCH-01 to MCH-07; each row was searched for, and each conflict quoted, in the notebook named.</sub>
 
+<a id="beyond-the-docs"></a>
+## 8. Beyond the Docs
+
+The Managed documentation is the primary source for this series. These are the most useful additional resources, checked 10/02/2026. Community items are answers and articles on the Dynatrace community, some by Dynatrace staff. They are useful practice, not documentation, and several are years old.
+
+| Resource | Type | Useful for |
+|----------|------|-----------|
+| [ActiveGate self-monitoring metrics](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics) | Dynatrace docs | The 70 `dsfm:active_gate.*` keys (MCH-05) |
+| [Proactive self-monitoring for Dynatrace Managed](https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/) | Dynatrace blog | Reading the capacity indicator (MCH-06) |
+| [Premium High Availability and turnkey disaster recovery](https://www.dynatrace.com/news/blog/premium-high-availability-and-turnkey-disaster-recovery-for-dynatrace-managed-early-adopter/) | Dynatrace blog | Node-loss tolerance by cluster size (MCH-01) |
+| [Dynatrace Self-Monitoring (Managed)](https://www.dynatrace.com/hub/detail/dynatrace-self-monitoring-managed/) | Dynatrace Hub | A packaged capacity view (MCH-06) |
+| [dtmgd](https://github.com/dynatrace-oss/dtmgd) and [dynatrace-managed-mcp](https://github.com/dynatrace-oss/dynatrace-managed-mcp) | Dynatrace open source (Apache-2.0) | A read-only CLI and MCP server for Managed environments and the cluster API |
+| [state of nodes](https://community.dynatrace.com/t5/Alerting/state-of-nodes/m-p/113564) | Dynatrace community | All 12 `operationState` values (MCH-02) |
+| [How to restart Dynatrace nodes on the cluster](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/How-to-restart-Dynatrace-nodes-on-the-cluster/td-p/117644) | Dynatrace community | The CMC per-node Restart (MCH-02, a recorded conflict) |
+| [Elasticsearch store usage differences](https://community.dynatrace.com/t5/Troubleshooting/Why-there-is-difference-in-Elasticsearch-store-usage-between/ta-p/200631) | Dynatrace community KB | Elasticsearch watermarks (MCH-04) |
+| [Reserve disk space consumed](https://community.dynatrace.com/t5/Troubleshooting/Why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed/ta-p/204801) | Dynatrace community KB | Cassandra compaction headroom (MCH-03) |
+| [Elasticsearch won't start](https://community.dynatrace.com/t5/Troubleshooting/Why-does-my-ElasticSearch-in-Dynatrace-managed-cluster-node-will/ta-p/199324) | Dynatrace community KB | A missing backup mount stopping Elasticsearch (MCH-04, MCH-07) |
+| [Elasticsearch log queue is full](https://community.dynatrace.com/t5/Troubleshooting/Troubleshoot-Elasticsearch-log-queue-is-full-and-Elasticsearch/ta-p/240404) | Dynatrace community KB | Log-ingest pressure (MCH-04) |
+| [Is Cassandra corrupted?](https://community.dynatrace.com/t5/Troubleshooting/How-to-check-if-cassandra-is-corrupted-on-Managed-node/ta-p/199438) | Dynatrace community KB | Spotting corrupt Cassandra tables (MCH-03) |
+
+The community pages block scripted fetches; open them in a browser.
+
 <a id="summary"></a>
-## 8. Summary and Where to Go Next
+## 9. Summary and Where to Go Next
 
 A healthy Managed cluster is five things at once. Its nodes and services run. Its stores stay under their ceilings with every replica in place. It has a third more capacity than it uses. Data can reach it and it can reach Mission Control. And it can be restored and stays supported. Most of what goes wrong announces itself only in CMC Events, so the routine matters more than any single alert: daily for what doesn't email, weekly for the node, store and backup checks, monthly for versions, headroom and retention, and after every change for the follow-ups.
 

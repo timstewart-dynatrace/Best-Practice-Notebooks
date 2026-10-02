@@ -1,6 +1,6 @@
 # MCH-07: Backup, Upgrade, and Disaster Recovery
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 7 of 8 | **Created:** September 2026 | **Last Updated:** 10/01/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 7 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -172,9 +172,11 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 
 The table of earlier versions shows the pattern. Standard support for a version ends when the release three versions later rolls out, and Enterprise Success and Support covers it for one more release. For example, 1.338 rolled out May 11, 2026; its standard support ended Aug 03, 2026 (when 1.344 rolled out), and Enterprise Success and Support ended Aug 31, 2026.
 
+**Managed's future.** No end-of-life has been announced. Dynatrace's annual report for fiscal 2026 still describes the offering: *"We also provide options to deploy our platform in customer-provisioned infrastructure, which we call Dynatrace Managed."* It also notes that *"The majority of our customers deploy Dynatrace as a Software-as-a-Service"*. For clusters planning that move, M2S is the series.
+
 **What falling behind costs** goes beyond support. Several changes in this series only reach you through updates: Cassandra and Elasticsearch fixes (MCH-03 §10, MCH-04 §9), and changes to ActiveGate compatibility and Mission Control ciphers (MCH-05).
 
-> <sub>**Sources:** [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed). **Derived:** the "three versions later" pattern reads the rollout and support-end dates in the page's previous-versions table.</sub>
+> <sub>**Sources:** [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed). [Dynatrace FY2026 Form 10-K (Dynatrace IR)](https://ir.dynatrace.com/sec-filings/all-sec-filings/content/0001773383-26-000019/dt-20260331.htm). **Derived:** the "three versions later" pattern reads the rollout and support-end dates in the page's previous-versions table.</sub>
 
 <a id="pha"></a>
 ## 7. Premium High Availability and Data-Center Failover

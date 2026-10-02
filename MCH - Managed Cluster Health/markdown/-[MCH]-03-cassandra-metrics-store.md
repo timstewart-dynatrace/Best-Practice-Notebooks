@@ -1,6 +1,6 @@
 # MCH-03: Cassandra Metrics Store Health
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 3 of 8 | **Created:** September 2026 | **Last Updated:** 09/28/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 3 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -193,6 +193,8 @@ du -sh /var/opt/dynatrace-managed/cassandra/
 
 Run it on each node and compare against the 2 TB line. That catches growth before the non-emailed 2 TB event does.
 
+**Leave room for compaction.** A Dynatrace community KB article explains why the disk needs headroom beyond the store itself: the metrics store can undergo compaction phases, during which it can grow to twice its size, and when free space runs short transaction storage is deleted first to make room ([reserve disk space consumed (Dynatrace community)](https://community.dynatrace.com/t5/Troubleshooting/Why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed/ta-p/204801), 2023). In community practice, that is the reason to keep well clear of a full disk even when the store is under its ceiling — verify the margin against your own compaction peaks.
+
 **Layout rules:**
 
 - Give Cassandra its own volume. The rack-awareness guide says so directly: *"Keep Cassandra data on a separate volume to avoid disk space issues caused by other data types."*
@@ -317,7 +319,7 @@ Searched for in the Managed documentation on 09/28/2026 and **not found**:
 | A `dsfm:` self-monitoring metric for Cassandra or the metrics store | Measure with `du` and `nodetool` on the node (§5, §6) |
 | A setting for metric retention | Retention is not a size lever (§4) |
 | A procedure for recovering Cassandra on a single failed node | Replace the node, then run a manual repair (§8) |
-| An explicit statement that configuration lives in Cassandra | Inferred from the backup docs' *Metrics and configuration storage* section (§2) |
+| An explicit statement in the docs that configuration lives in Cassandra | Inferred from the backup docs' *Metrics and configuration storage* section (§2); a Dynatrace product manager's 2019 forum answer says the same ([what are the different type of data (Dynatrace community)](https://community.dynatrace.com/t5/Alerting/what-are-the-different-type-of-data/td-p/122675)) |
 
 **A naming oddity.** The restore procedure's configuration-only option runs `repair-cassandra-data.sh 1`, not `restore-cassandra-data.sh`. It is quoted exactly as the docs print it. Confirm with Dynatrace support before relying on it.
 
