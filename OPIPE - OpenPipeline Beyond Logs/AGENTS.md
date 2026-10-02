@@ -14,13 +14,13 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 
 | When the question is about… | Read |
 |---|---|
-| The OpenPipeline configuration scopes and fixed pipeline stage sequence, default-pipeline anti-pattern, processing groups, security context, ingestion-time vs query-time processing, primary fields/tags as routing keys, and `dt.temp*` temporary fields that live only for the duration of processing and are discarded before write (SaaS 1.345, staged tenant rollout) | `-[OPIPE]-01-multi-scope-platform.md` |
+| The OpenPipeline configuration scopes and fixed pipeline stage sequence, default-pipeline anti-pattern, per-processor matching conditions vs separate pipelines vs pipeline groups, security context, ingestion-time vs query-time processing, primary fields/tags as routing keys, and `dt.temp*` temporary fields that live only for the duration of processing and are discarded before write (SaaS 1.345, staged tenant rollout) | `-[OPIPE]-01-multi-scope-platform.md` |
 | Dropping health-check/noise spans at ingestion, span attribute enrichment, span-to-event extraction (business, SDLC, Davis events), routing spans to buckets, span pipeline monitoring with self-monitoring metrics | `-[OPIPE]-02-span-processing-and-enrichment.md` |
-| Extracting accurate RED metrics from sampled traces, why naive `count()` undercounts, sampling-ratio multiplication, standard vs sampling-aware metric comparison | `-[OPIPE]-03-sampling-aware-metrics.md` |
+| Extracting accurate RED metrics from sampled traces, why naive `count()` undercounts, detecting trace sampling (ATM/ALR fields, not `dt.system.sampling_ratio`) and extrapolating counts with the documented multiplicity formula, standard vs sampling-aware metric comparison | `-[OPIPE]-03-sampling-aware-metrics.md` |
 | Dimension explosion, detecting high-cardinality fields, reduction strategies (attribute removal, value normalization, bucketing, hashing), metric dimension guardrails | `-[OPIPE]-04-cardinality-management.md` |
 | Business event enrichment/metric extraction (`event.type`, `event.provider`), security event routing, compliance buckets, event-to-metric KPIs | `-[OPIPE]-05-business-and-security-event-pipelines.md` |
 | Correlating logs/spans/metrics/events via shared dimensions, cascade processing, unified bucket families, when NOT to use OpenPipeline, production readiness checklist | `-[OPIPE]-06-cross-scope-design-patterns.md` |
-| Consolidated settings checklist: pipeline-per-scope rules, processing group limits, span drop filters, cardinality/security-context settings | `-[OPIPE]-99-best-practice-summary.md` |
+| Consolidated settings checklist: pipeline-per-scope rules, matching-condition and first-match stage rules, span drop filters, cardinality/security-context settings | `-[OPIPE]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[OPIPE]-99-best-practice-summary.md`
 and follow its pointers.

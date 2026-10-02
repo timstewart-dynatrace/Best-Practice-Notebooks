@@ -1,6 +1,6 @@
 # OPIPE-04: Cardinality Management
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Controlling Dimension Explosion Across All Scopes
 
@@ -58,8 +58,10 @@ Add `http.response.status_code` (5 values) and `k8s.namespace.name` (10 namespac
 Now add `user.id` (100,000 unique users):
 
 ```
-50 x 200 x 5 x 10 x 100,000 = 50,000,000,000 — this will be rejected
+50 x 200 x 5 x 10 x 100,000 = 50,000,000,000
 ```
+
+That is far past the 1 million per-metric dimension limit Metrics Classic enforces, and exactly the volatile-dimension configuration that Grail *"may restrict or reject"* (row below).
 
 ### Impact of High Cardinality
 
@@ -135,7 +137,7 @@ fetch logs, from:-1h
 // Detect high-cardinality span fields
 fetch spans, from:-1h
 | summarize total = count(),
-    unique_services = countDistinct(service.name),
+    unique_services = countDistinct(dt.service.name),
     unique_operations = countDistinct(span.name),
     unique_routes = countDistinct(http.route),
     unique_traces = countDistinct(trace.id)
@@ -169,7 +171,7 @@ In the **Processing** stage of your pipeline, add a **Remove fields** processor:
 | Fields to Remove | Scope | Rationale |
 |-----------------|-------|----------|
 | `http.url` (when `http.route` exists) | Spans | URL has query params; route is the pattern |
-| `http.request.header.*` | Spans | Request headers are rarely needed post-ingestion |
+| Captured header attributes (`http.request.header.<name>`) | Spans | Request headers are rarely needed post-ingestion — list each attribute by name |
 | `thread.name`, `thread.id` | Logs | Per-thread IDs are high-cardinality noise |
 
 <a id="value-normalization"></a>
@@ -203,7 +205,7 @@ Kubernetes pod names include replica identifiers that are ephemeral:
 | `checkout-service-7b4f6d9c8-x2k4q` | `checkout-service` |
 | `payment-worker-5d8f7a3b2-m9n1p` | `payment-worker` |
 
-Use OpenPipeline's DPL `parse` processor to extract the deployment name and replace the pod name field.
+Don't rewrite `k8s.pod.name` itself — other views and entity links rely on it. Use the workload field Kubernetes monitoring already supplies (`k8s.deployment.name`, or `k8s.workload.name` where it is set) as the metric dimension. On the validation tenant, `k8s.deployment.name` was set on 767,490 of 913,405 pod log records in an hour (131 pods → 54 deployments). Where neither is present, derive one in a **DQL** processor in the Processing stage with `parse` and store it in a new field.
 
 ```dql
 // Check: How many unique pod names vs. deployment names?
@@ -270,14 +272,14 @@ When configuring metric extraction in OpenPipeline (see **OPIPE-03**), apply the
 
 For each dimension you plan to include in an extracted metric, ask:
 
-1. **Is this dimension needed for the metric's use case?** If the metric drives an SLO by service, you need `service.name` — you probably do not need `k8s.pod.name`.
+1. **Is this dimension needed for the metric's use case?** If the metric drives an SLO by service, you need the service field — you probably do not need `k8s.pod.name`.
 2. **How many unique values does this dimension have?** Query `countDistinct()` on the field.
 3. **Will this dimension grow unbounded?** Pod names, session IDs, and request IDs grow with traffic. Avoid these.
 4. **Can this dimension be normalized first?** URL paths, pod names, and status codes can all be bucketed.
 
 ### Cardinality Budget
 
-Assign a cardinality budget to each extracted metric:
+Assign a cardinality budget to each extracted metric. These targets are community practice, not product limits — tune them to your tenant:
 
 | Metric Type | Target Cardinality | Max Dimensions |
 |------------|-------------------|----------------|
@@ -300,10 +302,10 @@ The upside is real — Dynatrace notes conforming queries *"benefit from improve
 
 ```dql
 // Estimate cardinality for a proposed metric extraction
-// Example: request count by service.name x http.route x status_code
+// Example: request count by dt.service.name x http.route x status_code
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize unique_combos = count(), by:{service.name, http.route, http.response.status_code}
+| summarize unique_combos = count(), by:{dt.service.name, http.route, http.response.status_code}
 | summarize total_cardinality = count()
 | fieldsAdd assessment = if(total_cardinality < 1000, then: "OK: Low cardinality",
     else: if(total_cardinality < 10000, then: "CAUTION: Medium cardinality",

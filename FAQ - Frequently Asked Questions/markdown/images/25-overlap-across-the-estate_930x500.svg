@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Overlap Happens Across the Estate, Not on a Host</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">A single OneAgent per host is required, and one OneAgent cannot address two environments</text>
+
+  <!-- ============ LEFT — what people picture ============ -->
+  <rect x="30" y="80" width="268" height="374" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="164" y="106" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">WHAT PEOPLE PICTURE</text>
+  <text x="164" y="126" text-anchor="middle" fill="#94A3B8" font-size="11">&#8220;Run both until we trust the new one&#8221;</text>
+
+  <rect x="104" y="146" width="120" height="50" fill="#1E293B" stroke="#475569" rx="6"/>
+  <text x="164" y="168" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">One host</text>
+  <text x="164" y="185" text-anchor="middle" fill="#64748B" font-size="10">two OneAgents</text>
+
+  <path d="M 140 196 L 98 246" stroke="#DE350B" stroke-width="2" fill="none" stroke-dasharray="5 4"/>
+  <path d="M 188 196 L 230 246" stroke="#DE350B" stroke-width="2" fill="none" stroke-dasharray="5 4"/>
+
+  <rect x="46" y="250" width="104" height="46" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="98" y="271" text-anchor="middle" fill="#CBD5E1" font-size="11.5" font-weight="700">Managed</text>
+  <text x="98" y="287" text-anchor="middle" fill="#64748B" font-size="10">source</text>
+
+  <rect x="178" y="250" width="104" height="46" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="230" y="271" text-anchor="middle" fill="#CBD5E1" font-size="11.5" font-weight="700">SaaS</text>
+  <text x="230" y="287" text-anchor="middle" fill="#64748B" font-size="10">target</text>
+
+  <circle cx="164" cy="226" r="19" fill="#0F172A" stroke="#DE350B" stroke-width="2.5"/>
+  <path d="M 156 218 L 172 234 M 172 218 L 156 234" stroke="#DE350B" stroke-width="3" stroke-linecap="round"/>
+
+  <rect x="46" y="316" width="236" height="122" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="164" y="337" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHY IT FAILS</text>
+  <text x="164" y="360" text-anchor="middle" fill="#FCA5A5" font-size="11">Not supported &#8212; not merely</text>
+  <text x="164" y="377" text-anchor="middle" fill="#FCA5A5" font-size="11">heavier. A second agent is an</text>
+  <text x="164" y="394" text-anchor="middle" fill="#FCA5A5" font-size="11">unsupported state, and one</text>
+  <text x="164" y="411" text-anchor="middle" fill="#FCA5A5" font-size="11">agent has one destination.</text>
+  <text x="164" y="430" text-anchor="middle" fill="#64748B" font-size="10">Doubled overhead is not the objection</text>
+
+  <!-- ============ RIGHT — what actually works ============ -->
+  <rect x="330" y="80" width="570" height="374" fill="#73BE28" opacity="0.07" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="615" y="106" text-anchor="middle" fill="#A7F3D0" font-size="14" font-weight="700">WHAT ACTUALLY WORKS</text>
+  <text x="615" y="126" text-anchor="middle" fill="#94A3B8" font-size="11">Phased waves &#8212; both tenants live, never the same host</text>
+
+  <!-- estate -->
+  <rect x="348" y="144" width="240" height="146" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="468" y="165" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">THE ESTATE</text>
+
+  <rect x="364" y="176" width="208" height="32" fill="#0F172A" stroke="#73BE28" rx="4"/>
+  <text x="378" y="197" fill="#86EFAC" font-size="11" font-weight="700">Wave 1</text>
+  <text x="558" y="197" text-anchor="end" fill="#94A3B8" font-size="10.5">migrated &#8594; SaaS</text>
+
+  <rect x="364" y="214" width="208" height="32" fill="#0F172A" stroke="#475569" rx="4"/>
+  <text x="378" y="235" fill="#CBD5E1" font-size="11" font-weight="700">Wave 2</text>
+  <text x="558" y="235" text-anchor="end" fill="#94A3B8" font-size="10.5">pending &#8594; Managed</text>
+
+  <rect x="364" y="252" width="208" height="32" fill="#0F172A" stroke="#475569" rx="4"/>
+  <text x="378" y="273" fill="#CBD5E1" font-size="11" font-weight="700">Wave 3</text>
+  <text x="558" y="273" text-anchor="end" fill="#94A3B8" font-size="10.5">pending &#8594; Managed</text>
+
+  <!-- tenants -->
+  <rect x="640" y="152" width="108" height="46" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="694" y="173" text-anchor="middle" fill="#86EFAC" font-size="11.5" font-weight="700">SaaS</text>
+  <text x="694" y="189" text-anchor="middle" fill="#64748B" font-size="10">target</text>
+
+  <rect x="640" y="238" width="108" height="46" fill="#1E293B" stroke="#475569" rx="6"/>
+  <text x="694" y="259" text-anchor="middle" fill="#CBD5E1" font-size="11.5" font-weight="700">Managed</text>
+  <text x="694" y="275" text-anchor="middle" fill="#64748B" font-size="10">source</text>
+
+  <path d="M 572 192 L 640 177" stroke="#73BE28" stroke-width="2" fill="none"/>
+  <path d="M 572 230 L 640 255" stroke="#475569" stroke-width="2" fill="none"/>
+  <path d="M 572 268 L 640 266" stroke="#475569" stroke-width="2" fill="none"/>
+
+  <path d="M 694 198 L 694 238" stroke="#1496FF" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+  <text x="762" y="212" fill="#BFDBFE" font-size="10.5">cross-environment</text>
+  <text x="762" y="228" fill="#BFDBFE" font-size="10.5">tracing + dashboard tiles</text>
+  <text x="762" y="244" fill="#64748B" font-size="10">span the boundary</text>
+
+  <!-- dual-send lane -->
+  <rect x="348" y="302" width="536" height="74" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="364" y="323" fill="#BFDBFE" font-size="10.5" font-weight="700">THE SOURCES THAT GENUINELY CAN DUAL-SEND</text>
+  <text x="364" y="345" fill="#94A3B8" font-size="11">Cloud integrations (AWS / Azure / GCP) &#183; OpenTelemetry collectors &#183; API log and metric ingest</text>
+  <text x="364" y="364" fill="#94A3B8" font-size="11">Two destinations, separate credentials &#8212; the only true parallel feed available</text>
+
+  <rect x="348" y="384" width="536" height="64" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="364" y="405" fill="#CBD5E1" font-size="10.5" font-weight="700">THE RESIDUAL GAP IS REAL</text>
+  <text x="364" y="425" fill="#94A3B8" font-size="11">Each host is dark for its restart window; services stay incomplete until app processes restart.</text>
+  <text x="364" y="442" fill="#94A3B8" font-size="11">Schedule the gap into a maintenance window &#8212; you cannot remove it.</text>
+
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11.5">Sequence waves so tightly-coupled services move together &#8212; fewer seams is less to validate</text>
+</svg>

@@ -1,6 +1,6 @@
 # OPLOGS-06: Topology & Entity Context
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Leveraging Entity Relationships in Log Analysis
 This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.
@@ -67,6 +67,10 @@ Relationships flow from infrastructure → application → kubernetes context.
 | `dt.entity.service` | Service entity ID | `SERVICE-QRS012` |
 | `dt.entity.kubernetes_cluster` | K8s cluster ID | `KUBERNETES_CLUSTER-TUV345` |
 
+> **Classic entity fields are deprecated; Smartscape fields are the stable successors.** In the semantic dictionary, `dt.entity.host`, `dt.entity.service`, `dt.entity.process_group`, `dt.entity.process_group_instance` and `dt.entity.kubernetes_cluster` are all marked `deprecated`. Their Smartscape counterparts — `dt.smartscape.host`, `dt.smartscape.service`, `dt.smartscape.process`, `dt.smartscape.k8s_cluster`, `dt.smartscape.k8s_pod` — are `stable` and already populated on logs. The queries below still use the classic fields because they keep working, but coverage of the two families is not identical (on the validation tenant over 15 minutes: 166k records with `dt.entity.host`, 156k with `dt.smartscape.host`). Run the coverage query below before you move a dashboard or alert to the Smartscape fields, and see FAQ-16 for the classic-to-Smartscape mapping.
+>
+> <sub>**Dictionary:** `dt.entity.host` / `dt.entity.service` / `dt.entity.process_group` / `dt.entity.process_group_instance` / `dt.entity.kubernetes_cluster` (`deprecated`); `dt.smartscape.host` / `dt.smartscape.service` / `dt.smartscape.process` / `dt.smartscape.k8s_cluster` / `dt.smartscape.k8s_pod` (`stable`), read 10/02/2026.</sub>
+
 ### Kubernetes Context Fields
 
 | Field | Description |
@@ -81,13 +85,16 @@ Relationships flow from infrastructure → application → kubernetes context.
 | `k8s.workload.kind` | Workload type (Deployment, StatefulSet, etc.) |
 
 ```dql
-// Discover available entity types in your logs
+// Discover available entity fields in your logs — classic (deprecated) and Smartscape (stable)
 fetch logs, from: now() - 1h
 | summarize {
     total_logs = count(),
     with_host = countIf(isNotNull(dt.entity.host)),
+    with_smartscape_host = countIf(isNotNull(dt.smartscape.host)),
     with_process_group = countIf(isNotNull(dt.entity.process_group)),
+    with_smartscape_process = countIf(isNotNull(dt.smartscape.process)),
     with_service = countIf(isNotNull(dt.entity.service)),
+    with_smartscape_service = countIf(isNotNull(dt.smartscape.service)),
     with_k8s_cluster = countIf(isNotNull(dt.entity.kubernetes_cluster)),
     with_k8s_namespace = countIf(isNotNull(k8s.namespace.name))
   }
@@ -112,7 +119,7 @@ fetch logs, from: now() - 1h
 | filter isNotNull(dt.entity.host)
 | summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR" OR loglevel == "SEVERE")
+    errors = countIf(status == "ERROR")   // all error-class levels, incl. CRITICAL and FATAL
   }, by: {dt.entity.host}
 | fieldsAdd error_rate = (errors * 100.0) / total
 | sort errors desc
@@ -131,6 +138,8 @@ fetch logs, from: now() - 1h
 <a id="process-group-topology"></a>
 ## 3. Process Group Topology
 Process groups represent logical application components across hosts.
+
+> **`dt.entity.process_group` is not always a single value.** On the validation tenant (10/02/2026) some log records carried an **array** of process-group IDs, so `by: {dt.entity.process_group}` produces some groups keyed by a whole array, and `== "PROCESS_GROUP-…"` misses those records. Where that matters, `expand dt.entity.process_group` before grouping, or filter with `in("PROCESS_GROUP-…", dt.entity.process_group)`.
 
 ```dql
 // Logs by process group
@@ -182,7 +191,8 @@ fetch logs, from: now() - 1h
 | filter isNotNull(k8s.namespace.name)
 | summarize {
     total = count(),
-    errors = countIf(status == "ERROR" OR status == "WARN")
+    errors = countIf(status == "ERROR"),
+    warnings = countIf(status == "WARN")
   }, by: {k8s.namespace.name}
 | fieldsAdd error_percentage = round((errors * 100.0) / total, decimals: 2)
 | sort errors desc
@@ -312,14 +322,15 @@ fetch logs, from: now() - 1h
 Entity IDs enable cross-data-type correlation.
 
 ```dql
-// Get distinct entity IDs for a namespace
+// Get distinct entity IDs per namespace (pick the namespace you care about from the result)
 fetch logs, from: now() - 1h
-| filter k8s.namespace.name == "hipstershop"
+| filter isNotNull(k8s.namespace.name)
 | summarize {
     unique_hosts = collectDistinct(dt.entity.host),
     unique_pgs = collectDistinct(dt.entity.process_group),
     unique_services = collectDistinct(dt.entity.service)
-  }
+  }, by: {k8s.namespace.name}
+| limit 10
 ```
 
 ```dql
@@ -363,13 +374,16 @@ fetch logs, from: now() - 15m
 ```
 
 ```dql
-// Alert pattern: Pod restarts (look for startup patterns)
-fetch logs, from: now() - 1h
-| filter contains(content, "started") OR contains(content, "initializing")
-| filter isNotNull(k8s.pod.name)
-| summarize {startup_count = count()}, by: {k8s.namespace.name, k8s.pod.name}
-| filter startup_count > 3  // More than 3 starts in 1h = potential crash loop
-| sort startup_count desc
+// Alert pattern: pod restarts — read the restart metric, not log text
+// Counting "started" / "initializing" lines measures how chatty a pod's startup is, not
+// how often it restarted. dt.kubernetes.container.restarts is a delta count, so summing
+// it over the window gives restarts per pod.
+timeseries restarts = sum(dt.kubernetes.container.restarts, default: 0), from: now() - 1h,
+  by: {k8s.namespace.name, k8s.pod.name}
+| fieldsAdd restart_count = arraySum(restarts)
+| filter restart_count > 3   // more than 3 restarts in 1h = potential crash loop
+| fields k8s.namespace.name, k8s.pod.name, restart_count
+| sort restart_count desc
 ```
 
 ---

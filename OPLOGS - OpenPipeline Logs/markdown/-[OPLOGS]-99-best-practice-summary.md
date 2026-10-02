@@ -1,6 +1,6 @@
 # OPLOGS-99: Best Practice Summary
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.
 
@@ -27,12 +27,12 @@ Definitive best practice settings for OpenPipeline log processing. Each entry sp
 |----------|---------|----------|
 | Process data at ingestion, not query time | Configure parsing, enrichment, masking, and routing as OpenPipeline processors | Critical |
 | Processor order within the Processing stage | Place masking processors before any processor that copies or parses the sensitive field (e.g., mask `content` before a DQL `parse` that extracts from it); order within a stage is the order you configure — each processor's output is the next one's input | Critical |
-| First-match routing rule order | Most specific rules first, default catch-all last | Critical |
+| First-match order | Routes (which pick the **pipeline**) and Bucket assignment processors (which pick the **bucket**) are both first-match: most specific first, catch-all last | Critical |
 | Drop health check logs at ingestion | Drop record processor: `matchesValue(content, "*health*") AND loglevel == "INFO"` — `contains()` is not enabled in OpenPipeline matchers | Recommended |
 | Drop DEBUG logs in production | Drop processor: `loglevel == "DEBUG"` — or, to keep extraction from DEBUG records, a **No storage assignment** processor in the Bucket assignment stage (there is no log-sampling processor) | Recommended |
-| Parse NONE-level logs | DQL processor with matcher `loglevel == "NONE"`: parse `[LEVEL]` from content and set `loglevel` only when `upper(parsed_level)` is a supported level (EMERGENCY, ALERT, CRITICAL, SEVERE, ERROR, FATAL, WARN, NOTICE, INFO, DEBUG, TRACE) — anything else leaves the record unchanged | Recommended |
+| Parse NONE-level logs | DQL processor with matcher `loglevel == "NONE"`: `parse content, "DATA? '[' LD:parsed_level ']'"` (the `DATA?` lets the bracket sit mid-line — `parse` anchors at the start) and set `loglevel` only when `upper(parsed_level)` is a supported level (EMERGENCY, ALERT, CRITICAL, SEVERE, ERROR, FATAL, WARN, NOTICE, INFO, DEBUG, TRACE) — anything else leaves the record unchanged | Recommended |
 | Add computed environment attribute | `fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production", else: "development")` | Recommended |
-| Confirm 100% pipeline coverage | `countIf(isNotNull(dt.openpipeline.pipelines))` must equal total log count | Critical |
+| Confirm nothing is left on the classic pipeline | `countIf(in(dt.openpipeline.pipelines, "logs:default"))` must be 0 — `isNotNull(dt.openpipeline.pipelines)` is true for classic records too, so it proves nothing | Critical |
 | Compare hourly volume before/after migration | `makeTimeseries count(), by:{dt.openpipeline.source}, interval:1h` — volume must be consistent | Critical |
 
 <a id="bucket-design-retention"></a>
@@ -58,11 +58,12 @@ Definitive best practice settings for OpenPipeline log processing. Each entry sp
 | Mask email addresses | Pattern: `[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+` in a DQL processor (`replacePattern`) → `[EMAIL-MASKED]` | Critical |
 | Mask credit card numbers | Pattern: `CREDITCARD` in a DQL processor (`replacePattern`) → `[CC-MASKED]` | Critical |
 | Mask SSNs | Pattern: `[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}` in a DQL processor (`replacePattern`) → `[SSN-MASKED]` | Critical |
-| Mask API keys and tokens | Pattern: `<<('api_key=' \| 'apikey=' \| 'key=') [A-Za-z0-9]{20,}` in a DQL processor (`replacePattern`) → `[KEY-MASKED]` | Critical |
+| Mask API keys and tokens | Pattern: `<<('api_key=' \| 'apikey=' \| 'key=') [A-Za-z0-9_-]{20,}` — include `_` and `-`, or keys like `sk_live_…` stay in clear in a DQL processor (`replacePattern`) → `[KEY-MASKED]` | Critical |
 | Mask JWT tokens | Search for `eyJ` prefix, mask full token value | Critical |
 | Mask passwords | Pattern: `password=`, `passwd=`, `pwd=` in content | Critical |
 | Hash instead of mask when correlation is needed | DQL processor: `fieldsAdd user_hash = hashSha256(user.email) \| fieldsRemove user.email` | Recommended |
 | Run sensitive data discovery weekly | Search for `@`, `key=`, `token=`, `password`, `eyJ`, `card` patterns | Recommended |
+| Run a leak check after every masking change | `countIf(replacePattern(content, "<masking pattern>", "") != content)` must be 0 — it finds a value the masking pattern would still catch, anywhere in the line | Critical |
 | Run monthly PII exposure audit | Track `email_exposure_pct`, `key_exposure_pct`, `password_exposure_pct` — all must trend toward 0% | Critical |
 
 Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, `\d` or `$1` is rejected when the processor is saved.
@@ -82,7 +83,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 | Use `isNull()`/`isNotNull()` | Never `== null` — DQL uses three-valued logic | Critical |
 | Use `in()` with curly-brace arrays | `in(status, {"ERROR", "WARN"})` — values are uppercase; never SQL-style `IN ('a', 'b')` | Critical |
 | Use `coalesce()` for fallbacks | `coalesce(loglevel, status, "UNKNOWN")` for null handling | Recommended |
-| Use `entityName()` for display names | `entityName(dt.entity.host, type:"dt.entity.host")` — avoids lookup overhead | Recommended |
+| Use `entityName()` for display names | `entityName(dt.entity.host, type:"dt.entity.host")` — a readable name instead of an ID; note `dt.entity.*` fields are `deprecated` in favour of `dt.smartscape.*` (OPLOGS-06) | Recommended |
 | Filter `isNotNull` before aggregating optional fields | Prevents null group-by values in aggregations | Recommended |
 | Use `samplingRatio` for exploration | `fetch logs, from:-1d, samplingRatio:10` then multiply back | Recommended |
 | Cap query cost with `scanLimitGBytes` | `fetch logs, scanLimitGBytes:100` | Optional |
@@ -102,7 +103,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Calculate droppable log percentage weekly | Health check + heartbeat + debug as % of total — target dropping 10-30% | Recommended |
+| Calculate droppable log percentage weekly | Health check + heartbeat + debug as % of total — the share you can drop is specific to your estate; measure before setting a target | Recommended |
 | Measure storage by log level daily | `fieldsAdd content_bytes = stringLength(content)` then `summarize sum(content_bytes)/1048576.0, by:{loglevel}` | Recommended |
 | Track bucket volume distribution weekly | Query all buckets showing total logs, unique sources, debug %, error % per bucket | Recommended |
 
@@ -124,7 +125,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 |----------|---------|----------|
 | Error rate alert threshold | >5% per entity over 15-minute window, minimum 100 records | Recommended |
 | Error count threshold | >10 per namespace per 15 minutes | Recommended |
-| Pod crash loop detection | Filter for startup/initializing content per pod, alert when >3 in 1 hour | Recommended |
+| Pod crash loop detection | `dt.kubernetes.container.restarts` summed per pod, alert when >3 in 1 hour — log lines saying "started" do not count restarts | Recommended |
 | Security error trends | `makeTimeseries count(), interval:30m` filtered on unauthorized/forbidden/denied | Recommended |
 | Weekly bucket health check | Total logs, unique sources, debug %, error % per bucket over 7 days | Recommended |
 

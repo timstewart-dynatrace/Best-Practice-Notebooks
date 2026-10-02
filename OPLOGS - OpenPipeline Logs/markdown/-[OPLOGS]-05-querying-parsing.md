@@ -1,6 +1,6 @@
 # OPLOGS-05: Querying & Parsing Logs
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## DQL Fundamentals and DPL Pattern Matching
 This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.
@@ -352,10 +352,17 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Parse exception patterns
+// Split the record into whitespace-separated tokens (splitByPattern with SPACE also splits on line breaks) and keep the ones that end in "Exception".
+// A pattern like "LD:exception_type 'Exception'" anchors at the start of the line, so it
+// captures the whole prefix ("2026-10-02 ERROR c.e.Svc - java.lang.NullPointer") instead
+// of the class name; DPL does not backtrack, so a greedy word matcher cannot stop before
+// the literal "Exception" either.
 fetch logs, from: now() - 24h
-| filter contains(content, "Exception") OR contains(content, "Error")
-| parse content, "LD:exception_type 'Exception'"
-| filter isNotNull(exception_type)
+| filter contains(content, "Exception")
+| fieldsAdd token = splitByPattern(content, "SPACE")
+| expand token
+| filter endsWith(token, "Exception") OR endsWith(token, "Exception:")
+| fieldsAdd exception_type = replaceString(token, ":", "")
 | summarize {count = count()}, by: {exception_type}
 | sort count desc
 | limit 15
@@ -363,10 +370,11 @@ fetch logs, from: now() - 24h
 
 ```dql
 // Parse with optional fields
-// Matches: "error code=123" or "error code=123 message=failed"
+// Matches "error code=123" or "... error code=123 message=failed" anywhere in the line
+// (DATA? lets the pattern start mid-line; parse otherwise anchors at the start)
 fetch logs, from: now() - 1h
 | filter contains(content, "error")
-| parse content, "'error' (SPACE 'code=' INT:error_code)? (SPACE 'message=' LD:error_msg)?"
+| parse content, "DATA? 'error' SPACE 'code=' INT:error_code (SPACE 'message=' LD:error_msg)?"
 | filter isNotNull(error_code)
 | summarize {count = count()}, by: {error_code}
 | sort count desc
@@ -375,9 +383,11 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Parse alternative formats
-// Matches: "user=john", "username=john"
+// Matches "user=john" or "username=john" anywhere in the line;
+// the character class stops at the first character outside it, so "user=jdoe," yields "jdoe"
+// (a trailing LD would take the rest of the line)
 fetch logs, from: now() - 1h
-| parse content, "('user='|'username=') LD:user_value"
+| parse content, "DATA? ('user='|'username=') [A-Za-z0-9._@-]+:user_value"
 | filter isNotNull(user_value)
 | summarize {count = count()}, by: {user_value}
 | sort count desc

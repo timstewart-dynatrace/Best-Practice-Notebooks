@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">ActiveGate Roles — Update Considerations</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Each role bundles different components — the AG version changes more than just routing</text>
+
+  <!-- Routing AG -->
+  <rect x="40" y="100" width="210" height="170" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="145" y="128" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">Routing / OA traffic</text>
+  <text x="145" y="155" text-anchor="middle" fill="#94A3B8" font-size="11">Forwards OneAgent traffic</text>
+  <text x="145" y="172" text-anchor="middle" fill="#94A3B8" font-size="11">to Dynatrace SaaS</text>
+  <text x="145" y="200" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="700">Update impact:</text>
+  <text x="145" y="218" text-anchor="middle" fill="#94A3B8" font-size="11">Brief gap while the AG</text>
+  <text x="145" y="235" text-anchor="middle" fill="#94A3B8" font-size="11">installs and re-connects</text>
+  <text x="145" y="255" text-anchor="middle" fill="#94A3B8" font-size="11">HA pair → roll one at a time</text>
+
+  <!-- Synthetic AG -->
+  <rect x="265" y="100" width="210" height="170" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="370" y="128" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Synthetic (private)</text>
+  <text x="370" y="155" text-anchor="middle" fill="#94A3B8" font-size="11">Runs HTTP and browser</text>
+  <text x="370" y="172" text-anchor="middle" fill="#94A3B8" font-size="11">monitors from your network</text>
+  <text x="370" y="200" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="700">Update impact:</text>
+  <text x="370" y="218" text-anchor="middle" fill="#94A3B8" font-size="11">Engine + browser update too</text>
+  <text x="370" y="235" text-anchor="middle" fill="#94A3B8" font-size="11">(Linux: per-location switch) —</text>
+  <text x="370" y="255" text-anchor="middle" fill="#94A3B8" font-size="11">validate monitors post-update</text>
+
+  <!-- Extension/EF2 AG -->
+  <rect x="490" y="100" width="210" height="170" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="595" y="128" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">Extension Framework</text>
+  <text x="595" y="155" text-anchor="middle" fill="#94A3B8" font-size="11">Hosts EF 2.0 extensions —</text>
+  <text x="595" y="172" text-anchor="middle" fill="#94A3B8" font-size="11">SNMP, custom, vendor</text>
+  <text x="595" y="200" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="700">Update impact:</text>
+  <text x="595" y="218" text-anchor="middle" fill="#94A3B8" font-size="11">Extension Execution Controller</text>
+  <text x="595" y="235" text-anchor="middle" fill="#94A3B8" font-size="11">updates with the AG — verify</text>
+  <text x="595" y="255" text-anchor="middle" fill="#94A3B8" font-size="11">all extensions resume ingest</text>
+
+  <!-- Cloud monitoring AG -->
+  <rect x="715" y="100" width="210" height="170" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="820" y="128" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Cloud monitoring</text>
+  <text x="820" y="155" text-anchor="middle" fill="#94A3B8" font-size="11">AWS / Azure</text>
+  <text x="820" y="172" text-anchor="middle" fill="#94A3B8" font-size="11">monitoring modules</text>
+  <text x="820" y="200" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="700">Update impact:</text>
+  <text x="820" y="218" text-anchor="middle" fill="#94A3B8" font-size="11">AWS / Azure modules run</text>
+  <text x="820" y="235" text-anchor="middle" fill="#94A3B8" font-size="11">in the AG — check connector</text>
+  <text x="820" y="255" text-anchor="middle" fill="#94A3B8" font-size="11">status pages after update</text>
+
+  <!-- Common -->
+  <rect x="40" y="305" width="885" height="155" fill="#1E293B" stroke="#334155" stroke-width="1" rx="6"/>
+  <text x="60" y="330" fill="#F8FAFC" font-size="14" font-weight="700">Common to all roles</text>
+  <text x="60" y="355" fill="#94A3B8" font-size="12">• Target version and update mode are set for the environment in Fleet management; per-AG settings override them (SaaS 1.343+).</text>
+  <text x="60" y="372" fill="#94A3B8" font-size="12">  Give HA pair members different update windows so they never update at the same time.</text>
+  <text x="60" y="394" fill="#94A3B8" font-size="12">• Classic: availability check every 30 minutes; with auto-update off, a one-click Update appears when a new version arrives.</text>
+  <text x="60" y="416" fill="#94A3B8" font-size="12">• Containerized ActiveGates (any role) are updated through your container tooling — not these settings.</text>
+  <text x="60" y="438" fill="#94A3B8" font-size="12">• On Managed: Cluster ActiveGates exist and have their own update path. This FAQ is SaaS only — Cluster AG isn't relevant here.</text>
+</svg>

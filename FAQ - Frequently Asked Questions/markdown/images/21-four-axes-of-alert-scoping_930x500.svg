@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Four Axes of Alert Scoping</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Every alerting design answers these four questions — each with its own mechanism, field, and failure mode</text>
+  <text x="465" y="77" text-anchor="middle" fill="#64748B" font-size="12">ROUTES and SEES are the pair that gets conflated, and they fail very differently</text>
+
+  <!-- ============ Column 1 — FIRES ============ -->
+  <rect x="30" y="96" width="186" height="358" fill="#FFB800" opacity="0.07" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="123" y="126" text-anchor="middle" fill="#FCD34D" font-size="17" font-weight="700">FIRES</text>
+  <text x="123" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">What opens a problem?</text>
+
+  <rect x="46" y="164" width="154" height="66" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="123" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="123" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Anomaly detector</text>
+  <text x="123" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">scoped by segment</text>
+
+  <rect x="46" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="123" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">SCOPED BY</text>
+  <text x="123" y="290" text-anchor="middle" fill="#FCD34D" font-size="11">detector scope</text>
+  <text x="123" y="308" text-anchor="middle" fill="#FCD34D" font-size="11">+ segment</text>
+
+  <rect x="46" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="123" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="123" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Noise — or silence.</text>
+  <text x="123" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">Fix this before</text>
+  <text x="123" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">touching routing.</text>
+
+  <!-- ============ Column 2 — ROUTES ============ -->
+  <rect x="258" y="96" width="186" height="358" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="351" y="126" text-anchor="middle" fill="#BFDBFE" font-size="17" font-weight="700">ROUTES</text>
+  <text x="351" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Who gets paged?</text>
+
+  <rect x="274" y="164" width="154" height="66" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="351" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="351" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Workflow trigger</text>
+  <text x="351" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">problem-triggered</text>
+
+  <rect x="274" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="351" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FILTER ON</text>
+  <text x="351" y="286" text-anchor="middle" fill="#BFDBFE" font-size="11">owner / dt.owner tags</text>
+  <text x="351" y="304" text-anchor="middle" fill="#BFDBFE" font-size="11">· severity</text>
+
+  <rect x="274" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="351" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="351" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Wrong team paged.</text>
+  <text x="351" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">Loud, visible,</text>
+  <text x="351" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">self-correcting.</text>
+
+  <!-- ============ Column 3 — SEES ============ -->
+  <rect x="486" y="96" width="186" height="358" fill="#DE350B" opacity="0.09" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="579" y="126" text-anchor="middle" fill="#FCA5A5" font-size="17" font-weight="700">SEES</text>
+  <text x="579" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Who may view it?</text>
+
+  <rect x="502" y="164" width="154" height="66" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="579" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="579" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">IAM policy boundary</text>
+  <text x="579" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">on Event Read permission</text>
+
+  <rect x="502" y="244" width="154" height="78" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="579" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FILTER ON</text>
+  <text x="579" y="288" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="600">dt.security_context</text>
+  <text x="579" y="303" text-anchor="middle" fill="#94A3B8" font-size="9.5">mapped onto problems</text>
+  <text x="579" y="315" text-anchor="middle" fill="#94A3B8" font-size="9.5">automatically</text>
+
+  <rect x="502" y="336" width="154" height="104" fill="#DE350B" opacity="0.12" stroke="#DE350B" rx="6"/>
+  <text x="579" y="356" text-anchor="middle" fill="#FCA5A5" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="579" y="379" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="600">Wrong team sees</text>
+  <text x="579" y="396" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="600">restricted data.</text>
+  <text x="579" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">Silent until audit.</text>
+
+  <!-- ============ Column 4 — FILTERS ============ -->
+  <rect x="714" y="96" width="186" height="358" fill="#A78BFA" opacity="0.07" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="807" y="126" text-anchor="middle" fill="#DDD6FE" font-size="17" font-weight="700">FILTERS</text>
+  <text x="807" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">What shows in the UI?</text>
+
+  <rect x="730" y="164" width="154" height="66" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="807" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="807" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Segment</text>
+  <text x="807" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">query-time filter</text>
+
+  <rect x="730" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="807" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">SCOPED BY</text>
+  <text x="807" y="290" text-anchor="middle" fill="#DDD6FE" font-size="11">segment</text>
+  <text x="807" y="308" text-anchor="middle" fill="#DDD6FE" font-size="11">definition</text>
+
+  <rect x="730" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="807" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="807" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Cosmetic only.</text>
+  <text x="807" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">Never a routing</text>
+  <text x="807" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">or access control.</text>
+
+  <!-- Footer -->
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Enrichment gates all four — and a key being &#8220;available&#8221; is not the same as anything being tagged with it</text>
+</svg>

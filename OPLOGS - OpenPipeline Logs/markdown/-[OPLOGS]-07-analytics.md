@@ -1,6 +1,6 @@
 # OPLOGS-07: Analytics & Dashboards
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 7 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Aggregation, Time Series, and Visualization Queries
 This notebook covers aggregation functions, time series analysis, statistical patterns, and dashboard-ready queries for log analytics.
@@ -179,11 +179,12 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Percentile analysis (if numeric field available)
+// Content-length statistics, including the 95th percentile
 fetch logs, from: now() - 1h
 | fieldsAdd content_length = stringLength(content)
 | summarize {
     avg_length = avg(content_length),
+    p95_length = percentile(content_length, 95),
     min_length = min(content_length),
     max_length = max(content_length),
     total_logs = count()
@@ -203,7 +204,7 @@ fetch logs, from: now() - 24h
 ```dql
 // Daily distribution analysis
 fetch logs, from: now() - 7d
-| fieldsAdd day_bucket = bin(timestamp, 1d)
+| fieldsAdd day_bucket = bin(timestamp, 24h)
 | summarize {
     log_count = count(),
     error_count = countIf(status == "ERROR")
@@ -230,26 +231,35 @@ fetch logs, from: now() - 2h
 ```
 
 ```dql
-// New error patterns (appeared in last hour)
-fetch logs, from: now() - 1h
+// New error patterns: first seen in the last 30 minutes of a 24-hour window
+// (a 1-hour window would call any pattern "new" that simply had not occurred in that hour)
+fetch logs, from: now() - 24h
 | filter status == "ERROR"
-| fieldsAdd error_sig = substring(content, from: 0, to: 80)
+// Replace digits first: most lines start with a timestamp, so a raw prefix makes every line unique
+// (validation tenant, 6h of errors: 88,497 raw prefixes vs 8,303 normalized, 10/02/2026)
+| fieldsAdd error_sig = substring(replacePattern(content, "[0-9]+", replacement: "#"), from: 0, to: 80)
 | summarize {
     count = count(),
     first_seen = min(timestamp)
   }, by: {error_sig, k8s.namespace.name}
-| filter first_seen > now() - 30m  // First seen in last 30 minutes
+| filter first_seen > now() - 30m
 | sort first_seen desc
 | limit 15
 ```
 
 ```dql
-// Volume anomaly detection (compare to baseline)
-fetch logs, from: now() - 6h
-| fieldsAdd time_bucket = bin(timestamp, 15m)
-| summarize {log_count = count()}, by: {time_bucket, k8s.namespace.name}
-| sort time_bucket desc
-| limit 100
+// Volume anomaly: latest complete 15-minute bucket vs the 6-hour average, per namespace
+// The window is aligned to bucket boundaries with bin(now(), 15m); otherwise the last
+// bucket is still filling and every namespace looks like a drop.
+fetch logs, from: bin(now(), 15m) - 6h, to: bin(now(), 15m)
+| filter isNotNull(k8s.namespace.name)
+| makeTimeseries {log_count = count()}, by: {k8s.namespace.name}, interval: 15m
+| fieldsAdd baseline = arrayAvg(log_count), latest = arrayLast(log_count)
+| filter baseline > 0
+| fieldsAdd ratio = round(toDouble(latest) / baseline, decimals: 2)
+| fields k8s.namespace.name, baseline, latest, ratio
+| sort ratio desc
+| limit 20
 ```
 
 <a id="log-pattern-analysis"></a>
@@ -258,7 +268,8 @@ fetch logs, from: now() - 6h
 ```dql
 // Top log patterns (by content prefix)
 fetch logs, from: now() - 1h
-| fieldsAdd pattern = substring(content, from: 0, to: 60)
+// digits → "#" so timestamps and IDs do not make every line its own pattern
+| fieldsAdd pattern = substring(replacePattern(content, "[0-9]+", replacement: "#"), from: 0, to: 60)
 | summarize {count = count()}, by: {pattern}
 | sort count desc
 | limit 25
@@ -277,7 +288,7 @@ fetch logs, from: now() - 1h
 ```dql
 // Log diversity score (unique patterns per namespace)
 fetch logs, from: now() - 1h
-| fieldsAdd pattern = substring(content, from: 0, to: 50)
+| fieldsAdd pattern = substring(replacePattern(content, "[0-9]+", replacement: "#"), from: 0, to: 50)
 | summarize {
     total_logs = count(),
     unique_patterns = countDistinct(pattern)

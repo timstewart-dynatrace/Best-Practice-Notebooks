@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -19,7 +19,7 @@ OpenPipeline is often introduced as a log processing framework — and logs are 
 2. [Shared Architecture Across Scopes](#shared-architecture-across-scopes)
 3. [The Default Pipeline Anti-Pattern](#the-default-pipeline-anti-pattern)
 4. [Pipeline Design Principles](#pipeline-design-principles)
-5. [Processing Groups: Conditional Logic Within a Pipeline](#processing-groups)
+5. [Matching Conditions: Conditional Logic Within a Pipeline](#matching-conditions)
 6. [Security Context Across Scopes](#security-context-across-scopes)
 7. [Ingestion-Time vs. Query-Time Processing](#ingestion-time-vs-query-time-processing)
 8. [Summary](#summary)
@@ -36,9 +36,9 @@ OpenPipeline is often introduced as a log processing framework — and logs are 
 | **Permissions** | `storage:logs:read`, `storage:spans:read`, `storage:metrics:read`, `storage:events:read`, `storage:bizevents:read` |
 | **Recommended** | Familiarity with **OPLOGS-01** (log pipeline basics) |
 
-### Sprint 1.337 (April 2026): OneAgent Primary Fields/Tags as Routing Keys
+### OneAgent 1.333+: Primary Fields/Tags as Routing Keys
 
-Sprint 1.337 SaaS landed a major OpenPipeline-relevant change: OneAgent now enriches **all** telemetry (spans, metrics, logs, business events, Smartscape entities) at the source with standardized **primary fields** and customer-defined **primary tags** as top-level attributes on Latest Dynatrace tenants.
+From **OneAgent 1.333**, OneAgent can enrich telemetry at the source with standardized **primary fields** and customer-defined **primary tags** as top-level attributes — an OpenPipeline-relevant change, because those attributes are present before routing. The agent version is what matters here, not the tenant version: verify the OneAgent version on the hosts concerned (details and configuration in [OneAgent Attribute Enrichment](#shared-architecture-across-scopes) below).
 
 **Primary fields** (Semantic Dictionary-defined):
 
@@ -48,7 +48,7 @@ Sprint 1.337 SaaS landed a major OpenPipeline-relevant change: OneAgent now enri
 | `dt.cost.costcenter` | Cost allocation tag; routes spend to org units |
 | `dt.cost.product` | Product-line attribution for cost rollups |
 
-**Primary tags** (customer-defined): set during OneAgent install via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly (it is never added automatically); e.g., `primary_tags.team`, `primary_tags.env`, `primary_tags.app`, `primary_tags.data_classification`. Land as `primary_tags.<key>` on every signal, up to 20 primary tags per host or process — excess tags are silently dropped without a warning.
+**Primary tags** (customer-defined): set during OneAgent install via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly (it is never added automatically); e.g., `primary_tags.team`, `primary_tags.env`, `primary_tags.app`, `primary_tags.data_classification`. Land as `primary_tags.<key>` on every signal, up to 20 primary tags per host or process — beyond 20, *"OneAgent doesn't emit any warning and does not enrich data with the excess tags."*
 
 **Pipeline implication for cross-scope design:**
 
@@ -65,9 +65,11 @@ Sprint 1.337 SaaS landed a major OpenPipeline-relevant change: OneAgent now enri
 
 3. **Non-OneAgent sources** (raw syslog, third-party log shippers, OTLP-via-collector) still need OpenPipeline `enrichment` processors to surface the same fields. Document this split in your standard.
 
-> **Update (June 2026) — primary tags are now formally documented.** Dynatrace published a dedicated [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) page that canonicalizes what sprint 1.337 introduced. Two points matter for pipeline design: (1) **OpenPipeline itself is a documented primary-tag source** — `primary_tags.*` values can be *"derived or transformed from any incoming field at ingest-processing time"*, which closes the non-OneAgent-sources gap in point 3 above: instead of generic enrichment processors producing ad-hoc fields, derive proper `primary_tags.<key>` values so downstream routing and bucket assignment treat agent and agentless data identically. (2) The other documented sources are OneAgent, Kubernetes annotations (`metadata.dynatrace.com/primary_tags.<key>`), cloud-provider tags, OpenTelemetry resource attributes, and host or process metadata. Primary tags are "available before data enters the processing pipeline," which is exactly what makes them usable in routing conditions like the examples above.
+> **Update (June 2026) — primary tags are now formally documented.** Dynatrace published a dedicated [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) page that canonicalizes the model. Two points matter for pipeline design: (1) **OpenPipeline itself is a documented primary-tag source** — `primary_tags.*` values can be *"derived or transformed from any incoming field at ingest-processing time"*, which closes the non-OneAgent-sources gap in point 3 above: instead of generic enrichment processors producing ad-hoc fields, derive proper `primary_tags.<key>` values so downstream routing and bucket assignment treat agent and agentless data identically. (2) The other documented sources are OneAgent, Kubernetes annotations (`metadata.dynatrace.com/primary_tags.<key>`), cloud-provider tags, OpenTelemetry resource attributes, and host or process metadata. Primary tags are "available before data enters the processing pipeline," which is exactly what makes them usable in routing conditions like the examples above.
 
-**Sprint-337 also added recommended-field suggestions to extraction processors** — the UI flags permission-relevant fields and Smartscape identifiers in the field-promotion dialog, preventing accidental promotion of sensitive content. Existing extraction processors keep working unchanged.
+**SaaS 1.337 added recommended-field suggestions to extraction processors.** Per the release notes, extraction processors *"now supply a recommended set of fields to be extracted, which helps avoid misconfiguration and exposing sensitive data"*, and the recommendations cover permission- and cost-relevant fields, Smartscape identifiers, and Grail primary tags.
+
+> <sub>**Sources:** [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment), [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337).</sub>
 
 ---
 
@@ -127,7 +129,7 @@ A field whose name is prefixed **`dt.temp`** lives for the duration of pipeline 
 |---|---|
 | Lifetime | Available across all processing stages; dropped at storage |
 | Persistence | Never written to Grail — invisible to `fetch` |
-| Cost | Not persisted, so it adds no ingest or retention charge |
+| Cost | Not persisted, so it adds nothing to stored volume or retention |
 | Enablement | None — the `dt.temp` prefix alone marks the field temporary |
 | Scope support | Every scope with a Processing stage |
 
@@ -143,9 +145,10 @@ Use it for intermediate calculations feeding extraction. Do **not** use it for e
 | Metrics | metric.key, dt.entity.* | Ingest → Routing → Pipeline stages → Storage |
 | Events | event.kind, event.type | Ingest → Routing → Pipeline stages → Storage |
 | Business Events | event.type, event.provider | Ingest → Routing → Pipeline stages → Storage |
-| Security Events | SECURITY_EVENT, event.type | Ingest → Routing → Pipeline stages → Storage |
+| Security Events | event.kind, event.type | Ingest → Routing → Pipeline stages → Storage |
 
 Pipeline stages, in fixed order: Processing (DQL, add/remove/rename fields, drop record) → Smartscape node / edge → Permission (dt.security_context) → Product allocation → Cost allocation → Bucket assignment (bucket or no storage, first match) → Metric extraction (spans: sampling-aware) → Davis → Data extraction (business event, SDLC event).
+Limits per scope: 100 pipelines and 100 routes; 1,000 processors per pipeline; 16 MB maximum record size after processing. One route matches per record; pipeline groups add base pipelines around a member pipeline.
 -->
 
 Every scope follows the same **data flow** (Ingest → Routing → Processing → Storage), with optional pre-processing on custom sources. Inside a pipeline, processing is not one step: it runs as a **fixed sequence of stages**, of which the stage named *Processing* is only the first. The flow is identical in concept across scopes — only the data types and available processors differ.
@@ -159,7 +162,7 @@ Every scope follows the same **data flow** (Ingest → Routing → Processing �
 
 > **Stage order is fixed.** Per *Processing in OpenPipeline*, *"The sequence of stages is fixed for all pipelines and cannot be modified."* Masking, parsing, and dropping happen in the first stage (Processing); Metric extraction, Davis, and Data extraction run **after** Bucket assignment. Within a stage, processors run in the order you list them, and each stage executes either all matching processors or only the first match.
 >
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order.</sub>
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage table, in execution order; [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — per-scope, per-pipeline and record-size limits in the diagram.</sub>
 
 ### Sprint 1.346 (August 2026): `dt.bindplane.*` Is a Reserved Namespace
 
@@ -246,7 +249,7 @@ This is convenient for getting started. It becomes a serious problem at scale �
 
 | Problem | Impact |
 |---------|--------|
-| **Query performance** | Every DQL query against the default bucket scans ALL data — application logs mixed with infrastructure noise, health checks mixed with business transactions. The 500 GB scan limit becomes a wall. |
+| **Query performance** | Every DQL query against the default bucket scans ALL data — application logs mixed with infrastructure noise, health checks mixed with business transactions. `fetch` reads at most 500 GB of uncompressed data by default (`scanLimitGBytes`), and an undifferentiated bucket reaches that sooner. |
 | **Cost** | No differentiated retention. You pay to store debug-level container stdout at the same retention tier as critical security audit logs. |
 | **Security** | No `dt.security_context` separation. Without dedicated pipelines, you cannot apply IAM policies to restrict who sees which data. Finance team logs are visible to infrastructure engineers and vice versa. |
 | **Blast radius** | A misconfigured processing rule (bad parsing regex, aggressive drop filter) in the default pipeline affects ALL data flowing through it. One mistake breaks everything. |
@@ -322,9 +325,9 @@ Create separate pipelines based on the nature of the data, not the team that own
 |----------|-------------------|---------------|-----------|
 | `kubernetes-infra` | `k8s.namespace.name` exists AND `log.source == "Container Output"` | `k8s_infra_logs` | 14 days |
 | `application-logs` | `log.source == "Log file"` AND `k8s.namespace.name` matches app namespaces | `app_logs` | 35 days |
-| `security-audit` | `loglevel == "AUDIT"` OR `log.source` matches security sources | `security_audit` | 365 days |
+| `security-audit` | `matchesValue(log.source, "*audit*")` or another source-identifying field (`AUDIT` is not a log level) | `security_audit` | 365 days |
 | `api-ingestion` | `dt.openpipeline.source == "/api/v2/logs/ingest"` | `external_logs` | 35 days |
-| Default Pipeline | Everything else (catch-all) | `default_logs` | 14 days |
+| Default route | Everything else (catch-all) — for logs, the Classic pipeline where it is available | `default_logs` | 35 days (built-in bucket) |
 
 ### Principle 2: Filter Early, Extract Targeted
 
@@ -347,17 +350,17 @@ Different data has different value over time:
 
 ### Principle 4: Route Ordering Matters
 
-Pipeline routing rules are evaluated **in order — first match wins**. Place specific rules before general ones:
+Pipeline routing rules are evaluated **in order — first match wins**: *"If no route matches the record, the record is routed via the Default route."* Place specific rules before general ones:
 
 1. Security audit logs (most specific, highest value)
 2. Application logs by namespace
 3. Kubernetes infrastructure
 4. API-ingested external logs
-5. Default pipeline (catch-all for anything unmatched)
+5. Default route (catch-all for anything unmatched)
 
 ### Applying This to Spans
 
-The same principles apply to the spans scope:
+The same principles apply to the spans scope. `service.name` is an OpenTelemetry attribute and is absent on OneAgent spans, which carry `dt.service.name` instead — match on whichever your spans actually have (OPIPE-02 §1):
 
 | Pipeline | Routing Condition | Target Bucket |
 |----------|-------------------|---------------|
@@ -370,8 +373,7 @@ The same principles apply to the spans scope:
 // Inventory: What log sources exist and how much volume do they produce?
 // Use this to plan your pipeline routing rules
 fetch logs, from:-24h
-| summarize log_count = count(),
-    unique_hosts = countDistinct(dt.entity.host),
+| summarize {log_count = count(), unique_hosts = countDistinct(dt.entity.host)},
     by:{dt.openpipeline.source, log.source}
 | sort log_count desc
 | limit 20
@@ -389,104 +391,85 @@ fetch logs, from:-24h
 ```dql
 // Inventory: Span volume by service (for span pipeline routing decisions)
 fetch spans, from:-24h
-| summarize span_count = count(), by:{service.name, span.kind}
+| summarize span_count = count(), by:{dt.service.name, span.kind}
 | sort span_count desc
 | limit 20
 ```
 
-<a id="processing-groups"></a>
-## 5. Processing Groups: Conditional Logic Within a Pipeline
+<a id="matching-conditions"></a>
+## 5. Matching Conditions: Conditional Logic Within a Pipeline
 
-Sections 3 and 4 explained why you need separate pipelines and how to design them. But what happens when a single pipeline receives data from multiple sources that need **different processing logic** — without justifying an entirely new pipeline?
+Sections 3 and 4 explained why you need separate pipelines and how to design them. But what happens when a single pipeline receives data from several sources that need **different processing logic** — without justifying an entirely new pipeline?
 
-This is what **processing groups** solve.
+The answer is the **matching condition** every processor carries.
 
-### What Is a Processing Group?
+### How Conditional Processing Works
 
-A processing group is a named collection of processors within a pipeline stage that share a **common matching condition**. Only records that satisfy the group's matcher are processed by the group's processors. Records that don't match skip the group entirely.
-
-```
-Pipeline: application-logs
-├── Processing Stage
-│   ├── Group: "java-apps"     (matcher: k8s.namespace.name == "java-prod")
-│   │   ├── Processor: Parse Java stack traces
-│   │   ├── Processor: Extract exception class
-│   │   └── Processor: Add team = "backend"
-│   │
-│   ├── Group: "nginx-access"  (matcher: log.source == "nginx")
-│   │   ├── Processor: Parse access log format
-│   │   ├── Processor: Extract response code + latency
-│   │   └── Processor: Add team = "platform"
-│   │
-│   └── Global Processor: Add environment = "production"  (no matcher — runs on ALL records)
-```
-
-### How Processing Groups Work
+There is no grouping construct for processors inside a stage. Each processor has its own matcher: *"it defines the target of a processor via a DQL statement and narrows down the available data to the specific set you want to process."* On the DQL processor the matching condition is a required field.
 
 | Behavior | Detail |
 |----------|--------|
-| **Matching** | Each group has a DQL matching condition. Only records satisfying the condition enter the group. |
-| **Inheritance** | All processors within a group inherit the group's matcher. You do not repeat the condition on each processor. |
-| **Multi-match** | If a record matches multiple groups, **all matching groups execute**. Groups are independent — they do not short-circuit. |
-| **Execution order** | Processors **within** a group execute in the order they are listed. |
-| **Global processors** | Processors placed outside any group run on **all records** unconditionally — before or after groups, depending on their position. |
-| **Available in all scopes** | Processing groups work in Logs, Spans, Metrics, Events, and Business Events scopes. |
+| **Matching** | Each processor's matching condition is a DQL statement. Only records that satisfy it are processed; the rest pass through unchanged. |
+| **Order** | Processors run in the order listed: *"each processor output becomes the input for the next one."* A field one processor adds is available to the matchers of the processors after it. |
+| **All matches vs. first match** | The stage decides. Processing, Smartscape, Metric extraction, Davis and Data extraction run **every** matching processor; Permission, Product allocation, Cost allocation and Bucket assignment run only the **first** match. |
+| **"Every record"** | A matcher of `true` applies the processor to all records. |
+| **Matcher language** | A subset of DQL — `matchesValue`, `matchesPhrase`, `isNull`, `isNotNull`, comparisons and boolean logic. `contains()` and `in()` are rejected (see the References note). |
 
 > **SaaS 1.344+:** OpenPipeline matchers support **Duration**-type record fields, with the operators `=`, `!=`, `>`, `>=`, `<`, and `<=` ([rollout from 07/29/2026](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344)). On a tenant that has not yet reached 1.344, match on an equivalent **numeric** field instead (for example a millisecond-valued field carried alongside the record rather than the duration field itself).
 
-### When to Use Processing Groups vs. Separate Pipelines
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — processor anatomy and the per-stage "All matches" / "First match only" column, [Processing stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage) — *"Set a specific matching condition on each processor to narrow down the records it applies to."*, [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — *"true — the processor (DQL query) will be applied to all records"*.</sub>
 
-| Scenario | Use Processing Groups | Use Separate Pipelines |
-|----------|----------------------|----------------------|
-| Same bucket destination, different parsing | **Yes** — group per log format | No |
-| Different retention requirements | No | **Yes** — different buckets |
-| Different security context | No | **Yes** — different `dt.security_context` assignment |
-| Same source, multiple enrichment paths | **Yes** — group per enrichment path | No |
-| Completely different data lifecycle | No | **Yes** — separate routing, storage, retention |
-| Reducing pipeline proliferation | **Yes** — consolidate related logic | N/A |
-| Team-level blast radius isolation | No | **Yes** — a bad processor in one pipeline can't affect another |
+### Parse Once, Match on the Result
 
-### The Decision Rule
-
-> **Use processing groups** when the data shares the same pipeline-level concerns (routing, bucket, retention, security context) but needs **different processing logic** based on content.
->
-> **Use separate pipelines** when the data needs different **lifecycle treatment** — different buckets, different retention, different security context, or different teams owning the configuration.
+Because there is no shared group matcher, a condition used by several processors is repeated on each one. Keep it cheap and keep it in one place: parse the distinguishing value once, early in the Processing stage, into a field, and let later processors match on that field. Dynatrace's own guidance: *"Parse it once and store the extracted values in fields for downstream processors to reuse."* If the field is only needed during processing, name it `dt.temp.*` (SaaS 1.345+, §2) so it is not stored.
 
 ### Example: Multi-Format Log Pipeline
 
-A single `application-logs` pipeline receives logs from Java services, Node.js services, and Python services. Each has a different log format, but they all go to the same `app_logs` bucket with 35-day retention.
+A single `application-logs` pipeline receives logs from Java, Node.js and Python services. Each has a different format, but they all go to the same `app_logs` bucket with 35-day retention. One pipeline, with each processor scoped by its own matcher:
 
-**Without processing groups**, you would need 3 separate pipelines — tripling the configuration surface and the number of routing rules.
+| Stage | Processor | Matching condition | What it does |
+|-------|-----------|--------------------|--------------|
+| Processing | DQL | `matchesValue(k8s.container.name, "java-*")` | Parse log4j format, extract exception class, add `app.framework = "java"` |
+| Processing | DQL | `matchesValue(k8s.container.name, "node-*")` | Parse JSON structured logs, extract request ID, add `app.framework = "nodejs"` |
+| Processing | DQL | `matchesValue(k8s.container.name, "python-*")` | Parse Python logging format, extract traceback, add `app.framework = "python"` |
+| Processing | Drop record | `loglevel == "DEBUG"` | Drop debug records from every source |
+| Permission | Security context | `true` | Set `dt.security_context = "app-team"` |
+| Bucket assignment | Bucket assignment | `true` | `app_logs` |
 
-**With processing groups**:
-
-| Group | Matching Condition | Processors |
-|-------|-------------------|------------|
-| `java-logs` | `matchesValue(k8s.container.name, "java-*")` | Parse log4j format, extract exception class, enrich with `app.framework = "java"` |
-| `nodejs-logs` | `matchesValue(k8s.container.name, "node-*")` | Parse JSON structured logs, extract request ID, enrich with `app.framework = "nodejs"` |
-| `python-logs` | `matchesValue(k8s.container.name, "python-*")` | Parse Python logging format, extract traceback, enrich with `app.framework = "python"` |
-| *(global)* | All records | Add `dt.security_context = "app-team"`, drop records where `loglevel == "DEBUG"` |
-
-The global processors handle what's common to all records. The groups handle what's specific to each format. One pipeline, one bucket, three parsing paths.
+Three parsing paths, one pipeline, one bucket. The alternative — three pipelines with three routes — triples the configuration surface for data whose lifecycle is identical.
 
 ### Example: Span Enrichment by Service Category
 
-In the Spans scope, a single pipeline processes all server spans but needs different enrichment based on service type:
+In the Spans scope, a single pipeline processes server and client spans but needs different enrichment by category:
 
-| Group | Matching Condition | Processors |
-|-------|-------------------|------------|
-| `api-services` | `matchesValue(http.route, "/api/*")` | Add `span.category = "api"`, extract API version from path |
-| `database-calls` | `isNotNull(db.system)` | Add `span.category = "database"`, normalize `db.statement` to remove parameters |
-| `messaging` | `span.kind == "producer" or span.kind == "consumer"` (`in()` is not enabled in OpenPipeline matchers) | Add `span.category = "messaging"`, extract queue name |
+| Processor matching condition | Processing |
+|------------------------------|------------|
+| `matchesValue(http.route, "/api/*")` | Add `span.category = "api"`, extract API version from path |
+| `isNotNull(db.system)` | Add `span.category = "database"`, normalize the statement to remove parameters |
+| `span.kind == "producer" or span.kind == "consumer"` | Add `span.category = "messaging"`, extract queue name |
+
+### Matching Conditions, Pipelines, or Pipeline Groups?
+
+| Scenario | Use |
+|----------|-----|
+| Same bucket, retention and owner; different parsing per source | **Matching conditions** on processors in one pipeline |
+| Only the destination bucket differs | **Bucket assignment** processors with conditions in one pipeline (first match wins) |
+| Different retention, security context, or data lifecycle | **Separate pipelines**, each with its own route |
+| Different teams own the configuration | **Separate pipelines** — *"By adding custom pipelines per team, you can manage them via owner-based access control."* |
+| A central team must enforce the same stages (for example masking) on many teams' pipelines | **Pipeline groups** — a composition of base pipelines that *"can restrict or mandate stages"* for its member pipelines |
+| Blast-radius isolation | **Separate pipelines** — a bad processor in one pipeline cannot affect another |
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — custom pipelines and owner-based access control, [Pipeline groups (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups) — compositions, base and member pipelines.</sub>
 
 ### Common Mistakes
 
 | Mistake | Problem | Fix |
 |---------|---------|-----|
-| Duplicating matchers on every processor | Verbose, error-prone, hard to maintain | Use a processing group — define the matcher once |
-| Overlapping group matchers without intent | A record processed by multiple groups may get conflicting field values | Make matchers mutually exclusive, or design for intentional multi-match |
+| Re-parsing `content` in every processor's matcher or definition | Slower processing; complex DQL processors can be disabled | Parse once into a field; match on the field |
+| Overlapping matchers in an all-matches stage without intent | A record processed by several processors may get conflicting field values | Make matchers mutually exclusive, or order them so the last write is the one you want |
+| Overlapping matchers in a first-match stage (Permission, cost/product allocation, Bucket assignment) | Only the first processor fires; later, more specific ones never run | List the most specific condition first |
 | One pipeline per destination bucket when only the destination differs | Pipeline proliferation for data that is otherwise processed identically | Use conditional **Bucket assignment** processors (first match wins) inside one pipeline |
-| Too many groups in one pipeline | Becomes as complex as having separate pipelines | If you have >5-6 groups, consider splitting into separate pipelines |
+| Dozens of source-specific processors in one pipeline | As hard to reason about as separate pipelines, without the ownership boundary | Split into separate pipelines when the sources have different owners or lifecycles |
 
 <a id="security-context-across-scopes"></a>
 ## 6. Security Context Across Scopes
@@ -507,34 +490,36 @@ For a complete deep-dive on security context patterns, values, and IAM policy sy
 
 | Scope | How to Set `dt.security_context` | Notes |
 |-------|--------------------------------|-------|
-| **Logs** | OpenPipeline field enrichment processor | Most common — set based on `k8s.namespace.name`, `log.source`, or parsed fields |
-| **Spans** | OpenPipeline field enrichment processor | Set based on `service.name` or span attributes |
-| **Metrics** | OpenPipeline field enrichment processor **or** extension configuration | See "Extension Metrics" below |
-| **Events** | OpenPipeline field enrichment processor | Set based on `event.type` or entity association |
-| **Business Events** | OpenPipeline field enrichment processor | Set based on `event.provider` or business unit |
-| **Entities** | Entity properties via Settings API | Set on the entity itself, inherited by associated data |
+| **Logs** | OpenPipeline **Permission** stage | Most common — set based on `k8s.namespace.name`, `log.source`, or parsed fields |
+| **Spans** | OpenPipeline **Permission** stage | Set based on `service.name` or span attributes |
+| **Metrics** | OpenPipeline **Permission** stage **or** extension configuration | See "Extension Metrics" below |
+| **Events** | OpenPipeline **Permission** stage | Set based on `event.type` or other event fields |
+| **Business Events** | OpenPipeline **Permission** stage | Set based on `event.provider` or business unit |
+| **All signals from a host** | `dt.security_context` host tag (`oneagentctl --set-host-tag`) | *"used to automatically determine the security context for all logs, spans, metrics, and events that are sent from this host"* |
+| **Entities** | **Settings > Topology model > Grail Security Context**, host tag, or an extraction rule for generic types | Controls access to **entities only** — data sent from an entity does not inherit the entity's security context |
 
 ### Extension Metrics and Security Context
 
-Metrics ingested via **Extensions 2.0** do not automatically inherit `dt.security_context`. This is a common gap — teams deploy custom extensions to collect database metrics, cloud service metrics, or infrastructure data, and assume the security context is handled automatically.
-
-**It is not.** You must explicitly configure it.
+Metrics ingested via **Extensions 2.0** carry a `dt.security_context` only if something sets it. A common gap is to deploy extensions for database, cloud, or infrastructure metrics and assume the security context of the monitored entity carries over. It does not: an IAM policy that filters entities *"will not filter related metrics, logs, or traces"*.
 
 There are two approaches:
 
-**Approach 1: OpenPipeline Metric Enrichment (Recommended)**
+**Approach 1: Set it in the extension configuration**
 
-Configure the **Metrics** scope in OpenPipeline to add `dt.security_context` based on dimensions that identify the source:
+Dynatrace documents setting `dt.security_context` *"per extension configuration"*. The extension then sends it as a dimension on every data point, for example `postgres.activity.idle,port=5432,dt.security_context="TeamA",…`. One configuration per team gives each team's metrics their own context. To restrict access to the extension's **entities** as well, add an extraction rule that maps the same dimension onto the generic entity type.
 
-| Routing Condition | Security Context Value | Use Case |
-|-------------------|----------------------|----------|
-| `metric.key` starts with `ext:com.dynatrace.extension.database` | `"database-team"` | Database monitoring extensions |
-| `metric.key` starts with `ext:com.dynatrace.extension.cloud` | `"cloud-team"` | Cloud integration extensions |
-| `dt.entity.host` matches specific host group | `"team-a"` | Team-scoped infrastructure metrics |
+**Approach 2: OpenPipeline Permission stage on the Metrics scope**
 
-**Approach 2: Entity-Level Security Context**
+When the extension configuration cannot carry it, set `dt.security_context` in the **Metrics** scope's Permission stage, matching on the metric key or on dimensions that identify the source:
 
-Set `dt.security_context` on the **entities** that the extension monitors (hosts, process groups). Metrics associated with those entities inherit the context through entity relationships. This is less granular but simpler to manage.
+| Matching condition | Security context value | Use case |
+|--------------------|------------------------|----------|
+| `matchesValue(metric.key, "postgres.*")` | `"database-team"` | A database extension's metrics |
+| `matchesValue(metric.key, "aws.*")` | `"cloud-team"` | Cloud integration metrics |
+
+Extension metric keys are whatever the extension defines (`postgres.*`, `sql-server.*`, …) — check the real keys with `metrics | filter startsWith(metric.key, "postgres")` before writing the matcher.
+
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."*, [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Permission stage.</sub>
 
 > **Structured context design:** For organisations with transversal teams (database, networking, OS) that need cross-application access, a flat context value (e.g., `"checkout"`) does not scale. Encoding `comp:<component>/bu:<business-unit>/app:<application>` into the context string, then using `MATCH('comp:db*')` in the IAM policy, enables precise transversal access without a per-application context per team. The dimension needed for transversal slicing should come first in the string for compatibility with Classic entity `startsWith` matching. See **IAM-04: Policy Authoring** for the complete design pattern and **IAM-05: Boundary Design** for boundary examples.
 
@@ -618,8 +603,8 @@ In this notebook you learned:
 - **Shared architecture** — All scopes follow the same flow (ingest → routing → pipeline → storage); inside the pipeline a fixed sequence of stages runs Processing (mask, drop, transform) first and Bucket assignment before Metric extraction, Davis, and Data extraction
 - **The default pipeline anti-pattern** — Sending everything through the default pipeline causes query performance, cost, security, and blast radius problems
 - **Pipeline design principles** — One pipeline per source type, filter early, differentiate retention, order routing rules from specific to general
-- **Processing groups** — Conditional logic within a pipeline: group processors by matching condition to handle multiple data formats without creating separate pipelines. Use groups for different processing; use pipelines for different lifecycle.
-- **Security context across scopes** — `dt.security_context` must be set at ingestion; extension metrics require explicit configuration
+- **Matching conditions** — Conditional logic within a pipeline: every processor carries its own DQL matcher, so one pipeline can handle several data formats. Use matchers for different processing, separate pipelines for a different lifecycle or owner, and pipeline groups for centrally mandated stages.
+- **Security context across scopes** — `dt.security_context` must be set at ingestion; data does not inherit an entity's security context, so extension metrics need it set in the extension configuration or the Permission stage
 - **Ingestion vs. query time** — Process at ingestion for permanent actions (drop, mask, route, extract); process at query time for flexible analysis
 
 ---

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Four Axes of Data Trust</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Every question about trusting the platform with your data lands on one of these — each with its own mechanism and failure mode</text>
+  <text x="465" y="77" text-anchor="middle" fill="#64748B" font-size="12">Read left to right: each axis can only protect what the previous one let through</text>
+
+  <!-- ============ Column 1 — CAPTURED ============ -->
+  <rect x="30" y="96" width="186" height="358" fill="#FFB800" opacity="0.07" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="123" y="126" text-anchor="middle" fill="#FCD34D" font-size="17" font-weight="700">CAPTURED</text>
+  <text x="123" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">What should never arrive?</text>
+
+  <rect x="46" y="164" width="154" height="66" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="123" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="123" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Masking</text>
+  <text x="123" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">before storage</text>
+
+  <rect x="46" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="123" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">CONTROLLED AT</text>
+  <text x="123" y="290" text-anchor="middle" fill="#FCD34D" font-size="11">OneAgent — regex</text>
+  <text x="123" y="308" text-anchor="middle" fill="#FCD34D" font-size="11">OpenPipeline — DPL</text>
+
+  <rect x="46" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="123" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="123" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Access control can</text>
+  <text x="123" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">only decide who</text>
+  <text x="123" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">sees the leak.</text>
+
+  <text x="237" y="288" text-anchor="middle" fill="#475569" font-size="28" font-weight="700">›</text>
+
+  <!-- ============ Column 2 — STORED ============ -->
+  <rect x="258" y="96" width="186" height="358" fill="#1496FF" opacity="0.07" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="351" y="126" text-anchor="middle" fill="#BFDBFE" font-size="17" font-weight="700">STORED</text>
+  <text x="351" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Where, and for how long?</text>
+
+  <rect x="274" y="164" width="154" height="66" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="351" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="351" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Region + buckets</text>
+  <text x="351" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">encrypted at rest</text>
+
+  <rect x="274" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="351" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">CONTROLLED BY</text>
+  <text x="351" y="290" text-anchor="middle" fill="#BFDBFE" font-size="11">hosting region</text>
+  <text x="351" y="308" text-anchor="middle" fill="#BFDBFE" font-size="11">bucket retention</text>
+
+  <rect x="274" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="351" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="351" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Kept longer, or</text>
+  <text x="351" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">elsewhere, than your</text>
+  <text x="351" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">obligations allow.</text>
+
+  <text x="465" y="288" text-anchor="middle" fill="#475569" font-size="28" font-weight="700">›</text>
+
+  <!-- ============ Column 3 — ACCESSED ============ -->
+  <rect x="486" y="96" width="186" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="579" y="126" text-anchor="middle" fill="#FCA5A5" font-size="17" font-weight="700">ACCESSED</text>
+  <text x="579" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Who sees which records?</text>
+
+  <rect x="502" y="164" width="154" height="66" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="579" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="579" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">IAM policy + boundary</text>
+  <text x="579" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">a WHERE condition</text>
+
+  <rect x="502" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="579" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">SCOPED BY</text>
+  <text x="579" y="290" text-anchor="middle" fill="#FCA5A5" font-size="11">dt.security_context</text>
+  <text x="579" y="308" text-anchor="middle" fill="#FCA5A5" font-size="11">+ bucket name</text>
+
+  <rect x="502" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="579" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="579" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Silent. The wrong</text>
+  <text x="579" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">people see it — or</text>
+  <text x="579" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">no one does.</text>
+
+  <text x="693" y="288" text-anchor="middle" fill="#475569" font-size="28" font-weight="700">›</text>
+
+  <!-- ============ Column 4 — PROVEN ============ -->
+  <rect x="714" y="96" width="186" height="358" fill="#A78BFA" opacity="0.07" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="807" y="126" text-anchor="middle" fill="#DDD6FE" font-size="17" font-weight="700">PROVEN</text>
+  <text x="807" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Can you show it held?</text>
+
+  <rect x="730" y="164" width="154" height="66" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="807" y="184" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MECHANISM</text>
+  <text x="807" y="205" text-anchor="middle" fill="#F8FAFC" font-size="12">Audit events</text>
+  <text x="807" y="221" text-anchor="middle" fill="#94A3B8" font-size="10">dt.system.events</text>
+
+  <rect x="730" y="244" width="154" height="78" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="807" y="264" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">RECORDED AS</text>
+  <text x="807" y="290" text-anchor="middle" fill="#DDD6FE" font-size="11">event.kind ==</text>
+  <text x="807" y="308" text-anchor="middle" fill="#DDD6FE" font-size="11">"AUDIT_EVENT"</text>
+
+  <rect x="730" y="336" width="154" height="104" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="807" y="356" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">IF WRONG</text>
+  <text x="807" y="379" text-anchor="middle" fill="#94A3B8" font-size="11">Controls that held,</text>
+  <text x="807" y="396" text-anchor="middle" fill="#94A3B8" font-size="11">but that you cannot</text>
+  <text x="807" y="413" text-anchor="middle" fill="#94A3B8" font-size="11">show an auditor.</text>
+
+  <!-- Footer -->
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Segments change what a screen shows on every axis — they grant and restrict nothing</text>
+</svg>

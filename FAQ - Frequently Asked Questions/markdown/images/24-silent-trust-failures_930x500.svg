@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Three Ways Data Trust Fails Silently</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Each passes every validator — the policy is valid, the segment works, the mask runs</text>
+  <text x="465" y="77" text-anchor="middle" fill="#64748B" font-size="12">Only a test against real records shows the gap</text>
+
+  <!-- ============ 1 — Segments as access control ============ -->
+  <rect x="30" y="96" width="280" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="170" y="124" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">1 · Segments as access control</text>
+
+  <rect x="46" y="142" width="248" height="72" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="170" y="162" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">LOOKS LIKE</text>
+  <text x="170" y="184" text-anchor="middle" fill="#F8FAFC" font-size="12">A segment hides the</text>
+  <text x="170" y="201" text-anchor="middle" fill="#F8FAFC" font-size="12">other teams' data.</text>
+
+  <rect x="46" y="226" width="248" height="112" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="170" y="246" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHY IT'S SILENT</text>
+  <text x="170" y="268" text-anchor="middle" fill="#94A3B8" font-size="11">Every query already respects</text>
+  <text x="170" y="285" text-anchor="middle" fill="#94A3B8" font-size="11">IAM permissions. A segment</text>
+  <text x="170" y="302" text-anchor="middle" fill="#94A3B8" font-size="11">filters the view and holds</text>
+  <text x="170" y="319" text-anchor="middle" fill="#94A3B8" font-size="11">no data of its own.</text>
+
+  <rect x="46" y="350" width="248" height="88" fill="#1E293B" stroke="#34D399" rx="6"/>
+  <text x="170" y="370" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FIX</text>
+  <text x="170" y="393" text-anchor="middle" fill="#A7F3D0" font-size="12">Scope access in IAM</text>
+  <text x="170" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">with dt.security_context.</text>
+
+  <!-- ============ 2 — = / IN on an array ============ -->
+  <rect x="325" y="96" width="280" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="465" y="124" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">2 · = or IN on an array</text>
+
+  <rect x="341" y="142" width="248" height="72" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="465" y="162" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">LOOKS LIKE</text>
+  <text x="465" y="184" text-anchor="middle" fill="#F8FAFC" font-size="12">A valid boundary:</text>
+  <text x="465" y="201" text-anchor="middle" fill="#F8FAFC" font-size="12">security_context IN (…)</text>
+
+  <rect x="341" y="226" width="248" height="112" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="465" y="246" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHY IT'S SILENT</text>
+  <text x="465" y="268" text-anchor="middle" fill="#94A3B8" font-size="11">When the field holds an array,</text>
+  <text x="465" y="285" text-anchor="middle" fill="#94A3B8" font-size="11">=, STARTSWITH and IN always</text>
+  <text x="465" y="302" text-anchor="middle" fill="#94A3B8" font-size="11">return false. The policy still</text>
+  <text x="465" y="319" text-anchor="middle" fill="#94A3B8" font-size="11">evaluates. Nothing errors.</text>
+
+  <rect x="341" y="350" width="248" height="88" fill="#1E293B" stroke="#34D399" rx="6"/>
+  <text x="465" y="370" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FIX</text>
+  <text x="465" y="393" text-anchor="middle" fill="#A7F3D0" font-size="12">Use MATCH — and check</text>
+  <text x="465" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">with type() first.</text>
+
+  <!-- ============ 3 — One masking layer only ============ -->
+  <rect x="620" y="96" width="280" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="760" y="124" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">3 · One masking layer only</text>
+
+  <rect x="636" y="142" width="248" height="72" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="760" y="162" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">LOOKS LIKE</text>
+  <text x="760" y="184" text-anchor="middle" fill="#F8FAFC" font-size="12">PII is masked at capture,</text>
+  <text x="760" y="201" text-anchor="middle" fill="#F8FAFC" font-size="12">so the job looks done.</text>
+
+  <rect x="636" y="226" width="248" height="112" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="760" y="246" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHY IT'S SILENT</text>
+  <text x="760" y="268" text-anchor="middle" fill="#94A3B8" font-size="11">OneAgent masks in regex;</text>
+  <text x="760" y="285" text-anchor="middle" fill="#94A3B8" font-size="11">OpenPipeline masks in DPL.</text>
+  <text x="760" y="302" text-anchor="middle" fill="#94A3B8" font-size="11">Data ingested another way</text>
+  <text x="760" y="319" text-anchor="middle" fill="#94A3B8" font-size="11">never meets the OneAgent rule.</text>
+
+  <rect x="636" y="350" width="248" height="88" fill="#1E293B" stroke="#34D399" rx="6"/>
+  <text x="760" y="370" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FIX</text>
+  <text x="760" y="393" text-anchor="middle" fill="#A7F3D0" font-size="12">Decide, per source,</text>
+  <text x="760" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">which layer masks it.</text>
+
+  <!-- Footer -->
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Segments scope the screen · MATCH covers any value · masking runs where the data actually enters</text>
+</svg>

@@ -1,6 +1,6 @@
 # OPLOGS-01: OpenPipeline Fundamentals
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Understanding the Unified Data Ingestion Framework
 This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.
@@ -46,17 +46,21 @@ This notebook introduces OpenPipeline, Dynatrace's unified data processing frame
 - **Flexible Routing**: Send data to different buckets with custom retention
 - **Cost Control**: Drop unnecessary data before storage
 
-### OpenPipeline vs Classic Log Ingestion
+### OpenPipeline vs the Classic Log Pipeline
 
-| Feature | Classic Logs | OpenPipeline v2.0 |
-|---------|--------------|-------------------|
-| Data Processing | Post-ingestion | At ingestion time |
-| Storage | Log Storage v1 | Grail Data Lakehouse |
-| Query Language | Limited | Full DQL Support |
-| Retention | Global | Per-bucket configurable |
-| Data Masking | Limited | DQL processor with DPL (`replacePattern`), `replaceString`, `ipMask` |
-| Parsing | Basic | DPL (Dynatrace Pattern Language) |
-| Custom Routing | No | Yes, by content/source |
+On Grail, OpenPipeline replaces the **classic log pipeline** — log processing rules under *Settings > Log Monitoring*. Both process records **before** they are stored; the differences are scope, language and structure:
+
+| Feature | Classic log pipeline | OpenPipeline |
+|---------|----------------------|--------------|
+| Data Processing | Processing rules at ingest, before storage | Pipelines at ingest, before storage |
+| Signal types | Logs and business events | Logs, spans, metrics, events, business events, and more |
+| Rule language | Processing-rule commands with DPL | DQL processors with DPL, plus no-code processors |
+| Routing | One ordered list of rules | Dynamic routing to many pipelines, pipeline groups |
+| Data Masking | Mask / drop attributes in a rule | DQL processor with DPL (`replacePattern`), `replaceString`, `ipMask` |
+| Extraction | Log metrics | Metric, Davis event, business event, SDLC event, Smartscape stages |
+| Retention | Bucket per record | Bucket assignment stage, or No storage assignment |
+
+> <sub>**Sources:** [Log processing with classic pipeline (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-classic-log-processing) — *"Log processing occurs as log data arrives in the Dynatrace SaaS environment and before it is written to disk (stored)."*</sub>
 
 <a id="openpipeline-architecture"></a>
 ## 2. OpenPipeline Architecture

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <defs>
+    <marker id="fa21b-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#73BE28"/>
+    </marker>
+  </defs>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Three Ways Alert Routing Goes Wrong</text>
+  <text x="465" y="55" text-anchor="middle" fill="#94A3B8" font-size="13">Each belief is plausible — the first two are almost right, which is why they survive design review</text>
+
+  <!-- Column headers -->
+  <text x="238" y="82" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="700">THE BELIEF</text>
+  <text x="683" y="82" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">WHAT IS ACTUALLY TRUE</text>
+
+  <!-- ============ Row 1 ============ -->
+  <rect x="40" y="92" width="396" height="118" fill="#DE350B" opacity="0.09" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="60" y="116" fill="#FCA5A5" font-size="13" font-weight="700">1 · Segments scope notification</text>
+  <text x="60" y="140" fill="#CBD5E1" font-size="11.5">“Can I just scope this alert to a</text>
+  <text x="60" y="157" fill="#CBD5E1" font-size="11.5">segment?”</text>
+  <text x="60" y="182" fill="#94A3B8" font-size="10.5">Survives because it is almost right — segments</text>
+  <text x="60" y="197" fill="#94A3B8" font-size="10.5">really do scope anomaly detectors.</text>
+
+  <line x1="444" y1="151" x2="482" y2="151" stroke="#73BE28" stroke-width="2" marker-end="url(#fa21b-arrow)"/>
+
+  <rect x="490" y="92" width="400" height="118" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="510" y="116" fill="#86EFAC" font-size="13" font-weight="700">No segment field on a workflow trigger</text>
+  <text x="510" y="140" fill="#CBD5E1" font-size="11.5">Segments scope DETECTION and queries.</text>
+  <text x="510" y="157" fill="#CBD5E1" font-size="11.5">Never NOTIFICATION.</text>
+  <text x="510" y="182" fill="#94A3B8" font-size="10.5">Segments scope what a detector evaluates and what</text>
+  <text x="510" y="197" fill="#94A3B8" font-size="10.5">a query returns — routing is a trigger-filter job.</text>
+
+  <!-- ============ Row 2 ============ -->
+  <rect x="40" y="226" width="396" height="118" fill="#DE350B" opacity="0.09" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="60" y="250" fill="#FCA5A5" font-size="13" font-weight="700">2 · Routing replaces visibility</text>
+  <text x="60" y="274" fill="#CBD5E1" font-size="11.5">“We've set who gets paged, so access</text>
+  <text x="60" y="291" fill="#CBD5E1" font-size="11.5">is handled.”</text>
+  <text x="60" y="316" fill="#94A3B8" font-size="10.5">Worst failure mode of the three, and the only one</text>
+  <text x="60" y="331" fill="#94A3B8" font-size="10.5">that stays silent until an audit finds it.</text>
+
+  <line x1="444" y1="285" x2="482" y2="285" stroke="#73BE28" stroke-width="2" marker-end="url(#fa21b-arrow)"/>
+
+  <rect x="490" y="226" width="400" height="118" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="510" y="250" fill="#86EFAC" font-size="13" font-weight="700">Visibility is a separate IAM design</text>
+  <text x="510" y="274" fill="#CBD5E1" font-size="11.5">A trigger decides whether a notification</text>
+  <text x="510" y="291" fill="#CBD5E1" font-size="11.5">fires — not who may read the problem.</text>
+  <text x="510" y="316" fill="#94A3B8" font-size="10.5">Reading is an IAM policy boundary — e.g.</text>
+  <text x="510" y="331" fill="#94A3B8" font-size="10.5">storage:dt.security_context on Event Read.</text>
+
+  <!-- ============ Row 3 ============ -->
+  <rect x="40" y="360" width="396" height="118" fill="#DE350B" opacity="0.09" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="60" y="384" fill="#FCA5A5" font-size="13" font-weight="700">3 · Route first, enrich later</text>
+  <text x="60" y="408" fill="#CBD5E1" font-size="11.5">“Stand the routing up now, sort the</text>
+  <text x="60" y="425" fill="#CBD5E1" font-size="11.5">tagging standard out afterwards.”</text>
+  <text x="60" y="450" fill="#94A3B8" font-size="10.5">Where the design stalls — the routing model has</text>
+  <text x="60" y="465" fill="#94A3B8" font-size="10.5">nothing to filter on.</text>
+
+  <line x1="444" y1="419" x2="482" y2="419" stroke="#73BE28" stroke-width="2" marker-end="url(#fa21b-arrow)"/>
+
+  <rect x="490" y="360" width="400" height="118" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="510" y="384" fill="#86EFAC" font-size="13" font-weight="700">Enrichment gates routing</text>
+  <text x="510" y="408" fill="#CBD5E1" font-size="11.5">A trigger filters on tags that must already</text>
+  <text x="510" y="425" fill="#CBD5E1" font-size="11.5">exist and have propagated.</text>
+  <text x="510" y="450" fill="#94A3B8" font-size="10.5">Build one workflow per destination — and never let a</text>
+  <text x="510" y="465" fill="#94A3B8" font-size="10.5">legacy object count set the target shape.</text>
+</svg>

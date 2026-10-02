@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Three Classes of Migration State</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Every &#8220;does X carry over to the new tenant?&#8221; question is answered by which class X belongs to</text>
+  <text x="465" y="77" text-anchor="middle" fill="#64748B" font-size="12">The diagnostic: if it was learned or accumulated rather than authored, it does not move</text>
+
+  <!-- ============ Class 1 — CONFIGURATION ============ -->
+  <rect x="30" y="96" width="280" height="358" fill="#73BE28" opacity="0.07" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="170" y="126" text-anchor="middle" fill="#A7F3D0" font-size="17" font-weight="700">1 &#183; CONFIGURATION</text>
+  <text x="170" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Things you authored</text>
+
+  <rect x="46" y="162" width="248" height="56" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="170" y="182" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MOVES?</text>
+  <text x="170" y="203" text-anchor="middle" fill="#86EFAC" font-size="12.5" font-weight="700">Yes &#8212; with rewriting</text>
+
+  <rect x="46" y="232" width="248" height="100" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="170" y="252" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">EXAMPLES</text>
+  <text x="170" y="273" text-anchor="middle" fill="#94A3B8" font-size="11">Dashboards &#183; alerting profiles</text>
+  <text x="170" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">management zones &#183; tagging rules</text>
+  <text x="170" y="307" text-anchor="middle" fill="#94A3B8" font-size="11">request naming &#183; request attributes</text>
+  <text x="170" y="324" text-anchor="middle" fill="#94A3B8" font-size="11">custom services</text>
+
+  <rect x="46" y="346" width="248" height="96" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="170" y="366" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">HOW</text>
+  <text x="170" y="388" text-anchor="middle" fill="#86EFAC" font-size="11">SaaS Upgrade Assistant (M2S only)</text>
+  <text x="170" y="406" text-anchor="middle" fill="#86EFAC" font-size="11">Monaco &#183; Terraform &#183; config API</text>
+  <text x="170" y="428" text-anchor="middle" fill="#64748B" font-size="10.5">Rewriting = new IDs, new endpoints</text>
+
+  <!-- ============ Class 2 — IDENTITY ============ -->
+  <rect x="325" y="96" width="280" height="358" fill="#FFB800" opacity="0.07" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="465" y="126" text-anchor="middle" fill="#FCD34D" font-size="17" font-weight="700">2 &#183; IDENTITY</text>
+  <text x="465" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Handles the platform mints</text>
+
+  <rect x="341" y="162" width="248" height="56" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="465" y="182" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MOVES?</text>
+  <text x="465" y="203" text-anchor="middle" fill="#FCD34D" font-size="12.5" font-weight="700">No &#8212; re-minted on arrival</text>
+
+  <rect x="341" y="232" width="248" height="100" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="465" y="252" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">EXAMPLES</text>
+  <text x="465" y="273" text-anchor="middle" fill="#94A3B8" font-size="11">Entity IDs &#8212; HOST, SERVICE,</text>
+  <text x="465" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">PROCESS_GROUP, APPLICATION</text>
+  <text x="465" y="307" text-anchor="middle" fill="#94A3B8" font-size="11">management-zone IDs</text>
+  <text x="465" y="324" text-anchor="middle" fill="#94A3B8" font-size="11">dashboard IDs</text>
+
+  <rect x="341" y="346" width="248" height="96" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="465" y="366" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHAT TO DO</text>
+  <text x="465" y="388" text-anchor="middle" fill="#FCD34D" font-size="11">Reconcile on the stable inputs:</text>
+  <text x="465" y="406" text-anchor="middle" fill="#FCD34D" font-size="11">names &#183; host groups &#183; tags</text>
+  <text x="465" y="428" text-anchor="middle" fill="#64748B" font-size="10.5">Refactor ID references before you move</text>
+
+  <!-- ============ Class 3 — ACCUMULATED STATE ============ -->
+  <rect x="620" y="96" width="280" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="760" y="126" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">3 &#183; ACCUMULATED STATE</text>
+  <text x="760" y="147" text-anchor="middle" fill="#94A3B8" font-size="11">Learned, recorded or secret</text>
+
+  <rect x="636" y="162" width="248" height="56" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="760" y="182" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">MOVES?</text>
+  <text x="760" y="203" text-anchor="middle" fill="#FCA5A5" font-size="12.5" font-weight="700">No &#8212; and there is no tool</text>
+
+  <rect x="636" y="232" width="248" height="100" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="760" y="252" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">EXAMPLES</text>
+  <text x="760" y="273" text-anchor="middle" fill="#94A3B8" font-size="11">Davis baselines &#183; problem history</text>
+  <text x="760" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">metric / log / trace history</text>
+  <text x="760" y="307" text-anchor="middle" fill="#94A3B8" font-size="11">credential-vault secrets &#183; API tokens</text>
+  <text x="760" y="324" text-anchor="middle" fill="#94A3B8" font-size="11">OAuth secrets &#183; private synth locations</text>
+
+  <rect x="636" y="346" width="248" height="96" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="760" y="366" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHAT TO DO</text>
+  <text x="760" y="388" text-anchor="middle" fill="#FCA5A5" font-size="11">Budget the relearn clock, or</text>
+  <text x="760" y="406" text-anchor="middle" fill="#FCA5A5" font-size="11">recreate by hand. Keep the old</text>
+  <text x="760" y="423" text-anchor="middle" fill="#FCA5A5" font-size="11">tenant for reference.</text>
+
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11.5">Most migration surprises are a class-2 or class-3 item planned for as if it were class 1</text>
+</svg>

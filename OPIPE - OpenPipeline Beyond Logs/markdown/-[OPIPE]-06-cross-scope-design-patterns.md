@@ -1,6 +1,6 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
@@ -34,40 +34,50 @@ For individual scope deep-dives, see **OPIPE-02** (spans), **OPIPE-03** (metrics
 <a id="shared-dimensions"></a>
 ## 1. Shared Dimensions: The Correlation Key
 
-Cross-scope correlation works when different data types share **common dimension values**. If your logs and spans both carry `service.name` and `k8s.namespace.name`, you can join them in DQL.
+Cross-scope correlation works when different data types share **common dimension values**. If your logs and spans both carry the same service ID and `k8s.namespace.name`, you can join them in DQL.
 
 ### Correlation Fields Across Scopes
 
-| Field | Logs | Spans | Metrics | Events | Bizevents |
-|-------|------|-------|---------|--------|-----------|
-| `dt.entity.service` | Yes | Yes | Yes | Yes | — |
-| `dt.entity.host` | Yes | — | Yes | Yes | — |
-| `service.name` | Sometimes | Yes | — | — | — |
-| `k8s.namespace.name` | Yes | Yes | Yes | — | — |
-| `k8s.deployment.name` | Yes | Yes | Sometimes | — | — |
-| `trace.id` | Sometimes | Yes | — | — | — |
-| `dt.security_context` | If enriched | If enriched | If enriched | If enriched | If enriched |
+Coverage depends on how each signal was captured, so measure it rather than assume it. One hour on the validation tenant (10/02/2026):
+
+| Field | Logs | Spans |
+|-------|------|-------|
+| `dt.smartscape.service` (`dt.entity.service` is `deprecated`, same coverage) | 28,351 of 994,750 — only logs from processes mapped to a service | All 323,480 |
+| `dt.service.name` | 0 | All |
+| `service.name` (OpenTelemetry attribute) | 10,920 | 22,012 — OTel spans only |
+| `k8s.namespace.name` | 975,330 | 304,318 |
+| `k8s.deployment.name` | 766,504 | 0 |
+| `dt.smartscape.host` | Most | 244,755 (`dt.entity.host`: 304,662) |
+| `dt.security_context` | If set | If set |
+
+Run the same `countIf(isNotNull(...))` shape against your own tenant, and against `metrics`, `events` and `bizevents`, before you design a join on any of these.
+
+> <sub>**Dictionary:** `dt.smartscape.service` (`stable`), `dt.entity.service` (`deprecated`), `dt.service.name` (`stable`), `service.name` (`stable`), read 10/02/2026.</sub>
 
 ### The Enrichment Strategy
 
-If a critical dimension is missing from one scope, **add it via OpenPipeline enrichment** so that cross-scope queries work:
+If a critical dimension is missing from one scope, add it **at the source** or **in OpenPipeline** so that cross-scope queries work:
 
-| Scope | Missing Field | How to Add |
-|-------|-------------|------------|
-| Logs | `service.name` | Enrich from `dt.entity.service` via entity lookup |
-| Spans | `k8s.deployment.name` | Enrich from `k8s.pod.name` by stripping replica suffix |
-| Metrics | `k8s.namespace.name` | Enrich from entity tags or extension configuration |
+| Scope | Missing field | How to add |
+|-------|---------------|------------|
+| Logs | A service key | OneAgent primary tags (`primary_tags.<key>`) set on the process (OPIPE-01) put the same key on every signal from it; for agentless sources, derive it in a DQL processor |
+| Spans | `k8s.deployment.name` | Join on `k8s.namespace.name` plus `k8s.pod.name` instead, or map pod or service to workload with an **Inline lookup** processor |
+| Metrics | `k8s.namespace.name` | Set it as a dimension at the source (extension configuration), or map an existing dimension with an **Inline lookup** processor |
+
+The **Inline lookup** processor (SaaS 1.345+, staged rollout from 08/11/2026) maps *"an existing attribute on a record to a new or updated value using a lookup table you define directly in the pipeline"*. Processing *"is based on available records and doesn't take into account record enrichment from external services"*, so the mapping has to come from the record itself or from a table you maintain.
+
+> <sub>**Sources:** [SaaS 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-345), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing).</sub>
 
 ```dql
 // Cross-scope: Correlate error logs with error spans by service entity
 fetch logs, from:-1h
-| filter loglevel == "ERROR" and isNotNull(dt.entity.service)
-| summarize error_logs = count(), by:{dt.entity.service}
+| filter loglevel == "ERROR" and isNotNull(dt.smartscape.service)
+| summarize error_logs = count(), by:{dt.smartscape.service}
 | lookup [
     fetch spans, from:-1h
-    | filter http.response.status_code >= 500 and isNotNull(dt.entity.service)
-    | summarize error_spans = count(), by:{dt.entity.service}
-  ], sourceField:dt.entity.service, lookupField:dt.entity.service, fields:{error_spans}
+    | filter http.response.status_code >= 500 and isNotNull(dt.smartscape.service)
+    | summarize error_spans = count(), by:{dt.smartscape.service}
+  ], sourceField:dt.smartscape.service, lookupField:dt.smartscape.service, fields:{error_spans}
 | sort error_logs desc
 | limit 10
 ```
@@ -81,8 +91,8 @@ A powerful validation pattern: extract the **same metric** from two different da
 
 | Source | Metric Key | Extraction Rule |
 |--------|-----------|----------------|
-| Logs | `log.error_count` | Count of `loglevel == "ERROR"`, by `dt.entity.service` |
-| Spans | `span.error_count` | Count of `http.response.status_code >= 500`, by `dt.entity.service` |
+| Logs | `log.error_count` | Count of `loglevel == "ERROR"`, by `dt.smartscape.service` |
+| Spans | `span.error_count` | Count of `http.response.status_code >= 500`, by `dt.smartscape.service` |
 
 These metrics should track each other. If logs show 10x more errors than spans, it could mean:
 - Application-level errors are logged but not reflected in HTTP status codes
@@ -94,13 +104,13 @@ The comparison itself is diagnostic — the divergence tells you something about
 ```dql
 // Compare: Error counts from logs vs. spans by service
 fetch logs, from:-1h
-| filter loglevel == "ERROR" and isNotNull(dt.entity.service)
-| summarize log_errors = count(), by:{dt.entity.service}
+| filter loglevel == "ERROR" and isNotNull(dt.smartscape.service)
+| summarize log_errors = count(), by:{dt.smartscape.service}
 | lookup [
     fetch spans, from:-1h
-    | filter http.response.status_code >= 500 and isNotNull(dt.entity.service)
-    | summarize span_errors = count(), by:{dt.entity.service}
-  ], sourceField:dt.entity.service, lookupField:dt.entity.service, fields:{span_errors}
+    | filter http.response.status_code >= 500 and isNotNull(dt.smartscape.service)
+    | summarize span_errors = count(), by:{dt.smartscape.service}
+  ], sourceField:dt.smartscape.service, lookupField:dt.smartscape.service, fields:{span_errors}
 | fieldsAdd ratio = if(isNotNull(span_errors) and span_errors > 0,
     then: round(toDouble(log_errors) / toDouble(span_errors), decimals: 1),
     else: -1.0)
@@ -123,8 +133,8 @@ Span → extracted business event → business-event metric → SLO
 |-------|-------|--------------|--------|
 | 1. Detect | Spans | Filter: `span.kind == "server"` AND `duration > 5s` | Matching spans |
 | 2. Extract event | Spans → Business events | Data extraction stage: *Business event* processor with `event.type = "slow_transaction"` (re-ingested into the business-events scope) | Business event per slow span |
-| 3. Extract metric | Business events → Metrics | Metric extraction stage in the business-events pipeline: `slow_transaction.count` by `service.name` | Metric time series |
-| 4. Alert | Metrics → SLO | SLO: `slow_transaction.count < 10 per 5m` per service | SLO breach triggers alert |
+| 3. Extract metric | Business events → Metrics | Metric extraction stage in the business-events pipeline: `slow_transaction.count` by `dt.service.name` (copied onto the business event in step 2) | Metric time series |
+| 4. Alert | Metrics | Anomaly detector with a static threshold (for example more than 10 per 5 minutes per service), or an SLO built on the metric | Alert or SLO status |
 
 Use a **business event** for step 2, not a Davis event: the Metric extraction stage supports the business-events scope, but not the Davis-events scope, so a Davis event cannot feed step 3.
 
@@ -132,7 +142,7 @@ Use a **business event** for step 2, not a Davis event: the Metric extraction st
 
 ### Design Considerations
 
-- **Each stage adds latency** — The full cascade may take seconds from span ingestion to SLO evaluation
+- **Each stage adds delay** — a derived record is re-ingested and processed again, so measure the end-to-end delay before you set alert timing on it
 - **Failures propagate** — If the span pipeline drops the slow span, the event is never extracted, and the metric never counts it
 - **Test end-to-end** — After configuring a cascade, verify data flows through every stage
 
@@ -141,7 +151,7 @@ Use a **business event** for step 2, not a Davis event: the Metric extraction st
 fetch spans, from:-1h
 | filter span.kind == "server" and duration > 5s
 | summarize {slow_count = count(), avg_duration_ms = avg(duration / 1ms)},
-    by:{service.name}
+    by:{dt.service.name}
 | sort slow_count desc
 | limit 10
 ```
@@ -161,7 +171,7 @@ When related data across scopes should share the same lifecycle and access contr
 ### Benefits
 
 - **Consistent naming** — `checkout_*` makes it obvious which buckets belong together
-- **Unified access control** — IAM policies can use `dt.system.bucket` patterns with wildcards
+- **Unified access control** — IAM policies can grant by bucket prefix: the `storage:bucket-name` condition supports `startsWith` (for example `storage:bucket-name startsWith "checkout_"`)
 - **Coordinated retention** — Related data expires in a logical sequence (spans first, then logs, business events last)
 
 ### Querying Across a Bucket Family
@@ -186,7 +196,7 @@ OpenPipeline is powerful but not always the right tool. Prefer DQL query-time pr
 | Scenario | Why Not OpenPipeline | Better Approach |
 |----------|--------------------|-----------------|
 | **Exploratory analysis** | You do not know what patterns you are looking for yet | DQL ad-hoc queries |
-| **Frequently changing logic** | Pipeline changes require deployment; DQL changes are instant | DQL with dashboard variables |
+| **Frequently changing logic** | A pipeline change applies only to data ingested after it, and each version leaves differently shaped data behind | DQL with dashboard variables |
 | **Complex joins** | OpenPipeline cannot join across scopes at ingestion | DQL `lookup` and `join` at query time |
 | **One-time investigations** | Configuring a pipeline for a single investigation is overhead | DQL `parse` with DPL patterns |
 | **Historical data** | OpenPipeline only processes new data — it cannot reprocess historical records | DQL for retroactive analysis |
@@ -207,7 +217,7 @@ Before deploying a new or modified OpenPipeline configuration to production:
 
 - [ ] Each pipeline has a single, clear purpose (one source type per pipeline)
 - [ ] Routing rules are ordered from most specific to least specific
-- [ ] Default pipeline catches only unmatched data with short retention
+- [ ] The default route catches only unmatched data, and you watch its volume
 - [ ] No overlapping routing conditions between pipelines
 
 ### Processing Rules
@@ -245,7 +255,7 @@ Before deploying a new or modified OpenPipeline configuration to production:
 
 In this notebook you learned:
 
-- **Shared dimensions** — Cross-scope correlation requires common fields like `dt.entity.service` and `k8s.namespace.name`
+- **Shared dimensions** — Cross-scope correlation requires common fields like `dt.smartscape.service` and `k8s.namespace.name` — measure their coverage per scope first
 - **Same metric from multiple scopes** — Extract matching metrics from logs and spans to validate pipeline health
 - **Cascade processing** — Chain span → business event → metric → SLO for automated detection and alerting
 - **Unified bucket families** — Name related buckets with a common prefix for consistent lifecycle management
@@ -274,6 +284,8 @@ You have completed the OPIPE series. From here:
 - [Grail data lakehouse (DT docs)](https://docs.dynatrace.com/docs/platform/grail)
 - [DQL cross-data queries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives)
+- [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:bucket-name` operators include `startsWith`
+- [SaaS 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-345) — Inline lookup processor
 
 ---
 

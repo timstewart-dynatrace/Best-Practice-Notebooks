@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -99,39 +99,45 @@ fetch logs, from: now() - 24h
 
 <a id="migration-paths"></a>
 ## 2. Migration Paths
-### Path A: Automatic Migration (Recommended)
 
-If you're using OneAgent for log collection, most data automatically flows through OpenPipeline.
+### The one thing every path has in common
 
-**Steps:**
-1. Verify `dt.openpipeline.source` = `oneagent` in your logs
-2. Configure custom pipelines for specific processing needs
-3. Update queries to use OpenPipeline fields
+Log records keep arriving through the same ingest sources (OneAgent, `/api/v2/logs/ingest`, OTLP) whichever path you take. What changes is **where they are processed**. Until a dynamic route sends a record to one of your pipelines, it falls through to the default route — and on a tenant where the classic pipeline exists, that means the classic processing rules:
 
-### Path B: API Migration
+> *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*
 
-If using the Log Ingest API:
+So the migration is: build pipelines, add routes for each data set, compare the output with the classic rules, then turn the classic rules off. Records the classic pipeline processed carry the pipeline id `logs:default` — the query below measures how much is still on it. `dt.openpipeline.source` and `dt.openpipeline.pipelines` are populated for classic records too, so an `isNotNull()` check on them proves nothing.
 
-**Steps:**
-1. Continue using `/api/v2/logs/ingest` endpoint
-2. Logs automatically route through OpenPipeline
-3. Configure processing rules as needed
+### Path A: OneAgent
 
-### Path C: OTLP Migration
+1. Add dynamic routes for the OneAgent data sets (for example by `k8s.namespace.name` or `log.source`) to your pipelines
+2. Move each data set's classic processing rules into its pipeline
+3. Watch the `logs:default` share fall to zero for those sources
 
-For OpenTelemetry-based logging:
+### Path B: Log Ingest API
 
-**Steps:**
-1. Point OTLP exporters to `/api/v2/otlp/v1/logs`
-2. Logs flow through OpenPipeline automatically
-3. Configure pipelines for OTLP-specific processing
+1. Keep using the `/api/v2/logs/ingest` endpoint — no client change
+2. Route the API data sets (`dt.openpipeline.source == "/api/v2/logs/ingest"`) to your pipelines
+3. Move their processing rules
+
+### Path C: OTLP
+
+1. Point OTLP exporters at `/api/v2/otlp/v1/logs`
+2. Route by `dt.openpipeline.source == "/api/v2/otlp/v1/logs"` (or resource attributes) to your pipelines
+3. Configure OTLP-specific processing there
+
+OPMIG-09 covers the full classic-pipeline cut-over, including the business-events scope.
+
+> <sub>**Sources:** [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — the quote above, and the `in(dt.openpipeline.pipelines, "logs:default")` filter for records the classic pipeline processed.</sub>
 
 ```dql
-// Check which data sources are already using OpenPipeline
+// How much log volume is still processed by the classic pipeline, by ingest source.
+// Classic records carry the pipeline id "logs:default"; dt.openpipeline.* is populated
+// for them too, so isNotNull(dt.openpipeline.pipelines) cannot tell the paths apart.
 fetch logs, from: now() - 1h
-| filter isNotNull(dt.openpipeline.pipelines)
-| summarize {count = count()}, by: {dt.openpipeline.source}
-| sort count desc
+| summarize {total = count(), classic = countIf(in(dt.openpipeline.pipelines, "logs:default"))}, by: {dt.openpipeline.source}
+| fieldsAdd classic_pct = round(100.0 * toDouble(classic) / toDouble(total), decimals: 1)
+| sort total desc
 ```
 
 <a id="planning-your-openpipeline-configuration"></a>
@@ -140,9 +146,9 @@ fetch logs, from: now() - 1h
 
 | Use Case | Pipeline Configuration |
 |----------|------------------------|
-| **Default Processing** | Use built-in Default Pipeline |
+| **Unmatched data** | Falls to the default route — the classic pipeline (`logs:default`) where it exists; watch its share |
 | **Custom Parsing** | Create pipeline with DPL parse rules |
-| **PII Masking** | Add masking stage before processing |
+| **PII Masking** | Masking processors first in the Processing stage (there is no separate masking stage) |
 | **Cost Reduction** | Add drop rules for noise |
 | **Custom Routing** | Route to specific buckets |
 
@@ -177,15 +183,14 @@ After configuring OpenPipeline, validate that:
 5. ✅ Routing sends logs to correct buckets
 
 ```dql
-// Validation Query 1: Confirm all sources are flowing
+// Validation Query 1: Confirm all sources are flowing, and none is left on the classic pipeline
 fetch logs, from: now() - 1h
 | summarize {
     total = count(),
-    has_pipeline = countIf(isNotNull(dt.openpipeline.pipelines)),
-    has_source = countIf(isNotNull(dt.openpipeline.source)),
+    classic = countIf(in(dt.openpipeline.pipelines, "logs:default")),
     has_bucket = countIf(isNotNull(dt.system.bucket))
   }
-| fieldsAdd pipeline_coverage = round((toDouble(has_pipeline) / toDouble(total)) * 100, decimals: 1)
+| fieldsAdd openpipeline_pct = round((toDouble(total - classic) / toDouble(total)) * 100, decimals: 1)
 ```
 
 ```dql
@@ -213,9 +218,9 @@ fetch logs, from: now() - 1h
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Pattern | Processor | Matcher | Action |
 |---------|-----------|---------|--------|
-| **Parse Log Levels** | DQL | `loglevel == "NONE"` | Extract level from `[LEVEL]` in content |
+| **Parse Log Levels** | DQL | `loglevel == "NONE"` | Extract level from `[LEVEL]` anywhere in content (`DATA? '[' LD:level ']'`) |
 | **Drop Debug Logs** | Drop | `loglevel == "DEBUG"` | Remove debug logs before storage |
-| **Route Errors** | Bucket Rule | `loglevel == "ERROR"` | Send to `error_logs` bucket (90d retention) |
+| **Route Errors** | Bucket assignment | `status == "ERROR"` | Send to `error_logs` bucket (90d retention) |
 -->
 
 ### Pattern 1: Parse Log Levels from Content
@@ -228,12 +233,13 @@ When logs have `loglevel = NONE`, configure a DQL processor to extract the level
 - **Statement:**
 
 ```dql
-parse content, "'[' LD:parsed_level ']'"
+// DATA? lets the bracket sit anywhere: "2026-10-02 12:00:01 [ERROR] ..." as well as "[ERROR] ..."
+parse content, "DATA? '[' LD:parsed_level ']'"
 | fieldsAdd loglevel = if(in(upper(parsed_level), {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"}), upper(parsed_level), else: loglevel)
 | fieldsRemove parsed_level
 ```
 
-> Only accept values from the supported loglevel list — anything else leaves the record unchanged. Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.
+> `parse` matches from the start of the field, so without `DATA?` the pattern only fires on lines that *begin* with `[`. It takes the **first** bracketed token; only values from the supported loglevel list are accepted — anything else (a thread name, a bracketed timestamp) leaves the record unchanged. Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.
 
 ### Pattern 2: Drop Debug Logs
 
@@ -248,7 +254,7 @@ Reduce storage costs by dropping DEBUG-level logs before storage.
 Send error logs to a dedicated bucket with longer retention for compliance.
 
 **Bucket Routing Configuration:**
-- **Matcher:** `loglevel == "ERROR"`
+- **Matcher:** `status == "ERROR"` — `status` groups SEVERE, CRITICAL, FATAL… with ERROR; `loglevel == "ERROR"` would miss them
 - **Bucket:** `error_logs`
 - **Retention:** 90 days
 
@@ -256,7 +262,7 @@ Send error logs to a dedicated bucket with longer retention for compliance.
 // Simulate parsing log levels from content
 fetch logs, from: now() - 1h
 | filter loglevel == "NONE" OR status == "NONE"
-| parse content, "'[' LD:parsed_level ']'"
+| parse content, "DATA? '[' LD:parsed_level ']'"
 | fieldsAdd parsed_level = upper(parsed_level)
 | filter in(parsed_level, {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"})
 | fields timestamp, content, parsed_level

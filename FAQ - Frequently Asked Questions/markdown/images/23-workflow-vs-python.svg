@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Choosing the Collector — Workflow or Python</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">The 120-second JS-runtime timeout is the whole decision. Everything else is preference.</text>
+
+  <!-- Workflow card -->
+  <rect x="26" y="80" width="428" height="196" rx="8" fill="#A78BFA" opacity="0.08"/>
+  <rect x="26" y="80" width="428" height="196" rx="8" fill="none" stroke="#A78BFA" stroke-width="2"/>
+  <text x="46" y="106" fill="#DDD6FE" font-size="15" font-weight="700">Dynatrace Workflow (JS runtime)</text>
+  <text x="46" y="128" fill="#86EFAC" font-size="11.5" font-weight="700">No external infrastructure to run or secure</text>
+
+  <text x="46" y="154" fill="#94A3B8" font-size="11.5">Secrets in Credential Vault &#8212; never in code</text>
+  <text x="46" y="173" fill="#94A3B8" font-size="11.5">Cursor via stateClient; ingest via logsClient.storeLog</text>
+  <text x="46" y="192" fill="#94A3B8" font-size="11.5">Scheduling, retry and failure alerting are built in</text>
+
+  <text x="46" y="220" fill="#FCD34D" font-size="11.5" font-weight="700">Hard limits: 120 s run &#183; 256 MB &#183; 5 MB output</text>
+  <text x="46" y="239" fill="#FCA5A5" font-size="11.5">Must be a STANDARD workflow &#8212; automation-utils</text>
+  <text x="46" y="256" fill="#FCA5A5" font-size="11.5">returns 404 on simple workflows</text>
+
+  <!-- Python card -->
+  <rect x="476" y="80" width="428" height="196" rx="8" fill="#1496FF" opacity="0.08"/>
+  <rect x="476" y="80" width="428" height="196" rx="8" fill="none" stroke="#1496FF" stroke-width="2"/>
+  <text x="496" y="106" fill="#BFDBFE" font-size="15" font-weight="700">Python collector</text>
+  <text x="496" y="128" fill="#86EFAC" font-size="11.5" font-weight="700">No execution ceiling &#8212; backfill and replay at will</text>
+
+  <text x="496" y="154" fill="#94A3B8" font-size="11.5">pip install boxsdk &#8212; v10+, Client Credentials Grant</text>
+  <text x="496" y="173" fill="#94A3B8" font-size="11.5">Cursor in your own durable store</text>
+  <text x="496" y="192" fill="#94A3B8" font-size="11.5">Run on K8s CronJob, Lambda, or any scheduler</text>
+
+  <text x="496" y="220" fill="#FCD34D" font-size="11.5" font-weight="700">You own runtime, secrets, scheduling and alerting</text>
+  <text x="496" y="239" fill="#FCA5A5" font-size="11.5">box-sdk-gen is the DEPRECATED package &#8212; the</text>
+  <text x="496" y="256" fill="#FCA5A5" font-size="11.5">name suggests otherwise. Use boxsdk.</text>
+
+  <!-- Headroom bar -->
+  <text x="46" y="318" fill="#F8FAFC" font-size="15" font-weight="700">Where 1M events/day actually lands</text>
+  <text x="46" y="339" fill="#94A3B8" font-size="12">Polling every 5 minutes = 288 runs/day &#8594; ~3,472 events per run &#8594; ~7 pages of 500.</text>
+
+  <rect x="46" y="356" width="812" height="34" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+  <rect x="48" y="358" width="81" height="30" rx="5" fill="#73BE28"/>
+  <text x="88" y="378" text-anchor="middle" fill="#0F172A" font-size="12" font-weight="700">~7 pages</text>
+  <text x="500" y="378" text-anchor="middle" fill="#64748B" font-size="12">remaining headroom inside the same 120 s run &#8212; roughly 63 more pages</text>
+
+  <line x1="129" y1="348" x2="129" y2="398" stroke="#73BE28" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="135" y="410" fill="#86EFAC" font-size="11" font-weight="700">1M events/day sits here &#8212; about 10% of the run budget</text>
+  <text x="858" y="410" text-anchor="end" fill="#FCD34D" font-size="11" font-weight="700">120 s ceiling</text>
+
+  <!-- Verdict -->
+  <rect x="26" y="424" width="878" height="60" rx="8" fill="#1E293B" stroke="#73BE28" stroke-width="1.5"/>
+  <text x="46" y="444" fill="#86EFAC" font-size="13" font-weight="700">Verdict at 1M/day: use a Workflow.</text>
+  <text x="46" y="462" fill="#94A3B8" font-size="12">Reach for Python when you need backfill beyond the two-week window, or when a single run would exceed ~35,000 events.</text>
+  <text x="46" y="478" fill="#94A3B8" font-size="12">Page latency is an estimate — measure it in your own tenant before relying on the margin.</text>
+</svg>

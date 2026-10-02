@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#454646"/>
+    </marker>
+  </defs>
+  <rect width="930" height="500" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="465" y="24" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A1A">Decision Tree — OneAgent, OpenTelemetry, or Both?</text>
+  <text x="465" y="42" text-anchor="middle" font-size="11" fill="#6F7274">YES branches right to an outcome • NO continues down to the next question</text>
+
+  <!-- Column headers -->
+  <text x="180" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#6F7274" letter-spacing="1">QUESTION</text>
+  <text x="710" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#6F7274" letter-spacing="1">RECOMMENDED OUTCOME</text>
+
+  <!-- ============ Q1 row (y center = 95) ============ -->
+  <rect x="40" y="72" width="280" height="46" fill="#FFFFFF" stroke="#454646" stroke-width="1.5" rx="6"/>
+  <text x="180" y="92" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">Q1: Serverless that OneAgent</text>
+  <text x="180" y="108" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">cannot reach (e.g. GCP Cloud Functions)?</text>
+
+  <line x1="320" y1="95" x2="540" y2="95" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="430" y="89" text-anchor="middle" font-size="11" font-weight="700" fill="#454646">YES</text>
+
+  <rect x="540" y="72" width="350" height="46" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="715" y="92" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">OTel only</text>
+  <text x="715" y="108" text-anchor="middle" font-size="11" fill="#454646">Lambda layer / Azure plans: see §9 steps 1–2</text>
+
+  <!-- NO arrow Q1 → Q2 -->
+  <line x1="180" y1="118" x2="180" y2="162" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="195" y="143" font-size="11" font-weight="700" fill="#454646">NO</text>
+
+  <!-- ============ Q2 row (y center = 185) ============ -->
+  <rect x="40" y="162" width="280" height="46" fill="#FFFFFF" stroke="#454646" stroke-width="1.5" rx="6"/>
+  <text x="180" y="182" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">Q2: Async-fragmenting runtime?</text>
+  <text x="180" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">(effect systems / coroutines / fibers)</text>
+
+  <line x1="320" y1="185" x2="540" y2="185" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="430" y="179" text-anchor="middle" font-size="11" font-weight="700" fill="#454646">YES</text>
+
+  <rect x="540" y="162" width="350" height="46" fill="#B4DC00" fill-opacity="0.30" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="715" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Runtime-aware OTel + OneAgent</text>
+  <text x="715" y="198" text-anchor="middle" font-size="11" fill="#454646">Async-aware app spans + host/runtime coverage</text>
+
+  <line x1="180" y1="208" x2="180" y2="252" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="195" y="233" font-size="11" font-weight="700" fill="#454646">NO</text>
+
+  <!-- ============ Q3 row (y center = 275) ============ -->
+  <rect x="40" y="252" width="280" height="46" fill="#FFFFFF" stroke="#454646" stroke-width="1.5" rx="6"/>
+  <text x="180" y="272" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">Q3: Vendor-neutral / multi-backend</text>
+  <text x="180" y="288" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">portability mandate?</text>
+
+  <line x1="320" y1="275" x2="540" y2="275" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="430" y="269" text-anchor="middle" font-size="11" font-weight="700" fill="#454646">YES</text>
+
+  <rect x="540" y="252" width="350" height="46" fill="#B4DC00" fill-opacity="0.30" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="715" y="272" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">OTel as source of truth + OneAgent enrichment</text>
+  <text x="715" y="288" text-anchor="middle" font-size="11" fill="#454646">Keep portable instrumentation; layer Dynatrace value</text>
+
+  <line x1="180" y1="298" x2="180" y2="342" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="195" y="323" font-size="11" font-weight="700" fill="#454646">NO</text>
+
+  <!-- ============ Q4 row (y center = 365) ============ -->
+  <rect x="40" y="342" width="280" height="46" fill="#FFFFFF" stroke="#454646" stroke-width="1.5" rx="6"/>
+  <text x="180" y="362" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">Q4: Already on OTel today</text>
+  <text x="180" y="378" text-anchor="middle" font-size="12" font-weight="600" fill="#1A1A1A">and it's working?</text>
+
+  <line x1="320" y1="365" x2="540" y2="365" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="430" y="359" text-anchor="middle" font-size="11" font-weight="700" fill="#454646">YES</text>
+
+  <rect x="540" y="342" width="350" height="46" fill="#B4DC00" fill-opacity="0.30" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="715" y="362" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Layer — do not convert</text>
+  <text x="715" y="378" text-anchor="middle" font-size="11" fill="#454646">Keep OTel in code; install OneAgent on hosts</text>
+
+  <line x1="180" y1="388" x2="180" y2="430" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <text x="195" y="412" font-size="11" font-weight="700" fill="#454646">NO</text>
+
+  <!-- ============ Final outcome row (y center = 453) ============ -->
+  <rect x="40" y="430" width="280" height="46" fill="#1496FF" fill-opacity="0.20" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="180" y="450" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">OneAgent first</text>
+  <text x="180" y="466" text-anchor="middle" font-size="11" fill="#454646">Standard runtime, no prior OTel</text>
+
+  <line x1="320" y1="453" x2="540" y2="453" stroke="#454646" stroke-width="1.5" marker-end="url(#arrow2)"/>
+
+  <rect x="540" y="430" width="350" height="46" fill="#1496FF" fill-opacity="0.20" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="715" y="450" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Fastest time-to-value</text>
+  <text x="715" y="466" text-anchor="middle" font-size="11" fill="#454646">Add OTel later only for custom business spans</text>
+</svg>
