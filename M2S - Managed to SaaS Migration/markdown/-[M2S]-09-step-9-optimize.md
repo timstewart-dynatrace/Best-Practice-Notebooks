@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -50,7 +50,7 @@ Review and update operational procedures now that you're on SaaS:
 |-----------|----------------|
 | **Release schedules** | Dynatrace SaaS updates bi-weekly automatically — no action needed |
 | **Notifications and alerting** | Review thresholds now that Dynatrace Intelligence baselines are established |
-| **High availability** | SaaS provides 99.5%+ SLA — document this in your HA plans |
+| **High availability** | SaaS SLA is 99.5% monthly uptime with Standard Support (99.95% with Enterprise Success and Support) — document the one in your contract |
 | **Capacity planning** | No more cluster capacity planning — SaaS scales with licensing |
 | **Decommission old infrastructure** | Remove Managed cluster servers, old ActiveGates, old network rules |
 
@@ -94,23 +94,20 @@ Run each query below and compare the results against your Managed inventory from
 
 ```dql
 // Host count — compare to Step 1 inventory
-fetch dt.entity.host
+fetch dt.entity.host, from:-24h
 | summarize hostCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count()
+// from:-24h: without it, only hosts seen in the default 2-hour window are counted.
+// Alternative: smartscapeNodes "HOST", from:-24h | summarize hostCount = count()
 
 ```
 
 ```dql
 // Service count — compare to Step 1 inventory
-fetch dt.entity.service
+fetch dt.entity.service, from:-24h
 | summarize serviceCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize serviceCount = count()
+// Alternative: smartscapeNodes "SERVICE", from:-24h | summarize serviceCount = count()
 
 ```
 
@@ -132,7 +129,7 @@ smartscapeNodes "FRONTEND"
 
 ```dql
 // Process group count — compare to Step 1 inventory
-fetch dt.entity.process_group
+fetch dt.entity.process_group, from:-24h
 | summarize processGroupCount = count()
 
 // Do not substitute smartscapeNodes "PROCESS" here: it lists individual processes
@@ -267,9 +264,9 @@ Alert quality is critical in the first weeks after migration. Expect initial noi
 
 | Symptom | Likely Cause | Action |
 |---------|-------------|--------|
-| Too many alerts | Thresholds too sensitive for SaaS baseline | Temporarily raise thresholds; revisit after 2 weeks |
+| Too many alerts | Baselines still learning | Route non-critical alerts to a quiet channel; do not retune detectors until the relearn window has passed (FAQ-25 § 5) |
 | Missing alerts | Notification channels not fully reconnected | Re-verify every channel from Step 6 |
-| Noisy alerts | Transient issues during baseline period | Add minimum duration conditions (e.g., 5 consecutive minutes) |
+| Noisy alerts | Transient issues during baseline period | Set a **Minimum duration** on the notifying problem-triggered workflow (FAQ-21) |
 | Duplicate alerts | Overlapping alerting rules migrated from Managed | Consolidate into fewer, broader rules |
 
 > **Important:** Do NOT disable alerting during the baseline period. Instead, route non-critical alerts to a staging channel (e.g., a dedicated Slack channel) so the team can review without alert fatigue.
@@ -280,28 +277,22 @@ Alert quality is critical in the first weeks after migration. Expect initial noi
 
 ## 3. Dynatrace Intelligence Baseline Establishment
 
-Dynatrace Intelligence uses machine learning to establish behavioral baselines for every entity in the environment. In a new SaaS environment, Dynatrace Intelligence starts with no historical data and must learn normal behavior from scratch.
+Dynatrace Intelligence learns normal behavior from the data it has seen. In a new SaaS environment it starts with no history for any entity, so detection is quieter or noisier than you are used to until enough history accumulates. History and baselines do not migrate — they are *accumulated state* in FAQ-25's terms, and the only response is to wait for them to rebuild.
 
 ### Baseline Timeline
 
-| Baseline Type | Time Required | What Dynatrace Intelligence Learns |
-|-------------|--------------|-------------------|
-| Response time | 2-7 days | Normal service response patterns |
-| Error rates | 2-7 days | Expected error levels per service |
-| Resource usage | 7-14 days | CPU, memory, disk patterns per host |
-| Traffic patterns | 7-14 days | Daily and weekly traffic cycles |
-| Seasonal patterns | 4-6 weeks | Monthly or periodic business cycles |
+In community practice, baselines become trustworthy on roughly these timescales. They are planning estimates, not documented figures:
 
-### What to Expect During Baseline Period
+| Baseline type | Roughly how long before it is trustworthy |
+|-------------|--------------|
+| Availability | 2–3 days |
+| Response time | 1–2 weeks |
+| Error rate | 1–2 weeks |
+| Resource utilization / traffic | 2–4 weeks |
 
-| Week | Behavior |
-|------|----------|
-| **Week 1** | Higher alert volume — Dynatrace Intelligence flags many deviations as it lacks history |
-| **Week 2** | Alert volume decreases — short-term baselines established |
-| **Weeks 3-4** | Near-normal alert volume — weekly patterns learned |
-| **Weeks 5-6** | Stable — Dynatrace Intelligence has sufficient history for accurate anomaly detection |
+Do not plan on guesses. **FAQ-25 § 5** has a query that returns, per host, how many days of history the new tenant actually holds — run it after each wave, and the hosts at the top of the list are the ones whose alerts you cannot trust yet.
 
-> **Warning:** Expect more alerts in the first 1-2 weeks. This is normal and expected. Do NOT disable Dynatrace Intelligence or suppress problem detection. Instead, review each alert to confirm Dynatrace Intelligence is detecting real issues versus baseline noise. The learning period is essential for long-term accuracy.
+> **Warning:** Expect alert volume to differ in the first weeks. Do NOT disable Dynatrace Intelligence or suppress problem detection, and do not retune detectors against a half-learned baseline — thresholds set then get baked in. Route non-critical alerts to a quiet channel, review them, and tune once the window has passed. If some alerting cannot be silent on day one, port the static thresholds first (AIOPS-02).
 
 ### Monitor Detected Problem Trends
 
@@ -321,10 +312,12 @@ fetch dt.davis.problems, from:-7d
 ```
 
 ```dql
-// Mean time to resolve — track improvement over baseline period
+// Average problem duration (MTTR proxy) — track it over the baseline period.
+// A problem closes when its events close, so this is how long anomalies lasted, not
+// time to human resolution (ADOPT-03 § 3).
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
-| filter dt.davis.is_frequent_event == false and dt.davis.is_duplicate == false
+| filter dt.davis.is_duplicate == false
 | makeTimeseries avgDurationHours = avg(resolved_problem_duration / 1h), time: event.end
 ```
 
@@ -342,7 +335,7 @@ Grail provides flexible data retention through bucket configuration. Optimize re
 |-----------|----------------------|----------|
 | **Logs (operational)** | 35 days | Standard troubleshooting window |
 | **Logs (compliance/audit)** | 90-365 days | Regulatory requirements |
-| **Metrics** | 5 years (aggregated) | Built-in aggregated retention; no action needed |
+| **Metrics** | 15 months included; extend the metrics bucket up to 10 years if you need it | Grail keeps 1-minute resolution for the whole retention period; retention beyond 15 months bills Metrics Retain (FAQ-11) |
 | **Spans/traces** | 35 days | Sufficient for root cause analysis |
 | **Business events** | 90-365 days | Business intelligence and trend analysis |
 | **detected problems** | 365 days | Year-over-year reliability comparison |
@@ -441,22 +434,18 @@ These correspond to items 9-11 in the overall migration order of operations: Val
 
 ```dql
 // Final host count in SaaS — this is the definitive count before Managed shutdown
-fetch dt.entity.host
+fetch dt.entity.host, from:-24h
 | summarize finalHostCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize finalHostCount = count()
+// Alternative: smartscapeNodes "HOST", from:-24h | summarize finalHostCount = count()
 ```
 
 ```dql
 // Final service count in SaaS
-fetch dt.entity.service
+fetch dt.entity.service, from:-24h
 | summarize finalServiceCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize finalServiceCount = count()
+// Alternative: smartscapeNodes "SERVICE", from:-24h | summarize finalServiceCount = count()
 ```
 
 ```dql
@@ -524,7 +513,7 @@ The migration is complete, but the journey continues. Here are the key activitie
 
 - [SaaS Upgrade Assistant Documentation](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)
 - [Upgrading from Dynatrace Managed to SaaS](https://www.dynatrace.com/platform/saas-upgrade/)
-- [Dynatrace Documentation](https://docs.dynatrace.com/)
+- [Dynatrace Documentation](https://docs.dynatrace.com/docs)
 - [Dynatrace Community](https://community.dynatrace.com/)
 - [Dynatrace University](https://university.dynatrace.com/learn)
 - [Dynatrace Community: Upgrade to SaaS](https://community.dynatrace.com/t5/Upgrade-to-SaaS/bd-p/upgrade_to_saas)

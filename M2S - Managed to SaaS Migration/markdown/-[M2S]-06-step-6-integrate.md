@@ -1,6 +1,6 @@
 # M2S-06: Step 6 — Integrate: Reconnect Integrations
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 6 of 9 | **Phase:** Upgrade | **Step:** Integrate | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.
 
@@ -66,9 +66,9 @@ Dashboards migrated via the SaaS Upgrade Assistant retain their structure, but s
 | Item | Why | Action |
 |------|-----|--------|
 | **Dashboard ownership** | Managed user IDs differ from SaaS user IDs | Reassign ownership via SaaS Upgrade Assistant bulk edit or manually |
-| **Internal links** | URLs pointing to Managed UI pages are broken | Update all `https://{managed-url}/e/{env-id}/...` links to `https://{tenant}.apps.dynatrace.com/...` |
+| **Internal links** | URLs pointing to Managed UI pages are broken | Update all `https://{managed-url}/e/{env-id}/...` links to the SaaS tenant (see *URL Format Changes* below) |
 | **Management zone filters** | MZ IDs may differ between environments | Verify MZ filters resolve correctly; update IDs if needed |
-| **Hardcoded entity IDs** | Managed entity IDs may not match SaaS | Replace hardcoded IDs with entity selectors where possible |
+| **Hardcoded entity IDs** | Entity IDs are environment-scoped — the SaaS tenant mints new ones | Re-point each reference; prefer tag or management-zone filters over fixed IDs where the tile supports them |
 | **Tile data sources** | Some tiles may reference unavailable data | Verify every tile renders data |
 
 ### Dashboard Validation Strategy
@@ -82,43 +82,38 @@ Work through dashboards in priority order:
 
 ### Verify Dashboards Are Present
 
-Dashboards are **Document Service** objects on SaaS, not Grail entities — `fetch dt.entity.dashboard` is **not valid DQL** and returns no data. To list and count dashboards on your SaaS tenant so you can compare against your Managed inventory, use the **Document Service API**:
+Dashboards are **Document Service** objects on SaaS, not Grail entities — `fetch dt.entity.dashboard` is **not valid DQL** and returns no data. To list and count dashboards on your SaaS tenant so you can compare against your Managed inventory, use the **Document Service API**. It is a platform API: authenticate with a **platform token** (`Authorization: Bearer …`) that carries the `document:documents:read` permission, not a classic API token.
 
 ```bash
-# Count all dashboards migrated to SaaS (compare to your Managed inventory)
+# Count dashboards on SaaS (compare to your Managed inventory)
 curl -s "https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'" \
-  -H "Authorization: Api-Token {TOKEN}" | jq '.totalCount'
+  -H "Authorization: Bearer {PLATFORM_TOKEN}" | jq '.totalCount'
 
 # List dashboard names and owners
 curl -s "https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'" \
-  -H "Authorization: Api-Token {TOKEN}" | jq -r '.documents[] | "\(.name)\t\(.owner)"'
+  -H "Authorization: Bearer {PLATFORM_TOKEN}" | jq -r '.documents[] | "\(.name)\t\(.owner)"'
 ```
 
-Requires the `documents:read` token scope. Alternatively, open the **Dashboards** app in the SaaS UI and compare the list against your Managed dashboard inventory.
+This lists dashboards built on the new Dashboards app. Classic dashboards migrated by the Upgrade Assistant are listed in the classic **Dashboards (classic)** page and the classic Dashboards API (`/api/config/v1/dashboards`, `ReadConfig` scope). Alternatively, open each app in the SaaS UI and compare against your Managed dashboard inventory.
+
+> <sub>**Sources:** [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"Platform tokens are directly usable with the APIs offered by the Dynatrace platform services."*</sub>
 
 ### URL Format Changes
 
-Every internal link in dashboards must be updated from Managed format to SaaS format:
+Every internal link in dashboards must be updated from Managed format to SaaS format. For **classic** pages, the path after the environment is unchanged — only the host part moves:
 
 | Page | Managed URL | SaaS URL |
 |------|------------|----------|
-| **Host details** | `https://{managed}/e/{env-id}/#host;id={HOST-ID}` | `https://{tenant}.apps.dynatrace.com/ui/entity/{HOST-ID}` |
-| **Service details** | `https://{managed}/e/{env-id}/#service;id={SVC-ID}` | `https://{tenant}.apps.dynatrace.com/ui/entity/{SVC-ID}` |
-| **Dashboard link** | `https://{managed}/e/{env-id}/#dashboard;id={DASH-ID}` | `https://{tenant}.apps.dynatrace.com/ui/dashboards/{DASH-ID}` |
-| **Notebook** | N/A (Managed) | `https://{tenant}.apps.dynatrace.com/ui/document/{DOC-ID}` |
+| **Classic pages** (hosts, services, classic dashboards) | `https://{managed}/e/{env-id}/#<page>;id=<ID>` | `https://{tenant-id}.live.dynatrace.com/#<page>;id=<NEW-ID>` |
+| **New platform apps** (Dashboards, Notebooks, Services, Infrastructure & Operations) | N/A (Managed) | Copy the link from the app's share or address bar on `https://{tenant-id}.apps.dynatrace.com/ui/apps/…` — do not hand-build these paths |
 
-> **Tip:** Use the Dashboard API to programmatically search for and replace Managed URLs across all dashboards. This is faster and more reliable than manual editing for large dashboard inventories.
+Remember that the `id=` part changes too: entity and dashboard IDs are minted by the new tenant (FAQ-25 § 4), so a link with the host rewritten but the old ID still points nowhere.
+
+> **Tip:** Use the classic Dashboards API to search for and replace Managed URLs across all classic dashboards. This is faster and more reliable than manual editing for large dashboard inventories.
 
 ### Replacing Hardcoded Entity IDs
 
-Where dashboards use hardcoded entity IDs in tile filters, replace them with entity selectors:
-
-| Before (Managed) | After (SaaS) |
-|-------------------|---------------|
-| `entityId: "HOST-ABC123"` | `entitySelector: type(HOST),tag("environment:production")` |
-| `entityId: "SERVICE-DEF456"` | `entitySelector: type(SERVICE),entityName.startsWith("checkout")` |
-
-Entity selectors are resilient to entity ID changes and work across environments.
+Where a classic tile is pinned to a fixed entity ID, re-point it to the new ID, or — where the tile offers a tag or management-zone filter — switch to that filter so the tile survives the next ID change.
 
 <a id="alerting-and-notification-integration"></a>
 
@@ -323,19 +318,21 @@ Extensions provide monitoring for technologies not covered by OneAgent auto-inst
 
 | Framework | Managed | SaaS | Action |
 |-----------|---------|------|--------|
-| **Extensions 1.0 (EF1)** | Supported | Deprecated — limited support | Rebuild as Extensions 2.0 |
+| **Extensions 1.0 (EF1)** | Reached end of support 2025-03-31 (JMX/PMI: July 1, 2027) | Same dates | Rebuild as Extensions 2.0 |
 | **Extensions 2.0 (EF2)** | Supported | Fully supported | Migrate configuration; may need re-signing |
-| **ActiveGate extensions** | Supported | Supported (host-based AG only) | Deploy on host-based ActiveGates in SaaS |
-| **Custom plugins** | Supported | Not supported | Rebuild as Extensions 2.0 |
+| **ActiveGate extensions** | Supported | Supported — plan host-based ActiveGates; SQL extensions can also run on Kubernetes through the Dynatrace Operator | Deploy on host-based ActiveGates in SaaS |
+| **Custom plugins** (OneAgent / ActiveGate plugins on EF1) | End of support with EF1 | Not supported | Rebuild as Extensions 2.0 |
 
 ### Extensions 2.0 Requirements in SaaS
 
 | Requirement | Details |
 |-------------|----------|
-| **Host-based ActiveGate** | Extensions 2.0 require a host-based ActiveGate — Kubernetes-based ActiveGates cannot run extensions |
+| **Host-based ActiveGate** | Plan host-based ActiveGates for remote extensions. The documented Kubernetes path is narrower: *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator."* |
 | **Extension signing** | Extensions must be signed with a valid certificate for SaaS |
 | **Credential Vault** | Extension credentials must be re-entered in SaaS Credentials Vault |
 | **Monitoring configuration** | Extension monitoring configurations need recreation in SaaS |
+
+> <sub>**Sources:** [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027."*; [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator."*</sub>
 
 ### Cloud Integration Verification
 
@@ -549,7 +546,7 @@ Do not proceed to Step 7 (Enable) until all items are confirmed.
 |-----------|--------|
 | All dashboard tiles showing data | [ ] |
 | Dashboard ownership and internal links updated to SaaS URLs | [ ] |
-| Hardcoded entity IDs replaced with entity selectors | [ ] |
+| Hardcoded entity IDs re-pointed to new IDs (or replaced with tag / management-zone filters) | [ ] |
 | All notification channels tested end-to-end (email, Slack, Teams, PagerDuty, ServiceNow) | [ ] |
 | Problem notification resolution events verified | [ ] |
 | CI/CD pipeline integrations updated with SaaS URLs and new tokens | [ ] |

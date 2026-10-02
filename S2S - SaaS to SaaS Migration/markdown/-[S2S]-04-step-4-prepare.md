@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -115,6 +115,8 @@ A consideration the docs do not settle, raised here as a softened recommendation
 
 Before any migration begins, capture entity counts from the source tenant. These serve as validation targets after agent cutover in Step 5.
 
+> **Compare like with like.** The three host surfaces do not agree. Over the same 24 hours on a validation tenant (10/01/2026), `smartscapeNodes "HOST"` returned **7** hosts, `fetch dt.entity.host` returned **33**, and the billing usage events named **39**. FAQ-16 explains why Smartscape and the classic entity store differ. Pick one surface, use it in both the source and the target, and run the same query on both. For license sizing, read host consumption from the billing usage events (ADOPT-02 § 6) rather than from either entity count.
+
 ```dql
 // Source tenant: baseline host count (Smartscape)
 smartscapeNodes "HOST", from:-7d
@@ -136,15 +138,10 @@ smartscapeNodes "SERVICE", from:-7d
 ```
 
 ```dql
-// Source tenant: baseline process group count
-fetch dt.entity.process_group
+fetch dt.entity.process_group, from:-7d
 | summarize pg_count = count()
 | fieldsAdd entity_type = "Process Groups"
 
-// Smartscape note (dt.entity.* is deprecated but still functional): Smartscape models
-// individual processes, not process GROUPS — smartscapeNodes "PROCESS" is a different
-// granularity (process instances), so its count is not comparable to a process-group
-// count. Keep the classic dt.entity.process_group query above.
 ```
 
 ```dql
@@ -155,7 +152,7 @@ fetch dt.system.buckets
 | sort size_gb desc
 ```
 
-> **Record these counts.** After agent cutover in Step 5, you will re-run these queries against the target tenant and compare. Entity counts within 5% indicate a successful migration. Counts below 90% indicate missing agents or misconfigured host groups.
+> **Record these counts.** After agent cutover in Step 5, you will re-run these queries against the target tenant and compare. As a rule of thumb from community practice, counts within about 5% of the baseline indicate a clean wave; counts below about 90% point to missing agents or misconfigured host groups.
 
 <a id="sso-and-iam-setup"></a>
 ## 2. SSO and IAM Setup
@@ -167,7 +164,7 @@ IAM is the first configuration deployed to the target tenant. Users need access 
 | Step | Action | Notes |
 |------|--------|-------|
 | 1 | Navigate to **Account Management → Identity & Access Management → SSO** | Target tenant |
-| 2 | Configure SAML identity provider (same IdP as source if consolidation) — Microsoft Entra ID has a documented Dynatrace SAML configuration; an Azure Native environment uses Entra ID SSO from the start | Copy metadata URL from IdP; create a **new** enterprise application for the target |
+| 2 | Configure SAML identity provider (same IdP as source if consolidation) — Microsoft Entra ID has a documented Dynatrace SAML configuration; an Azure Native environment uses Entra ID SSO from the start | Copy metadata URL from IdP; create a **new** enterprise application for the target. Dynatrace requires the **entire SAML message** to be signed — Entra's default for most gallery apps signs only the assertion, so set *Sign SAML response and assertion* |
 | 3 | Map IdP groups to Dynatrace groups | Use the IAM design from Step 3 |
 | 4 | Enable SSO enforcement (after initial admin access is confirmed) | Do not lock out admin accounts |
 | 5 | Test SSO login with at least two different group memberships | Verify policy inheritance |
@@ -178,13 +175,13 @@ If the source environment restricts access with an IP allowlist, rebuild it on t
 
 The reverse direction — **egress** addresses of the new Azure-hosted cluster that your firewalls or webhook receivers may need to admit — is **unverified**: no primary source for them was found for this update. Ask Dynatrace for them rather than reusing the AWS-hosted source's addresses.
 
-> <sub>**Sources:** [IP allowlist (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/settings/ip-allowlist), [Azure SAML configuration for Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-azure) — *"Follow the examples below to configure Azure as the SAML identity provider (IdP) for Dynatrace SSO."*</sub>
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response)."*; [Advanced certificate signing options in a SAML token (Microsoft Learn)](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options) — *"default option set for most of the gallery applications"*; [IP allowlist (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/settings/ip-allowlist), [Azure SAML configuration for Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-azure) — *"Follow the examples below to configure Azure as the SAML identity provider (IdP) for Dynatrace SSO."*</sub>
 
 > **Warning:** Do not enable SSO enforcement until you have confirmed that at least one admin account can log in via SSO. A misconfigured SSO with enforcement enabled will lock all users out of the tenant.
 
 ### Terraform IAM Deployment
 
-IAM is **Terraform-only** — Monaco cannot manage account-level IAM. Deploy the group structure and base policies designed in Step 3:
+This series deploys IAM with Terraform (Monaco's `monaco account deploy` is the alternative, with an OAuth client). Deploy the group structure and base policies designed in Step 3:
 
 ```bash
 # Initialize Terraform with Dynatrace provider
@@ -284,7 +281,7 @@ grep -r "HOST-\|SERVICE-\|PROCESS_GROUP-" ./export/project/ | wc -l
 
 > **Important:** Monaco download **cannot export** the following:
 > - Cloud provider credentials (AWS IAM roles, Azure service principals, GCP service account keys)
-> - Account-level IAM (groups, policies, bindings) — use Terraform
+> - Account-level IAM (groups, policies, bindings) — a plain `monaco download` skips it; use `monaco account download` (OAuth client) or Terraform
 > - ActiveGate tokens and connection info
 > - Synthetic private location credentials
 >
@@ -313,13 +310,13 @@ A SaaS target uses **Environment ActiveGates** only — Cluster ActiveGates belo
 |------|--------|------------|
 | 1 | Download ActiveGate installer from target tenant | Verify installer matches target tenant ID |
 | 2 | Deploy to designated hosts (same hosts or new hosts) | ActiveGate appears under `smartscapeNodes "ACTIVEGATE"` in the target (query below) |
-| 3 | Assign ActiveGate groups (zones) matching source topology | Verify group assignment in target tenant UI |
-| 4 | Configure network zones if used | Match source network zone structure |
-| 5 | Verify connectivity from monitored hosts to new AGs | Test TCP connectivity on port 443 |
+| 3 | Assign ActiveGate groups matching the source's purposes (routing, extensions, synthetic) | Verify group assignment in target tenant UI |
+| 4 | Assign network zones if used — a separate setting from the group | Match source network zone structure |
+| 5 | Verify connectivity from monitored hosts to new AGs | Test TCP connectivity on port **9999** (OneAgent → ActiveGate) |
 
-### ActiveGate Zone Assignment
+### ActiveGate Network Zone Assignment
 
-If the source tenant uses ActiveGate groups (zones) to segment traffic, replicate the same zone structure in the target tenant:
+ActiveGate **groups** (which ActiveGates do which job) and **network zones** (which ActiveGates serve which agents) are separate settings. If the source tenant uses network zones to segment traffic, replicate the same zone structure in the target tenant — the zone names must match because migrated OneAgents keep their `--set-network-zone` value:
 
 | Source Zone | Purpose | Target Zone | ActiveGate Count |
 |-------------|---------|-------------|------------------|
@@ -509,7 +506,7 @@ Before proceeding to Step 5 (Execute), verify all preparation tasks are complete
 |-------------|--------|-------|-------|
 | **Target tenant provisioned** | ☐ | Platform | Environment active, Grail enabled |
 | **SSO configured and tested** | ☐ | Security / Platform | At least two group memberships validated |
-| **IAM deployed via Terraform** | ☐ | Platform | Groups, policies, bindings applied |
+| **IAM deployed (Terraform or `monaco account`)** | ☐ | Platform | Groups, policies, bindings applied |
 | **Monaco export completed** | ☐ | Platform | Full export validated with dry-run |
 | **Entity ID audit completed** | ☐ | Platform | Hardcoded IDs identified and remapping plan ready |
 | **ActiveGates deployed** | ☐ | Platform / Infra | All zones covered, connectivity validated |

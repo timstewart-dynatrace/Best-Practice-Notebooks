@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 09/21/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -230,7 +230,7 @@ Create purpose-specific tokens in SaaS with minimal scopes:
 | Step | Action | Result |
 |------|--------|--------|
 | 1 | Set new server endpoint | OneAgent targets SaaS/ActiveGate |
-| 2 | Set new tenant token | Authentication to SaaS tenant |
+| 2 | Set new environment ID and tenant token | Authentication to SaaS tenant |
 | 3 | Set network zone | Route through correct ActiveGate |
 | 4 | Restart OneAgent | Agent connects to new endpoint |
 | 5 | Restart application processes | Full instrumentation (traces, services) |
@@ -247,33 +247,39 @@ Once configurations are deployed, redirect OneAgents from Managed to SaaS. There
 
 | Method | Command | Use When |
 |--------|---------|----------|
-| **Reconfigure (preferred)** | `oneagentctl --set-server` + `--set-tenant-token` + restart | Standard migration — keeps the existing OneAgent install, its host ID source and host tags; minimal downtime |
+| **Reconfigure (preferred)** | `oneagentctl --set-server` + `--set-tenant` + `--set-tenant-token` + `--restart-service` | Standard migration — keeps the existing OneAgent install, its host ID source and host tags; minimal downtime |
 | **Reinstall** | Uninstall Managed agent, install SaaS agent | Clean start needed — resets all agent state |
 
 There is no third method. **A host cannot report to Managed and SaaS at the same time** — so "run both in parallel until we trust the new tenant" is not an option to weigh. See [Zero-Gap Requirements](#zero-gap-requirements) below for what to do instead.
 
-> **"Keeps the host install" is not "keeps the entity ID."** Reconfiguring preserves the agent — its installation, host ID source and host tags — so the SaaS tenant recognizes the machine consistently from the first heartbeat. It does **not** carry the classic `HOST-…` entity ID across. Entity IDs are environment-scoped, and the SaaS tenant mints new ones for every entity it discovers. Anything referencing an entity ID — dashboard tiles, SLO definitions, alerting filters, workflow actions — needs remapping; the SaaS Upgrade Assistant handles this for the configuration types it supports and reports `Entity reference not found` for the rest (see [Deploy Results](#saas-upgrade-assistant-deploy-results)).
+> **"Keeps the host install" is not "keeps the entity ID."** Reconfiguring preserves the agent — its installation, host ID source and host tags — so the SaaS tenant recognizes the machine consistently from the first heartbeat. It does **not** carry the classic `HOST-…` entity ID across. Entity IDs are environment-scoped, and the SaaS tenant mints new ones for every entity it discovers. Anything referencing an entity ID — dashboard tiles, SLO definitions, alerting filters, workflow actions — needs remapping; the SaaS Upgrade Assistant handles this for the configuration types it supports and reports `Entity reference not found` for the rest (see [Deploy Results](#saas-upgrade-assistant-deploy-results)). When you reconcile old and new IDs in DQL, note that `id == id_classic` on a Smartscape node is always false — compare `toString(id) == id_classic` instead (FAQ-25 § 4).
 
 ### Reconfigure Method (Recommended)
 
 The reconfigure method is preferred because it preserves host identity and requires only a brief restart:
 
 ```bash
-# 1. Set new server endpoint
-oneagentctl --set-server="https://{tenant-id}.live.dynatrace.com:443/communication"
+# Linux — one call: server, environment ID and tenant token change together,
+# then the OneAgent service restarts to apply them
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server="https://{tenant-id}.live.dynatrace.com:443/communication" \
+  --set-tenant={tenant-id} \
+  --set-tenant-token={tenant-token} \
+  --set-network-zone=<zone-name> \
+  --restart-service
 
-# 2. Set new tenant token (from SaaS: Settings > Deployment > Installer download)
-oneagentctl --set-tenant-token="{tenant-token}"
-
-# 3. Set network zone (if applicable — must match zones created in Step 4)
-oneagentctl --set-network-zone=<zone-name>
-
-# 4. Restart OneAgent
-# Linux:
-systemctl restart oneagent
-# Windows:
-Restart-Service -Name "Dynatrace OneAgent"
+# Windows (elevated prompt)
+"C:\Program Files\dynatrace\oneagent\agent\tools\oneagentctl.exe" ^
+  --set-server="https://{tenant-id}.live.dynatrace.com:443/communication" ^
+  --set-tenant={tenant-id} ^
+  --set-tenant-token={tenant-token} ^
+  --set-network-zone=<zone-name> ^
+  --restart-service
 ```
+
+**Do not omit `--set-tenant`.** A Managed environment and the SaaS tenant have different environment IDs, so pointing the server URL and token at SaaS while the agent keeps its Managed environment ID leaves it unable to connect. Dynatrace's guidance for `--set-tenant` is *"Always use in combination with --set-tenant-token"*. The tenant token comes from the SaaS tenant's OneAgent deployment page. Leave out `--set-network-zone` if you do not use zones.
+
+> <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"Always use in combination with --set-tenant-token"*; example `oneagentctl --set-server=… --set-tenant=… --set-tenant-token=…`.</sub>
 
 ### If Using ActiveGate Routing
 
@@ -281,10 +287,12 @@ When OneAgents connect through ActiveGates rather than directly to SaaS:
 
 ```bash
 # Point to ActiveGate instead of SaaS directly
-oneagentctl --set-server="https://{activegate-host}:9999/communication"
-oneagentctl --set-tenant-token="{tenant-token}"
-oneagentctl --set-network-zone=<zone-name>
-systemctl restart oneagent
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server="https://{activegate-host}:9999/communication" \
+  --set-tenant={tenant-id} \
+  --set-tenant-token={tenant-token} \
+  --set-network-zone=<zone-name> \
+  --restart-service
 ```
 
 ### Critical: Restart Application Processes
@@ -320,7 +328,7 @@ The overlap you build is therefore **across the estate, not on a single host**:
 
 > **The residual gap is real — plan for it rather than engineering around it.** A reconfigured host is dark for its restart window, and its services stay incomplete until the application processes restart (above). That is the cost of the supported path. Scheduling waves inside existing maintenance windows is what holds a cutover inside a < 15-minute gap target; a second agent is not.
 
-> **Tip — OneAgent Attribute Enrichment (1.333+):** During agent redirect, consider adding primary tags and fields at the same time using `oneagentctl --set-host-tag`. This enriches all telemetry at the source with `primary_tags.environment`, `dt.security_context`, `dt.cost.costcenter`, etc. — eliminating the need for some server-side auto-tagging rules. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+> **Tip — OneAgent Attribute Enrichment (1.333+):** During agent redirect, consider adding primary tags and fields in the same call using `--set-host-tag` (for example `--set-host-tag="dt.cost.costcenter=12345"`). This enriches all telemetry at the source with `primary_tags.environment`, `dt.security_context`, `dt.cost.costcenter`, etc. — eliminating the need for some server-side auto-tagging rules. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
 <a id="redirecting-containerized-and-serverless-workloads"></a>
 
@@ -330,7 +338,7 @@ The `oneagentctl` reconfigure method above applies to **host-based OneAgents** (
 
 | Surface | Redirect mechanism | Restart / redeploy |
 |---------|--------------------|--------------------|
-| **Host VM** (GCE / EC2 / on-prem) | `oneagentctl --set-server` + `--set-tenant-token` (+ `--set-network-zone`), as above | Restart the OneAgent service **and** restart app processes to re-inject deep monitoring |
+| **Host VM** (GCE / EC2 / on-prem) | `oneagentctl --set-server` + `--set-tenant` + `--set-tenant-token` (+ `--set-network-zone`) + `--restart-service`, as above | Restart the OneAgent service **and** restart app processes to re-inject deep monitoring |
 | **Kubernetes / GKE** (Dynatrace Operator / DynaKube) | `spec.apiUrl` is **immutable** (Operator 1.3.0+): delete the DynaKube custom resource and its token secret, recreate both against the new `apiUrl`, then roll the workloads | Rolling pod restart adopts the new tenant; no node restart |
 | **Cloud Run — Java / Node.js** (OneAgent) | OneAgent tenant credentials are baked in as **build-time image arguments** (`DT_API_URL`, `DT_API_TOKEN`): rebuild the image against the new tenant and deploy a new revision | The new revision *is* both the redirect and the re-injection |
 | **Cloud Run — other runtimes / OTLP apps** | Repoint the OTLP exporter endpoint and API token, then deploy a new revision | New revision |
@@ -345,7 +353,7 @@ The `oneagentctl` reconfigure method above applies to **host-based OneAgents** (
 
 Execute the OneAgent migration in waves, starting with non-production and progressing to production.
 
-> **Capacity pre-warm for large waves:** If a single wave will connect more than ~1,000 hosts to the SaaS tenant within a few hours, notify your Dynatrace account team in advance so the tenant can be pre-scaled for the ingest surge. Pacing large fleets this way avoids throttling and delayed host check-in.
+> **Capacity pre-warm for large waves:** in community practice, teams connecting more than ~1,000 hosts to a SaaS tenant within a few hours tell their Dynatrace account team in advance, and pace the wave rather than flipping the whole fleet at once. No Dynatrace page sets this threshold — treat it as a prompt to ask, not a rule.
 
 ### Wave Execution Order
 
@@ -362,7 +370,7 @@ For each wave, follow this sequence:
 
 1. **Pre-check** — Verify SaaS ActiveGates are healthy and configurations are deployed
 2. **Reconfigure agents** — Run `oneagentctl` commands (manually or via automation)
-3. **Restart OneAgent** — Restart the agent service on each host
+3. **Restart OneAgent** — `--restart-service` in the same call, or restart the agent service on each host
 4. **Verify host check-in** — Confirm hosts appear in SaaS within 5 minutes
 5. **Restart applications** — Coordinate with application teams for process restarts
 6. **Validate data flow** — Run the DQL queries below to confirm metrics, traces, and logs
@@ -377,6 +385,7 @@ For large environments, use automation tools to execute the reconfigure commands
 # Ansible example — reconfigure OneAgent on all hosts in a group
 ansible-playbook -i inventory/nonprod migrate_oneagent.yml \
   --extra-vars "tenant_url=https://{tenant-id}.live.dynatrace.com:443/communication \
+                tenant_id={tenant-id} \
                 tenant_token={token} \
                 network_zone=datacenter-east"
 ```
@@ -389,12 +398,12 @@ After each wave, run the following DQL queries against your SaaS tenant to verif
 
 ```dql
 // Count hosts reporting to SaaS — compare against expected count from migration wave
-fetch dt.entity.host
+fetch dt.entity.host, from:-2h
 | summarize hostCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count()
+// from:-2h counts hosts seen in the last two hours (the default window, stated explicitly).
+// Alternative: Smartscape on Grail
+// smartscapeNodes "HOST" | summarize hostCount = count()
 
 ```
 
@@ -412,12 +421,11 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 
 ```dql
 // Count discovered services — should grow as applications restart
-fetch dt.entity.service
+fetch dt.entity.service, from:-2h
 | summarize serviceCount = count()
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes SERVICE
-// | summarize serviceCount = count()
+// Alternative: Smartscape on Grail
+// smartscapeNodes "SERVICE" | summarize serviceCount = count()
 
 ```
 
@@ -447,14 +455,13 @@ After each wave, compare the expected host count (from your migration plan) agai
 
 ```dql
 // Hosts grouped by OS type — verify all expected host types are present
-fetch dt.entity.host
-| summarize hostCount = count(), by:{osType}
+fetch dt.entity.host, from:-2h
+| summarize {hostCount = count()}, by:{osType}
 | sort hostCount desc
 
-// Alternative: Smartscape on Grail (entity.name → name)
-// smartscapeNodes HOST
-// | summarize hostCount = count(), by:{osType}
-// | sort hostCount desc
+// Alternative: Smartscape on Grail (osType → os.type; values change, e.g. LINUX → OS_TYPE_LINUX)
+// smartscapeNodes "HOST" | summarize hostCount = count(), by:{os.type} | sort hostCount desc
+
 ```
 
 > **Tip:** If span counts are zero but host metrics are flowing, application processes have not been restarted yet. Coordinate restarts before declaring the wave complete.

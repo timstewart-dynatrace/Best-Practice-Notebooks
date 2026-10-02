@@ -1,6 +1,6 @@
 # S2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -205,7 +205,7 @@ These are the factors specific to SaaS-to-SaaS migration that are often overlook
 
 ### Entity ID Changes
 
-This is the single biggest difference between S2S and M2S. In a Managed-to-SaaS migration, some entity IDs can persist via `oneagentctl`. In SaaS-to-SaaS, **every entity gets a new ID**.
+**Every entity gets a new ID in the target tenant** — in S2S exactly as in M2S. Entity IDs are minted per environment; reconfiguring an agent with `oneagentctl` keeps its installation and host metadata but not its entity ID (**FAQ-25** § 4). What makes S2S heavier is how much more configuration in a SaaS source tends to reference those IDs.
 
 | Impact Area | What Changes | Mitigation |
 |-------------|-------------|------------|
@@ -262,18 +262,12 @@ The queries from Step 1 (Discover) provide the data you need to assess these con
 Once your agents are reporting to the target tenant, use these DQL queries to validate coverage and identify gaps.
 
 ```dql
-// Count monitored entities by type in the target — compare against the discovery inventory
 smartscapeNodes "HOST", from:-7d
 | summarize hosts = count()
 | append [smartscapeNodes "SERVICE", from:-7d | summarize services = count()]
 | append [smartscapeNodes "FRONTEND", from:-7d | summarize frontends = count()]
-| append [fetch dt.entity.process_group | summarize process_groups = count()]
+| append [fetch dt.entity.process_group, from:-7d | summarize process_groups = count()]
 
-// HOST, SERVICE and FRONTEND (web and mobile applications) are Smartscape nodes. Process
-// groups stay on the classic entity store: Smartscape models PROCESS instances, a different
-// granularity whose count is not comparable. Smartscape counts live topology and can list fewer
-// entities than the classic store (validation tenant, 09/28/2026: 9 Smartscape vs 11 classic
-// hosts) — compare like with like: run the same query in source and target.
 ```
 
 ```dql
@@ -293,14 +287,11 @@ smartscapeNodes "ACTIVEGATE"
 ```
 
 ```dql
-// Check OneAgent version distribution — identify agents that may need upgrading
-fetch dt.entity.host
+fetch dt.entity.host, from:-7d
 | fieldsAdd version = installerVersion
-| summarize hostCount = count(), by:{version}
+| summarize {hostCount = count()}, by:{version}
 | sort hostCount desc
 
-// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
-// field, so this version distribution stays on the classic entity store.
 ```
 
 <a id="risk-assessment"></a>
@@ -430,11 +421,11 @@ When building your high-level migration plan, ensure these items are addressed:
 
 ## 8. The 90/10 Rule
 
-Based on successful SaaS-to-SaaS migrations, a consistent pattern emerges:
+In community practice, a consistent pattern emerges — a planning heuristic, not a measured ratio:
 
-> **90% of configurations migrate automatically** via Monaco or Terraform. The remaining **10% takes 90% of the manual effort**.
+> **Most configuration migrates with Monaco or Terraform; the small remainder takes most of the manual effort.**
 
-### What Migrates Automatically (the 90%)
+### What Migrates With Tooling
 
 | Category | Tool |
 |----------|------|
@@ -447,9 +438,9 @@ Based on successful SaaS-to-SaaS migrations, a consistent pattern emerges:
 | Grail bucket definitions | Monaco (bucket type) |
 | Segments | Monaco (segment type) |
 | Synthetic monitors | Monaco (requires classic API token) |
-| IAM policies and groups | Terraform (only tool that supports IAM) |
+| IAM policies and groups | Terraform, or Monaco's `monaco account` commands (OAuth client) |
 
-### What Requires Manual Effort (the 10%)
+### What Requires Manual Effort
 
 | Item | Why Manual | Effort Level |
 |------|-----------|-------------|

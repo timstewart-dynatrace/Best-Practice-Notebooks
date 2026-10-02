@@ -1,6 +1,6 @@
 # M2S-03: Step 3 — Design: Create Target Architecture
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 07/30/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With discovery and strategy complete, it's time to design the target architecture for your Dynatrace SaaS environment. This step produces the technical blueprints that guide every subsequent migration activity—network connectivity, ActiveGate topology, security controls, and high availability.
 
@@ -141,10 +141,18 @@ If a proxy is required for outbound HTTPS:
 # OneAgent proxy configuration
 sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --set-proxy=http://proxy.example.com:8080
 
-# ActiveGate proxy configuration
-# Edit /var/lib/dynatrace/gateway/config/custom.properties
-# Add: proxy = http://proxy.example.com:8080
+# ActiveGate proxy configuration — the [http.client] section of
+# /var/lib/dynatrace/gateway/config/custom.properties:
+#   [http.client]
+#   proxy-server=proxy.example.com
+#   proxy-port=8080
+# ActiveGate 1.333+ can set the same keys with agctl:
+sudo agctl property set --section=http.client --key=proxy-server --value=proxy.example.com
+sudo agctl property set --section=http.client --key=proxy-port --value=8080
+# Restart the ActiveGate service afterwards.
 ```
+
+> <sub>**Sources:** [Proxy for ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/set-up-proxy-authentication-for-activegate) — *"Specify the proxy-related parameters in the [http.client] section of the custom.properties file"*.</sub>
 
 | Proxy Consideration | Detail |
 |---------------------|--------|
@@ -167,30 +175,23 @@ For environments where SVG doesn't render
 
 ---
 
-### Zone Fallback Chain
+### Zone Failover
 
-Network zones follow a defined fallback hierarchy. Design your zones with this chain in mind:
+When no ActiveGate in an agent's own zone is reachable, OneAgents try the zone's configured **alternative zones**, then behave according to the zone's **fallback mode**:
 
-**Primary → Alternative → Default → Cross-zone fallback**
+| Fallback mode | Behavior |
+|---------------|---------|
+| **Any ActiveGate** (`ANY_ACTIVE_GATE`, default) | Traffic routes to any available ActiveGate in the environment |
+| **Only default zone** (`ONLY_DEFAULT_ZONE`) | Traffic routes only to ActiveGates in the default zone |
+| **None** (`NONE`) | Traffic is dropped rather than leaving the zone |
 
-| Level | Behavior |
-|-------|---------|
-| **Primary** | Agent connects to AGs in its assigned zone |
-| **Alternative** | If primary zone AGs are unavailable, falls back to the alternative zone |
-| **Default** | If no alternative defined, falls back to the default zone |
-| **Cross-zone** | Last resort — connects to any available AG across zones |
+Choose the mode deliberately: *Any ActiveGate* lets a zone failure land on ActiveGates sized for other zones, while *None* protects the fleet and drops data. FAQ-10 § 6 works through the sizing consequences.
 
-### Metadata-Driven Zone Assignment
+### Assigning Zones at Scale
 
-Use host properties and metadata tagging to automate zone assignment:
+Zone membership is set per agent at install time (`--set-network-zone`) or afterwards with `oneagentctl --set-network-zone`. Drive it from the deployment automation you already use, keyed on the site, region or cloud account the host belongs to, so every new host lands in the right zone without a manual step.
 
-| Metadata Tag | Purpose | Example |
-|-------------|---------|---------|
-| `HOST_PROVIDER` | Cloud provider identification | `aws`, `azure`, `gcp` |
-| `HOST_REGION` | Geographic region | `us-east-1`, `westeurope` |
-| `HOST_ENVIRONMENT` | Environment tier | `production`, `staging` |
-
-> **Best Practice:** Leverage host properties to replace manual tags. This ensures consistent, automated zone assignment as new hosts are deployed.
+> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — alternative zones and the three fallback modes; [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*.</sub>
 
 <a id="network-zones"></a>
 ## 2. Network Zones
@@ -229,7 +230,7 @@ Define alternative zones for each primary zone:
 
 ### 2.4 Creating Network Zones
 
-> **Sprint 1.339 deprecation (May 2026):** The dedicated `/api/v2/networkZones` Configuration API endpoint is deprecated. New automation should target the Settings 2.0 schema `builtin:networkzones.zones` via `POST /api/v2/settings/objects` — the same pattern used elsewhere in the AUTOM series. The legacy endpoint below still functions during the deprecation window so existing scripts keep working; treat the Settings 2.0 form as canonical for new work.
+> **API 1.339 deprecation (May 2026):** the `/api/v2/networkZones` endpoints are deprecated — the reference page now reads *"This API is deprecated. Use the Settings API instead."* New automation should target the Settings 2.0 schema `builtin:networkzones.zones` via `POST /api/v2/settings/objects`. The legacy endpoint still works during the deprecation period; treat the Settings 2.0 form as canonical for new work.
 
 **Settings 2.0 (recommended for new automation):**
 
@@ -241,24 +242,27 @@ curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/settings/objects" \
     "schemaId": "builtin:networkzones.zones",
     "scope": "environment",
     "value": {
-      "name": "datacenter-east",
+      "id": "datacenter-east",
       "description": "Primary datacenter in East region",
-      "alternativeZones": ["datacenter-west"]
+      "alternativeZones": ["datacenter-west"],
+      "fallbackMode": "ANY_ACTIVE_GATE"
     }
   }]'
 ```
 
+`id`, `alternativeZones` (may be empty) and `fallbackMode` are required; `id` cannot be changed after creation. The token needs `settings.write`.
+
 **Legacy Configuration API (deprecated, still works during the deprecation window):**
 
 ```bash
-curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/networkZones" \
+curl -X PUT "https://{tenant}.live.dynatrace.com/api/v2/networkZones/datacenter-east" \
   -H "Authorization: Api-Token {token}" \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "datacenter-east",
     "description": "Primary datacenter in East region",
     "alternativeZones": ["datacenter-west"]
   }'
+# PUT creates the zone if it does not exist. Needs the networkZones.write scope.
 ```
 
 **Assigning ActiveGates:**
@@ -267,9 +271,12 @@ curl -X POST "https://{tenant}.live.dynatrace.com/api/v2/networkZones" \
 # During installation
 sudo /bin/sh Dynatrace-ActiveGate-Linux.sh --set-network-zone=datacenter-east
 
-# After installation
-# Edit /var/lib/dynatrace/gateway/config/custom.properties
-# Add: networkzone = datacenter-east
+# After installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# Or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
+# Restart the ActiveGate service afterwards.
 ```
 
 **Assigning OneAgents:**
@@ -282,7 +289,9 @@ sudo /bin/sh Dynatrace-OneAgent-Linux.sh --set-network-zone=datacenter-east
 sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl --set-network-zone=datacenter-east
 ```
 
-> **Important:** Network Zones do NOT transfer from Managed—they must be recreated in your SaaS tenant before migrating OneAgents. Plan and deploy zones as part of Step 4 (Prepare).
+> **Important:** Every zone your agents use must exist in the SaaS tenant, with SaaS ActiveGates assigned, before you migrate OneAgents. The SaaS Upgrade Assistant lists network zones among the types it migrates; confirm they arrived and create any missing ones as part of Step 4 (Prepare).
+
+> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — `id`: *"Unique identifier of the network zone"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `[connectivity]` `networkZone`: *"Defines the network zone to which the ActiveGate belongs."*</sub>
 
 ---
 
@@ -308,18 +317,15 @@ For environments where SVG doesn't render
 |----------|---------------------|
 | Hosts can reach SaaS directly | No (optional for extensions) |
 | Hosts behind firewall, no direct internet | **Yes**, for routing |
-| Running Extensions 2.0 | **Yes** (host-based AG required, not K8s-based) |
+| Running Extensions 2.0 | **Yes** — a host-based ActiveGate for most remote extensions; SQL extensions can also run on Kubernetes through the Dynatrace Operator |
 | Private synthetic monitoring | **Yes** |
 | VMware monitoring | **Yes** |
 
 ### 3.2 ActiveGate Sizing
 
-| Host Count (Routed) | CPU Cores | RAM | Disk |
-|---------------------|-----------|-----|------|
-| Up to 500 | 2 | 4 GB | 20 GB |
-| 500–1,500 | 4 | 8 GB | 40 GB |
-| 1,500–5,000 | 8 | 16 GB | 80 GB |
-| >5,000 | Scale horizontally (multiple AGs) | | |
+Size from Dynatrace's published reference points, not a rule of thumb. The Linux requirements page gives estimated routed-host counts per instance size — for example roughly 800 hosts on a 2 vCPU / 3.75 GiB x86 instance, 1,800 on 4 vCPU / 7.5 GiB and 2,500 on 8 vCPU / 15 GiB, with ARM instances carrying more — and says the machine *"shouldn't exceed 50% CPU and 80% memory."* Extensions, log ingestion and synthetic workloads change the math. **FAQ-10** reproduces the full table, the log-ingestion sizing guide and the survivor-capacity rule for HA; use it rather than a host-count band.
+
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"The machine running ActiveGate shouldn't exceed 50% CPU and 80% memory."*</sub>
 
 ### 3.3 Placement Best Practices
 
@@ -341,7 +347,7 @@ Use AG groups to separate responsibilities:
 | `extensions` | Extensions 2.0 execution | AG-EXT-01, AG-EXT-02 |
 | `synthetic` | Private synthetic locations | AG-SYNTH-01, AG-SYNTH-02 |
 
-> **Note:** Extensions 2.0 require **host-based** ActiveGates. Kubernetes-based ActiveGates do not support Extensions 2.0.
+> **Note:** Plan host-based ActiveGates for Extensions 2.0. The one documented Kubernetes path is narrower: *"Run SQL monitoring extensions on Kubernetes using Dynatrace Operator"* ([Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions)).
 
 ### 3.5 Parallel Deployment Strategy
 
@@ -407,21 +413,23 @@ For environments where SVG doesn't render
 
 ### 4.1 SAML SSO Configuration
 
-SaaS does not support LDAP—if your Managed environment uses LDAP authentication, you must migrate to SAML 2.0.
+Dynatrace documents SAML 2.0 federation for SaaS user sign-in. If your Managed environment uses LDAP authentication, plan the move to SAML 2.0 through your identity provider.
 
 | Authentication | Managed | SaaS |
 |----------------|---------|------|
 | Local users | Cluster Management Console | Dynatrace Account Management |
 | SAML/SSO | IdP → Managed cluster | IdP → Dynatrace Account |
-| LDAP | Direct LDAP integration | **Not supported** (use SAML 2.0) |
+| LDAP | Direct LDAP integration | Not documented for SaaS — use SAML 2.0 |
 
-> **Critical:** Your Identity Provider (IdP) must sign the **entire SAML message**, not just the assertion. Failure to configure this correctly causes authentication errors. Azure Entra ID meets this requirement by default.
+> **Critical:** Your Identity Provider (IdP) must sign the **entire SAML message**, not just the assertion — Dynatrace answers an assertion-only signature with `400 Bad Request`. **Microsoft Entra ID does not do this by default:** its default for most gallery applications is *Sign SAML assertion*. Change the enterprise application's signing option to **Sign SAML response and assertion**.
+>
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response)."*; [Advanced certificate signing options in a SAML token (Microsoft Learn)](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options) — *"default option set for most of the gallery applications"*.</sub>
 
 ### 4.2 Azure Entra ID Considerations
 
 | Consideration | Requirement |
 |---------------|-------------|
-| SAML message signing | Full message (not just assertion) |
+| SAML message signing | Set to **Sign SAML response and assertion** (the Entra default signs the assertion only) |
 | Group claim limit | 150 groups maximum per SAML token |
 | Group filtering | **Filter claims to Dynatrace-related groups only** |
 | Attribute mapping | Map UPN, email, first name, last name |
@@ -443,20 +451,19 @@ Map your existing Managed roles to SaaS IAM policies:
 
 | Control | Detail |
 |---------|--------|
-| **TLS version** | TLS 1.2+ enforced for all connections |
-| **Data at rest** | AES-256 encryption |
-| **Certificate pinning** | OneAgent validates SaaS certificates |
-| **Per-tenant keys** | Encryption keys isolated per tenant |
+| **In transit** | TLS for all agent, ActiveGate and API traffic |
+| **At rest** | Encrypted by Dynatrace |
+| **Details** | FAQ-24 § *stored* and the Dynatrace data-security-controls page cover the specifics; confirm current algorithms and key handling there rather than in this notebook |
 
 ### 4.5 Data Residency
 
 | Decision | Impact |
 |----------|--------|
-| Region selection | Choose at provisioning time (US, EU, APAC) |
-| **Cannot change later** | Region is permanent after provisioning |
+| Region selection | Choose at provisioning time — AWS, Azure and Google Cloud regions are listed on the data-security-controls page |
+| **Treat as permanent** | Moving regions means a new tenant and another migration |
 | Compliance alignment | Select region matching your regulatory requirements |
 
-> **Important:** Data residency region is selected during SaaS provisioning and **cannot be changed** after the fact. Confirm your region choice with compliance and legal teams before provisioning.
+> **Important:** Data residency region is selected during SaaS provisioning. Treat it as permanent — moving a tenant's data to another region means provisioning a new tenant and migrating again. Confirm your region choice with compliance and legal teams before provisioning.
 
 ### 4.6 Firewall and Egress Controls
 
@@ -495,14 +502,15 @@ Create purpose-specific tokens with minimal scopes:
 
 ### 5.1 SaaS-Side HA (Provided by Dynatrace)
 
-Dynatrace SaaS includes built-in high availability:
+Dynatrace SaaS includes built-in high availability **within the region you choose** — data stays in that region:
 
 | Capability | Detail |
 |------------|--------|
-| Multi-region deployment | Automatic geographic redundancy |
-| Automatic failover | No customer action required |
-| Data replication | Cross-region data copies |
-| SLA | 99.5%+ availability (varies by contract) |
+| Architecture | Clustered, across multiple availability zones, with automatic failover |
+| Backups | Daily, to a separate account **in the same region** (AWS) |
+| SLA | 99.5% monthly uptime with Standard Support; 99.95% with Enterprise Success and Support |
+
+> <sub>**Sources:** [Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls) — *"performs data backups to a different AWS account in the same AWS region"*; [Dynatrace SaaS SLA (Dynatrace)](https://www.dynatrace.com/company/trust-center/sla/saas/).</sub>
 
 ### 5.2 Customer-Side HA
 
@@ -510,19 +518,19 @@ Your responsibility is ensuring no single points of failure in the agent-to-SaaS
 
 | Component | HA Strategy |
 |-----------|-------------|
-| **ActiveGates** | Minimum 2 per network zone |
-| **Network zones** | Define alternative zones for failover |
+| **ActiveGates** | Minimum 2 per network zone, each able to carry the zone alone (FAQ-10 § 6) |
+| **Network zones** | Define alternative zones and choose the fallback mode deliberately |
 | **Synthetic AGs** | Deploy pairs at each private location |
-| **Load balancing** | OneAgent auto-discovers available AGs (no LB needed) |
+| **Load balancing** | OneAgent discovers available ActiveGates itself — no load balancer in front of them |
 
 ### 5.3 Failover Behavior
 
 | Scenario | OneAgent Behavior |
 |----------|-------------------|
-| Primary AG unavailable | Automatically fails over to secondary AG in same zone |
-| All AGs in zone unavailable | Fails over to AGs in alternative network zone |
-| All AGs unavailable | Buffers data locally (up to 2 hours) |
-| AG + SaaS restored | Resumes normal transmission, flushes buffer |
+| Primary AG unavailable | Connects to another ActiveGate in the same zone |
+| All AGs in zone unavailable | Tries the zone's alternative zones |
+| No AG in the zone or its alternatives | Follows the zone's fallback mode (any ActiveGate, default zone only, or drop) |
+| Connectivity restored | Resumes normal transmission |
 
 ### 5.4 Design for Zero Single Points of Failure
 
@@ -578,7 +586,7 @@ Complete this checklist before proceeding to Step 4 (Prepare).
 
 | Checkpoint | Status |
 |------------|--------|
-| ActiveGate sizing calculated based on host counts | [ ] |
+| ActiveGate sizing taken from the documented reference points (FAQ-10) | [ ] |
 | Placement planned (close to monitored hosts) | [ ] |
 | Minimum 2 AGs per network zone for HA | [ ] |
 | AG groups defined (routing, extensions, synthetic) | [ ] |
@@ -589,7 +597,7 @@ Complete this checklist before proceeding to Step 4 (Prepare).
 | Checkpoint | Status |
 |------------|--------|
 | SSO/SAML configuration designed | [ ] |
-| IdP configured to sign full SAML message (not just assertion) | [ ] |
+| IdP configured to sign full SAML message (Entra: *Sign SAML response and assertion*) | [ ] |
 | Azure Entra group claims filtered to Dynatrace groups | [ ] |
 | IAM policy mapping complete (Managed roles → SaaS policies) | [ ] |
 | API token strategy defined with minimal scopes | [ ] |

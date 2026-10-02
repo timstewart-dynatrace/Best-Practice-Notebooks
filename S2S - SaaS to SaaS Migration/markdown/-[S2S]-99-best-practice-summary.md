@@ -1,6 +1,6 @@
 # S2S-99: Best Practice Summary
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 10 | **Cutover** | Full switch to target tenant |
 | 11 | **Decommission** | Source tenant |
 
-> **OneAgent Attribute Enrichment (1.331+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via `oneagentctl --set-host-tag` or `--set-host-tag` at install time. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+> **OneAgent Attribute Enrichment (1.333+):** OneAgent can enrich telemetry at the source — metrics, spans, logs, events and entities — with primary fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and primary tags (`primary_tags.environment`, `primary_tags.team`). The values travel with the data into OpenPipeline routing, bucket assignment and record-level permissions. Set them with `--set-host-tag` at install time or with `oneagentctl` afterwards, or per process with `DT_TAGS`. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
 ---
 
@@ -75,11 +75,11 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 |---|--------------|---------------------------|----------|
 | 1 | Complete entity discovery before anything else | Run `smartscapeNodes "HOST", from:-7d \| summarize count()` (and the `SERVICE` / `FRONTEND` equivalents; process groups stay on `fetch dt.entity.process_group`) to establish baseline numbers — and run the same queries in the target later | **Critical** |
 | 2 | Identify your migration scenario | Classify as consolidation (many-to-one), split (one-to-many), regional relocation, hosting-cloud change (the environment moves to another cloud), or workload cloud change (the monitored workloads move) — retiring a cloud is both at once | **Critical** |
-| 3 | Select Monaco for configuration, Terraform for IAM | Monaco v2 covers all 8 config types (settings, document, automation, bucket, segment, slo-v2, openpipeline, classic api); Terraform is required exclusively for IAM policies, groups, and bindings | **Critical** |
+| 3 | Select Monaco for configuration, Terraform for IAM | Monaco v2 covers all 8 config types (settings, document, automation, bucket, segment, slo-v2, openpipeline, classic api), and account IAM through `monaco account` (OAuth client); Terraform is the common choice for IAM because it keeps state and shows drift | **Critical** |
 | 4 | Plan for entity ID changes | Entity IDs (HOST-xxx, SERVICE-xxx) are tenant-specific and will change; identify every dashboard, SLO, and alert that hardcodes an entity ID | **Critical** |
-| 5 | Document the 90/10 manual items | 90% of config migrates automatically; budget 90% of your effort for the remaining 10% — entity ID remapping, integration repointing, IAM redesign, credential recreation | **Critical** |
+| 5 | Document the manual remainder | Most configuration moves with tooling; budget most of your effort for the remainder — entity ID remapping, integration repointing, IAM redesign, credential recreation ("90/10" is community shorthand, not a measured ratio) | **Critical** |
 | 6 | Build a comprehensive endpoint inventory | Document every agent URL, API call, webhook, and integration endpoint that references the source tenant URL | **Critical** |
-| 7 | Triage detected problems before migration | Active problems (especially frequent/duplicate events) carry noise to the target tenant; suppress or tune anomaly detection for sources with >500 active problems | **Critical** |
+| 7 | Triage detected problems before migration | Active, short-lived and duplicate problems carry noise to the target tenant; tune the detectors behind sources with >500 active problems (the frequent-issue flag is being phased out — do not measure noise with it) | **Critical** |
 | 8 | Identify configuration debt to leave behind | Catalog stale maintenance windows, disabled notification rules, inactive synthetic monitors, unused management zones — do not migrate these | **Critical** |
 | 9 | Inventory Extensions 2.0 separately | Monaco does not export extension installations; Terraform can install/activate (`dynatrace_hub_extension_active_version`) and configure (`dynatrace_hub_extension_v2_config`) Hub extensions — otherwise reinstall from Hub; list all extensions and plan their path before migration | **Recommended** |
 | 10 | Audit configuration changes from last 30 days | Query audit logs to identify recently changed settings that may not be in your last export | **Recommended** |
@@ -98,7 +98,7 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 15 | Establish a configuration freeze window | No settings modifications in the source tenant during cutover; communicate freeze dates to all teams | **Critical** |
 | 16 | Migrate multi-source consolidations sequentially | Complete Source 1 → validate → Source 2 → validate; never migrate two sources in parallel; migrate the simpler source first (non-K8s before K8s) | **Critical** |
 | 17 | Align migration timing with stable traffic periods | Avoid holidays, sales events, or other atypical traffic patterns that would distort Dynatrace Intelligence baselines | **Recommended** |
-| 18 | Expect the 90/10 rule | 90% of config migrates automatically; budget 90% of effort for the remaining 10% | **Critical** |
+| 18 | Expect the 90/10 shape | Most configuration moves with tooling; budget most of the effort for the remainder | **Critical** |
 | 19 | Prepare a rollback plan | Document how to revert agents to the source tenant if issues arise during cutover | **Recommended** |
 
 <a id="step-3-design"></a>
@@ -133,11 +133,11 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 34 | Validate export contains no secrets | Run `grep -r "dt0c01" projects/` after export and confirm 0 matches | **Critical** |
 | 35 | Run `monaco deploy manifest.yaml --environment <target> --dry-run` before any deploy | Checks manifest structure, references and template rendering; it does not contact the tenant, so a deploy can still fail with HTTP 400. Monaco has no `validate` command | **Critical** |
 | 36 | Provision target tenant and verify admin access | Choose the hosting cloud and region deliberately (Azure-hosted regions are *"Available on request"*; Azure Native Dynatrace Service creates a new account and environment); confirm SSO, API token creation, and environment admin role before proceeding | **Critical** |
-| 37 | Configure SSO with full SAML message signing | Create a new SAML application in your IdP for the target tenant — new Entity ID, new ACS URL; never reuse the source SAML app | **Critical** |
+| 37 | Configure SSO with full SAML message signing | Create a new SAML application in your IdP for the target tenant — new Entity ID, new ACS URL; never reuse the source SAML app. Dynatrace returns `400` for assertion-only signatures, and Microsoft Entra signs only the assertion by default — set *Sign SAML response and assertion* | **Critical** |
 | 38 | Test SSO with a pilot user before cutover | SAML configuration issues are the #1 day-of-cutover blocker | **Critical** |
 | 39 | Deploy ActiveGates in the target tenant | ActiveGates cannot be reconfigured like OneAgents; install fresh from the target tenant UI | **Critical** |
 | 40 | Prepare K8s operator manifests for the target tenant | Write a new DynaKube for the target in an API version your Operator release supports (check its release notes); the switch is delete-and-recreate — *"starting with Dynatrace Operator version 1.3.0, editing spec.apiUrl is not allowed"* | **Critical** |
-| 41 | Recreate network zones in the target | Export with `monaco download … --settings-schema builtin:networkzones` and deploy to the target before agent migration | **Critical** |
+| 41 | Recreate network zones in the target | Export with `monaco download … --settings-schema builtin:networkzones.zones` and deploy to the target before agent migration; zone names must match because agents keep their zone setting | **Critical** |
 | 42 | Create new OAuth clients and API tokens in the target | Source credentials cannot be exported; create fresh clients with matching scopes | **Critical** |
 | 43 | Keep Microsoft Entra ID group claims under 150 per SAML assertion | Microsoft: *"The number of groups emitted in a token is limited to 150 for SAML assertions"* — above it the claim is omitted entirely; emit only groups assigned to the application, or filter ([Group claims (Microsoft Learn)](https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-fed-group-claims)) | **Recommended** |
 
@@ -242,7 +242,7 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 103 | Remove SAML/SSO application from IdP for source tenant | Eliminates stale IdP configuration and prevents confusion | **Recommended** |
 | 104 | Export final audit logs from source before decommission | Compliance requires audit trail retention; export before access is lost | **Critical** |
 | 105 | Update all documentation | Replace source tenant URLs, API endpoints, and dashboard links in runbooks, CI/CD pipelines, and architecture diagrams | **Critical** |
-| 106 | Tune Dynatrace Intelligence anomaly detection during weeks 1-2 post-cutover | Suppress known false positives; adjust sensitivity for noisy services | **Critical** |
+| 106 | Tune Dynatrace Intelligence anomaly detection after the relearn window | Not during it — thresholds set against a half-learned baseline get baked in (FAQ-25 § 5). Route noise to a staging channel first, then tune what actually fired | **Critical** |
 | 107 | Expand SLO evaluation windows to full duration by week 4 | Move from `ROLLING_3_DAYS` to `ROLLING_WEEK` to `ROLLING_MONTH` as data accumulates | **Recommended** |
 | 108 | Consolidate redundant Synthetic monitors | If consolidating tenants, deduplicate monitors that tested the same endpoints from different tenants | **Optional** |
 | 109 | Replace all remaining entity ID references | Post-migration cleanup ensures configuration is fully portable for future migrations | **Recommended** |

@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -75,7 +75,7 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Choose migration approach by environment size | <500 hosts: Big Bang. 500–2,000 hosts: Phased by environment. >2,000 hosts or complex integrations: Phased by region/application. | Critical |
 | Define measurable success criteria | Set targets: 100% host coverage, 100% service discovery, <15 min data gaps, 100% alert delivery, 100% dashboard availability, 100% integration success. | Critical |
-| Budget time for the 10% manual items (90/10 rule) | 90% of configs migrate automatically; the remaining 10% (credentials, webhooks, custom scripts) takes 90% of the manual effort. Plan accordingly. | Recommended |
+| Budget time for the manual remainder | Most configuration moves through the Upgrade Assistant; the small remainder (credentials, webhooks, custom scripts) takes most of the manual effort. "90/10" is community shorthand, not a documented ratio — the app's review screen gives your real split. | Recommended |
 | Engage Dynatrace Professional Services early | Involve account team and PS during the Strategize phase, not during execution. Early engagement prevents avoidable rework. | Recommended |
 | Choose one migration tool | Pick **one** primary tool: SaaS Upgrade Assistant (recommended), Monaco, Terraform, or Settings API. Never mix approaches—Monaco YAML conflicts with the SaaS Upgrade Assistant. The rule is one writer per configuration schema per migration window; sequencing tools with an explicit ownership handoff is safe. For the Terraform path and the handoff pattern, see M2S-95. | Critical |
 
@@ -86,7 +86,7 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Open outbound 443 to SaaS endpoints | Allow HTTPS (port **443**) from all monitored hosts and ActiveGates to `{tenant-id}.live.dynatrace.com` and `{tenant-id}.apps.dynatrace.com`. | Critical |
 | Use ActiveGate routing for restricted networks | If hosts cannot reach the internet directly, deploy Environment ActiveGates. OneAgents connect to AG on port **9999**; AG connects outbound on **443**. | Critical |
-| Recreate Network Zones in SaaS before migrating | Network Zone configuration does **not** transfer automatically. Create zones in SaaS via Settings > Network zones or the API, then assign AGs and OneAgents. | Critical |
+| Have every network zone in SaaS before migrating | The Upgrade Assistant can import network zones (its Hub listing names them); confirm they arrived, create missing ones via Settings or the Settings API (`builtin:networkzones.zones`), then assign the new ActiveGates. | Critical |
 | Deploy minimum 2 ActiveGates per network zone | Provides high availability within each zone. OneAgent auto-discovers available AGs. | Recommended |
 | Configure SAML SSO with full message signing | IdP must sign the **entire SAML message**, not just the assertion. Azure AD meets this requirement by default. Failure causes authentication errors. | Critical |
 | Confirm data residency region at provisioning | Select the correct region (US, EU, APAC) during tenant provisioning. **Cannot be changed** after provisioning. | Critical |
@@ -105,7 +105,7 @@ Within the upgrade phase, follow this precise execution order:
 | Deploy new SaaS ActiveGates in parallel | Install new SaaS-connected AGs alongside existing Managed AGs **before** migrating OneAgents. Validates connectivity without impacting monitored hosts. | Critical |
 | Install SaaS Upgrade Assistant | Install the app on the target SaaS tenant and verify connectivity to the Managed cluster. Confirm all required permissions are in place. | Critical |
 | Announce configuration freeze | Notify all teams that no configuration changes should be made to the Managed environment during the migration window. Document the freeze start and end dates. | Recommended |
-| Test rollback procedure | Document the Managed server URL and token. Rollback: `oneagentctl --set-server="https://{managed-cluster}/communication"` + restart. Test on one host before bulk migration. | Critical |
+| Test rollback procedure | Document the Managed server URL, environment ID and tenant token. Rollback: `oneagentctl --set-server=<managed-url> --set-tenant=<managed-env-id> --set-tenant-token=<token> --restart-service`. Test on one host before bulk migration. | Critical |
 | Test connectivity before migration | Run `curl -v https://{tenant-id}.live.dynatrace.com/api/v1/time` from monitored hosts and ActiveGate servers before scheduling the migration window. | Critical |
 | Verify OneAgent versions are within support window | OneAgent support window is **9 months (Standard) / 12 months (Enterprise)**. Check oldest deployed versions before migration. Upgrade outdated agents first. SaaS 1.347 (staged tenant rollout) **rejects** OneAgent 1.241 and earlier — those hosts stop reporting, not just fall out of support (M2S-01). | Recommended |
 
@@ -116,7 +116,7 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Migrate configurations BEFORE redirecting OneAgents | Deploy foundational settings (management zones, tags, service detection rules) to SaaS before any agents start reporting. | Critical |
 | Follow the 4-wave deployment order | **Wave 1:** Management zones, auto-tagging rules, host groups. **Wave 2:** Service detection, request attributes, deep monitoring. **Wave 3:** Alerting profiles, anomaly detection, SLOs. **Wave 4:** Dashboards, remaining configs. | Critical |
-| Use `oneagentctl --set-server` to reconfigure (not reinstall) | Run: `oneagentctl --set-server="https://{tenant}.live.dynatrace.com:443/communication"` then `--set-tenant-token="{token}"` then `systemctl restart oneagent`. Preserves host identity and custom metadata. | Critical |
+| Use `oneagentctl` to reconfigure (not reinstall) | Run one call: `oneagentctl --set-server="https://{tenant}.live.dynatrace.com:443/communication" --set-tenant={tenant} --set-tenant-token={token} --restart-service`. Omitting `--set-tenant` leaves the agent on its Managed environment ID. Preserves the installation and host metadata; entity IDs are re-minted. | Critical |
 | Restart application processes after migration | Full-stack monitoring requires process restarts—Java, .NET, Node.js, PHP all inject instrumentation at process startup. Without restart: host metrics flow but **no distributed tracing, no service detection, no code-level visibility**. | Critical |
 | Migrate non-production first, then production | Validate data flow on non-prod hosts before touching production. Apply lessons learned to each subsequent wave. | Critical |
 | Download deploy result CSVs for audit | After each wave, download the deployment result CSV from SaaS Upgrade Assistant. Archive these for compliance and troubleshooting. | Recommended |
@@ -136,7 +136,7 @@ Within the upgrade phase, follow this precise execution order:
 | Test alert delivery end-to-end | Trigger a test alert and confirm delivery through every notification channel (email, Slack, Teams, PagerDuty, ServiceNow). | Critical |
 | Recreate synthetic private locations | Deploy new Synthetic ActiveGates in SaaS. Private locations are infrastructure-specific and do not transfer. | Recommended |
 | Update CI/CD pipelines | Replace Managed API endpoints and tokens in all deployment pipelines, quality gates, and automated testing integrations. | Critical |
-| Deploy dedicated AGs for Extensions 2.0 | Extensions 2.0 require **host-based** ActiveGate (not K8s-based). Deploy a separate AG group for extension execution. | Recommended |
+| Deploy dedicated AGs for Extensions 2.0 | Plan **host-based** ActiveGates for remote extensions (SQL extensions can also run on Kubernetes through the Dynatrace Operator). Deploy a separate AG group for extension execution. | Recommended |
 | Remove hardcoded entity IDs from dashboards | Before importing dashboards, replace hardcoded entity IDs with entity selectors. Update management zone IDs and dashboard owners. | Recommended |
 
 <a id="step-7-enable"></a>
@@ -149,7 +149,8 @@ Within the upgrade phase, follow this precise execution order:
 | Update all documentation | Replace Managed URLs, procedures, and screenshots with SaaS equivalents in runbooks, architecture diagrams, onboarding guides, and disaster recovery plans. | Critical |
 | Establish support channels | Create dedicated Slack/Teams channels for migration questions. Designate migration champions in each application team. | Recommended |
 | Map Managed roles to SaaS IAM policies | Cluster admin > Account admin. Environment admin > Environment admin. Monitor user > Viewer + specific policies. Custom roles > Custom IAM policies. | Critical |
-| Replace LDAP with SAML | SaaS does not support direct LDAP authentication. Migrate to SAML 2.0 SSO through your IdP. | Critical |
+| Replace LDAP with SAML | Dynatrace documents SAML 2.0 federation for SaaS sign-in. Migrate LDAP users to SAML 2.0 SSO through your IdP. | Critical |
+| Sign the entire SAML message | Dynatrace rejects assertion-only signatures with `400 Bad Request`. Microsoft Entra signs only the assertion by default — set *Sign SAML response and assertion*. | Critical |
 | Filter SAML group claims to Dynatrace groups only | Azure Entra limit: **150 groups** per user in SAML claim. Filter to Dynatrace-related groups to stay under the limit. | Recommended |
 
 <a id="step-8-expand"></a>
@@ -159,9 +160,9 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Adopt Grail for unified querying | Replace ad-hoc USQL queries with Notebook-based DQL analysis. Grail provides a unified data lakehouse for logs, metrics, traces, events, and entities. | Recommended |
 | Configure OpenPipeline for log masking | Configure log processing rules in OpenPipeline to redact PII (SSNs, credit card numbers, email addresses) before storage. | Recommended |
-| Enable PII masking at ingest | Settings > Request attributes: enable masking on all attributes capturing user input, account numbers, or personal data. Configure session replay masking for RUM. | Critical |
+| Enable PII masking at capture | Enable masking on request attributes that capture user input, account numbers, or personal data, and configure session replay masking for RUM. OpenPipeline masking (DPL, not regex — FAQ-15) covers the other ingest channels. | Critical |
 | Implement Workflows for automation | Replace Managed problem notifications with SaaS Workflow triggers + HTTP Request actions. Recreate custom webhook logic as workflow steps. | Recommended |
-| Right-size data retention for cost optimization | Configure Grail bucket retention by data type. Logs: set retention based on compliance needs. Metrics: leverage the 5-year aggregated retention. Use `bucket:` targeting in queries to limit scan scope. | Recommended |
+| Right-size data retention for cost optimization | Configure Grail bucket retention by data type. Logs: set retention based on compliance needs. Metrics: 15 months included in Grail, extensible to 10 years at extra cost (FAQ-11). Use `bucket:` targeting in queries to limit scan scope. | Recommended |
 | Explore Dynatrace Assist for AI-assisted analysis | Enable Dynatrace Assist for natural language querying and root cause analysis. | Optional |
 
 <a id="step-9-optimize"></a>
@@ -169,8 +170,8 @@ Within the upgrade phase, follow this precise execution order:
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|--------------------------|----------|
-| Allow 7–14 days for Dynatrace Intelligence baselines | Response time and error rate baselines: **2–7 days**. Resource usage and traffic patterns: **7–14 days**. Expect higher alert volume during this period—do not disable alerting. | Critical |
-| Tune alert thresholds after baseline period | After 2 weeks: raise thresholds on noisy alerts, add time-based conditions, lower thresholds on missing alerts. | Recommended |
+| Allow for the baseline relearn window | In community practice: availability ~2–3 days, response time and error rate ~1–2 weeks, resource usage and traffic ~2–4 weeks. Measure each host's history depth with the FAQ-25 § 5 query instead of guessing. Do not disable alerting. | Critical |
+| Tune alert thresholds after the baseline period | Not during it — thresholds set against a half-learned baseline get baked in. Then: tune noisy detectors, set a Minimum duration on notifying workflows, and fix missing alerts. | Recommended |
 | Compare entity counts against inventory | Run `fetch dt.entity.host \| summarize count()` (and service, application, process_group, synthetic_test). Counts must match the planning-phase inventory. | Critical |
 | Verify metrics flow with no gaps >15 minutes | Run `timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}` and check for nulls. Any host returning null has a data gap. | Critical |
 | Validate log ingestion is continuous | Run `fetch logs, from:-1h \| summarize count(), by:{bin(timestamp, 5m)}` and confirm no 5-minute buckets with zero count. | Critical |

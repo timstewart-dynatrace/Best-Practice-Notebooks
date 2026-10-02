@@ -1,6 +1,6 @@
 # S2S-09: Step 9 — Optimize: Cutover Validation and Decommission
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -198,14 +198,16 @@ fetch dt.davis.problems, from:-24h
     else: if(active_problems < 50, then: "Elevated — review problems", else: "High — investigate immediately"))
 ```
 
-### MTTR Baseline
+### Problem Duration (MTTR) Baseline
+
+A problem closes when its events close, so this measures how long anomalies lasted in the target, not time to human resolution (ADOPT-03 § 3).
 
 ```dql
 // Post-cutover: Mean time to resolve (MTTR) for closed problems
 // This establishes the MTTR baseline in the target tenant
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
-| filter dt.davis.is_frequent_event == false and dt.davis.is_duplicate == false
+| filter dt.davis.is_duplicate == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 | summarize
     avg_mttr_hours = avg(duration_hours),
@@ -343,9 +345,9 @@ This completes the 9-step SaaS-to-SaaS migration framework.
 
 | Principle | Why It Matters |
 |-----------|----------------|
-| **The 90/10 Rule** | 90% of config migrates automatically; 10% requires 90% of the effort |
+| **The 90/10 shape** | Most configuration moves with tooling; the small remainder takes most of the effort (community heuristic) |
 | **Tags over entity IDs** | Tag-based selectors survive migration; hardcoded entity IDs do not |
-| **Monaco for config, Terraform for IAM** | Use each tool where it excels |
+| **Monaco for config, Terraform for IAM** | A common split — Monaco can also manage IAM with `monaco account`; Terraform adds state and drift detection |
 | **Parallel operation is mandatory** | Historical data does not migrate — plan for dual-tenant operation |
 | **Dynatrace Intelligence needs time** | Baselines rebuild from the target's own data; measure progress per host and communicate it to stakeholders |
 | **Communicate early and often** | Migration success is as much about people as technology |

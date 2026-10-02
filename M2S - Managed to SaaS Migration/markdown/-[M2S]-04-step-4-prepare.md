@@ -1,6 +1,6 @@
 # M2S-04: Step 4 — Prepare: Readiness and Pre-Migration
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.
 
@@ -20,7 +20,7 @@ With the target architecture designed, it is time to prepare everything needed f
 3. [SSO and Identity Setup](#sso-and-identity-setup)
 4. [ActiveGate Provisioning](#activegate-provisioning)
 5. [SaaS Upgrade Assistant Setup](#saas-upgrade-assistant-setup)
-6. [Network Zone Recreation](#network-zone-recreation)
+6. [Network Zones in the SaaS Tenant](#network-zone-recreation)
 7. [Configuration Freeze](#configuration-freeze)
 8. [Rollback Procedure](#rollback-procedure)
 9. [Readiness Checklist](#readiness-checklist)
@@ -50,8 +50,8 @@ By the end of this notebook, you will:
 - Provision and configure a SaaS tenant in the correct region
 - Set up SAML SSO and initial IAM groups and policies
 - Deploy SaaS-connected ActiveGates in parallel with Managed AGs
-- Install and connect the SaaS Upgrade Assistant
-- Recreate network zones in the SaaS tenant
+- Install the SaaS Upgrade Assistant and import a Managed configuration archive
+- Confirm or create network zones in the SaaS tenant
 - Implement a configuration freeze on the Managed environment
 - Document and test a rollback procedure
 - Complete the readiness checklist before proceeding to Execute
@@ -129,8 +129,8 @@ Your Dynatrace account team provisions the SaaS tenant. You must provide key dec
 
 | Decision | Options | Impact |
 |----------|---------|--------|
-| **Cloud provider** | AWS or Azure | Determines underlying infrastructure |
-| **Data residency region** | US, EU, APAC (specific regions within) | **Cannot change after provisioning** |
+| **Cloud provider** | AWS, Azure or Google Cloud | Determines underlying infrastructure and the regions on offer |
+| **Data residency region** | One of the regions listed on the data-security-controls page | **Treat as permanent** — moving means a new tenant |
 | **Azure Native** | Azure Native Dynatrace Service (if applicable) | Simplified billing via Azure Marketplace |
 
 > **Critical:** The data residency region is permanent. Confirm your choice with compliance, legal, and security teams before requesting provisioning. Moving to a different region later requires a new tenant and full re-migration.
@@ -184,7 +184,7 @@ Some SaaS capabilities are gated behind **feature flags** that Dynatrace enables
 <a id="sso-and-identity-setup"></a>
 ## 3. SSO and Identity Setup
 
-SaaS requires SAML 2.0 for single sign-on. If your Managed environment uses LDAP, this is the point where you transition to SAML.
+Dynatrace documents SAML 2.0 federation for SaaS single sign-on. If your Managed environment uses LDAP, this is the point where you transition to SAML.
 
 ### 3.1 SAML 2.0 Configuration Requirements
 
@@ -197,7 +197,9 @@ SaaS requires SAML 2.0 for single sign-on. If your Managed environment uses LDAP
 | **SP Entity ID** | Provided by Dynatrace during SAML setup |
 | **ACS URL** | Provided by Dynatrace during SAML setup |
 
-> **Critical:** If the IdP signs only the SAML assertion (not the full message), authentication will fail silently. Azure Entra ID signs the full message by default. For other IdPs (Okta, PingFederate, ADFS), verify this setting explicitly.
+> **Critical:** If the IdP signs only the SAML assertion (not the full message), sign-in fails with `400 Bad Request`. **Microsoft Entra ID signs only the assertion by default** for most gallery applications — set the enterprise application's signing option to **Sign SAML response and assertion**. For other IdPs (Okta, PingFederate, ADFS), verify the equivalent setting explicitly.
+>
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response)."*; [Advanced certificate signing options in a SAML token (Microsoft Learn)](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options) — *"default option set for most of the gallery applications"*.</sub>
 
 ### 3.2 Azure Entra ID Configuration
 
@@ -206,7 +208,7 @@ For organizations using Azure Entra ID as their IdP:
 | Step | Action |
 |------|--------|
 | 1 | Create Enterprise Application for Dynatrace SSO |
-| 2 | Configure SAML settings with SP Entity ID and ACS URL |
+| 2 | Configure SAML settings with SP Entity ID and ACS URL; set **Signing Option** to *Sign SAML response and assertion* |
 | 3 | Map attributes: UPN, email, first name, last name |
 | 4 | **Filter group claims** to Dynatrace-related groups only |
 | 5 | Assign users and groups to the application |
@@ -290,9 +292,11 @@ Assign each AG to the correct network zone during installation:
 # Assign during installation (recommended)
 sudo /bin/sh Dynatrace-ActiveGate-Linux.sh --set-network-zone=datacenter-east
 
-# Or assign after installation via custom.properties
-# Edit /var/lib/dynatrace/gateway/config/custom.properties
-# Add: networkzone = datacenter-east
+# Or assign after installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# ...or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
 # Then restart: sudo systemctl restart dynatracegateway
 ```
 
@@ -307,7 +311,7 @@ Create AG groups as designed in Step 3:
 | `extensions` | Extensions 2.0 execution | Host-based AGs only |
 | `synthetic` | Private synthetic monitoring | Dedicated synthetic AGs |
 
-> **Reminder:** Extensions 2.0 require **host-based** ActiveGates. Kubernetes-based ActiveGates do not support Extensions 2.0.
+> **Reminder:** Plan host-based ActiveGates for Extensions 2.0. The documented Kubernetes path covers SQL extensions run through the Dynatrace Operator (M2S-03 § 3.4).
 
 ### 4.5 Validate AG Connectivity
 
@@ -374,7 +378,7 @@ The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upg
 | **Managed cluster version** | No fixed minimum in the SaaS Upgrade Assistant docs; align to the same *major* version as the target SaaS tenant, and verify the current requirement in docs |
 | **Version alignment** | Export from the same **major** version as the target SaaS environment to avoid false-positive migration failures (docs example: Managed 1.284.x → SaaS 1.284.x) |
 | **IAM policy** | `upgrade-assistant:environments:write` (operate the app) + `app-engine:apps:install` (install the Hub app) assigned to migration users |
-| **Token scopes** | `Read network zones`, `Write network zones`, `Capture request data` |
+| **Token scopes** | `Read network zones`, `Write network zones`, `Capture request data` — added when the app gained network-zone and request-attribute support |
 
 ### 5.2 Installation Steps
 
@@ -386,28 +390,25 @@ The [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upg
 | 4 | Grant the required IAM policy to migration users |
 | 5 | Open the app and follow the connection wizard |
 
-### 5.3 Connect to Managed Source
+### 5.3 Export the Managed Configuration and Upload It
+
+The Upgrade Assistant does not connect to the Managed cluster. It works from a **configuration archive** that you export from the Cluster Management Console and upload to the app:
 
 | Step | Action |
 |------|--------|
-| 1 | In the SaaS Upgrade Assistant, select "Connect Source Environment" |
-| 2 | Enter your Managed cluster URL and environment ID |
-| 3 | Provide an API token from the Managed environment with `Read configuration` scope |
-| 4 | Test the connection |
-| 5 | Run the initial configuration scan |
+| 1 | Sign in to the Managed **Cluster Management Console** |
+| 2 | Go to **Environments** and select the environment to migrate |
+| 3 | Select **Export configuration**, confirm, and store the archive locally |
+| 4 | In the SaaS tenant, open the SaaS Upgrade Assistant and import the archive |
+| 5 | Review the configurations it lists, grouped by type |
 
-### 5.4 Verify Connection
+> <sub>**Sources:** [SaaS Upgrade Assistant (DT Managed docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — export from the CMC *Environments* page, then import, review, edit and deploy in the app; [SaaS Upgrade Assistant (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/) — *"the required token's scope was extended to Read network zones, Write network zones and Capture request data"*.</sub>
 
-After connecting, the SaaS Upgrade Assistant should display:
+### 5.4 Verify the Import
 
-| Item | Expected |
-|------|----------|
-| **Connection status** | Connected (green) |
-| **Configuration count** | Total number of exportable configurations |
-| **Environment name** | Your Managed environment name |
-| **Version** | Managed cluster version |
+After the upload, confirm the app lists configurations for the environment you exported, and that the archive came from a Managed version aligned with the SaaS tenant (§ 5.1).
 
-> **Tip:** Run the initial scan now but do **not** deploy any configurations yet. Configuration migration happens in Step 5. The goal here is to verify the connection works and review the scope of what will be migrated.
+> **Tip:** Upload and review now, but do **not** deploy any configurations yet. Configuration migration happens in Step 5. Export a fresh archive just before Step 5 if anything changed on Managed since — the configuration freeze (§ 7) is what keeps that delta small.
 
 ### 5.5 Review Configuration Scope
 
@@ -423,33 +424,35 @@ The SaaS Upgrade Assistant groups configurations by type. Review the counts to v
 | Service detection rules | | | [ ] |
 | SLOs | | | [ ] |
 
-> **Not carried over by the SaaS Upgrade Assistant:** cluster overload-prevention settings — the maximum entry-point PurePaths/traces per process per minute and the maximum user actions per minute (RUM) — are **not** exported. Re-apply the values you inventoried in Step 1 manually on the SaaS tenant during preparation.
+> **Cluster-level safeguards:** in community practice, cluster overload-prevention settings — the maximum entry-point PurePaths/traces per process per minute and the maximum user actions per minute (RUM) — are reported as not carried by the export. Check whether they appear in your archive's review screen; if not, re-apply the values you inventoried in Step 1 manually on the SaaS tenant.
 
 ---
 
 <a id="network-zone-recreation"></a>
-## 6. Network Zone Recreation
+## 6. Network Zones in the SaaS Tenant
 
-Network zones do **not** transfer from Managed to SaaS. You must recreate them in the SaaS tenant before migrating any OneAgents.
+Network zones are among the configuration types the SaaS Upgrade Assistant migrates — its Hub listing names *network zones* in the supported list. Either way, every zone your agents will use must exist in the SaaS tenant, with SaaS ActiveGates assigned to it, **before** you redirect any OneAgent. Confirm the zones arrived with the archive; create any that did not.
 
-### 6.1 Why Zones Must Be Recreated
+> <sub>**Sources:** [SaaS Upgrade Assistant (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/) — lists *network zones* among the configurations the app supports.</sub>
 
-| Reason | Detail |
+### 6.1 What Has to Be True Before Agents Move
+
+| Check | Detail |
 |--------|--------|
-| **Separate tenants** | Managed and SaaS are independent environments |
-| **Zone IDs differ** | SaaS generates new internal IDs |
-| **AG assignment** | New SaaS AGs must be assigned to SaaS zones |
-| **OneAgent routing** | Agents need zones defined before they can route correctly |
+| **Zones exist in SaaS** | Imported by the Upgrade Assistant or created by hand |
+| **SaaS ActiveGates assigned** | Managed ActiveGates do not connect to the SaaS tenant — the new ones carry the zones |
+| **Alternative zones and fallback mode set** | Decide where traffic goes if a zone's ActiveGates are down (M2S-03 § 2) |
+| **Names match** | OneAgents keep their `--set-network-zone` value across the redirect, so SaaS zone names must match the Managed ones unless you reassign agents |
 
 ### 6.2 Create Zones in SaaS
 
-Recreate each zone from your Design step. Use the Settings UI or API:
+Create any zone the archive did not carry. Use the Settings UI or API:
 
 **Via Settings UI:**
 
 Settings > Network zones > Add network zone
 
-> **Sprint 1.339 deprecation (May 2026):** The dedicated `/api/v2/networkZones` Configuration API endpoint is deprecated in favor of the Settings 2.0 schema `builtin:networkzones.zones`. Prefer the Settings 2.0 form below for new automation; the legacy endpoint still works during the deprecation window.
+> **API 1.339 deprecation (May 2026):** the `/api/v2/networkZones` endpoints are deprecated in favor of the Settings 2.0 schema `builtin:networkzones.zones`. Prefer the Settings 2.0 form below for new automation; the legacy endpoint still works during the deprecation period.
 
 **Via Settings 2.0 API (recommended):**
 
@@ -462,35 +465,40 @@ curl -X POST "https://{tenant-id}.live.dynatrace.com/api/v2/settings/objects" \
     "schemaId": "builtin:networkzones.zones",
     "scope": "environment",
     "value": {
-      "name": "datacenter-east",
+      "id": "datacenter-east",
       "description": "Primary datacenter in East region",
-      "alternativeZones": ["datacenter-west"]
+      "alternativeZones": ["datacenter-west"],
+      "fallbackMode": "ANY_ACTIVE_GATE"
     }
   }]'
+# id, alternativeZones (may be empty) and fallbackMode are required. Needs settings.write.
 ```
 
 **Via legacy Configuration API (deprecated, still functional during deprecation window):**
 
 ```bash
-# Create a network zone
-curl -X POST "https://{tenant-id}.live.dynatrace.com/api/v2/networkZones" \
+# Create (or update) a network zone — PUT to the zone's ID; needs networkZones.write
+curl -X PUT "https://{tenant-id}.live.dynatrace.com/api/v2/networkZones/datacenter-east" \
   -H "Authorization: Api-Token {token}" \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "datacenter-east",
     "description": "Primary datacenter in East region",
     "alternativeZones": ["datacenter-west"]
   }'
 ```
+
+> <sub>**Sources:** [Network zones - Settings API (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/manage-via-settings-api) — `fallbackMode` *"Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE"*; [PUT a network zone (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone) — *"This API is deprecated. Use the Settings API instead."*; [Configure ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate) — `networkZone` *"Defines the network zone to which the ActiveGate belongs."*</sub>
 
 ### 6.3 Assign ActiveGates to Zones
 
 If you deployed AGs with `--set-network-zone` during installation (Section 4), they are already assigned. Otherwise, update the assignment:
 
 ```bash
-# Update AG network zone after installation
-# Edit /var/lib/dynatrace/gateway/config/custom.properties
-# Add: networkzone = datacenter-east
+# Update AG network zone after installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# ...or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
 sudo systemctl restart dynatracegateway
 ```
 
@@ -617,14 +625,24 @@ Rollback redirects OneAgents from the SaaS tenant back to the Managed environmen
 The key rollback command redirects the OneAgent back to Managed:
 
 ```bash
-# Linux rollback
+# Linux rollback — server, environment ID and tenant token change together
 sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl \
-  --set-server="https://{managed-cluster}/communication"
+  --set-server="{managed-server-url}" \
+  --set-tenant={managed-env-id} \
+  --set-tenant-token={managed-tenant-token} \
+  --restart-service
 
 # Windows rollback
-"C:\Program Files\dynatrace\oneagent\agent\tools\oneagentctl.exe" \
-  --set-server="https://{managed-cluster}/communication"
+"C:\Program Files\dynatrace\oneagent\agent\tools\oneagentctl.exe" ^
+  --set-server="{managed-server-url}" ^
+  --set-tenant={managed-env-id} ^
+  --set-tenant-token={managed-tenant-token} ^
+  --restart-service
 ```
+
+Changing `--set-server` alone is not enough: the agent would keep the SaaS environment ID and token and fail to authenticate against Managed. Dynatrace's own guidance for `--set-tenant` is *"Always use in combination with --set-tenant-token"*. Take the exact server URL from the Managed OneAgent deployment page, or from `oneagentctl --get-server` on a host before you redirect it.
+
+> <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"Always use in combination with --set-tenant-token"*.</sub>
 
 ### 8.3 Pre-Migration Rollback Test
 
@@ -633,9 +651,9 @@ Test rollback on a non-production host **before** the production migration:
 | Step | Action | Validation |
 |------|--------|------------|
 | 1 | Select a non-production host currently reporting to Managed | Host visible in Managed UI |
-| 2 | Redirect OneAgent to SaaS: `oneagentctl --set-server="https://{tenant-id}.live.dynatrace.com/communication"` | Host appears in SaaS UI within 5 minutes |
+| 2 | Redirect OneAgent to SaaS: `oneagentctl --set-server=... --set-tenant={tenant-id} --set-tenant-token=... --restart-service` (M2S-05 § 4) | Host appears in SaaS UI within 5 minutes |
 | 3 | Verify monitoring data flows to SaaS | Metrics, logs, spans visible in SaaS |
-| 4 | Execute rollback: `oneagentctl --set-server="https://{managed-cluster}/communication"` | Host reappears in Managed UI |
+| 4 | Execute rollback with the full command in § 8.2 | Host reappears in Managed UI |
 | 5 | Verify monitoring data resumes in Managed | Metrics, logs, spans visible in Managed |
 
 > **Important:** Do not proceed to Step 5 until you have successfully tested rollback on at least one host. This validates that the Managed environment is still fully operational and ready to accept agents back if needed.
@@ -646,9 +664,11 @@ Record these values for use during migration:
 
 | Parameter | Value |
 |-----------|-------|
-| **Managed server URL** | `https://{managed-cluster}/communication` |
+| **Managed server URL** | `{managed-server-url}` (copy the exact value from `oneagentctl --get-server`) |
+| **Managed environment ID** | `{managed-env-id}` |
 | **Managed tenant token** | (retrieve from Managed UI > Deployment > OneAgent) |
 | **SaaS server URL** | `https://{tenant-id}.live.dynatrace.com/communication` |
+| **SaaS environment ID** | `{tenant-id}` |
 | **SaaS tenant token** | (retrieve from SaaS UI > Deployment > OneAgent) |
 | **Rollback tested on** | {hostname}, {date} |
 | **Rollback time** | ~5 minutes for agent to reconnect |
@@ -684,7 +704,7 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 | Checkpoint | Status |
 |------------|--------|
 | SAML SSO configured and tested | [ ] |
-| IdP signs full SAML message (not just assertion) | [ ] |
+| IdP signs full SAML message (Entra: *Sign SAML response and assertion*) | [ ] |
 | Azure Entra group claims filtered (if applicable) | [ ] |
 | DNS domain validated | [ ] |
 | Initial IAM groups and policies created | [ ] |
@@ -707,15 +727,15 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 |------------|--------|
 | App installed in SaaS tenant | [ ] |
 | `upgrade-assistant:environments:write` IAM policy granted | [ ] |
-| Connected to Managed source environment | [ ] |
-| Initial configuration scan completed | [ ] |
+| Managed configuration archive exported from the CMC | [ ] |
+| Archive imported and reviewed in the app | [ ] |
 | Configuration counts match Discovery inventory | [ ] |
 
 ### Network Zones
 
 | Checkpoint | Status |
 |------------|--------|
-| All zones recreated in SaaS | [ ] |
+| All zones present in SaaS (imported by the Upgrade Assistant or created) | [ ] |
 | Alternative zones configured for failover | [ ] |
 | AGs assigned to correct zones | [ ] |
 | Zone topology matches Design step | [ ] |
@@ -732,8 +752,8 @@ Complete every checkpoint before proceeding to Step 5 (Execute). Each item corre
 
 | Checkpoint | Status |
 |------------|--------|
-| Managed server URL and tenant token documented | [ ] |
-| SaaS server URL and tenant token documented | [ ] |
+| Managed server URL, environment ID and tenant token documented | [ ] |
+| SaaS server URL, environment ID and tenant token documented | [ ] |
 | Rollback procedure documented | [ ] |
 | Rollback tested on non-production host | [ ] |
 | Rollback test successful (agent reconnected to Managed) | [ ] |
@@ -779,8 +799,8 @@ In this notebook, you prepared:
 - **SaaS tenant** — Provisioned in the correct data residency region with baseline configuration
 - **SSO and identity** — SAML 2.0 configured, DNS domain validated, initial IAM groups created
 - **ActiveGates** — New SaaS-connected AGs deployed in parallel, assigned to network zones
-- **SaaS Upgrade Assistant** — Installed, connected to Managed, initial scan completed
-- **Network zones** — All zones recreated in SaaS matching the Design step topology
+- **SaaS Upgrade Assistant** — Installed, Managed configuration archive exported and imported for review
+- **Network zones** — All zones present in SaaS (imported or created) matching the Design step topology
 - **Configuration freeze** — Announced and enforced on the Managed environment
 - **Rollback** — Procedure documented and tested on a non-production host
 

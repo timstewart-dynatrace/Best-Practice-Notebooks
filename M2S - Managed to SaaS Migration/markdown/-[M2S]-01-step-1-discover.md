@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -12,17 +12,14 @@ The first step in any Managed-to-SaaS migration is understanding what you are mo
 >
 > **Run:** 7. Enable | 8. Expand | 9. Optimize
 
-### Sprint 1.337 (April 2026) Updates Affecting M2S
+### Platform Changes That Affect an M2S Migration
 
-Three sprint-1.337 changes affect a Managed → SaaS migration:
+1. **Primary Grail fields and tags enriched at the source** (OneAgent 1.333+) — OneAgent can stamp `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` and `primary_tags.*` onto every signal it sends. Decide the tag and security-context model in the M2S-03 (Design) step, and set these values in the same `oneagentctl` call that redirects each agent (M2S-05).
+2. **Platform tokens** for new automation. Classic API tokens still work for the classic API paths, but new SaaS pipelines against the platform services should use `dt0s16` platform tokens (`Authorization: Bearer …`). Note: `dt0s01` is a SCIM token for account-level user provisioning — it is NOT a platform-token prefix and should not be used for environment-level automation.
 
-1. **OneAgent primary fields/tags at source** — Latest Dynatrace SaaS tenants gain primary fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and customer-defined primary tags as top-level attributes. Consider this in the M2S-03 (Design) step when deciding what tag/security-context model to recreate post-migration.
-2. **Configuration API → Settings v2 acceleration** — Dynatrace Managed exposes the older Configuration API for many resources; the SaaS target's Settings v2 surface now covers more of those endpoints. Migration tooling (M2S-04/05) should target Settings v2 wherever possible. Plan for the legacy/v2 split where Managed has a unique Configuration API endpoint.
-3. **Platform tokens** for new automation. Classic `dt0c01` still works for legacy paths, but new SaaS pipelines should default to `dt0s16` Platform tokens (`Authorization: Bearer …`). Note: `dt0s01` is a separate SCIM/account-management token — it is NOT a Platform Token prefix and should not be used for environment-level automation.
+**Extensions review** — if Managed carries custom **Extensions Framework 1.0** extensions, migration to SaaS is the natural moment to rebuild them as **Extensions 2.0**, the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31). JMX and PMI extensions on Framework 1.0 were carried past that date as deprecated and now have their own end-of-support date, **July 1, 2027**, after which *"they will no longer be supported in SaaS environments."*
 
-**Extensions review** (ToDo #1) — if Managed carries custom **Extensions Framework 1.0** extensions, migration to SaaS is the natural moment to rebuild them as **Extensions 2.0**, the current extensions framework. EF1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request. Extensions 2.0 are managed via the Dynatrace API Application → Extensions surface.
-
----
+> <sub>**Sources:** [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment) — *"OneAgent version 1.333"*; [Tokens and authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication); [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027."*</sub>
 
 ---
 
@@ -44,16 +41,16 @@ A complete discovery must cover ALL of these categories — missing any one will
 
 | Category | What to Inventory | Migration Method |
 |----------|------------------|-----------------|
-| **Configurations and settings** | All environment-level settings, entity-level settings | Automated via SaaS Upgrade Assistant |
+| **Configurations and settings** | All environment-level settings, entity-level settings | SaaS Upgrade Assistant — confirm each type in the app's review screen |
 | **Credential Vault** | All stored credentials, certificates | Manual — secrets cannot be exported |
 | **API tokens** | All tokens and their scopes | Manual — recreate with minimal scopes |
 | **Extensions** | OneAgent extensions, ActiveGate extensions — are they current or need upgrade? | Manual — evaluate for Extensions 2.0 |
 | **External and custom sources** | Cloud integrations (AWS/Azure/GCP), Kubernetes integration, log ingest, custom metrics | Manual — reconfigure each source |
 | **Other integrations** | ITSM, CMDB, reports, data lakes, CI/CD pipelines | Manual — update endpoints and tokens |
-| **Monitoring components** | OneAgent instances (hosts, PaaS, K8s/OpenShift), ActiveGate instances (routing, extensions, synthetic, zRemote) | Automated (agent redirect) |
-| **Dashboards** | All dashboards, their owners, and management zone filters | Automated via SaaS Upgrade Assistant |
+| **Monitoring components** | OneAgent instances (hosts, PaaS, K8s/OpenShift), ActiveGate instances (routing, extensions, synthetic, zRemote) | Manual — reconfigure each OneAgent (`oneagentctl`) or redeploy it; install new ActiveGates (M2S-04/05) |
+| **Dashboards** | All dashboards, their owners, and management zone filters | SaaS Upgrade Assistant — it can update dashboard owners automatically |
 
-> **Tip:** Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Most items like tags or management zones migrate in full, but others like dashboards should be reviewed and migrated selectively.
+> **Tip:** Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant, but its documentation publishes no per-type list — treat the app's review screen as the authority, and migrate dashboards selectively.
 
 ## Prerequisites
 
@@ -71,7 +68,7 @@ A complete discovery must cover ALL of these categories — missing any one will
 |-----------------|---------|------|
 | Infrastructure | Customer-managed clusters | Fully managed by Dynatrace |
 | Updates | Manual cluster patching | Automatic bi-weekly updates |
-| Availability | Customer-managed HA | 99.5%+ SLA |
+| Availability | Customer-managed HA | 99.5% SLA (99.95% with Enterprise Success and Support) |
 | Data Platform | Time-series DB + Elasticsearch | Grail data lakehouse |
 | Capabilities | Core monitoring | AppEngine, AutomationEngine, Dynatrace Assist |
 For environments where SVG doesn't render
@@ -90,7 +87,7 @@ Moving from Dynatrace Managed to SaaS is not just a hosting change — it unlock
 | **Cluster management** | Customer-managed servers, storage, networking | Fully managed by Dynatrace |
 | **Scaling** | Manual capacity planning and provisioning | Automatic scaling with licensing |
 | **Updates** | Manual cluster patching (scheduled downtime) | Automatic bi-weekly updates (zero downtime) |
-| **Availability** | Customer-managed HA/DR | 99.5%+ SLA with built-in redundancy |
+| **Availability** | Customer-managed HA/DR | Contractual SLA — 99.5% monthly uptime with Standard Support, 99.95% with Enterprise Success and Support — on a multi-availability-zone architecture |
 | **Security patches** | Customer responsibility to apply | Automatic, managed by Dynatrace |
 
 ### Platform Capabilities
@@ -301,7 +298,7 @@ Record your findings in this table:
 | Management Zones | ___ | Will migrate as-is |
 | Dashboards | ___ | Classic dashboards migrate; rebuild as modern recommended |
 
-> **Important:** Dynatrace recommends keeping a single environment at roughly **25,000 hosts of typical load**; the platform can technically scale higher, but beyond that threshold plan to split host-unit quota across multiple SaaS tenants/environments. This is a planning guideline, not a hard cap — discuss tenant topology with your Dynatrace account team before proceeding.
+> **Important:** In community practice, a single environment is planned at roughly **25,000 hosts of typical load** (no Dynatrace page states this figure); the platform can technically scale higher, but beyond that threshold plan to split host-unit quota across multiple SaaS tenants/environments. This is a planning guideline, not a hard cap — discuss tenant topology with your Dynatrace account team before proceeding.
 
 <a id="confirm-use-cases-and-goals"></a>
 
@@ -375,9 +372,9 @@ The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-u
 
 ## 5. What Migrates and What Doesn't
 
-Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant handles most configuration types, but some items require manual recreation.
+Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, but its documentation publishes no per-type support list. The tables below reflect what migration teams commonly report — confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.
 
-### Portable via SaaS Upgrade Assistant
+### Commonly Carried by the SaaS Upgrade Assistant
 
 | Configuration Type | Notes |
 |--------------------|-------|
@@ -400,7 +397,7 @@ Understanding portability constraints upfront prevents surprises during executio
 | **Webhook endpoints** | URLs may differ for SaaS network paths | Reconfigure notification integrations |
 | **Synthetic private locations** | ActiveGate-bound, environment-specific | Deploy new ActiveGates, recreate locations |
 | **Custom extensions (1.0)** | EF1 deprecated — must rebuild as Extensions 2.0 | Rebuild using Extensions 2.0 framework |
-| **Network zones** | Environment-specific network configuration | Recreate in SaaS if needed |
+| **Network zones** | The Upgrade Assistant's Hub listing names network zones as supported — but SaaS ActiveGates must be assigned to them | Confirm they arrived; create missing ones; assign the new ActiveGates (M2S-04 § 6) |
 | **Plugin-based integrations** | Legacy plugin framework | Migrate to Extensions 2.0 or ActiveGate extensions |
 
 ### Non-Portable (Data)
@@ -450,11 +447,11 @@ Identity, notification, and data-control surfaces differ on SaaS. Confirm each d
 
 | Area | Managed | SaaS | Implication |
 |------|---------|------|-------------|
-| **SSO federation** | SAML, OIDC, LDAP | **SAML 2.0 only** (plus SCIM provisioning) | OIDC federation and direct LDAP are **not** available on SaaS — plan SAML 2.0 through your IdP. |
-| **Outbound email (SMTP)** | Custom SMTP server (CMC) | Email sent by Dynatrace; **no custom SMTP** | If you need your own mail path, route to an internal relay via a webhook or Workflow email action. |
+| **SSO federation** | SAML, LDAP | **SAML 2.0** federation (plus SCIM provisioning) is what Dynatrace documents for SaaS | Plan SAML 2.0 through your IdP; the IdP must sign the **entire SAML message** (M2S-04 § 3). |
+| **Outbound email (SMTP)** | Custom SMTP server (CMC) | Email is sent by Dynatrace; we found no documented custom-SMTP option for SaaS — verify for your contract | If you need your own mail path, route to an internal relay via a webhook or Workflow action. |
 | **Data-subject rights** | — | **Privacy Rights** app: export personal data and perform **record-level hard deletion in Grail** through an auditable, multi-reviewer workflow | Use this surface for GDPR/CCPA export and deletion requests. |
 | **Network access control** | — | **IP allow-list** (CIDR) for UI and API | Caveat: it protects the latest (Grail/Gen3) UI and API only — it does **not** block the classic `*.live.dynatrace.com` UI or the data-ingest APIs. |
-| **Dynatrace Support access** | Customer-grantable | **No customer grant/deny toggle** — role-based, internally approved, restricted to the Dynatrace corporate network with MFA, and **every access and change is audit-logged and visible to you** | Governance shifts from a prospective switch to auditable, least-privilege access. |
+| **Dynatrace Support access** | Customer-grantable | Role-based and approved internally; *"restricted to the Dynatrace corporate network and requires multi-factor authentication when accessed remotely"*; *"every access and all changes are audit logged"*. The data-security page documents no customer grant/deny toggle | Governance shifts from a prospective switch to auditable, least-privilege access. |
 
 > <sub>**Sources:** [Adaptive Traffic Management — classic license (DT docs)](https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic), [Support for SQL bind variables (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/support-for-sql-bind-variables), [SAML SSO (DT docs)](https://docs.dynatrace.com/docs/shortlink/access-saml), [Email workflow action (DT docs)](https://docs.dynatrace.com/docs/shortlink/email-integration), [Privacy Rights (DT docs)](https://docs.dynatrace.com/docs/shortlink/privacy-rights), [Record deletion in Grail (DT docs)](https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail), [IP allow-listing (DT docs)](https://docs.dynatrace.com/docs/shortlink/ip-allowlist), [Data security controls (DT docs)](https://docs.dynatrace.com/docs/shortlink/data-security-controls).</sub>
 

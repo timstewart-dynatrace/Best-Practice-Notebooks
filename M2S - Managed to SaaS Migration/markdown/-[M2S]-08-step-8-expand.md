@@ -1,6 +1,6 @@
 # M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With the migration complete and integrations reconnected, the real value of moving to SaaS begins. Dynatrace SaaS includes an entire generation of capabilities that were never available in Managed — Grail, Notebooks, OpenPipeline, Dynatrace Assist, AppEngine, and AutomationEngine. This notebook provides a structured approach to adopting each capability, with a recommended timeline that avoids overwhelming teams while ensuring steady progress.
 
@@ -71,7 +71,7 @@ Grail is the single most impactful new capability. It replaces USQL (User Sessio
 | USQL for session data | DQL for all data types |
 | Separate query interfaces per data type | Single DQL interface for logs, spans, events, metrics, entities |
 | Limited cross-data-type analysis | Unified queries joining logs, spans, and entities |
-| Fixed 35-day retention for session data | Configurable retention per Grail bucket |
+| Retention set by the cluster's storage tiers | Configurable retention per Grail bucket |
 | Metrics API for metric queries | `timeseries` command for metrics |
 
 ### Key Data Objects in Grail
@@ -130,18 +130,18 @@ timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h
 
 ### USQL to DQL Migration Patterns
 
-For teams accustomed to USQL, here are common translation patterns:
+For teams accustomed to USQL, here are common translation patterns. RUM data lives in `user.sessions` and `user.events` on Grail — not in `bizevents` or `logs`:
 
 | USQL Pattern | DQL Equivalent |
 |-------------|----------------|
-| `SELECT count(*) FROM useraction` | `fetch bizevents, from:-1h \| summarize count()` |
-| `WHERE application = "MyApp"` | `\| filter application == "MyApp"` |
-| `GROUP BY city` | `\| summarize count(), by:{city}` |
-| `ORDER BY count(*) DESC` | `\| sort count desc` |
-| `TOP 10` | `\| limit 10` |
-| `BETWEEN "2024-01-01" AND "2024-01-31"` | `fetch ..., from:"2024-01-01", to:"2024-01-31"` |
+| `SELECT COUNT(*) FROM usersession` | `fetch user.sessions, from:-1h \| summarize c = count()` |
+| `FROM useraction` | `fetch user.events, from:-1h` + a filter on the action type (field names differ between classic RUM on Grail and New RUM) |
+| `WHERE country = 'US'` | `\| filter country == "..."` (classic) or `\| filter geo.country.iso_code == "US"` (New RUM) |
+| `ORDER BY count(*) DESC` | `\| summarize c = count(), by:{...} \| sort c desc` — alias the aggregation first |
+| `LIMIT 10` | `\| limit 10` |
+| `BETWEEN "2024-01-01" AND "2024-01-31"` | `fetch ..., from:"2024-01-01T00:00:00Z", to:"2024-01-31T00:00:00Z"` |
 
-> **Tip:** DQL uses a pipeline model (`|`) rather than SQL clauses. Think of each line as a transformation step applied to the data flowing through.
+> **Tip:** DQL uses a pipeline model (`|`) rather than SQL clauses. **WEBRUM-09** has the full grammar and field mapping for both RUM generations, and lists the USQL fields (such as `city`) with no New RUM equivalent.
 
 <a id="notebooks-adoption"></a>
 
@@ -198,7 +198,7 @@ fetch logs, from:-15m
 
 ## 4. OpenPipeline Configuration
 
-OpenPipeline is the SaaS-exclusive data processing engine that operates at ingest time. It replaces the limited log processing available in Managed with a full-featured pipeline that can enrich, transform, route, and mask data before it reaches Grail.
+OpenPipeline is the SaaS-exclusive data processing engine that operates at ingest time. It goes well beyond the log processing available in Managed, with a full pipeline that can enrich, transform, route, and mask data before it reaches Grail.
 
 ### What OpenPipeline Provides
 
@@ -206,7 +206,7 @@ OpenPipeline is the SaaS-exclusive data processing engine that operates at inges
 |-----------|-------------|--------------------|
 | **Log enrichment** | Add fields, parse structured data at ingest | Limited custom log attributes |
 | **Data routing** | Route logs to specific Grail buckets by rules | Not available |
-| **PII masking** | Redact sensitive data at ingest | Not available |
+| **PII masking** | Redact sensitive data at ingest | OneAgent-side masking rules (still available on SaaS) |
 | **Data transformation** | Normalize, rename, and restructure fields | Not available |
 | **Metric extraction** | Generate metrics from log data | Log metrics (limited) |
 | **Drop rules** | Discard noisy or irrelevant data before storage | Not available |
@@ -251,16 +251,19 @@ fetch logs, from:-1h
 
 ### PII Masking Configuration
 
-OpenPipeline supports masking sensitive data at ingest. Configure masking rules for:
+OpenPipeline masks sensitive data at ingest, before storage. Two things to know before you write the rules:
 
-| Data Type | Pattern | Action |
-|----------|---------|--------|
-| **Social Security Numbers** | `\d{3}-\d{2}-\d{4}` | Replace with `***-**-****` |
-| **Credit card numbers** | `\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}` | Replace with `****-****-****-XXXX` |
-| **Email addresses** | `[\w.]+@[\w.]+` | Replace with `***@***` |
-| **IP addresses** (if required) | `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` | Mask last octet |
+- **The pattern language is DPL, not regex.** OpenPipeline matchers use the Dynatrace Pattern Language, while OneAgent-side masking uses RE2 regex — so the same masking job uses two languages depending on where it runs. A regex such as `\d{3}-\d{2}-\d{4}` pasted into an OpenPipeline rule will not behave as it does in a regex engine. **FAQ-15** covers the translation and the traps (DPL performs no backtracking), and **OPLOGS-08** covers masking in the pipeline.
+- **Mask as early as the data allows.** OneAgent-side masking keeps the value from ever leaving the host; OpenPipeline masking covers every ingest channel, including API and OpenTelemetry sources that OneAgent never sees.
 
-Masking rules are applied at ingest — once data enters Grail, it is already masked. This is a significant security improvement over Managed, where masking required external preprocessing.
+| Data type | What to mask |
+|----------|---------|
+| **National ID numbers** (e.g. SSNs) | The full value |
+| **Payment card numbers** | All but the last four digits |
+| **Email addresses** | The local part, or the whole value |
+| **IP addresses** (if required) | The last octet |
+
+Masking rules apply at ingest — once data enters Grail, it is already masked. Records ingested before a rule existed are not rewritten.
 
 <a id="workflow-automation"></a>
 
@@ -334,10 +337,9 @@ Dynatrace Assist brings AI-assisted querying and analysis to Dynatrace. Users ca
 
 ### Enabling Dynatrace Assist
 
-1. Navigate to **Settings > Dynatrace Intelligence > Dynatrace Assist**
-2. Enable Copilot for the environment
-3. Configure user permissions — decide which groups can use Copilot
-4. Copilot appears in Notebooks, Dashboards, and the Dynatrace search bar
+1. Confirm generative AI is enabled for the environment — the setting and the IAM permissions that govern who may use it are described in the Dynatrace Assist documentation linked below (AIOPS-04 covers the controls)
+2. Grant the permission to the groups that should use it
+3. Assist then appears in Notebooks, Dashboards, and the Dynatrace search
 
 ### Adoption Strategy
 
