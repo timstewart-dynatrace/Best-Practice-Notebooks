@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -12,7 +12,7 @@ This entry is the mechanics deep-dive: **what a DPL pattern actually is, how it 
 
 Nearly everyone arrives at DPL fluent in regex, so § 3 handles that head-on: exactly one construct is regex-compatible by design, several translate cleanly, and six pieces of regex intuition are actively wrong — most importantly that DPL does no backtracking, which turns a working regex into a pattern that matches nothing.
 
-**A note on how this was written.** DPL's observable behavior is not fully described by its documentation, and in two places the two disagree. Every behavioral claim below was executed against a live Dynatrace tenant on **07/20/2026** and is labeled **live-verified**; documented-but-unverified claims are cited to the docs and labeled as such. Where the two conflict, both are shown. Examples use `data record(...)`, which fabricates records inline — so **every example here is runnable and scans zero bytes**, needing no log data and incurring no query consumption.
+**A note on how this was written.** DPL's observable behavior is not fully described by its documentation, and in one place — how far the open-ended quantifiers `+`, `*` and `{n,}` reach (§ 6) — the two disagree. Every behavioral claim below was executed against a live Dynatrace tenant on **07/20/2026** (examples changed since were re-run on the date they carry) and is labeled **live-verified**; documented-but-unverified claims are cited to the docs and labeled as such. Where the two conflict, both are shown. Examples use `data record(...)`, which fabricates records inline — so **every example here is runnable and scans zero bytes**, needing no log data and incurring no query consumption.
 
 ---
 
@@ -94,14 +94,14 @@ Only the matcher itself is required. Everything else refines it:
 ![DPL Matcher Expression Anatomy](images/15-dpl-pattern-anatomy_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Element in `'svc=' LD:svc ' dur=' INT(min=0):dur EOL` | Role |
+| Element in `'svc=' LD:svc ' dur=' INT(min=0):dur EOS` | Role |
 |---|---|
 | `'svc='` | Literal — consumed, not kept |
 | `LD:svc` | Matcher + export name — minimal match up to the next matcher |
 | `' dur='` | Literal — the delimiter that bounds LD |
 | `INT(min=0)` | Matcher + configuration — validates as well as extracts |
 | `:dur` | Export name — becomes a field |
-| `EOL` | Positional matcher — anchors the end of line |
+| `EOS` | Positional matcher — anchors the end of the string, consumes nothing (`EOL` is different: it consumes a line feed) |
 -->
 
 ### Macros keep long patterns readable
@@ -110,7 +110,16 @@ Repeated fragments can be named once and reused, which matters for syslog-style 
 
 ```dql
 $syslog_hdr = TIMESTAMP('MMM d HH:mm:ss'):ts ' ' LD:host;
-$syslog_hdr ' ' LD:process ': ' LD:message EOL;
+$syslog_hdr ' ' LD:process ': ' LD:message EOS;
+```
+
+> ⚠️ **End a pattern with `EOS`, not `EOL`.** `EOL` is not an anchor — it matches and consumes a line-feed character, so a pattern ending in `EOL` returns `null` on any record without a trailing `\n`, which is almost every single-line log record. Both examples above return `null` with `EOL` and parse with `EOS`. *(live-verified 10/02/2026)*
+
+```dql
+data record(t = "svc=checkout dur=42")
+| fieldsAdd with_eol = parse(t, "'svc=' LD:svc ' dur=' INT(min=0):dur EOL"),
+            with_eos = parse(t, "'svc=' LD:svc ' dur=' INT(min=0):dur EOS")
+// live-verified 10/02/2026: with_eol = null, with_eos = {svc: "checkout", dur: 42}
 ```
 
 > <sub>**Sources:**</sub>
@@ -118,6 +127,8 @@ $syslog_hdr ' ' LD:process ': ' LD:message EOL;
 > - <sub>[DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers)</sub>
 > - <sub>[Literal expressions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-literal-expression)</sub>
 > - <sub>[Macros (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-macros)</sub>
+> - <sub>[Lines and strings (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-lines-strings) — *"EOL, LF Matches the single line feed character"*</sub>
+> - <sub>[Positional matchers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-positional-matchers) — *"Positional matchers always refer to the absolute start or end of the input string, regardless of newlines."*</sub>
 
 ---
 
@@ -148,13 +159,13 @@ Ranges (`[0-9]`), sets (`[abc]`), and POSIX bracket forms (`[:lower:]`) all work
 | `.` (any character) | *no direct equivalent* | See § 3.3 — `'.'` is a literal dot |
 | `.*` / `.+` (rest of line) | `LD` | **Semantics differ — see § 3.3** |
 | `[\s\S]*` (across lines) | `DATA` | |
-| `x*` `x+` `x?` | identical syntax | Open-ended forms cap at 4096 |
+| `x*` `x+` `x?` | identical syntax | Open-ended forms are bounded — see § 6 |
 | `x{2,5}` `x{3}` | **only on some matchers** | Numeric and semantic matchers reject `{n}` — see § 3.3 |
 | Backtracking | **none** | The biggest difference in this table — see § 3.3 |
 | `(a\|b)` | `(a\|b)` | Lazy, left-to-right; losers export `null` |
 | `(?=…)` `(?!…)` | `>>` `!>>` | |
 | `(?<=…)` `(?<!…)` | `<<` `!<<` | 64-byte look-behind window |
-| `^` `$` anchors | `BOS` `EOS` / `EOL` | |
+| `^` `$` anchors | `BOS` `EOS` | `EOL` is not an anchor — it consumes a `\n` (§ 2) |
 | `(?<name>…)` named capture | `MATCHER:name` | Naming *is* how you capture |
 | `\.` escaped literal | `'.'` quoted literal | All literals are quoted, never escaped |
 | Backreference `\1` | — | Not available |
@@ -218,7 +229,7 @@ To match exactly three digits, use a character class: `[0-9]{3}:code`. Note the 
 
 This one at least fails loudly. It is still worth knowing before you write a fixed-width pattern for an SSN, a zip code, or a card fragment.
 
-**6. Nothing is unbounded.** Regex `+` means "one or more, however many." DPL `+` means `{1,4096}`. A regex that works on a 10 KB line has a DPL translation that silently stops at 4096 characters.
+**6. Nothing is unbounded.** Regex `+` means "one or more, however many." DPL `+` is capped — the docs say at 4,096 repetitions, and on a live tenant it reached 8,192 (§ 6). A regex that works on a 10 KB line has a DPL translation that silently stops short. For long fields set an explicit maximum, e.g. `DATA{1,20000}`.
 
 ### 3.4 Coming from Grok
 
@@ -389,7 +400,7 @@ If a pipeline must reject bad addresses, check the parsed value against the sour
 | `XML`, `XML_PLAIN`, `XML_VERBOSE` | `XML:doc` | object |
 | `KVP` | `KVP{ …:key … :value }:name` | object |
 | `ARRAY` | `ARRAY{ … }{n,m}:name` | array |
-| `STRUCTURE` | `STRUCTURE{ … }:name` | tuple |
+| `STRUCTURE` | `STRUCTURE{ … }:name` | record |
 | `ENUM` | `ENUM{'A'=1,'B'=2}:name` | integer |
 
 These four are the most under-used matchers in the language, and all are live-verified:
@@ -397,7 +408,7 @@ These four are the most under-used matchers in the language, and all are live-ve
 ```dql
 data record(t = "a=1, b=2, c=3")
 | parse t, "KVP{ALNUM+:key '=' INT:value ', '?}:kv"
-// live-verified: kv = {"a": "1", "b": "2", "c": "3"}
+// live-verified 10/02/2026: kv = {a: 1, b: 2, c: 3} — values typed long, because INT:value
 ```
 
 ```dql
@@ -521,12 +532,12 @@ The documented default quantifier is `{1,4096}`. On long lines — stack traces,
 |--------|---------|
 | `{n}` | Exactly n |
 | `{n,m}` | Between n and m |
-| `{n,}` | At least n, capped at **4096** |
+| `{n,}` | At least n — capped (see below) |
 | `{,m}` | Up to m |
-| `*` | 0 to 4096 |
-| `+` | 1 to 4096 |
+| `*` | 0 to the cap |
+| `+` | 1 to the cap |
 
-**Every open-ended quantifier is capped at 4096.** `+` is not unbounded — it is `{1,4096}`.
+**Every open-ended quantifier is capped — and the documented cap is not the observed one.** The docs define `+` as *"at least 1 times and max 4096 times"*, and the same 4,096 for `*` and `{n,}`. On a live tenant (10/02/2026, zero-byte `data record` tests) the explicit open-ended forms reached **8,192**: on a 4,400-character run, `LD+`, `LD{1,}`, `[a]+` and `ALPHA+` all captured 4,400 characters, while the **unquantified** `LD` returned `null` and `ALPHA` stopped at 4,096; on a 9,600-character run `LD+` returned `null` and `ALPHA+` stopped at 8,192. Plan for the documented 4,096 and do not rely on the higher observed value — either way the cap is real. For long fields set an explicit maximum (`DATA{1,20000}:body` captured all 9,600 characters); the docs allow up to 16,000,000 for `LD` and `DATA`.
 
 > ⚠️ **Which quantifiers you may use depends on the matcher.** Counted forms (`{n}`, `{n,m}`) are not universal:
 >
@@ -592,7 +603,7 @@ data record(t = "ERROR svc=api code=500 code=502")
 
 Negative lookahead is the tidy way to say "parse this line only if it *isn't* a heartbeat" without a separate filter.
 
-> <sub>**Sources:** [DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers) — quantifier forms, the 4096 cap, optional placement, and the 64-byte look-behind window; [Alternatives group (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-alternatives-group) — the lazy left-to-right strategy and `null` for losing alternatives.</sub>
+> <sub>**Sources:** [DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers) — quantifier forms, *"+ specifies repetition with at least 1 times and max 4096 times"*, optional placement, and the 64-byte look-behind window; [Lines and strings (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-lines-strings) — LD/DATA *"Default: 4096 . Maximum: 16000000"*; [Alternatives group (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-alternatives-group) — the lazy left-to-right strategy and `null` for losing alternatives.</sub>
 
 ---
 
@@ -638,7 +649,7 @@ The same DPL, used inline in `fieldsAdd`. Returns the value directly, or a recor
 ```dql
 data record(t = "ERROR svc=api code=500 code=502")
 | fieldsAdd codes = parseAll(t, "'code=' INT:c")
-// live-verified: codes = ["500", "502"]
+// live-verified 10/02/2026: codes = [500, 502] — an array of long
 ```
 
 ### `matchesPattern` — DPL as a filter
@@ -650,7 +661,7 @@ fetch logs, from: -1h
 | filter matchesPattern(content, "IPADDR ' - - [' DATA")
 ```
 
-**`matchesPattern` must match the whole string, not a prefix.** Without the trailing `DATA`, the same filter returns `false` on every access-log line — live-verified 09/24/2026: 0 records against 11,175 with `DATA` over the same hour, and `matchesPattern("10.1.2.3 GET /x", "IPADDR")` is `false`. `DATA` absorbs the rest of the record, line breaks included; `LD` stops at the first line break, so it fails on multi-line content. `contains(content, "192.168")` matches a version string; this pattern matches only records that start with an actual address. This is also the natural expression for OpenPipeline **matching conditions**.
+**`matchesPattern` must match the whole string, not a prefix.** Without the trailing `DATA`, the same filter returns `false` on every access-log line — live-verified 09/24/2026: 0 records against 11,175 with `DATA` over the same hour, and `matchesPattern("10.1.2.3 GET /x", "IPADDR")` is `false`. `DATA` absorbs the rest of the record, line breaks included; `LD` stops at the first line break, so it fails on multi-line content. `contains(content, "192.168")` matches a version string; this pattern matches only records that start with an actual address. In OpenPipeline, use `matchesPattern` inside a DQL processor — pipeline **matching conditions** accept only `matchesPhrase` / `matchesValue` (§ 3.5).
 
 ### `replacePattern` — masking
 
@@ -672,7 +683,7 @@ data record(t = "ERROR svc=api code=500")
 
 All five are available inside the OpenPipeline DQL processor as well as at query time.
 
-> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — `parse` signature, the four parameters, and the field-override warning; [String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `parse`, `parseAll`, `matchesPattern`, `replacePattern`, `splitByPattern`; [OpenPipeline DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions) — availability inside the DQL processor.</sub>
+> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — `parse` signature, the four parameters, and the field-override warning; [String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `parse`, `parseAll`, `matchesPattern`, `replacePattern`, `splitByPattern`; [OpenPipeline DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions) — availability inside the DQL processor; [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — the matcher's *Functions* list is `matchesPhrase`, `matchesValue`, `isNotNull`, `isNull` and `duration` (read 10/02/2026).</sub>
 
 ---
 
@@ -685,10 +696,12 @@ DPL is almost always taught with logs, and both the documentation and this corpu
 
 ```dql
 fetch spans, from: -10m
-| fieldsAdd probe = "svc=checkout dur=42"
-| parse probe, "'svc=' LD:svc ' dur=' INT:dur"
-| fields svc, dur
-// live-verified: accepted and executed against spans
+| filter contains(span.name, " ")
+| limit 10
+| parse span.name, "LD:verb ' ' LD:rest EOS"
+| fields span.name, verb, rest
+// live-verified 10/02/2026: "GET /api/currency?" → verb = "GET", rest = "/api/currency?";
+// "router frontend egress" → verb = "router", rest = "frontend egress"
 ```
 
 Practical uses that have nothing to do with logs:
@@ -708,7 +721,7 @@ data record(host = "prd-use1-web-014")
 // env = "prd", region = "use1", role = "web", instance = 14
 ```
 
-> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — defines `expression` as "a field or string expression to parse", with no record-type restriction stated. The Dynatrace documentation does **not** explicitly state that `parse` works on spans, events, or business events; the claim here rests on live-tenant execution against `fetch spans` (07/20/2026) plus the string-expression signature. **Derived:** the applicability table is an authoring synthesis of that finding.</sub>
+> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — defines `expression` as "a field or string expression to parse", with no record-type restriction stated. The Dynatrace documentation does **not** explicitly state that `parse` works on spans, events, or business events; the claim here rests on live-tenant execution against `fetch spans` (07/20/2026; re-run on `span.name` 10/02/2026) plus the string-expression signature. **Derived:** the applicability table is an authoring synthesis of that finding.</sub>
 
 ---
 
@@ -732,6 +745,8 @@ Two asymmetries matter more than the table suggests:
 - **Ingest-time parsing is forward-only.** Deploy a pattern today and yesterday's records stay unparsed forever. Anything you might want historically must be parseable at query time regardless.
 - **Ingest-time parsing is where the mistakes are expensive.** A query-time typo costs one re-run. A pipeline typo silently mis-populates every record until someone notices — and § 5 established that DPL failures don't announce themselves.
 
+> **Forthcoming (SaaS 1.348, staged rollout planned from 09/22/2026):** a third place — DQL gains the ability to use DPL *"to parse file contents and shape the data at read time"* on files referenced through External Data Stores. This is pre-release information; verify it has reached your tenant. Until then, ingest and query time above are the two places DPL runs.
+
 **The practical sequence: develop at query time, promote to ingest time.** Iterate in DPL Architect against real records until the pattern is right, confirm it at query scale, and only then move the settled pattern into a pipeline processor.
 
 ### Limits that bound ingest-time patterns
@@ -745,7 +760,7 @@ Two asymmetries matter more than the table suggests:
 
 The Dynatrace documentation states **no** DPL-specific performance or DPS-consumption cost for pattern complexity. In community practice, teams treat pattern count and pipeline depth as the thing to keep an eye on rather than individual pattern complexity — verify against your own pipeline metrics before optimizing on assumption.
 
-> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — the four limits in the table. **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — the four limits in the table; [What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"use the Dynatrace Pattern Language (DPL) to parse file contents and shape the data at read time"* (pre-release, read 10/02/2026). **Derived:** the ingest-vs-query decision rule extends FAQ-09's read-frequency heuristic to parsing; the forward-only asymmetry follows from OpenPipeline processing records at ingest, which the docs describe but do not frame as a parsing-design constraint.</sub>
 
 ---
 
@@ -835,7 +850,7 @@ Two features worth knowing: patterns can be developed across **multiple tabs** f
 2. **Translate regex deliberately, never mechanically.** Character groups port verbatim; `.*` → `LD` does not. Re-test every ported pattern against real records — a regex translation that "looks right" is exactly the shape of failure DPL doesn't report.
 3. **Develop in DPL Architect against real records, never from memory.** Add records to the preview until you've seen the format's variants.
 4. **Never place two `LD`s next to each other.** Always separate them with a literal or a non-optional matcher.
-5. **State quantifiers explicitly whenever length matters** — both because the open-ended forms cap at 4096 and because character-class defaults don't behave as documented.
+5. **State quantifiers explicitly whenever length matters** — both because the open-ended forms are capped (§ 6) and because the defaults differ by matcher: a bracket group takes one character, POSIX classes and `LD` up to 4,096.
 6. **Prefix your export names** (`x_status`) so `parse` can't override existing semantic fields.
 7. **Develop at query time, promote to ingest time.** Only move a pattern into a pipeline once it's settled and you've measured its parse rate.
 8. **Measure coverage with `matchesPattern` before deploying**, and re-measure after — a pattern is a hypothesis about a format until you've counted.
@@ -850,7 +865,7 @@ Two features worth knowing: patterns can be developed across **multiple tabs** f
 
 **Two `LD`s with nothing between them.** Covered in § 5 and repeated here because it produces plausible-looking wrong data rather than an error. `parse(t, "LD:x LD:y")` on `"alpha beta gamma"` returns `x = "a"`. *(live-verified)*
 
-**Assuming `+` is unbounded.** It's `{1,4096}`. Long records silently exceed it.
+**Assuming `+` is unbounded.** It is capped — 4,096 per the docs, 8,192 observed (§ 6). Long records silently exceed it; set an explicit maximum.
 
 **Hand-rolling quoted strings as `'"' LD:x '"'`.** Breaks on any escaped quote inside the value. Use `DQS`.
 

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Sizing an ActiveGate — Capability, Baseline, Headroom, Scale</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">Each job has its own sizing dimension. Baselines are starting points — self-monitoring decides when to scale.</text>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- STEP 1: capabilities -->
+  <text x="130" y="92" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">1 — What jobs?</text>
+  <rect x="24" y="104" width="212" height="70" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="130" y="128" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Routing OneAgent traffic</text>
+  <text x="130" y="147" text-anchor="middle" fill="#94A3B8" font-size="11.5">sized by connected OneAgents</text>
+  <text x="130" y="163" text-anchor="middle" fill="#94A3B8" font-size="11.5">(hosts) + data volume</text>
+
+  <rect x="24" y="182" width="212" height="70" fill="#22C55E" opacity="0.10" stroke="#22C55E" stroke-width="1.5" rx="6"/>
+  <text x="130" y="206" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Kubernetes monitoring</text>
+  <text x="130" y="225" text-anchor="middle" fill="#94A3B8" font-size="11.5">sized by pods (primary),</text>
+  <text x="130" y="241" text-anchor="middle" fill="#94A3B8" font-size="11.5">nodes + Prometheus pods</text>
+
+  <rect x="24" y="260" width="212" height="70" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="130" y="284" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Private synthetic</text>
+  <text x="130" y="303" text-anchor="middle" fill="#94A3B8" font-size="11.5">sized by browser monitor</text>
+  <text x="130" y="319" text-anchor="middle" fill="#94A3B8" font-size="11.5">executions per hour</text>
+
+  <rect x="24" y="338" width="212" height="70" fill="#F59E0B" opacity="0.10" stroke="#F59E0B" stroke-width="1.5" rx="6"/>
+  <text x="130" y="362" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Extensions / cloud API</text>
+  <text x="130" y="381" text-anchor="middle" fill="#94A3B8" font-size="11.5">sized by instances polled</text>
+  <text x="130" y="397" text-anchor="middle" fill="#94A3B8" font-size="11.5">+ EEC disk allowance</text>
+
+  <!-- arrows step1 -> step2 -->
+  <line x1="236" y1="256" x2="286" y2="256" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- STEP 2: baselines -->
+  <text x="392" y="92" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">2 — Documented baseline</text>
+  <rect x="286" y="104" width="212" height="96" fill="#334155" opacity="0.35" stroke="#64748B" stroke-width="1.2" rx="6"/>
+  <text x="392" y="128" text-anchor="middle" fill="#F8FAFC" font-size="12.5" font-weight="700">Host-based (§3)</text>
+  <text x="392" y="147" text-anchor="middle" fill="#94A3B8" font-size="11.5">2 vCPU / 3.75 GiB ≈ 800 hosts</text>
+  <text x="392" y="163" text-anchor="middle" fill="#94A3B8" font-size="11.5">4 vCPU ≈ 1,800 · 8 vCPU ≈ 2,500</text>
+  <text x="392" y="188" text-anchor="middle" fill="#64748B" font-size="10.5">(x86-64 reference; ARM64 higher)</text>
+
+  <rect x="286" y="212" width="212" height="88" fill="#334155" opacity="0.35" stroke="#64748B" stroke-width="1.2" rx="6"/>
+  <text x="392" y="236" text-anchor="middle" fill="#F8FAFC" font-size="12.5" font-weight="700">Kubernetes S / M / L (§4)</text>
+  <text x="392" y="255" text-anchor="middle" fill="#94A3B8" font-size="11.5">&lt;1k pods → 6 Gi · 1–5k → 10 Gi</text>
+  <text x="392" y="271" text-anchor="middle" fill="#94A3B8" font-size="11.5">5–20k → 12 Gi + routing replicas</text>
+  <text x="392" y="290" text-anchor="middle" fill="#64748B" font-size="10.5">platform-monitoring vs routing split</text>
+
+  <rect x="286" y="312" width="212" height="88" fill="#334155" opacity="0.35" stroke="#64748B" stroke-width="1.2" rx="6"/>
+  <text x="392" y="336" text-anchor="middle" fill="#F8FAFC" font-size="12.5" font-weight="700">Synthetic XS–L (§5)</text>
+  <text x="392" y="355" text-anchor="middle" fill="#94A3B8" font-size="11.5">300–2,200 browser executions/hr</text>
+  <text x="392" y="371" text-anchor="middle" fill="#94A3B8" font-size="11.5">≥2 nodes per location</text>
+  <text x="392" y="390" text-anchor="middle" fill="#64748B" font-size="10.5">dedicated — one location per AG</text>
+
+  <!-- arrows step2 -> step3 -->
+  <line x1="498" y1="256" x2="548" y2="256" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- STEP 3: headroom guardrail -->
+  <text x="632" y="92" text-anchor="middle" fill="#FBBF24" font-size="13" font-weight="700">3 — Headroom</text>
+  <rect x="548" y="104" width="168" height="296" fill="#F59E0B" opacity="0.10" stroke="#F59E0B" stroke-width="1.5" rx="6"/>
+  <text x="632" y="136" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Stay under</text>
+  <text x="632" y="160" text-anchor="middle" fill="#FBBF24" font-size="16" font-weight="700">50% CPU</text>
+  <text x="632" y="182" text-anchor="middle" fill="#FBBF24" font-size="16" font-weight="700">80% memory</text>
+  <text x="632" y="212" text-anchor="middle" fill="#94A3B8" font-size="11.5">…including when one</text>
+  <text x="632" y="228" text-anchor="middle" fill="#94A3B8" font-size="11.5">zone peer is DOWN —</text>
+  <text x="632" y="244" text-anchor="middle" fill="#94A3B8" font-size="11.5">size for the survivors</text>
+  <text x="632" y="276" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Per network zone:</text>
+  <text x="632" y="294" text-anchor="middle" fill="#94A3B8" font-size="11.5">N+1 ActiveGates,</text>
+  <text x="632" y="310" text-anchor="middle" fill="#94A3B8" font-size="11.5">N carries full load</text>
+  <text x="632" y="342" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Fallback mode is a</text>
+  <text x="632" y="358" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">capacity decision</text>
+  <text x="632" y="376" text-anchor="middle" fill="#94A3B8" font-size="11.5">Any ActiveGate / Only</text>
+  <text x="632" y="392" text-anchor="middle" fill="#94A3B8" font-size="11.5">default zone / None (§6)</text>
+
+  <!-- arrows step3 -> step4 -->
+  <line x1="716" y1="256" x2="766" y2="256" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- STEP 4: verify + scale -->
+  <text x="836" y="92" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">4 — Verify &amp; scale</text>
+  <rect x="766" y="104" width="140" height="120" fill="#334155" opacity="0.35" stroke="#64748B" stroke-width="1.2" rx="6"/>
+  <text x="836" y="128" text-anchor="middle" fill="#F8FAFC" font-size="12.5" font-weight="700">Watch dt.sfm.* (§7)</text>
+  <text x="836" y="148" text-anchor="middle" fill="#94A3B8" font-size="11">jvm.cpu_usage</text>
+  <text x="836" y="164" text-anchor="middle" fill="#94A3B8" font-size="11">heap used / available</text>
+  <text x="836" y="180" text-anchor="middle" fill="#94A3B8" font-size="11">queue.outgoing.usage</text>
+  <text x="836" y="196" text-anchor="middle" fill="#94A3B8" font-size="11">messages.dropped</text>
+  <text x="836" y="214" text-anchor="middle" fill="#FBBF24" font-size="10.5">dropped &gt; 0 = data loss</text>
+
+  <rect x="766" y="236" width="140" height="52" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="836" y="258" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Routing hot?</text>
+  <text x="836" y="276" text-anchor="middle" fill="#BFDBFE" font-size="11.5">Scale OUT — add an AG</text>
+
+  <rect x="766" y="296" width="140" height="52" fill="#22C55E" opacity="0.10" stroke="#22C55E" stroke-width="1.5" rx="6"/>
+  <text x="836" y="318" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">K8s monitoring hot?</text>
+  <text x="836" y="336" text-anchor="middle" fill="#86EFAC" font-size="11.5">Scale UP — next size</text>
+
+  <rect x="766" y="356" width="140" height="52" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="836" y="378" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Synthetic hot?</text>
+  <text x="836" y="396" text-anchor="middle" fill="#DDD6FE" font-size="11.5">Bigger node / add nodes</text>
+
+  <!-- footer -->
+  <rect x="24" y="430" width="882" height="46" fill="#1E293B" stroke="#334155" stroke-width="1" rx="6"/>
+  <text x="465" y="449" text-anchor="middle" fill="#F8FAFC" font-size="12.5" font-weight="700">Split before you supersize — demanding capabilities get dedicated ActiveGates</text>
+  <text x="465" y="467" text-anchor="middle" fill="#94A3B8" font-size="11.5">Purpose-per-ActiveGate fleets are easier to size, update, and troubleshoot than one ActiveGate doing every job.</text>
+</svg>

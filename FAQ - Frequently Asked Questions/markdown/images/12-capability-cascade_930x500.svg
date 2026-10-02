@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">The Capability Dependency Cascade</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">Each layer feeds the next — every layer withheld removes a class of answers everywhere above it</text>
+
+  <defs>
+    <marker id="up12" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Left ladder: modes bottom-up -->
+  <rect x="40" y="400" width="330" height="62" fill="#64748B" opacity="0.12" stroke="#64748B" stroke-width="1.5" rx="8"/>
+  <text x="205" y="425" text-anchor="middle" fill="#CBD5E1" font-size="14" font-weight="700">Discovery mode</text>
+  <text x="205" y="444" text-anchor="middle" fill="#94A3B8" font-size="11">Inventory: hosts + processes exist · upgrade signals</text>
+
+  <rect x="40" y="322" width="330" height="62" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="205" y="347" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">Infrastructure mode</text>
+  <text x="205" y="366" text-anchor="middle" fill="#94A3B8" font-size="11">Process details · disk / network / memory · logs possible</text>
+
+  <rect x="40" y="244" width="330" height="62" fill="#73BE28" opacity="0.1" stroke="#73BE28" stroke-width="2" rx="8"/>
+  <text x="205" y="269" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Full-Stack mode (code modules)</text>
+  <text x="205" y="288" text-anchor="middle" fill="#94A3B8" font-size="11">Injection → PurePath traces → service detection</text>
+
+  <rect x="40" y="166" width="330" height="62" fill="#A78BFA" opacity="0.1" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="205" y="191" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Add-ons: Logs · RUM · Synthetic · AppSec</text>
+  <text x="205" y="210" text-anchor="middle" fill="#94A3B8" font-size="11">Evidence · user impact · outside-in · runtime security</text>
+
+  <rect x="40" y="88" width="330" height="62" fill="#FFB800" opacity="0.1" stroke="#FFB800" stroke-width="2" rx="8"/>
+  <text x="205" y="113" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">Davis causal RCA</text>
+  <text x="205" y="132" text-anchor="middle" fill="#94A3B8" font-size="11">"What broke, why, who is affected" = f(signal completeness)</text>
+
+  <line x1="205" y1="400" x2="205" y2="386" stroke="#64748B" stroke-width="1.5" marker-end="url(#up12)"/>
+  <line x1="205" y1="322" x2="205" y2="308" stroke="#64748B" stroke-width="1.5" marker-end="url(#up12)"/>
+  <line x1="205" y1="244" x2="205" y2="230" stroke="#64748B" stroke-width="1.5" marker-end="url(#up12)"/>
+  <line x1="205" y1="166" x2="205" y2="152" stroke="#64748B" stroke-width="1.5" marker-end="url(#up12)"/>
+
+  <!-- Right panel: what breaks -->
+  <rect x="410" y="88" width="480" height="374" fill="#DE350B" opacity="0.06" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="650" y="115" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">Withhold a layer → what stops working above it</text>
+
+  <text x="430" y="148" fill="#FCA5A5" font-size="12" font-weight="700">No Full-Stack / code modules</text>
+  <text x="430" y="166" fill="#94A3B8" font-size="11">No traces → no services → Smartscape ends at processes →</text>
+  <text x="430" y="182" fill="#94A3B8" font-size="11">Davis RCA falls back to host-level → AppSec detection limited</text>
+
+  <text x="430" y="212" fill="#FCA5A5" font-size="12" font-weight="700">Deep monitoring off (per process group)</text>
+  <text x="430" y="230" fill="#94A3B8" font-size="11">That PG vanishes from service/code view — Full-Stack cost,</text>
+  <text x="430" y="246" fill="#94A3B8" font-size="11">Infrastructure value</text>
+
+  <text x="430" y="276" fill="#FCA5A5" font-size="12" font-weight="700">No logs</text>
+  <text x="430" y="294" fill="#94A3B8" font-size="11">Investigations end at "metric spiked" — no evidence layer,</text>
+  <text x="430" y="310" fill="#94A3B8" font-size="11">no log-derived metrics, fewer Davis signals</text>
+
+  <text x="430" y="340" fill="#FCA5A5" font-size="12" font-weight="700">No RUM</text>
+  <text x="430" y="358" fill="#94A3B8" font-size="11">Problems can't state user impact — priority by loudest host,</text>
+  <text x="430" y="374" fill="#94A3B8" font-size="11">not most-damaged users · no experience SLOs · no replay</text>
+
+  <text x="430" y="404" fill="#FCA5A5" font-size="12" font-weight="700">No synthetic</text>
+  <text x="430" y="422" fill="#94A3B8" font-size="11">Detection depends on live users — quiet hours fail silently</text>
+
+  <text x="430" y="448" fill="#FCD34D" font-size="11" font-weight="600">Marginal value of each layer is higher when the others are on.</text>
+</svg>

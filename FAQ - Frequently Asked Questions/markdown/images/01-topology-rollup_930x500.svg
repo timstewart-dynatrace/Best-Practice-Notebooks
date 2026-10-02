@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Dynatrace Topology Rollup</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Host group context propagates up through every entity layer</text>
+
+  <defs>
+    <marker id="g1tarr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#73BE28"/>
+    </marker>
+  </defs>
+
+  <!-- 4-layer hierarchy on the left -->
+  <!-- Layer 1: Process (bottom) -->
+  <rect x="60" y="380" width="380" height="65" fill="#334155" stroke="#64748B" rx="6"/>
+  <text x="80" y="403" fill="#F8FAFC" font-size="13" font-weight="700">Process</text>
+  <text x="80" y="421" fill="#94A3B8" font-size="11">OS-level running process detected by OneAgent</text>
+  <text x="80" y="437" fill="#CBD5E1" font-size="10" font-family="monospace">java -jar checkout.jar  ·  nginx -g daemon off  ·  postgres</text>
+
+  <!-- Layer 2: Process Group -->
+  <rect x="60" y="295" width="380" height="65" fill="#1E293B" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="80" y="318" fill="#DDD6FE" font-size="13" font-weight="700">Process Group (PG) + Process Group Instance (PGI)</text>
+  <text x="80" y="336" fill="#94A3B8" font-size="11">Grouped by technology, command line, working dir, metadata</text>
+  <text x="80" y="352" fill="#CBD5E1" font-size="10">PGI is the per-host running instance of a PG</text>
+
+  <!-- Layer 3: Host -->
+  <rect x="60" y="210" width="380" height="65" fill="#1E293B" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="80" y="233" fill="#BFDBFE" font-size="13" font-weight="700">Host</text>
+  <text x="80" y="251" fill="#94A3B8" font-size="11">A monitored OS instance (VM, EC2, bare-metal, K8s node)</text>
+  <text x="80" y="267" fill="#CBD5E1" font-size="10" font-family="monospace">i-0abc123  ·  ip-10-12-4-88.ec2.internal</text>
+
+  <!-- Layer 4: Host Group (top) -->
+  <rect x="60" y="115" width="380" height="75" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="6"/>
+  <text x="80" y="140" fill="#D9F99D" font-size="14" font-weight="700">Host Group</text>
+  <text x="80" y="160" fill="#94A3B8" font-size="11">Logical boundary you assign — the root of context for everything below</text>
+  <text x="80" y="178" fill="#86EFAC" font-size="11" font-family="monospace">prod-app  ·  nonprod-app  ·  payment-pci  ·  prod-infra</text>
+
+  <!-- Inheritance arrows (upward through layers) -->
+  <g stroke="#73BE28" stroke-width="2" fill="none">
+    <line x1="250" y1="380" x2="250" y2="365" marker-end="url(#g1tarr)"/>
+    <line x1="250" y1="295" x2="250" y2="280" marker-end="url(#g1tarr)"/>
+    <line x1="250" y1="210" x2="250" y2="195" marker-end="url(#g1tarr)"/>
+  </g>
+  <text x="280" y="370" fill="#86EFAC" font-size="10" font-style="italic">inherits</text>
+  <text x="280" y="285" fill="#86EFAC" font-size="10" font-style="italic">inherits</text>
+  <text x="280" y="200" fill="#86EFAC" font-size="10" font-style="italic">inherits</text>
+
+  <!-- Right side: what consumes host group context -->
+  <text x="490" y="135" fill="#F8FAFC" font-size="14" font-weight="700">What consumes host group context:</text>
+
+  <g font-size="11">
+    <rect x="490" y="155" width="400" height="40" fill="#1E293B" stroke="#22D3EE" rx="5"/>
+    <text x="510" y="172" fill="#A5F3FC" font-weight="700">Smartscape topology</text>
+    <text x="510" y="187" fill="#94A3B8" font-size="10">PGs and services display under their host group boundaries</text>
+
+    <rect x="490" y="205" width="400" height="40" fill="#1E293B" stroke="#22D3EE" rx="5"/>
+    <text x="510" y="222" fill="#A5F3FC" font-weight="700">Dashboards &amp; filters</text>
+    <text x="510" y="237" fill="#94A3B8" font-size="10">Filter "all services in payment-pci" without manual host enumeration</text>
+
+    <rect x="490" y="255" width="400" height="40" fill="#1E293B" stroke="#22D3EE" rx="5"/>
+    <text x="510" y="272" fill="#A5F3FC" font-weight="700">Alerts &amp; thresholds</text>
+    <text x="510" y="287" fill="#94A3B8" font-size="10">Per-host-group alerting thresholds; PGs and services split per group</text>
+
+    <rect x="490" y="305" width="400" height="40" fill="#1E293B" stroke="#22D3EE" rx="5"/>
+    <text x="510" y="322" fill="#A5F3FC" font-weight="700">IAM policies</text>
+    <text x="510" y="337" fill="#94A3B8" font-size="10">Grail record-level permissions on dt.host_group.id</text>
+
+    <rect x="490" y="355" width="400" height="40" fill="#1E293B" stroke="#22D3EE" rx="5"/>
+    <text x="510" y="372" fill="#A5F3FC" font-weight="700">Management zones (Classic only)</text>
+    <text x="510" y="387" fill="#94A3B8" font-size="10">MZ rules commonly key off host group membership</text>
+  </g>
+
+  <text x="465" y="475" text-anchor="middle" fill="#94A3B8" font-size="11">Choose the host group well — every layer below it inherits the choice.</text>
+</svg>

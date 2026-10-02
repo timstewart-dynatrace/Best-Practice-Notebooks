@@ -28,7 +28,7 @@
   <rect x="40" y="210" width="500" height="80" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
   <text x="60" y="235" fill="#DDD6FE" font-size="14" font-weight="700">2. Group Home Launchpad</text>
   <text x="60" y="255" fill="#94A3B8" font-size="11">Admin-assigned to a specific IAM user group (e.g., team-sre, team-sec).</text>
-  <text x="60" y="272" fill="#94A3B8" font-size="11">Multiple groups can each have their own Launchpad; the highest-ranked entry wins. The persona layer.</text>
+  <text x="60" y="272" fill="#94A3B8" font-size="11">Groups and Everyone share one ranked list; highest rank wins.</text>
   <text x="525" y="265" text-anchor="end" fill="#DDD6FE" font-size="10" font-weight="600">PER GROUP</text>
 
   <!-- arrow between layers -->
@@ -37,8 +37,8 @@
   <!-- Layer 3: "Everyone" Default (bottom - foundation) -->
   <rect x="40" y="305" width="500" height="80" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
   <text x="60" y="330" fill="#BFDBFE" font-size="14" font-weight="700">3. "Everyone" Home Launchpad</text>
-  <text x="60" y="350" fill="#94A3B8" font-size="11">Admin-assigned tenant default. The floor — every user falls back to</text>
-  <text x="60" y="367" fill="#94A3B8" font-size="11">this if not bound to a group override and no personal one is set.</text>
+  <text x="60" y="350" fill="#94A3B8" font-size="11">Admin-assigned tenant default, ranked in the same list as groups —</text>
+  <text x="60" y="367" fill="#94A3B8" font-size="11">keep it below them so it is the floor, not an override.</text>
   <text x="525" y="360" text-anchor="end" fill="#BFDBFE" font-size="10" font-weight="600">TENANT</text>
 
   <!-- RIGHT: The admin mechanism -->
@@ -71,5 +71,5 @@
   <text x="40" y="428" fill="#F8FAFC" font-size="13" font-weight="700">Backing: Document Service</text>
   <text x="40" y="446" fill="#94A3B8" font-size="11">Launchpads persist via the Document Service API (type='launchpad') — same store as dashboards and notebooks.</text>
   <text x="40" y="463" fill="#94A3B8" font-size="11">Sharing and access scoping inherit from the Document Service IAM model (no Launchpad-specific policy DSL today).</text>
-  <text x="40" y="480" fill="#94A3B8" font-size="11">Export/import via the Documents app or Document Service API enables versioning and tenant-to-tenant migration.</text>
+  <text x="40" y="480" fill="#94A3B8" font-size="11">Download/Upload (JSON) in Launcher moves launchpads between tenants; Document Service API for automation.</text>
 </svg>

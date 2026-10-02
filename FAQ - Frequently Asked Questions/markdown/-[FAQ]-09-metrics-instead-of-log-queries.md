@@ -1,12 +1,12 @@
 # FAQ-09: When Should I Query a Metric Instead of Raw Logs?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
 Logs are where the detail lives — the exact line, the stack trace, the request that failed. But most of what teams build *on top of* logs isn't detail; it's a number over time: *how many errors per minute, what's the p95 of this endpoint, is the 5xx rate climbing.* Those questions get answered by running a `fetch logs` aggregation, and when that aggregation sits behind a dashboard tile or an alert, it runs again and again — every refresh, every evaluation interval, forever.
 
-That is the optimization opportunity. In Dynatrace on Grail, **scanning logs is a billed activity** and **querying a metric effectively is not**. The same "errors per minute" answer costs real money when it re-scans logs on every dashboard render, and almost nothing when it reads a pre-aggregated metric. Out-of-the-box (OOTB) metrics already answer many of these questions; for the rest, you can extract a metric from the log stream once, at ingest, and point every recurring query at it instead.
+That is the optimization opportunity. In Dynatrace on Grail, **scanning logs is a billed activity** on usage-based log buckets, and **querying a metric with `timeseries` is not**. The same "errors per minute" answer costs real money when it re-scans logs on every dashboard refresh, and nothing at query time when it reads a pre-aggregated metric. (A log bucket on *Retain with Included Queries* changes the log side of that trade for recent data — §2 covers when.) Out-of-the-box (OOTB) metrics already answer many of these questions; for the rest, you can extract a metric from the log stream once, at ingest, and point every recurring query at it instead.
 
 This entry explains the economics behind that trade, gives you a one-question rule for deciding which to use, shows what's already available OOTB before you extract anything, and covers the two things that quietly undo the savings — cardinality and the fact that extraction doesn't backfill.
 
@@ -46,6 +46,8 @@ Ask one question of every log-based query: **how often does it run?**
 | **Repeatedly** — dashboard tiles, alerts, anomaly detection, SLOs | A **metric** (OOTB if one exists, otherwise extracted from the log at ingest) | The aggregate is computed once at ingest and read cheaply thereafter |
 | **Once** — root-cause analysis, forensic lookup, ad-hoc exploration | **Raw logs** (`fetch logs` with a tight time range and early filters) | You need the actual lines, and you only pay for the single scan |
 
+The cost half of this rule assumes usage-based log Query billing. On a log bucket set to **Retain with Included Queries**, recurring queries that stay inside its Included Queries period are not charged, and the case for a metric rests on the queries that reach further back, on long-window trends, and on removing the repeated scan (§2).
+
 The decision is *not* "logs are bad, metrics are good." Logs carry the detail you cannot get any other way. The decision is about **where a query lives**: a `fetch logs` aggregation behind a dashboard re-scans the same data on every render, while a metric behind that same tile reads a tiny pre-aggregated series. Move the *recurring aggregate* to a metric; keep the *raw stream* for investigation.
 
 Two moves implement this:
@@ -62,20 +64,30 @@ Under DPS, each Grail data type is billed across distinct **capabilities**. The 
 
 | Signal (powered by Grail) | Ingest & Process | Retain | **Query** |
 |---|:---:|:---:|:---:|
-| **Logs** | billed (bytes) | billed (bytes) | **billed (bytes scanned)** |
+| **Logs** | billed (bytes) | billed (bytes) | **billed (bytes scanned)** on usage-based buckets; not charged within the Included Queries period of a *Retain with Included Queries* bucket |
 | **Events** | billed | billed | **billed** |
 | **Traces** | billed | billed | **billed** |
-| **Metrics** | billed (data points) | billed | **Included (no marginal charge)** |
+| **Metrics** | billed (data points, net of included Custom Metric data points; a histogram measurement counts as 10) | included for 15 months (462 days); billed only beyond that | **Included (no marginal charge)** |
 
-Logs, events, and traces each carry a **Query** capability: when you scan them with DQL, you consume billable bytes (over and above the query volume bundled into *Retain with Included Queries*). The Metrics **Query** capability exists in the DPS billing model but is **always included at no additional charge** — querying metrics via `timeseries` never appears as a line item on your bill. Metrics bill on ingest and retention only.
+Logs, events, and traces each carry a **Query** capability: when you scan them with DQL, you consume billable bytes. Logs have one exception that matters here. A log bucket on **Retain with Included Queries** (Dynatrace 1.316+) splits its retention in two: an Included Queries period of 10–35 days, inside which queries are not charged, and the remainder of its retention, which follows the usage-based Retain and Query model. The included volume is an allowance of 15× the GiB retained in the Included Queries period per day — exceed it and Dynatrace contacts you to optimize; it is not a block of query volume used up before billing starts.
 
-Now put that against how dashboards and alerts behave. A dashboard tile re-runs its query on every load and every auto-refresh. An alert or anomaly detector re-evaluates on a fixed interval, continuously, for as long as it exists. A `fetch logs` aggregation in either of those places pays the log **Query** cost *every single time*. The identical answer sourced from a metric pays it *never*.
+The Metrics **Query** capability exists in the DPS billing model but is **always included at no additional charge** — querying metrics via `timeseries` never appears as a line item on your bill. Metrics bill on ingest (data points, after any included Custom Metric data points), and on retention only if you keep them beyond the included 15 months.
 
-This is why the move is almost pure upside for recurring workloads: you are not losing the log data (it still flows, still retained per your bucket policy) — you are removing the repeated scan. In the FINOPS-03 **Cut / Tune / Filter** framework this is a *Tune* lever: you keep the signal and change only the surface you query against.
+Now put that against how dashboards and alerts behave. A dashboard tile re-runs its query on refresh. An alert or anomaly detector re-evaluates on a fixed interval, continuously, for as long as it exists. On a usage-based log bucket, a `fetch logs` aggregation in either of those places pays the log **Query** cost every time it runs; the identical answer sourced from a metric pays it *never*.
+
+On a *Retain with Included Queries* bucket, a short-window tile or alert inside the Included Queries period is already free at query time. There the cost argument applies only to queries that reach past that period — and to events and traces — while the other reasons to move a recurring aggregate still hold: trend windows of up to 15 months at no Retain cost, no repeated scan counting against the included allowance, and, in community practice, faster tiles.
+
+This is why the move is close to pure upside for recurring workloads: you are not losing the log data (it still flows, still retained per your bucket policy) — you are removing the repeated scan. In the FINOPS-03 **Cut / Tune / Filter** framework this is a *Tune* lever: you keep the signal and change only the surface you query against.
 
 The flip side keeps you honest: for a **one-shot investigation**, a single `fetch logs` scan is cheap and a metric can't show you the offending line. Don't pre-build metrics for questions you ask once.
 
-> <sub>**Sources:** [DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management), [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics), [DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces). **Corrected (07/08/2026):** an earlier revision framed this as metrics lacking a Query capability entirely — in fact the DPS Metrics page documents a Query dimension that is *"always included"* (no marginal charge), so the capability exists but never bills; FAQ-11 §9 documents the same finding. FINOPS-01 documents the billed-capability split from a live tenant.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — *"In the Retain with Included Queries model, retained log data within a configured time period can be queried free of charge, as often as you want."*; *"Included query usage per day = (GiB of logs within the defined Included Queries retention period) × 15"*; *"In case you exceed the included query volume, the Dynatrace team will reach out and help you to evaluate and optimize query consumption."*</sub>
+> - <sub>[DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics) — *"Querying metrics using the timeseries command is always included."*; *"Dashboard tiles that are based on metrics trigger the execution of DQL queries on refresh."*</sub>
+> - <sub>[Metrics powered by Grail - Retain (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — *"15 months (462 days) of 1-minute granularity is included with Metrics powered by Grail. Metrics that you choose to retain beyond that period are charged."*</sub>
+> - <sub>[Metrics powered by Grail - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — *"Histogram measurement: 10 data points"* (`dt.service.*` keys count as one); *"The number of included Custom Metric data points is dependent on the total monitored GiB-hours of your deployment"*</sub>
+> - <sub>[DPS Traces (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-traces)</sub>
+> - <sub>**Corrected (07/08/2026):** an earlier revision framed this as metrics lacking a Query capability entirely — in fact the DPS Metrics page documents a Query dimension that is *"always included"* (no marginal charge), so the capability exists but never bills; FAQ-11 §9 documents the same finding. FINOPS-01 documents the billed-capability split from a live tenant. The "faster tiles" point is community practice, not a documented guarantee.</sub>
 
 <a id="decision"></a>
 ## 3. The Decision — Recurring vs. One-Shot
@@ -86,7 +98,7 @@ The flip side keeps you honest: for a **one-shot investigation**, a single `fetc
 | Question | Branch | Use | Cost behavior |
 |----------|--------|-----|---------------|
 | How often does this query run? | Recurring — dashboards / alerts / SLOs | Query a METRIC (OOTB or extracted) | Metrics: Query always included (no marginal charge) |
-| How often does this query run? | One-shot — RCA / forensics / ad-hoc | fetch logs (scan once, tight time range) | Logs: Query capability billed per bytes scanned |
+| How often does this query run? | One-shot — RCA / forensics / ad-hoc | fetch logs (scan once, tight time range) | Logs: Query billed per bytes scanned on usage-based buckets (Retain with Included Queries: not charged within the Included Queries period) |
 | Guardrail | Extract at ingest via OpenPipeline | Bounded dimensions only | Cardinality = product of dimensions; never request/user/trace IDs |
 | Note | Extraction is forward-only | Split retention | Metrics long & cheap; raw logs short |
 -->
@@ -127,13 +139,13 @@ Before building an extraction rule, check whether Dynatrace already produces the
 | Host CPU / memory / disk | Parsing agent or OS logs | `dt.host.cpu.usage`, `dt.host.memory.usage`, and the `dt.host.*` family |
 | Process resource use | Parsing process logs | The `dt.process.*` family |
 | Log volume / ingest cost | `fetch logs \| summarize count()` over a long window | DPS consumption metrics (the `dt.billing.*` / `dt.system.events` surfaces — see FINOPS-01) |
-| Did this log source stop sending? | Counting recent records | `log.source.file_status` / `log.source.ingest_status` (see FAQ-08) |
+| Did this log source stop sending? | Counting recent records | **No OOTB metric.** `log.source.ingest_status` on `dt.system.events` (`LOG_SOURCE_STATUS` events — see FAQ-08) shows whether a source is *set to be ingested* (`Ingested` / `Not ingested`), not whether lines are still arriving. For "stopped sending", extract a counter (§5) and alert when it falls to zero |
 
-**How to check:** search the entity or domain in a **notebook** (the metric picker, or `metrics | filter contains(metric.key, "…")`) before writing a pipeline rule. Data Explorer does the same job on classic tenants, but it is one of the classic apps being retired — Notebooks is its named replacement, so prefer the notebook route if you have it. If an OOTB metric answers the question, you're done — zero extraction config, zero added cardinality, and it already has historical depth.
+**How to check:** search the entity or domain in a **notebook** (the metric picker, or `metrics | filter contains(metric.key, "…")`) before writing a pipeline rule. Data Explorer does the same job on classic tenants; Dynatrace's classic-to-latest capability map lists Notebooks as its replacement, so prefer the notebook route if you have it. If an OOTB metric answers the question, you're done — zero extraction config, zero added cardinality, and it already has historical depth.
 
 Exact metric keys vary by Dynatrace version and by what's deployed in your tenant — confirm the key in your own metric browser rather than assuming it. The point stands regardless of the precise key: **the cheapest extraction is the one you don't have to do because the metric already exists.**
 
-> <sub>**Sources:** [Built-in metrics / metric browser (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics), [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics). FINOPS-01 documents the DPS consumption metric surfaces; FAQ-08 documents the `log.source.*` fields.</sub>
+> <sub>**Sources:** [Built-in metrics / metric browser (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics), [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics). [Classic capabilities and where to find them in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/capability-mapping-classic-to-latest) — Data Explorer → Notebooks: *"Point-and-click exploration replaced by DQL-based notebook analysis"*. FINOPS-01 documents the DPS consumption metric surfaces; FAQ-08 documents the `log.source.*` fields. Verified on a live tenant 10/02/2026: `log.source.ingest_status` occurs only on `LOG_SOURCE_STATUS` events in `dt.system.events` (values `Ingested` / `Not ingested`), and `metrics | filter startsWith(metric.key, "log.source")` returns no status metric.</sub>
 
 <a id="extraction"></a>
 ## 5. Extracting a Metric From Logs
@@ -161,16 +173,16 @@ Common shapes:
 | Question | Metric | Dimensions |
 |----------|--------|------------|
 | How many requests, by outcome? | `log.request.count` (count of matches) | service, method, status |
-| What's the latency distribution? | `log.request.duration` — a **Histogram metric** (SaaS 1.343+, staged rollout) for percentiles; a value metric for min/max/avg | service, endpoint |
+| What's the latency distribution? | `log.request.duration` — a **Histogram metric** (SaaS 1.343+; each measurement billed as 10 data points) for percentiles; a value metric for min/max/avg | service, endpoint — keep minimal on a histogram |
 | How many of business event X? | `log.business.<event>.count` | a few business dimensions |
 
 A few framing points:
 
 - **OpenPipeline is the modern path.** Classic Log Monitoring also supports log-metric definitions; new work should use OpenPipeline metric extraction. See **OPLOGS-03 §3** for the full processor walkthrough and **OPMIG-07** for the metric-&-event-extraction deep dive.
-- **Log-derived metrics are exact, not sampled.** Span-derived metrics must be made *sampling-aware* because only a fraction of spans are kept (**OPIPE-03**); logs aren't head/tail-sampled, so a count extracted from logs reflects every matching record.
-- **Counter vs. value vs. histogram.** A Counter metric counts matching records; a Value metric tracks a parsed numeric field (min/max/avg); a Histogram metric captures the distribution of that field so `timeseries` can compute percentiles — the one to use for latency. Histogram extraction arrived with SaaS 1.343 (staged rollout); until it reaches your tenant, a value metric is the working path. Parse the field first (DPL) so the value and dimensions exist on the record when the metric processor runs.
+- **Log-derived metrics are not subject to trace sampling.** Span-derived metrics must be made *sampling-aware* because only a fraction of spans are kept (**OPIPE-03**). In community practice, a count extracted from logs is treated as reflecting every matching record that reaches the pipeline — confirm it against a raw-log count over the same window during cutover.
+- **Counter vs. value vs. histogram.** A Counter metric counts matching records; a Value metric tracks a parsed numeric field (min/max/avg); a Histogram metric captures the distribution of that field so `timeseries` can compute percentiles — the one to use for latency. Histogram extraction arrived with SaaS 1.343 (rollout from 07/14/2026). Each histogram measurement is billed as 10 data points, so use one only where you actually need percentiles, keep its dimensions minimal, and use a value metric for min/max/avg. Parse the field first (DPL) so the value and dimensions exist on the record when the metric processor runs.
 
-> <sub>**Sources:** [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — metric extraction lists Counter, Histogram and Value metric processors; *"Histogram metrics can be used to calculate percentiles using the timeseries percentile aggregation"*, [SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"You can now extract histogram metrics from logs or spans using OpenPipeline."*, [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language). OPLOGS-03, OPMIG-07, and OPIPE-03 carry the implementation depth.</sub>
+> <sub>**Sources:** [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline), [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — metric extraction lists Counter, Histogram and Value metric processors; *"Histogram metrics can be used to calculate percentiles using the timeseries percentile aggregation"*, [SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"You can now extract histogram metrics from logs or spans using OpenPipeline."*, *"Histograms are billed with 10 metric data points."*, [Metrics powered by Grail - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — *"Histogram measurement: 10 data points"*, [Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language). OPLOGS-03, OPMIG-07, and OPIPE-03 carry the implementation depth.</sub>
 
 <a id="cardinality"></a>
 ## 6. Cardinality — The One Thing That Undoes the Savings
@@ -187,11 +199,12 @@ Guardrails:
 
 - **Only bounded dimensions on extracted metrics:** status code, service, method, region, environment, log level. These have a small, stable set of values.
 - **Never** put per-request or per-user identifiers on a metric. If you need to pivot by them, that's a *log* question (one-shot, §3) — or a trace.
+- **Histograms multiply the count.** Each histogram measurement is billed as 10 data points (`dt.service.*` keys excepted), so a histogram on the same dimensions costs about as much as ten value metrics. Reserve histograms for the latency questions that need percentiles.
 - **Reduce before you extract:** normalize URLs to route templates, bucket numeric values, drop the noisy dimension at the parse step so it never reaches the metric processor.
 
 This is the single most common way a log-to-metric optimization backfires, and it has the same root cause every time: a high-cardinality label that someone added "just in case." **OPIPE-04 (Cardinality Management)** covers the controls in depth; **FINOPS-03 §9** walks a worked high-cardinality-metric remediation.
 
-> <sub>**Sources:** [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics), [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline). OPIPE-04 and FINOPS-03 carry the cardinality-control patterns. **Derived:** the cross-product cost model is standard dimensional-metric behavior applied to log-extracted metrics.</sub>
+> <sub>**Sources:** [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics), [Metrics powered by Grail - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — *"Histogram measurement: 10 data points"* (`dt.service.*` keys count as one), [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline). OPIPE-04 and FINOPS-03 carry the cardinality-control patterns. **Derived:** the cross-product cost model is standard dimensional-metric behavior applied to log-extracted metrics.</sub>
 
 <a id="forward-only"></a>
 ## 7. Extraction Is Forward-Only — and the Retention Split
@@ -206,22 +219,23 @@ Two operational facts shape how you roll this out.
 
 **Split the retention.** Once the recurring questions are answered by a metric, the raw logs no longer need to live long *for those questions*:
 
-- Keep the **metric** retained long — it's small and cheap, so multi-month trend tiles stay inexpensive.
+- Keep the **metric** retained long — 15 months is included, and only retention beyond that is billed, so multi-month trend tiles stay inexpensive.
 - Keep the **raw logs** in a shorter-retention bucket sized for investigation and compliance, not for powering dashboards.
+- If that raw-log bucket uses **Retain with Included Queries**, its daily included-query allowance is 15× the GiB retained inside the Included Queries period — shortening that period shrinks the allowance. Size it for the queries that still run on raw logs.
 
-That split is where the saving compounds: long-horizon dashboards read the cheap long-lived metric, while the expensive raw logs age out on a short clock. Bucket and retention design lives in the **ORGNZ** series; retention as a cost lever is **FINOPS-03 §4 (Tune)**.
+On usage-based buckets, that split is where the saving compounds: long-horizon dashboards read the cheap long-lived metric, while the expensive raw logs age out on a short clock. Bucket and retention design lives in the **ORGNZ** series; retention as a cost lever is **FINOPS-03 §4 (Tune)**.
 
-> <sub>**Sources:** [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline), [DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management). ORGNZ covers bucket/retention design; FINOPS-03 covers retention tuning. **Derived:** the "forward-only" property follows from OpenPipeline processing at ingest time; the retention-split recommendation synthesizes the bucket model with the per-capability billing in §2.</sub>
+> <sub>**Sources:** [Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline), [DPS Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — *"An Included Queries retention period (10–35 days of data retention)."*, [Metrics powered by Grail - Retain (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — *"Assuming you don't change the default retention period, metric data will be retained for 15 months (462 days) and there will be no billable Retain usage."* ORGNZ covers bucket/retention design; FINOPS-03 covers retention tuning. **Derived:** the "forward-only" property follows from OpenPipeline processing at ingest time; the retention-split recommendation combines the bucket model with the per-capability billing and the Included Queries allowance formula in §2.</sub>
 
 <a id="recommended-approach"></a>
 ## 8. Recommended Approach
 
-1. **Inventory the recurring log queries.** List the dashboard tiles, alerts, anomaly detectors, and SLOs whose queries have a `fetch logs … | summarize` shape. These are your candidates — they pay the log Query cost on every run.
+1. **Inventory the recurring log queries.** List the dashboard tiles, alerts, anomaly detectors, and SLOs whose queries have a `fetch logs … | summarize` shape. These are your candidates — on usage-based log buckets they pay the log Query cost on every run.
 2. **Check for an OOTB metric first (§4).** Search the metric browser for the service, host, process, or consumption metric that already answers the question. If it exists, repoint the tile/alert and you're done.
 3. **Extract a metric for the rest (§5).** Build an OpenPipeline metric-extraction rule with a clear `metricKey` and a small set of **bounded** dimensions. Parse any needed value/dimension fields earlier in the pipeline.
 4. **Hold the line on cardinality (§6).** No per-request, per-user, or per-trace dimensions. Sanity-check the dimension cross-product before enabling.
 5. **Cut over forward, not backward (§7).** Enable the rule, let the metric accumulate, then migrate the tile/alert. Keep raw-log access for the historical gap and for investigation.
-6. **Split retention (§7).** Retain the metric long; shorten the raw-log bucket to what investigation and compliance actually need.
+6. **Split retention (§7).** Retain the metric long; shorten the raw-log bucket to what investigation and compliance actually need — and on a Retain with Included Queries bucket, keep the Included Queries period long enough for the queries that remain on raw logs.
 7. **Keep raw logs for what they're for.** Root-cause analysis, forensics, and ad-hoc exploration stay on `fetch logs` with tight time ranges and early filters — that's the one-shot path, and it's cheap.
 8. **Measure the result.** Use FINOPS-01's query-side consumption queries to confirm log Query consumption dropped after the cutover.
 

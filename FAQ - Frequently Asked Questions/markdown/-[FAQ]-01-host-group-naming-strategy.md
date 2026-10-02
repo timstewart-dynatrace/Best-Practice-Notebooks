@@ -1,6 +1,6 @@
 # FAQ-01: Why you need a good Host Group naming strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 01 — Host Group Naming Strategy | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -70,7 +70,7 @@ Dynatrace's entity model links these layers — host groups contain hosts, hosts
 
 When OneAgent detects running processes on a host, it assigns each one to a **Process Group** (PG) based on technology, command line, working directory, and metadata. The per-host running instances are called **Process Group Instances** (PGIs). PGs and PGIs inherit context from the host they run on, and hosts roll up into the host group you assign. Services then associate with the process groups that handle their requests.
 
-The practical effect: **the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace** — in Smartscape, dashboards, alerts, IAM policies, and management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like "all error-prone services in `app-pci`" work without manual selection.
+The practical effect: **the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace** — in Smartscape, dashboards, alerts and IAM policies, and, on Dynatrace Classic, in management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like "all error-prone services in `app-pci`" work without manual selection.
 
 | Layer | Gets host-group context from | Why it matters |
 |-------|---------------|---------------|
@@ -78,7 +78,7 @@ The practical effect: **the host group you choose determines how processes, serv
 | Process Group Instance | The host it runs on | PGI metadata carries host group identity through to spans/services |
 | Process Group | Its member PGIs (which run on hosts) | PG naming, grouping, and detection rules respect host group context |
 | Service | The PGs that handle its requests | Service ownership reflects the host group of the underlying processes |
-| SLO / Alert | The entities they target | Boundaries follow the topology rollup automatically |
+| Grail records | `dt.host_group.id`, a primary Grail field on each record | Record-level permissions and DQL filters on Latest Dynatrace |
 
 ![Dynatrace Topology Rollup](images/01-topology-rollup_930x500.png)
 
@@ -88,25 +88,31 @@ The practical effect: **the host group you choose determines how processes, serv
 | Host | Direct assignment | Root of the rollup |
 | PGI / Process Group | The host(s) they run on | Naming, grouping rules, thresholds |
 | Service | The PGs handling its requests | Dashboards, IAM scope |
-| Host Group context propagates to | Smartscape, dashboards, alerts/thresholds, IAM, management zones |
+| Host Group context propagates to | Smartscape, dashboards, alerts/thresholds, IAM (record-level on dt.host_group.id), management zones (Classic only) |
 For environments where SVG doesn't render
 -->
 
-> **Concrete consequence — thresholds:** Process group thresholds, anomaly detection baselines, and custom availability SLOs are scoped through the topology. With all hosts in a single host group, Dynatrace sees the same process group everywhere and applies one set of thresholds across the entire estate. You cannot, for example, set a different CPU saturation threshold for `nginx` in production than for `nginx` in nonprod, because both PGs roll up to the same host group context. Splitting hosts into meaningful groups is what unlocks per-environment, per-tier, and per-team thresholds.
+> **Concrete consequence — settings and thresholds:** Dynatrace creates one process group per host group for the same process, and services are grouped per host group as well. With all hosts in a single host group, production and nonprod `nginx` become **one** process group and their services merge, so process-group and service settings, and the baselines learned for those services, are shared across environments. The alerting thresholds Dynatrace lets you define per host group likewise need separate groups to differ. Splitting hosts into meaningful groups is what lets each environment, tier or team be configured on its own.
 
 ![Threshold Scoping by Host Group](images/01-threshold-scope-comparison_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Setup | nginx PG threshold | Outcome |
+| Setup | nginx service response-time threshold | Outcome |
 |-------|-------------------|---------|
-| Single host group | 75% applied to all envs | Prod under-alerts or dev over-alerts; cannot tune separately |
-| Multiple host groups | prod-app 70% / nonprod-app 85% / app-pci 60% | Each environment tuned to its actual behavior |
+| Single host group | One merged PG and service; 500 ms applied to all envs | Dev and prod share one service setting and one blended baseline |
+| Multiple host groups | One PG and service per group: prod-app 400 ms / nonprod-app 1 s / payment-pci 300 ms | Each environment tuned to its actual behavior |
 For environments where SVG doesn't render
 -->
 
-This rollup is also why retroactive restructuring is disruptive: changing a host's group recomputes topology context for every process group, service, and SLO downstream of it. The concrete cost — per the `oneagentctl` reference, *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"* — means moving a host between groups is not just a metadata change; the agent and every monitored service on that host restart. Defining good host groups up front means the entire entity tree is correctly scoped from day one.
+This rollup is also why retroactive restructuring is disruptive: changing a host's group recomputes topology context for every process group, service, and SLO downstream of it. The concrete cost — per the `oneagentctl` reference, *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"* — means moving a host between groups is not just a metadata change; the agent and every monitored service on that host restart, and *"Changing the host group assignments results in recalculation of process group IDs, which impacts data aggregation."* Defining good host groups up front means the entire entity tree is correctly scoped from day one.
 
-> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — *"When the same process is running in two different host groups, Dynatrace will create one process group for each host group"*; basis for per-host-group thresholds, alerting overrides, OneAgent update settings, and management-zone integration, [Process groups and process group instances (DT docs)](https://docs.dynatrace.com/docs/shortlink/process-groups), [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"*.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — a Dynatrace Classic page: *"When the same process is running in two different host groups, Dynatrace will create one process group for each host group. This means you can also configure process groups differently depending on which host group they run in. Consequently, services are also grouped per host group."* and *"You can define alerting thresholds and OneAgent update settings on a per-host-group basis."*</sub>
+> - <sub>[Process groups and process group instances (DT docs)](https://docs.dynatrace.com/docs/shortlink/process-groups)</sub>
+> - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"Using `--set-host-group` requires restart of OneAgent, as well as restart of all the monitored services"*; *"Changing the host group assignments results in recalculation of process group IDs, which impacts data aggregation."*</sub>
+> - <sub>[Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Define record-level and bucket-level access policies based on primary Grail fields such as dt.host_group.id"*</sub>
+> - <sub>[Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Management zones are not supported by any platform feature or Dynatrace app. They remain available only on classic pages for backward compatibility."*</sub>
+> - <sub>**Derived:** the shared service baseline in the single-group case follows from services being grouped per host group.</sub>
 
 <a id="ownership"></a>
 ## 2. Consideration #1: Clear Ownership and Operational Accountability
@@ -146,9 +152,14 @@ Dynatrace supports role-based visibility controls, but those controls require **
 
 **Impact:** Improved security posture and simplified audits.
 
-> **Note on scoping mechanism choice:** For data-access ABAC, modern Gen3 Dynatrace tenants standardize on `dt.security_context` as the primary boundary field (see the IAM topic series). Host groups are still load-bearing for *operational* scoping — process detection, threshold tuning, alert routing, automation blast radius — even when `dt.security_context` is the boundary used for record-level data access. The two work together rather than competing.
+> **Note on scoping mechanism choice:** On Latest Dynatrace, the host group is itself a record-level permission boundary. `dt.host_group.id` is a stable, permission-relevant primary Grail field, and Dynatrace's permission guidance names host groups first: *"We recommend setting up permissions along organizational lines and deployment scopes. Suitable concepts include host groups, Kubernetes clusters, and Kubernetes namespaces."* Add `dt.security_context` when one host group holds data that different audiences need to see separately — the security-context page itself says *"If your organization can rely on deployment-level primary Grail fields such as k8s.namespace.name or dt.host_group.id for access control, you may not need dt.security_context at all."* A well-designed host group therefore serves both jobs: operational scoping (process detection, thresholds, alert routing, automation blast radius) and data access. See the IAM and ORGNZ topic series for the policy patterns.
 
-> <sub>**Sources:** [Identity & access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management), [Permission management — management zones (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones).</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Advanced permission setup (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup) — the recommendation quoted above</sub>
+> - <sub>[Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — the security-context sentence quoted above</sub>
+> - <sub>[Permission fields — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission)</sub>
+> - <sub>[Identity & access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)</sub>
+> - <sub>**Dictionary:** `dt.host_group.id` (`stable`, tags `permission`, `primary-field`), read 10/02/2026.</sub>
 
 <a id="alerting"></a>
 ## 4. Consideration #3: Alerting Accuracy and Notification Routing
@@ -167,9 +178,9 @@ Alerting effectiveness depends on correctly scoping **who owns what**.
 - Notification logic is simpler and more reliable
 - Alert fatigue is reduced
 
-**Mechanic clarification:** neither routing surface filters on the host group directly — the host group provides the boundary, and something else exposes it to routing.
+**Mechanic clarification:** the two platforms reach the host group differently.
 
-- **Latest Dynatrace:** problem notifications are sent by **problem-triggered workflows**. The trigger filters on affected-entity tags (and severity, and a DQL matcher), so expose the host group as an entity tag or an ownership tag and route on that. FAQ-21 covers the routing design; ALERT-03 covers destinations.
+- **Latest Dynatrace:** problem notifications are sent by **problem-triggered workflows**. Davis problems carry `dt.host_group.id` as a primary Grail field, so the trigger's custom DQL filter can match the host group directly. On problem records the field is an **array** (for example `["integration-probs"]`), so write the matcher for an array; this entry has not tested such a matcher on a live workflow trigger. The alternative is to route on an ownership tag or primary tag. FAQ-21 covers the routing design; ALERT-03 covers destinations.
 - **Dynatrace Classic:** alerting profiles scope on management zone filters and severity-rule tag matching. Per-host-group routing is achieved by building management zones on top of the host-group structure. MZ2POL-09 covers moving that alerting job to workflows.
 
 **Impact:** Better signal-to-noise ratio and faster response times.
@@ -184,7 +195,7 @@ Alerting effectiveness depends on correctly scoping **who owns what**.
 For environments where SVG doesn't render
 -->
 
-> <sub>**Sources:** [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles) — *"Problem notification is a Dynatrace Classic concept. Use simple workflows to send notifications about problems."*; alerting profile scope is management-zone filter + severity-rule tag matching, [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups).</sub>
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Dynatrace also enriches them on all derived signals, including Davis events and problems"*; [Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Route alerts on the primary fields and tags carried by the alert events themselves."*; [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles) — *"Problem notification is a Dynatrace Classic concept. Use simple workflows to send notifications about problems."*; alerting profile scope is management-zone filter + severity-rule tag matching, [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups). Live check 10/02/2026: `fetch dt.davis.problems, from:-7d | filter isNotNull(dt.host_group.id)` returned problems whose `type(dt.host_group.id)` is `array`.</sub>
 
 <a id="operations"></a>
 ## 5. Consideration #4: Operational Efficiency and Troubleshooting
@@ -222,7 +233,7 @@ Dynatrace automation and integrations assume **controlled targeting**.
 - New rules can be introduced incrementally
 - Blast radius is intentionally controlled
 
-**Impact:** Safer automation adoption and reduced operational risk.
+**Impact:** In community practice, safer automation adoption and reduced operational risk — scoping automation by host group is a team convention rather than a documented platform feature.
 
 ![Automation Blast Radius](images/01-automation-blast-radius_930x500.png)
 
@@ -234,7 +245,7 @@ Dynatrace automation and integrations assume **controlled targeting**.
 For environments where SVG doesn't render
 -->
 
-> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group as scoping boundary for automation rules, anomaly detection, and Dynatrace Configuration as Code targets.</sub>
+> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — *"You can define alerting thresholds and OneAgent update settings on a per-host-group basis."*</sub>
 
 <a id="scalability"></a>
 ## 7. Consideration #6: Tenant Scalability and Long-Term Maintainability
@@ -250,10 +261,12 @@ A flat structure does not scale.
 **With a strong naming strategy:**
 
 - Structure scales naturally as hosts and teams increase
-- New hosts inherit correct grouping automatically
+- New hosts land in the right group as long as the installer command or deployment template sets `--set-host-group` — assignment is static and per host
 - The tenant remains maintainable over time
 
 **Impact:** Lower technical debt and reduced future rework.
+
+> <sub>**Sources:** [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — *"The host group is statically assigned to the host."*; *"You can assign a host to a host group during or after OneAgent installation"*.</sub>
 
 <a id="tradeoffs-weak"></a>
 ## 8. Trade-offs of a Weak or Single-Group Strategy
@@ -330,6 +343,20 @@ Exact naming conventions are less critical than **consistency and intent**. A fe
 - `<env>-<workload-type>` (e.g., `prod-database`, `prod-web`, `prod-batch`)
 - `<env>-<bu>-<app>` for shared-platform tenants (e.g., `prod-finance-ledger`)
 - Compliance suffix: `<env>-<app>-pci` to make the regulatory boundary explicit at a glance
+
+The multi-part patterns (`<env>-<bu>-<app>`, the compliance suffix) are sound only when each part is **also** set as a primary tag — see the next subsection.
+
+### Host Groups and Primary Tags
+
+Dynatrace now describes packing several attributes into the host-group name as the Classic pattern: *"A common pattern in Dynatrace Classic was to encode organizational context directly in the host group name, for example, onprem_billing_prod"*, where *"the individual attributes embedded in the name, such as environment, application, and team, were not possible to query as separate fields."* On Latest Dynatrace those dimensions belong in primary Grail tags, and SaaS 1.347 replaced the Infrastructure app's Datacenter grouping with them: *"the prior Datacenter concept has been removed from the app in favor of using Primary Tags, which gives you more flexibility in host grouping."*
+
+The practical split:
+
+- **Host group:** one stable boundary — typically environment plus the owning platform or app. It still drives process-group and service separation, per-group settings and the `dt.host_group.id` permission field.
+- **Primary tags:** team, business unit, compliance class, cost centre and any other dimension you want to query, route or charge back on — as `primary_tags.*` or the reserved `dt.cost.*` fields (see FAQ-02).
+- **Bridging an existing naming scheme:** an Ingest enrichment configuration rule can derive primary tags from the parts of the host-group name or host name, without touching hosts (FAQ-02 § 3.3).
+
+> <sub>**Sources:** [Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — the host-group-name passage quoted above; [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the Datacenter sentence quoted above; [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags).</sub>
 
 ### Anti-Patterns
 

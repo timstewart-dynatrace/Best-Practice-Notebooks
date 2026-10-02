@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="dtBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+    <linearGradient id="dtQuestion" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFB800"/>
+      <stop offset="100%" style="stop-color:#D97706"/>
+    </linearGradient>
+    <linearGradient id="dtRequired" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#EF4444"/>
+      <stop offset="100%" style="stop-color:#DC2626"/>
+    </linearGradient>
+    <linearGradient id="dtOptional" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22C55E"/>
+      <stop offset="100%" style="stop-color:#16A34A"/>
+    </linearGradient>
+    <linearGradient id="dtRecommended" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1496FF"/>
+      <stop offset="100%" style="stop-color:#2563EB"/>
+    </linearGradient>
+    <linearGradient id="dtCloudsApp" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#A855F7"/>
+      <stop offset="100%" style="stop-color:#7E22CE"/>
+    </linearGradient>
+    <filter id="dtShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#EF4444"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#22C55E"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1496FF"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#A855F7"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="930" height="500" fill="url(#dtBg)"/>
+
+  <!-- Title + subtitle -->
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="20" font-weight="700">Do You Need ActiveGate?</text>
+  <text x="465" y="54" text-anchor="middle" fill="#94A3B8" font-size="12">Five-step decision flow — Status as of 10/2026</text>
+
+  <!-- ================== QUESTION COLUMN (x=200) ================== -->
+
+  <!-- Q1: Direct internet -->
+  <polygon points="200,80 290,115 200,150 110,115" fill="url(#dtQuestion)" filter="url(#dtShadow)"/>
+  <text x="200" y="111" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">Direct internet</text>
+  <text x="200" y="124" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">from all hosts?</text>
+
+  <!-- Q1 → Q2 connector -->
+  <line x1="200" y1="150" x2="200" y2="170" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <text x="210" y="165" fill="#86EFAC" font-size="10" font-weight="600">Yes</text>
+
+  <!-- Q2: Private Synthetics -->
+  <polygon points="200,175 290,210 200,245 110,210" fill="url(#dtQuestion)" filter="url(#dtShadow)"/>
+  <text x="200" y="206" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">Private</text>
+  <text x="200" y="219" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">Synthetics?</text>
+
+  <!-- Q2 → Q3 connector -->
+  <line x1="200" y1="245" x2="200" y2="265" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <text x="210" y="260" fill="#86EFAC" font-size="10" font-weight="600">No</text>
+
+  <!-- Q3: Extensions -->
+  <polygon points="200,270 290,305 200,340 110,305" fill="url(#dtQuestion)" filter="url(#dtShadow)"/>
+  <text x="200" y="299" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">Extensions?</text>
+  <text x="200" y="313" text-anchor="middle" fill="#0F172A" font-size="9">(remote: DB/SNMP)</text>
+
+  <!-- Q3 → Q4 connector -->
+  <line x1="200" y1="340" x2="200" y2="360" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <text x="210" y="355" fill="#86EFAC" font-size="10" font-weight="600">No</text>
+
+  <!-- Q4: Cloud monitoring -->
+  <polygon points="200,365 290,400 200,435 110,400" fill="url(#dtQuestion)" filter="url(#dtShadow)"/>
+  <text x="200" y="394" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">Cloud</text>
+  <text x="200" y="408" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">monitoring?</text>
+
+  <!-- Q4 No → Q5 connector (continues down to bottom-left bend) -->
+  <path d="M 110 400 L 60 400 L 60 460 L 100 460" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <text x="35" y="430" fill="#86EFAC" font-size="10" font-weight="600">No</text>
+
+  <!-- Q5: 500+ hosts -->
+  <polygon points="170,440 230,460 170,480 110,460" fill="url(#dtQuestion)" filter="url(#dtShadow)"/>
+  <text x="170" y="464" text-anchor="middle" fill="#0F172A" font-size="10" font-weight="700">500+ hosts?</text>
+
+  <!-- ================== OUTCOMES COLUMN (x≥420) ================== -->
+
+  <!-- Q1 No → REQUIRED Network Proxy (right) -->
+  <line x1="290" y1="115" x2="420" y2="115" stroke="#EF4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="350" y="105" text-anchor="middle" fill="#FCA5A5" font-size="10" font-weight="600">No</text>
+  <rect x="430" y="92" width="220" height="46" rx="6" fill="url(#dtRequired)" filter="url(#dtShadow)"/>
+  <text x="540" y="113" text-anchor="middle" fill="white" font-size="12" font-weight="700">REQUIRED</text>
+  <text x="540" y="129" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Network Proxy</text>
+
+  <!-- Q2 Yes → REQUIRED Private Synth -->
+  <line x1="290" y1="210" x2="420" y2="210" stroke="#EF4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="350" y="200" text-anchor="middle" fill="#FCA5A5" font-size="10" font-weight="600">Yes</text>
+  <rect x="430" y="187" width="220" height="46" rx="6" fill="url(#dtRequired)" filter="url(#dtShadow)"/>
+  <text x="540" y="208" text-anchor="middle" fill="white" font-size="12" font-weight="700">REQUIRED</text>
+  <text x="540" y="224" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Private Synthetic Locations</text>
+
+  <!-- Q3 Yes → REQUIRED Extensions -->
+  <line x1="290" y1="305" x2="420" y2="305" stroke="#EF4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="350" y="295" text-anchor="middle" fill="#FCA5A5" font-size="10" font-weight="600">Yes</text>
+  <rect x="430" y="282" width="220" height="46" rx="6" fill="url(#dtRequired)" filter="url(#dtShadow)"/>
+  <text x="540" y="303" text-anchor="middle" fill="white" font-size="12" font-weight="700">REQUIRED</text>
+  <text x="540" y="319" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Remote extensions (AG group)</text>
+
+  <!-- Q4 Yes → 3-row cloud breakdown -->
+  <line x1="290" y1="400" x2="420" y2="400" stroke="#FFB800" stroke-width="2" marker-end="url(#arrowGray)"/>
+  <text x="350" y="390" text-anchor="middle" fill="#FCD34D" font-size="10" font-weight="600">Yes</text>
+
+  <!-- Cloud row 1: AWS -->
+  <rect x="430" y="365" width="220" height="22" rx="4" fill="url(#dtCloudsApp)" filter="url(#dtShadow)"/>
+  <text x="445" y="380" fill="white" font-size="10" font-weight="700">AWS</text>
+  <text x="640" y="380" text-anchor="end" fill="rgba(255,255,255,0.9)" font-size="9">Clouds app (GA) · No AG</text>
+
+  <!-- Cloud row 2: Azure -->
+  <rect x="430" y="389" width="220" height="22" rx="4" fill="url(#dtCloudsApp)" filter="url(#dtShadow)"/>
+  <text x="445" y="404" fill="white" font-size="10" font-weight="700">Azure</text>
+  <text x="640" y="404" text-anchor="end" fill="rgba(255,255,255,0.9)" font-size="9">Clouds app (1.337+) · No AG</text>
+
+  <!-- Cloud row 3: GCP -->
+  <rect x="430" y="413" width="220" height="22" rx="4" fill="url(#dtCloudsApp)" filter="url(#dtShadow)"/>
+  <text x="445" y="428" fill="white" font-size="10" font-weight="700">GCP</text>
+  <text x="640" y="428" text-anchor="end" fill="rgba(255,255,255,0.9)" font-size="9">No AG on SaaS (GKE/Function)</text>
+
+  <!-- Q5 Yes → RECOMMENDED -->
+  <line x1="230" y1="460" x2="420" y2="460" stroke="#1496FF" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <text x="325" y="453" text-anchor="middle" fill="#BFDBFE" font-size="10" font-weight="600">Yes</text>
+  <rect x="430" y="447" width="100" height="26" rx="6" fill="url(#dtRecommended)" filter="url(#dtShadow)"/>
+  <text x="480" y="464" text-anchor="middle" fill="white" font-size="11" font-weight="700">RECOMMENDED</text>
+
+  <!-- Q5 No → OPTIONAL -->
+  <line x1="540" y1="460" x2="572" y2="460" stroke="#22C55E" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="558" y="453" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="600">No</text>
+  <rect x="580" y="447" width="80" height="26" rx="6" fill="url(#dtOptional)" filter="url(#dtShadow)"/>
+  <text x="620" y="464" text-anchor="middle" fill="white" font-size="11" font-weight="700">OPTIONAL</text>
+
+  <!-- ================== LEGEND PANEL (right column) ================== -->
+  <rect x="690" y="92" width="220" height="343" rx="6" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+  <text x="800" y="115" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Legend</text>
+
+  <rect x="710" y="135" width="14" height="14" rx="3" fill="url(#dtRequired)"/>
+  <text x="732" y="146" fill="#E2E8F0" font-size="11" font-weight="600">Required</text>
+  <text x="732" y="160" fill="#94A3B8" font-size="9">AG must be deployed for this scenario</text>
+
+  <rect x="710" y="180" width="14" height="14" rx="3" fill="url(#dtCloudsApp)"/>
+  <text x="732" y="191" fill="#E2E8F0" font-size="11" font-weight="600">Clouds App (no AG)</text>
+  <text x="732" y="205" fill="#94A3B8" font-size="9">Direct connection — no AG needed</text>
+
+  <rect x="710" y="225" width="14" height="14" rx="3" fill="url(#dtRecommended)"/>
+  <text x="732" y="236" fill="#E2E8F0" font-size="11" font-weight="600">Recommended</text>
+  <text x="732" y="250" fill="#94A3B8" font-size="9">AG recommended at this scale</text>
+
+  <rect x="710" y="270" width="14" height="14" rx="3" fill="url(#dtOptional)"/>
+  <text x="732" y="281" fill="#E2E8F0" font-size="11" font-weight="600">Optional</text>
+  <text x="732" y="295" fill="#94A3B8" font-size="9">AG not required, deploy if useful</text>
+
+  <line x1="710" y1="312" x2="890" y2="312" stroke="#334155" stroke-width="1"/>
+
+  <text x="710" y="328" fill="#CBD5E1" font-size="10" font-weight="700">Cloud Status (10/2026)</text>
+  <text x="710" y="345" fill="#94A3B8" font-size="9">AWS — Clouds app GA</text>
+  <text x="710" y="360" fill="#94A3B8" font-size="9">Azure — Clouds app (SaaS 1.337+)</text>
+  <text x="710" y="375" fill="#94A3B8" font-size="9">GCP — Clouds Preview; no AG</text>
+
+  <line x1="710" y1="392" x2="890" y2="392" stroke="#334155" stroke-width="1"/>
+
+  <text x="710" y="408" fill="#CBD5E1" font-size="10" font-weight="700">Extensions</text>
+  <text x="710" y="423" fill="#94A3B8" font-size="9">Remote (DB/SNMP/API) → AG group</text>
+  <text x="710" y="433" fill="#94A3B8" font-size="9">Local (on-host) → OneAgent</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="486" x2="890" y2="486" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="498" text-anchor="middle" fill="#64748B" font-size="9">Decision evaluated top → bottom; first match wins. See ONBRD-03 §2 for the full table-form alternative.</text>
+</svg>

@@ -44,7 +44,7 @@
 
   <line x1="600" y1="223" x2="690" y2="223" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
   <text x="800" y="220" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">OTel Collector</text>
-  <text x="800" y="236" text-anchor="middle" fill="#94A3B8" font-size="10">or ActiveGate syslog</text>
+  <text x="800" y="236" text-anchor="middle" fill="#94A3B8" font-size="10">AG syslog only if syslog-framed</text>
 
   <!-- Row 3: syslog -->
   <rect x="40" y="266" width="200" height="62" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
@@ -85,7 +85,7 @@
 
   <rect x="330" y="414" width="270" height="62" fill="#1E293B" stroke="#22D3EE" stroke-width="2" rx="6"/>
   <text x="465" y="439" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">Multi-home an output</text>
-  <text x="465" y="459" text-anchor="middle" fill="#94A3B8" font-size="11">add an output — never re-point the source</text>
+  <text x="465" y="459" text-anchor="middle" fill="#94A3B8" font-size="11">add an output — don't re-point the source</text>
 
   <line x1="600" y1="445" x2="690" y2="445" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
   <text x="800" y="442" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="600">Nothing new</text>

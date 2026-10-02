@@ -33,5 +33,5 @@
   <line x1="465" y1="315" x2="465" y2="345" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-04a)"/>
 
   <!-- Footer note -->
-  <text x="465" y="475" text-anchor="middle" fill="#94A3B8" font-size="11">Three modes available at every scope: Automatic updates at earliest convenience · Automatic updates during update windows · No automatic updates</text>
+  <text x="465" y="475" text-anchor="middle" fill="#94A3B8" font-size="11">Outside all three: oneagentctl --set-auto-update-enabled=false on a host removes it from Dynatrace update control</text>
 </svg>

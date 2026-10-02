@@ -37,15 +37,15 @@
 
   <rect x="341" y="226" width="248" height="112" fill="#1E293B" stroke="#334155" rx="6"/>
   <text x="465" y="246" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">WHY IT'S SILENT</text>
-  <text x="465" y="268" text-anchor="middle" fill="#94A3B8" font-size="11">When the field holds an array,</text>
+  <text x="465" y="268" text-anchor="middle" fill="#94A3B8" font-size="11">When a record field is an array,</text>
   <text x="465" y="285" text-anchor="middle" fill="#94A3B8" font-size="11">=, STARTSWITH and IN always</text>
   <text x="465" y="302" text-anchor="middle" fill="#94A3B8" font-size="11">return false. The policy still</text>
   <text x="465" y="319" text-anchor="middle" fill="#94A3B8" font-size="11">evaluates. Nothing errors.</text>
 
   <rect x="341" y="350" width="248" height="88" fill="#1E293B" stroke="#34D399" rx="6"/>
   <text x="465" y="370" text-anchor="middle" fill="#CBD5E1" font-size="10" font-weight="700">FIX</text>
-  <text x="465" y="393" text-anchor="middle" fill="#A7F3D0" font-size="12">Use MATCH — and check</text>
-  <text x="465" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">with type() first.</text>
+  <text x="465" y="393" text-anchor="middle" fill="#A7F3D0" font-size="12">Records: MATCH. Entities:</text>
+  <text x="465" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">startsWith. Check type() first.</text>
 
   <!-- ============ 3 — One masking layer only ============ -->
   <rect x="620" y="96" width="280" height="358" fill="#DE350B" opacity="0.07" stroke="#DE350B" stroke-width="1.5" rx="8"/>
@@ -69,5 +69,5 @@
   <text x="760" y="411" text-anchor="middle" fill="#A7F3D0" font-size="12">which layer masks it.</text>
 
   <!-- Footer -->
-  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Segments scope the screen · MATCH covers any value · masking runs where the data actually enters</text>
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">Segments scope the screen · MATCH covers any value on records · masking runs where the data actually enters</text>
 </svg>

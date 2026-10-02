@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -59,41 +59,50 @@ For environments where SVG doesn't render
 
 - **Decision:** Confirm access; record tenant URL; plan token strategy for downstream automation.
 - **Depends on:** procurement complete, tenant provisioned.
-- **2026 specifics:** Plan for Platform Tokens (`dt0s16`, `Authorization: Bearer`) as the default for new automation per sprint-1.337. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work. **Extensions 2.0** for any custom integrations (Extensions Framework 1.0 reached end of support on 2025-03-31).
+- **2026 specifics:** Plan for Platform Tokens (`dt0s16`, `Authorization: Bearer`) as the default for new automation — the access-token upgrade guide states that *"In Latest Dynatrace, this model is replaced with platform tokens"*. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work (SaaS 1.337 put deprecation notices on Configuration API endpoints now covered by Settings). **Extensions 2.0** for any custom integrations (Extensions Framework 1.0 reached end of support on 2025-03-31).
 - **Output:** confirmed tenant access; first Platform Token decision recorded.
 - **Deep dive:** **ONBRD-99: Best Practice Summary** § 1 Recommended Defaults for the 2026 token / API / extension stack.
 
 ### Step 02 — IAM and Authentication
 
-- **Decision:** SSO method (SAML / OIDC); initial group structure; first parameterized policies.
+- **Decision:** SSO method (SAML, optionally with SCIM provisioning); initial group structure; first parameterized policies.
 - **Depends on:** Step 01 (access confirmed).
-- **2026 specifics:** Issue the first Platform Token (`dt0s16`, `Authorization: Bearer`) — Classic API Tokens (`dt0c01`) only for legacy installer-download paths. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06).
+- **2026 specifics:** Issue the first Platform Token (`dt0s16`, `Authorization: Bearer`). Installer downloads work with a platform token carrying `fleet-management:oneagents:download` (OneAgent) or `fleet-management:activegates:download` (ActiveGate); classic access tokens (`dt0c01`, `InstallerDownload` scope) exist only on classic and hybrid environments — *"Classic access tokens don't exist in latest environments"*. Use parameterized policies bound to groups via binding parameters; the `dt.security_context` field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06).
 - **Output:** SSO live; admin group + first parameterized policy in place; first Platform Token issued.
 - **Deep dive:** IAM series for full IAM administration (15 notebooks); **FAQ-02: Tagging — Sources, Standards, and Strategy** for `dt.security_context` strategy.
 
 ### Step 03 — ActiveGate (parallel-able with 04 + 05 after 02)
 
-- **Decision:** Need ActiveGate? Required for >500 hosts, hybrid / on-prem, or cloud-API polling at scale. Defer if pure SaaS-only with no on-prem footprint.
+- **Decision:** Need ActiveGate? Needed for on-prem / hybrid routing and ActiveGate-based integrations; recommended for large deployments (see the decision table in **ONBRD-03: Deploying ActiveGate**). Defer if pure SaaS-only with no on-prem footprint.
 - **Depends on:** Step 02 (Platform Token to register AG).
-- **2026 specifics:** Sizing baseline 10–20 GB; 2–3 AGs per zone for load distribution + failover. OneAgent attribute enrichment (OneAgent 1.333+) emits primary fields on every signal at ingest — verify AG version supports it.
-- **Output:** at least one AG registered; cluster connectivity verified; AG visible in Deployment Status.
+- **2026 specifics:** Disk 10–20 GB (sizing depth in **ONBRD-03** and **FAQ-10: How Do I Size and Scale ActiveGates?**); 2–3 AGs per zone for load distribution + failover.
+- **Output:** at least one AG registered; cluster connectivity verified; AG visible in **Fleet Management** (or via `smartscapeNodes "ACTIVEGATE"`).
 - **Deep dive:** CLOUD series for AG-routed cloud integrations; AUTOM series for AG config-as-code.
 
 ### Step 04 — Cloud & SaaS Integrations (parallel-able with 03 + 05 after 02)
 
 - **Decision:** Which clouds (AWS / Azure / GCP) and integration mechanism per cloud.
 - **Depends on:** Step 02 (Platform Token); optionally Step 03 (AG for legacy paths).
-- **2026 specifics:** Clouds app for AWS (GA) and Azure (direct connection since SaaS 1.337 — no ActiveGate for metric polling); the GCP Clouds-app connection is in **Preview** — verify it has reached your tenant; the classic ActiveGate-based GCP integration remains the working path until then. AWS Lambda primary-tag propagation via `DT_TAGS` env var (sprint-1.337). IAM Role pattern for production multi-account.
-- **Output:** cloud entities visible in Smartscape; cloud tags arriving as `aws.tag.*` / `azure.tag.*` / `gcp.label.*`.
+- **2026 specifics:** Clouds app for AWS (GA) and Azure (direct connection since SaaS 1.337 — no ActiveGate for metric polling); the GCP Clouds-app connection is in **Preview** — verify it has reached your tenant; the classic ActiveGate-based GCP integration remains the working path until then. AWS Lambda primary-field propagation to logs and spans via the `DT_TAGS` env var (OneAgent 1.337). IAM Role pattern for production multi-account.
+- **Output:** cloud entities visible in Smartscape, with cloud tags on the nodes (for example the `tags:aws` record on AWS nodes); on signals, cloud tags appear as `aws.tags.<key>` / `azure.tags.<key>` / `gcp.labels.<key>` only for keys you add to the tag-enrichment configuration.
 - **Deep dive:** CLOUD series for per-provider depth; **FAQ-02: Tagging — Sources, Standards, and Strategy** for cross-cloud tag normalization.
 
 ### Step 05 — OneAgent Deployment (parallel-able with 03 + 04 after 02)
 
 - **Decision:** Deployment method (direct, package manager, Operator for K8s); initial scope (pilot or full); host-tag taxonomy.
-- **Depends on:** Step 02 (Platform Token for installer download).
-- **2026 specifics:** **Set primary fields/tags at install** via the single `--set-host-tag` form the June-2026 tags hub documents for both: `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` (prefix written explicitly — it is never added automatically) and `oneagentctl --set-host-tag="dt.security_context=<value>"` — not retroactively. Primary tags emit on every signal (metrics / spans / logs / events) at ingest. Kubernetes: Dynatrace Operator + **Cloud Native FullStack** mode (Classic FullStack deprecated for new deployments). DynaKube **v1beta5** baseline; **v1beta6** as canary-validated upgrade. From **OneAgent 1.337**, Windows OneAgent requires **Npcap** for Network Agent metrics (WinPcap is no longer supported).
+- **Depends on:** Step 02 (Platform Token with `fleet-management:oneagents:download` for installer download).
+- **2026 specifics:** **Set primary fields/tags at install** via the single `--set-host-tag` form the June-2026 tags hub documents for both: `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` (prefix written explicitly — it is never added automatically) and `oneagentctl --set-host-tag="dt.security_context=<value>"` — or later on existing hosts, since the enrichment page documents an option to *"Define fields and tags for existing OneAgent installations using oneagentctl"* (in community practice, expect the new fields only on data ingested after the change). Primary tags emit on every signal (metrics / spans / logs / events) at ingest. Kubernetes: Dynatrace Operator + **Cloud Native FullStack** mode (the Operator docs list Classic Full-Stack under *Other* deployment modes; in community practice, prefer Cloud Native FullStack for new clusters). DynaKube **v1beta6** for new manifests — the Operator 1.11 release notes say *"Before upgrading, update all DynaKube manifests to v1beta6."* From **OneAgent 1.337**, Windows OneAgent requires **Npcap** for Network Agent metrics (WinPcap is no longer supported).
 - **Output:** OneAgent installed on at least one host group; primary tags propagating to every signal at ingest.
 - **Deep dive:** K8S series for DynaKube + Cloud Native FullStack; **FAQ-01: Why you need a good Host Group naming strategy** for host-group naming; **FAQ-02: Tagging — Sources, Standards, and Strategy** for primary-fields strategy; **FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework** for OneAgent vs OTel decision.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Latest environment Platform tokens only. Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Download latest OneAgent installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:download"*</sub>
+> - <sub>[Download latest ActiveGate installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"Platform Token / OAuth: Required scope: fleet-management:activegates:download"*</sub>
+> - <sub>[SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Certain Configuration API endpoints are now deprecated"*</sub>
+> - <sub>[OneAgent 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — *"Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent."*</sub>
+> - <sub>[Enterprise identity management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam), [Fleet Management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/fleet-management), [Primary Grail fields and tags enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment), [Kubernetes deployment modes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0)</sub>
+> - <sub>**Dictionary:** `aws.tags.__tag_key__` (`experimental`), `azure.tags.__tag_key__` (`experimental`), `gcp.labels.__label__` (`experimental`), read 10/02/2026; no singular `aws.tag.*` / `azure.tag.*` / `gcp.label.*` fields under the same `startsWith` filter (control: `tags`, `stable`, returned).</sub>
 
 <a id="phase-2-organize"></a>
 ## 3. Phase 2 — Organize
@@ -102,7 +111,7 @@ For environments where SVG doesn't render
 
 - **Decision:** Tag taxonomy (env / team / app / compliance / cost-center dimensions); host-group naming convention; bucket strategy; segment definitions.
 - **Depends on:** Step 05 (OneAgent hosts reporting); Step 04 (cloud tags arriving) if cross-cloud normalization is needed.
-- **2026 specifics:** Primary fields/tags via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (June-2026 tags-hub form; the oneagentctl reference still documents the older `--set-host-property` form for `dt.*` keys). Use **Segments + `dt.security_context`** for data scoping — *not* legacy Management Zones. **MZ-on-calculated-metrics** is on the May-2026 deprecation list. Bucket strategy: `dt.security_context` is the default for general data access; buckets only for compliance / retention / hard cost / hostile multi-tenancy.
+- **2026 specifics:** Primary fields/tags via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` and `--set-host-tag="dt.security_context=<value>"` (the same `--set-host-tag` form the oneagentctl reference uses for `dt.security_context`). Use **Segments + `dt.security_context`** for data scoping — *not* legacy Management Zones. API 1.337 (April 2026) marks the `managementZone` and `serviceTag` properties of calculated service metric definitions as deprecated. Bucket strategy: `dt.security_context` is the default for general data access; buckets only for compliance / retention / hard cost / hostile multi-tenancy.
 - **Output:** entities grouped meaningfully; `dt.security_context` populated on signals; segments defined for primary scopes; bucket strategy documented.
 - **Deep dive:** ORGNZ series — buckets, segments, `dt.security_context` (full depth, 11 notebooks); IAM series — parameterized policies bound to `dt.security_context`; **FAQ-01: Why you need a good Host Group naming strategy** — host-group naming; **FAQ-02: Tagging — Sources, Standards, and Strategy** — tagging strategy.
 
@@ -113,6 +122,8 @@ For environments where SVG doesn't render
 - **2026 specifics:** OneAgent attribute enrichment (OneAgent 1.333+) emits primary fields on every signal at ingest — spot-check `dt.security_context` on logs / spans / metrics with the validation DQL in **ONBRD-99: Best Practice Summary** § 3.
 - **Output:** confirmed which signal types are flowing; one validation DQL per signal type saved.
 - **Deep dive:** SPANS series, OPLOGS series, OPIPE series, OPMIG series — per-signal-type depth.
+
+> <sub>**Sources:** [OneAgent command-line configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"./oneagentctl --set-host-tag=dt.security_context=easytrade_sec"*; [Dynatrace API 1.337 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337) — *"Changed property managementZone Deprecated changed to true"*.</sub>
 
 <a id="phase-3-operate"></a>
 ## 4. Phase 3 — Operate
@@ -149,7 +160,7 @@ Verify before moving from one phase to the next. The DQL queries in **ONBRD-99: 
 The tenant has at least one host reporting and the tenant lead role can query that data.
 
 - *Verify:* `smartscapeNodes "HOST"` returns host count > 0; tenant lead role can run that query.
-- *If not:* stay in Phase 1 — most likely OneAgent installer didn't run, or the Platform Token used by the installer lacks `InstallerDownload` scope.
+- *If not:* stay in Phase 1 — most likely the OneAgent installer didn't run, or the installer-download token lacks its scope: `fleet-management:oneagents:download` on a platform token, or `InstallerDownload` on a classic access token (classic and hybrid environments only).
 
 ### G2 — Organize → Operate
 
@@ -160,7 +171,7 @@ Entities are grouped meaningfully and `dt.security_context` is populated on sign
 
 ### After Phase 3 — exit ONBRD
 
-ONBRD ends. The next checkpoint is *"do you need a deeper series for the domains in scope?"* — see **ONBRD-99: Best Practice Summary** § 5 Where to Go Deeper for the 32-series cross-reference map.
+ONBRD ends. The next checkpoint is *"do you need a deeper series for the domains in scope?"* — see **ONBRD-99: Best Practice Summary** § 5 Where to Go Deeper for the cross-series reference map.
 
 <a id="common-variants"></a>
 ## 6. Common Variants & Skip Rules
@@ -181,7 +192,7 @@ For environments where SVG doesn't render
 
 | Variant | When | What to do |
 |---|---|---|
-| Existing SSO already configured | New tenant for an org with SAML/OIDC live on another Dynatrace tenant | Skip the IDP-config part of Step 02; reuse the existing IDP. Still configure groups + parameterized policies in the new tenant. |
+| Existing SSO already configured | New tenant for an org with SAML (optionally + SCIM) live on another Dynatrace tenant | Skip the IDP-config part of Step 02; reuse the existing IDP. Still configure groups + parameterized policies in the new tenant. |
 | Pure SaaS-only, no on-prem | All workloads in cloud; no private/on-prem footprint | Step 03 (ActiveGate) is optional — defer until cloud-API polling demands it. |
 | Cloud-only, no hosts | Serverless / managed services only; no VMs or containers under your control | Step 05 (OneAgent) is mostly inapplicable — focus on Step 04 (cloud integrations) and OpenTelemetry for application code. See **FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework**. |
 | Kubernetes-first | Workloads run primarily on K8s | Step 05 collapses into K8S series — Operator + DynaKube replaces per-host install. |
@@ -195,7 +206,7 @@ ONBRD ends after Phase 3. The next set of decisions is per-domain — observabil
 
 Reference points to keep open:
 
-- **ONBRD-99: Best Practice Summary** — the architect's reference card: recommended defaults, decision matrix, validation queries, anti-patterns, and the **32-series cross-reference map** for what to do after ONBRD.
+- **ONBRD-99: Best Practice Summary** — the architect's reference card: recommended defaults, decision matrix, validation queries, anti-patterns, and the **cross-series reference map** for what to do after ONBRD.
 - **-START-HERE- › Foundation Module** — cross-series Foundation Module reading order (ONBRD + ORGNZ + IAM in parallel) with priorities and skip rules.
 - **-START-HERE- › Doorway 1 — Net New** — doorway selection for greenfield vs migration paths (Sub-Paths A–E).
 - **ADOPT series** — overall maturity and adoption roadmap once ONBRD is complete.

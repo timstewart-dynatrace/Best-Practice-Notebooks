@@ -24,63 +24,56 @@
   <rect width="600" height="300" fill="#f8f9fa" rx="10"/>
 
   <!-- Title -->
-  <text x="300" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e293b" text-anchor="middle">Multi-Pipeline: Metrics Extraction + Log Storage</text>
+  <text x="300" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e293b" text-anchor="middle">Pipeline Group: Shared Base + Member Pipeline</text>
 
   <!-- Incoming Log -->
-  <rect x="30" y="110" width="110" height="50" rx="6" fill="url(#mpInputGrad)" filter="url(#mpShadow)"/>
-  <text x="85" y="135" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Incoming Log</text>
-  <text x="85" y="150" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">payment request</text>
+  <rect x="20" y="115" width="100" height="50" rx="6" fill="url(#mpInputGrad)" filter="url(#mpShadow)"/>
+  <text x="70" y="137" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Incoming Log</text>
+  <text x="70" y="152" font-family="Arial, sans-serif" font-size="10" fill="#cbd5e1" text-anchor="middle">payment request</text>
 
-  <!-- Split arrow -->
-  <line x1="140" y1="135" x2="175" y2="135" stroke="#64748b" stroke-width="2"/>
-  <line x1="175" y1="135" x2="175" y2="75" stroke="#64748b" stroke-width="2"/>
-  <line x1="175" y1="135" x2="175" y2="195" stroke="#64748b" stroke-width="2"/>
-  <line x1="175" y1="75" x2="195" y2="75" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
-  <line x1="175" y1="195" x2="195" y2="195" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
+  <!-- Route arrow -->
+  <line x1="120" y1="140" x2="150" y2="140" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
+  <text x="137" y="132" font-family="Arial, sans-serif" font-size="8" fill="#475569" text-anchor="middle">route</text>
 
-  <!-- Pipeline 1: Metrics Extraction -->
-  <rect x="205" y="50" width="170" height="50" rx="6" fill="url(#mpPipe1Grad)" filter="url(#mpShadow)"/>
-  <text x="290" y="72" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Pipeline 1:</text>
-  <text x="290" y="88" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">metrics-extraction</text>
+  <!-- Group frame -->
+  <rect x="155" y="45" width="250" height="215" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="280" y="62" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#334155" text-anchor="middle">PIPELINE GROUP (first matching route)</text>
 
-  <!-- Pipeline 1 actions -->
-  <g transform="translate(205, 105)">
-    <rect width="170" height="45" rx="4" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/>
-    <text x="10" y="18" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9">• Parse response_time</text>
-    <text x="10" y="35" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9">• Extract metric: duration</text>
+  <!-- Base pipeline -->
+  <rect x="170" y="72" width="220" height="30" rx="6" fill="url(#mpPipe1Grad)" filter="url(#mpShadow)"/>
+  <text x="280" y="91" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Base pipeline (shared by every team)</text>
+  <g transform="translate(170, 105)">
+    <rect width="220" height="38" rx="4" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/>
+    <text x="10" y="16" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9">• Mask PII</text>
+    <text x="10" y="31" font-family="Arial, sans-serif" font-size="10" fill="#6d28d9">• Set cost center</text>
   </g>
 
-  <!-- Pipeline 1 output arrow -->
-  <line x1="375" y1="127" x2="395" y2="127" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
+  <text x="280" y="160" font-family="Arial, sans-serif" font-size="10" fill="#475569" text-anchor="middle">+ runs with</text>
+
+  <!-- Member pipeline -->
+  <rect x="170" y="168" width="220" height="30" rx="6" fill="url(#mpPipe2Grad)" filter="url(#mpShadow)"/>
+  <text x="280" y="187" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Member pipeline (payments team)</text>
+  <g transform="translate(170, 201)">
+    <rect width="220" height="52" rx="4" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+    <text x="10" y="16" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">• Parse response_time</text>
+    <text x="10" y="31" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">• Metric extraction: request_duration</text>
+    <text x="10" y="46" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">• Bucket assignment: payment_logs</text>
+  </g>
+
+  <!-- Output arrows -->
+  <line x1="405" y1="120" x2="440" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
+  <line x1="405" y1="200" x2="440" y2="200" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
 
   <!-- Metric Output -->
-  <rect x="405" y="105" width="100" height="45" rx="6" fill="#10b981" filter="url(#mpShadow)"/>
-  <text x="455" y="123" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">📊 METRIC</text>
-  <text x="455" y="140" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">request_duration</text>
+  <rect x="450" y="98" width="130" height="45" rx="6" fill="#10b981" filter="url(#mpShadow)"/>
+  <text x="515" y="116" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">📊 METRIC</text>
+  <text x="515" y="133" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.95)" text-anchor="middle">request_duration</text>
 
-  <!-- Pipeline 2: Log Storage -->
-  <rect x="205" y="170" width="170" height="50" rx="6" fill="url(#mpPipe2Grad)" filter="url(#mpShadow)"/>
-  <text x="290" y="192" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">Pipeline 2:</text>
-  <text x="290" y="208" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">log-storage</text>
+  <!-- Log Output -->
+  <rect x="450" y="178" width="130" height="45" rx="6" fill="#3b82f6" filter="url(#mpShadow)"/>
+  <text x="515" y="196" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">📋 LOG (stored once)</text>
+  <text x="515" y="213" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.95)" text-anchor="middle">payment_logs</text>
 
-  <!-- Pipeline 2 actions -->
-  <g transform="translate(205, 225)">
-    <rect width="170" height="45" rx="4" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
-    <text x="10" y="18" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">• Parse additional fields</text>
-    <text x="10" y="35" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">• Route to bucket</text>
-  </g>
-
-  <!-- Pipeline 2 output arrow -->
-  <line x1="375" y1="247" x2="395" y2="247" stroke="#64748b" stroke-width="2" marker-end="url(#mpArrow)"/>
-
-  <!-- Log Storage Output -->
-  <rect x="405" y="225" width="100" height="45" rx="6" fill="#3b82f6" filter="url(#mpShadow)"/>
-  <text x="455" y="243" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" font-weight="bold">📋 LOG</text>
-  <text x="455" y="260" font-family="Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">payment_logs</text>
-
-  <!-- Result box -->
-  <rect x="510" y="155" width="80" height="60" rx="4" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
-  <text x="550" y="175" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle" font-weight="bold">RESULT</text>
-  <text x="550" y="192" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">Metric ✓</text>
-  <text x="550" y="205" font-family="Arial, sans-serif" font-size="10" fill="#166534" text-anchor="middle">Log ✓</text>
+  <!-- Footer -->
+  <text x="300" y="282" font-family="Arial, sans-serif" font-size="9" fill="#475569" text-anchor="middle">One route per record. A single pipeline can also extract a metric AND store the log — a group is for sharing processing across teams.</text>
 </svg>

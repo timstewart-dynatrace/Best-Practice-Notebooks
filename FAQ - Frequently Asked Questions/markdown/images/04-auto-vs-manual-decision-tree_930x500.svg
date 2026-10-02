@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">OneAgent Auto-Update — Decision Tree</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Default to auto-update; override only with explicit justification</text>
+
+  <defs>
+    <marker id="arrow-04b" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Q1 -->
+  <rect x="340" y="90" width="250" height="60" fill="#1E293B" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="465" y="115" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Regulated change control:</text>
+  <text x="465" y="135" text-anchor="middle" fill="#94A3B8" font-size="11">updates must land in a set window?</text>
+
+  <!-- Yes branch (left, to manual + windows) -->
+  <text x="240" y="175" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">Yes</text>
+  <line x1="340" y1="150" x2="240" y2="195" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-04b)"/>
+
+  <rect x="80" y="200" width="320" height="80" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="240" y="228" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Pin target + update windows</text>
+  <text x="240" y="248" text-anchor="middle" fill="#94A3B8" font-size="11">Board advances the pinned version;</text>
+  <text x="240" y="265" text-anchor="middle" fill="#94A3B8" font-size="11">it lands only inside the window</text>
+
+  <!-- No branch (right, to Q2) -->
+  <text x="690" y="175" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">No</text>
+  <line x1="590" y1="150" x2="690" y2="195" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-04b)"/>
+
+  <rect x="540" y="200" width="300" height="60" fill="#1E293B" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="690" y="225" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Must hold a specific version</text>
+  <text x="690" y="245" text-anchor="middle" fill="#94A3B8" font-size="11">(security baseline / certified build)?</text>
+
+  <!-- Q2 Yes (down, to No automatic updates) -->
+  <text x="540" y="285" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">Yes</text>
+  <line x1="600" y1="260" x2="500" y2="305" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-04b)"/>
+
+  <rect x="340" y="310" width="320" height="80" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="500" y="338" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">Pinned target version</text>
+  <text x="500" y="358" text-anchor="middle" fill="#94A3B8" font-size="11">Auto-update to the pinned version</text>
+  <text x="500" y="375" text-anchor="middle" fill="#94A3B8" font-size="11">(host group, host or tenant)</text>
+
+  <!-- Q2 No (down, to default auto) -->
+  <text x="830" y="285" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">No</text>
+  <line x1="780" y1="260" x2="830" y2="305" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-04b)"/>
+
+  <rect x="700" y="310" width="220" height="80" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="810" y="338" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Auto-update as soon</text>
+  <text x="810" y="357" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">as Dynatrace releases</text>
+  <text x="810" y="378" text-anchor="middle" fill="#94A3B8" font-size="11">Default for most fleets</text>
+
+  <!-- Footer -->
+  <text x="465" y="430" text-anchor="middle" fill="#94A3B8" font-size="11">Target version and update mode apply at tenant, host-group and host scope. Use update windows for peak-period</text>
+  <text x="465" y="448" text-anchor="middle" fill="#94A3B8" font-size="11">deferrals; maintenance windows only suppress alerts. Auto-update disabled: not recommended, last resort.</text>
+  <text x="465" y="475" text-anchor="middle" fill="#64748B" font-size="11" font-style="italic">Update windows do not apply to Kubernetes-deployed OneAgents — pin OneAgent version on tenant instead.</text>
+</svg>

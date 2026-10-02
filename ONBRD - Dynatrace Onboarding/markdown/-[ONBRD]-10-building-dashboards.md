@@ -11,7 +11,7 @@ Dashboards provide at-a-glance visibility into your environment's health and per
 
 1. [Dashboards vs Notebooks](#dashboards-vs-notebooks)
 2. [Creating Your First Dashboard](#creating-your-first-dashboard)
-3. [Common Tile Types](#common-tile-types)
+3. [Tile and Visualization Types](#common-tile-types)
 4. [Dashboard Patterns](#dashboard-patterns)
 5. [Useful Queries for Dashboards](#useful-queries-for-dashboards)
 6. [Sharing and Permissions](#sharing-and-permissions)
@@ -38,6 +38,10 @@ Dynatrace offers two visualization tools:
 | **Sharing** | Wall displays, reports | Investigation documentation |
 | **Best for** | NOC screens, status pages | Troubleshooting, exploration |
 
+This notebook uses **Dashboards**, the Latest Dynatrace app. Dashboards Classic is the older surface, and Dynatrace's advice for it is: *"If you're still using classic dashboards, we encourage you to upgrade your dashboards and benefit from all the latest dashboarding possibilities made available by the Dashboards app in the latest Dynatrace."* Classic tiles such as **Host health** and **Service health** do not exist in the Dashboards app; their job is done with DQL tiles (§5).
+
+> <sub>**Sources:** [Dashboards Classic (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic).</sub>
+
 ### When to Use Each
 
 | Scenario | Use |
@@ -51,7 +55,7 @@ Dynatrace offers two visualization tools:
 
 <a id="creating-your-first-dashboard"></a>
 ## 2. Creating Your First Dashboard
-**Location:** Observe and explore → Dashboards → Create dashboard
+**Location:** the **Dashboards** app → create a dashboard
 
 ### Dashboard Creation Steps
 
@@ -69,48 +73,61 @@ Dynatrace offers two visualization tools:
 | **Name** | Dashboard title |
 | **Time frame** | Default time range |
 | **Segment** | Default filter scope |
-| **Refresh rate** | Auto-refresh interval |
+| **Variables** | *"Configure variable filters to monitor different resources within a single dashboard."* |
+| **Refresh rate** | Auto-refresh interval. *"When you open a dashboard for the first time, the refresh rate is set to Off (no automatic refresh)."* A rate you pick is remembered the next time you open the dashboard |
 | **Owner** | Dashboard owner |
-| **Sharing** | Who can view/edit |
+| **Sharing** | Who can view/edit (§6) |
+
+> <sub>**Sources:** [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new).</sub>
 
 <a id="common-tile-types"></a>
-## 3. Common Tile Types
-### Data Tiles
+## 3. Tile and Visualization Types
+### Tiles
 
 | Tile Type | Use Case |
 |-----------|----------|
-| **Single value** | Key metrics (uptime, error count) |
-| **Graph** | Time series data |
-| **Table** | Lists and details |
-| **Top list** | Ranked entities |
-| **Pie chart** | Distribution |
-| **Honeycomb** | Entity health grid |
-
-### Content Tiles
-
-| Tile Type | Use Case |
-|-----------|----------|
+| **Query** | A DQL query against Grail, shown with any visualization below |
+| **Explore** | Point-and-click data exploration, no DQL needed |
+| **Code** | Data returned by code run as a Dynatrace function |
 | **Markdown** | Documentation, links |
-| **Problems** | Active problem list |
-| **Host health** | Infrastructure status |
-| **Service health** | Service status |
-| **SLO** | Service level objectives |
+| **Image** | Logos, diagrams |
+| **Service-Level Objective** | SLO status |
+| **Variables** | Filters that drive the other tiles |
+
+### Visualizations for Query and Explore Tiles
+
+| Visualization | Use Case |
+|-----------|----------|
+| **Single value** | Key metrics (request count, error rate) |
+| **Line / Area / Band chart** | Time series data |
+| **Bar / Categorical chart** | Comparisons and ranked top-N (sort and `limit` in the query) |
+| **Table / Record list** | Lists and details, including active problems from `dt.davis.problems` |
+| **Pie / Donut** | Distribution |
+| **Honeycomb** | Entity health grid |
+| **Meter bar / Gauge** | Value against a range |
+| **Maps** (choropleth, dot, connection, bubble) | Geographic data |
+
+There is no "top list" visualization: a ranked list is a bar or categorical chart (or a table) over a query that ends in `sort … | limit N`.
 
 ### Visualization Types
 
 ![Visualization Guide](images/10-visualization-guide.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Show This | Use This Tile |
+| Show This | Use This Visualization |
 |-----------|---------------|
 | Single number | Single Value |
 | Trend over time | Line/Area Chart |
 | Compare values | Bar Chart |
 | Distribution | Pie Chart |
-| Top N items | Top List |
+| Top N items | Bar chart, sorted and limited |
 | Detailed list | Table |
 | Entity status | Honeycomb |
 | Geographic | Map |
+| Active problems | Table on a `dt.davis.problems` query |
+| SLO status | Service-Level Objective tile |
 -->
+
+> <sub>**Sources:** [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new) — tile types; [Edit visualizations (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations) — the visualization list.</sub>
 
 <a id="dashboard-patterns"></a>
 ## 4. Dashboard Patterns
@@ -148,46 +165,44 @@ Key elements:
 
 <a id="useful-queries-for-dashboards"></a>
 ## 5. Useful Queries for Dashboards
-These queries work well as dashboard tiles.
+These queries work well as dashboard tiles. Each sets its own timeframe with `from:`, and *"If the timeframe is defined in the query itself, the dropdown list is disabled."* Remove `from:` when the tile should follow the dashboard timeframe.
+
+> <sub>**Sources:** [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new).</sub>
 
 ### Service Health Queries
 
+The service tiles read the service request metrics `dt.service.request.count` and `dt.service.request.failure_count` rather than counting spans. Counting `span.kind == "server"` spans with `span.status_code == "error"` gives a different and misleading number. A service request is its request root span, which is not always a server span, and *"a request counts as failed only when failure detection marks it as such."* On a validation tenant (1 hour, 10/02/2026) the span version read an error rate of 0.35 % (407 of 115,103 server spans); the service metrics read 4.61 % (4,807 failures in 104,191 requests).
+
+> <sub>**Sources:** [Service-related concepts (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-concepts).</sub>
+
 ```dql
 // Total request count (Single Value tile)
-fetch spans, from: now() - 1h
-| filter span.kind == "server"
-| summarize request_count = count()
+timeseries requests = sum(dt.service.request.count, scalar: true), from: now() - 1h
 ```
 
 ```dql
 // Error rate percentage (Single Value tile)
-fetch spans, from: now() - 1h
-| filter span.kind == "server"
-| summarize 
-    total = count(),
-    errors = countIf(span.status_code == "error")
-| fieldsAdd error_rate = round(100.0 * errors / total, decimals: 2)
+timeseries {
+    requests = sum(dt.service.request.count, scalar: true),
+    failures = sum(dt.service.request.failure_count, scalar: true)
+  }, from: now() - 1h
+| fieldsAdd error_rate = round(100.0 * failures / requests, decimals: 2)
 ```
 
 ```dql
-// Top services by request count (Top List tile)
-// dt.service.name is set on every span, whatever the ingest source
-fetch spans, from: now() - 1h
-| filter span.kind == "server"
-| summarize requests = count(), by: {dt.service.name}
+// Top services by request count (Bar chart tile)
+timeseries requests = sum(dt.service.request.count, scalar: true), by: {dt.service.name}, from: now() - 1h
 | sort requests desc
 | limit 10
 ```
 
 ```dql
 // Service error rates (Table tile)
-fetch spans, from: now() - 1h
-| filter span.kind == "server"
-| summarize {
-    requests = count(),
-    errors = countIf(span.status_code == "error")
-  }, by: {dt.service.name}
-| fieldsAdd error_rate = round(100.0 * errors / requests, decimals: 2)
+timeseries {
+    requests = sum(dt.service.request.count, scalar: true),
+    failures = sum(dt.service.request.failure_count, scalar: true)
+  }, by: {dt.service.name}, from: now() - 1h
+| fieldsAdd error_rate = round(100.0 * failures / requests, decimals: 2)
 | sort error_rate desc
 | limit 15
 ```
@@ -240,10 +255,15 @@ fetch dt.entity.host
 
 ### Log Queries
 
+Filter error logs on `status`, not `loglevel`. `loglevel` is the source's own severity, while *"for each log event, a status attribute is created with a value that is a sum of loglevel values"*, and the levels `SEVERE`, `ERROR`, `CRITICAL`, `ALERT`, `FATAL` and `EMERGENCY` all map to `status == "ERROR"`. Java applications log `SEVERE`, so `loglevel == "ERROR"` misses them. On a validation tenant (1 hour, 10/02/2026) `status == "ERROR"` returned 118,086 records and `loglevel == "ERROR"` 63,551; most of the difference was 54,535 `SEVERE` records.
+
+> <sub>**Sources:** [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation).</sub>
+
 ```dql
 // Error log count (Single Value tile)
+// status groups SEVERE, ERROR, CRITICAL, ALERT, FATAL and EMERGENCY; loglevel is the raw source value
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize error_count = count()
 ```
 
@@ -257,8 +277,8 @@ fetch logs, from: now() - 1h
 ```dql
 // Recent errors (Table tile)
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
-| fields timestamp, log.source, content
+| filter status == "ERROR"
+| fields timestamp, loglevel, log.source, content
 | sort timestamp desc
 | limit 10
 ```
@@ -292,10 +312,12 @@ fetch dt.davis.problems, from: now() - 24h
 
 | Sharing Level | Who Can Access |
 |---------------|----------------|
-| **Private** | Only you |
-| **Shared with specific users** | Named users |
-| **Shared with groups** | User groups |
-| **Public** | Anyone with environment access |
+| **Private** | Only you, the owner |
+| **Specific users or groups** | Named users and groups, each with *Can view* or *Can edit* |
+| **Access for all** | *"let everyone in your Dynatrace environment view the document"* (view-only) |
+| **Share link** | Anyone in the environment who has the link, with the permission chosen when the link was created |
+
+A share link can be forwarded: *"anyone in your Dynatrace environment could use it, and they would have the same permissions (Can edit or Can view) that you selected when you created the link."* Use it for view access, not edit.
 
 ### Segment Filtering
 
@@ -304,20 +326,19 @@ Dashboards can be filtered using segments:
 - Viewers can switch segments if they have access
 - Data respects viewer's permissions
 
-### Dashboard Presets
+### One Dashboard, Several Views
 
-Create presets for common views:
-1. Set segment filter
-2. Set time range
-3. Save as preset with descriptive name
+The Dashboards documentation describes no saved presets. To give one dashboard several views, use **Variables** (viewer-selectable filters such as service, cluster or environment) and a **Default segment**. The documentation's rule of thumb: use segments for filters you reuse across dashboards, and variables *"if you need more control over how a filter is applied"*.
 
 ### Exporting Dashboards
 
 | Format | Use Case |
 |--------|----------|
-| **PDF** | Reporting, documentation |
-| **JSON** | Backup, migration |
-| **Link** | Sharing (respects permissions) |
+| **JSON** (*Download*) | Backup, migration: *"Download writes the dashboard to a JSON file that you can import"* |
+
+> **Edited or generated JSON can stop displaying (SaaS 1.346, staged rollout from 08/25/2026).** *"Starting with Dynatrace version 1.346, Dynatrace applies stricter validation rules to dashboards and won't display dashboards that fail validation until you fix them."* It *"will mainly affect dashboards created or modified via the API or external AI tools."* Import edited or generated JSON into a test environment first and confirm it displays (DASH-07). Tenants not yet on 1.346 still display such dashboards.
+
+> <sub>**Sources:** [Share documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share); [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new) — segments, variables and Download; [SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346).</sub>
 
 <a id="next-steps"></a>
 ## 7. Next Steps
@@ -346,6 +367,8 @@ Congratulations! You've completed the onboarding series.
 | **Dashboard strategy + executive reporting** | DASH series (8 notebooks) |
 | **Davis AI / anomaly detection / RCA** | AIOPS series (8 notebooks) |
 | **Workflow automation + AI tasks** | WFLOW series (12 notebooks) |
+| **Alerting strategy and design** | ALERT series (5 notebooks) |
+| **Service level objectives** | SLO series (6 notebooks) |
 | **Deepen DQL — spans / logs / OpenPipeline** | SPANS, OPLOGS, OPMIG, OPIPE |
 | **Synthetic monitoring** | SYNTH series |
 | **Web RUM / Mobile RUM** | WEBRUM, MOBL |
@@ -380,9 +403,9 @@ In this notebook, you learned:
 - Difference between Dashboards (new) and Classic Dashboards
 - Difference between dashboards and notebooks
 - How to create and configure dashboards
-- Common tile types and when to use them
+- Tile and visualization types and when to use them
 - Dashboard patterns for different use cases
-- DQL queries that work well in dashboards
+- DQL queries that work well in dashboards, including why service tiles read the service metrics and error-log tiles filter on `status`
 - That `dt.davis.problems` queries use `event.status` (`ACTIVE` / `CLOSED`), not `status` (`OPEN`)
 - How to share dashboards with your team
 
@@ -390,11 +413,13 @@ In this notebook, you learned:
 
 ## References
 
-- [Dashboards](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic)
+- [Dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new)
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
-- [Notebooks](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
+- [Edit visualizations (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations)
+- [Share documents (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share)
+- [Dashboards Classic (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic)
+- [Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks)
 - [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
-- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
 - [Dynatrace Community](https://community.dynatrace.com/)
 
 ---

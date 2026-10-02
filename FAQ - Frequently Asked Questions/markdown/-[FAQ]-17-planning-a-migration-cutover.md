@@ -1,6 +1,6 @@
 # FAQ-17: How Do I Plan a Migration Cutover?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 17 — Planning a Migration Cutover | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -46,7 +46,7 @@ This entry names those parts and points at the series that documents each one be
 | **Prior reading** | The procedural series for your specific migration — this entry assumes it, it does not replace it |
 | **Permissions** | Read on the tables you intend to validate; `storage:smartscape:read` for the entity-parity queries in section 6 |
 
-> **Validation status.** The entity-parity queries in [section 6](#entity-level-parity-checks) were executed against a live Dynatrace tenant on 07/23/2026. The rest of this entry is structural guidance and cross-references rather than DQL.
+> **Validation status.** The entity-parity queries in [section 6](#entity-level-parity-checks) were executed against a live Dynatrace tenant on 07/23/2026, and re-executed on 09/28/2026 and 10/02/2026 after the staleness checks gained an explicit `from:`. The rest of this entry is structural guidance and cross-references rather than DQL.
 
 <a id="where-each-element-is-documented"></a>
 ## 1. Where Each Element Is Documented
@@ -155,7 +155,10 @@ SL2DT-09 documents triggers, runbook, post-rollback steps, and anti-patterns; S2
 <a id="entity-level-parity-checks"></a>
 ## 6. Entity-Level Parity Checks
 
-Data-level parity is migration-specific — your series has the queries. Entity-level parity is not: any migration that moves or re-instruments monitored things can be checked the same way.
+Data-level parity is migration-specific — your series has the queries. Entity-level parity is not: any migration that moves or re-instruments monitored things can be checked the same way — with one caveat about where the "before" run happens.
+
+- **SaaS → SaaS.** Run the same query on both tenants with the same `from:`.
+- **Managed → SaaS.** `smartscapeNodes` is a Smartscape-on-Grail command, and in community practice the Managed source offers no equivalent DQL surface. Take the "before" inventory from the Managed environment's Monitored entities API v2 (`GET /api/v2/entities` with `entitySelector=type("HOST")`, and so on per type) and compare it per type with the target's `smartscapeNodes`. Expect differences between the classic and Smartscape counts that are not regressions: on the validation tenant (10/02/2026), the classic host list over a 2-hour window returned 15 hosts against 7 Smartscape `HOST` nodes on the same tenant. Treat a type-level gap as a prompt to reconcile entity by entity, not as a verdict.
 
 Take this inventory before cutover and again after. A type whose count drops is a coverage regression, whatever the migration was:
 
@@ -197,7 +200,9 @@ smartscapeNodes "HOST", from:-7d
 
 > **On thresholds.** `now() - 1h` is a starting point, not a recommendation. Set it from your own reporting interval and the length of your cutover window — too tight and normal restarts look like losses, too loose and you finish cutover before the check can tell you anything.
 
-> <sub>**Sources:** all three queries executed against a Dynatrace tenant, 07/23/2026 — the inventory returned 15+ node types led by BROWSER_MONITOR_STEP (1,342), CONTAINER (437), PROCESS (353); the staleness check returned 11 hosts, none stale. Re-executed 09/28/2026: without `from:`, 7 hosts none stale; with `from:-7d`, 7 current + 4 stale (last seen 09/25/2026).</sub>
+> <sub>**Sources:** all three queries executed against a Dynatrace tenant, 07/23/2026 — the inventory returned 15+ node types led by BROWSER_MONITOR_STEP (1,342), CONTAINER (437), PROCESS (353); the staleness check returned 11 hosts, none stale. Re-executed 09/28/2026: without `from:`, 7 hosts none stale; with `from:-7d`, 7 current + 4 stale (last seen 09/25/2026). Re-executed 10/02/2026: with `from:-7d`, 7 current + 6 stale; `fetch dt.entity.host, from:-2h` returned 15 hosts against 7 from `smartscapeNodes "HOST"`, no notifications.</sub>
+
+> <sub>**Sources:** [Monitored entities API - GET entities list (DT Managed docs)](https://docs.dynatrace.com/managed/dynatrace-api/environment-api/entity-v2/get-entities-list) — the Managed endpoint `https://{your-domain}/e/{your-environment-id}/api/v2/entities`, which *"Lists entities observed within the specified timeframe along with their properties"*, [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail).</sub>
 
 <a id="decommission-and-the-stabilization-window"></a>
 ## 7. Decommission and the Stabilization Window

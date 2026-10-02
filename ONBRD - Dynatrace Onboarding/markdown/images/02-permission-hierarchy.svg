@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280">
+  <defs>
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="configGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="operatorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="viewerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <filter id="permShadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="280" fill="#f8f9fa" rx="10"/>
+
+  <!-- Title -->
+  <text x="350" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Default Policies</text>
+  <text x="350" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Built-in access policies plus data policies — bind at account or environment level</text>
+
+  <!-- Permission Levels (stacked) -->
+  <!-- Admin -->
+  <rect x="100" y="70" width="500" height="45" rx="8" fill="url(#adminGrad)" filter="url(#permShadow)"/>
+  <text x="130" y="98" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">ADMIN USER</text>
+  <text x="280" y="98" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">Administrative access across all Platform Services</text>
+
+  <!-- Configurator -->
+  <rect x="100" y="120" width="500" height="45" rx="8" fill="url(#configGrad)" filter="url(#permShadow)"/>
+  <text x="130" y="148" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">PRO USER</text>
+  <text x="280" y="148" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">Build, deploy and run apps and automated workflows</text>
+
+  <!-- Operator -->
+  <rect x="100" y="170" width="500" height="45" rx="8" fill="url(#operatorGrad)" filter="url(#permShadow)"/>
+  <text x="130" y="198" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">STANDARD USER</text>
+  <text x="280" y="198" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">Access the environment and run Dynatrace Apps</text>
+
+  <!-- Viewer -->
+  <rect x="100" y="220" width="500" height="45" rx="8" fill="url(#viewerGrad)" filter="url(#permShadow)"/>
+  <text x="130" y="248" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">DATA POLICIES</text>
+  <text x="280" y="248" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">Grail data access (e.g. Read Logs) — add per group</text>
+
+  <!-- Arrow indicating hierarchy -->
+  <path d="M630,92 L630,240" stroke="#64748b" stroke-width="2" fill="none"/>
+  <polygon points="630,245 625,235 635,235" fill="#64748b"/>
+  <text x="660" y="170" font-family="Arial, sans-serif" font-size="10" fill="#64748b" text-anchor="middle" transform="rotate(90 660,170)">Access → Data</text>
+</svg>

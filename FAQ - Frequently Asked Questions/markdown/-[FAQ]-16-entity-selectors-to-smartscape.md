@@ -4,7 +4,7 @@
 
 ## Overview
 
-`dt.entity.*`, `classicEntitySelector()`, `entityName()`, and `entityAttr()` are deprecated in favour of Smartscape — `smartscapeNodes`, `smartscapeEdges`, and `traverse`. The legacy forms still run, so nothing breaks on a schedule, and migration happens on your terms.
+`dt.entity.*`, `classicEntitySelector()`, `entityName()`, and `entityAttr()` are deprecated in favour of Smartscape — `smartscapeNodes`, `smartscapeEdges`, and `traverse`. The legacy forms still run, but they are on a support window rather than open-ended: SaaS 1.334 (rollout from 03/10/2026) states that classic queries *"remain fully supported for the next year"*. There is no published removal date yet, so plan the migration inside that window rather than waiting for something to break.
 
 **The most common mistake is not a syntax error.** It is reaching for Smartscape when the query never needed an entity lookup in the first place. A metrics or logs query filtered by an entity condition can usually resolve that condition to a raw dimension on the data itself — no topology lookup, no subquery, less scanned data. Smartscape is the fallback for that shape, not the default.
 
@@ -17,6 +17,8 @@ So the first step is not translation. It is working out which of three things yo
 | Lists entities (`fetch dt.entity.*` as the result) | `smartscapeNodes` — the only valid path |
 | Filters mass data (logs, metrics, spans) by an entity condition | A **direct dimension filter** where possible; a Smartscape subquery only if no dimension carries the condition |
 | Walks relationships between entities | `traverse` |
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.334 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-334) — *"Classic queries remain fully supported for the next year. Your existing DQL queries using the classic entity model continue to work."*, [Fields referencing classic entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/entity-id) — *"These fields are deprecated and will be removed in the future; use fields referencing Smartscape nodes instead."*</sub>
 
 ---
 
@@ -40,10 +42,12 @@ So the first step is not translation. It is working out which of three things yo
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS with Grail and Smartscape |
-| **Permissions** | `storage:smartscape:read`; plus read on whatever table the mass-data examples target |
+| **Permissions** | `storage:smartscape:read` for `smartscapeNodes`, `smartscapeEdges` and `traverse`; `storage:entities:read` for the classic forms (`fetch dt.entity.*`, `classicEntitySelector`); `storage:metrics:read` for the § 1 `timeseries` examples; and `storage:buckets:read` alongside each table permission |
 | **Prior reading** | Basic DQL familiarity — see ORGNZ-99 for the DQL reference |
 
-> **Validation status.** Every entity and topology query in this document was **executed against a live Dynatrace tenant on 07/23/2026** and returned the results described — including the equivalence check in [section 4](#a-verified-before-and-after) and the edge inventory in [section 5](#topology-navigation). The mass-data examples in [section 1](#start-by-classifying-the-query) that read `logs` or `metrics` were **not** executed; the validation identity lacked `storage:logs:read` and `storage:metrics:read`. They follow the same verified patterns but confirm them against your own data before relying on them.
+> **Validation status.** Every entity and topology query in this document was **executed against a live Dynatrace tenant on 07/23/2026** and returned the results described — including the equivalence check in [section 4](#a-verified-before-and-after) and the edge inventory in [section 5](#topology-navigation). The three `timeseries` forms in [section 1](#start-by-classifying-the-query) were executed on 10/02/2026 against a real host group: grouped by host, the classic `classicEntitySelector` filter, the direct `dt.host_group.id` filter and the Smartscape-subquery fallback each returned the same four hosts, with no notifications.
+
+> <sub>**Sources:** [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — the table-permission list maps `storage:entities:read` to `fetch`, `classicEntitySelector`, `entityAttr` and `entityName`, `storage:metrics:read` to `timeseries`, and `storage:smartscape:read` to `smartscapeNodes`, `smartscapeEdges`, `getNodeName()` and `getNodeField()`; it also notes that *"granting access to buckets, you also need to configure table permissions"*.</sub>
 
 <a id="start-by-classifying-the-query"></a>
 ## 1. Start by Classifying the Query
@@ -109,26 +113,26 @@ Two vocabularies, and they differ in case. **Field names are lowercase dotted; n
 | `dt.entity.cloud_application_namespace` | `dt.smartscape.k8s_namespace` | `"K8S_NAMESPACE"` |
 | `dt.entity.application` | `dt.smartscape.frontend` | `"FRONTEND"` — with `frontend.type == "web"` |
 | `dt.entity.mobile_application` | `dt.smartscape.frontend` | `"FRONTEND"` — with `frontend.type == "mobile"` |
-| `dt.entity.custom_application` | *no mapping* | *none — see below* |
+| `dt.entity.custom_application` | `dt.smartscape.frontend` per the docs field reference — **not** in the dictionary's `classic_models` | `"FRONTEND"` — verify on your tenant; see below |
 | `dt.entity.synthetic_test` | `dt.smartscape.browser_monitor` | `"BROWSER_MONITOR"` |
 | `dt.entity.http_check` | `dt.smartscape.http_monitor` | `"HTTP_MONITOR"` |
 | `dt.entity.multiprotocol_monitor` | `dt.smartscape.network_availability_monitor` | `"NETWORK_AVAILABILITY_MONITOR"` |
 | `dt.entity.synthetic_location` | `dt.smartscape.synthetic_location` | `"SYNTHETIC_LOCATION"` |
-| `dt.entity.aws_lambda_function` | `dt.smartscape.aws_lambda_function` | `"AWS_LAMBDA_FUNCTION"` |
+| `dt.entity.aws_lambda_function` | `dt.smartscape.aws_lambda_function` — matched by name; not in the dictionary's `classic_models` | `"AWS_LAMBDA_FUNCTION"` — no `id_classic`; reconcile on `aws.arn` |
 | `dt.entity.cloud_application` | several workload fields | several K8s workload types |
-| *no classic entity type* | *no model* | `"ACTIVEGATE"` — see below |
+| *no classic entity type* | `dt.smartscape.activegate` — no `classic_models` | `"ACTIVEGATE"` — see below |
 
-> **The transition is now underway in-product, starting with Cost Intelligence (SaaS 1.347 — staged rollout from 09/08/2026).** Verbatim: *"Dynatrace is transitioning entity ID attributes in billing usage events from the Classic Monitored Entity (ME) model to Smartscape-based IDs."* The release note names the same three mappings this table already carries — `dt.entity.host` → `dt.smartscape.host`, `dt.entity.kubernetes_cluster` → `dt.smartscape.k8s_cluster`, `dt.entity.cloud_application_namespace` → `dt.smartscape.k8s_namespace`.
+> **The transition is now underway in-product, starting with Cost Intelligence (SaaS 1.347 — the release notes are still marked pre-release, with a planned rollout from 09/08/2026; verify the change has reached your tenant).** Verbatim: *"Dynatrace is transitioning entity ID attributes in billing usage events from the Classic Monitored Entity (ME) model to Smartscape-based IDs."* The release note names the same three mappings this table already carries — `dt.entity.host` → `dt.smartscape.host`, `dt.entity.kubernetes_cluster` → `dt.smartscape.k8s_cluster`, `dt.entity.cloud_application_namespace` → `dt.smartscape.k8s_namespace`.
 >
 > Two things this does and does not mean. It **does** confirm the direction of travel this entry describes, and it makes the migration concrete in one surface first — so a Cost Intelligence query written against classic IDs is the one to re-check now. It **does not** retire classic entity IDs corpus-wide: the rest of the platform still accepts them, and the dimension-first strategy in §1 remains the right default for mass-data queries. Migrate where the product has moved, not everywhere at once.
 
 `dt.entity.cloud_application` is the awkward one — it fans out to multiple Kubernetes workload types rather than mapping to one. Check the target type before translating it.
 
-`dt.entity.custom_application` has **no** Smartscape mapping at all. Do not invent one — a `"CUSTOM_APPLICATION"` node type does not exist, and querying it returns nothing rather than an error (see [section 7](#gotchas-worth-knowing-first) on ambiguous zero-row results).
+`dt.entity.custom_application` is the row where the two sources disagree. The docs field reference points it at `dt.smartscape.frontend`, but the tenant dictionary lists only `dt.entity.application` and `dt.entity.mobile_application` as classic counterparts of the `FRONTEND` model, and no custom-application `FRONTEND` nodes were observed on the validation tenant (which has no custom applications). Before migrating, check whether your custom applications surface as `FRONTEND` nodes — `smartscapeNodes "FRONTEND", from:-7d | filter startsWith(id_classic, "CUSTOM_APPLICATION")`. What does not exist is a `"CUSTOM_APPLICATION"` node type: querying it returns nothing rather than an error (see [section 7](#gotchas-worth-knowing-first) on ambiguous zero-row results).
 
 ### Three rows that do not behave like the rest
 
-**ActiveGate is a different shape from every other row in the table.** There is no classic entity type to migrate *from* — `dt.entity.active_gate`, `dt.entity.environment_active_gate`, and `dt.entity.environment_activegate` all fail with `The entity type ... wasn't found`, so `fetch dt.entity.*_active_gate` was never a working query and is not a fallback. `smartscapeNodes "ACTIVEGATE"` is the only DQL path, and there is no `dt.smartscape.activegate` semantic-dictionary model either — refer to the node by its type string and do not invent a model name. The node exposes `dt.active_gate.id` (hex, the same form as the classic `agId`), `dt.active_gate.version`, `dt.active_gate.group.name`, `dt.network_zone.id`, `is_containerized`, `is_fips`, `modules[]`, `os.type`, and `addresses[]`.
+**ActiveGate is a different shape from every other row in the table.** There is no classic entity type to migrate *from* — `dt.entity.active_gate`, `dt.entity.environment_active_gate`, and `dt.entity.environment_activegate` all return **zero rows** with only a WARNING notification (`The entity type … wasn't found`) — no error — so `fetch dt.entity.*_active_gate` was never a working query and is not a fallback, and a reader who only looks at the rows sees an empty environment. `smartscapeNodes "ACTIVEGATE"` is the only DQL path. The semantic dictionary now carries a `dt.smartscape.activegate` model for it (node type `ACTIVEGATE`, no classic counterpart listed, read 10/02/2026). The node exposes `dt.active_gate.id` (hex, the same form as the classic `agId`), `dt.active_gate.version`, `dt.active_gate.group.name`, `dt.network_zone.id`, `is_containerized`, `is_fips`, `modules[]`, `os.type`, `addresses[]`, `load_balancer_addresses` and `dt.remote_extensions.version`.
 
 The practical consequence: **migrating ActiveGate work may mean replacing a REST call, not a DQL selector.** ActiveGate 1.343 (published 07/15/2026, rollout from 07/28/2026) deprecates `GET /api/v2/activeGates`, `/api/v2/activeGates/{agId}`, and `/api/v2/activeGates/groups`, so automation that enumerated ActiveGates over the API is the code that needs a new home — and `smartscapeNodes "ACTIVEGATE"` is where it lands. Note that the classic **Entities API v2** selector (`GET /api/v2/entities?entitySelector=type("ENVIRONMENT_ACTIVE_GATE")`) is a *different surface* from DQL and may still respond during the deprecation period; that it works says nothing about whether the DQL entity type exists, because it never did.
 
@@ -136,7 +140,12 @@ The practical consequence: **migrating ActiveGate work may mean replacing a REST
 
 **`synthetic_test` splits, and `multiprotocol_monitor` is renamed.** Monitor and step are **separate node types** — `BROWSER_MONITOR_STEP` and `HTTP_MONITOR_STEP` exist alongside their parents. A classic query that read steps as attributes of the test needs a `traverse` to the step nodes ([section 5](#topology-navigation)), not a field read. And `dt.entity.multiprotocol_monitor` becomes `NETWORK_AVAILABILITY_MONITOR` — a genuine rename, not a transliteration, so pattern-matching the classic name to derive the node type produces a type that does not exist.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the Cost Intelligence classic-ME to Smartscape transition quoted above, [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language), [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343), [Entities API v2 — GET entities (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/get-entities-list). Mappings read from `fetch dt.semantic_dictionary.models` and confirmed against a live tenant, 07/30/2026 — including the three failing `dt.entity.*active_gate*` spellings, `smartscapeNodes "ACTIVEGATE"` returning 4 nodes, and `frontend.type` returning `web` (25) and `mobile` (6) despite its absence from the model's `fields` array. **Dictionary:** `dt.smartscape.aws_lambda_function` (`stable`), read 09/28/2026.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the Cost Intelligence classic-ME to Smartscape transition quoted above; the page is headed *"Pre-release information"* with *"Rollout start on Sep 08, 2026 (planned)"*</sub>
+> - <sub>[Fields referencing classic entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/entity-id) — for `dt.entity.custom_application`: *"This field is deprecated and will be removed in the future. Use dt.smartscape.frontend instead."* The page has no `dt.entity.aws_lambda_function` row</sub>
+> - <sub>[Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language), [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343), [Entities API v2 — GET entities (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/get-entities-list)</sub>
+> - <sub>**Dictionary:** mappings read from `fetch dt.semantic_dictionary.models` 07/30/2026 and re-read 10/02/2026, except the `custom_application` row (docs field reference) and the Lambda row (matched by name). `dt.smartscape.frontend` `classic_models`: `dt.entity.application`, `dt.entity.mobile_application`; `dt.smartscape.aws_lambda_function` and `dt.smartscape.activegate` `classic_models`: empty; `frontend.type` absent from the `FRONTEND` model's `fields` array, read 10/02/2026</sub>
+> - <sub>Live tenant, 07/30/2026 and 10/02/2026: the three `dt.entity.*active_gate*` spellings return `records: []` with an `ENTITY_DATA_OBJECT_UNDEFINED` WARNING; `smartscapeNodes "ACTIVEGATE"` returned 4 nodes; `frontend.type` returned `web` (27) and `mobile` (7) over 7 days, every `id_classic` prefixed `APPLICATION-` or `MOBILE_APPLICATION-`; 34 `AWS_LAMBDA_FUNCTION` nodes, none with `id_classic`, all with `aws.arn`</sub>
 
 <a id="migrating-the-constructs"></a>
 ## 3. Migrating the Constructs
@@ -148,9 +157,11 @@ The practical consequence: **migrating ActiveGate work may mean replacing a REST
 | `classicEntitySelector("...")` | `filter` on node fields | Translate each predicate to a field comparison |
 | `belongs_to[...]`, `runs[...]`, `instance_of[...]` | `traverse` | Or `references[...]` for static edges only |
 | classic entity id | `id`, with `id_classic` as the bridge | See [gotchas](#gotchas-worth-knowing-first) |
-| `affected_entity_ids` | `smartscape.affected_entity.ids` | Also `.types` for the type list |
+| `affected_entity_ids` | `smartscape.affected_entities` | An array of `{id, type, name}` records — `smartscape.affected_entities[][id]` gives the id list. `smartscape.affected_entity.ids` / `.types` are **also deprecated**; do not migrate to them |
 
 The `entityName`/`getNodeName` and `entityAttr`/`getNodeField` pairs are the ones people get wrong, because the `getNode*` functions look like the natural replacements and are not. See [section 7](#gotchas-worth-knowing-first).
+
+> <sub>**Sources:** [Davis AI (DT docs — semantic dictionary)](https://docs.dynatrace.com/docs/semantic-dictionary/model/davis) — `affected_entity_ids`: *"This field is deprecated and will be removed in the future. Use smartscape.affected_entities instead."*; `smartscape.affected_entity.ids`: *"This field is deprecated and will be removed in the future. Use 'smartscape.affected_entities' instead."*, [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — pre-release notes that refer to *"tenants where the deprecated fields are no longer written"*. `smartscape.affected_entities[][id]` executed against `dt.davis.problems` 10/02/2026 and returned the same ids as `smartscape.affected_entity.ids`.</sub>
 
 > <sub>**Dictionary:** `dt.smartscape.host` publishes `id`, `id_classic`, `name` and `type` as node fields — the basis for the `entityName` → `name` and *classic id → `id`, with `id_classic` as the bridge* rows; read from `dt.semantic_dictionary.models` 08/27/2026. **Derived:** the construct-by-construct mapping is this entry's translation table; no single page presents the classic and Smartscape surfaces side by side.</sub>
 
@@ -326,12 +337,12 @@ fetch dt.system.query_executions, from:-30d
 | parse client.source, "LD '/ui/dashboard/' [a-zA-Z0-9._-]+:dashboard_id"
 | parse client.source, "LD '/ui/notebook/' [a-zA-Z0-9._-]+:notebook_id"
 | fieldsAdd document_id = coalesce(dashboard_id, notebook_id, client.workflow_context)
-| summarize executions = count(), users = countDistinct(user.email), by:{client.application_context, document_id}
+| summarize {executions = count(), users = countDistinct(user.email)}, by:{client.application_context, document_id}
 | sort executions desc
 | limit 50
 ```
 
-On the validation tenant this returned 14 documents: two workflows at the top (2,140 and 200 executions), then a notebook and a run of dashboards, nearly all with a single user. One workflow on a schedule can run more classic-entity DQL than all your dashboards together, so the ranking tends to put scheduled automation first. That is also the right order to fix things in.
+On the validation tenant this returned 17 documents (10/02/2026): two workflows at the top (2,160 and 200 executions), then a notebook and a run of dashboards, nearly all with a single user. One workflow on a schedule can run more classic-entity DQL than all your dashboards together, so the ranking tends to put scheduled automation first. That is also the right order to fix things in.
 
 **Reading the result.**
 
@@ -342,7 +353,7 @@ On the validation tenant this returned 14 documents: two workflows at the top (2
 
 Segment variables and Site Reliability Guardian objectives run classic-entity DQL too. The readiness dashboard finds them through `client.client_context` and the `dynatrace.site.reliability.guardian` application context. Add those to the `in(client.application_context, …)` list if your tenant uses them.
 
-> <sub>**Sources:** query executed against a Dynatrace tenant 09/29/2026: 14 documents returned; 364,711 flagged and 407,789 text-matched out of 2,360,811 successful executions in 30 days. **Dictionary:** the `query_execution_event` model lists `query_string`, `client.application_context`, `client.source`, `status` and `flags`, read 09/29/2026. The `CLASSIC_ENTITY_MIGRATION_ADVISED` value appears in no public documentation page found on 09/29/2026; it is observed tenant behaviour and is also the filter the ready-made *Check your upgrade readiness* dashboard uses. `client.workflow_context` is not in that model's field list but was populated on every workflow row returned.</sub>
+> <sub>**Sources:** query executed against a Dynatrace tenant 09/29/2026 (14 documents) and re-executed 10/02/2026 (17 documents, no notifications); 364,711 flagged and 407,789 text-matched out of 2,360,811 successful executions in 30 days. **Dictionary:** the `query_execution_event` model lists `query_string`, `client.application_context`, `client.source`, `status` and `flags`, read 09/29/2026. The `CLASSIC_ENTITY_MIGRATION_ADVISED` value appears in no public documentation page found on 09/29/2026; it is observed tenant behaviour and is also the filter the ready-made *Check your upgrade readiness* dashboard uses. `client.workflow_context` is not in that model's field list but was populated on every workflow row returned.</sub>
 
 <a id="summary-and-next-steps"></a>
 ## 9. Summary and Next Steps
@@ -354,7 +365,9 @@ Segment variables and Site Reliability Guardian objectives run classic-entity DQ
 3. **Verify values, not row counts.** The host-group example returns the same four entities under both forms with *different* `name` strings. Downstream string matching breaks silently.
 4. **Inspect a node before writing the migration.** `smartscapeNodes "<TYPE>" | limit 1` answers most field questions faster than any mapping table.
 
-**Nothing is on a deadline.** `dt.entity.*` still works. Migrate on next touch rather than sweeping, starting from the ranked list in [section 8](#finding-the-queries-to-migrate), and verify each query's output against the classic form as you go.
+**There is no removal date yet, but there is a support window.** SaaS 1.334 (rollout from 03/10/2026) states that classic queries *"remain fully supported for the next year"*. Plan the migration inside that window rather than sweeping everything at once: start from the ranked list in [section 8](#finding-the-queries-to-migrate), take first the surfaces the product is moving (Cost Intelligence, SaaS 1.347 — release notes still pre-release), and verify each query's output against the classic form as you go.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.334 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-334) — *"Classic queries remain fully supported for the next year."*</sub>
 
 | If you need… | Read |
 |---|---|

@@ -1,6 +1,6 @@
 # FAQ-24: Can We Trust Dynatrace With Our Data?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 09/10/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -46,11 +46,11 @@ This entry routes rather than restates. The mechanics live in the ORGNZ, IAM, OP
 | **Applies to** | Any Dynatrace SaaS environment on Grail |
 | **Audience** | Platform owners, security and compliance reviewers, and anyone answering a customer's or an auditor's "can we trust it" questionnaire |
 | **Format** | Decision support and routing — the mechanics live in the topic series listed below |
-| **Permissions** | `storage:logs:read` for the checks in section 6; Account Management access to read audit logs in section 7 |
+| **Permissions** | `storage:buckets:read` and `storage:logs:read` for the checks in section 6. For section 7: `storage:system:read` scoped to `event.kind = "AUDIT_EVENT"` with `storage:buckets:read` on the `dt_system_events` bucket (environment audit events), and the Account Management `account-company-info` role (account audit log) |
 | **Related topic series** | ORGNZ (buckets, security context, permissions, segments) · IAM (governance, policies, boundaries, audit) · OPLOGS / OPMIG (masking and processing) · MZ2POL (migrating from management zones) · MOBL / WEBRUM (end-user privacy) |
 | **Related FAQs** | **FAQ-06** (can we trust Davis AI) · **FAQ-15** (how DPL works — the pattern language OpenPipeline masking uses) · **FAQ-21** (the right alerts to the right people — the same access model, seen from the alerting side) |
 
-> **Validation status.** The three DQL queries in [section 6](#accessed) were executed against a live Dynatrace tenant on 09/10/2026, and every quotation in this entry was checked against the page it cites on the same date.
+> **Validation status.** The three DQL queries in [section 6](#accessed) were executed against a live Dynatrace tenant on 09/10/2026 and again on 10/02/2026. Quotations were checked against the pages they cite on 09/10/2026; those in sections 6 and 7 were re-checked on 10/02/2026.
 
 <a id="short-answer"></a>
 ## 1. Short Answer
@@ -59,8 +59,8 @@ This entry routes rather than restates. The mechanics live in the ORGNZ, IAM, OP
 
 - **Captured — mask before you restrict.** Mask sensitive data at capture with OneAgent where you can, so the clear-text value never leaves your environment. Mask at ingest in OpenPipeline for data that never passes through OneAgent. Access control applied to data that should never have arrived only decides who sees the leak.
 - **Stored — residency is an environment decision.** Dynatrace SaaS stores data in AWS, Azure or Google Cloud data centers, encrypted at rest and in transit, with backups kept in the same region, and deletes it when its retention period ends.
-- **Accessed — scope on `dt.security_context`.** Use buckets to separate storage, retention and cost; use `dt.security_context` for who sees which records. Check two things first: how many records carry a security context at all, and whether it ever holds more than one value — on an array, `=` and `IN` conditions match nothing.
-- **Proven — audit is where you show it.** Account-level IAM changes are audited and kept for up to ten years; activity inside the environment is recorded as audit events in `dt.system.events`.
+- **Accessed — scope on `dt.security_context`.** Use buckets to separate storage, retention and cost; use `dt.security_context` for who sees which records. Check two things first: how many records carry a security context at all, and whether it ever holds more than one value — on an array-valued record field, `=` and `IN` conditions match nothing.
+- **Proven — audit is where you show it.** Account-level IAM changes are audited and kept for up to ten years; activity inside the environment is recorded as audit events in `dt.system.events`, kept for one year.
 - **Segments restrict nothing.** They change what a screen shows. Every query already runs inside the IAM permissions of the person running it.
 
 <a id="the-four-axes-of-data-trust"></a>
@@ -176,7 +176,7 @@ Backups stay in the region. For AWS: *"Every 24 hours, Dynatrace SaaS on AWS per
 ALLOW storage:logs:read WHERE storage:dt.security_context = "TeamA";
 ```
 
-The operators available for `storage:dt.security_context` are `=`, `IN`, `startsWith` and `MATCH`. The syntax reference is explicit that operator support varies: *"Not every operator applies to every service attribute."* Check the policy reference for the attribute you are scoping before assuming an operator works.
+The operators available for `storage:dt.security_context` depend on the permission. On the record permissions (`storage:logs:read`, `storage:spans:read` and the other record tables) and on `storage:smartscape:read` they are `=`, `IN`, `startsWith` and `MATCH`. On `storage:entities:read` — classic entities — they are `=`, `IN` and `startsWith` only. The syntax reference is explicit that operator support varies: *"Not every operator applies to every service attribute."* Check the policy reference for the attribute you are scoping before assuming an operator works.
 
 ### Two checks before you write the first policy
 
@@ -190,9 +190,9 @@ fetch logs, from:-1h
 | fieldsAdd coverage_pct = round(100.0 * with_sc / total, decimals: 1)
 ```
 
-On the validation tenant this returned **73.7%** — roughly a quarter of log records carried no security context, so no security-context policy could reach them. The fix is enrichment, not policy: **ORGNZ-06** covers setting the field at the source and in OpenPipeline.
+On the validation tenant this returned **73.7%** on 09/10/2026 and **65.7%** on 10/02/2026. The figure moves with the ingest mix; on both dates between a quarter and a third of log records carried no security context, so no security-context policy could reach them. The fix is enrichment, not policy: **ORGNZ-06** covers setting the field at the source and in OpenPipeline.
 
-**2. Does it ever hold more than one value?** This decides which operator you may use. From the Grail permissions reference: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* And: *"If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* Nothing errors when you get this wrong — the policy is valid, it evaluates, and it matches nothing. Check before choosing:
+**2. Does it ever hold more than one value?** On record permissions, this decides which operator you may use. From the Grail permissions reference: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* And: *"If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* Nothing errors when you get this wrong — the policy is valid, it evaluates, and it matches nothing. Check before choosing:
 
 ```dql
 // Does dt.security_context ever hold an array? Any "array" row means
@@ -203,7 +203,7 @@ fetch logs, from:-1h
 | summarize records = count(), by:{sc_type}
 ```
 
-On the validation tenant every value was a `string` — about half a million log records in an hour, and a similar number of spans over two hours — so `=` and `IN` were safe there. That is a property of that tenant's enrichment, not of the platform: an enrichment rule that copies an array-valued field into `dt.security_context` changes the answer for every record it touches.
+On the validation tenant every value was a `string` — about half a million log records in an hour and a similar number of spans over two hours on 09/10/2026, and about 667,000 log records in an hour on 10/02/2026 — so `=` and `IN` were safe there for logs. That is a property of that tenant's enrichment, not of the platform: an enrichment rule that copies an array-valued field into `dt.security_context` changes the answer for every record it touches.
 
 A zero-array result is only worth trusting if the check can see an array at all. This costs nothing to run, and proves it can:
 
@@ -217,7 +217,13 @@ data record(sc = array("team-a", "team-b")), record(sc = "team-a")
 
 It returns `array` for the first record and `string` for the second. If it ever returns `string` for both, the type check above is telling you nothing.
 
-**Dynatrace's own pages disagree on this point.** The security-context use-case page says the field *"Can be a multi-value field and `startsWith` will evaluate for any matching value"* — which contradicts the Grail permissions reference quoted above. This entry follows the stricter statement: when in doubt, use `MATCH`, which is correct under either reading.
+**The rule depends on the permission.** The array rule above covers record tables such as logs and spans. Classic entities follow a different rule. The security-context use-case page describes `storage:entities:read`, and says the field *"Can be a multi-value field and startsWith will evaluate for any matching value."* The IAM policy reference lists only `=`, `IN` and `startsWith` for `storage:dt.security_context` under `storage:entities:read`, so `MATCH` is not available there. Smartscape nodes differ again: `storage:smartscape:read` does accept `MATCH`, and on the validation tenant every host node carried `dt.security_context` as an `array` (7 of 7, 10/02/2026).
+
+| Permission | `dt.security_context` operators | When the value is an array |
+|---|---|---|
+| Record tables (`storage:logs:read`, `storage:spans:read`, …) | `=`, `IN`, `startsWith`, `MATCH` | Use `MATCH` — `=`, `STARTSWITH` and `IN` return `false` |
+| `storage:smartscape:read` | `=`, `IN`, `startsWith`, `MATCH` | Use `MATCH` |
+| `storage:entities:read` (classic entities) | `=`, `IN`, `startsWith` | `MATCH` is not available; `startsWith` evaluates each value |
 
 **Entity permissions do not cascade to data.** This is the assumption that follows people out of management zones. Verbatim: *"Unlike management zones, an IAM policy that is set up to filter entities (allow `storage:entities:read`) will not filter related metrics, logs, or traces."* Scoping which hosts a team can see does not scope those hosts' logs — each data type needs its own permission. **MZ2POL-02** covers the model change in full.
 
@@ -227,6 +233,7 @@ It returns `array` for the first record and `string` for the second. If it ever 
 > - <sub>[IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax)</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)</sub>
 > - <sub>[Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)</sub>
+> - <sub>**Derived:** using `MATCH` on Smartscape nodes combines the array-typed node values above with `storage:smartscape:read` accepting `MATCH` in the IAM policy reference</sub>
 > - <sub>**Derived:** that a record without a security context is invisible to security-context-scoped access and visible to unscoped access follows from a condition on an absent field never matching</sub>
 
 <a id="proven"></a>
@@ -236,11 +243,11 @@ Controls that held are only half of trust. The other half is being able to show 
 
 **Changes to access are audited at the account level.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — group permissions and memberships, policies and boundaries among them — and *"Audit log data is stored for up to 10 years (3650 days)."* That answers the question an auditor usually asks first: who changed who can see what, and when.
 
-**Activity inside the environment is a separate record.** Platform audit events live in `dt.system.events` with `event.kind == "AUDIT_EVENT"` — not in `logs`, so an audit query against `logs` finds nothing. **IAM-07** has the queries, and the SOC 2, SOX and HIPAA report patterns built on them; **IAM-09** covers turning a failed-access record into a diagnosis.
+**Activity inside the environment is a separate record.** *"In Latest Dynatrace, audit events are stored in Grail as dt.system.events, queryable with Dynatrace Query Language (DQL)"*. Every audit query filters to `event.kind == "AUDIT_EVENT"`, because the same object also holds non-audit system events — and an audit query against `logs` finds nothing. *"Audit events are retained for one year in Grail, compared to 30 days in the classic API."* The two records do not overlap: *"The Account Management audit log (IAM changes, SSO configuration, budget changes) stays a separate system in both models. Neither v2/auditlogs nor dt.system.events captures it."* Reading environment audit events needs `storage:system:read` scoped to `AUDIT_EVENT` plus `storage:buckets:read` on `dt_system_events`; reading the account audit log needs the `account-company-info` role. **IAM-07** has the queries, and the SOC 2, SOX and HIPAA report patterns built on them; **IAM-09** covers turning a failed-access record into a diagnosis.
 
 **Governance is who owns each control.** An audit trail shows what happened; it does not say whose job it was to prevent it. **IAM-01** sets out the governance model — centralized or federated ownership, and who administers which layer — and **IAM-06** covers the user lifecycle, where most access drift starts.
 
-> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs). **Derived:** the split between account-level audit logs and environment audit events combines this page with the `dt.system.events` audit records documented in IAM-07.</sub>
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"To view the Audit logs page, you need the account-company-info role."*, [Upgrade from classic audit logs (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic).</sub>
 
 <a id="three-ways-this-goes-wrong"></a>
 ## 8. Three Ways This Goes Wrong
@@ -251,7 +258,7 @@ Controls that held are only half of trust. The other half is being able to show 
 | Failure | Looks like | Why it is silent | Fix |
 |---------|------------|------------------|-----|
 | Segments as access control | A segment hides other teams' data | Every query already respects IAM permissions; a segment filters the view and holds no data of its own | Scope access in IAM on dt.security_context |
-| = or IN on an array | A valid boundary using security_context IN (...) | On an array field, =, STARTSWITH and IN always return false; nothing errors | Use MATCH, and check with type() first |
+| = or IN on an array | A valid boundary using security_context IN (...) | When a record field is an array, =, STARTSWITH and IN always return false; nothing errors | Records and Smartscape: MATCH. Classic entities: startsWith (MATCH is not available). Check with type() first |
 | One masking layer only | PII masked at capture, so the job looks done | OneAgent masks with regular expressions and OpenPipeline with DPL; data ingested another way never meets the OneAgent rule | Decide, per source, which layer masks it |
 For environments where SVG doesn't render
 -->
@@ -260,11 +267,11 @@ All three pass every validator. The policy is valid, the segment works, the mask
 
 **1. Segments used as access control.** A segment that shows a team only its own services looks like a permission. It is not one. From the segments documentation: *"All queries, with or without segments, always respect data access permissions enforced by IAM policies."* A segment narrows a view inside the access a person already has; it grants nothing and restricts nothing. Even a segment's own visibility setting is not a control: *"Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission."* Scope access in IAM, on `dt.security_context` — **ORGNZ-08** covers what segments are for.
 
-**2. `=` or `IN` on an array-valued security context.** The boundary is valid and the policy evaluates — but, per the Grail permissions reference, *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* The result is a team that cannot see its own data, with no error anywhere to say why. Run the type check in section 6, and use `MATCH` wherever an array is possible.
+**2. `=` or `IN` on an array-valued security context.** The boundary is valid and the policy evaluates — but, per the Grail permissions reference, *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* The result is a team that cannot see its own data, with no error anywhere to say why. Run the type check in section 6, and use `MATCH` on record and Smartscape permissions wherever an array is possible. On `storage:entities:read`, `MATCH` is not available; `startsWith` already evaluates each value there.
 
 **3. One masking layer treated as complete.** A OneAgent masking rule covers what OneAgent captures, and nothing else: *"If you import your data to Dynatrace via generic ingest, you need to mask the sensitive data on the source level, before ingestion."* Data from the API, an OpenTelemetry Collector or a log shipper reaches Grail without meeting that rule. Inventory your ingest channels, and decide for each one which layer masks it.
 
-> <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail), [Sensitive data masking in OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking).</sub>
+> <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements), [Sensitive data masking in OneAgent (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking).</sub>
 
 <a id="recommended-approach"></a>
 ## 9. Recommended Approach
@@ -276,10 +283,10 @@ Work the axes in order. Each step assumes the one before it is done.
 3. **Settle residency before you provision.** The region belongs to the environment. If residency is an obligation, it is an input to environment design, not a later setting.
 4. **Design buckets for storage, not for access.** Use separate buckets for retention, cost, and hard compliance boundaries. Default to `dt.security_context` for who sees what.
 5. **Measure security-context coverage.** Run the coverage check in section 6. Every record without the field sits outside every security-context policy — fix it with enrichment.
-6. **Check for arrays, then choose the operator.** If `dt.security_context` can ever hold more than one value, use `MATCH`. If you are unsure, use `MATCH` anyway.
+6. **Check for arrays, then choose the operator.** On record and Smartscape permissions, use `MATCH` if `dt.security_context` can ever hold more than one value, or if you are unsure. On `storage:entities:read`, `MATCH` is not available: use `=`, `IN` or `startsWith`, which evaluates each value of a multi-value context.
 7. **Scope entities and data separately.** An entity permission does not scope that entity's logs, metrics or traces.
 8. **Keep segments out of the access design.** Use them to narrow views, never to restrict them.
-9. **Prove it.** Review the account audit log for access changes and `AUDIT_EVENT` records for activity, and give each control a named owner.
+9. **Prove it.** Review the account audit log for access changes and `AUDIT_EVENT` records (kept for one year) for activity, and give each control a named owner.
 
 > <sub>**Derived:** the ordering follows the dependency chain in section 2; each step is sourced in the section it summarizes.</sub>
 
@@ -291,7 +298,7 @@ Work the axes in order. Each step assumes the one before it is done.
 **Next steps:**
 
 - **ORGNZ-06** — set up `dt.security_context`, then run the two checks in section 6 against your own tenant.
-- **IAM-05** — design boundaries on it, using `MATCH` wherever an array is possible.
+- **IAM-05** — design boundaries on it, using `MATCH` on record and Smartscape permissions wherever an array is possible (classic-entity permissions do not accept `MATCH`).
 - **OPLOGS-08** and **OPMIG-08** — build the masking plan for each ingest channel.
 - **IAM-07** — put the audit queries on a schedule.
 - **FAQ-06** — the same questions, asked of the AI features.

@@ -49,7 +49,7 @@
   <g transform="translate(30, 190)">
     <rect width="180" height="75" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
     <text x="15" y="20" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Payment logs →</text>
-    <text x="110" y="20" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">payment_logs (90d)</text>
+    <text x="110" y="20" font-family="Arial, sans-serif" font-size="10" fill="#dc2626" font-weight="bold">payment_logs (1 yr)</text>
     <text x="145" y="33" font-family="Arial, sans-serif" font-size="10" fill="#64748b">PCI-DSS</text>
 
     <text x="15" y="48" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">Audit logs →</text>

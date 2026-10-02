@@ -54,7 +54,7 @@
 
   <rect x="638" y="230" width="232" height="62" fill="#1E293B" stroke="#334155" rx="6"/>
   <text x="754" y="251" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Transport</text>
-  <text x="754" y="271" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">REST API — pull only (OAuth 2.0)</text>
+  <text x="754" y="271" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">API pull · alerts also by webhook</text>
 
   <rect x="638" y="304" width="232" height="62" fill="#73BE28" opacity="0.12" stroke="#73BE28" rx="6"/>
   <text x="754" y="325" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">The experience answer</text>

@@ -36,7 +36,7 @@
 
   <!-- Title -->
   <text x="400" y="28" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Dynamic Routing Flow</text>
-  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Records can match multiple routes (max 5 pipelines)</text>
+  <text x="400" y="48" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Each record takes the FIRST matching route; no match → default route</text>
 
   <!-- Incoming Data -->
   <rect x="30" y="80" width="100" height="50" rx="8" fill="url(#dataGrad)" filter="url(#drShadow)"/>
@@ -72,7 +72,7 @@
 
   <!-- Route 3 -->
   <rect x="190" y="190" width="160" height="35" rx="6" fill="#fce7f3" stroke="#ec4899" stroke-width="1"/>
-  <text x="270" y="205" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#9d174d" text-anchor="middle">Route 3: contains</text>
+  <text x="270" y="205" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#9d174d" text-anchor="middle">Route 3: matchesPhrase</text>
   <text x="270" y="218" font-family="Arial, sans-serif" font-size="10" fill="#9d174d" text-anchor="middle">(content, "payment")</text>
 
   <text x="365" y="210" font-family="Arial, sans-serif" font-size="11" fill="#db2777">Yes →</text>
@@ -87,16 +87,16 @@
   <text x="365" y="252" font-family="Arial, sans-serif" font-size="11" fill="#64748b">→</text>
 
   <rect x="400" y="235" width="150" height="30" rx="6" fill="url(#defaultGrad)" filter="url(#drShadow)"/>
-  <text x="475" y="255" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">default pipeline</text>
+  <text x="475" y="255" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">default route</text>
 
   <!-- Key Points -->
   <rect x="590" y="80" width="180" height="200" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
   <text x="680" y="105" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">Key Concepts</text>
 
   <text x="610" y="130" font-family="Arial, sans-serif" font-size="10" fill="#333">• Order matters</text>
-  <text x="610" y="148" font-family="Arial, sans-serif" font-size="10" fill="#333">• Multi-match allowed</text>
-  <text x="610" y="166" font-family="Arial, sans-serif" font-size="10" fill="#333">• Max 5 pipelines</text>
-  <text x="610" y="184" font-family="Arial, sans-serif" font-size="10" fill="#333">• Default catches rest</text>
+  <text x="610" y="148" font-family="Arial, sans-serif" font-size="10" fill="#333">• First match wins</text>
+  <text x="610" y="166" font-family="Arial, sans-serif" font-size="10" fill="#333">• One route per record</text>
+  <text x="610" y="184" font-family="Arial, sans-serif" font-size="10" fill="#333">• Default route: the rest</text>
 
   <rect x="610" y="200" width="140" height="60" rx="4" fill="#e0f2fe"/>
   <text x="680" y="220" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#0369a1" text-anchor="middle">Pro Tip</text>
@@ -105,5 +105,5 @@
 
   <!-- Result Note -->
   <rect x="30" y="295" width="740" height="30" rx="4" fill="#fef3c7"/>
-  <text x="400" y="315" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Note: A record is stored ONCE in the first matching pipeline's bucket, even if processed by multiple pipelines</text>
+  <text x="400" y="315" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="middle">Note: to run one record through several pipelines, route it to a member pipeline of a pipeline group (base + member)</text>
 </svg>

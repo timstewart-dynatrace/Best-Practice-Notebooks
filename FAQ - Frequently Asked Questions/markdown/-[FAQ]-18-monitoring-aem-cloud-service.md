@@ -1,6 +1,6 @@
 # FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ This entry covers **what the integration is, how to get it turned on, exactly wh
 | **AEM deployment model** | **AEM as a Cloud Service.** This entry does not cover AEM Managed Services or on-premises AEM, where you control the hosts and standard OneAgent deployment applies |
 | **Adobe relationship** | The ability to raise a customer-care ticket with Adobe — enablement is an Adobe-side action, not a Dynatrace-side one |
 | **Dynatrace environment** | SaaS or Managed. Managed additionally requires a reachable ActiveGate and its port |
-| **Permissions** | Enough access in Dynatrace to mint an API token with the **PaaS integration - Installer download** scope |
+| **Permissions** | Enough access in Dynatrace to mint the token Adobe asks for — Adobe names the classic access-token scope **PaaS integration - Installer download**, which current Dynatrace docs label **Download OneAgent and ActiveGate installers** (`InstallerDownload`). On a Latest Dynatrace environment, which has no classic access tokens, see § 4 |
 | **Licensing headroom** | Full-stack capacity for the containers Adobe runs — see § 7 before you request enablement, not after |
 | **Related series** | **ONBRD** (tenant and access design), **K8S** (the container model underneath), **FAQ-03** (OneAgent vs OpenTelemetry), **FAQ-04** (OneAgent update management — mostly *not* applicable here, see § 9), **NR2DT** / **NRLC** (if you are migrating off New Relic — read § 8 first) |
 
@@ -47,7 +47,7 @@ This entry covers **what the integration is, how to get it turned on, exactly wh
 <a id="short-answer"></a>
 ## 1. Short Answer
 
-**Raise a customer-care ticket with Adobe requesting the Dynatrace integration for the AEM environments you want monitored, and supply your Dynatrace environment URL plus a `PaaS integration - Installer download` token.** Adobe deploys OneAgent into the containers running your author and publish services; the services, their endpoints, and their container memory are detected automatically.
+**Raise a customer-care ticket with Adobe requesting the Dynatrace integration for the AEM environments you want monitored, and supply your Dynatrace environment URL plus an installer-download token (`PaaS integration - Installer download` in Adobe's wording).** Adobe deploys OneAgent into the containers running your author and publish services; the services, their endpoints, and their container memory are detected automatically.
 
 Three things to internalise before you start:
 
@@ -110,7 +110,7 @@ Adobe's documentation enumerates what the ticket must contain. Assemble it befor
 |---|---|---|
 | **Dynatrace environment URL** | SaaS: `https://<your-environment-id>.live.dynatrace.com` · Managed: `https://<your-managed-url>/e/<environmentId>` | Always |
 | **Environment ID and token** | `tenantUUID` and `tenantToken` from the connection-info API (command below) | Always |
-| **API access token** | Scope: **`PaaS integration - Installer download`** | Always |
+| **API access token** | Scope: **`PaaS integration - Installer download`** in Adobe's wording — labelled **Download OneAgent and ActiveGate installers** (`InstallerDownload`) in current Dynatrace docs | Always |
 | **ActiveGate port** | The port your ActiveGate listens on | **Managed only** |
 | **ActiveGate network zone** | Routes monitoring data across regions | Optional |
 | **AEM environment IDs** | Which environment(s) to monitor | Always |
@@ -130,20 +130,25 @@ Take **`tenantUUID`** (the environment ID) and **`tenantToken`** from the respon
 mint it first (**Access tokens → Generate new token →** scope `PaaS integration - Installer download`),
 then use it to obtain the two values.
 
+**On a Latest Dynatrace environment this step needs adjusting.** Adobe's procedure assumes a classic access token, and the scope it names is now labelled **Download OneAgent and ActiveGate installers** (`InstallerDownload`) in the token UI. Latest Dynatrace environments have no classic access tokens at all. There, the connection-info call accepts a platform token with the `fleet-management:oneagent.connection-info:read` scope (send it as `Authorization: Bearer <token>`). Adobe does not publish which credential its integration accepts in that case, so confirm it with Adobe before you open the ticket (§ 10).
+
 Adobe classifies **both the environment token and the API access token** as secrets.
 
 ### Handling the token
 
-The token is a credential that permits downloading the OneAgent installer for your tenant, and it is being transmitted through a support ticket. Adobe's own guidance is to **password-protect it on a secure paste service and share the password separately from the ticket** — treat that as the floor, not a suggestion.
+The token is a credential that permits downloading the OneAgent installer for your tenant, and it is being transmitted through a support ticket. Adobe's guidance is to **password-protect it on a paste service that the ticket references, along with the password** — treat that as the floor, not a suggestion. A stronger practice is to send the password through a separate channel, so that the ticket alone does not expose the token.
 
 Two practices worth adding on your side:
 
 - **Mint a token dedicated to this integration**, rather than reusing an existing PaaS token, so it can be revoked without collateral damage.
-- **Grant only the `PaaS integration - Installer download` scope.** It is the documented requirement, and a broader token in a support-ticket attachment is a materially worse exposure.
+- **Grant only the installer-download scope.** It is the documented requirement, and a broader token in a support-ticket attachment is a materially worse exposure.
 
-> <sub>**Sources:** [Dynatrace — AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens). **Derived:** the dedicated-token and least-scope practices apply standard Dynatrace token hygiene to Adobe's stated transmission method; neither vendor states them for this integration specifically.</sub>
-
----
+> <sub>**Sources:**</sub>
+> - <sub>[Dynatrace — AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — *"which the customer support ticket can reference, along with the password."*</sub>
+> - <sub>[Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens) — the PaaS scope *Download OneAgent and ActiveGate installers* (`InstallerDownload`): *"Allows download of installers via Deployment API."*</sub>
+> - <sub>[Upgrade from access tokens (classic) (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Get connectivity information for OneAgent (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/get-connectivity-info) — platform-token scope *"fleet-management:oneagent.connection-info:read"*</sub>
+> - <sub>**Derived:** the separate-channel password, dedicated-token and least-scope practices apply standard credential hygiene to Adobe's stated transmission method; neither vendor states them for this integration.</sub>
 
 <a id="the-control-boundary"></a>
 ## 5. The Control Boundary
@@ -212,15 +217,17 @@ Licensing follows **full-stack monitoring of the containers**, so it scales with
 
 | Model | Production | Non-production |
 |---|---|---|
-| **Dynatrace Platform Subscription** | max **64 GiB-hours** | max **32 GiB-hours** |
+| **Dynatrace Platform Subscription** | max **64 GiB-hours** — no period stated (see below) | max **32 GiB-hours** — no period stated |
 | **Classic licensing** | **4 host units**, or 96 host-unit-hours/day | **2 host units**, or 48 host-unit-hours/day |
+
+**Check the period before you forecast.** The Hub gives the classic figure per day but the DPS figure with no period. 64 GiB-hours is exactly one hour of the production specification above (4 containers × 16 GB), so the reading consistent with that specification is *per hour* — up to about 1,536 GiB-hours a day per production environment, and about 768 a day per non-production one. Read as a daily figure, it would under-forecast by a factor of 24. Confirm the period with your Dynatrace account team before committing a number.
 
 Two forecasting notes:
 
 - **Multiply by environments, not by applications.** The figures above are *per AEM environment*. A team running production, stage, and a development environment is forecasting three of these, and the non-production ones are not free.
-- **The numbers are Adobe's stated averages, not a contractual cap.** They are the right basis for a first estimate and the wrong basis for a commitment — confirm actual allocation for your environments before finalising licensing.
+- **The container figures are Adobe's stated averages; the licensing figures are Dynatrace's worked examples of maximum consumption. Neither is a contractual cap.** They are the right basis for a first estimate and the wrong basis for a commitment — confirm actual allocation for your environments before finalising licensing.
 
-> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace — AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — both publish the deployment specification; the licensing figures are on the Hub listing only (*"Production: Maximum consumption of 64 GiB hours (actual consumption depends on memory usage)"*). **Derived:** the per-environment multiplication note follows from those figures being stated per environment.</sub>
+> <sub>**Sources:** [Adobe Experience Manager Cloud Service monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/adobe-experience-manager-1/), [Dynatrace — AEM as a Cloud Service (Adobe Experience League)](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/dynatrace) — both publish the deployment specification; the licensing figures are on the Hub listing only (*"Production: Maximum consumption of 64 GiB hours (actual consumption depends on memory usage)"*). The Hub states the specification as *"On average, 4 containers, 16 GB of memory each"* and the classic figure as *"96 host unit hours consumption per day"*. **Derived:** the per-hour reading of the DPS figure follows from the Hub's own specification (4 × 16 GB = 64); the Hub does not state the period. The per-environment multiplication note follows from the figures being stated per environment.</sub>
 
 ---
 
@@ -282,6 +289,7 @@ Beyond that, several reasonable questions are **not settled by either vendor's p
 | Do **AEM logs** flow into Grail through this integration? | Not stated publicly. Adobe provides its own log-access mechanisms; whether they connect here is unconfirmed |
 | Is **RUM** included, or configured separately? | Dynatrace describes RUM, Session Replay, and synthetic monitoring as part of the broader AEM story, but these are tenant-side capabilities you configure — treat them as **separate from** the container agent enablement |
 | Can you influence **OneAgent version**? | Not stated publicly; § 5 assumes not |
+| Which **credential** does the integration accept on a **Latest Dynatrace** environment? | Not stated publicly. Adobe's procedure assumes a classic access token, which Latest environments do not have; the connection-info call accepts a platform token (§ 4). Confirm with Adobe |
 
 Being explicit about this beats a confident guess: an AEM estate has real tiers in front of the author and publish services, and a monitoring plan that silently assumes they are covered will have a gap exactly where customer-facing latency lives.
 

@@ -58,12 +58,11 @@ DQL is a **pipeline-based query language**—not SQL. Data flows through a serie
 Each command in the pipeline operates on the output of the previous command:
 
 ```dql
-fetch logs                        // 1. Get all logs
-| filter loglevel == "ERROR"     // 2. Keep only errors (values are uppercase)
-| filter timestamp > now() - 1h  // 3. Last hour only
-| fields timestamp, content      // 4. Select columns
-| sort timestamp desc            // 5. Order by time
-| limit 100                      // 6. Take first 100
+fetch logs, from:-1h             // 1. Get the last hour of logs (time range on fetch)
+| filter status == "ERROR"       // 2. Keep only error-class records
+| fields timestamp, content      // 3. Select columns
+| sort timestamp desc            // 4. Order by time
+| limit 100                      // 5. Take first 100
 ```
 
 ### Order Matters
@@ -98,9 +97,9 @@ fetch dt.entity.host
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
 //   smartscapeNodes "HOST"
 //   | limit 10
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 ```
 
 ```dql
@@ -115,7 +114,7 @@ fetch dt.davis.problems, from:-24h
 |--------|-------------|
 | `logs` | Log records |
 | `spans` | Distributed trace spans |
-| `events` | System events |
+| `events` | Davis, Kubernetes, custom, and other platform events (self-monitoring is `dt.system.events`) |
 | `bizevents` | Business events |
 | `dt.entity.host` | Host entities |
 | `dt.entity.service` | Service entities |
@@ -126,9 +125,15 @@ fetch dt.davis.problems, from:-24h
 ## 4. Filtering
 Use `filter` to narrow results. Filter as early as possible for performance.
 
+> **`loglevel` vs `status` on logs.** `loglevel` holds the detected severity — `ERROR`, but also `SEVERE`, `CRITICAL`, `ALERT`, `EMERGENCY`, and so on. Dynatrace adds a derived `status` field that groups `SEVERE`, `ERROR`, `CRITICAL`, `ALERT`, `FATAL`, and `EMERGENCY` into `ERROR`. To find every error-class record, filter `status == "ERROR"`: on one tenant over one hour, `loglevel == "ERROR"` matched about 64,000 records and `status == "ERROR"` about 118,000. Both fields use uppercase values.
+>
+> <sub>**Sources:** [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-data-transformation-oa) — *"a status attribute is created with a value that is a sum of loglevel values"*.</sub>
+
 ```dql
 // Filter by equality - loglevel values are UPPERCASE ("ERROR", "WARN", "INFO");
-// a lowercase "error" matches nothing and raises no error
+// a lowercase "error" matches nothing and raises no error. loglevel is the raw
+// detected level (SEVERE, CRITICAL, ... are separate values); to catch every
+// error-class record use the derived field instead: status == "ERROR"
 fetch logs, from:-1h
 | filter loglevel == "ERROR"
 | limit 20
@@ -137,22 +142,21 @@ fetch logs, from:-1h
 ```dql
 // Filter with multiple conditions (AND)
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
-| filter timestamp > now() - 1h
+| filter status == "ERROR" and contains(content, "timeout")
 | limit 20
 ```
 
 ```dql
 // Filter with or condition
 fetch logs, from:-1h
-| filter loglevel == "ERROR" or loglevel == "WARN"
+| filter status == "ERROR" or status == "WARN"
 | limit 20
 ```
 
 ```dql
 // Filter using IN for multiple values
 fetch logs, from:-1h
-| filter in(loglevel, {"ERROR", "WARN", "FATAL"})
+| filter in(status, {"ERROR", "WARN"})
 | limit 20
 ```
 
@@ -324,8 +328,8 @@ fetch logs, from: now() - 1h
 ```
 
 ```dql
-// Specific time range
-fetch logs, from: now() - 24h, to: now() - 12h
+// Specific time range (a one-hour window ending an hour ago)
+fetch logs, from: now() - 2h, to: now() - 1h
 | summarize count()
 ```
 
@@ -353,7 +357,7 @@ Here are patterns you'll use frequently.
 ```dql
 // Find error logs with context
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | fields timestamp, log.source, content
 | sort timestamp desc
 | limit 50
@@ -417,7 +421,7 @@ With DQL fundamentals covered:
 
 ### Beyond the Basics
 
-- **`makeTimeseries`** — convert event-based data (logs, spans, bizevents) into time-bucketed metric series. Different from the `timeseries` command, which queries pre-ingested metrics. Example: `fetch logs | makeTimeseries error_rate = countIf(loglevel == "ERROR"), interval:5m, by:{k8s.cluster.name}`
+- **`makeTimeseries`** — convert event-based data (logs, spans, bizevents) into time-bucketed metric series. Different from the `timeseries` command, which queries pre-ingested metrics. Example: `fetch logs, from:-2h | makeTimeseries errors = countIf(status == "ERROR"), interval:5m, by:{k8s.cluster.name}` (an error count per 5 minutes)
 - **Iterative array expressions** — `arrayAvg`, `arraySum`, `iAny`, etc. for working with timeseries arrays in `fieldsAdd` and `filter`
 - **Smartscape topology navigation** — `smartscapeNodes`, `smartscapeEdges`, `traverse` for entity relationships (the modern alternative to `dt.entity.*`)
 
@@ -462,6 +466,7 @@ In this notebook, you learned:
 - [DQL Functions](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions)
 - [DQL Commands](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands)
 - [Dynatrace Query Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
+- [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-data-transformation-oa)
 
 ---
 

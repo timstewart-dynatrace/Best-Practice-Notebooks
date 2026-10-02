@@ -8,7 +8,7 @@
   </defs>
 
   <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Two Ingestion Patterns — and Why ZPA Needs a Hop</text>
-  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">ZDX never joins the log path: it is an API pull producing metrics, and stays a separate track</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">ZDX telemetry never joins the log path: an API pull producing metrics, on a separate track</text>
 
   <!-- Pattern A -->
   <rect x="40" y="76" width="850" height="184" fill="#1496FF" opacity="0.06" stroke="#1496FF" stroke-width="1.5" rx="8"/>
@@ -34,14 +34,14 @@
   <rect x="472" y="130" width="150" height="108" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="6"/>
   <text x="547" y="164" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Dynatrace</text>
   <text x="547" y="184" text-anchor="middle" fill="#94A3B8" font-size="10">log ingest API</text>
-  <text x="547" y="202" text-anchor="middle" fill="#94A3B8" font-size="10">+ OpenPipeline</text>
+  <text x="547" y="202" text-anchor="middle" fill="#94A3B8" font-size="10">+ OpenPipeline / ZIA ext.</text>
   <line x1="622" y1="184" x2="682" y2="184" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
 
   <rect x="682" y="130" width="186" height="108" fill="#73BE28" opacity="0.10" stroke="#73BE28" rx="6"/>
   <text x="775" y="154" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">Extract, then discard</text>
-  <text x="775" y="174" text-anchor="middle" fill="#94A3B8" font-size="10">metrics · events · CUSTOM_* nodes</text>
-  <text x="775" y="192" text-anchor="middle" fill="#94A3B8" font-size="10">raw → No storage assignment</text>
-  <text x="775" y="214" text-anchor="middle" fill="#FCD34D" font-size="10">retained raw → dedicated bucket</text>
+  <text x="775" y="174" text-anchor="middle" fill="#94A3B8" font-size="10">ZPA: metrics · events · CUSTOM_*</text>
+  <text x="775" y="192" text-anchor="middle" fill="#94A3B8" font-size="10">ZPA raw → No storage assignment</text>
+  <text x="775" y="214" text-anchor="middle" fill="#FCD34D" font-size="10">ZIA: extension metrics + entities</text>
 
   <!-- ZDX separate track -->
   <rect x="62" y="272" width="130" height="46" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="6"/>

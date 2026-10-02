@@ -104,9 +104,10 @@ The modern Dynatrace platform (Gen3/Grail) uses a "tag at source" approach rathe
 
 | Source | How It Works | Best For |
 |--------|--------------|----------|
-| **Host Properties** | Set via OneAgent configuration | Environment, team, tier metadata |
-| **Cloud Provider Tags** | Automatically imported from AWS/Azure/GCP | Cloud resource organization |
-| **Kubernetes Labels** | Imported from K8s metadata | Container workload organization |
+| **Primary tags / primary fields** | Set at OneAgent install or with `oneagentctl --set-host-tag` (OneAgent 1.333+) | Environment, team, security context, cost allocation — on all signals |
+| **Host Properties** | Set with `--set-host-property`; stay on the host node unless an ingest enrichment rule promotes them | Host-level metadata |
+| **Cloud Provider Tags** | Promoted onto signals by ingest enrichment rules (OneAgent / ActiveGate 1.343+; cloud rule types rolling out) | Cloud resource organization |
+| **Kubernetes Labels** | Promoted onto signals by ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment`) | Container workload organization |
 | **OpenTelemetry Attributes** | Set in instrumentation | Custom service attributes |
 
 ### The "Enrich at Source" Philosophy
@@ -116,15 +117,16 @@ The modern Dynatrace platform (Gen3/Grail) uses a "tag at source" approach rathe
 | Stage | Description |
 |-------|-------------|
 | Infrastructure | Cloud tags, K8s labels |
-| OneAgent | Host properties passed through |
-| Dynatrace (Grail) | Queryable attributes |
+| OneAgent | Primary tags / primary fields set at install |
+| Dynatrace (Grail) | Ingest enrichment rules promote metadata to primary fields and tags |
+| Result | Primary tags on all signals; host properties stay on the host |
 -->
 
 ### Why "Tag at Source"?
 
 | Benefit | Description |
 |---------|-------------|
-| **Consistent** | Same tags on metrics, logs, spans, and entities |
+| **Consistent** | Primary tags and fields land on metrics, logs, spans, events, and entities |
 | **Scalable** | No processing overhead to apply rules |
 | **Traceable** | Tags come from the source of truth |
 | **Real-time** | No delay waiting for rule evaluation |
@@ -147,22 +149,17 @@ sudo /bin/sh Dynatrace-OneAgent.sh \
 .\Dynatrace-OneAgent.exe --set-host-property=env=production --set-host-property=team=checkout
 ```
 
-**Via Configuration File:**
+**After Installation:**
 
-> **Note:** The configuration file path depends on your OneAgent version. Check your version with `oneagentctl --version` to determine the correct path.
+Change properties with `oneagentctl` (OneAgent 1.189+), or centrally with Remote configuration management:
 
-| OneAgent Version | Configuration File Path |
-|------------------|------------------------|
-| **< 1.225** | `/var/lib/dynatrace/oneagent/agent/config/hostcustomproperties.conf` |
-| **≥ 1.225** | `/var/lib/dynatrace/oneagent/agent/config/custom.properties` |
-
+```bash
+./oneagentctl --set-host-property=env=production --set-host-property=team=platform
 ```
-# OneAgent < 1.225: /var/lib/dynatrace/oneagent/agent/config/hostcustomproperties.conf
-# OneAgent ≥ 1.225: /var/lib/dynatrace/oneagent/agent/config/custom.properties
-env=production
-team=platform
-cost-center=engineering
-```
+
+The `hostcustomproperties.conf` file applies only to OneAgent 1.187 and earlier.
+
+> **Where host properties land:** a host property is metadata on the HOST node — on Smartscape it appears in the `host.custom.metadata` record — not a field on logs, spans, or metrics. To filter signals by a value, set it as a primary tag instead (`--set-host-tag="primary_tags.<key>=<value>"`, see Prerequisites above) or promote the property with a Host/Process property [ingest enrichment rule (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment).
 
 ### Recommended Property Categories
 
@@ -176,72 +173,75 @@ cost-center=engineering
 
 ### Cloud Provider Tags
 
-Cloud tags are automatically imported when using cloud integrations:
+Cloud tags reach your telemetry through **ingest enrichment rules** (OneAgent / ActiveGate 1.343+). Cloud rule types are rolling out and may not yet be visible in your tenant — until a rule exists, the raw provider tags are visible on the HOST node (for example a `tags:azure` record on an Azure VM) but are not fields on logs, spans, or metrics.
 
-| Cloud | Tag Format | DQL Field |
+| Cloud | Tag Source | Attribute Written to Telemetry by a Rule |
 |-------|-----------|-----------|
-| **AWS** | AWS resource tags | `aws.tag.*` |
-| **Azure** | Azure resource tags | `azure.tag.*` |
-| **GCP** | GCP labels | `gcp.label.*` |
+| **AWS** | AWS resource tags | `aws.tags.<key>` |
+| **Azure** | Azure resource tags | `azure.tags.<key>` |
+| **GCP** | Google Cloud labels / tags | `gcp.labels.<key>` / `gcp.tags.<key>` |
 
 **AWS Tag Example:**
-If your EC2 instance has tag `Environment=Production`, it appears as `aws.tag.Environment` in Dynatrace.
+With an AWS tag rule for the key `Environment`, an EC2 instance tagged `Environment=Production` contributes `aws.tags.Environment` to its telemetry. A rule can instead write the value straight to a primary field such as Security context or Cost center.
 
 ### Kubernetes Labels
 
-K8s labels are automatically available for container workloads:
+Namespace and workload names are set on Kubernetes telemetry. Labels reach signals only through ingest enrichment rules (Dynatrace Operator 1.10+ with `metadataEnrichment` enabled in the DynaKube). Namespace-label rules are available now; workload and pod rule types are rolling out.
 
 | K8s Metadata | DQL Field |
 |--------------|-----------|
 | Namespace | `k8s.namespace.name` |
 | Deployment | `k8s.deployment.name` |
-| Pod labels | `k8s.pod.labels.*` |
-| Node labels | `k8s.node.labels.*` |
+| Namespace labels | `k8s.namespace.label.<key>` (enrichment rule) |
+| Workload labels | `k8s.workload.label.<key>` (enrichment rule) |
+| Pod labels | `k8s.pod.label.<key>` (enrichment rule) |
 
 <a id="segments-for-data-filtering"></a>
 ## 4. Segments for Data Filtering
-Segments provide DQL-based filtering to create focused views of your data.
+Segments provide reusable filters that create focused views of your data.
 
-**Location:** Observe and explore → Segments
+**Location:** the segment selector in any app → **Manage segments**
 
 ### What are Segments?
 
-Segments are reusable DQL filters that:
+Segments are reusable filters built from per-data-type **includes** that:
 - Filter data in Notebooks, Dashboards, and Apps
 - Can be applied as default context
 - Are shareable across the organization
 
 ### Creating a Segment
 
-1. Go to Observe and explore → Segments
-2. Click "Create segment"
-3. Define your DQL filter (using current Smartscape/property syntax — `dt.entity.*` is deprecated):
-   ```dql
-   properties.env == "production"
+1. Open the segment selector in any app → **Manage segments** → **Segment**
+2. Name your segment (e.g., "Production Environment") and add a description
+3. Add an **include**: choose a data type — or **All data types** — and a filter condition, for example:
+   ```text
+   primary_tags.environment = production
    ```
-4. Name your segment (e.g., "Production Environment")
+4. Select **Run query** to preview matching data
 5. Save
+
+> **Includes decide what a segment returns.** Querying a data type that no include references returns **empty results** while the segment is applied — use *All data types* when one condition should apply everywhere.
 
 ### Segment Use Cases
 
-| Use Case | Segment Filter | Purpose |
+| Use Case | Include Condition | Purpose |
 |----------|---------------|---------|
-| **Environment** | `properties.env == "prod"` | Focus on production |
-| **Team** | `properties.team == "checkout"` | Team-specific view |
-| **Application** | `contains(service.name, "payment")` | Application focus |
-| **Region** | `aws.tag.Region == "us-east-1"` | Geographic filtering |
+| **Environment** | `primary_tags.environment = production` | Focus on production |
+| **Team** | `primary_tags.team = checkout` | Team-specific view |
+| **Kubernetes stack** | `k8s.cluster.name = gke-klu` | Cluster-group focus |
+| **Region** | `aws.region = us-east-1` | Geographic filtering |
 
-> **DQL syntax note:** `contains` is a function call — `contains(service.name, "payment")` — not a SQL-style infix operator. The pattern `service.name contains "payment"` is invalid DQL.
+> **Conditions need fields that exist on the data.** `primary_tags.*` matches only data enriched at source (see Prerequisites above). Host properties set with `--set-host-property` are not fields on signals, so they cannot drive a segment until an enrichment rule promotes them.
 
 ### Segments vs Legacy Management Zones
 
 | Feature | Segments | Management Zones (Legacy) |
 |---------|----------|---------------------------|
-| **Filter basis** | DQL expressions | Rule-based matching |
+| **Filter basis** | Per-data-type include conditions | Rule-based matching |
 | **Data types** | All Grail data | Entities only |
 | **Flexibility** | Highly flexible | Limited rule types |
 | **Access control** | Use Policies + `dt.security_context` instead | Built-in |
-| **Modern platform** | ✅ Recommended | ⚠️ Being phased out — MZ-on-calculated-metrics is on the May-2026 deprecation list |
+| **Modern platform** | ✅ Recommended | ⚠️ Dynatrace Classic concept — e.g. API 1.337 deprecated the `managementZone` property on calculated service metrics |
 
 > **Where to go deeper:** the **ORGNZ series** (11 notebooks) covers segments, buckets, and `dt.security_context` design in depth. The **IAM series** (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use `dt.security_context` to scope access. **MZ2POL** (11 notebooks) covers Management Zone → Policy migration if you have legacy MZs to retire.
 
@@ -249,7 +249,7 @@ Segments are reusable DQL filters that:
 
 | Practice | Why |
 |----------|-----|
-| **Use host properties / `dt.security_context`** | Consistent filtering; aligns with IAM scoping |
+| **Use primary tags / `dt.security_context`** | Consistent filtering; aligns with IAM scoping |
 | **Name clearly** | `Prod-Checkout-Team` not `Segment1` |
 | **Document purpose** | Add description |
 | **Test filters** | Verify expected data |
@@ -298,7 +298,28 @@ For host properties, use consistent naming:
 
 <a id="querying-by-tags-and-properties"></a>
 ## 6. Querying by Tags and Properties
-Use host properties and cloud tags in DQL queries to filter and group data.
+Use primary fields, primary tags, and host properties in DQL queries to filter and group data. The first two queries read tag data directly; the rest filter on names and built-in dimensions.
+
+```dql
+// Log volume by security context (a primary field set at source)
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.security_context)
+| summarize log_count = count(), by: {dt.security_context}
+| sort log_count desc
+| limit 20
+// Same pattern for a primary tag set at install, e.g.:
+//   | filter primary_tags.environment == "production"
+```
+
+```dql
+// Host group and host properties on HOST nodes
+// (host properties live in the host.custom.metadata record, not on signals)
+smartscapeNodes "HOST", from:-7d
+| fields name, dt.host_group.id, host.custom.metadata
+| sort name
+| limit 20
+// Filter on one property, e.g.:  | filter host.custom.metadata[env] == "production"
+```
 
 ```dql
 // Find hosts by name pattern
@@ -312,9 +333,9 @@ fetch dt.entity.host
 //   | filter contains(name, "prod")
 //   | fields name
 //   | limit 20
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: entity.name -> name.
 ```
 
@@ -328,9 +349,9 @@ fetch dt.entity.host
 //   smartscapeNodes "HOST"
 //   | summarize host_count = count(), by: {os.type}
 //   | sort host_count desc
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: osType -> os.type (LINUX -> OS_TYPE_LINUX).
 ```
 
@@ -346,14 +367,16 @@ fetch dt.entity.service
 //   | filter contains(name, "checkout")
 //   | fields name, dt.service.sdv1_type
 //   | limit 20
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
-// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -> dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies); entity.name -> name.
 ```
 
 ```dql
-// Query logs filtered by host group (Kubernetes)
+// Log volume by Kubernetes namespace
 fetch logs, from: now() - 1h
 | filter isNotNull(k8s.namespace.name)
 | summarize log_count = count(), by: {k8s.namespace.name}
@@ -388,9 +411,9 @@ fetch dt.entity.host
 //         and not(contains(name, "dev"))
 //   | fields name
 //   | limit 20
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: entity.name -> name.
 ```
 
@@ -400,7 +423,7 @@ fetch dt.entity.host
 With organization in place:
 
 1. **ONBRD-07: Understanding Your Data** — Explore what Dynatrace discovered
-2. Define host properties for your environment
+2. Define primary tags (and any host properties) for your environment
 3. Create segments for team-specific views
 4. Document your naming conventions
 5. Decide your `dt.security_context` value space (and bind IAM policies to it)
@@ -416,7 +439,7 @@ With organization in place:
 ### Organization Checklist
 
 - [ ] Host property strategy documented
-- [ ] Properties + primary tags set at OneAgent install (sprint-1.337+ pattern, see ONBRD-05)
+- [ ] Primary tags / primary fields set at OneAgent install (`--set-host-tag="primary_tags.…"`, OneAgent 1.333+, see ONBRD-05)
 - [ ] Cloud tags verified (if using cloud providers; see FAQ-02 for cloud-tag normalization)
 - [ ] `dt.security_context` value space decided
 - [ ] Segments created for common filters
@@ -431,8 +454,8 @@ In this notebook, you learned:
 
 - Why organization matters for scalability
 - The modern "tag at source" approach (primary fields + primary tags via OneAgent)
-- How to use host properties and cloud tags
-- How to create and use Segments for DQL-based filtering
+- Where host properties, cloud tags, and K8s labels land — and how ingest enrichment rules promote them onto signals
+- How to create and use Segments built from per-data-type includes
 - Naming convention best practices
 - How `dt.security_context` standardizes the boundary field for Gen3 IAM
 - How to query by properties and attributes
@@ -447,6 +470,12 @@ In this notebook, you learned:
 - [Kubernetes Labels](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [OneAgent Attribute Enrichment](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)
+- [Configure ingest enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — *"Cloud rule types are rolling out and may not yet be visible in your environment."*
+- [Define tags and metadata for hosts (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/hosts/configuration/define-tags-and-metadata-for-hosts)
+- [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"For versions earlier than 1.189, use a host metadata configuration file."*
+- [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — *"Querying for data not explicitly referenced by any include of the selected segment, will lead to empty results."*
+- [Segments for Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters)
+- [Dynatrace API 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337)
 
 ---
 

@@ -11,12 +11,12 @@
   <text x="46" y="128" fill="#86EFAC" font-size="11.5" font-weight="700">No external infrastructure to run or secure</text>
 
   <text x="46" y="154" fill="#94A3B8" font-size="11.5">Secrets in Credential Vault &#8212; never in code</text>
-  <text x="46" y="173" fill="#94A3B8" font-size="11.5">Cursor via stateClient; ingest via logsClient.storeLog</text>
+  <text x="46" y="173" fill="#94A3B8" font-size="11.5">Cursor via stateClient &#8212; verify in a workflow first</text>
   <text x="46" y="192" fill="#94A3B8" font-size="11.5">Scheduling, retry and failure alerting are built in</text>
 
-  <text x="46" y="220" fill="#FCD34D" font-size="11.5" font-weight="700">Hard limits: 120 s run &#183; 256 MB &#183; 5 MB output</text>
-  <text x="46" y="239" fill="#FCA5A5" font-size="11.5">Must be a STANDARD workflow &#8212; automation-utils</text>
-  <text x="46" y="256" fill="#FCA5A5" font-size="11.5">returns 404 on simple workflows</text>
+  <text x="46" y="220" fill="#FCD34D" font-size="11.5" font-weight="700">Hard limits: 120 s run &#183; 256 MB &#183; 6 MB task result</text>
+  <text x="46" y="239" fill="#FCA5A5" font-size="11.5">Must be a STANDARD workflow &#8212; Run JavaScript</text>
+  <text x="46" y="256" fill="#FCA5A5" font-size="11.5">is not available in simple workflows</text>
 
   <!-- Python card -->
   <rect x="476" y="80" width="428" height="196" rx="8" fill="#1496FF" opacity="0.08"/>

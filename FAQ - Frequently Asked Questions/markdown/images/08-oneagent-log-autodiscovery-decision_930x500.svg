@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">OneAgent Log Auto-Discovery — How a File Becomes a Log Source</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">A file is collected only if it passes all three gates. The discovery engine re-evaluates every 60 seconds.</text>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- LEFT: Sources on the host -->
+  <rect x="24" y="80" width="186" height="272" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="117" y="104" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Sources on the host</text>
+  <text x="40" y="132" fill="#94A3B8" font-size="11">• Process log files</text>
+  <text x="40" y="156" fill="#94A3B8" font-size="11">• System logs (syslog)</text>
+  <text x="40" y="180" fill="#94A3B8" font-size="11">• journald</text>
+  <text x="40" y="204" fill="#94A3B8" font-size="11">• IIS logs (Windows)</text>
+  <text x="40" y="228" fill="#94A3B8" font-size="11">• Windows Event Log</text>
+  <text x="40" y="252" fill="#94A3B8" font-size="11">• Container stdout/stderr</text>
+  <text x="40" y="284" fill="#64748B" font-size="10">Log Monitoring is enabled</text>
+  <text x="40" y="298" fill="#64748B" font-size="10">by default; ingest rules</text>
+  <text x="40" y="312" fill="#64748B" font-size="10">decide what is stored.</text>
+
+  <line x1="210" y1="170" x2="244" y2="170" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- MIDDLE: Three gates -->
+  <text x="448" y="80" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">The three gates — ALL must pass</text>
+
+  <!-- Gate 1 -->
+  <rect x="250" y="90" width="396" height="76" fill="#73BE28" opacity="0.10" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="266" y="113" fill="#86EFAC" font-size="13" font-weight="700">Gate 1 — Process</text>
+  <text x="266" y="133" fill="#94A3B8" font-size="11">File is kept open in write mode by an important</text>
+  <text x="266" y="149" fill="#94A3B8" font-size="11">process (tech, listening port, load, or flag).</text>
+  <text x="630" y="106" text-anchor="end" fill="#86EFAC" font-size="10" font-weight="600">WHO HOLDS IT</text>
+
+  <line x1="448" y1="166" x2="448" y2="178" stroke="#475569" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- Gate 2 -->
+  <rect x="250" y="180" width="396" height="76" fill="#FCD34D" opacity="0.10" stroke="#FCD34D" stroke-width="1.5" rx="6"/>
+  <text x="266" y="203" fill="#FCD34D" font-size="13" font-weight="700">Gate 2 — Pattern</text>
+  <text x="266" y="223" fill="#94A3B8" font-size="11">Path/name matches a built-in INCLUDE rule and</text>
+  <text x="266" y="239" fill="#94A3B8" font-size="11">no EXCLUDE rule (DB, container, *.evtx dirs).</text>
+  <text x="630" y="196" text-anchor="end" fill="#FCD34D" font-size="10" font-weight="600">WHERE / NAME</text>
+
+  <line x1="448" y1="256" x2="448" y2="268" stroke="#475569" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- Gate 3 -->
+  <rect x="250" y="270" width="396" height="76" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="266" y="293" fill="#DDD6FE" font-size="13" font-weight="700">Gate 3 — File properties</text>
+  <text x="266" y="313" fill="#94A3B8" font-size="11">Text, UTF-8/UTF-16, ≥1 min old, append-only,</text>
+  <text x="266" y="329" fill="#94A3B8" font-size="11">updated &lt;7 days, timestamp within 24 h.</text>
+  <text x="630" y="286" text-anchor="end" fill="#DDD6FE" font-size="10" font-weight="600">WHAT IT IS</text>
+
+  <line x1="646" y1="308" x2="688" y2="308" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- RIGHT: Outcome -->
+  <rect x="694" y="270" width="212" height="76" fill="#73BE28" opacity="0.14" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="800" y="298" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Ingested to Grail</text>
+  <text x="800" y="320" text-anchor="middle" fill="#94A3B8" font-size="11">via OneAgent → (optional</text>
+  <text x="800" y="335" text-anchor="middle" fill="#94A3B8" font-size="11">ActiveGate) → cluster</text>
+
+  <!-- RIGHT TOP: narrowing note -->
+  <rect x="694" y="90" width="212" height="166" fill="#1E293B" stroke="#334155" stroke-width="1.5" rx="6"/>
+  <text x="710" y="113" fill="#F8FAFC" font-size="12" font-weight="700">Security rules</text>
+  <text x="710" y="134" fill="#94A3B8" font-size="11">can only NARROW</text>
+  <text x="710" y="149" fill="#94A3B8" font-size="11">auto-detection —</text>
+  <text x="710" y="164" fill="#94A3B8" font-size="11">never expand it.</text>
+  <line x1="710" y1="180" x2="890" y2="180" stroke="#334155" stroke-width="1"/>
+  <text x="710" y="201" fill="#94A3B8" font-size="11">Not auto-detected:</text>
+  <text x="710" y="217" fill="#94A3B8" font-size="11">binaries, network FS</text>
+  <text x="710" y="233" fill="#94A3B8" font-size="11">(off by default), and</text>
+  <text x="710" y="249" fill="#94A3B8" font-size="11">OneAgent's own logs.</text>
+
+  <!-- Footer: fallback -->
+  <line x1="24" y1="372" x2="906" y2="372" stroke="#334155" stroke-width="1"/>
+  <text x="24" y="396" fill="#F8FAFC" font-size="13" font-weight="700">Misses your file? → Custom log source</text>
+  <text x="24" y="416" fill="#94A3B8" font-size="11">Settings → Collect and capture → Log monitoring → Configure log module → Sources. Absolute paths; * (not /), # (digits)</text>
+  <text x="24" y="433" fill="#94A3B8" font-size="11">wildcards; up to 100 paths per rule. A custom source SUPPLEMENTS auto-detection — it does not change the built-in rules.</text>
+  <text x="24" y="457" fill="#FCD34D" font-size="11" font-weight="600">Recommended: verify what was discovered (Configure log module → Sources / self-monitoring DQL) first.</text>
+  <text x="24" y="479" fill="#64748B" font-size="10">Supported levels: 10,000 files per directory, 200 MB new content/min (above that, ask support); default 200 sources per PGI.</text>
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="32" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">ONBRD — Variants &amp; Skip Rules</text>
+  <text x="465" y="55" text-anchor="middle" fill="#94A3B8" font-size="13">The default path runs all 10 steps. Common situations modify it as shown.</text>
+
+  <!-- Row 1: y=78-268 -->
+
+  <!-- Card 1: Default — Greenfield -->
+  <rect x="20" y="78" width="290" height="190" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <rect x="20" y="78" width="290" height="34" fill="#73BE28" opacity="0.25" stroke="none" rx="6"/>
+  <text x="165" y="100" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Default — Standard New Tenant</text>
+  <text x="38" y="130" fill="#94A3B8" font-size="10" font-style="italic">No special starting context.</text>
+  <text x="38" y="148" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="38" y="167" fill="#86EFAC" font-size="11">▸ All 10 steps in order.</text>
+  <text x="38" y="184" fill="#86EFAC" font-size="11">▸ Phase 1: 01 → 02 → {03/04/05}</text>
+  <text x="38" y="201" fill="#86EFAC" font-size="11">▸ Phase 2: 06 → 07</text>
+  <text x="38" y="218" fill="#86EFAC" font-size="11">▸ Phase 3: {08, 09, 10} parallel</text>
+  <text x="38" y="244" fill="#94A3B8" font-size="10">No skip rules apply. Use the canonical</text>
+  <text x="38" y="259" fill="#94A3B8" font-size="10">sequence and gates G1, G2 as written.</text>
+
+  <!-- Card 2: Existing SSO -->
+  <rect x="320" y="78" width="290" height="190" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <rect x="320" y="78" width="290" height="34" fill="#1496FF" opacity="0.25" stroke="none" rx="6"/>
+  <text x="465" y="100" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Existing SSO from another DT tenant</text>
+  <text x="338" y="130" fill="#94A3B8" font-size="10" font-style="italic">Org has SAML (+ SCIM) live elsewhere.</text>
+  <text x="338" y="148" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="338" y="167" fill="#BFDBFE" font-size="11">▸ Step 02: skip IDP-config; reuse</text>
+  <text x="338" y="184" fill="#BFDBFE" font-size="11">  the existing IDP.</text>
+  <text x="338" y="201" fill="#BFDBFE" font-size="11">▸ Still configure groups +</text>
+  <text x="338" y="218" fill="#BFDBFE" font-size="11">  parameterized policies in this tenant.</text>
+  <text x="338" y="244" fill="#94A3B8" font-size="10">All other steps unchanged.</text>
+  <text x="338" y="259" fill="#94A3B8" font-size="10">Typically shorter than a full IDP setup.</text>
+
+  <!-- Card 3: Pure SaaS-only -->
+  <rect x="620" y="78" width="290" height="190" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <rect x="620" y="78" width="290" height="34" fill="#FFB800" opacity="0.25" stroke="none" rx="6"/>
+  <text x="765" y="100" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Pure SaaS-only, no on-prem</text>
+  <text x="638" y="130" fill="#94A3B8" font-size="10" font-style="italic">All workloads in cloud SaaS.</text>
+  <text x="638" y="148" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="638" y="167" fill="#FCD34D" font-size="11">▸ Step 03 (ActiveGate) optional —</text>
+  <text x="638" y="184" fill="#FCD34D" font-size="11">  defer until cloud-API polling at</text>
+  <text x="638" y="201" fill="#FCD34D" font-size="11">  scale demands it.</text>
+  <text x="638" y="218" fill="#FCD34D" font-size="11">▸ All other steps unchanged.</text>
+  <text x="638" y="244" fill="#94A3B8" font-size="10">Reassess Step 03 as the estate grows</text>
+  <text x="638" y="259" fill="#94A3B8" font-size="10">or ActiveGate extensions appear.</text>
+
+  <!-- Row 2: y=288-478 -->
+
+  <!-- Card 4: Cloud-only / serverless -->
+  <rect x="20" y="288" width="290" height="190" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <rect x="20" y="288" width="290" height="34" fill="#A78BFA" opacity="0.25" stroke="none" rx="6"/>
+  <text x="165" y="310" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">Cloud-only / Serverless</text>
+  <text x="38" y="340" fill="#94A3B8" font-size="10" font-style="italic">No VMs / containers under your control.</text>
+  <text x="38" y="358" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="38" y="377" fill="#DDD6FE" font-size="11">▸ Step 05 (OneAgent) mostly N/A.</text>
+  <text x="38" y="394" fill="#DDD6FE" font-size="11">▸ Focus on Step 04 (Clouds app)</text>
+  <text x="38" y="411" fill="#DDD6FE" font-size="11">  and OpenTelemetry for app code.</text>
+  <text x="38" y="428" fill="#DDD6FE" font-size="11">▸ See FAQ-03 for OneAgent vs OTel.</text>
+  <text x="38" y="454" fill="#94A3B8" font-size="10">Phase 2 still needed — primary tags via</text>
+  <text x="38" y="469" fill="#94A3B8" font-size="10">OpenPipeline enrichment, not at install.</text>
+
+  <!-- Card 5: K8s-first -->
+  <rect x="320" y="288" width="290" height="190" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="6"/>
+  <rect x="320" y="288" width="290" height="34" fill="#22D3EE" opacity="0.25" stroke="none" rx="6"/>
+  <text x="465" y="310" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">Kubernetes-first</text>
+  <text x="338" y="340" fill="#94A3B8" font-size="10" font-style="italic">Workloads run primarily on K8s.</text>
+  <text x="338" y="358" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="338" y="377" fill="#A5F3FC" font-size="11">▸ Step 05 collapses into K8S series.</text>
+  <text x="338" y="394" fill="#A5F3FC" font-size="11">▸ Operator + DynaKube replaces</text>
+  <text x="338" y="411" fill="#A5F3FC" font-size="11">  per-host install.</text>
+  <text x="338" y="428" fill="#A5F3FC" font-size="11">▸ Cloud Native FullStack mode default.</text>
+  <text x="338" y="454" fill="#94A3B8" font-size="10">DynaKube v1beta6 for new manifests</text>
+  <text x="338" y="469" fill="#94A3B8" font-size="10">(Operator 1.11: update all to v1beta6).</text>
+
+  <!-- Card 6: Migrating from another tool -->
+  <rect x="620" y="288" width="290" height="190" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="6"/>
+  <rect x="620" y="288" width="290" height="34" fill="#DE350B" opacity="0.25" stroke="none" rx="6"/>
+  <text x="765" y="310" text-anchor="middle" fill="#FCA5A5" font-size="13" font-weight="700">Migrating from another tool</text>
+  <text x="638" y="340" fill="#94A3B8" font-size="10" font-style="italic">Replacing NR / Splunk / Sumo / Managed.</text>
+  <text x="638" y="358" fill="#F8FAFC" font-size="11" font-weight="700">Modified path:</text>
+  <text x="638" y="377" fill="#FCA5A5" font-size="11">▸ Run ONBRD foundation in parallel</text>
+  <text x="638" y="394" fill="#FCA5A5" font-size="11">  with the migration series:</text>
+  <text x="638" y="411" fill="#FCA5A5" font-size="11">  NR2DT / S2D / SL2DT / M2S / S2S.</text>
+  <text x="638" y="428" fill="#FCA5A5" font-size="11">▸ Migration series owns cutover.</text>
+  <text x="638" y="454" fill="#94A3B8" font-size="10">ONBRD provides the destination tenant</text>
+  <text x="638" y="469" fill="#94A3B8" font-size="10">shape; migration provides the workload.</text>
+</svg>

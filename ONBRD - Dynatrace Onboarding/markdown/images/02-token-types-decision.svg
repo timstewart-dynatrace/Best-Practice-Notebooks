@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Dynatrace API Credential Types</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Choose by integration class</text>
+
+  <!-- Column 1: Platform Token (recommended) -->
+  <rect x="40" y="90" width="270" height="380" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="2" rx="8"/>
+  <text x="175" y="115" text-anchor="middle" fill="#86EFAC" font-size="15" font-weight="700">Platform Token</text>
+  <text x="175" y="133" text-anchor="middle" fill="#86EFAC" font-size="11">★ Recommended Default</text>
+
+  <rect x="60" y="155" width="230" height="55" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="175" y="178" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Prefix</text>
+  <text x="175" y="198" text-anchor="middle" fill="#94A3B8" font-size="12">dt0s16</text>
+
+  <rect x="60" y="225" width="230" height="55" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="175" y="248" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Auth Scheme</text>
+  <text x="175" y="268" text-anchor="middle" fill="#94A3B8" font-size="12">Authorization: Bearer</text>
+
+  <rect x="60" y="295" width="230" height="160" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="175" y="318" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">When to Use</text>
+  <text x="175" y="338" text-anchor="middle" fill="#94A3B8" font-size="11">New automation</text>
+  <text x="175" y="356" text-anchor="middle" fill="#94A3B8" font-size="11">MCP + installer download</text>
+  <text x="175" y="374" text-anchor="middle" fill="#94A3B8" font-size="11">OpenPipeline config</text>
+  <text x="175" y="392" text-anchor="middle" fill="#94A3B8" font-size="11">Settings v2</text>
+  <text x="175" y="410" text-anchor="middle" fill="#94A3B8" font-size="11">Scopes ≤ user permissions</text>
+  <text x="175" y="438" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">→ Default for net-new</text>
+
+  <!-- Column 2: OAuth Client -->
+  <rect x="330" y="90" width="270" height="380" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="465" y="115" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">OAuth Client</text>
+  <text x="465" y="133" text-anchor="middle" fill="#BFDBFE" font-size="11">External / Account-Admin</text>
+
+  <rect x="350" y="155" width="230" height="55" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="465" y="178" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Form</text>
+  <text x="465" y="198" text-anchor="middle" fill="#94A3B8" font-size="12">Client ID + Secret</text>
+
+  <rect x="350" y="225" width="230" height="55" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="465" y="248" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">Auth Scheme</text>
+  <text x="465" y="268" text-anchor="middle" fill="#94A3B8" font-size="12">Authorization: Bearer</text>
+
+  <rect x="350" y="295" width="230" height="160" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="465" y="318" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">When to Use</text>
+  <text x="465" y="338" text-anchor="middle" fill="#94A3B8" font-size="11">External SaaS integrations</text>
+  <text x="465" y="356" text-anchor="middle" fill="#94A3B8" font-size="11">Account-admin automation</text>
+  <text x="465" y="374" text-anchor="middle" fill="#94A3B8" font-size="11">Above-tenant operations</text>
+  <text x="465" y="392" text-anchor="middle" fill="#94A3B8" font-size="11">Short-lived bearer tokens</text>
+  <text x="465" y="410" text-anchor="middle" fill="#94A3B8" font-size="11">Re-request on expiry</text>
+  <text x="465" y="438" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">→ External or admin</text>
+
+  <!-- Column 3: Classic API Token -->
+  <rect x="620" y="90" width="270" height="380" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="755" y="115" text-anchor="middle" fill="#FCD34D" font-size="15" font-weight="700">Classic API Token</text>
+  <text x="755" y="133" text-anchor="middle" fill="#FCD34D" font-size="11">⚠ Legacy / Phase-Out</text>
+
+  <rect x="640" y="155" width="230" height="55" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="755" y="178" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Prefix</text>
+  <text x="755" y="198" text-anchor="middle" fill="#94A3B8" font-size="12">dt0c01</text>
+
+  <rect x="640" y="225" width="230" height="55" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="755" y="248" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Auth Scheme</text>
+  <text x="755" y="268" text-anchor="middle" fill="#94A3B8" font-size="12">Authorization: Api-Token</text>
+
+  <rect x="640" y="295" width="230" height="160" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="755" y="318" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">When to Use</text>
+  <text x="755" y="338" text-anchor="middle" fill="#94A3B8" font-size="11">Existing scripts</text>
+  <text x="755" y="356" text-anchor="middle" fill="#94A3B8" font-size="11">Classic/hybrid tenants only</text>
+  <text x="755" y="374" text-anchor="middle" fill="#94A3B8" font-size="11">Legacy integrations</text>
+  <text x="755" y="392" text-anchor="middle" fill="#94A3B8" font-size="11">Scope-list permissions</text>
+  <text x="755" y="410" text-anchor="middle" fill="#94A3B8" font-size="11">Migrate where possible</text>
+  <text x="755" y="438" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">→ Legacy only</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="478" x2="890" y2="478" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="494" text-anchor="middle" fill="#64748B" font-size="10">Wrong scheme returns 401 even with correct scopes/policies</text>
+</svg>

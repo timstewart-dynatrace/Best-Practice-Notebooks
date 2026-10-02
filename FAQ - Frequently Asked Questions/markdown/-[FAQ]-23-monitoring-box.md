@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -15,7 +15,7 @@ That second point is the expensive one. A team that starts from "set up a webhoo
 
 This entry is a **worked example of FAQ-19**. The generic decisions — signal classes, route selection, extract-then-discard, bucket isolation — are made there; here they are made concretely for Box, with a sizing example at **1,000,000 events per day** drawn from a real migration question.
 
-> **A note on the DQL in this entry.** Box data will not exist in your tenant until the collector runs. Every query below is therefore written to run standalone against a synthetic record using `data record(...)` — **zero bytes scanned, zero cost** — so you can validate the shape before you have ingested anything. All queries were executed against a live tenant on 08/25/2026. Swap `data record(...)` for `fetch logs | filter log.source == "box.events"` once data flows.
+> **A note on the DQL in this entry.** Box data will not exist in your tenant until the collector runs. The parsing, Shield and dedupe queries (§ 11, § 12.1–12.2) are therefore written to run standalone against a synthetic record using `data record(...)` — **zero bytes scanned** — so you can validate the shape before you have ingested anything. Swap `data record(...)` for `fetch logs | filter log.source == "box.events"` once data flows. The span query (§ 3.1) and the bucket, volume and staleness checks (§ 12.3, § 12.4, § 13.1) read real spans or logs and are billed as queries: each scanned more than a gigabyte on the validation tenant even with no Box data present (10/02/2026), so keep their timeframes short. All queries were executed against a live tenant on 08/25/2026; the changed ones again on 10/02/2026.
 
 ---
 
@@ -48,9 +48,9 @@ This entry is a **worked example of FAQ-19**. The generic decisions — signal c
 |-------------|---------|
 | **Box licensing** | Business plan or above for the Events API. **Box Shield is a separate SKU** — § 11 explains what its absence removes, and it is worth confirming before scoping |
 | **Box admin access** | The service account must be an **enterprise admin or co-admin** holding *"Run new reports and access existing reports."* Without it the API returns nothing useful — which looks identical to "no events" (§ 17) |
-| **Box application** | A Box app configured for **Client Credentials Grant** (server-side auth, no user interaction), authorized in the Box Admin Console |
+| **Box application** | A Box app configured for **Client Credentials Grant** (server-side auth, no user interaction), with the application scope **Manage enterprise properties** checked, authorized in the Box Admin Console. Re-authorize the app in the Admin Console after changing its scopes |
 | **Dynatrace environment** | SaaS with **Grail** and **OpenPipeline** |
-| **Outbound connectivity** | If collecting via Workflow, `api.box.com` must be on the JS-runtime outbound allowlist (§ 7) — a silent-failure trap |
+| **Outbound connectivity** | If collecting via Workflow, `api.box.com` must be allowed under **Settings > General > External requests** (§ 7) — test one run after adding it |
 | **Security sign-off** | This feed carries user identity, file names, and IP addresses. Decide retention and masking before building — see FAQ-19 § 4 and § 6 |
 | **Related reading** | **FAQ-19** (the generic pattern this instantiates), **FAQ-20** (the Zscaler worked example), **OPIPE** / **OPLOGS** (OpenPipeline depth), **ORGNZ** (buckets), **WFLOW** (workflows), **ALERT** / **SLO** / **DASH** (downstream) |
 
@@ -194,7 +194,7 @@ Everything enterprise-wide comes from one endpoint, `GET /events`, in one of two
 | **Page size** | 500 events maximum | Paging loop required; drives the sizing math in § 5 |
 | **Cursor** | `stream_position` in, `next_stream_position` out | **Must persist between runs** or you re-ingest or skip |
 | **Rate limit** | 1,000 requests/min per user; 429 returns `retry-after` | Exponential backoff. Rarely binding — see § 5 |
-| **Permission** | Enterprise admin/co-admin with *"Run new reports…"* | Missing it returns nothing, indistinguishable from no events |
+| **Permission** | Enterprise admin/co-admin with *"Run new reports…"*, **and** the app's **Manage enterprise properties** scope | Missing the admin permission returns nothing, indistinguishable from no events. Missing the app scope is a separate cause — check both |
 
 ### 4.2 The cursor is the whole design
 
@@ -204,7 +204,8 @@ Because `admin_logs_streaming` retains only two weeks, a lost cursor is not alwa
 
 > <sub>**Sources:**</sub>
 > - <sub>[Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise)</sub>
-> - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events)</sub>
+> - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — *"The user making the API call will need to have admin privileges, and the application will need to have the scope manage enterprise properties checked."*</sub>
+> - <sub>[Platform app approval (Box Dev Docs)](https://developer.box.com/guides/authorization/platform-app-approval) — *"When an application’s scopes or access level change, the application must be re-authorized for the changes to take effect."*</sub>
 > - <sub>[Rate Limits (Box Dev Docs)](https://developer.box.com/guides/api-calls/permissions-and-errors/rate-limits)</sub>
 > - <sub>[New Enterprise Event Stream API (Box Support)](https://support.box.com/hc/en-us/articles/4412894211475-New-Enterprise-Event-Stream-API)</sub>
 
@@ -266,8 +267,9 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 |--------|-------------------------------|------------------|
 | Infrastructure | None | You run and secure it |
 | Execution ceiling | 120 s per run (hard) | None |
+| Limits | 256 MB memory, 6 MB task result; must be a standard workflow (Run JavaScript is not available in simple workflows) | Yours |
 | Secrets | Credential Vault | Your own secret store |
-| Cursor storage | stateClient app state | Your own durable store |
+| Cursor storage | stateClient app state (verify from a workflow first) | Your own durable store |
 | Scheduling/retry | Built in | You build it |
 | Best for | Steady-state polling up to ~35,000 events/run | Backfill, replay, very high volume |
 -->
@@ -276,9 +278,9 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 |---|---|---|
 | **Infrastructure** | None — runs inside Dynatrace | You provision, run, patch, secure |
 | **Execution ceiling** | **120 s** per run (hard) | None |
-| **Memory / output** | 256 MB / 5 MB output | Yours |
+| **Memory / task result** | 256 MB / 6 MB task result | Yours |
 | **Secrets** | Credential Vault | Your own secret store |
-| **Cursor** | `stateClient` app state | Your own durable store |
+| **Cursor** | `stateClient` app state — verify it works from a workflow first (§ 7.1) | Your own durable store |
 | **Scheduling, retry, failure alerting** | Built in | You build all three |
 | **Backfill over months** | Impractical | Natural fit |
 
@@ -293,7 +295,7 @@ Decide retention *before* you turn the collector on. Reducing retention later do
 
 A common and sensible split: **Python for the one-time historical backfill, Workflow for steady state.** They write to the same `log.source` and the same bucket, and the backfill runs once.
 
-> <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub>
+> <sub>**Sources:** [JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/), [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The task result size is limited to 6 MB."*, [Get Enterprise Events (Box Dev Docs)](https://developer.box.com/guides/events/enterprise-events/for-enterprise). **Derived:** the ~35,000-events-per-run boundary combines the documented 120 s ceiling with the 500-event page size and an estimated per-page latency — verify locally per § 5.2.</sub>
 
 ---
 
@@ -306,9 +308,11 @@ The recommended path at typical volume. No infrastructure, secrets stay in the C
 
 | Step | What | Why it matters |
 |---|---|---|
-| **1. Credential Vault entry** | Store the Box `client_id` / `client_secret` as a username/password credential with the **AppEngine** scope | Never put Box secrets in workflow code — they are readable by anyone who can view the workflow. A credential without the AppEngine scope is not readable from workflow code |
-| **2. Outbound allowlist** | Add `api.box.com` to `builtin:dt-javascript-runtime.allowed-outbound-connections` | **A non-allowlisted host fails silently.** This is the single most common "my workflow does nothing" cause |
+| **1. Credential Vault entry** | Store the Box `client_id` / `client_secret` as a username/password credential with the **AppEngine** scope selected, **Allow access without app context** turned on, and access granted to the **workflow actor** | Never put Box secrets in workflow code — they are readable by anyone who can view the workflow. Workflow JavaScript tasks run without an app context, so a credential missing any of the three settings cannot be read by the task |
+| **2. Outbound allowlist** | Add `api.box.com` — and `status.box.com` if you poll it (§ 14.1) — under **Settings > General > External requests** (*New host pattern*) | Every HTTP call from the task is checked against this list. No page documents what a blocked call returns: in the collector below an uncaught error fails the task, while code that catches errors turns it into an empty run. Run the workflow once after adding the host and check that events arrive |
 | **3. Standard workflow** | Create a **standard** workflow, not a simple one | A simple workflow cannot contain a **Run JavaScript** action at all. Standard workflows also bill differently — see ALERT-03 § 1 |
+
+> **Verify the cursor store before you schedule the collector.** The collector keeps its cursor in app state through `stateClient`. Two Dynatrace pages leave open whether app state is reachable from a Run JavaScript task: the state service says *"These states are only accessible from their respective apps and can't be accessed using a different app or ad-hoc functions."*, and the Run JavaScript page says *"JavaScript tasks run without an app context."* The code below matches the `@dynatrace-sdk/client-state` typings, but it has not been run in a workflow. Before relying on it, build a two-task test workflow: the first task calls `setAppState`, the second calls `getAppState` and returns the value. The workflow actor needs `state:app-states:read` and `state:app-states:write` (the scopes the SDK documents for these calls). If the value does not come back, keep the cursor in a store you have confirmed the workflow can read and write — the rest of the design does not change. Without a working cursor the run either fails or starts at `"now"` every time and never collects the events between runs.
 
 ### 7.2 The collector
 
@@ -400,7 +404,9 @@ export default async function () {
         "box.created_at": evt.created_at,
         "box.event_id": evt.event_id,
         "box.event_type": evt.event_type,
-        "box.user.login": evt.created_by?.login,
+        // SHIELD_ALERT events carry an anonymous created_by (empty login);
+        // the affected account is in additional_details.shield_alert.user (§ 11.2).
+        "box.user.login": evt.created_by?.login || evt.additional_details?.shield_alert?.user?.email,
         "box.item.name": evt.source?.item_name,
         "box.ip_address": evt.ip_address,
       };
@@ -461,6 +467,8 @@ A Workflow that stops running produces no logs — and no logs looks exactly lik
 > - <sub>[JavaScript runtime limits (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/)</sub>
 > - <sub>[client-state SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-state/) — exports the `isNotFound` type guard (checked in `@dynatrace-sdk/client-state` 1.11.0 typings, 09/28/2026)</sub>
 > - <sub>[Manage secrets (Dynatrace Developer)](https://developer.dynatrace.com/develop/guides/security/manage-secrets/) — *"Ensure to use the AppEngine scope for your credentials."*</sub>
+> - <sub>[Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"The following credential settings are required. The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential."*; *"All HTTP calls are validated against the global allowlist."*</sub>
+> - <sub>[State service (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/state-service/) — *"These states are only accessible from their respective apps and can't be accessed using a different app or ad-hoc functions."*</sub>
 > - <sub>[Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — *"You can use all available actions to create a simple workflow except Run JavaScript"*</sub>
 > - <sub>[Credential vault client (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/)</sub>
 > - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
@@ -482,13 +490,13 @@ pip install boxsdk requests
 
 **`boxsdk` (v10+) is the current Box Python SDK. `box-sdk-gen` is the deprecated one.** The naming is actively misleading — "gen" sounds like the newer generation, and it was, briefly: it shipped as a standalone package and was deprecated on **17 September 2025** when its functionality was absorbed into the core SDK at v10.
 
-The PyPI release history settles it: `boxsdk` 10.16.0 shipped 23 September 2026, while `box-sdk-gen` has not released since 05 September 2025.
+The PyPI release history settles it: `boxsdk` 10.17.0 shipped 1 October 2026, while `box-sdk-gen` has not released since 05 September 2025 (both re-checked 10/02/2026).
 
 **The second half of the trap: you install `boxsdk`, but you import `box_sdk_gen`.** From v10 the `boxsdk` distribution contains only the generated package — its PyPI page says v10 *"fully and exclusively replaces the old `boxsdk` package"* — so `from boxsdk import Client, CCGAuth`, which every pre-v10 example uses, fails with `ModuleNotFoundError`. The collector below imports `BoxClient`, `BoxCCGAuth` and `CCGConfig` from `box_sdk_gen`.
 
 ### 8.2 The collector
 
-Syntax- and import-checked against `boxsdk` 10.16.0 (09/28/2026), including the `client.events.get_events` signature; it has not been run end-to-end against a Box enterprise.
+Syntax- and import-checked against `boxsdk` 10.17.0 (10/02/2026), including the `client.events.get_events` signature; it has not been run end-to-end against a Box enterprise. It authenticates to Dynatrace with a **platform token** (scope `openpipeline:logs:ingest`), because Latest Dynatrace environments have no classic access tokens. On a classic or hybrid environment a classic access token with `logs.ingest` also works — send `Api-Token <token>` instead of `Bearer <token>`.
 
 ```python
 """Poll the Box enterprise event stream and ship to Dynatrace.
@@ -514,8 +522,8 @@ BOX_CLIENT_ID     = os.environ["BOX_CLIENT_ID"]
 BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
 BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
 
-DT_ENV_URL   = os.environ["DT_ENV_URL"]      # https://abc12345.live.dynatrace.com
-DT_API_TOKEN = os.environ["DT_API_TOKEN"]    # scope: logs.ingest
+DT_ENV_URL = os.environ["DT_ENV_URL"]        # https://abc12345.live.dynatrace.com
+DT_PLATFORM_TOKEN = os.environ["DT_PLATFORM_TOKEN"]  # scope: openpipeline:logs:ingest
 
 LOG_SOURCE    = "box.events"
 PAGE_LIMIT    = 500
@@ -550,15 +558,19 @@ def to_dt_record(evt: dict) -> dict:
     created_by = evt.get("created_by") or {}
     source     = evt.get("source") or {}
     created_at = evt.get("created_at")
+    details    = evt.get("additional_details")
+    shield     = (details.get("shield_alert") if isinstance(details, dict) else None) or {}
     record = {
         "content":         json.dumps(evt, separators=(",", ":")),
         "log.source":      LOG_SOURCE,
         "box.created_at":  created_at,
         "box.event_id":    evt.get("event_id"),
         "box.event_type":  evt.get("event_type"),
-        "box.user.login":  created_by.get("login"),
+        # SHIELD_ALERT: created_by is anonymous; the account is shield_alert.user.
+        "box.user.login":  created_by.get("login") or (shield.get("user") or {}).get("email"),
         "box.item.name":   source.get("item_name"),
-        "box.item.type":   source.get("type"),
+        # File/folder sources use item_type/item_id; user sources use type/id.
+        "box.item.type":   source.get("item_type") or source.get("type"),
         "box.ip_address":  evt.get("ip_address"),
     }
     # Only stamp event time when ingest will accept it. An older event keeps
@@ -574,7 +586,7 @@ def ingest(records: list[dict]) -> None:
     """POST to the Dynatrace Log Ingestion API, batched."""
     url = f"{DT_ENV_URL}/api/v2/logs/ingest"
     headers = {
-        "Authorization": f"Api-Token {DT_API_TOKEN}",
+        "Authorization": f"Bearer {DT_PLATFORM_TOKEN}",
         "Content-Type": "application/json; charset=utf-8",
     }
     for i in range(0, len(records), INGEST_BATCH):
@@ -694,10 +706,11 @@ Whatever runs it needs monitoring of its own — see § 13.
 > - <sub>[boxsdk on PyPI](https://pypi.org/project/boxsdk/) — *"Starting with v10, the SDK is built entirely on the generated `box_sdk_gen` package, which fully and exclusively replaces the old `boxsdk` package."*</sub>
 > - <sub>[Deprecated Box Next Gen Python SDK (Box Dev Docs)](https://developer.box.com/guides/tooling/sdks/python-gen)</sub>
 > - <sub>[Client Credentials Grant (Box Dev Docs)](https://developer.box.com/guides/authentication/client-credentials)</sub>
-> - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs)</sub>
+> - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs) — *"Platform Token / OAuth: One of the following scopes is required: openpipeline:logs:ingest storage:logs:write (legacy)"*</sub>
+> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
 > - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"200 - in case some of the events in the payload have timestamps earlier than the current time minus 24 hours."*</sub>
 > - <sub>[List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events) — *"`now` will return an empty list events and the latest stream position for initialization"*; *"Sometimes, the events less than the limit requested can be returned even when there may be more events remaining."*</sub>
-> - <sub>**Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates (re-checked 09/28/2026) against Box's deprecation notice</sub>
+> - <sub>**Derived:** § 8.1's current-vs-deprecated verdict comes from PyPI release dates (re-checked 10/02/2026) against Box's deprecation notice</sub>
 
 ---
 
@@ -711,7 +724,7 @@ Whatever runs it needs monitoring of its own — see § 13.
 |-------|-----------|----------------|
 | 1 | Box Events API | 500 events/page; streaming retains 2 weeks; duplicates possible |
 | 2 | Collector (Workflow or Python) | Owns the cursor; dedupes on event_id |
-| 3 | Log Ingest API v2 | 10 MB and 50,000 records per request; no events/min cap |
+| 3 | Log Ingest API v2 (platform token scope openpipeline:logs:ingest) | 10 MB and 50,000 records per request; no events/min cap |
 | 4 | OpenPipeline | Parse, mask, extract metrics; discard raw with No storage assignment (Bucket assignment stage), never Drop record |
 | 5 | Dedicated bucket | Own retention and own IAM boundary |
 -->
@@ -776,11 +789,11 @@ Box events are JSON, so the parse is mechanical. What matters is normalizing to 
 | `event_id` | `box.event_id` | **Dedupe key.** Required — streaming repeats events |
 | `event_type` | `box.event_type` | Primary dimension. `LOGIN`, `UPLOAD`, `DOWNLOAD`, `SHARE`, `DELETE`, `SHIELD_ALERT`, … |
 | `created_at` | `timestamp` | Map to the record timestamp, not a custom field |
-| `created_by.login` | `box.user.login` | Consider hashing (§ 9.2) |
+| `created_by.login` | `box.user.login` | Consider hashing (§ 9.2). Empty on `SHIELD_ALERT` — use `additional_details.shield_alert.user.email` there (§ 11.2) |
 | `created_by.id` | `box.user.id` | Stable across renames — prefer for joins |
 | `created_by.name` | `box.user.name` | Display only |
-| `source.type` | `box.item.type` | `file`, `folder`, `user`, `app_item` |
-| `source.id` | `box.item.id` | Stable identifier |
+| `source.item_type` (file and folder events) or `source.type` (other sources, such as users) | `box.item.type` | File and folder sources carry `item_type` / `item_id` / `item_name`; `type` / `id` appear only on other source objects |
+| `source.item_id` or `source.id` | `box.item.id` | Stable identifier — same split as the row above |
 | `source.item_name` | `box.item.name` | Consider masking (§ 9.2) |
 | `ip_address` | `box.ip_address` | Retain — needed for access analysis |
 | `additional_details` | `box.details.*` | Enterprise-stream only. Shape varies by `event_type` |
@@ -788,6 +801,8 @@ Box events are JSON, so the parse is mechanical. What matters is normalizing to 
 **Normalize before you extract.** Metric dimensions and any Smartscape identifiers are computed from fields as they stand at their stage, so renaming after extraction leaves metrics carrying the old dimension names. Rename in Processing, then extract — the same ordering rule as § 9.2.
 
 If you also ingest identity events from elsewhere (Okta, Entra ID), map `box.user.login` onto whatever principal field those feeds use. Correlating a Box download with the sign-in that preceded it is one of the highest-value things this integration enables, and it only works if the principal is spelled the same way in both.
+
+> <sub>**Sources:** [Event source (Box Dev Docs)](https://developer.box.com/reference/resources/event-source) — *"The type of the item that the event represents. Can be file or folder."*, [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events).</sub>
 
 ---
 
@@ -817,6 +832,7 @@ Shield alerts follow the standard event schema with `event_type == "SHIELD_ALERT
 | `priority` | Box's own severity label |
 | `alert_summary` | Context: IPs, affected files, timestamps |
 | `link` | Deep link back to the Shield console — **put this in the notification** |
+| `user` (`id`, `name`, `email`) | The affected account. The event's own `created_by` is Box's anonymous user (`id` 2, `name` "Unknown User", empty `login`), so route and correlate on this field instead |
 | `rule_response_action` | What Shield already did (e.g. terminated the session) |
 
 The `link` field deserves emphasis. An alert that reaches an analyst without a route back to the vendor console costs several minutes of navigation per incident. Carry it through processing into the notification payload.
@@ -835,24 +851,28 @@ Shield alerts are the one Box signal that should page someone. Route them per **
 // bytes scanned. Replace the `data record(...)` line with:
 //   fetch logs, from:-24h | filter log.source == "box.events"
 // once your collector is running.
-data record(content = "{\"event_id\":\"a1\",\"event_type\":\"SHIELD_ALERT\",\"created_at\":\"2026-08-25T10:15:02-07:00\",\"created_by\":{\"login\":\"jdoe@example.com\"},\"additional_details\":{\"shield_alert\":{\"rule_category\":\"Anomalous Download\",\"rule_name\":\"Bulk download\",\"risk_score\":78,\"priority\":\"high\",\"alert_id\":\"9911\"}}}")
+// On SHIELD_ALERT, created_by is Box's anonymous user with an EMPTY login —
+// the affected account is additional_details.shield_alert.user.
+data record(content = "{\"event_id\":\"a1\",\"event_type\":\"SHIELD_ALERT\",\"created_at\":\"2026-08-25T10:15:02-07:00\",\"created_by\":{\"type\":\"user\",\"id\":\"2\",\"name\":\"Unknown User\",\"login\":\"\"},\"additional_details\":{\"shield_alert\":{\"rule_category\":\"Anomalous Download\",\"rule_name\":\"Bulk download\",\"risk_score\":78,\"priority\":\"high\",\"alert_id\":9911,\"user\":{\"id\":2320,\"name\":\"Jane Doe\",\"email\":\"jdoe@example.com\"},\"link\":\"https://app.box.com/master/shield/alerts/9911\"}}}")
 | parse content, "JSON:evt"
 | filter evt[event_type] == "SHIELD_ALERT"
 | fieldsAdd box.alert.category   = evt[additional_details][shield_alert][rule_category],
             box.alert.risk_score = evt[additional_details][shield_alert][risk_score],
             box.alert.priority   = evt[additional_details][shield_alert][priority],
-            box.user             = evt[created_by][login]
-| fields box.alert.category, box.alert.risk_score, box.alert.priority, box.user
+            box.alert.link       = evt[additional_details][shield_alert][link],
+            box.user             = evt[additional_details][shield_alert][user][email],
+            box.created_by_login = evt[created_by][login]
+| fields box.alert.category, box.alert.risk_score, box.alert.priority, box.user, box.alert.link, box.created_by_login
 ```
 
-> <sub>**Sources:** [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events), [Box Shield (Box)](https://www.box.com/shield). **Derived:** § 11.3's routing sequence applies FAQ-21's four-axis model to the Shield payload; the recommendation to carry `link` into the notification is an operational inference, not a documented requirement.</sub>
+> <sub>**Sources:** [Shield Alert Events (Box Dev Docs)](https://developer.box.com/guides/events/event-triggers/shield-alert-events) — the documented sample shows `created_by` as id 2, *"Unknown User"*, with an empty login, and the account under `shield_alert.user`; [Box Shield (Box)](https://www.box.com/shield). **Tenant observation (10/02/2026):** the query above returns `box.user` = `jdoe@example.com` and an empty `box.created_by_login`. **Derived:** § 11.3's routing sequence applies FAQ-21's four-axis model to the Shield payload; the recommendation to carry `link` into the notification is an operational inference, not a documented requirement.</sub>
 
 ---
 
 <a id="querying"></a>
 ## 12. Querying Box Events in Grail
 
-Each query below runs standalone at **zero bytes scanned**. Swap the `data record(...)` line for `fetch logs, from:-24h | filter log.source == "box.events"` once data flows.
+The queries in § 12.1 and § 12.2 run standalone at **zero bytes scanned** — swap the `data record(...)` line for `fetch logs, from:-24h | filter log.source == "box.events"` once data flows. The queries in § 12.3 and § 12.4 read real logs and are billed as queries; each scanned more than a gigabyte on the validation tenant with no Box data present (10/02/2026). Keep their timeframes short, and scope them to your Box bucket once it exists.
 
 ### 12.1 Parse a raw Box event
 
@@ -955,7 +975,7 @@ fetch logs, from:-24h
 | Condition | Severity | Why |
 |---|---|---|
 | No Box events for **> 15 min** | High | At a 5-min schedule, three missed runs is a real outage |
-| No Box events **ever** (`events == 0`) | High | Misconfiguration — usually the outbound allowlist or the admin permission |
+| No Box events **ever** (`events == 0`) | High | Misconfiguration — usually the outbound allowlist, the admin permission, or the app's scopes |
 | Duplicate rate rising above ~0 | Medium | Dedupe broken; you are paying twice |
 | Daily volume deviating sharply from baseline | Medium | Either a Box-side change or a partial collection failure |
 | Workflow execution failure | High | Route via **WFLOW** — it is already built in |
@@ -1058,8 +1078,8 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 |---|---|---|
 | **1. Free signal** | Run the § 3.1 span query | Know whether you already have Box performance data |
 | **2. Scope** | Decide which signal classes you need and why | Written answer to "which questions are we buying?" |
-| **3. Box side** | Create the app (CCG), authorize it, grant admin + reports permission | A manual `curl` against `/events` returns entries |
-| **4. Dynatrace side** | Credential Vault entry, `api.box.com` allowlisted, bucket created | Allowlist confirmed — silent failures start here |
+| **3. Box side** | Create the app (CCG) with the *Manage enterprise properties* scope, authorize it, grant admin + reports permission | A manual `curl` against `/events` returns entries |
+| **4. Dynatrace side** | Credential Vault entry, `api.box.com` allowlisted, cursor store tested, bucket created | A test run reaches Box, and a cursor written in one task is read back in the next (§ 7.1) |
 | **5. Collector** | Build per § 7 (or § 8), run at low frequency | Events arriving in the right bucket (§ 12.3) |
 | **6. Processing** | OpenPipeline: parse, mask, extract metrics, discard raw | Metrics exist *and* raw volume has dropped |
 | **7. Operate** | Staleness alert (§ 13), duplicate check, volume check | Alerts proven by deliberately stopping the collector |
@@ -1072,18 +1092,20 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 **Box side**
 
 - [ ] Box app created with **Client Credentials Grant**
-- [ ] App authorized in the Box Admin Console (a fresh app is *not* authorized by default)
+- [ ] App scope **Manage enterprise properties** checked
+- [ ] App authorized in the Box Admin Console (a fresh app is *not* authorized by default) — and re-authorized after any scope change
 - [ ] Service account is enterprise admin/co-admin with **"Run new reports and access existing reports"**
 - [ ] Confirmed `GET /events?stream_type=admin_logs_streaming` returns entries with a manual call
 - [ ] Shield licensing confirmed (or § 11 knowingly skipped)
 
 **Dynatrace side**
 
-- [ ] `client_id` / `client_secret` in the **Credential Vault** — not in workflow code
-- [ ] **`api.box.com` on the JS-runtime outbound allowlist** (Workflow path only)
+- [ ] `client_id` / `client_secret` in the **Credential Vault** — not in workflow code — with **AppEngine** scope, **Allow access without app context** on, and the workflow actor granted access
+- [ ] **`api.box.com` under Settings > General > External requests** (Workflow path only; add `status.box.com` too if you poll it)
+- [ ] Cursor store verified from a workflow: `setAppState` in one task, `getAppState` in the next (§ 7.1)
 - [ ] Collector is a **standard** workflow, not simple
 - [ ] Dedicated bucket created with agreed retention
-- [ ] `logs.ingest` token scope (Python path only)
+- [ ] Platform token with `openpipeline:logs:ingest` — or, on a classic or hybrid environment, a classic token with `logs.ingest` (Python path only)
 - [ ] OpenPipeline: parse → mask/hash → extract metrics → **`No storage assignment`** in the Bucket assignment stage, never `Drop record` in Processing
 
 **Operations**
@@ -1102,8 +1124,8 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 | # | Gotcha | Symptom | Fix |
 |---|---|---|---|
 | 1 | **Reaching for webhooks** | Receiver works; the events you need never arrive | Webhooks are file/folder-scoped and carry no audit events. Poll `/events` (§ 2.2) |
-| 2 | **Host not on the outbound allowlist** | Workflow succeeds, ingests nothing, logs nothing useful | Add `api.box.com` to `builtin:dt-javascript-runtime.allowed-outbound-connections` |
-| 3 | **Missing the reports permission** | API returns 200 with no entries | Grant "Run new reports and access existing reports" to the service account |
+| 2 | **Host not on the outbound allowlist** | The task fails on the first `fetch`, or the run is empty if the code catches errors | Add `api.box.com` under **Settings > General > External requests** |
+| 3 | **Missing the reports permission or the app scope** | API returns no entries, or an authorization error | Grant "Run new reports and access existing reports" to the service account, **and** check the app's *Manage enterprise properties* scope (§ 4.1) |
 | 4 | **TTL on the cursor** | Collector silently resets weeks later | `stateClient` TTL caps at 90 days. Omit `validUntilTime` |
 | 5 | **Cursor written before ingest** | Events vanish on a failed ingest | Write the cursor only after ingest succeeds (§ 7.3) |
 | 6 | **Not deduplicating** | Inflated counts and ingest cost | `admin_logs_streaming` repeats events. Dedupe on `event_id` (§ 12.2) |
@@ -1118,6 +1140,8 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 | 15 | **`interval:1d`** | Calendar-duration warning | Use `interval:24h` (§ 12.4) |
 | 16 | **Backfill stamped with event time** | Replay "succeeds"; events older than 24 h are silently dropped (Python sees a **200**, not an error) | Omit `timestamp` for old events; carry `box.created_at` (§ 9.1) |
 | 17 | **Testing `e.status` on a client-state error** | First Workflow run always throws | Use `isNotFound(e)` from `@dynatrace-sdk/client-state` (§ 7.3) |
+| 18 | **Credential missing "Allow access without app context"** | The first run fails reading the credential | Workflow tasks have no app context — turn the setting on and grant the workflow actor access (§ 7.1) |
+| 19 | **Shield alerts routed on `created_by.login`** | Every alert has an empty user | Use `additional_details.shield_alert.user` (§ 11.2) |
 
 Gotchas 1, 7, and 8 share a shape worth naming: **each produces a confident, plausible, wrong answer rather than an error.** A webhook that delivers nothing, a span query that returns zero, and a health check that says OK all look like success. Every one of them was reproduced during the research for this entry.
 
@@ -1128,7 +1152,7 @@ Gotchas 1, 7, and 8 share a shape worth naming: **each produces a confident, pla
 
 **Query your own spans first.** If your services call Box, that data exists now and costs nothing (§ 3.1). It may answer the question that prompted the project.
 
-**Then build one collector, in a Workflow.** At 1M events/day a Workflow clears the 120-second ceiling with roughly 90% headroom, keeps secrets in the Credential Vault, and inherits scheduling and failure alerting. Poll `admin_logs_streaming` every 5 minutes, dedupe on `event_id`, persist the cursor with `stateClient` and no TTL, and write that cursor only after a successful ingest.
+**Then build one collector, in a Workflow.** At 1M events/day a Workflow clears the 120-second ceiling with roughly 90% headroom, keeps secrets in the Credential Vault, and inherits scheduling and failure alerting. Poll `admin_logs_streaming` every 5 minutes, dedupe on `event_id`, persist the cursor with `stateClient` and no TTL — after confirming in a test workflow that app state is reachable from a Run JavaScript task (§ 7.1) — and write that cursor only after a successful ingest.
 
 **Write the Python backfill before you need it.** It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than 24 h, so recovered events carry their real time in `box.created_at`.
 

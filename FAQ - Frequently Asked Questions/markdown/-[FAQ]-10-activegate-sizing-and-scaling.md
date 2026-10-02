@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -43,7 +43,7 @@ Deployment mechanics stay with their owning series: ONBRD-03 (installing and dep
 Size an ActiveGate in three steps:
 
 1. **Decide what the ActiveGate will do.** Each capability has its own sizing dimension — you cannot size an ActiveGate without knowing its job list, and demanding capabilities (synthetic, Kubernetes platform monitoring) deserve dedicated ActiveGates rather than sharing one box.
-2. **Start from the documented baseline for that dimension.** Hosts routed → the host-based tables (§3). Pods monitored → the Kubernetes S/M/L scenarios (§4). Browser monitors per hour → the synthetic node sizes (§5).
+2. **Start from the documented baseline for that dimension.** Hosts routed → the host-based tables (§3). Pods monitored → the Kubernetes S/M/L scenarios (§4). Browser monitor executions per hour → the synthetic node sizes (§5).
 3. **Provision headroom and verify with self-monitoring.** Dynatrace's guidance is that the ActiveGate machine *"should not exceed 50% CPU and 80% memory"* — treat those as your alert thresholds, watch the self-monitoring metrics (§7), and scale out for routing or up for Kubernetes monitoring when you approach them (§8).
 
 The capability-to-dimension map:
@@ -54,7 +54,7 @@ The capability-to-dimension map:
 | **Kubernetes monitoring** | Pod count (primary), node count (secondary), Prometheus-annotated pods | §4 |
 | **Cloud & remote API monitoring** (AWS, Azure, VMware, SNMP, Prometheus…) | Number of monitored endpoints/entities polled per cycle | §3 + extension notes |
 | **Extensions (EEC)** | Extension instances and monitored devices; adds disk requirements | §3 |
-| **Private synthetic** | Browser monitors per hour (HTTP monitors are far cheaper) | §5 |
+| **Private synthetic** | Browser monitor executions per hour (HTTP monitors are far cheaper) | §5 |
 | **z/OS routing** | Mainframe traffic via the zRemote module | Size with Dynatrace guidance for your mainframe volume |
 
 One rule sits above all the tables: **sizing numbers are starting points, not guarantees.** Actual capacity depends on your data volume per host, extension mix, and network — which is why §7 (measuring the real utilization) is part of sizing, not an afterthought.
@@ -71,10 +71,10 @@ One rule sits above all the tables: **sizing numbers are starting points, not gu
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Question | Output |
 |------|----------|--------|
-| 1 — Capability | What jobs does this ActiveGate do? | Routing → OneAgent count; K8s monitoring → pods; Synthetic → monitors/hr; Extensions → instances |
+| 1 — Capability | What jobs does this ActiveGate do? | Routing → OneAgent count; K8s monitoring → pods; Synthetic → browser monitor executions/hr; Extensions → instances |
 | 2 — Baseline | Which documented table applies? | Host-based (§3), Kubernetes S/M/L (§4), Synthetic XS–L (§5) |
-| 3 — Headroom | Does the size hold at ≤50% CPU / ≤80% memory — including when a peer AG is down? | HA-adjusted size per zone |
-| 4 — Verify & scale | What do the self-monitoring metrics say? | Scale OUT (routing) or UP (K8s platform monitoring) on saturation signals |
+| 3 — Headroom | Does the size hold at ≤50% CPU / ≤80% memory — including when a peer AG is down? | HA-adjusted size per zone; fallback mode (Any ActiveGate / Only default zone / None) is a capacity decision |
+| 4 — Verify & scale | What do the `dt.sfm.active_gate.*` self-monitoring metrics say? | Scale OUT (routing) or UP to the next size (K8s platform monitoring) on saturation signals |
 -->
 
 The ActiveGate hub enumerates its jobs: routing OneAgent traffic as a secure proxy, monitoring cloud environments and remote technologies via API (AWS, VMware, Azure, Kubernetes, OpenShift, Google Cloud, SNMP, Prometheus, and more), running synthetic monitors from private locations, routing z/OS traffic, and providing Dynatrace API access. Each job consumes a different resource profile:
@@ -113,7 +113,7 @@ Two placement consequences follow. First, Dynatrace recommends a **dedicated sys
 
 Reading the table honestly: the reference points are AWS instance shapes, so for on-premises VMs map by vCPU/RAM, and treat "estimated hosts" as exactly that — an estimate at typical per-host data volume. Hosts running chatty workloads (heavy log routing through the ActiveGate, dense process instrumentation) consume capacity faster.
 
-**Disk beyond the minimums.** The requirements page itemizes where space goes — installation (~600 MB executables), logs (1.2 GB), auto-update downloads (600 MB), temporary files (4 GB) — and Environment ActiveGates running extensions add ~1.2 GB for the extensions module plus 2 GB for its logs/cache. If extension-data persistence is enabled, the EEC wants a further 2136 MB of free disk space — 600 MB for the reliability mechanism plus 1.5 GB as a buffer — without which persistence disables itself. A practical floor for an extensions-running ActiveGate is ~15 GB of free disk; disk is cheap, resizing later is not.
+**Disk beyond the minimums.** The requirements page itemizes where space goes — installation (~600 MB executables), logs (1.2 GB), auto-update downloads (600 MB), temporary files (4 GB) — and Environment ActiveGates running extensions add 2 GB for the extensions module plus 2 GB for its logs/cache. The EEC's log persistence wants a further 2136 MB of free disk space — 600 MB for the reliability mechanism plus 1.5 GB as a buffer. Without it, *"the persistence will be turned off and log ingestion will be transmitted without the reliability mechanism"*: extensions keep sending, but lose the buffer that covers an outage. A practical floor for an extensions-running ActiveGate is ~15 GB of free disk; disk is cheap, resizing later is not.
 
 Windows ActiveGates follow the same sizing model with their own OS-support matrix — see the Windows requirements page alongside the Linux one.
 
@@ -149,8 +149,7 @@ Containerized ActiveGates (deployed via DynaKube — mechanics in the K8S series
 Operational notes straight from the guide:
 
 - **Prefer no CPU limits** where cluster policy allows — throttling an ActiveGate delays its processing pipeline.
-- **One ActiveGate per cluster.** A single ActiveGate *can* monitor multiple clusters, but the guide marks that pattern **not recommended**.
-- **Split platform monitoring from routing** for production application-observability clusters: a Kubernetes-monitoring ActiveGate (scales **vertically only** — the table above) plus a separate routing ActiveGate deployment for OneAgent traffic that scales **horizontally**:
+- **Split platform monitoring from routing.** The guide recommends *"to run two sets of ActiveGates for production deployments"*: one for Kubernetes platform monitoring, one for OneAgent traffic routing and telemetry ingest. The platform-monitoring table above gives one requests/limits set per cluster size and no replica count; the DynaKube reference documents `kubernetesMonitoring.replicas` for high availability (*"Set more than one replica for high-availability mode."*), so capacity for that workload comes from moving up a size. The routing set carries a replica count per size:
 
 | Pods | Routing CPU request/limit | Memory request = limit | Replicas |
 |------|---------------------------|------------------------|----------|
@@ -158,28 +157,34 @@ Operational notes straight from the guide:
 | 1,000–5,000 | 500m / 2000m | 4 Gi | 3 |
 | 5,000–20,000 | 1000m / 4000m | 6 Gi | 6 |
 
+**Log ingest on Kubernetes.** SaaS 1.343 extended the ActiveGate log-ingest sizing guides to containerized deployments (*"These now cover containerized (operator-provisioned) and host-based deployments."*). The guide now sizes ActiveGates that receive OTLP logs, per replica:
+
+| Cluster size | CPU request / limit | Memory request = limit | OTLP log throughput per replica |
+|---|---|---|---|
+| Small | 250m / 1000m | 2 GiB | 350 MB/min |
+| Medium | 500m / 2000m | 4 GiB | 650 MB/min |
+| Large | 1000m / 4000m | 6 GiB | 1,200 MB/min |
+
+For an ActiveGate that does both OneAgent routing and OTLP log ingest, start from the routing table above and add *"additional replicas = ceil(expected log traffic (MB/min) ÷ throughput per replica)"*. For **Log Agent** traffic routing, the guide's benchmark is 750 MB/min sustained per replica at 500m / 2000m CPU and 4Gi memory. And it names the point to stop growing one deployment: *"If you observe consistent resource exhaustion (CPU usage >80%, memory usage >85%, or frequent GC pauses), consider splitting the workload into separate ActiveGate deployments rather than continuously increasing resources for a single deployment."*
+
 The guide also publishes its own health thresholds — effectively the containerized version of §7: raise the CPU request when usage exceeds **85%** of it or CPU throttling exceeds **10%**; raise the memory request when the working set passes **80%**; and treat a Kubernetes-monitoring pipeline execution time beyond **50–60 seconds** as a CPU-shortage signal.
 
-> **Rolling out (ActiveGate 1.343) — re-baseline the percentage thresholds, not the absolute figures.** ActiveGate 1.343 (published 07/15/2026, rollout from 07/28/2026) changes the Kubernetes CPU and memory **request and limit** metrics to **include init containers**. Reported reservations therefore rise, and because the health thresholds above are expressed as a *percentage of the request*, the same absolute usage now reads as a **lower** percentage — the tripwires effectively move without anyone changing them.
+> **ActiveGate 1.343 and 1.345 — a pod-scope reading can move without the workload changing.** Both releases change how the Kubernetes CPU and memory **request and limit** metrics are reported, and both are narrower than they first look:
 >
-> Three things to hold separate:
+> - **1.343** (published 07/15/2026, rollout from 07/28/2026): *"When init containers require more resources than the running containers, the difference is reflected as an additional data point, so aggregating at pod scope shows the true effective resource reservation."* Only **pod-scope** aggregations change, and only for pods whose init containers out-request the app containers.
+> - **1.345** (published 08/12/2026, staged rollout from 08/25/2026): the same mechanism for **Kubernetes 1.34+ pod-level resources** — and *"For limits, this difference can be negative if the sum of container-level limits exceeds the pod-level limit."* So a pod-scope limit can also go down.
+> - **1.347** (published 10/01/2026, staged rollout from 09/30/2026) fixed an *"incorrect calculation of effective pod resource requests and limits when a restartable init container (native sidecar) preceded one or more non-restartable init containers."*
 >
-> - **The scenario tables above are unaffected.** They are absolute CPU/memory figures, not ratios, so the S/M/L values and the routing replica counts stand as published.
-> - **The `*_usage` and `*_working_set` metrics are unaffected** — the change is to the request/limit side of the ratio, i.e. the denominator, not to consumption.
-> - **The percentage thresholds need re-baselining.** Take a fresh reading after the change reaches your clusters rather than carrying pre-1.343 percentages forward. A workload that sat at 84% of request before the change may report comfortably lower afterwards while consuming exactly as much as it did — and a threshold tuned against the old denominator will now fire later than you intended, which is the more dangerous direction.
->
-> Verify the ActiveGate version running in the cluster before deciding which side of the change a reading came from; until it lands, the thresholds above remain correct as written.
+> What this means for the thresholds above: the S/M/L tables and routing replica counts are absolute figures and stand as published. The `*_usage` and `*_working_set` metrics measure consumption, not reservation, and are unaffected; so are container-level request/limit series. If you compute request/limit percentages **at pod scope**, re-baseline after the ActiveGate version (and, for 1.345, the cluster's Kubernetes version) changes, rather than comparing a reading across the change.
 
-> **Rolling out (ActiveGate 1.345) — a second shift in the same denominator.** ActiveGate 1.345 continues the change 1.343 began: *"CPU, memory request, and limit metrics now account for pod-level resources introduced in Kubernetes version 1.34. When set, pod-level resources take precedence over container-level ones; the difference is reflected as an additional data point — aggregating at the pod scope shows the true effective resource reservation."* The consequence is the same shape as the 1.343 note above and stacks with it: on clusters running **Kubernetes 1.34+ with pod-level resources set**, the reported request/limit — the *denominator* of every percentage threshold in this section — changes again, so a percentage read before and after is not the same measurement. The S/M/L tables and routing replica counts are still absolute figures and still stand. Re-baseline the percentages once **both** the ActiveGate version and the cluster's Kubernetes version are known, and treat pod-level resources as a third variable when comparing readings across clusters. ActiveGate 1.345 published 08/12/2026 with a **staged rollout from 08/25/2026** — until it reaches a given cluster, the thresholds above remain correct as written.
-
-> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — scenario tables, replica counts, no-CPU-limit preference, single-cluster recommendation, and health thresholds are all from this page, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — Kubernetes CPU/memory request and limit metrics now include init containers, [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the same metrics now account for Kubernetes 1.34 pod-level resources, which take precedence over container-level ones. **Derived:** the "re-baseline the percentages, the absolute tables stand" conclusion follows from the thresholds being ratios whose denominator the 1.343 change raises.</sub>
+> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — scenario tables, replica counts, OTLP and Log Agent throughput, the replica formula, the split trigger, the two-sets recommendation, the no-CPU-limit preference and the health thresholds are all from this page (re-read 10/02/2026; *"Updated on Jul 15, 2026"*), [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"replicas Number of replicas for the Kubernetes monitoring pods. Defaults to one. Set more than one replica for high-availability mode."*, [ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343), [ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345), [ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — each quoted above. [SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — the containerized log-ingest sizing quote. **Derived:** "capacity comes from moving up a size" combines the per-size platform table (no replica count) with `replicas` being documented for high availability.</sub>
 
 <a id="synthetic-sizing"></a>
 ## 5. Synthetic-Enabled ActiveGates
 
 Synthetic is the one capability where the sizing unit is **work per hour**, and where Dynatrace publishes discrete node sizes. All sizes below sustain up to ~300k HTTP monitor executions per hour — the browser-monitor column is what separates them, because each browser monitor drives a real browser:
 
-| Node size | vCPU | RAM | Free disk | Max browser monitors/hr | Max high-resource HTTP monitor executions/hr |
+| Node size | vCPU | RAM | Free disk | Max browser monitor executions/hr | Max high-resource HTTP monitor executions/hr |
 |-----------|------|-----|-----------|-------------------------|----------------------------------------------|
 | **XS** | 2 | 4 GB | 20 GB | 300 | 10k |
 | **S** | 4 | 8 GB | 25 GB | 650 | 20k |
@@ -196,21 +201,21 @@ Planning rules that change the architecture, not just the size:
 
 Deployment and location design live in SYNTH-04; containerized synthetic locations on Kubernetes have their own requirements page.
 
-> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic) — node-size table quoted, including the high-resource HTTP monitor row (*"pre- or post-execution scripts, OAuth2 authorization, Kerberos authentication"*); [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — two-node recommendation and one-location-per-ActiveGate constraint quoted. **Derived:** the executions-per-hour budgeting recipe operationalizes the published per-node ceilings.</sub>
+> <sub>**Sources:** [Requirements for private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/private-synthetic-locations/system-and-hardware-requirements-for-private-synthetic) — node-size table quoted (*"Estimated maximum number of browser monitor executions/h"*), including the high-resource HTTP monitor row (*"pre- or post-execution scripts, OAuth2 authorization, Kerberos authentication"*); [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — two-node recommendation and one-location-per-ActiveGate constraint quoted. **Derived:** the executions-per-hour budgeting recipe operationalizes the published per-node ceilings.</sub>
 
 <a id="ha-placement"></a>
 ## 6. High Availability, Network Zones, and Placement
 
 Sizing an individual ActiveGate is half the job; the other half is sizing the **group of ActiveGates a zone can fail over across**.
 
-**How failover works.** Network zones *"prevent inefficient connections by defining the ActiveGate that each OneAgent should use."* When no ActiveGate in the primary zone is reachable, OneAgents try the zone's configured **alternative zones**, then behave per the zone's **fallback mode**: *Any ActiveGate* (default — traffic routes to any available ActiveGate), *Only DefaultZone*, or *None (drop traffic)*. Two sizing consequences:
+**How failover works.** Network zones *"prevent inefficient connections by defining the ActiveGate that each OneAgent should use."* When no ActiveGate in the primary zone is reachable, OneAgents try the zone's configured **alternative zones**, then behave per the zone's **fallback mode**: *Any ActiveGate* (default — traffic routes to any available ActiveGate), *Only default zone*, or *None* (traffic stays in the primary and alternative zones; if no ActiveGate there is available, *"OneAgents don't send data to another zone"*). Two sizing consequences:
 
 - **Survivor capacity is the real requirement** — the requirements page states it directly: remaining ActiveGates must be able to take over the traffic of unavailable ones. If a zone runs two ActiveGates at 45% CPU each and one dies, the survivor takes (roughly) the full load — past the 50% guideline and climbing. In community practice the working rule is **N+1 per zone, where N alone can carry the zone's whole load at ≤50% CPU** — the docs define the failover mechanics but don't publish a per-zone count; verify the headroom against your own self-monitoring numbers (§7).
-- **Fallback mode is a capacity decision, not just a security one.** *Any ActiveGate* means a zone failure silently lands its load on ActiveGates you sized for other zones. *None (drop traffic)* protects the fleet but drops data. Pick deliberately, and if you rely on alternative zones, make sure those ActiveGates are both **reachable** from the primary zone's OneAgents (a documented requirement) and **sized** to absorb the addition.
+- **Fallback mode is a capacity decision, not just a security one.** *Any ActiveGate* means a zone failure silently lands its load on ActiveGates you sized for other zones. *None* protects the fleet but means OneAgents send nothing while their zones are down. Pick deliberately, and if you rely on alternative zones, make sure those ActiveGates are both **reachable** from the primary zone's OneAgents (a documented requirement) and **sized** to absorb the addition.
 
 **Placement basics** (depth in ONBRD-03 and M2S-03): one or more ActiveGates per network zone/datacenter close to the OneAgents they serve; ActiveGate **groups** to control which ActiveGates handle which purpose; and remember that a proxy or firewall between OneAgents and the ActiveGate shapes effective throughput as much as the machine size does.
 
-> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — failover behavior, alternative zones, fallback modes, and the reachability requirement; [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"The machine running ActiveGate shouldn't exceed 50% CPU and 80% memory."* and *"To ensure high availability, remaining ActiveGates should be able to take over traffic from unavailable ActiveGates."*</sub>
+> <sub>**Sources:** [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — failover behavior, alternative zones, the reachability requirement, and fallback modes *"Any ActiveGate (default)"*, *"Only default zone"*, *"None"*; [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"The machine running ActiveGate shouldn't exceed 50% CPU and 80% memory."* and *"To ensure high availability, remaining ActiveGates should be able to take over traffic from unavailable ActiveGates."*</sub>
 
 <a id="saturation"></a>
 ## 7. Detecting Saturation — Self-Monitoring Signals
@@ -243,12 +248,14 @@ timeseries { used = avg(dt.sfm.active_gate.jvm.heap_memory_used), available = av
 ```
 
 ```dql
-// Backpressure check — growing outgoing queue or any dropped messages (7d)
-// default: 0 because drop metrics are sparse — they only report when drops occur
+// Outgoing queue and dropped messages per ActiveGate (7d)
+// default: 0 because drop metrics are sparse — they only report when drops occur.
+// A healthy AG always has a small queue, so read the columns rather than filtering on queue > 0:
+// any total_dropped is data loss; a queue_trend that stays positive across runs is a queue that is not draining.
 timeseries { queued = avg(dt.sfm.active_gate.communication.queue.outgoing.usage), dropped = sum(dt.sfm.active_gate.communication.messages.dropped, default: 0) }, from:-7d, by:{dt.active_gate.id, host.name}, union:true
-| fieldsAdd total_dropped = arraySum(dropped), avg_queue = round(arrayAvg(queued), decimals: 0)
-| filter total_dropped > 0 OR avg_queue > 0
-| sort total_dropped desc
+| fieldsAdd total_dropped = arraySum(dropped), peak_queue = arrayMax(queued), queue_trend = arrayLast(queued) - arrayFirst(queued)
+| fields dt.active_gate.id, host.name, total_dropped, peak_queue, queue_trend
+| sort total_dropped desc, peak_queue desc
 ```
 
 ```dql
@@ -263,7 +270,7 @@ Wire the first three into anomaly-detection or a scheduled workflow (the ALERT a
 
 ### The full catalog — and the ready-made diagnostic dashboard
 
-The namespace goes far beyond the four core signals, and it is exactly what Dynatrace's own **"ActiveGate diagnostic overview" dashboard** is built on (the dashboard ships with the Discovery & Coverage app, per its own footer) — so before hand-building saturation tiles, open or import that dashboard: it already covers host vitals, the Java process, networking, and REST API health, with per-zone/group/instance filtering.
+The namespace goes far beyond the four core signals, and it is exactly what Dynatrace's own **"ActiveGate diagnostic overview" dashboard** is built on (since ActiveGate 1.345 it lives in Fleet Management — see the note below) — so before hand-building saturation tiles, open or import that dashboard: it already covers host vitals, the Java process, networking, and REST API health, with per-zone/group/instance filtering.
 
 > **Where the dashboard lives changed (ActiveGate 1.345 — staged rollout from 08/25/2026).** Verbatim: *"The **ActiveGate Diagnostic Overview** dashboard has moved from **Dashboards** to **Fleet Management**."* If you go looking for it under Dashboards on a tenant that has taken 1.345 and find nothing, it was moved, not removed — and the same release replaces its ActiveGate ID filtering with Smartscape Node ID (*"It now uses Smartscape Node ID instead of ActiveGate ID for filtering"*). The metrics it charts, and every query in this section, are unaffected.
 
@@ -273,15 +280,15 @@ A live-tenant enumeration (July 2026) shows ~53 keys in the namespace. By area:
 
 | Area | Metrics | Notable dimensions / use |
 |------|---------|--------------------------|
-| **Host vitals** | `system.cpu_usage`, `system.total_memory` / `system.free_memory`, `storage.volume.free` / `.total` | `storage.volume.mountpoint` (`volume` was deprecated in AG 1.330 and is removed in AG 1.347 — pre-release, staged rollout planned from 09/22/2026; verify on your fleet) |
-| **Java process** | `jvm.cpu_usage`, `jvm.heap_memory_used` / `_available`, `jvm.gc.major_collection_time`, `thread_pool.busy_threads` / `thread_pool.queue_size` | `thread_pool_name` |
+| **Host vitals** | `system.cpu_usage`, `system.total_memory` / `system.free_memory`, `storage.volume.free` / `.total` | `storage.volume.mountpoint` (`volume` was deprecated in AG 1.330 and is removed in AG 1.347 — published 10/01/2026, staged rollout from 09/30/2026; verify on your fleet, since AGs lag the rollout) |
+| **Java process** | `jvm.cpu_usage`, `jvm.heap_memory_used` / `_available`, `jvm.gc.duration` (replaces the deprecated `jvm.gc.major_collection_time`), `thread_pool.busy_threads` / `thread_pool.queue_size` | `thread_pool_name` |
 | **Networking** | `communication.messages.dropped` / `.rejected` / `.resent`, `communication.agent_modules.connected`, `traffic.server.sent` / `.received` (clients ↔ AG), `traffic.client.sent` / `.received` (AG ↔ Dynatrace) | zone / group / instance |
-| **Event ingest** | `event_ingest.event_incoming_count`, `.drop_count`, `.event_otlp_size` / `.event_json_size`, attribute counters | `drop_reason` (`operation` is documented but null on live data) — incoming_count is the denominator that turns drops into a **drop rate** |
+| **Event ingest** | `event_ingest.event_incoming_count`, `.drop_count`, `.event_otlp_size` / `.event_json_size`, attribute counters | `drop_reason` (`operation` is documented but null on live data) — incoming_count is the denominator that turns drops into a **drop rate**. Filter on `dt.active_gate.working_mode == "environment"` (see below) |
 | **Metrics ingest** | `metrics.ingest.otlp.datapoints.received.total` vs `.accepted`, `metrics.ingest.grail.datapoints.accepted` | received minus accepted = OTLP metric datapoints rejected on the way in |
 | **REST API** | `rest.request_count`, `rest.request_size` / `response_size`, `rest.response_time` | `operation`, `response_code` |
 | **Kubernetes module** | `kubernetes.pipeline_duration`, `kubernetes.api.query_count` / `.query_duration` / `.connections.pool.available`, `kubernetes.events.observed` / `.processed`, cache size/evictions | `kubernetes.pipeline_duration` is the observable behind §4's "pipeline execution time > 50–60 s" scale-up threshold. **`kubernetes.api.query_count` steps down at the 1.343 upgrade — see the note below.** |
 | **AWS module** | `aws.data_delay`, `aws.data_lost_monitoring_status`, `aws.elements.bad` / `.reported` / `.total`, `aws.empty_responses`, `aws.query_time`, `aws.requests` | health of the cloud-API-polling capability (§2) — delays/bad elements mean the polling AG is behind, not that AWS is down |
-| **Other modules** | `rum.beacon_forwarded_count`, `storage.directory.size` / `.limit` (quotas by `storage.volume.mountpoint`; the older `module_name` dimension was deprecated in AG 1.330 and is removed in AG 1.347 — pre-release), `filecache.size_limit` | |
+| **Other modules** | `rum.beacon_forwarded_count`, `storage.directory.size` / `.limit` (quotas by `storage.volume.mountpoint`; the older `module_name` dimension was deprecated in AG 1.330 and is removed in AG 1.347), `filecache.size_limit` | |
 
 > **Rolling out (ActiveGate 1.343) — `kubernetes.api.query_count` will step *down*, and that is the improvement.** ActiveGate 1.343 (published 07/15/2026, rollout from 07/28/2026) changes the Kubernetes module to call the Kubernetes API **once per minute**, down from multiple calls per collection cycle. So at the upgrade `kubernetes.api.query_count` drops sharply — this is the efficiency change landing, **not** the ActiveGate going quiet or the module failing.
 >
@@ -305,14 +312,16 @@ The dashboard's own coloring thresholds are a useful reference point — slightl
 |--------|---------|--------|
 | System / JVM CPU, memory, heap | ≥ 40% | ≥ 70% |
 | Storage volumes, directory quotas | ≥ 50% | ≥ 80% |
-| JVM major-GC time (share of a 10-min interval) | ≥ 5% | ≥ 10% |
+| JVM GC time (share of a 10-min interval) | ≥ 5% | ≥ 10% |
 
 Two signals from that catalog are worth watching beyond the four core signals, because they catch saturation the CPU/heap averages hide:
 
 ```dql
-// GC pressure — major-collection time as a share of each 10-min interval
+// GC pressure — GC time as a share of each 10-min interval
 // The diagnostic dashboard colors this amber at 5%, red at 10%
-timeseries gc_time = avg(dt.sfm.active_gate.jvm.gc.major_collection_time, rollup:sum), from:-24h, interval:10m, by:{dt.active_gate.id, host.name}
+// jvm.gc.duration replaces the deprecated jvm.gc.major_collection_time; an AG that
+// has not taken a newer version may report only the old key — swap it in if an AG is missing
+timeseries gc_time = avg(dt.sfm.active_gate.jvm.gc.duration, rollup:sum), from:-24h, interval:10m, by:{dt.active_gate.id, host.name}
 | fieldsAdd gc_pct = 100 * duration(toLong(gc_time[]), "ms") / interval
 | fieldsAdd peak_gc_pct = arrayMax(gc_pct)
 | filter peak_gc_pct > 5
@@ -343,8 +352,8 @@ The namespace's sharpest diagnostic — and one the ready-made dashboard does *n
 | Dimension | What it splits by | Why it matters |
 |-----------|-------------------|----------------|
 | `operation` | Documented by the diagnostic dashboard as the ingest endpoint (e.g. `POST /otlp/v1/logs`), but **null on live data** (verified 08/27 and 09/28/2026) — don't filter on it | Would isolate OTel log loss from other ingest paths, if populated |
-| `drop_reason` | `head_on_queue_limit` (in-memory ingest queue full — events dropped at the head) vs `disk_queue_limit` (disk buffer exhausted); `unexpected_exception` also occurs (75 drops over 7 days on the validation tenant, 09/28/2026) | Tells you *which* buffer saturated, which changes the fix |
-| `dt.active_gate.id`, `host.name`, `dt.active_gate.group.name`, `dt.network_zone.id`, `dt.active_gate.working_mode` | Fleet slicing | Pinpoints the ActiveGate and zone |
+| `drop_reason` | `head_on_queue_limit` (in-memory ingest queue full — events dropped at the head) vs `disk_queue_limit` (disk buffer exhausted); `unexpected_exception` also occurs (259 drops over 7 days on the validation tenant, 10/02/2026) | Tells you *which* buffer saturated, which changes the fix |
+| `dt.active_gate.id`, `host.name`, `dt.active_gate.group.name`, `dt.network_zone.id`, `dt.active_gate.working_mode` | Fleet slicing | Pinpoints the ActiveGate and zone. `working_mode` also separates your own ActiveGates (`environment`) from `embedded` series |
 
 ```dql
 // Ingest drops at the ActiveGate, by machine and drop reason (24h)
@@ -354,7 +363,8 @@ The namespace's sharpest diagnostic — and one the ready-made dashboard does *n
 // 08/27/2026: 73 real drops in 24h, all with operation null), so that filter
 // discards the only rows the query exists to surface and reports "no loss"
 // while records are being dropped. `drop_reason` carries the diagnostic signal.
-timeseries drop_count = sum(dt.sfm.active_gate.event_ingest.drop_count), from:-24h, by:{dt.active_gate.id, host.name, drop_reason}, filter:{dt.system.bucket == "dt_system_metrics"}
+// working_mode == "environment" keeps your own ActiveGates and drops the `embedded` series.
+timeseries drop_count = sum(dt.sfm.active_gate.event_ingest.drop_count), from:-24h, by:{dt.active_gate.id, host.name, drop_reason}, filter:{dt.system.bucket == "dt_system_metrics" AND dt.active_gate.working_mode == "environment"}
 | fieldsAdd total_dropped = arraySum(drop_count)
 | filter total_dropped > 0
 | sort total_dropped desc
@@ -363,7 +373,8 @@ timeseries drop_count = sum(dt.sfm.active_gate.event_ingest.drop_count), from:-2
 ```dql
 // Average OTLP event payload size per ActiveGate and signal type (24h)
 // Rising payload size consumes routing capacity faster than the host-count tables assume (§3)
-timeseries otlp_bytes = avg(dt.sfm.active_gate.event_ingest.event_otlp_size), from:-24h, by:{dt.active_gate.id, host.name, event.type}, filter:{dt.system.bucket == "dt_system_metrics"}
+// Returns no rows if none of your ActiveGates received OTLP events in the window
+timeseries otlp_bytes = avg(dt.sfm.active_gate.event_ingest.event_otlp_size), from:-24h, by:{dt.active_gate.id, host.name, event.type}, filter:{dt.system.bucket == "dt_system_metrics" AND dt.active_gate.working_mode == "environment"}
 | fieldsAdd avg_event_bytes = round(arrayAvg(otlp_bytes), decimals: 0)
 | sort avg_event_bytes desc
 ```
@@ -372,24 +383,26 @@ Reading the `drop_reason` split: `head_on_queue_limit` is a throughput problem �
 
 To judge severity rather than raw counts, pair `drop_count` against `event_ingest.event_incoming_count` on the same dimensions — a thousand drops out of a thousand incoming events is an outage, out of a billion it's noise.
 
+**Filter the `event_ingest.*` family to your own ActiveGates.** On SaaS these series are also reported with `dt.active_gate.working_mode == "embedded"` from hosts that are not ActiveGates you run (no `ACTIVEGATE` Smartscape node, host names under `internal.dynatrace.com`). On the validation tenant on 10/02/2026 they carried 28.4 million of 28.5 million incoming events over 7 days, and an unfiltered payload-size query returned only those hosts. The docs do not describe the `embedded` mode; in community practice it is read as Dynatrace-side ingest, so keep `dt.active_gate.working_mode == "environment"` in any fleet sizing or drop-rate query, as the two above do.
+
 ### The classic (Gen2) counterpart — `dsfm:`
 
 The `dsfm:active_gate.*` family is the **Metrics Classic** form of the same self-monitoring signals — its reference page sits in the Metrics Classic docs section, and it's built for the Gen2 surfaces: metric selectors, Data Explorer, and the classic Metrics API. Two reasons it still matters even though this section queries Gen3 throughout:
 
-- **It's the documented one.** The ActiveGate self-monitoring docs pages list `dsfm:` keys only — the `dt.sfm.*` keys used above appear on no docs page yet; their provenance is the shipped diagnostic dashboard plus live-tenant verification (including a full key enumeration), so confirm keys and dimension values in your own tenant before wiring alerts to them. The docs' authoritative signal interpretations — for the queue, *"growing value indicates messages received faster than sent out"*; for drops, *"non-zero value may indicate data loss"* — apply to both forms.
+- **It's the documented one.** The ActiveGate self-monitoring docs page lists `dsfm:` keys only. Of the `dt.sfm.*` keys used above, two appear in the Kubernetes sizing guide's validation table (`kubernetes.pipeline_duration` and `jvm.gc.major_collection_time`); the rest are undocumented. Their provenance is the shipped diagnostic dashboard plus live-tenant verification (including a full key enumeration), so confirm keys and dimension values in your own tenant before wiring alerts to them. The sfm page also marks *"dsfm:active_gate .jvm .gc .major_collection_time … Deprecated. To be removed. Use: dsfm:active_gate.jvm.gc.duration"* — which is why the GC query above reads `jvm.gc.duration`. The docs' authoritative signal interpretations — for the queue, *"growing value indicates messages received faster than sent out"*; for drops, *"non-zero value may indicate data loss"* — apply to both forms.
 - **Classic surfaces still consume it.** Anything driven by a metric selector rather than DQL reads the `dsfm:` form — and on **Dynatrace Managed**, where Grail isn't available, `dsfm:` is the self-monitoring surface, full stop.
 
 If you do query `dsfm:` keys in DQL, mind the colon: `timeseries` parses an unquoted `dsfm:` prefix as a parameter name, so backtick-quote the key — `` avg(`dsfm:active_gate.jvm.cpu_usage`) ``.
 
-*Provenance for this section: the Gen2/Gen3 labeling reads the docs' Metrics-Classic placement of `dsfm:` against `dt.sfm.*`'s Grail-bucket residency — Dynatrace does not state the generation split explicitly. The `dt.sfm.active_gate.*` catalog comes from a live-tenant key enumeration (July 2026, ~53 keys) plus the shipped diagnostic dashboard's own definitions (threshold colorings, `drop_reason` / `operation` dimension values), none of it yet on the sfm documentation page. Every query here was syntax-validated against a live tenant.*
+*Provenance for this section: the Gen2/Gen3 labeling reads the docs' Metrics-Classic placement of `dsfm:` against `dt.sfm.*`'s Grail-bucket residency — Dynatrace does not state the generation split explicitly. The `dt.sfm.active_gate.*` catalog comes from a live-tenant key enumeration (July 2026, ~53 keys) plus the shipped diagnostic dashboard's own definitions (threshold colorings, `drop_reason` / `operation` dimension values), none of it yet on the sfm documentation page. Every query here was syntax-validated against a live tenant; the GC, queue/drop and event-ingest queries were re-executed 10/02/2026 with no notifications.*
 
 > <sub>**Sources:**</sub>
-> - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-sfm-metrics) — `dsfm:` metric keys, descriptions, and the queued/dropped interpretations quoted;</sub>
+> - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-sfm-metrics) — `dsfm:` metric keys, descriptions, the queued/dropped interpretations, and the `major_collection_time` deprecation quoted;</sub>
 > - <sub>[Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/self-monitoring-metrics) — the `dsfm:` family's placement under Metrics Classic and its selector/Data-Explorer query surface;</sub>
-> - <sub>[Discovery & Coverage (DT docs)](https://docs.dynatrace.com/docs/shortlink/discovery-coverage-app) — the app that provides the ActiveGate diagnostic overview dashboard;</sub>
+> - <sub>[Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — lists *"dt.sfm.active_gate.kubernetes.pipeline_duration"* and *"dt.sfm.active_gate.jvm.gc.major_collection_time"* among its validation metrics;</sub>
 > - <sub>[ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the Diagnostic Overview dashboard's move to Fleet Management, and SFM metrics gaining a host entity dimension when the ActiveGate is OneAgent-monitored;</sub>
 > - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — 50%/80% thresholds</sub>
-> - <sub>[ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — pre-release; *"Removed several ActiveGate disk space self-monitoring metrics and dimensions deprecated in ActiveGate version 1.330"* and *"Also, removed the volume and module_name dimensions."*</sub>
+> - <sub>[ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Published Oct 01, 2026 Rollout start on Sep 30, 2026"*; *"Removed several ActiveGate disk space self-monitoring metrics and dimensions deprecated in ActiveGate version 1.330"* and *"Also, removed the volume and module_name dimensions."*</sub>
 > - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle</sub>
 > - <sub>**Derived:** the Gen2/Gen3 split, the 50%/80% thresholds applied to JVM-level metrics, and the `dt.sfm.active_gate.*` catalog are all inferred rather than documented on the sfm page</sub>
 
@@ -401,15 +414,15 @@ When §7 says an ActiveGate is running hot, the right move depends on which capa
 | Signal | Capability | Move |
 |--------|-----------|------|
 | CPU peaks past 50% on a routing ActiveGate | Routing | **Scale out** — add an ActiveGate to the zone; the addition also buys the failover headroom the requirements page asks for (§6) |
-| Kubernetes-monitoring pod hits the §4 thresholds (working set >80%, pipeline >50–60 s) | K8s platform monitoring | **Scale up** — move to the next scenario's requests/limits; this workload *"scales vertically only"* |
-| In-cluster routing replicas saturating | K8s OneAgent routing | **Scale out** — raise replicas per the §4 routing table |
+| Kubernetes-monitoring pod hits the §4 thresholds (working set >80%, pipeline >50–60 s) | K8s platform monitoring | **Scale up** — move to the next scenario's requests/limits; the guide gives no replica count for this workload, and `replicas` is documented for high availability (§4) |
+| In-cluster routing replicas saturating | K8s OneAgent routing | **Scale out** — raise replicas per the §4 routing table (for OTLP log ingest, the §4 replica formula); split into separate deployments past *"CPU usage >80%, memory usage >85%, or frequent GC pauses"* |
 | Browser-monitor queue delays / executions near the node ceiling | Synthetic | **Scale up the node** (XS→S→M→L) or **add nodes to the location** — the location load-balances across nodes |
 | Outgoing queue grows while the network is healthy | Any | **Scale up** CPU and memory first; if one ActiveGate carries several jobs, **split the capabilities** onto dedicated ActiveGates (§2) |
 | One ActiveGate accumulating jobs over time | Mixed | **Split before you supersize** — a purpose-per-ActiveGate fleet is easier to size, update (FAQ-05), and troubleshoot |
 
 The last two table rows (scale up first; split before you supersize) are community practice rather than documented rules. In community practice, the general shape is: **routing scales out, monitoring workloads scale up, synthetic scales by nodes** — and capability separation is the escape hatch when one box is doing too many different things for either axis to fix.
 
-> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — vertical-only vs replicas split; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — node failover/load-balancing; [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — zone failover.</sub>
+> <sub>**Sources:** [Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — platform-monitoring vs routing split, *"Scale horizontally : Increase the number of ActiveGate replicas"* / *"Scale vertically : Increase CPU and memory resource requests"*; [Private Synthetic locations (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations) — node failover/load-balancing; [Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info) — zone failover.</sub>
 
 <a id="recommended-approach"></a>
 ## 9. Recommended Approach
@@ -431,11 +444,11 @@ The last two table rows (scale up first; split before you supersize) are communi
 | Data gaps during an ActiveGate outage | Zone sized for average load, not survivor load — the remaining ActiveGates saturated | §6 |
 | `messages.dropped` non-zero but CPU looks fine | Outgoing queue backed up — uplink/proxy bottleneck, not machine size | §7 |
 | OTel logs going missing but the fleet-level dropped-message metrics look clean | Endpoint-level ingest drops — check `dt.sfm.active_gate.event_ingest.drop_count` by `drop_reason` per ActiveGate (`operation` is currently null) (`head_on_queue_limit` = throughput, `disk_queue_limit` = uplink/buffer) | §7 |
-| Processing lags but JVM CPU looks moderate | GC pressure — major-collection time above ~10% of the interval means the heap is too small for the workload | §7 |
+| Processing lags but JVM CPU looks moderate | GC pressure — GC time above ~10% of the interval means the heap is too small for the workload | §7 |
 | Browser monitors intermittently delayed | Synthetic node at its executions/hour ceiling, or location has a single node | §5 |
 | Kubernetes-monitoring data lags on a big cluster | ActiveGate CPU-throttled by its limit, or pipeline time past 50–60 s | §4 |
-| One ActiveGate monitoring several clusters misbehaves | Multi-cluster-per-ActiveGate is documented as not recommended | §4 |
-| Extensions stop persisting data | EEC lacks its required ~2.1 GB free-disk allowance | §3 |
+| One ActiveGate monitoring several clusters misbehaves | The sizing guide's tables are per cluster; in community practice one Kubernetes-monitoring ActiveGate per cluster is the easier pattern to size | §4 |
+| EEC logs lost during an outage | EEC log persistence turned itself off — less than 2,136 MB free disk, so logs are sent without the reliability buffer | §3 |
 | "The table said 800 hosts but we saturated at 500" | Estimates assume typical per-host volume — heavy log routing or dense instrumentation consumes it faster | §3, §7 |
 | Everything degraded after adding one more job to a shared ActiveGate | Capability stacking — demanding jobs deserve dedicated ActiveGates | §2, §8 |
 | Zone failure overloaded a *different* zone's ActiveGates | Fallback mode *Any ActiveGate* rerouted the load somewhere unsized for it | §6 |
