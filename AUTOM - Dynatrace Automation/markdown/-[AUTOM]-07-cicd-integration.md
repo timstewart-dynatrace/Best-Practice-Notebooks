@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -1157,7 +1157,7 @@ Bitbucket Pipelines has three variable scopes. Pick the right scope per credenti
 
 **Bitbucket Pipelines supports OIDC** for federating to AWS, GCP, and Vault — see the Atlassian docs on [Integrate Pipelines with resource servers using OIDC](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/). The pattern is to add `oidc: true` at the pipeline step level and configure the resource server (AWS / GCP / Vault) to trust the Bitbucket OIDC issuer.
 
-**Preview — Dynatrace workload identity federation.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* A trust policy (issuer URL + audience) and a service-user mapping are configured through the Account Management API; the identity provider must publish an OpenID Connect discovery document over HTTPS. Bitbucket Pipelines is not named on the page — verify that WIF is available in your account and that your Bitbucket OIDC issuer satisfies the prerequisites before relying on it. Until then, the working pattern remains a *secured variable holding a long-lived token*, rotated on a cadence, or the Vault indirection below.
+**Preview — Dynatrace workload identity federation.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* A trust policy (issuer URL + audience) and a service-user mapping are configured through the Account Management API; the identity provider must sign its tokens with ES256 or RS256, and either publish an OpenID Connect discovery document over HTTPS (URL mode) or have its JSON Web Key Set pasted into the trust policy (manual mode). Bitbucket Pipelines is not named on the page — verify that WIF is available in your account and that your Bitbucket OIDC issuer satisfies the prerequisites before relying on it. Until then, the working pattern remains a *secured variable holding a long-lived token*, rotated on a cadence, or the Vault indirection below.
 
 If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC → Vault (or AWS Secrets Manager) → fetches a Dynatrace token at pipeline start. The pipeline still ends up with a token in memory, but the token in storage is in Vault, not in Bitbucket variables.
 
@@ -1168,7 +1168,7 @@ If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC �
 > - <sub>[Get started with Bitbucket Pipelines (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) — Pipelines overview.</sub>
 > - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) — auth-token landscape; of App passwords the page says *"They are the long term replacement for App passwords."*.</sub>
 > - <sub>[Integrate Pipelines with resource servers using OIDC (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/) — Bitbucket OIDC for AWS/GCP/Vault.</sub>
-> - <sub>[Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — Preview; *"An identity provider that publishes an OpenID Connect discovery document over HTTPS, and that issues tokens signed with ES256 or RS256."*</sub>
+> - <sub>[Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — Preview; *"An identity provider that issues tokens signed with ES256 or RS256. The provider must either publish an OpenID Connect discovery document over HTTPS (URL mode), or you must paste its JSON Web Key Set directly when you create the trust policy"*</sub>
 
 ---
 
