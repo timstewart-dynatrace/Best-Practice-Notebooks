@@ -31,7 +31,7 @@ Hands-on lab for installing Monaco CLI, downloading existing Dynatrace configura
 |-------------|----------|
 | **Completed** | AUTOM-03: Monaco Configuration-as-Code (lecture notebook) |
 | **Dynatrace Environment** | SaaS tenant (Grail enabled) |
-| **Permissions** | Account with ability to create API tokens |
+| **Permissions** | Ability to create an access token in the environment and a platform token in your account |
 | **Local Tools** | Terminal with `curl` and `chmod` (Monaco has no Homebrew formula) |
 | **Git** | Git CLI installed (for CI/CD section) |
 | **GitHub Account** | Required for Section 11 (CI/CD pipeline) |
@@ -87,41 +87,51 @@ monaco version
 <a id="create-access-token"></a>
 ## 2. Create Access Token
 
-This LAB works on a **service-level objective** (`type: slo-v2`), a platform configuration type, so it needs a **platform token** as well as the classic access token Monaco uses for Settings 2.0.
+This LAB works on a **service-level objective** (`type: slo-v2`), a platform configuration type, so it needs a **platform token** as well as a classic access token. Once the manifest has a platform token, Monaco sends Settings 2.0 through it too — the access token is then used for the classic Configuration APIs.
 
 ### Platform Token Scopes (required for this LAB)
 
 | Scope | Purpose |
 |-------|----------|
+| `app-engine:apps:run` | Platform metadata lookup Monaco runs before any download or deploy |
+| `settings:objects:read` | Download Settings 2.0 objects |
+| `settings:objects:write` | Deploy Settings 2.0 objects |
+| `settings:schemas:read` | Read Settings 2.0 schemas |
 | `slo:slos:read` | Download SLOs (`--only-slo-v2`) |
 | `slo:slos:write` | Deploy and delete SLOs |
+| `slo:objective-templates:read` | Listed for `slo-v2` on the Monaco access-handling page |
 
-Add the scopes for the other platform types only if the project will manage them — workflows, documents, segments and buckets each have their own `<service>:<object>:read` / `:write` pair. Create the token under **Account Management → Identity & access management → Platform tokens**, ideally on a service user (AUTOM-04 §3).
+Add the scopes for the other platform types only if the project will manage them — workflows, documents, segments and buckets each need their own scopes (read/write, plus delete for buckets, documents and segments); the Monaco access-handling page lists them per type. Create the token under **My platform tokens** (`https://myaccount.dynatrace.com/platformTokens`), ideally on a service user (AUTOM-04 §3).
 
-> The SLO scope names are the ones the Terraform provider's [`platform_slo` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) list (*"View SLOs (`slo:slos:read`) and Create and edit SLOs (`slo:slos:write`)"*). Checking the deployed SLO's evaluation in the app is done as *you*, so your own user needs read access to the data its SLI queries.
+Checking the deployed SLO's evaluation in the app is done as *you*, so your own user needs read access to the data its SLI queries.
 
-### Access Token Scopes (Settings 2.0 and classic configuration)
+> <sub>**Sources:** [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — `app-engine:apps:run`: *"This permission is required to access Dynatrace Platform metadata endpoints."*; [Monaco API support and access handling (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling) — `slo-v2` row: `slo:slos:read`, `slo:slos:write`, `slo:objective-templates:read`; [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"This opens https://myaccount.dynatrace.com/platformTokens"*; [client set (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/clientset.go). **Derived:** Settings 2.0 through the platform token is read from that file at v2.30.0, which builds the classic settings client only when no platform credential is configured.</sub>
+
+### Access Token Scopes (classic Configuration APIs; Settings 2.0 only when no platform credential is configured)
 
 | Scope | Purpose |
 |-------|----------|
-| `Read settings` (`settings.read`) | Download Settings 2.0 objects |
-| `Write settings` (`settings.write`) | Deploy Settings 2.0 objects |
-| `Read SLO` (`slo.read`) | *Classic* SLOs only — not needed for `slo-v2` |
-| `Write SLO` (`slo.write`) | *Classic* SLOs only — not needed for `slo-v2` |
+| `Access problem and event feed, metrics, and topology` (`DataExport`) | Always required by Monaco |
 | `Read configuration` (`ReadConfig`) | Download classic API configs |
 | `Write configuration` (`WriteConfig`) | Deploy classic API configs |
-| `Access problem and event feed, metrics, and topology` (`DataExport`) | Entity and metric access |
+| `Read settings` (`settings.read`) | Settings 2.0 downloads in a manifest **without** a platform token |
+| `Write settings` (`settings.write`) | Settings 2.0 deploys in a manifest **without** a platform token |
+| `Read SLO` (`slo.read`) | *Classic* SLOs only — not needed for `slo-v2` |
+| `Write SLO` (`slo.write`) | *Classic* SLOs only — not needed for `slo-v2` |
 | `Read entities` (`entities.read`) | Entity queries during download |
 | `Create and read synthetic monitors, locations, and nodes` (`ExternalSyntheticIntegration`) | Synthetic config management |
 
-> **Tip:** In the Dynatrace UI, navigate to **Access Tokens** and use the predefined template **"Configuration as Code"** to create a token with all required scopes automatically.
+Create the token in the environment under **Access Tokens** with the scopes above.
+
+> <sub>**Sources:** [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Access tokens for the Dynatrace Monaco CLI always require at least the Access problem and event feed, metrics, and topology"*</sub>
 
 ### Set Environment Variables
 
 ```shellscript
-# Set your Dynatrace environment URL and API token
-# Replace with your actual values
-export DT_ENV_URL="https://<your-environment-id>.live.dynatrace.com"
+# Set your Dynatrace environment URL and tokens
+# Replace with your actual values. Use the PLATFORM URL (.apps.), not the classic .live. URL:
+# with a platform token in the manifest, Monaco looks up the classic URL from it.
+export DT_ENV_URL="https://<your-environment-id>.apps.dynatrace.com"
 export DT_API_TOKEN="dt0c01.XXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
 # Platform token for SLOs, workflows, documents, buckets and segments (manifest auth.platformToken)
 # Required for this LAB — the exercises use type: slo-v2
@@ -129,11 +139,15 @@ export DT_PLATFORM_TOKEN="<your-platform-token>"
 
 # Verify the variables are set
 echo "Environment: $DT_ENV_URL"
-echo "Token set: $([ -n \"$DT_API_TOKEN\" ] && echo 'yes' || echo 'no')"
-echo "Platform token set: $([ -n \"$DT_PLATFORM_TOKEN\" ] && echo 'yes' || echo 'no')"
+echo "Token set: $([ -n "$DT_API_TOKEN" ] && echo yes || echo no)"
+echo "Platform token set: $([ -n "$DT_PLATFORM_TOKEN" ] && echo yes || echo no)"
 ```
 
 > **Warning:** Never commit API tokens to version control. Use environment variables or a secrets manager.
+
+> **If the URL is wrong:** a `.live.` URL with a platform token fails on the first command with *"make sure you are using a Dynatrace Platform URL and not a Dynatrace Classic URL when authenticating with an OAuth client or platform token"*; a missing `app-engine:apps:run` scope fails with *"oAuth client or platform token may be missing required scope 'app-engine:apps:run'"*.
+>
+> <sub>**Sources:** [metadata client (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/metadata/metadata.go) — both error messages, v2.30.0.</sub>
 
 ---
 
@@ -143,6 +157,8 @@ echo "Platform token set: $([ -n \"$DT_PLATFORM_TOKEN\" ] && echo 'yes' || echo 
 The `manifest.yaml` is the entry point for every Monaco project. It defines which projects to manage and which environments to target.
 
 ### Project Directory Setup
+
+The cell below creates `dynatrace-config/` and changes into it. **Run every later command from inside `dynatrace-config/`** — the paths in the rest of this LAB are relative to it.
 
 ```shellscript
 # Create the project directory structure
@@ -184,7 +200,7 @@ environmentGroups:
 | `projects[].path` | Relative path to the project directory |
 | `environmentGroups[].name` | Group name (used for overrides) |
 | `environments[].name` | Environment identifier (used with `--environment` flag) |
-| `environments[].url.value` | Environment variable name containing the tenant URL |
+| `environments[].url.value` | Environment variable name containing the tenant URL — the platform (`.apps.`) URL when `platformToken` or `oAuth` is set |
 | `environments[].auth.token.name` | Environment variable name containing the API (access) token — settings and classic configuration APIs |
 | `environments[].auth.platformToken.name` | Environment variable name containing a platform token (Monaco 2.24.0+) — needed for workflows, documents, Grail buckets and segments. An `oAuth` client (`clientId.name` / `clientSecret.name`) is the alternative; you cannot define both |
 
@@ -201,20 +217,18 @@ Downloading is the fastest way to get started. Monaco exports your current tenan
 
 ```shellscript
 # Download all configuration from the dev environment
-cd dynatrace-config
-monaco download manifest.yaml --environment dev --output-folder downloaded
+monaco download --manifest manifest.yaml --environment dev --output-folder downloaded
 ```
 
 ### Download Specific Configuration Types
 
 ```shellscript
 # Download only SLOs and segments (platform types — needs auth.platformToken)
-cd dynatrace-config
-monaco download manifest.yaml --environment dev --output-folder downloaded \
+monaco download --manifest manifest.yaml --environment dev --output-folder downloaded \
   --only-slo-v2 --only-segments
 
 # Classic inventory, while the tenant still has them: specific Settings 2.0 schemas
-# monaco download manifest.yaml --environment dev --output-folder downloaded \
+# monaco download --manifest manifest.yaml --environment dev --output-folder downloaded \
 #   --settings-schema builtin:alerting.profile,builtin:management-zones
 ```
 
@@ -230,13 +244,13 @@ Monaco organizes downloaded configuration by type:
 | `document` | Dashboards, notebooks, launchpads | Document API objects |
 | `bucket` | Grail buckets | Bucket definitions |
 | `settings` | Settings 2.0 objects | `builtin:davis.anomaly-detectors`, `builtin:ownership.teams`; classic estates also `builtin:alerting.profile`, `builtin:management-zones` |
-| `classic` | Classic Config API v1 | Request attributes, dashboards (classic) |
+| `api` (internally `classic`) | Classic Configuration APIs | `type: {api: request-attributes}` — request attributes, classic dashboards |
 
-The type names are Monaco's own config-type identifiers (`pkg/config/types.go`). The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` and `--only-openpipeline`, and can be combined. `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
+The type names are the `type:` fields from the [Monaco type-fields reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields); a classic config is written `type: {api: <name>}`, not `type: classic`. The matching `--only-*` download flags are `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets`, `--only-settings`, `--only-apis` and `--only-openpipeline`, and can be combined. `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
 
 > **Platform types need platform auth.** `slo-v2`, `document`, `automation`, `bucket` and `segment` configs come through the Platform APIs, so they appear only when the manifest environment has `auth.platformToken` or `auth.oAuth` (see §3).
 
-> **Note:** Some classic API types (AWS/Azure/K8s credentials, Extensions v1) support deploy but **not** download. See the [Monaco API coverage](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/main/api_coverage.md) for details.
+> **Note:** Some classic API types (`aws-credentials`, `azure-credentials`, `kubernetes-credentials`, `credential-vault`, `extension`) support deploy but **not** download — the [Monaco API support and access handling (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling) page marks each *"It can't be downloaded."*
 
 ---
 
@@ -249,7 +263,6 @@ After downloading, examine the directory structure and understand the file forma
 
 ```shellscript
 # View the downloaded directory structure
-cd dynatrace-config
 find downloaded -type f | head -30
 ```
 
@@ -257,17 +270,20 @@ Expected output looks like:
 
 ```
 downloaded/
-  my-project/
+  manifest.yaml
+  project_dev/
     slo-v2/
       config.yaml
-      <slo-name>.json
+      <template>.json
     segment/
       config.yaml
-      <segment-name>.json
+      <template>.json
     ...
 ```
 
-Folder names follow the config type — a Settings 2.0 download (the classic inventory command above) produces one folder per schema instead, such as `builtin:management-zones/`. Check your own download rather than relying on the exact names here.
+A manifest download writes a project named `project` with the environment appended — `project_dev` here — unless you pass `--project <name>` (and `--force` to stop the environment suffix). Folder names follow the config type, stripped of characters other than letters, digits, `-`, `_` and `.`; a Settings 2.0 download produces one folder per schema, so `builtin:management-zones` lands in `builtinmanagement-zones/`. Check your own download rather than relying on the exact names here.
+
+> <sub>**Sources:** [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — *"By default, the project name is project ."*; [download command (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go) — `--force`: *"Manifest download: Never append the source environment name to the project folder name."*; [name sanitizer (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/internal/strings/sanitize.go).</sub>
 
 ### Example config.yaml
 
@@ -295,9 +311,9 @@ configs:
 ### Examine a JSON Template
 
 ```shellscript
-# View an example JSON template (replace path with an actual downloaded file)
-cd dynatrace-config
-cat downloaded/my-project/slo-v2/<slo-name>.json | python3 -m json.tool | head -30
+# View the first downloaded SLO template
+f=$(find downloaded/project_dev/slo-v2 -name '*.json' | head -1)
+python3 -m json.tool "$f" | head -30
 ```
 
 > **Tip:** The JSON templates contain the exact payload that Monaco sends to the Dynatrace API. You can modify these files to change configuration values.
@@ -315,7 +331,7 @@ Create a new **SLO** from scratch to understand how Monaco configurations are au
 
 ```shellscript
 # Create directory for SLO configs
-mkdir -p dynatrace-config/my-project/slo-v2
+mkdir -p my-project/slo-v2   # run inside dynatrace-config/
 ```
 
 ### Step 2: Create config.yaml
@@ -465,7 +481,6 @@ Always dry-run before deploying. `--dry-run` parses the manifest and every confi
 
 ```shellscript
 # Check file structure and references without deploying (no API calls)
-cd dynatrace-config
 monaco deploy --dry-run manifest.yaml
 ```
 
@@ -487,7 +502,7 @@ What it does **not** check: the template against the Settings 2.0 schema, connec
 | `unresolved reference` | dry-run | Referenced config ID does not exist | Check spelling and project path |
 | `invalid JSON` | dry-run | Syntax error in template | Run `python3 -m json.tool <file>` to find the error |
 | `unknown schema` | deploy | Typo in schema ID, or a schema removed in Latest Dynatrace | Verify schema at Settings > Schema in Dynatrace |
-| `insufficient permissions` | deploy | Token missing scopes | Add required scopes to the API token |
+| `insufficient permissions` | deploy | Token missing scopes | Add the missing scope to the platform token (platform types and Settings 2.0) or the access token (classic APIs) |
 
 ---
 
@@ -500,7 +515,6 @@ After validation passes, deploy to your target environment.
 
 ```shellscript
 # Deploy to all environments defined in manifest.yaml
-cd dynatrace-config
 monaco deploy manifest.yaml
 ```
 
@@ -508,7 +522,6 @@ monaco deploy manifest.yaml
 
 ```shellscript
 # Deploy only to the dev environment
-cd dynatrace-config
 monaco deploy manifest.yaml --environment dev
 ```
 
@@ -535,7 +548,6 @@ After deployment:
 
 ```shellscript
 # Deploy only a specific project (useful when manifest has multiple projects)
-cd dynatrace-config
 monaco deploy manifest.yaml --project my-project
 ```
 
@@ -566,7 +578,6 @@ The `type` is Monaco's config type (`slo-v2`) — or, for a Settings 2.0 object 
 ```shellscript
 # Delete configurations listed in delete.yaml
 # Note: the manifest is passed via --manifest, not as a positional argument
-cd dynatrace-config
 monaco delete --manifest manifest.yaml --file delete.yaml --environment dev
 ```
 
@@ -574,12 +585,13 @@ monaco delete --manifest manifest.yaml --file delete.yaml --environment dev
 
 | Behavior | Description |
 |----------|-------------|
-| **Scoped to Monaco** | Only deletes configs that Monaco deployed (matched by `id`) |
-| **Non-destructive** | Configs created manually in the UI are never touched |
-| **Reversible** | Re-deploy the config to restore it |
+| **Scope** | A `project` + `id` entry matches only an object Monaco created or onboarded. An `objectId` entry names one object directly, and a classic-API `name` entry matches whichever object has that name — including objects created in the UI |
+| **Not reversible** | Re-deploying the config recreates it; it does not bring back the deleted object, so check anything that referenced the deleted object's ID |
 | **Environment-specific** | Use `--environment` to target a single environment |
 
-> **Warning:** The `delete` command is irreversible for the target environment. Always use `--dry-run` first if you want to preview what would be removed.
+> **Warning:** The `delete` command is irreversible for the target environment, and it has **no `--dry-run`**. Review `delete.yaml` in a pull request and run it against a non-production environment first (`--environment dev`).
+
+> <sub>**Sources:** [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Monaco can delete objects that are created by, and/or onboarded to, Monaco."*; [delete command (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/delete/command.go) — flags `--manifest`, `--file`, `--group`, `--environment` only; [classic deleter (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/classic/delete.go) — resolves a `name` entry against every object the API returns.</sub>
 
 ---
 
@@ -589,6 +601,8 @@ monaco delete --manifest manifest.yaml --file delete.yaml --environment dev
 A core Monaco strength is deploying the same configuration across dev, staging, and production with environment-specific overrides.
 
 ### Multi-Environment Manifest
+
+This manifest **replaces** the single-environment one from §3. It needs nine variables — `DT_<ENV>_URL` (the `.apps.` platform URL), `DT_<ENV>_TOKEN` and `DT_<ENV>_PLATFORM_TOKEN` for each of `DEV`, `STAGING` and `PROD` — and every command that touches an environment fails if one of that environment's variables is unset.
 
 ```yaml
 manifestVersion: "1.0"
@@ -657,7 +671,6 @@ configs:
 
 ```shellscript
 # Step 1: Deploy to dev and validate
-cd dynatrace-config
 monaco deploy manifest.yaml --environment dev
 
 # Step 2: Deploy to staging after dev validation
@@ -723,7 +736,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Monaco
         run: |
@@ -732,7 +745,7 @@ jobs:
           sudo mv monaco /usr/local/bin/
 
       - name: Validate (dry-run)
-        run: monaco deploy --dry-run dynatrace-config/manifest.yaml
+        run: monaco deploy --dry-run dynatrace-config/manifest.yaml --environment dev
         env:
           DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
           DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
@@ -743,7 +756,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Monaco
         run: |
@@ -752,7 +765,7 @@ jobs:
           sudo mv monaco /usr/local/bin/
 
       - name: Deploy to Dynatrace
-        run: monaco deploy dynatrace-config/manifest.yaml
+        run: monaco deploy dynatrace-config/manifest.yaml --environment dev
         env:
           DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
           DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
@@ -764,7 +777,9 @@ jobs:
 | Step | Trigger | What Happens |
 |------|---------|-------------|
 | **validate** | Every PR and push to `main` | Installs Monaco, runs `--dry-run` to catch errors |
-| **deploy** | Only on push to `main` | Installs Monaco, deploys all configurations |
+| **deploy** | Only on push to `main` | Installs Monaco, deploys all configurations to `dev` |
+
+The dry-run still needs the variables: Monaco resolves the manifest's environment variables when it loads the manifest, dry-run included, so a job without them fails with *environment-variable "…" was not found*.
 
 ### Configure GitHub Secrets
 
@@ -772,32 +787,99 @@ Add these secrets to your GitHub repository (**Settings > Secrets and variables 
 
 | Secret Name | Value |
 |-------------|-------|
-| `DT_ENV_URL` | Your Dynatrace tenant URL (e.g., `https://abc12345.live.dynatrace.com`) |
-| `DT_API_TOKEN` | API token with Configuration as Code scopes |
+| `DT_ENV_URL` | Your Dynatrace platform URL (e.g., `https://abc12345.apps.dynatrace.com`) |
+| `DT_API_TOKEN` | Access token with the §2 access-token scopes |
 | `DT_PLATFORM_TOKEN` | Platform token referenced by `auth.platformToken` in the manifest |
 
 ### Multi-Environment CI/CD
 
-For promoting across environments, extend the workflow with separate jobs:
+For promotion across environments, use the multi-environment manifest from §10 and replace the `jobs:` block above. Every job names its environment with `--environment` — without it Monaco deploys to **all** environments in the manifest, so a single `deploy` job would reach prod before staging — and every job sets that environment's three variables:
 
 ```yaml
-  deploy-staging:
-    needs: deploy
+jobs:
+  validate:
     runs-on: ubuntu-latest
-    environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Monaco
         run: |
           curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
           chmod +x monaco
           sudo mv monaco /usr/local/bin/
-      - name: Deploy to Staging
+      - name: Validate all environments (dry-run)
+        run: monaco deploy --dry-run dynatrace-config/manifest.yaml --environment dev,staging,prod
+        env:
+          DT_DEV_URL: ${{ secrets.DT_DEV_URL }}
+          DT_DEV_TOKEN: ${{ secrets.DT_DEV_TOKEN }}
+          DT_DEV_PLATFORM_TOKEN: ${{ secrets.DT_DEV_PLATFORM_TOKEN }}
+          DT_STAGING_URL: ${{ secrets.DT_STAGING_URL }}
+          DT_STAGING_TOKEN: ${{ secrets.DT_STAGING_TOKEN }}
+          DT_STAGING_PLATFORM_TOKEN: ${{ secrets.DT_STAGING_PLATFORM_TOKEN }}
+          DT_PROD_URL: ${{ secrets.DT_PROD_URL }}
+          DT_PROD_TOKEN: ${{ secrets.DT_PROD_TOKEN }}
+          DT_PROD_PLATFORM_TOKEN: ${{ secrets.DT_PROD_PLATFORM_TOKEN }}
+
+  deploy-dev:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to dev
+        run: monaco deploy dynatrace-config/manifest.yaml --environment dev
+        env:
+          DT_DEV_URL: ${{ secrets.DT_DEV_URL }}
+          DT_DEV_TOKEN: ${{ secrets.DT_DEV_TOKEN }}
+          DT_DEV_PLATFORM_TOKEN: ${{ secrets.DT_DEV_PLATFORM_TOKEN }}
+
+  deploy-staging:
+    needs: deploy-dev
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to staging
         run: monaco deploy dynatrace-config/manifest.yaml --environment staging
         env:
           DT_STAGING_URL: ${{ secrets.DT_STAGING_URL }}
           DT_STAGING_TOKEN: ${{ secrets.DT_STAGING_TOKEN }}
+          DT_STAGING_PLATFORM_TOKEN: ${{ secrets.DT_STAGING_PLATFORM_TOKEN }}
+
+  deploy-prod:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to prod
+        run: monaco deploy dynatrace-config/manifest.yaml --environment prod
+        env:
+          DT_PROD_URL: ${{ secrets.DT_PROD_URL }}
+          DT_PROD_TOKEN: ${{ secrets.DT_PROD_TOKEN }}
+          DT_PROD_PLATFORM_TOKEN: ${{ secrets.DT_PROD_PLATFORM_TOKEN }}
 ```
+
+Add the nine `DT_<ENV>_URL` / `DT_<ENV>_TOKEN` / `DT_<ENV>_PLATFORM_TOKEN` secrets. Each deploy job waits for the previous one, so prod only runs after staging succeeds.
+
+> <sub>**Sources:** [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — *"If neither --group nor --environment is present, all environments are used."*; [manifest loader (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/manifest/loader/manifest_loader.go) — `environment-variable %q was not found`, `requested environment %q not found`.</sub>
 
 Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) with required reviewers to gate production deployments.
 
@@ -809,7 +891,8 @@ Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/conf
 ### Deployment Checklist
 
 - [ ] Monaco CLI installed and `monaco version` returns output
-- [ ] Platform token created with `slo:slos:read` / `slo:slos:write` (plus an API token with the "Configuration as Code" template scopes for Settings 2.0)
+- [ ] Platform token created with the §2 scopes (`app-engine:apps:run`, the three `settings:` scopes and the three `slo:` scopes), plus an access token with `DataExport`
+- [ ] `DT_ENV_URL` set to the platform (`.apps.`) URL
 - [ ] `manifest.yaml` created with correct environment variable references
 - [ ] Downloaded existing configuration with `monaco download`
 - [ ] Explored directory structure and understood `config.yaml` format
@@ -826,11 +909,11 @@ Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/conf
 | Concept | Summary |
 |---------|----------|
 | **Manifest** | Entry point defining projects and environments |
-| **Config Types** | `slo-v2`, `segment`, `automation`, `document`, `bucket`, `settings`, `classic` — platform types need `auth.platformToken` or `auth.oAuth` |
+| **Config Types** | `slo-v2`, `segment`, `automation`, `document`, `bucket`, `settings`, `api` (classic) — platform types need `auth.platformToken` or `auth.oAuth` |
 | **Download** | Export existing tenant config to versioned files |
 | **Dry-Run** | Always dry-run before deploying — structure and references only, no API calls |
 | **Deploy** | Idempotent -- re-running updates in place |
-| **Delete** | Only removes Monaco-managed configs |
+| **Delete** | Removes exactly the entries in `delete.yaml` — no dry-run, not reversible |
 | **Overrides** | `environmentOverrides` / `groupOverrides` for per-environment values and `skip` |
 | **CI/CD** | Validate on PR, deploy on merge to main |
 
@@ -838,7 +921,7 @@ Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/conf
 
 - [Monaco Documentation](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco)
 - [Monaco GitHub Repository](https://github.com/Dynatrace/dynatrace-configuration-as-code)
-- [Monaco API Coverage](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/main/api_coverage.md)
+- [Monaco API support and access handling (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling)
 - [Settings Schema Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas)
 - [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas)
 - [Monaco configuration YAML reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas)
@@ -852,10 +935,10 @@ Use GitHub [Environments](https://docs.github.com/en/actions/how-tos/deploy/conf
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.29.1 at time of writing, 09/2026) |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 9 starter templates in `basic-templates-monaco`, plus pipeline observability samples |
+| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026) |
+| [community-examples / configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | 9 starter templates in `basic-templates-monaco`, plus pipeline observability samples (moved here from the archived `dynatrace-configuration-as-code-samples` repo) |
 | [easytrade](https://github.com/Dynatrace/easytrade) | Real-world Monaco project structure with manifest.yaml |
-| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | GUI tool for tenant-to-tenant config migration |
+| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | **Archived** — historical reference only |
 | [monaco-self-paced-exercises](https://github.com/dynatrace-ace/monaco-self-paced-exercises) | 6 structured exercises (install, auto-tag, download, variables, delete/restore, linking) |
 | [monaco-demo](https://github.com/dt-demos/monaco-demo) | Working GitHub Actions workflow for Monaco deploy |
 
@@ -868,10 +951,10 @@ After completing the hands-on steps above, these repositories provide deeper exa
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.29.x at time of writing, 09/2026) — Go binary, Apache-2.0 |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | Official samples repo with 9 Monaco starter templates in `basic-templates-monaco` |
+| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026) — Go binary, Apache-2.0 |
+| [community-examples / configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | Current home of the Monaco samples, including 9 starter templates in `basic-templates-monaco` (mostly schemas removed in Latest Dynatrace — syntax examples, not templates for a new tenant). The old `dynatrace-configuration-as-code-samples` repo is archived: *"The Dynatrace Configuration as Code samples are no longer maintained here."* |
 | [easytrade](https://github.com/Dynatrace/easytrade) | Demo microservices app with a working `monaco/` directory (manifest.yaml, detection rules, workflows) |
-| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | GUI tool for tenant-to-tenant config migration; complements Monaco for brownfield scenarios |
+| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | **Archived** — *"This repository has been archived and is no longer maintained."* Historical reference only |
 
 ### Training & Exercises (recommended next)
 
@@ -882,7 +965,7 @@ After completing the hands-on steps above, these repositories provide deeper exa
 
 ### Pipeline Observability Samples
 
-Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline:
+Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline, under `community-examples/configuration-as-code/`:
 
 | Directory | CI/CD Platform |
 |-----------|---------------|

@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -26,7 +26,7 @@ Before starting this notebook, ensure you have:
 |-------------|-------------|
 | Source tenant access | Admin access to source environment |
 | Target tenant access | Admin access to target environment |
-| API Tokens | Tokens on both source and target |
+| Credentials | On both source and target: an access token **and** a platform token (or OAuth client) — platform types (SLOs, workflows, documents, segments) need the latter |
 | Monaco or Terraform | Migration tool installed |
 
 ---
@@ -54,9 +54,9 @@ By the end of this notebook, you will:
 | **Disaster Recovery** | Restoring config to a new tenant |
 | **Config Backup** | Periodic export for safekeeping |
 
-### The 90/10 Rule
+### Where the Effort Goes
 
-> **Important:** 90% of configurations migrate automatically, but the remaining 10% takes 90% of the effort.
+In community practice, most configuration migrates with tooling, and the remainder — credentials, integrations, entity references — takes most of the effort.
 
 Plan extra time for:
 - Credentials and secrets
@@ -129,7 +129,11 @@ monaco download \
   --output-folder ./migration-export
 ```
 
-The platform token is what brings SLOs (`slo-v2`), workflows, documents, Grail buckets and segments into the export — the `--oauth-client-id` / `--oauth-client-secret` pair is the alternative. **Drop it and the export silently omits every platform type**: an access token alone does not reach the Platform APIs, and nothing in the download output says what is missing.
+The platform token is what brings SLOs (`slo-v2`), workflows, documents, Grail buckets and segments into the export — the `--oauth-client-id` / `--oauth-client-secret` pair is the alternative. **Drop it and the export skips every platform type**: an access token alone does not reach the Platform APIs. Monaco prints one `WARN` line per skipped type (`Skipped downloading … due to missing OAuth credentials`) and the download still succeeds, so the gap is easy to miss in a long log. Only a download that requests a *single* platform type with one `--only-*` flag fails outright.
+
+The download writes a `manifest.yaml` at the top of `migration-export/` and the configs into a `project/` sub-folder (the default `--project` name).
+
+Sources: [download_configs.go @ v2.30.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_configs.go), [download_command.go @ v2.30.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go).
 
 ### Step 2: Review and Clean
 
@@ -165,7 +169,7 @@ manifestVersion: 1.0
 
 projects:
   - name: migration
-    path: migration-export
+    path: migration-export/project   # the configs — not the download root, which also holds a manifest.yaml
 
 environmentGroups:
   - name: default
@@ -177,7 +181,15 @@ environmentGroups:
         auth:
           token:
             name: DT_TARGET_TOKEN
+          platformToken:
+            name: DT_TARGET_PLATFORM_TOKEN
 ```
+
+Keep this manifest **outside** `migration-export/`. The project path points at the `project/` sub-folder the download created; pointing it at the download root makes Monaco read the downloaded `manifest.yaml` as if it were a config file.
+
+The target needs **both** credentials. Without `platformToken` (or an `oAuth` client), Monaco refuses to deploy the platform configs the download brought along — `slo-v2`, workflows, documents, segments and buckets — with *"requires platform credentials"*, and `--dry-run` fails the same way.
+
+Sources: [Manage resources — auth section (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Access tokens and platform tokens are not interchangeable."*; [deploy.go @ v2.30.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/deploy/deploy.go).
 
 ### Step 4: Validate and Deploy
 
@@ -185,6 +197,7 @@ environmentGroups:
 # Set target environment
 export DT_TARGET_URL="https://target-tenant.live.dynatrace.com"
 export DT_TARGET_TOKEN="<your-target-api-token>"
+export DT_TARGET_PLATFORM_TOKEN="<your-target-platform-token>"
 
 # Dry run — Monaco has no separate "validate" command; this parses the YAML,
 # checks template JSON and resolves references without contacting the tenant
@@ -200,9 +213,9 @@ monaco deploy manifest.yaml --environment target
 
 Dashboards and alerting profiles often contain entity IDs. These need special handling:
 
-**Option 1: Use Entity Selectors**
+**Option 1: Use an entity selector — only where the schema has one**
 
-Replace hardcoded IDs with selectors:
+Some configuration schemas accept an `entitySelector` field instead of a fixed ID. Where the target schema defines one, a selector survives the move:
 
 ```json
 // Before (hardcoded ID)
@@ -215,6 +228,8 @@ Replace hardcoded IDs with selectors:
   "entitySelector": "type(HOST),entityName(\"web-server-01\")"
 }
 ```
+
+This is not a generic transform. Renaming the key in a payload whose schema has no `entitySelector` field fails at deploy with an HTTP 400, and `monaco deploy --dry-run` does not catch it, because the dry run does not validate payload content. Everywhere else, map IDs (Option 2) or, in Monaco, parameterise the ID per environment.
 
 **Option 2: Entity Mapping Script**
 
@@ -260,6 +275,7 @@ Credentials are supplied through **environment variables**, not command-line arg
 |----------|----------|---------|
 | `DYNATRACE_ENV_URL` | Yes | Source tenant endpoint |
 | `DYNATRACE_API_TOKEN` | Yes | API token for the source tenant |
+| `DT_CLIENT_ID` / `DT_CLIENT_SECRET` / `DT_ACCOUNT_ID` (OAuth client), or `DYNATRACE_PLATFORM_TOKEN` | For platform resources | Workflows, segments, documents and platform SLOs are read through the platform APIs, which an API token alone does not reach |
 | `DYNATRACE_TARGET_FOLDER` | No | Output directory (default: `./configuration`) |
 
 ```bash
@@ -293,19 +309,29 @@ Output defaults to a **module structure** — one directory per resource family 
 configuration/
 ├── main.tf
 ├── providers.tf
-├── dynatrace_automation_workflow/
+├── dynatrace_automation_workflow/   # only when named explicitly — excluded by default
 │   └── *.tf
-├── dynatrace_segment/
+├── dynatrace_segment/              # only when named explicitly — excluded by default
 │   └── *.tf
-├── dynatrace_document/
+├── dynatrace_document/             # only when named explicitly — excluded by default
 │   └── *.tf
 ├── dynatrace_management_zone_v2/   # classic — present only while the source still has them
 │   └── *.tf
 ├── .flawed/              # deprecated configs requiring modification before apply
-└── .required_attention/  # items missing essentials (e.g. credential payloads the API cannot return)
+└── .requires_attention/  # items missing essentials (e.g. credential payloads the API cannot return)
 ```
 
-Triage `.flawed/` and `.required_attention/` before committing anything — the second directory is where secrets that the source API refuses to return end up, and they must be re-entered by hand. **Dashboards are excluded by default**; name the resource explicitly to opt in, or run `-list-exclusions` to see the full default-exclusion list.
+Triage `.flawed/` and `.requires_attention/` before committing anything — the second directory is where secrets that the source API refuses to return end up, and they must be re-entered by hand.
+
+**Dashboards, workflows, segments, documents and platform SLOs are all excluded by default.** A bulk `-export -migrate` leaves them behind without an error, so a migration that stops there loses them. Export them in a separate run that names them (naming resources limits the export to those resources), with the platform credentials above set:
+
+```bash
+DYNATRACE_TARGET_FOLDER=./terraform-export-platform \
+  ./terraform-provider-dynatrace -export -migrate \
+  dynatrace_automation_workflow dynatrace_segment dynatrace_document dynatrace_platform_slo
+```
+
+Run `-list-exclusions` to see the full default-exclusion list, and add anything else on it that you need.
 
 ### Importing to the Target
 
@@ -325,7 +351,7 @@ Adding `-import-state` to the original export runs `terraform init` and imports 
 
 The full `-export` flag reference lives in **AUTOM-04 §8**. The end-to-end Managed-to-SaaS Terraform walkthrough — export, triage, repoint, apply, verify — is in **M2S-95 LAB**, and is not repeated here.
 
-Sources: [Terraform export utility (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility), [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration).
+Sources: [Terraform export utility (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility) — *"These files are moved to .requires_attention"*; [Terraform migration guide (DT docs)](https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration); [automation_workflow resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md) — *"This resource is excluded by default in the export utility"* (the `segment`, `document` and `platform_slo` pages say the same); [Provider configuration (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"The Dynatrace platform token used for platform APIs."*
 
 ---
 
@@ -335,43 +361,25 @@ For Managed-to-SaaS migrations, Dynatrace provides a guided tool.
 
 ### Accessing the Assistant
 
-1. Log into your Dynatrace account
-2. Navigate to **Apps → SaaS Upgrade Assistant**
-3. Follow the guided workflow
+The Assistant is an app in the **target SaaS environment**, fed by an export taken on the Managed side:
 
-### Assistant Features
+1. **Install the app.** In the target SaaS environment, open **Dynatrace Hub**, select **SaaS Upgrade Assistant**, then **Install**.
+2. **Export from Managed.** Sign in to the Managed **Cluster Management Console**, go to **Environments**, select the environment to migrate from, and select **Export configuration**. Store the archive locally.
+3. **Upload the archive in the app** and work through the imported configurations.
 
-| Feature | Description |
-|---------|-------------|
-| **Discovery** | Automated inventory of source environment |
-| **Compatibility Check** | Identify configs that need manual work |
-| **Bulk Export** | Export all compatible settings |
-| **Progress Tracking** | Visual dashboard of migration status |
-| **Validation** | Post-migration validation checks |
+Upload the archive the Cluster Management Console produces. The docs describe no manual repackaging step and no archive layout to build by hand. They do recommend exporting from a Managed cluster on the same major version as the SaaS environment, to avoid false-positive failed configurations.
 
-### Upload Format
+### What the Assistant Does
 
-The SaaS Upgrade Assistant requires configuration archives in **`.tar.gz` format** (not `.zip`). The archive must contain:
+| Capability | Description |
+|------------|-------------|
+| **Progress tracking** | Track configuration migration progress |
+| **Review failures** | Browse imported configurations; failed ones are marked in red, with error messages for failed and skipped configurations |
+| **Edit and bulk edit** | Fix one configuration in an edit form, or update hundreds at once in bulk mode, with a change preview |
+| **Partial deployment** | Choose which configurations to migrate and deploy only those |
+| **Dashboard owners** | Automatically update dashboard owners |
 
-```
-configurationExport-<datetime>/
-├── exportMetadata.json          # Cluster UUID, Monaco version, timestamp
-└── export/                      # Monaco download output
-    └── saas/<tenantId>/
-        ├── <config-type>/
-        │   ├── config.yaml
-        │   └── *.json
-        └── ...
-```
-
-Create the archive with:
-
-| Platform | Command |
-|----------|----------|
-| **Bash** (macOS/Linux) | `tar -czf archive.tar.gz configurationExport-<datetime>` |
-| **PowerShell** (Windows 10+) | `tar -czf archive.tar.gz configurationExport-<datetime>` |
-
-> **Note:** Windows 10 version 1803+ and Windows 11 include `tar.exe` natively. On older Windows, use [7-Zip](https://www.7-zip.org/) to create the tar.gz.
+Sources: [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"Choose which configurations you want to migrate and run partial deployment."*; [Migrate configuration (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-execute-upgrade/up-migrate-cfg) — *"you export the Dynatrace Managed environment's configuration in the Cluster Management Console and upload it to the app."*
 
 ### When to Use
 
@@ -379,14 +387,14 @@ Dynatrace sanctions **three** approaches for Managed-to-SaaS configuration migra
 
 | Scenario | Recommended Tool | Notes |
 |----------|------------------|-------|
-| Managed to SaaS — no config-as-code today | **SaaS Upgrade Assistant** | Recommended default. Guided UI, compatibility check, progress tracking. |
+| Managed to SaaS — no config-as-code today | **SaaS Upgrade Assistant** | Recommended default. Guided UI, progress tracking, bulk edit, partial deployment. |
 | Managed to SaaS — already running Monaco | **Monaco** | Download from Managed, deploy to SaaS with a retargeted manifest (§3 above). |
 | Managed to SaaS — already running Terraform | **Terraform** (`-export -migrate`) | Repoint the provider at the SaaS tenant. Full walkthrough in **M2S-95 LAB**. |
 | SaaS to SaaS | Monaco | |
 | Backup/Restore | Monaco or Terraform | |
 | GitOps workflow | Monaco or Terraform | |
 
-Whichever path you pick, one set of settings **never** migrates automatically and must be recreated by hand: extension and cloud credential configurations (AWS, Azure, GCP, Cloud Foundry, Kubernetes), access tokens and personal access tokens, problem-notification integrations (Jira, OpsGenie, PagerDuty, and the rest), mobile symbolication and JavaScript error settings, request naming and merged services, multi-dimensional analysis saved views, account management (users, groups, permissions), tags and custom entity names, and process-grouping rules — which must be migrated *before* the upgrade, not after. Budget for this explicitly: it is the 10% from §1 that consumes 90% of the effort.
+Whichever path you pick, one set of settings **never** migrates automatically and must be recreated by hand: extension and cloud credential configurations (AWS, Azure, GCP, Cloud Foundry, Kubernetes), access tokens and personal access tokens, problem-notification integrations (Jira, OpsGenie, PagerDuty, and the rest), mobile symbolication and JavaScript error settings, request naming and merged services, multi-dimensional analysis saved views, account management (users, groups, permissions), tags and custom entity names, and process-grouping rules — which must be migrated *before* the upgrade, not after. Budget for this explicitly: it is the remainder from §1 that takes most of the effort.
 
 Source: [Migrate configuration (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg#settings-that-require-manual-migration).
 
@@ -441,6 +449,8 @@ smartscapeNodes "BROWSER_MONITOR", "HTTP_MONITOR", "NETWORK_AVAILABILITY_MONITOR
 
 // Counting BROWSER_MONITOR alone misses HTTP and network-availability monitors, so a
 // migration check could pass with half the monitors missing. Compare per type.
+// A type with no monitors produces NO row (not a 0) — treat a missing row as 0 when
+// comparing source and target.
 //
 // Classic form — still functional, and a genuine fallback (one query per type):
 //   fetch dt.entity.synthetic_test        // browser
@@ -547,8 +557,8 @@ def validate_migration(source_url, source_token, target_url, target_token):
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Missing configs | Schema not exported | Export specific schema |
-| Deploy errors | Entity ID invalid | Use selectors instead |
+| Missing configs | Schema not exported, or platform types skipped for lack of platform credentials | Export the specific schema; check the download log for `Skipped downloading` warnings |
+| Deploy errors | Entity ID invalid | Map IDs to the target (§3 Option 2), or use an entity selector where the schema accepts one |
 | Dashboard empty | Data not migrated | Expected (historic data doesn't migrate) |
 | Alerts not firing | Credential issues | Re-enter webhook credentials |
 | Synthetic failing | Location mismatch | Update location IDs |

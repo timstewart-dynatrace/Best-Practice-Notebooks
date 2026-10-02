@@ -1,6 +1,6 @@
 # AUTOM-99: Best Practice Summary
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 This notebook consolidates every actionable best practice from the AUTOM series (notebooks 01-09) into a single reference. Each practice is definitive: it tells you exactly what to set, not what to consider.
 
@@ -45,7 +45,9 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Separate tokens per environment | Create distinct tokens for dev, staging, and production tenants. Never share tokens across environments. | Critical |
 | Rotate tokens on a schedule | Set a rotation cadence (e.g., 90 days). For short-lived tokens, retrieve from Vault at pipeline runtime. | Recommended |
 | Prefer Platform Tokens over classic Access Tokens | Platform Tokens scope to the user's existing permissions and simplify token management. | Recommended |
-| Use OAuth for CI/CD service accounts | OAuth clients operate with independent scopes, making them suitable for pipelines without tying to a human user. | Recommended |
+| Authenticate pipelines as a service user | Issue a platform token for a service user (AUTOM-96), or create an OAuth client whose subject user is that service user — never a person's own credentials. Account IAM resources need an OAuth client: platform tokens can't be used for IAM (Account Management). | Recommended |
+
+> <sub>**Sources:** [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients) — *"This needs to be an active user, and either a service user or any user with account-user-management permission."*; [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"They can be assigned to the user creating them or to a service user that the creating user has access to."*; [Provider configuration (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"Platform tokens can't be used for IAM (Account Management) or classic resources."*</sub>
 
 ---
 
@@ -58,9 +60,11 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Discover schemas before creating objects | Call `GET /api/v2/settings/schemas` to find the correct `schemaId`, then `GET /api/v2/settings/schemas/{schemaId}` for field requirements. | Critical |
 | Use bulk POST for multiple objects | Send an array of objects in a single `POST /api/v2/settings/objects` call instead of individual requests. | Recommended |
 | Check before create (idempotency) | Query for existing objects by `schemaIds` and `scopes` before creating. Use `PUT` for updates (idempotent), not `POST`. | Recommended |
-| Implement exponential backoff on 429 | Retry with increasing delay when rate-limited. Stay under 100 requests/minute for bulk operations. | Recommended |
+| Implement exponential backoff on 429 | Retry with increasing delay when rate-limited, and throttle bulk operations client-side. Dynatrace documents no fixed request rate: `429` means the environment's request thread pool and its queue are full, so the limit depends on load. | Recommended |
 | Track object IDs for lifecycle management | Store returned `objectId` values for subsequent update and delete operations. | Recommended |
 | Review existing objects as examples | Before writing new config, `GET /api/v2/settings/objects?schemaIds=<schema>` to see the structure of existing objects in your tenant. | Optional |
+
+> <sub>**Sources:** [Access limit (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit) — *"You reach the limit when both thread pool and its queue are full or the request times out in the queue (timeout is 10 seconds)."*</sub>
 
 ---
 
@@ -87,18 +91,20 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
-| Pin the provider version | `version = "~> 1.91"` in `required_providers` block. Never use unpinned versions. | Critical |
+| Pin the provider version | `version = "~> 1.105"` in `required_providers` block (AUTOM-04), and commit `.terraform.lock.hcl` so every run uses the same provider build (AUTOM-96). Never use unpinned versions. | Critical |
 | Use remote state storage | Configure `backend "s3"` or `terraform.cloud` block. Never use local state for teams. | Critical |
-| Enable state locking | Use S3+DynamoDB, Terraform Cloud, or equivalent to prevent concurrent applies. | Critical |
+| Enable state locking | Use the S3 backend with `use_lockfile = true` (Terraform 1.11+; DynamoDB-based locking is deprecated), HCP Terraform, or an equivalent locking backend to prevent concurrent applies. | Critical |
 | Always run `terraform plan` before `terraform apply` | Review the plan output for every change. Automate plan-as-PR-comment in CI. | Critical |
-| Use dual auth for full resource coverage | Configure both `dt_api_token` (for Synthetics/SLOs) and `client_id`/`client_secret` (for Gen3/IAM). The provider routes each resource to the correct auth method. | Critical |
+| Use dual auth for full resource coverage | Configure both `dt_api_token` (for Synthetics and the classic `dynatrace_slo_v2`) and a platform token or OAuth client (for Gen3 resources, including `dynatrace_platform_slo`; OAuth `client_id`/`client_secret`/`account_id` for IAM). The provider routes each resource to the correct auth method. | Critical |
 | Use modules for reusable patterns | Create modules for standard patterns (e.g., `modules/slo/`, `modules/problem-routing/` — see AUTOM-09 §5; classic `modules/alerting-profile/`-style modules only while the tenant is unupgraded). | Recommended |
 | Use variable validation in modules | Add `validation` blocks to enforce naming, environment values, and delay constraints at module input. | Recommended |
-| Use workspaces for multi-environment | Create `development`, `staging`, `production` workspaces. Reference `terraform.workspace` in locals for env-specific values. | Recommended |
+| Use a directory per environment | `envs/dev/`, `envs/staging/`, `envs/prod/`, each with its own backend and credentials (AUTOM-09 §6). CLI workspaces are not appropriate when environments need separate credentials and access controls. | Recommended |
 | Import existing resources into state | Write the HCL block first, then `terraform import <resource> "<object-id>"`. Never recreate what already exists. | Recommended |
 | Use `terraform state rm` to detach without deleting | When you need to stop managing a resource without destroying it. | Recommended |
 | Format code with `terraform fmt` | Run before every commit for consistent HCL formatting. | Recommended |
 | Use the export utility for brownfield adoption | Run `DYNATRACE_TARGET_FOLDER=./exported ./terraform-provider-dynatrace -export -ref -id` to generate HCL from existing configs (the output folder comes from `DYNATRACE_TARGET_FOLDER`; there is no `-target-folder` flag). | Optional |
+
+> <sub>**Sources:** [S3 backend (Terraform docs)](https://developer.hashicorp.com/terraform/language/backend/s3) — *"DynamoDB-based locking is deprecated and will be removed in a future minor version."*; [Terraform v1.11.0 release notes (HashiCorp GitHub)](https://github.com/hashicorp/terraform/releases/tag/v1.11.0) — *"S3 native state locking is now generally available."*; [Workspaces (Terraform docs)](https://developer.hashicorp.com/terraform/language/state/workspaces) — *"Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls."*</sub>
 
 ---
 
@@ -129,7 +135,7 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 |----------|----------------|----------|
 | Use environment variables for credentials | Set `DT_URL` and `DT_API_TOKEN` as environment variables. Never pass tokens as function arguments or config literals. | Critical |
 | Handle paginated responses | Always iterate through all pages. Check for `nextPageKey` in responses and loop until exhausted. | Critical |
-| Implement rate limiting | Use a rate-limiting decorator/wrapper (e.g., max 50 requests/second). Respect `429` responses with exponential backoff. | Recommended |
+| Implement rate limiting | Throttle client-side with a rate-limiting decorator/wrapper (AUTOM-06) and back off exponentially on `429`. Dynatrace documents no fixed request rate — the limit depends on load (§2). | Recommended |
 | Use type-safe SDK clients | Use the TypeScript `@dynatrace-sdk/*` clients (e.g., `@dynatrace-sdk/client-query`) in Dynatrace apps and functions. Dynatrace publishes no Python SDK package — Python automation calls the REST APIs directly. | Recommended |
 | Wrap API calls in error handlers | Catch errors around every call; log the HTTP status and message (`requests`: `raise_for_status()`). Re-raise what you cannot handle. | Recommended |
 | Add structured logging | Log request method, endpoint, status code, and duration for every API call. | Recommended |
@@ -183,15 +189,17 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
-| Export before migrating | Run `monaco download` or `terraform-provider-dynatrace -export` on the source tenant. Keep the full backup. | Critical |
-| Replace hardcoded entity IDs with selectors | Dashboards and alerting profiles contain entity IDs. Replace with entity selectors (e.g., `type(SERVICE),tag(environment:production)`) before deploying to target. | Critical |
-| Validate counts after each migration step | Use the Settings API: `GET /api/v2/settings/objects?schemaIds=<schema>` to compare object counts between source and target tenants. Note: `fetch dt.settings` is not valid DQL. | Critical |
+| Export before migrating | Run `monaco download` (with an access token **and** a platform token, or platform types are skipped with only a log warning) or `terraform-provider-dynatrace -export` (naming workflows, segments, documents and platform SLOs explicitly — they are excluded by default) on the source tenant. Keep the full backup. | Critical |
+| Re-map hardcoded entity IDs | Entity IDs do not carry over. Use an entity selector only where the target schema has an `entitySelector` field; otherwise map source IDs to target IDs or parameterise them per environment (AUTOM-08 §3). | Critical |
+| Validate counts after each migration step | Compare per-type config counts between two `monaco download`s — source and target, same credentials including a platform token (AUTOM-08 §6). Settings API counts cover classic schemas only, and only while both tenants are on the same generation. Note: `fetch dt.settings` is not valid DQL. | Critical |
 | Test migration in a non-production tenant first | Deploy exported config to a dev/test tenant before touching production. | Critical |
 | Re-enter credentials manually | Credential Vault entries, API tokens, SSL certificates, and cloud integration secrets do not migrate. Re-create them in the target. | Critical |
-| Use Monaco for SaaS-to-SaaS migration | Download from source, edit manifests to point at target, validate, dry-run, deploy. | Recommended |
-| Use SaaS Upgrade Assistant for Managed-to-SaaS | Access via Apps in your Dynatrace account. Provides automated discovery, compatibility checks, and progress tracking. | Recommended |
+| Use Monaco for SaaS-to-SaaS migration | Download from source; write a target manifest with `auth.token` plus `auth.platformToken` (or `auth.oAuth`) whose project path is the downloaded `project/` folder; `monaco deploy --dry-run`; deploy (AUTOM-08 §3). | Recommended |
+| Use SaaS Upgrade Assistant for Managed-to-SaaS | Install it from Dynatrace Hub in the target SaaS environment, then upload the environment export from the Managed Cluster Management Console (Environments → Export configuration). It tracks progress, flags failed configurations, and supports bulk edit and partial deployment (AUTOM-08 §5). | Recommended |
 | Document non-portable configurations | Keep a checklist of configs that need manual re-creation: credentials, historic data, private locations, cloud integrations. | Recommended |
 | Use Terraform export for brownfield imports | Export existing configs to HCL, then manage via Terraform going forward. | Optional |
+
+> <sub>**Sources:** [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"Choose which configurations you want to migrate and run partial deployment."*; [Manage resources — auth section (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Access tokens and platform tokens are not interchangeable."*</sub>
 
 ---
 
@@ -204,7 +212,7 @@ Use this as a checklist when designing, implementing, or auditing Dynatrace conf
 | Repeatable config deployments with GitOps | Monaco | Critical |
 | Full IaC with state management and drift detection | Terraform | Critical |
 | Event-driven automation and auto-remediation | Dynatrace Workflows | Critical |
-| Custom reporting, complex logic, or integrations | SDK (TypeScript or Python) | Critical |
+| Custom reporting, complex logic, or integrations | TypeScript `@dynatrace-sdk/*` (apps, functions) or the REST APIs (Python `requests`) — there is no official Python SDK | Critical |
 | Tenant-to-tenant migration | Monaco (download/deploy pattern) | Critical |
 | Managed-to-SaaS migration | SaaS Upgrade Assistant | Recommended |
 | AI-assisted querying and triage | Dynatrace MCP Server | Optional |
@@ -233,30 +241,30 @@ Key GitHub repositories organized by tool, providing starter templates, working 
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.29.1 at time of writing, 09/2026) |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 9 Monaco starter templates, pipeline observability configs, CI validation scripts |
+| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.30.0, released 09/23/2026, at time of writing) |
+| [community-examples — configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | Monaco samples, e.g. `basic-templates-monaco`, pipeline-observability and access-control configs. Replaces the archived `dynatrace-configuration-as-code-samples` repo |
 | [easytrade](https://github.com/Dynatrace/easytrade) | Real-world Monaco project structure (manifest.yaml, detection rules, workflows) |
-| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | GUI tool for tenant-to-tenant config migration |
+| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | **Archived, no longer maintained** — former GUI tool for tenant-to-tenant config migration; historical reference only |
 | [monaco-self-paced-exercises](https://github.com/dynatrace-ace/monaco-self-paced-exercises) | 6 structured hands-on exercises |
 
 ### Terraform Repositories
 
 | Repository | Description |
 |------------|-------------|
-| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.104.1 released 09/10/2026 at time of writing — check the registry for newer) with export capability |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | 10 Terraform starter templates, reusable modules, DQL data source, IAM onboarding |
+| [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.105.0 released 09/23/2026 at time of writing — check the registry for newer) with export capability |
+| [community-examples — configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | Terraform samples, e.g. `basic-templates-terraform`, `terraform_modules`, `terraform_dql_example`, `terraform_team_onboarding`, `iam_tf_sample` |
 
 ### CI/CD & Platform Engineering
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) | SRG + Events CLI for CI/CD pipelines (v1.0.3) |
+| [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) | **Archived, no longer maintained** — former SRG + Events CLI for CI/CD pipelines; its README points to [dtctl](https://github.com/dynatrace-oss/dtctl) for similar use cases |
 | [platform-engineering-demo](https://github.com/dynatrace-perfclinics/platform-engineering-demo) | Full IDP reference: ArgoCD + Backstage + Keptn + Dynatrace |
 | [demo-crossplane](https://github.com/Dynatrace/demo-crossplane) | Crossplane + Terraform GitOps pattern |
 | [monaco-demo](https://github.com/dt-demos/monaco-demo) | Working GitHub Actions workflow for Monaco deploy |
 | [obslab-release-validation](https://github.com/Dynatrace/obslab-release-validation) | Release validation with k6, business events, and SRG |
 
-> **Migration note:** The `Dynatrace/community-examples` repository has an empty `configuration-as-code/` directory with a note that CaC samples will migrate from `dynatrace-configuration-as-code-samples` in a future update. Reference both repos until the migration completes.
+> **Archive status checked 10/02/2026.** `dynatrace-configuration-as-code-samples`, `Dynatrace-Config-Manager` and `dynatrace-automation-tools` are archived. The [samples repo's README (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) says *"They now live in Dynatrace Community Examples"*, under its `configuration-as-code/` folder — use that folder instead.
 
 ---
 

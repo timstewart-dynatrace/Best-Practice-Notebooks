@@ -247,13 +247,14 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Multiple aggregations
+// dt.service.name is set on every span, whatever the ingest source
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize 
+| summarize {
     request_count = count(),
     avg_duration = avg(duration),
-    max_duration = max(duration),
-    by: {service.name}
+    max_duration = max(duration)
+  }, by: {dt.service.name}
 | sort request_count desc
 | limit 20
 ```
@@ -262,10 +263,10 @@ fetch spans, from: now() - 1h
 // Conditional counting
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize
+| summarize {
     total = count(),
-    errors = countIf(span.status_code == "error"),
-    by: {service.name}
+    errors = countIf(span.status_code == "error")
+  }, by: {dt.service.name}
 | fieldsAdd error_rate = 100.0 * errors / total
 | sort error_rate desc
 | limit 20
@@ -299,7 +300,7 @@ fetch logs, from: now() - 1h
 // Sort by multiple fields
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize request_count = count(), by: {service.name}
+| summarize request_count = count(), by: {dt.service.name}
 | sort request_count desc
 | limit 10
 ```
@@ -307,7 +308,7 @@ fetch spans, from: now() - 1h
 ```dql
 // Find slowest spans
 fetch spans, from: now() - 1h
-| fields span.name, service.name, duration
+| fields span.name, dt.service.name, duration
 | sort duration desc
 | limit 10
 ```
@@ -368,7 +369,7 @@ fetch spans, from: now() - 1h
     requests = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms
-  }, by: {service.name}
+  }, by: {dt.service.name}
 | sort requests desc
 | limit 20
 ```

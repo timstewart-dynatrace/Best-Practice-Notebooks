@@ -25,9 +25,11 @@ Before starting this notebook, ensure you have:
 | Requirement | Description |
 |-------------|-------------|
 | Monaco CLI | Installed from the GitHub releases binary (Dynatrace publishes no Homebrew formula) |
-| Platform token or OAuth client | For platform configuration — SLOs (`slo:slos:read` / `slo:slos:write`), workflows, documents, segments, buckets |
-| API Token | Token with `settings.read`, `settings.write` (Settings 2.0), plus `ReadConfig`, `WriteConfig` only if you still manage classic Configuration API objects |
-| Tenant URL | Your Dynatrace SaaS tenant URL |
+| Platform token or OAuth client | Always `app-engine:apps:run`, `settings:objects:read`, `settings:objects:write` and `settings:schemas:read` — once a platform credential is configured, Monaco sends Settings 2.0 through it. Add the scopes for each platform type you manage: SLOs need `slo:slos:read`, `slo:slos:write` and `slo:objective-templates:read`; workflows, documents, segments and buckets are listed on the access-handling page |
+| API Token | `DataExport` (always), `settings.read` / `settings.write` (used for Settings 2.0 only when no platform credential is configured), plus `ReadConfig` / `WriteConfig` for classic Configuration APIs |
+| Tenant URL | The **platform** URL, `https://<env-id>.apps.dynatrace.com`, whenever a platform token or OAuth client is used |
+
+> <sub>**Sources:** [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — `app-engine:apps:run`: *"This permission is required to access Dynatrace Platform metadata endpoints."*; [Monaco API support and access handling (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling) — per-type scopes; [client set (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/clientset.go). **Derived:** Settings 2.0 through the platform credential is read from that file at v2.30.0, which builds the classic settings client only when no platform credential is configured.</sub>
 
 ---
 
@@ -59,10 +61,12 @@ By the end of this notebook, you will:
 | Aspect | Monaco | Settings API |
 |--------|--------|---------------|
 | Format | YAML files | JSON payloads |
-| State management | Implicit (by name) | Manual tracking |
+| State management | Implicit — the config coordinate (`project`/`type`/`id`); classic APIs match by name | Manual tracking |
 | Multi-tenant | Built-in support | Custom scripting |
-| Dry run | Yes (`--dry-run`) | No |
-| Delete orphans | Yes (`delete` command) | Manual |
+| Dry run | `--dry-run` — structure and references only, no API calls | `validateOnly=true` — server-side validation of the payload, nothing saved |
+| Delete | The entries listed in a `delete.yaml` file (`delete` command) | Manual |
+
+> <sub>**Sources:** [Monaco configuration YAML reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas) — *"The name property isn't used to identify Dynatrace objects. Instead, the configuration's coordinate, a combination of project, type, and configuration ID, or originObjectId, if present, is used."*; [Settings API — POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"the request runs only validation of the submitted settings objects, without saving them."*</sub>
 
 > **Already a Terraform shop?** See **AUTOM-01 §5: When a Terraform Shop Should Add Monaco** for the four patterns where Monaco still earns its place — most commonly bulk download from an existing tenant, multi-tenant identical-config deployment, and app-team self-service without state management.
 
@@ -99,12 +103,16 @@ monaco version
 Create environment variables for authentication:
 
 ```bash
-export DT_TENANT_URL="https://{tenant-id}.live.dynatrace.com"
+export DT_TENANT_URL="https://<env-id>.apps.dynatrace.com"   # platform URL, not .live.
 export DT_API_TOKEN="<your-api-token>"
 export DT_PLATFORM_TOKEN="<your-platform-token>"   # SLOs, workflows, documents, segments, buckets
 ```
 
+With a platform token or OAuth client in play, the URL must be the **platform** (`.apps.`) URL: Monaco first asks it for the environment's classic URL (that lookup is what needs `app-engine:apps:run`) and sends access-token calls there itself. A `.live.` URL fails with *"make sure you are using a Dynatrace Platform URL and not a Dynatrace Classic URL when authenticating with an OAuth client or platform token"*. Only a run with an access token alone takes the classic URL directly.
+
 Monaco never takes a secret on the command line. Both the manifest and the `--token` download flag take the **name** of the environment variable that holds the token (`DT_API_TOKEN`), not its value.
+
+> <sub>**Sources:** [metadata client (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/metadata/metadata.go) — the error quoted above; [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — every manifest example uses `.apps.dynatrace.com`.</sub>
 
 ---
 
@@ -116,10 +124,11 @@ Download all configurations from your tenant:
 monaco download \
   --url "$DT_TENANT_URL" \
   --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
   --output-folder ./downloaded-config
 ```
 
-`--token` names the environment variable (no `$`). An access token covers settings and classic configuration APIs; to also download platform configurations (workflows, documents, buckets, segments), add `--platform-token <VAR_NAME>` or the `--oauth-client-id` / `--oauth-client-secret` pair — access tokens and platform tokens are not interchangeable.
+`--token` and `--platform-token` name environment variables (no `$`). The access token covers the classic Configuration APIs; the platform token — or the `--oauth-client-id` / `--oauth-client-secret` pair — covers platform configurations (SLOs, workflows, documents, buckets, segments) and, once given, Settings 2.0 too. Access tokens and platform tokens are not interchangeable. Dropping the platform token limits the download to Settings 2.0 and classic configurations, and `--url` must then be the classic `.live.` URL.
 
 Download only the platform configuration types — SLOs, segments, workflows and documents. The `--only-*` flags can be combined (Monaco 2.23.1+):
 
@@ -134,7 +143,7 @@ monaco download \
 
 The full set of `--only-*` flags is `--only-settings`, `--only-apis`, `--only-slo-v2`, `--only-segments`, `--only-automation`, `--only-documents`, `--only-buckets` and `--only-openpipeline` (read from the download command's source, `cmd/monaco/download/download_command.go`, at v2.30.0). `--only-openpipeline` is marked **Deprecated** in the [Monaco command reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas): OpenPipeline configuration is Settings 2.0 objects, so download it with `--only-settings` or `--settings-schema` with each `builtin:openpipeline.*` schema in use, plus `--admin-access` for pipelines other users own.
 
-**Settings owned by other users (Monaco CLI 2.30.0+).** A download returns the settings objects the credential's user can see. For OpenPipeline, `--admin-access` also returns pipelines other users own — the release note: *"enabling this flag will also download configurations of different owners (other than the user that is assigned to the platform token or OAuth client). Requires `settings:objects:admin`."* The flag applies to owner-based OpenPipeline schemas only (`builtin:openpipeline.*`); on older CLI versions there is no equivalent. See [Using a Download as a Backup](#using-a-download-as-a-backup) for what else a download leaves out.
+**Settings owned by other users (Monaco CLI 2.30.0+).** A download returns the settings objects the credential's user can see. For OpenPipeline, `--admin-access` also returns pipelines other users own — the release note: *"enabling this flag will also download configurations of different owners (other than the user that is assigned to the platform token or OAuth client). Requires `settings:objects:admin`."* — in addition to the `settings:objects:read` scope every download needs. The flag applies to owner-based OpenPipeline schemas only (`builtin:openpipeline.*`); on older CLI versions there is no equivalent. See [Using a Download as a Backup](#using-a-download-as-a-backup) for what else a download leaves out.
 
 ```bash
 monaco download \
@@ -153,6 +162,7 @@ monaco download \
 monaco download \
   --url "$DT_TENANT_URL" \
   --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
   --output-folder ./downloaded-config \
   --settings-schema builtin:management-zones,builtin:tags.auto-tagging
 ```
@@ -167,11 +177,7 @@ monaco download \
 
 ```
 dynatrace-config/
-├── manifest.yaml              # Project manifest
-├── environments/
-│   ├── development.yaml       # Dev environment config
-│   ├── staging.yaml           # Staging config
-│   └── production.yaml        # Production config
+├── manifest.yaml              # Projects and target environments (environmentGroups)
 └── projects/
     └── my-project/
         ├── slo-v2/                # service-level objectives (modern SLO app)
@@ -188,7 +194,7 @@ Classic estates add `management-zones/`, `auto-tagging/` and `alerting-profiles/
 
 ### Manifest File
 
-The `manifest.yaml` defines your project:
+The `manifest.yaml` defines your projects **and** your environments — Monaco v2 has no separate environment files:
 
 ```yaml
 manifestVersion: 1.0
@@ -220,7 +226,7 @@ environmentGroups:
             name: DT_PROD_PLATFORM_TOKEN
 ```
 
-`url` accepts `type: environment` + `value: <VAR_NAME>`, but every `auth` entry takes only `name: <VAR_NAME>` — Monaco always loads secrets from environment variables. `platformToken` (Monaco 2.24.0+) — or an `oAuth` client in its place — is what lets the project manage SLOs, workflows, documents, buckets and segments; drop it only for a project that manages Settings 2.0 and classic configuration alone.
+`url` accepts `type: environment` + `value: <VAR_NAME>`, but every `auth` entry takes only `name: <VAR_NAME>` — Monaco always loads secrets from environment variables. `platformToken` (Monaco 2.24.0+) — or an `oAuth` client in its place — is what lets the project manage SLOs, workflows, documents, buckets and segments; drop it only for a project that manages Settings 2.0 and classic configuration alone. With `platformToken` or `oAuth` set, each `url` variable holds the platform (`.apps.`) URL.
 
 ---
 
@@ -438,7 +444,7 @@ monaco deploy manifest.yaml --dry-run
 
 ### Delete Configurations
 
-Remove configurations not in your project (orphans). The manifest is passed via `--manifest`, not as a positional argument:
+Remove the configurations listed in a delete file — `delete` does not look for orphans; it deletes exactly what the file names. The manifest is passed via `--manifest`, not as a positional argument, and there is **no `--dry-run`** for `delete`:
 
 ```bash
 monaco delete --manifest manifest.yaml --file delete.yaml
@@ -458,6 +464,8 @@ delete:
 
 Every non-classic entry needs **`project` and `id` together** (the Monaco config coordinate) or an `objectId` on its own; Monaco's delete-file loader rejects an entry with `id` and no `project`. The `type` is the config type (`slo-v2`, `segment`, `workflow`, `document`, `bucket`) or, for Settings 2.0, the schema ID.
 
+> <sub>**Sources:** [Monaco commands reference (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — *"As input, the delete command requires two YAML files: The manifest file that specifies the relevant Dynatrace environments. The deletefile that specifies the relevant configurations."*; [delete command (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/delete/command.go) — flags `--manifest`, `--file`, `--group`, `--environment` only.</sub>
+
 ---
 
 <a id="using-a-download-as-a-backup"></a>
@@ -473,7 +481,7 @@ Every non-classic entry needs **`project` and `id` together** (the Monaco config
 | **OpenPipeline owned by other users** | Without `--admin-access` (Monaco CLI 2.30.0+), only the credential user's pipelines are returned | Add `--admin-access` with `settings:objects:admin`. Back up OpenPipeline through `settings`: the `openpipeline` type *"is deprecated and has been moved to Settings"* |
 | **Other settings owned by other users** | Objects created with `allUsers: none` are visible only to their owner, and `--admin-access` covers OpenPipeline schemas only | In community practice, run the download as a dedicated service identity and have owners share objects with it — then compare object counts per schema against the UI before trusting the export |
 | **Documents** | *"Monaco does not download Ready-made documents."* Documents the credential cannot see are not returned, and a public document the Monaco user does not own may fail to redeploy | Ready-made documents ship with the platform. For the rest, transfer ownership of shared documents to the backup identity, or accept that private documents stay with their owners |
-| **Account resources** | Users, service users, groups and policies are a separate command; *"existing commands like `monaco deploy` ignore any account configuration"* | Run `monaco account download` alongside the environment download. The current account example shows no boundary type — verify that boundaries come back before relying on them |
+| **Account resources** | Users, service users, groups and policies are a separate command; *"existing commands like `monaco deploy` ignore any account configuration"* | Run `monaco account download` alongside the environment download. Boundaries are included from Monaco 2.26.0 (*"Account management: deploy, download, and delete boundaries"*) |
 | **Things with no Monaco type** | The type-fields page (read 09/29/2026) lists no type for lookup tables, installed Hub or custom apps, access tokens, platform tokens or OAuth clients | Record them in the runbook; reinstall apps and re-mint tokens and clients on restore |
 | **Anything that is not configuration** | Grail data (a `bucket` config is the bucket's definition, not its contents), Davis baselines and problem history | Not recoverable from any configuration export — see FAQ-25 on accumulated state |
 
@@ -503,6 +511,7 @@ Commit both folders together with the gap list above. Checking the export agains
 > - <sub>[Monaco YAML configuration — type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"Monaco does not download Ready-made documents."*; *"This resource is deprecated and has been moved to Settings."*; *"existing commands like monaco deploy ignore any account configuration"*</sub>
 > - <sub>[Default settings download filters (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/settings/filter.go) — *"builtin:host.monitoring.mode is not reliable during download"*</sub>
 > - <sub>[Monaco v2.30.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0) — *"Requires `settings:objects:admin`."*</sub>
+> - <sub>[Monaco v2.26.0 release notes (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.26.0) — *"Account management: deploy, download, and delete boundaries"*</sub>
 > - <sub>**Derived:** the "no Monaco type" row is the absence of those items from the type-fields page's type list, read 09/29/2026.</sub>
 
 ---
@@ -519,7 +528,7 @@ Commit both folders together with the gap list above. Checking the export agains
 | 5 | monaco deploy --dry-run (CI) | Pipeline gate before deploy |
 | 6 | monaco deploy | Apply changes |
 Target environments: dev / staging / prod in one manifest, per-environment values via environmentOverrides.
-Commands: download (pull config), generate (deletefile, graph, schema), deploy (apply), deploy --dry-run (structure check, no API calls), delete (remove managed configs), account (account IAM resources).
+Commands: download (pull config), generate (deletefile, graph, schema), deploy (apply), deploy --dry-run (structure check, no API calls), delete (remove listed configs), account (account IAM resources).
 -->
 
 ![Monaco Workflow](images/03-monaco-workflow_930x500.png)
@@ -602,7 +611,8 @@ Monaco v2 has no per-config `group:` key. Two different things are grouped, and 
 - **Environment groups** (`environmentGroups` in the manifest) group *target environments*. `--group` deploys to every environment in the named group; it does not select configs.
 
 ```bash
-# Deploy only the web-application project, to every environment in the "production" environment group
+# Assumes a manifest with a "web-application" project and a "production" environment group
+# (the §3 example has neither — there it would be --project my-project --group default)
 monaco deploy manifest.yaml --project web-application --group production
 ```
 
@@ -654,7 +664,7 @@ For the **full sequenced path** from zero to a working pipeline, see **AUTOM-01 
 | Scenario | Why Terraform wins |
 |----------|--------------------|
 | Cross-system orchestration (cloud + Dynatrace + Git in one apply) | Monaco is Dynatrace-only |
-| State management + drift detection on critical resources | Monaco has no state file; drift detection happens via plan-reapply rather than state diffing |
+| State management + drift detection on critical resources | Monaco has no state file and no drift view; a redeploy writes the template over whatever was changed in the UI |
 | Part of larger IaC stack | Existing Terraform workflows extend naturally to Dynatrace |
 | Lifecycle protections (`prevent_destroy`, `ignore_changes`) | Monaco has no per-resource lifecycle policy |
 
@@ -675,7 +685,7 @@ For the framing of when a Terraform shop should *also* adopt Monaco (the reverse
 - [Monaco manifest and resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"the name value is the name of the environment variable that holds the secret, not the secret itself."*
 - [Install Monaco (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/installation/download-monaco)
 - [Monaco Documentation](https://github.com/dynatrace/dynatrace-configuration-as-code)
-- [Monaco Examples](https://github.com/Dynatrace/dynatrace-configuration-as-code)
+- [Configuration-as-code samples (Dynatrace GitHub)](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code)
 - [Configuration Schema Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas)
 
 ---
@@ -703,16 +713,16 @@ The following GitHub repositories provide starter templates, real-world examples
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.29.1 at time of writing, 09/2026 — check releases for newer) -- Go binary, Apache-2.0 |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | Official samples repo with 9 Monaco starter templates in `basic-templates-monaco` |
+| [dynatrace-configuration-as-code](https://github.com/Dynatrace/dynatrace-configuration-as-code) | Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026 — check releases for newer) -- Go binary, Apache-2.0 |
+| [community-examples / configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | Current home of the Monaco samples, including the 9 starter templates in `basic-templates-monaco`. The old `dynatrace-configuration-as-code-samples` repo is archived: *"The Dynatrace Configuration as Code samples are no longer maintained here."* |
 | [easytrade](https://github.com/Dynatrace/easytrade) | Demo microservices app with a working `monaco/` directory (manifest.yaml, detection rules, workflows) |
-| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | GUI tool for tenant-to-tenant config migration; complements Monaco for brownfield scenarios |
+| [Dynatrace-Config-Manager](https://github.com/Dynatrace/Dynatrace-Config-Manager) | **Archived** — *"This repository has been archived and is no longer maintained."* Historical reference only; use `monaco download` for tenant-to-tenant migration (AUTOM-08) |
 
-### Starter Templates (in `dynatrace-configuration-as-code-samples`)
+### Starter Templates (in `community-examples/configuration-as-code`)
 
 | Template Directory | What It Configures |
 |--------------------|--------------------|
-| `basic-templates-monaco` | Alerting, app detection, synthetic, maintenance window, management zones, ownership, notifications, SLOs |
+| `basic-templates-monaco` | Alerting, app detection, synthetic, maintenance window, management zones, ownership, notifications, SLOs — 8 of its 13 configs use schemas on the [removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) list (management zone, alerting profile, problem notification, maintenance window, classic SLO); use them as Monaco syntax examples, not as templates for a latest-Dynatrace tenant |
 | `learn-monaco-auto-tag` | Auto-tagging with Monaco |
 | `account-monaco-admin-access` | Admin access setup for Monaco |
 

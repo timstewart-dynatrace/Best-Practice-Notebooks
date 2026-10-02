@@ -58,7 +58,7 @@ Before starting this notebook, ensure you have:
 
 | Requirement | Description |
 |-------------|-------------|
-| CI/CD Platform | GitHub Actions, GitLab CI, or Jenkins |
+| CI/CD Platform | GitHub Actions, GitLab CI, Bitbucket Pipelines, Bamboo, or Azure DevOps |
 | Monaco or Terraform | One of the config-as-code tools |
 | Git Repository | For storing configurations |
 | Authentication | API Token + Platform Token for full coverage (see AUTOM-04) |
@@ -67,7 +67,7 @@ Before starting this notebook, ensure you have:
 
 ### Token Types Reminder
 
-As of Dynatrace Terraform provider **v1.88.0**, synthetic monitors and SLOs require a classic **API Token** (`dt0c01`). For full resource coverage in pipelines, use **Platform Token + API Token** together. See AUTOM-04: Terraform Provider for details.
+As of Dynatrace Terraform provider **v1.88.0**, synthetic monitors and classic SLOs (`dynatrace_slo`, `dynatrace_slo_v2`) require a classic **API Token** (`dt0c01`); the platform SLO resource `dynatrace_platform_slo` uses OAuth. For full resource coverage in pipelines, use **Platform Token + API Token** together. See AUTOM-04: Terraform Provider for details.
 
 ---
 
@@ -147,6 +147,8 @@ dynatrace-config/
 
 ### Environment Promotion
 
+The table and diagram show the GitFlow variant. The GitHub Actions, GitLab and Bitbucket pipelines in §3–§5 use a simpler trunk-based variant: a merge to `main` deploys to staging, then production behind a manual approval. To get the GitFlow mapping, add `develop` to the deploy trigger and run the production job only when `github.ref == 'refs/heads/main'`.
+
 ![Branch-to-Environment Mapping](images/07-gitflow-branch-env-mapping_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -180,7 +182,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Monaco
         run: |
@@ -216,7 +218,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Monaco
         run: |
@@ -236,7 +238,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Monaco
         run: |
@@ -277,7 +279,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -299,7 +301,7 @@ jobs:
       
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
-        uses: borchero/terraform-plan-comment@v2
+        uses: borchero/terraform-plan-comment@v3
         with:
           token: ${{ github.token }}
           planfile: tfplan
@@ -317,10 +319,12 @@ jobs:
 | Secret | Token Type | Covers |
 |--------|-----------|--------|
 | `DT_PLATFORM_TOKEN` | `dt0s16.xxxx` | Settings 2.0 + Gen3 Platform (workflows, documents, segments) |
-| `DT_API_TOKEN` | `dt0c01.xxxx` | Synthetic monitors, SLOs (v1.88.0 requirement) |
+| `DT_API_TOKEN` | `dt0c01.xxxx` | Synthetic monitors, classic SLOs (`dynatrace_slo`, `dynatrace_slo_v2`) — v1.88.0 requirement |
 | `DT_ENV_URL` | — | Tenant URL |
 
-> **Why combined auth?** A single API Token cannot manage Gen3 resources. A single Platform Token cannot manage synthetics/SLOs (removed in v1.88.0). Using both together gives the pipeline full coverage.
+> **Why combined auth?** A single API Token cannot manage Gen3 resources. A single Platform Token cannot manage synthetics or classic SLOs (OAuth removed for them in v1.88.0). Using both together gives the pipeline full coverage.
+
+> **Action versions (checked 10/02/2026).** GitHub's runners moved to Node 24 by default on June 16, 2026 and, per the [Node 20 deprecation notice (GitHub changelog)](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/), *"remove Node20 on September 23rd, 2026"*. The majors used in this notebook — `checkout@v7`, `setup-terraform@v4`, `terraform-plan-comment@v3`, `vault-action@v4`, `github-script@v9`, `slack-github-action@v4` — all declare `node24` in their `action.yml`; the older majors (`terraform-plan-comment@v2`, `vault-action@v3`, `github-script@v7`, `slack-github-action@v1`) declare `node20`.
 
 ---
 
@@ -346,10 +350,10 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Retrieve Dynatrace credentials from Vault
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
@@ -399,7 +403,11 @@ secret/
             └── client_secret
 ```
 
-> **Why Vault?** Static GitHub Secrets don't expire. If your organization uses 24-hour token rotation or needs audit trails for credential access, Vault provides runtime retrieval with automatic expiration and access logging.
+> **What Vault adds — and what it doesn't.** Vault moves the Dynatrace token out of the CI platform's secret store and logs each read. It does not make the token short-lived: `secret/data/…` is a KV v2 path, and the KV engine is *"a generic key-value store used to store arbitrary secrets"* — the Dynatrace token keeps whatever expiry you gave it when you created it. Only Vault's own login token is short-lived. For per-job expiry of the Dynatrace token itself, combine Vault with the minting pattern in §11.
+>
+> **Vault's JWT role and GitHub's `sub` claim.** If the `dynatrace-deployer` role binds on the token's `sub`, note that per the [immutable subject claims announcement (GitHub changelog)](https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/), *"All repositories created after July 15, 2026 will automatically use the new immutable subject claim format"* (for example `repo:octocat@123456/my-repo@456789:ref:refs/heads/main`); renames and transfers after that date switch too, and existing repositories change only if you opt in. A role bound to the old `repo:<owner>/<repo>:…` form silently stops matching for those repositories.
+>
+> <sub>**Sources:** [KV secrets engine (HashiCorp)](https://developer.hashicorp.com/vault/docs/secrets/kv), [Immutable subject claims for GitHub Actions OIDC tokens (GitHub changelog)](https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/).</sub>
 
 ---
 
@@ -425,11 +433,21 @@ allowed_resources := {
   "dynatrace_maintenance"
 }
 
+# resource_changes is flat across the root module and every child module;
+# planned_values.root_module.resources would miss anything declared in a module
 deny contains msg if {
-  resource := input.planned_values.root_module.resources[_]
-  startswith(resource.type, "dynatrace_")
-  not allowed_resources[resource.type]
-  msg := sprintf("Resource type '%s' is not in the allowlist", [resource.type])
+  some rc in input.resource_changes
+  rc.mode == "managed"
+  startswith(rc.type, "dynatrace_")
+  creates_or_updates(rc)
+  not allowed_resources[rc.type]
+  msg := sprintf("Resource type '%s' (%s) is not in the allowlist", [rc.type, rc.address])
+}
+
+# Deleting a disallowed resource is cleanup, not a violation
+creates_or_updates(rc) if {
+  some action in rc.change.actions
+  action in {"create", "update"}
 }
 ```
 
@@ -473,11 +491,14 @@ blocked_at_upgrade := {
 # (for metric events), dynatrace_platform_slo (for SLOs), dynatrace_automation_workflow (for alerting)
 
 deny contains msg if {
-  resource := input.planned_values.root_module.resources[_]
-  blocked_at_upgrade[resource.type]
+  some rc in input.resource_changes
+  rc.mode == "managed"
+  blocked_at_upgrade[rc.type]
+  # New resources only: existing classic config can still be maintained mid-migration
+  "create" in rc.change.actions
   msg := sprintf(
-    "'%s' uses a Settings schema that is removed at upgrade to the latest Dynatrace — see AUTOM-02 for the replacement path",
-    [resource.type]
+    "'%s' (%s) uses a Settings schema that is removed at upgrade to the latest Dynatrace — see AUTOM-02 for the replacement path",
+    [rc.type, rc.address]
   )
 }
 ```
@@ -496,26 +517,30 @@ package main
 # Resource types that carry a `tags` set must include an owner:<team> tag
 tagged_types := {"dynatrace_platform_slo"}
 
+# change.after is the planned state of each created or updated resource,
+# in the root module or any child module
 deny contains msg if {
-  resource := input.planned_values.root_module.resources[_]
-  tagged_types[resource.type]
-  not has_owner_tag(resource)
-  msg := sprintf("'%s' must carry an owner:<team> tag", [resource.address])
+  some rc in input.resource_changes
+  tagged_types[rc.type]
+  rc.change.after != null
+  not has_owner_tag(rc.change.after)
+  msg := sprintf("'%s' must carry an owner:<team> tag", [rc.address])
 }
 
-has_owner_tag(resource) if {
-  some tag in resource.values.tags
+has_owner_tag(after) if {
+  some tag in after.tags
   startswith(tag, "owner:")
 }
 
 # A Davis problem trigger with no owner entity tag matches every entity in the
 # environment — one team's route becomes an all-hands page
 deny contains msg if {
-  resource := input.planned_values.root_module.resources[_]
-  resource.type == "dynatrace_automation_workflow"
-  trigger := resource.values.trigger[_].event[_].config[_].davis_problem[_]
+  some rc in input.resource_changes
+  rc.type == "dynatrace_automation_workflow"
+  rc.change.after != null
+  trigger := rc.change.after.trigger[_].event[_].config[_].davis_problem[_]
   not trigger.entity_tags.owner
-  msg := sprintf("'%s' has a Davis problem trigger with no owner entity tag", [resource.address])
+  msg := sprintf("'%s' has a Davis problem trigger with no owner entity tag", [rc.address])
 }
 ```
 
@@ -537,11 +562,13 @@ deny contains msg if {
     conftest test tfplan.json --policy policy/
 ```
 
-> **The policies above use Rego v1 syntax** (`deny contains msg if { … }`, `if` on rule bodies). conftest switched its default in v0.60.0 — per its [v0.60.0 release notes (GitHub)](https://github.com/open-policy-agent/conftest/releases/tag/v0.60.0): *"We have set the default version of Rego syntax to v1. This is a breaking change if your Rego policies are not compatible with the v1 syntax."* Older `deny[msg] { … }` policies fail to parse on current conftest unless you pass `--rego-version v0`. (Rego here was converted by rule, not executed — run `conftest test` against a sample plan before adopting.)
+> **The policies above use Rego v1 syntax** (`deny contains msg if { … }`, `if` on rule bodies). conftest switched its default in v0.60.0 — per its [v0.60.0 release notes (GitHub)](https://github.com/open-policy-agent/conftest/releases/tag/v0.60.0): *"We have set the default version of Rego syntax to v1. This is a breaking change if your Rego policies are not compatible with the v1 syntax."* Older `deny[msg] { … }` policies fail to parse on current conftest unless you pass `--rego-version v0`.
 
-#### Sentinel (Terraform Enterprise / Cloud)
+> **Read `resource_changes`, not `planned_values.root_module.resources`.** Per the [Terraform JSON output format (HashiCorp)](https://developer.hashicorp.com/terraform/internals/json-format), resources declared in modules sit under `root_module.child_modules[*]`, so a policy that reads only `root_module.resources` silently passes everything in a module — and AUTOM-09's layout puts Dynatrace resources in modules. `resource_changes` lists every resource in one flat array with its `address`, `type`, `change.actions` and `change.after`, including deletes. The three policies above were run with conftest 0.70.0 against a sample plan containing root-module and child-module resources (10/02/2026) — still run `conftest test` against one of your own plans before adopting them.
 
-For teams using **TFE** (now HCP Terraform), Sentinel policies enforce governance at the workspace level:
+#### Sentinel (HCP Terraform / Terraform Enterprise)
+
+For teams on **HCP Terraform** (formerly Terraform Cloud) or **Terraform Enterprise**, Sentinel policies enforce governance at the workspace level:
 
 ```python
 # sentinel/restrict_resource_types.sentinel
@@ -566,9 +593,9 @@ main = rule {
 }
 ```
 
-> **The same caveat applies to the Sentinel `allowed_types` above** — all three entries are blocked at upgrade. Treat it as syntax, not as policy to adopt.
+> **Unlike the first Conftest allowlist, these six types carry forward at upgrade** — none of their schemas is on the removed-schemas list. Still adjust the list to what your teams actually create.
 
-> **Important — Sentinel Limitations:** Sentinel evaluates Terraform **plans** — it does not grant or restrict Dynatrace API access at runtime. It cannot reduce the permissions of a token that has broad scope. If a pipeline token can write all Synthetic monitors, Sentinel cannot narrow that. Use **Dynatrace IAM policies** (see **AUTOM-04: IAM Policy Management**) for platform-level access control, and Sentinel for pipeline-level governance. Sentinel only runs in **HCP Terraform** — it is not available in open-source Terraform, GitHub Actions, or plain CI runners. For non-HCP environments, use **OPA/Conftest** as shown above.
+> **Important — Sentinel Limitations:** Sentinel evaluates Terraform **plans** — it does not grant or restrict Dynatrace API access at runtime. It cannot reduce the permissions of a token that has broad scope. If a pipeline token can write all Synthetic monitors, Sentinel cannot narrow that. Use **Dynatrace IAM policies** (see **AUTOM-04: IAM Policy Management**) for platform-level access control, and Sentinel for pipeline-level governance. Sentinel runs only in **HCP Terraform** and **Terraform Enterprise** — it is not available in open-source Terraform, GitHub Actions, or plain CI runners. For those environments use **OPA/Conftest** as shown above; HCP Terraform can also run OPA policy sets natively — its [policy enforcement overview (HashiCorp)](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement) lists *"OPA: Open Policy Agent with Rego language"* among its frameworks.
 
 ---
 
@@ -588,11 +615,18 @@ on:
 jobs:
   detect-drift:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write      # the restricted default token cannot open issues
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
+        with:
+          # The default wrapper exits 0 when terraform exits 2, so PIPESTATUS[0]
+          # below would never see the drift code
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: terraform init
@@ -612,7 +646,7 @@ jobs:
 
       - name: Create Issue on Drift
         if: steps.drift.outputs.exitcode == '2'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -627,6 +661,10 @@ jobs:
 ```
 
 > **Exit codes:** `terraform plan -detailed-exitcode` returns `0` = no changes, `1` = error, `2` = drift detected. This lets your pipeline take different actions based on the result. Read it from `${PIPESTATUS[0]}`, not `$?`: after `… | tee`, `$?` is `tee`'s status, so the drift step would always report `0` and the issue would never be opened — a silent green. (GitHub's default `bash` shell supports `PIPESTATUS`.)
+
+> **Why `terraform_wrapper: false`.** `setup-terraform` installs a wrapper script as `terraform` unless told not to — the input *"Defaults to `true`"*. In [the v4.0.1 wrapper source (HashiCorp GitHub)](https://github.com/hashicorp/setup-terraform/blob/v4.0.1/wrapper/terraform.js), `if (exitCode === 0 || exitCode === 2) {` returns without failing, so the process exits `0` on drift. With the wrapper in place `PIPESTATUS[0]` is `0`, the issue step never runs, and drift goes unreported — the same silent green as the `$?` bug, by a different route. (The alternative is to keep the wrapper, drop the `tee`/`echo`, and read the wrapper's own `steps.drift.outputs.exitcode`.)
+
+> **Why the `permissions:` block.** Under the restricted default, `GITHUB_TOKEN` gets *"just read access for the contents and packages permissions"* ([Managing GitHub Actions settings (GitHub Docs)](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository)), so `issues.create` returns 403 and the drift is found but never reported.
 
 ---
 
@@ -650,7 +688,7 @@ on:
       terraform_version:
         required: false
         type: string
-        default: '1.6.0'
+        default: '1.14.5'   # pin what you tested; S3 use_lockfile needs 1.11+
     secrets:
       DT_ENV_URL:
         required: true
@@ -669,7 +707,7 @@ jobs:
       run:
         working-directory: ${{ inputs.working_directory }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -689,10 +727,12 @@ jobs:
 
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
-        uses: borchero/terraform-plan-comment@v2
+        uses: borchero/terraform-plan-comment@v3
         with:
           token: ${{ github.token }}
           planfile: tfplan
+          # defaults.run applies only to run: steps; the action defaults to "."
+          working-directory: ${{ inputs.working_directory }}
 
   apply:
     needs: plan
@@ -702,7 +742,7 @@ jobs:
       run:
         working-directory: ${{ inputs.working_directory }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -743,6 +783,8 @@ jobs:
       DT_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
       DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
 ```
+
+> **Plan comment working directory.** `defaults.run.working-directory` sets *"a default working directory for all run steps"* ([Workflow syntax (GitHub Docs)](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)) — it does not reach `uses:` steps. `terraform-plan-comment` has its own `working-directory` input (default `"."`), so it is passed explicitly above; without it the action looks for `tfplan` in the repository root.
 
 > **Multi-tenant pattern:** For organizations with 5+ tenants, the reusable workflow is called once per environment with different secrets, providing a consistent deployment experience across all tenants.
 
@@ -823,8 +865,8 @@ Bitbucket Cloud (bitbucket.org) ships **Bitbucket Pipelines** as the integrated 
 > The Terraform-provider landscape for Bitbucket Cloud is in active transition:
 >
 > - **`DrFaust92/bitbucket`** — the long-standing community provider — entered **maintenance mode** in March 2026. The maintainer is no longer using Bitbucket and has limited bandwidth for substantive changes.
-> - **Bitbucket App Passwords are being retired by Atlassian** in favor of API tokens (see [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/)). Check the current Atlassian deprecation notice for the exact cutover date — once it lands, `DrFaust92` users need to swap their `BITBUCKET_PASSWORD` from an App Password to an API token (workaround community-validated: use the Atlassian-account email as `BITBUCKET_USERNAME` + an API token as `BITBUCKET_PASSWORD`, with `-parallelism=2` to avoid throttling).
-> - **`FabianSchurig/bitbucket`** — a newer, actively-maintained provider — is the going-forward recommendation. It uses a "generic resources" architecture (resources expose Bitbucket Cloud API endpoints directly via typed core fields plus `request_body` for full API flexibility) and a simplified API-token-only auth. As of May 2026 it is at v0.15.x — **pre-1.0, with schema flux possible** — so the examples below should be verified against the [provider docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) at use time.
+> - **Bitbucket App Passwords are retired.** Atlassian's [app-password deprecation announcement (Atlassian)](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation) states that *"Integrations with app passwords will stop working entirely on June 9, 2026."* Existing `DrFaust92` configurations need an [API token (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) in place of the App Password (workaround community-validated: the Atlassian-account email as `BITBUCKET_USERNAME` + an API token as `BITBUCKET_PASSWORD`, with `-parallelism=2` to avoid throttling).
+> - **`FabianSchurig/bitbucket`** — a newer, actively-maintained provider — is the going-forward recommendation. It uses a "generic resources" architecture (resources expose Bitbucket Cloud API endpoints directly via typed core fields, and most also take `request_body` for full API flexibility) and authenticates with an Atlassian API token or a workspace/repository access token. The current release is v0.20.2 (08/21/2026) — **pre-1.0, with schema flux possible** — so verify the examples below against the [provider docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) at use time.
 >
 > The examples in this section use **`FabianSchurig/bitbucket`**. For teams with existing `DrFaust92` code, the [migration guide](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) covers resource-name mapping, auth changes, and path-parameter renames (`owner` → `workspace`, `repository` → `repo_slug`).
 
@@ -836,51 +878,47 @@ Bitbucket Cloud (bitbucket.org) ships **Bitbucket Pipelines** as the integrated 
 ```yaml
 image: atlassian/default-image:4
 
-definitions:
-  steps:
-    - step: &install-monaco
-        name: Install Monaco
-        script:
-          - curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
-          - chmod +x monaco
-          - mv monaco /usr/local/bin/
-
 pipelines:
   pull-requests:
     '**':
       - step:
-          <<: *install-monaco
           name: Validate Monaco config
           script:
+            # Anchor the install LINE, not the step: a step's own script: key replaces
+            # a merged one, and every step runs in a fresh container, so each step
+            # has to install Monaco itself.
+            - &install-monaco curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o /usr/local/bin/monaco && chmod +x /usr/local/bin/monaco
             - monaco deploy manifest.yaml --environment development --dry-run
 
   branches:
     main:
       - step:
-          <<: *install-monaco
           name: Deploy to staging
           deployment: staging
           script:
+            - *install-monaco
             - monaco deploy manifest.yaml --environment staging
 
       - step:
-          <<: *install-monaco
           name: Deploy to production
           deployment: production
           trigger: manual
           script:
+            - *install-monaco
             - monaco deploy manifest.yaml --environment production
 ```
+
+> **Why not a step anchor?** The common `- step: &install-monaco` + `<<: *install-monaco` pattern does not work here: with YAML merge keys, a key set in the mapping overrides the merged one, so each step's own `script:` replaces the install lines and every step fails with `monaco: command not found`. Anchoring the single install line and referencing it inside each `script:` list keeps the install in every step.
 
 Each step declared with `deployment: <env>` inherits that environment's deployment variables. The `trigger: manual` on the production step gates the deploy behind a manual confirmation in the Bitbucket UI.
 
 <a id="bitbucket-terraform"></a>
 ### Pipeline — Terraform with Combined Auth
 
-Mirrors the GitHub Actions Terraform pattern (§3.1) — Platform Token + API Token together for full Dynatrace resource coverage:
+Mirrors the GitHub Actions Terraform pattern (§3 *Terraform with Combined Auth*) — Platform Token + API Token together for full Dynatrace resource coverage:
 
 ```yaml
-image: hashicorp/terraform:1.6
+image: hashicorp/terraform:1.14
 
 pipelines:
   pull-requests:
@@ -921,9 +959,9 @@ The pipeline reads `DYNATRACE_ENV_URL`, `DYNATRACE_PLATFORM_TOKEN`, `DYNATRACE_A
 
 The **`FabianSchurig/bitbucket`** provider manages Bitbucket Cloud resources via the Cloud API. Architecture quirks worth knowing before reading the example:
 
-- **Typed core fields + `request_body` escape hatch.** Each resource has a few typed arguments for the most-common fields (`workspace`, `repo_slug`, `key`, `secured`, etc.) plus a `request_body` JSON string for full API payload flexibility. When a field you need is not surfaced as a typed argument, you set it via `request_body = jsonencode({...})`.
+- **Typed core fields + `request_body` escape hatch.** Each resource has a few typed arguments for the most-common fields (`workspace`, `repo_slug`, `key`, `secured`, etc.), and most also take a `request_body` JSON string for full API payload flexibility — when a field you need is not surfaced as a typed argument, you set it via `request_body = jsonencode({...})`. Not every resource has it: `bitbucket_commit_file` exposes only `workspace`, `repo_slug`, `commit` and `path`.
 - **Boolean fields are strings.** `secured = "true"`, `enabled = "true"` — typed as string, not bool. The generic-resource architecture preserves API string representations.
-- **Auth is API-token only.** Set the `token` argument on the provider (or `BITBUCKET_TOKEN` env var). No App Password, no OAuth.
+- **Auth: Atlassian API token or access token.** The provider *"authenticates via HTTP Basic Auth using an Atlassian API token"*, so set `BITBUCKET_USERNAME` (your Atlassian account email) **and** `BITBUCKET_TOKEN` (the API token). A workspace or repository access token needs `BITBUCKET_TOKEN` alone. No App Password.
 
 Key resources used in this section:
 
@@ -936,17 +974,17 @@ Key resources used in this section:
 | `bitbucket_deployment_variables` | Variable scoped to a deployment environment |
 | `bitbucket_pipeline_variables` | Repository-scoped variable (formerly `bitbucket_repository_variable` in DrFaust92) |
 | `bitbucket_workspace_pipeline_variables` | Workspace-scoped variable shared across repos |
-| `bitbucket_commit_file` | Commits a file (including `bitbucket-pipelines.yml`) — sparse typed schema, use `request_body` for content / branch / message |
+| `bitbucket_commit_file` | Wraps `POST /repositories/{workspace}/{repo_slug}/src`, but its schema has no argument for file content, branch or message — it cannot commit `bitbucket-pipelines.yml` (see below) |
 | `bitbucket_pipeline_schedules` | Scheduled pipeline runs |
 
 <a id="bitbucket-combined-workspace"></a>
 ### Combined Workspace — Bitbucket and Dynatrace in One Apply
 
-The load-bearing pattern: a single Terraform workspace provisions the Bitbucket repo, enables pipelines on it, creates deployment environments, sets the secured variables holding Dynatrace credentials, commits the `bitbucket-pipelines.yml` file, **and** stands up the Dynatrace configuration the pipeline will deploy. One `terraform apply` brings up the whole CI/CD-to-Dynatrace path.
+The load-bearing pattern: a single Terraform workspace provisions the Bitbucket repo, enables pipelines on it, creates deployment environments, sets the variables holding Dynatrace credentials, **and** stands up the Dynatrace configuration the pipeline will deploy. One `terraform apply` brings up the whole CI/CD-to-Dynatrace path except the `bitbucket-pipelines.yml` file itself, which goes in with the repository's first push (see *Ordering* below).
 
 **Why this is useful:** for net-new tenants or new app teams, you can codify the entire onboarding (repo, pipeline, Dynatrace tenant config) in a single artifact. The drift-detection story is also unified — one `terraform plan` shows drift in both Bitbucket and Dynatrace.
 
-> **Verify against current provider docs at use time.** The FabianSchurig provider is pre-1.0; some `request_body` shapes below (especially for `bitbucket_commit_file`) are best-effort against the May 2026 documentation. Confirm against the [registry docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) before applying.
+> **Verify against current provider docs at use time.** The FabianSchurig provider is pre-1.0. The configuration below passes `terraform validate` against FabianSchurig/bitbucket v0.20.2 and dynatrace-oss/dynatrace v1.105.0 (10/02/2026) — confirm against the [registry docs](https://registry.terraform.io/providers/FabianSchurig/bitbucket/latest/docs) before applying a newer version.
 
 **main.tf:**
 
@@ -955,7 +993,7 @@ terraform {
   required_providers {
     bitbucket = {
       source  = "FabianSchurig/bitbucket"
-      version = "~> 0.15"  # Pre-1.0; pin tightly until stable 1.x lands
+      version = "~> 0.20.2"  # Pre-1.0; pin tightly until stable 1.x lands
     }
     dynatrace = {
       source  = "dynatrace-oss/dynatrace"
@@ -964,10 +1002,10 @@ terraform {
   }
 }
 
-# Bitbucket provider — API token auth (App Passwords are being retired by Atlassian)
+# Bitbucket provider — Atlassian API token (App Passwords are retired)
 provider "bitbucket" {
-  # token read from BITBUCKET_TOKEN env var; alternatively set inline:
-  # token = var.bitbucket_token
+  # Atlassian API token: BITBUCKET_USERNAME (account email) + BITBUCKET_TOKEN.
+  # Workspace/repository access token: BITBUCKET_TOKEN alone.
 }
 
 # Dynatrace provider — combined auth (Platform Token + API Token)
@@ -1031,6 +1069,15 @@ resource "bitbucket_pipeline_variables" "dt_env_url" {
   secured   = "false"  # String
 }
 
+# Without this the Dynatrace provider falls back to the API token for everything
+resource "bitbucket_pipeline_variables" "dt_oauth_preference" {
+  workspace = var.workspace
+  repo_slug = bitbucket_repos.config_repo.repo_slug
+  key       = "DYNATRACE_HTTP_OAUTH_PREFERENCE"
+  value     = "true"
+  secured   = "false"
+}
+
 # Per-environment (different token per env — locked to that deployment):
 resource "bitbucket_deployment_variables" "staging_platform_token" {
   workspace        = var.workspace
@@ -1068,33 +1115,13 @@ resource "bitbucket_deployment_variables" "prod_api_token" {
   secured          = "true"
 }
 
-# --- 5. Commit the bitbucket-pipelines.yml into the repo ---
-# bitbucket_commit_file has a sparse typed schema; pass the commit details via
-# request_body. Confirm the exact field names against the provider docs at use
-# time — the pre-1.0 schema may evolve.
-resource "bitbucket_commit_file" "pipelines_yml" {
-  workspace = var.workspace
-  repo_slug = bitbucket_repos.config_repo.repo_slug
+# --- bitbucket-pipelines.yml is NOT managed here ---
+# bitbucket_commit_file has no argument for file content, branch or commit
+# message (v0.20.2 schema: workspace, repo_slug, commit, path). Commit the
+# pipeline file with the repository's first push, after this apply has enabled
+# pipelines and created the variables.
 
-  request_body = jsonencode({
-    branch   = "main"
-    message  = "ci: provision pipeline config via Terraform"
-    author   = "Terraform <terraform@example.com>"
-    files = {
-      "bitbucket-pipelines.yml" = file("${path.module}/bitbucket-pipelines.yml")
-    }
-  })
-
-  depends_on = [
-    bitbucket_pipeline_config.config_repo_pipelines,
-    bitbucket_deployment_variables.staging_platform_token,
-    bitbucket_deployment_variables.staging_api_token,
-    bitbucket_deployment_variables.prod_platform_token,
-    bitbucket_deployment_variables.prod_api_token,
-  ]
-}
-
-# --- 6. Dynatrace resources the pipeline will deploy on top of ---
+# --- 5. Dynatrace resources the pipeline will deploy on top of ---
 # (Bootstrap resources — things you want present before the pipeline runs for
 # the first time. Day-to-day app-team configs land in the repo and deploy via
 # the pipeline itself.)
@@ -1122,9 +1149,7 @@ resource "dynatrace_segment" "platform_baseline" {
 
 - `bitbucket_repos` must exist before `bitbucket_pipeline_config`, `bitbucket_pipeline_variables`, or `bitbucket_deployments` referencing it.
 - `bitbucket_deployments` must exist before any `bitbucket_deployment_variables` referencing it (the `environment_uuid` is the API-returned identifier).
-- `bitbucket_commit_file` for `bitbucket-pipelines.yml` should `depends_on` both the variables AND the `bitbucket_pipeline_config` — if the pipeline file lands in the repo before pipelines are enabled and variables are in place, the first push triggers a pipeline run that fails (either because pipelines aren't active, or because authentication has nothing to read).
-
-The explicit `depends_on` in `bitbucket_commit_file` is the cleanest way to enforce this; Terraform's automatic dependency graph only catches references, not "must exist when this file is read."
+- **Push `bitbucket-pipelines.yml` only after the apply has finished.** If the file lands in the repo before pipelines are enabled and the variables exist, the first push triggers a pipeline run that fails (either because pipelines aren't active, or because authentication has nothing to read). The provider cannot sequence this for you: `bitbucket_commit_file` takes no file content. If the commit has to be part of the same automation, call Bitbucket's `POST /repositories/{workspace}/{repo_slug}/src` endpoint from a `terraform_data` resource with a `local-exec` provisioner that `depends_on` the variables — a step outside the provider that you own and test yourself.
 
 **Caveat on per-env tokens:** the example above uses a single `var.dt_platform_token` for both staging and production deployment variables. In a real setup, you'd want **separate Dynatrace tokens per environment** — typically by running the staging and production applies in separate workspaces, or by sourcing per-environment tokens from a secrets manager (Vault, AWS Secrets Manager, Bitbucket OIDC-to-Vault flow).
 
@@ -1143,39 +1168,41 @@ Bitbucket Pipelines has three variable scopes. Pick the right scope per credenti
 |---|---|:-:|---|
 | `DYNATRACE_ENV_URL` | Repository | No | Tenant URL is not secret; visible in every step |
 | `DYNATRACE_PLATFORM_TOKEN` | Deployment | Yes | Per-env; write-only after creation |
-| `DYNATRACE_API_TOKEN` | Deployment | Yes | Per-env; covers synthetics/SLOs not yet on Platform Token |
-| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Repository | No | Static flag, not a credential |
+| `DYNATRACE_API_TOKEN` | Deployment | Yes | Per-env; covers synthetics and classic SLOs, which need a classic API token |
+| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Repository | No | Static flag, not a credential; created by `bitbucket_pipeline_variables.dt_oauth_preference` above |
 
 `secured = "true"` makes the variable value write-only — once set, the Bitbucket API won't return it (and Terraform won't drift-detect on the value). If you need to rotate, change the Terraform value and re-apply.
 
-> **Note on YAML templating and secured variables.** Bitbucket Pipelines added a `${{ }}` YAML-templating mechanism that injects workspace, repository, and custom pipeline variables into the pipeline YAML at execution time — but **secured variables are deliberately excluded** from this templating. This is a security guarantee: a Dynatrace token stored in a secured variable cannot be inadvertently rendered into a pipeline YAML field where it might leak into logs. Read your secured variables only via standard environment-variable substitution inside `script:` blocks. Two related additions worth knowing: **Shared Pipeline Variables** (steps export variables to subsequent steps in the same pipeline; 50-variable / 100KB caps) and **Input Variables for Child Pipelines** (parent → child, up to 20 variables) — both work with non-secured variables.
+> **Note on YAML templating and secured variables.** Bitbucket Pipelines has a `${{ }}` YAML-templating mechanism that injects workspace and repository variables (plus a few `BITBUCKET_*` defaults) into the pipeline YAML — and the docs list as a limitation that *"Secured variables and runtime-defined custom variables are not supported."* A Dynatrace token stored in a secured variable therefore cannot be rendered into a pipeline YAML field; read secured variables only via environment-variable substitution inside `script:` blocks. A related addition: **shared pipeline variables** let a step export variables to subsequent steps in the same pipeline, with a 50-variable / 100KB limit.
 
-> <sub>**Sources:** [Variables and secrets (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) — three variable scopes (workspace / repository / deployment) and precedence; recent additions (shared pipeline variables, input variables for child pipelines, YAML templating with secured-variable exclusion).</sub>
+> <sub>**Sources:** [Variables and secrets (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) — three variable scopes (workspace / repository / deployment) and precedence; shared pipeline variables; YAML templating limits.</sub>
 
 <a id="bitbucket-oidc"></a>
 ### OIDC Note
 
 **Bitbucket Pipelines supports OIDC** for federating to AWS, GCP, and Vault — see the Atlassian docs on [Integrate Pipelines with resource servers using OIDC](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/). The pattern is to add `oidc: true` at the pipeline step level and configure the resource server (AWS / GCP / Vault) to trust the Bitbucket OIDC issuer.
 
-**Preview — Dynatrace workload identity federation.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* A trust policy (issuer URL + audience) and a service-user mapping are configured through the Account Management API; the identity provider must sign its tokens with ES256 or RS256, and either publish an OpenID Connect discovery document over HTTPS (URL mode) or have its JSON Web Key Set pasted into the trust policy (manual mode). Bitbucket Pipelines is not named on the page — verify that WIF is available in your account and that your Bitbucket OIDC issuer satisfies the prerequisites before relying on it. Until then, the working pattern remains a *secured variable holding a long-lived token*, rotated on a cadence, or the Vault indirection below.
+**Preview — Dynatrace workload identity federation.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature (*"Workload identity federation is an Early Access feature."*): *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* A trust policy (issuer URL + audience) and a service-user mapping are configured through the Account Management API; the identity provider must sign its tokens with ES256 or RS256, and either publish an OpenID Connect discovery document over HTTPS (URL mode) or have its JSON Web Key Set pasted into the trust policy (manual mode). The page names *"a GitHub Actions job"* among suitable workloads; Bitbucket Pipelines is not named — verify that WIF is available in your account and that your Bitbucket OIDC issuer satisfies the prerequisites before relying on it. Until then, the working pattern remains a *secured variable holding a long-lived token*, rotated on a cadence, or the Vault indirection below.
 
 If you want short-lived credentials anyway, the indirection is: Bitbucket OIDC → Vault (or AWS Secrets Manager) → fetches a Dynatrace token at pipeline start. The pipeline still ends up with a token in memory, but the token in storage is in Vault, not in Bitbucket variables.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Bitbucket provider (FabianSchurig)](https://github.com/FabianSchurig/bitbucket-cli) — actively-maintained successor to `DrFaust92/bitbucket`; v0.15.7 as of May 2026 (pre-1.0, schema flux possible).</sub>
+> - <sub>[Bitbucket provider (FabianSchurig)](https://github.com/FabianSchurig/bitbucket-cli) — actively-maintained successor to `DrFaust92/bitbucket`; v0.20.2 released 08/21/2026 (pre-1.0, schema flux possible).</sub>
+> - <sub>[Bitbucket provider docs v0.20.2 (FabianSchurig GitHub)](https://github.com/FabianSchurig/terraform-provider-bitbucket/blob/v0.20.2/docs/index.md) — *"The provider authenticates via HTTP Basic Auth using an Atlassian API token."* Resource schemas (including `commit-file.md`) in the same `docs/` tree.</sub>
 > - <sub>[Migration guide DrFaust92 → FabianSchurig](https://github.com/FabianSchurig/bitbucket-cli/blob/main/MIGRATION.md) — resource-name mapping, auth changes, path-parameter renames.</sub>
 > - <sub>[DrFaust92/terraform-provider-bitbucket](https://github.com/DrFaust92/terraform-provider-bitbucket) — long-standing provider, now in maintenance mode (issue #242, March 2026).</sub>
 > - <sub>[Get started with Bitbucket Pipelines (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/) — Pipelines overview.</sub>
-> - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) and [App passwords (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) — auth-token landscape; of App passwords the page says *"They are the long term replacement for App passwords."*.</sub>
+> - <sub>[API tokens (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) — *"They are the long term replacement for App passwords."*</sub>
+> - <sub>[App password deprecation (Atlassian)](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation) — *"Integrations with app passwords will stop working entirely on June 9, 2026."*</sub>
 > - <sub>[Integrate Pipelines with resource servers using OIDC (Atlassian)](https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/) — Bitbucket OIDC for AWS/GCP/Vault.</sub>
-> - <sub>[Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — Preview; *"An identity provider that issues tokens signed with ES256 or RS256. The provider must either publish an OpenID Connect discovery document over HTTPS (URL mode), or you must paste its JSON Web Key Set directly when you create the trust policy"*</sub>
+> - <sub>[Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — Preview (Early Access); *"An identity provider that issues tokens signed with ES256 or RS256. The provider must either publish an OpenID Connect discovery document over HTTPS (URL mode), or you must paste its JSON Web Key Set directly when you create the trust policy"*</sub>
 
 ---
 
 <a id="atlassian-bamboo"></a>
 ## 6. Atlassian Bamboo (with Bitbucket + S3)
 
-This section recipes the **Atlassian-only stack** for Terraform GitOps against Dynatrace: a **Bitbucket** repository holding the Terraform code (using the layout from AUTOM-09 §2), **Atlassian Bamboo Data Center** orchestrating the plan/apply pipeline, and **AWS S3 + DynamoDB** as the decoupled state backend. The PR review gate lives in Bitbucket; Bamboo applies on merge to long-lived branches.
+This section recipes the **Atlassian-only stack** for Terraform GitOps against Dynatrace: a **Bitbucket** repository holding the Terraform code (using the layout from AUTOM-09 §2), **Atlassian Bamboo Data Center** orchestrating the plan/apply pipeline, and **AWS S3** (with S3-native state locking) as the decoupled state backend. The PR review gate lives in Bitbucket; Bamboo applies on merge to long-lived branches.
 
 The pattern targets shops that already license Bamboo and want to keep CI/CD in the same vendor ecosystem as their source-control layer — without adopting Bitbucket Pipelines or a third-party CI service.
 
@@ -1185,19 +1212,19 @@ The pattern targets shops that already license Bamboo and want to keep CI/CD in 
 | Component | Choice |
 |---|---|
 | **CI/CD** | Bamboo Data Center (self-hosted; Bamboo Cloud was retired by Atlassian) |
-| **Source** | Bitbucket Cloud or Bitbucket Data Center, configured as a Linked Repository in Bamboo |
+| **Source** | Bitbucket Cloud or Bitbucket Data Center, configured as a Linked Repository in Bamboo and referenced with `scope: global` |
 | **Plan definition** | Bamboo Specs YAML (the modern code-as-config approach over UI-only plans) |
-| **State backend** | AWS S3 (single bucket, one key per environment) + DynamoDB lock table |
+| **State backend** | AWS S3 (single bucket, one key per environment), locked with `use_lockfile = true` |
 | **AWS auth on Bamboo agent** | IAM role attached to the Bamboo agent EC2 instance (preferred); static keys in Bamboo encrypted variables (`BAMSCRT@...`) as fallback |
-| **Dynatrace auth** | Platform Token + API Token (combined auth — see §3.1) as Bamboo encrypted plan variables |
+| **Dynatrace auth** | Platform Token + API Token (combined auth — see §3 *Terraform with Combined Auth*) as Bamboo encrypted plan variables |
 | **PR review** | Bitbucket PRs; required reviewers + branch restrictions configured in Bitbucket |
 
-> If your shop runs Bamboo Cloud, this section won't apply — Atlassian retired Bamboo Cloud in 2017. Bamboo Data Center is the only flavor supported today.
+> If your shop runs Bamboo Cloud, this section won't apply — Atlassian retired Bamboo Cloud in 2017. Bamboo Data Center is the only flavor supported today, and Atlassian's documentation site states *"Data Center support ends on March 28, 2029."* — weigh that date if you are choosing a CI platform rather than keeping one.
 
 <a id="bamboo-plan-yaml"></a>
 ### Plan Specs YAML — Terraform with Combined Auth
 
-The full plan covering plan + apply against one environment. Mirrors the GitHub Actions Combined-Auth pattern (§3.1).
+The full plan covering plan + apply against one environment. Mirrors the GitHub Actions Combined-Auth pattern (§3 *Terraform with Combined Auth*).
 
 ```yaml
 ---
@@ -1209,10 +1236,10 @@ plan:
   description: Plan and apply Terraform against the production Dynatrace tenant
 
 repositories:
+  # A Linked Repository an admin has already set up in Bamboo. (A `type: bitbucket`
+  # + `slug:` block here would instead create a plan-local repository.)
   - dynatrace-terraform:
-      type: bitbucket
-      slug: my-workspace/dynatrace-terraform
-      branch: main
+      scope: global
 
 branches:
   create: for-new-branch
@@ -1234,6 +1261,8 @@ Plan:
     - checkout:
         repository: dynatrace-terraform
     - script:
+        # Bamboo exports plan variables as $bamboo_<NAME>; the provider reads DYNATRACE_*
+        - export DYNATRACE_ENV_URL="$bamboo_DYNATRACE_ENV_URL" DYNATRACE_PLATFORM_TOKEN="$bamboo_DYNATRACE_PLATFORM_TOKEN" DYNATRACE_API_TOKEN="$bamboo_DYNATRACE_API_TOKEN" DYNATRACE_HTTP_OAUTH_PREFERENCE="$bamboo_DYNATRACE_HTTP_OAUTH_PREFERENCE"
         - cd envs/production
         - terraform init -input=false
         - terraform plan -input=false -no-color -out=tfplan
@@ -1253,14 +1282,15 @@ Apply:
     - checkout:
         repository: dynatrace-terraform
     - script:
+        - export DYNATRACE_ENV_URL="$bamboo_DYNATRACE_ENV_URL" DYNATRACE_PLATFORM_TOKEN="$bamboo_DYNATRACE_PLATFORM_TOKEN" DYNATRACE_API_TOKEN="$bamboo_DYNATRACE_API_TOKEN" DYNATRACE_HTTP_OAUTH_PREFERENCE="$bamboo_DYNATRACE_HTTP_OAUTH_PREFERENCE"
         - cd envs/production
         - terraform init -input=false
         - terraform apply -input=false -auto-approve tfplan
 
 variables:
   DYNATRACE_ENV_URL: https://my-tenant.live.dynatrace.com
-  # Encrypted via the Bamboo UI (Settings → Plan variables → Add encrypted)
-  # The BAMSCRT@... values below are placeholders; generate real ones in your tenant.
+  # Encrypt via Specs → Sensitive data encryption in the Bamboo UI.
+  # The BAMSCRT@... values below are placeholders; generate real ones on your Bamboo server.
   DYNATRACE_PLATFORM_TOKEN: BAMSCRT@0@0@<encrypted-platform-token>
   DYNATRACE_API_TOKEN: BAMSCRT@0@0@<encrypted-api-token>
   DYNATRACE_HTTP_OAUTH_PREFERENCE: "true"
@@ -1269,11 +1299,12 @@ variables:
 Key elements:
 
 - `version: 2` — Bamboo Specs YAML format
-- `repositories:` — references a **Linked Repository** already configured globally in Bamboo (admin sets it up once; plans reference by slug)
+- `repositories:` — references a **Linked Repository** already configured globally in Bamboo (admin sets it up once; plans reference it by name with `scope: global`)
 - `branches:` — Plan Branches: a child plan is auto-created for every new Bitbucket branch; cleaned up 30 days after branch deletion
 - `stages:` — two stages; the `Apply` stage has `manual: true` so it pauses after Plan completes
 - `artifact-subscriptions:` on Apply — pulls the `tfplan` artifact produced by Plan, ensuring Apply runs *the plan that was reviewed*, not a re-plan
-- `variables:` — plan-scoped values; encrypted variables use the `BAMSCRT@0@0@...` format generated through the Bamboo UI
+- `variables:` — plan-scoped values; encrypted variables use the `BAMSCRT@0@0@...` format generated through *Specs → Sensitive data encryption*
+- `export … "$bamboo_…"` — Bamboo hands plan variables to script tasks under a `bamboo_` prefix, so without these lines Terraform sees no `DYNATRACE_*` variables and runs with no URL or credentials
 
 <a id="bamboo-pr-workflow"></a>
 ### PR Workflow with Plan Branches
@@ -1312,7 +1343,7 @@ terraform {
     key            = "dynatrace/dev.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "terraform-state-lock"
+    use_lockfile   = true   # S3-native locking (Terraform 1.11+); DynamoDB locking is deprecated
     kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
   }
 }
@@ -1324,7 +1355,7 @@ terraform {
   backend "s3" {
     bucket         = "my-org-terraform-state"
     key            = "dynatrace/staging.tfstate"
-    # ... same bucket / region / lock table, different key
+    # ... same bucket / region / use_lockfile, different key
   }
 }
 ```
@@ -1335,12 +1366,12 @@ terraform {
   backend "s3" {
     bucket         = "my-org-terraform-state"
     key            = "dynatrace/production.tfstate"
-    # ... same bucket / region / lock table, different key
+    # ... same bucket / region / use_lockfile, different key
   }
 }
 ```
 
-**Decoupled** here means: each environment has its own state file (its own key in S3, its own DynamoDB lock entry). The Bamboo plan for dev cannot accidentally affect production state because the working directory + `backend.tf` it picks up at `cd envs/<env>` selects a different state file.
+**Decoupled** here means: each environment has its own state file (its own key in S3, and its own `<key>.tflock` lock file next to it). The Bamboo plan for dev cannot accidentally affect production state because the working directory + `backend.tf` it picks up at `cd envs/<env>` selects a different state file.
 
 **One bucket vs many.** A single bucket with separate keys per env is the simpler operational model and is fine for most shops. Separate buckets per env are warranted when production has different security posture (different KMS keys, different bucket policies, different access patterns). Both work; pick based on your security boundary.
 
@@ -1362,11 +1393,6 @@ terraform {
     },
     {
       "Effect": "Allow",
-      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"],
-      "Resource": "arn:aws:dynamodb:us-east-1:123456789012:table/terraform-state-lock"
-    },
-    {
-      "Effect": "Allow",
       "Action": ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey"],
       "Resource": "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
     }
@@ -1374,23 +1400,23 @@ terraform {
 }
 ```
 
-Scope the resource ARN to the `dynatrace/` prefix so the role can't touch state for other systems sharing the bucket. For production-only roles (separate Bamboo agents for prod), narrow further to `dynatrace/production.tfstate`.
+The `dynatrace/*` object statement also covers the `.tflock` lock files, which need `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject`. Scope the resource ARN to the `dynatrace/` prefix so the role can't touch state for other systems sharing the bucket. For production-only roles (separate Bamboo agents for prod), narrow further to `dynatrace/production.tfstate`.
 
 <a id="bamboo-variables"></a>
 ### Bamboo Variables and Credentials
 
-Bamboo has three variable scopes. Pick the right scope per credential type:
+Bamboo has more variable types than the ones below (system and build-specific variables, for example); these are the scopes that matter for credentials:
 
 | Scope | Where set | When to use |
 |---|---|---|
 | **Global variables** | Bamboo Administration → Global Variables | Truly global values (e.g., a tenant URL shared across many plans). Visible to all plans. |
-| **Plan variables** | Plan configuration → Variables; `variables:` block in YAML | Plan-specific values (the Dynatrace tokens for one tenant). Most credentials live here. |
+| **Project variables** | Project settings → Variables | Values shared by every plan in one Bamboo project; they override global variables of the same name. |
+| **Plan variables** | Plan configuration → Variables; `variables:` block in YAML | Plan-specific values (the Dynatrace tokens for one tenant); they override global and project variables. Most credentials live here. |
 | **Plan-branch variables** | Plan → Branch overrides | Per-branch overrides (e.g., a different tenant URL for a feature-branch plan testing against a sandbox tenant). Rarely needed. |
 
-**Encrypted variables** use the `BAMSCRT@0@0@<base64-encrypted-blob>` format. Generate them via:
+**Encrypted values** for Specs YAML use the `BAMSCRT@0@0@<base64-encrypted-blob>` format. Generate them in the Bamboo UI: **Specs → Sensitive data encryption** → paste the token → **Encrypt** → copy the `BAMSCRT@0@0@…` value into the YAML.
 
-1. Bamboo UI: Plan configuration → Variables → click "Add encrypted variable"
-2. Or programmatically via `bamboo-specs encrypt` CLI (if you're managing the YAML in source control)
+**Script tasks see variables with a `bamboo_` prefix.** Bamboo *"variables are exported as bash shell variables. All full stops (periods) are converted to underscores."* — a plan variable `DYNATRACE_API_TOKEN` reaches a script as `$bamboo_DYNATRACE_API_TOKEN`. That is why each script in the plan above starts by exporting the `DYNATRACE_*` names the provider reads.
 
 **AWS authentication patterns** (in preference order):
 
@@ -1432,9 +1458,11 @@ stages:
 
 > <sub>**Sources:**</sub>
 > - <sub>[Bamboo YAML specs (Atlassian)](https://confluence.atlassian.com/bamboo/bamboo-yaml-specs-938844479.html) — top-level structure (`version`, `plan`, `stages`, jobs, `script` tasks).</sub>
-> - <sub>[Bamboo Specs reference (Atlassian)](https://docs.atlassian.com/bamboo-specs-docs/9.6.0/specs.html) — `manual: true` stage syntax, `repositories` Bitbucket linked repo block, `variables` with `BAMSCRT@...` encrypted form, `branches` plan-branches configuration.</sub>
+> - <sub>[Bamboo Specs reference (Atlassian)](https://docs.atlassian.com/bamboo-specs-docs/9.6.0/specs.html) — `manual: true` stage syntax, linked repositories referenced with `scope: global` (a `type: bitbucket` block *"Creates a local repository for the plan. This repository will not be shared among other plans."*), `variables` with `BAMSCRT@...` encrypted form, `branches` plan-branches configuration.</sub>
+> - <sub>[Bamboo variables (Atlassian)](https://confluence.atlassian.com/bamboo/bamboo-variables-289277087.html) — *"For example, the variable bamboo.my.variable is $bamboo_my_variable in bash."* *"Project variables can override global variables with the same name."*</sub>
+> - <sub>[Bamboo Specs encryption (Atlassian)](https://confluence.atlassian.com/bamboo/bamboo-specs-encryption-970268127.html) — *"From the top navigation bar, select Specs > Sensitive data encryption."*</sub>
 > - <sub>[Plan branches (Atlassian)](https://confluence.atlassian.com/bamboo/using-plan-branches-289276872.html) — per-Bitbucket-branch child plans and lifecycle.</sub>
-> - <sub>[Terraform S3 backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/s3) — backend configuration referenced from `envs/<env>/backend.tf`.</sub>
+> - <sub>[Terraform S3 backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/s3) — *"DynamoDB-based locking is deprecated and will be removed in a future minor version."* `use_lockfile` and the `.tflock` permissions: *"If use_lockfile is set, s3:GetObject, s3:PutObject, and s3:DeleteObject are required on the lock file"*.</sub>
 > - <sub>**Derived:** the IAM policy snippet narrows the documented Terraform S3-backend permissions to the `dynatrace/` key prefix.</sub>
 
 ---
@@ -1454,8 +1482,9 @@ Azure DevOps Pipelines is widely deployed in enterprise — particularly shops t
 | **CI/CD** | Azure DevOps Services (cloud) or Azure DevOps Server 2022+ (self-hosted) |
 | **Pipeline definition** | YAML pipelines (recommended; UI-defined Classic pipelines are legacy) |
 | **Source** | Any Git host — Azure Repos, GitHub, Bitbucket, GitLab — referenced via `resources.repositories` |
-| **Approval mechanism** | **Environments** with **Approvals and checks** configured via UI (not in YAML) — see §7.3 |
+| **Approval mechanism** | **Environments** with **Approvals and checks** configured via UI (not in YAML) — see §7 *Environments and Approval Gates* |
 | **Credential storage** | Variable Groups in the Library (optionally linked to Azure Key Vault for rotation) |
+| **Terraform task** | `TerraformInstaller@1` comes from Microsoft DevLabs' [Terraform extension (Visual Studio Marketplace)](https://marketplace.visualstudio.com/items?itemName=ms-devlabs.custom-terraform-tasks) — install it in the organization first, or replace the task with a script step that downloads Terraform |
 | **Agent** | Microsoft-hosted (default) or self-hosted; self-hosted required when the Terraform plan needs network access to a private Dynatrace tenant or on-prem state backend |
 | **AWS auth** (if S3 backend) | Service connection (AzureRM type for Azure; AWS Toolkit for Azure DevOps extension for AWS) — preferred over static keys in variable groups |
 
@@ -1485,7 +1514,7 @@ pr:
       - modules/**
 
 variables:
-  - group: dynatrace-production    # ← linked variable group; see §7.4
+  - group: dynatrace-production    # ← linked variable group; see §7 Variable Groups
   - name: TERRAFORM_VERSION
     value: latest
 
@@ -1603,7 +1632,7 @@ The `pr:` trigger at the top of the YAML causes Azure DevOps to run the pipeline
 
 **Best-practice composition:**
 
-1. **Branch policy on `main`** (configured in *Repos → Branches → main → Branch policies*) — require minimum reviewer count + require PR validation pipeline to pass. Reviewers see the Plan output as a build artifact / posted as a PR comment by the a script step calling the Azure DevOps REST API to add a PR thread, or an actively-maintained marketplace task (check before adopting).
+1. **Branch policy on `main`** (configured in *Repos → Branches → main → Branch policies*) — require minimum reviewer count + require PR validation pipeline to pass. Reviewers see the Plan output as a build artifact / posted as a PR comment by a script step calling the Azure DevOps REST API to add a PR thread, or an actively-maintained marketplace task (check before adopting).
 2. **PR triggers** the pipeline → Plan stage runs → publishes `plan.txt` as artifact + (optional) posts to PR.
 3. **Reviewer approves** PR → merge to `main` → push triggers the pipeline → Plan re-runs → Apply stage queues at the Environment approval gate → approver releases → Apply runs against the new `tfplan` from the post-merge Plan.
 
@@ -1773,7 +1802,7 @@ spec:
   chart:
     spec:
       chart: dynatrace-operator
-      version: ">=1.0.0"
+      version: "1.10.2"   # exact pin; bump in a reviewed commit (see §10)
       sourceRef:
         kind: HelmRepository
         name: dynatrace
@@ -1781,6 +1810,8 @@ spec:
   values:
     installCRD: true
 ```
+
+Pin the chart version exactly. A range such as `">=1.0.0"` resolves to the newest chart in the repository index — which lists `1.11.0` first on 10/02/2026, the release that removes `v1beta4` — so every reconcile would upgrade the Operator unattended, the same failure §10 warns about for the kustomize manifest.
 
 Flux v2.7.0 removed the `v1beta1` and `v2beta1` APIs from its CRDs, so `HelmRelease` must be `helm.toolkit.fluxcd.io/v2` and `HelmRepository` `source.toolkit.fluxcd.io/v1`.
 
@@ -1875,17 +1906,15 @@ metadata:
   namespace: dynatrace
 spec:
   oneAgent:
-    cloudNativeFullStack:
-      args:
-        - --set-host-group=production-east
+    hostGroup: production-east   # replaces the obsolete --set-host-group argument
 ```
 
 ### Multi-Tenant Observability Pattern
 
-For clusters serving multiple teams with different Dynatrace tenants:
+For clusters serving multiple teams with different Dynatrace tenants — **only when each team has its own node pool**. OneAgent host monitoring is one agent per node: the Operator rejects a second DynaKube whose OneAgent would land on nodes another DynaKube already covers, and `namespaceSelector` does not separate them, because it scopes code-module injection, not where the host agent runs. Give each DynaKube a disjoint `nodeSelector`:
 
 ```yaml
-# Team A - uses tenant-a.live.dynatrace.com
+# Team A - uses tenant-a.live.dynatrace.com, on the team-a node pool
 apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
@@ -1896,12 +1925,14 @@ spec:
   tokens: team-a-tokens
   oneAgent:
     cloudNativeFullStack:
+      nodeSelector:
+        dynatrace-tenant: team-a        # node label — OneAgent runs only on these nodes
       namespaceSelector:
         matchLabels:
-          dynatrace-tenant: team-a
+          dynatrace-tenant: team-a      # namespace label — which pods get injected
 
 ---
-# Team B - uses tenant-b.live.dynatrace.com
+# Team B - uses tenant-b.live.dynatrace.com, on the team-b node pool
 apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
@@ -1912,16 +1943,25 @@ spec:
   tokens: team-b-tokens
   oneAgent:
     cloudNativeFullStack:
+      nodeSelector:
+        dynatrace-tenant: team-b
       namespaceSelector:
         matchLabels:
           dynatrace-tenant: team-b
 ```
 
+Keep each team's workloads on its own node pool as well (node affinity or taints), so an injected pod always runs on a node monitored by the same tenant's OneAgent. If teams have to share nodes, this pattern does not apply — one DynaKube must own host monitoring on those nodes.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Migrate to a single DynaKube (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single) — *"Dynatrace Operator rejects a DynaKube that conflicts with another one over OneAgent node assignment, namespace injection, or telemetry ingest service names."*</sub>
+> - <sub>[DynaKube validation, Operator v1.11.0 (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.11.0/pkg/api/validation/dynakube/oneagent.go) — *"Only one Agent per node is supported. Use a nodeSelector to avoid this conflict."*</sub>
+> - <sub>[DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — `nodeSelector`: *"Specify the node selector that controls on which nodes OneAgent will be deployed."* `hostGroup`: *"This method is preferred over the now obsolete --set-host-group argument."*</sub>
+
 ### GitOps Health Checks
 
-Configure sync health checks to verify Dynatrace deployment:
+Keep the DynaKube's changing status out of Argo CD's drift view, and let Flux gate a sync on the Operator and OneAgent workloads:
 
-**ArgoCD health check:**
+**ArgoCD — ignore DynaKube status drift** (an `ignoreDifferences` block, not a health check):
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -1995,6 +2035,8 @@ Applies across every CI platform in §§3–§7 — it's an architectural patter
 
 **Prerequisite — Platform Tokens cannot be minted by Terraform.** The Dynatrace Terraform provider has no `dynatrace_platform_token` resource (verified against provider source 2026-05-22 — see AUTOM-04 §3). This section operates at the layer below Terraform: shell or pipeline orchestration that obtains a Platform Token before `terraform apply` runs, and disposes of it afterward.
 
+> **Early Access — workload identity federation.** Dynatrace's [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) page says *"Workload identity federation is an Early Access feature."* Where it is enabled, a workload's own OIDC token is resolved to a Service User, *"so you never store a Dynatrace client secret or platform token alongside your workload"*, and the page names *"a GitHub Actions job"* among suitable workloads. That would remove the persistent OAuth client this pattern starts from. Until WIF is available in your account, the OAuth-client bootstrap below remains the working path.
+
 <a id="eptm-conceptual-model"></a>
 ### 11.1 Conceptual Model — Four-Layer Trust Chain
 
@@ -2014,7 +2056,7 @@ The four layers, reading left-to-right in the diagram:
 
 **Layer 1 — CI Runner with OAuth Client.** A persistent OAuth client_id+secret pair lives in a secret manager (Vault, AWS Secrets Manager, Azure Key Vault, GCP Secret Manager). The OAuth client carries **exactly one OAuth scope: `platform-token:tokens:manage`** — the scope the mint endpoint requires. It grants no user/group/policy changes and no Settings/Synthetics/SLO operations, but it is not minimal: the IAM reference describes `platform-token:tokens:manage` as *"admin-level access to list, update, and delete any platform token within an account regardless of owner"*, so treat this client's secret as an account-level credential.
 
-**Layer 2 — Dynatrace IAM, holding one or more Service Users.** Each Service User (provisioned per AUTOM-95 §4) carries the actual IAM policies for the work the pipeline performs — `settings:objects:write` for the settings pipeline, `synthetic:write` for the synthetics pipeline, etc. The Service User is what the per-job Platform Token will be *on behalf of*.
+**Layer 2 — Dynatrace IAM, holding one or more Service Users.** Each Service User (provisioned per AUTOM-95 §4) carries the actual IAM policies for the work the pipeline performs — `settings:objects:write` for the settings pipeline, `synthetic:monitors:write` for synthetic monitors managed through the platform, etc. (The Terraform provider's synthetic resources still need a classic API token — see §11.5.) The Service User is what the per-job Platform Token will be *on behalf of*.
 
 **Layer 3 — Per-Job Platform Token.** At job start, CI calls `POST /iam/v1/accounts/{accountUuid}/platform-tokens` with the OAuth bearer in the `Authorization` header and the Service User's UUID (`dynatrace_iam_service_user.id`) as the `userUuid` body field. Dynatrace returns a `dt0s16.*` Platform Token. **Effective permissions = Service User's IAM policies ∩ scopes requested in the mint body** (the intersection model documented at [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)). Always request narrower scopes than the Service User holds — gives per-job blast-radius control on top of identity-level least-privilege.
 
@@ -2022,7 +2064,7 @@ The four layers, reading left-to-right in the diagram:
 
 **The load-bearing handoff is the amber arrow** — Platform Token returned from the IAM API to the CI runner. That's where the token crosses a trust boundary as a short-lived secret. Everything else in the diagram is routine API surface.
 
-> <sub>**Sources:** [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) for the intersection model. [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"Grants admin-level access to list, update, and delete any platform token within an account regardless of owner."* The mint endpoint page states the scope: *"you need an OAuth client with the platform-token:tokens:manage scope assigned"* (re-read 09/28/2026; the endpoint's `x-token-scopes` in the Account Management API spec at `api.dynatrace.com/spec` agrees). **Derived:** the four-layer composition is a synthesis — Dynatrace docs describe each layer separately but do not endorse this composition as a named pattern.</sub>
+> <sub>**Sources:** [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) for the intersection model. [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"Grants admin-level access to list, update, and delete any platform token within an account regardless of owner."* For synthetics, `synthetic:monitors:write`: *"Grants permission to create synthetic monitors"*. The mint endpoint page states the scope: *"you need an OAuth client with the platform-token:tokens:manage scope assigned"* (re-read 09/28/2026; the endpoint's `x-token-scopes` in the Account Management API spec at `api.dynatrace.com/spec` agrees). **Derived:** the four-layer composition is a synthesis — Dynatrace docs describe each layer separately but do not endorse this composition as a named pattern.</sub>
 
 <a id="eptm-prerequisites"></a>
 ### 11.2 Prerequisites — OAuth Client + Service Users + IAM Policies
@@ -2044,6 +2086,17 @@ Before any CI job can mint a token, the IAM scaffolding must exist:
 
 The lifecycle has four steps. The pre-mint sweep is the part most home-grown implementations skip — it's what keeps the pattern safe under concurrent CI jobs.
 
+The script relies on these documented response shapes (abbreviated):
+
+```text
+GET  /iam/v1/accounts/{accountUuid}/platform-tokens?page=1&size=100
+     → { "pageSize": …, "pageNumber": 1, "total": …,
+         "results": [ { "tokenId": "…", "userUuid": "…", "expirationDate": "2026-12-01T00:00:00Z", … } ] }
+POST /iam/v1/accounts/{accountUuid}/platform-tokens
+     → { "name": "…", "tokenId": "…", "token": "<secret>" }
+DELETE /iam/v1/accounts/{accountUuid}/platform-tokens/{platformTokenId}   (platformTokenId = tokenId)
+```
+
 ```bash
 #!/usr/bin/env bash
 # Run this script at the start of every terraform-apply CI job.
@@ -2053,38 +2106,63 @@ The lifecycle has four steps. The pre-mint sweep is the part most home-grown imp
 #   DT_OAUTH_CLIENT_SECRET  — its secret
 #   SVC_USER_ID             — the Service User UUID for this domain
 #   REQUESTED_SCOPES        — e.g. '["settings:objects:write"]'
+#   TOKEN_RESOURCE          — e.g. '["urn:dtenvironment:<environment-id>"]' or '["urn:dtaccount:<account-uuid>"]'
 #   JOB_ID                  — unique job identifier for token name
 set -euo pipefail
 
-# ----- Step 1: Exchange OAuth client_id+secret for a bearer token -----
-OAUTH_BEARER=$(curl -sS -X POST "https://sso.dynatrace.com/sso/oauth2/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  --data-urlencode "grant_type=client_credentials" \
-  --data-urlencode "client_id=${DT_OAUTH_CLIENT_ID}" \
-  --data-urlencode "client_secret=${DT_OAUTH_CLIENT_SECRET}" \
-  --data-urlencode "scope=platform-token:tokens:manage" |
-  jq -r '.access_token')
-
 API="https://api.dynatrace.com"
+TOKENS="${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens"
+
+# ----- Step 1: Exchange OAuth client_id+secret for a bearer token -----
+# The bearer is short-lived (the documented example response shows "expires_in": 300),
+# so cleanup fetches a fresh one instead of reusing this one after a long apply.
+get_bearer() {
+  curl -sS --fail-with-body -X POST "https://sso.dynatrace.com/sso/oauth2/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    --data-urlencode "grant_type=client_credentials" \
+    --data-urlencode "client_id=${DT_OAUTH_CLIENT_ID}" \
+    --data-urlencode "client_secret=${DT_OAUTH_CLIENT_SECRET}" \
+    --data-urlencode "scope=platform-token:tokens:manage" \
+    --data-urlencode "resource=urn:dtaccount:${DT_ACCOUNT_UUID}" |
+    jq -er '.access_token'
+}
+OAUTH_BEARER=$(get_bearer)
 
 # ----- Step 2: Pre-mint sweep — delete ONLY expired tokens for this Service User -----
-# Race-safe under concurrency: active tokens (expirationDate in the future) are NEVER
-# touched, so a parallel job's in-flight token cannot be revoked.
+# Race-safe under concurrency: active tokens (expirationDate in the future) and
+# never-expiring tokens are NEVER touched, so a parallel job's in-flight token
+# cannot be revoked. The list endpoint has no per-user filter (only searchTerm,
+# status, page and size), so filter on userUuid client-side, page by page.
 NOW_EPOCH=$(date -u +%s)
-curl -sS -H "Authorization: Bearer ${OAUTH_BEARER}" \
-  "${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens?userUuid=${SVC_USER_ID}" |
-  jq -r --arg now "${NOW_EPOCH}" \
-    '.platformTokens[] | select((.expirationDate | fromdateiso8601) < ($now | tonumber)) | .id' |
-  while read -r expired_id; do
-    curl -sS -X DELETE -H "Authorization: Bearer ${OAUTH_BEARER}" \
-      "${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens/${expired_id}"
-  done
+EXPIRED_IDS=""
+PAGE=1   # the documented example response starts at pageNumber 1
+while :; do
+  BODY=$(curl -sS --fail-with-body -H "Authorization: Bearer ${OAUTH_BEARER}" \
+    "${TOKENS}?page=${PAGE}&size=100")
+  EXPIRED_IDS+=$(echo "${BODY}" | jq -r --arg u "${SVC_USER_ID}" --argjson now "${NOW_EPOCH}" '
+      .results[]
+      | select(.userUuid == $u and .expirationDate != null)
+      # fromdateiso8601 rejects fractional seconds, so strip them first
+      | select((.expirationDate | sub("\\.[0-9]+"; "") | fromdateiso8601) < $now)
+      | .tokenId')$'\n'
+  COUNT=$(echo "${BODY}" | jq '.results | length')
+  TOTAL=$(echo "${BODY}" | jq '.total')
+  if [ "${COUNT}" -eq 0 ] || [ $((PAGE * 100)) -ge "${TOTAL}" ]; then break; fi
+  PAGE=$((PAGE + 1))
+done
+for expired_id in ${EXPIRED_IDS}; do
+  curl -sS --fail-with-body -X DELETE -H "Authorization: Bearer ${OAUTH_BEARER}" \
+    "${TOKENS}/${expired_id}" >/dev/null \
+    || echo "warning: could not delete expired token ${expired_id}" >&2
+done
 
 # ----- Step 3: Mint a per-job Platform Token with 1h TTL -----
 EXPIRY=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
   || date -u -v +1H +%Y-%m-%dT%H:%M:%SZ)   # GNU date vs BSD date fallback
 
-MINT_RESPONSE=$(curl -sS -X POST \
+# name, scope, resource, tags, expirationDate and userUuid are all marked
+# Required in the endpoint's request-body model.
+MINT_RESPONSE=$(curl -sS --fail-with-body -X POST \
   -H "Authorization: Bearer ${OAUTH_BEARER}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
@@ -2092,34 +2170,58 @@ MINT_RESPONSE=$(curl -sS -X POST \
        --arg uuid "${SVC_USER_ID}" \
        --arg exp "${EXPIRY}" \
        --argjson scope "${REQUESTED_SCOPES}" \
-       '{name: $name, userUuid: $uuid, expirationDate: $exp, scope: $scope}')" \
-  "${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens")
+       --argjson resource "${TOKEN_RESOURCE}" \
+       '{name: $name, scope: $scope, resource: $resource, tags: ["ci-ephemeral"],
+         expirationDate: $exp, userUuid: $uuid}')" \
+  "${TOKENS}") || { echo "mint request failed" >&2; exit 1; }
+
+# The response carries the ID as tokenId. A missing ID would make the cleanup
+# below delete nothing, silently — so stop here instead.
+DT_TOKEN_ID=$(echo "${MINT_RESPONSE}" | jq -er '.tokenId') \
+  || { echo "mint response had no tokenId" >&2; exit 1; }
+
+# ----- Cleanup: registered as soon as a token exists -----
+cleanup_token() {
+  local bearer
+  # Fresh bearer: the step-1 bearer may have expired during a long apply
+  if ! bearer=$(get_bearer); then
+    echo "cleanup: no bearer; token ${DT_TOKEN_ID} expires at ${EXPIRY}" >&2
+    return
+  fi
+  curl -sS --fail-with-body -X DELETE -H "Authorization: Bearer ${bearer}" \
+    "${TOKENS}/${DT_TOKEN_ID}" >/dev/null \
+    || echo "cleanup: delete of ${DT_TOKEN_ID} failed; it expires at ${EXPIRY} and the next sweep removes it" >&2
+}
+trap 'cleanup_token' EXIT     # cleanup on success OR failure
 
 # A platform token (dt0s16) goes in the PLATFORM token variable — in DT_API_TOKEN the
 # provider would send it as "Api-Token" and get a 401
-export DYNATRACE_PLATFORM_TOKEN=$(echo "${MINT_RESPONSE}" | jq -r '.token')
+DYNATRACE_PLATFORM_TOKEN=$(echo "${MINT_RESPONSE}" | jq -er '.token')
+export DYNATRACE_PLATFORM_TOKEN
 export DYNATRACE_HTTP_OAUTH_PREFERENCE=true
-export DT_TOKEN_ID=$(echo "${MINT_RESPONSE}"  | jq -r '.id')
 
 # ----- Step 4: Run the work (terraform apply, etc.) -----
-trap 'cleanup_token' EXIT     # cleanup on success OR failure
-cleanup_token() {
-  curl -sS -X DELETE -H "Authorization: Bearer ${OAUTH_BEARER}" \
-    "${API}/iam/v1/accounts/${DT_ACCOUNT_UUID}/platform-tokens/${DT_TOKEN_ID}" || true
-}
-
 terraform apply -auto-approve   # the actual work
 ```
 
 Key points the script encodes:
 
-- **Pre-mint sweep deletes only expired tokens.** Active tokens (`expirationDate > now`) are never touched, so a parallel CI job's in-flight token cannot be revoked mid-apply. In community practice, the naive *delete-oldest-N* approach is avoided: under concurrent jobs it can revoke another job's in-flight token.
+- **Pre-mint sweep deletes only expired tokens.** Active tokens (`expirationDate > now`) and tokens with no expiration are never touched, so a parallel CI job's in-flight token cannot be revoked mid-apply. In community practice, the naive *delete-oldest-N* approach is avoided: under concurrent jobs it can revoke another job's in-flight token.
+- **The sweep filters and pages client-side.** The list endpoint takes only `searchTerm`, `status`, `page` and `size` — there is no user filter — and returns `{pageSize, pageNumber, total, results}`. The response model lists `userUuid` on each entry, but the page's example body shows an `owner` field instead; run one list call against your account and confirm which field carries the Service User's UUID before trusting the sweep. Note also that the sweep reads tokens for **every** user in the account, which is what the account-wide `platform-token:tokens:manage` scope allows.
+- **Token IDs are `tokenId`.** Both the list entries and the mint response use `tokenId` (there is no `id`), and the DELETE path's `{platformTokenId}` takes that value. The script stops if the mint response has no `tokenId`, rather than registering a cleanup that would delete nothing.
+- **All six mint-body fields are sent.** `resource` narrows the token to an environment (`urn:dtenvironment:…`) or the account (`urn:dtaccount:…`); the docs' example uses the account URN. The OAuth token request also passes `resource=urn:dtaccount:<uuid>`, as the OAuth client docs show.
 - **Short TTL (1h).** Orphaned tokens from crashed CI runners expire into eligibility for the next job's sweep — self-healing capacity.
-- **`trap ... EXIT` cleanup.** Deletes the per-job token on success OR failure OR signal interruption. The `|| true` ensures cleanup failures (e.g. token already deleted) don't cascade into job-failure noise.
+- **`trap ... EXIT` cleanup with a fresh bearer.** The trap is registered as soon as a token exists and deletes it on success, failure or signal interruption. It requests a new OAuth bearer first, because the step-1 bearer may have expired during the apply, and it logs a failed delete instead of hiding it — the token then expires on its own and the next sweep removes it.
 - **`REQUESTED_SCOPES` narrower than Service User policies.** Take the intersection-model behaviour seriously — pass the narrowest scope set the job actually needs in the mint body, not the maximum the Service User could grant.
 - **Error code for cap-exceeded is undocumented.** The mint endpoint docs document only the 200 response. If the cap is exceeded, the actual HTTP code (likely 400/403/429) is not stated at source. Treat any non-200 from mint as "sweep + retry once" — empirically verify the code against your tenant before adding finer error handling.
 
-> <sub>**Sources:** [POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens). **Derived:** the pre-mint sweep + short-TTL + `trap EXIT` pattern is a synthesis — Dynatrace docs document the individual mint/list/delete endpoints but do not endorse this lifecycle as a named pattern.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token) — request-body model marks `name`, `scope`, `resource`, `tags`, `expirationDate` and `userUuid` as Required; response `{ "name", "tokenId", "token" }`.</sub>
+> - <sub>[GET all platform tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/get-all-platform-tokens) — *"Only platform tokens that match values of tokenId, name, createdBy or scope will be returned."* Response `{pageSize, pageNumber, total, results}`.</sub>
+> - <sub>[DELETE a platform token (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/delete-platform-token) — `DELETE …/platform-tokens/{platformTokenId}`.</sub>
+> - <sub>[OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients) — token request parameters including `resource` `urn:dtaccount:{your-account-UUID}`; example response `"expires_in": 300`.</sub>
+> - <sub>[Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"Platform tokens can be set to expire after a period of time or never expire."* *"A platform token can be further reduced in scope to only target one or many environments within the account the token is being issued against."*</sub>
+> - <sub>**Derived:** the pre-mint sweep + short-TTL + `trap EXIT` lifecycle combines the mint/list/delete endpoints; Dynatrace docs do not describe it as a named pattern.</sub>
 
 <a id="eptm-capacity"></a>
 ### 11.4 Capacity Planning Under the Per-User Cap
@@ -2284,8 +2386,10 @@ Add deployment notifications:
 # GitHub Actions notification step
 - name: Notify Slack
   if: always()
-  uses: slackapi/slack-github-action@v1
+  uses: slackapi/slack-github-action@v4
   with:
+    webhook: ${{ secrets.SLACK_WEBHOOK }}
+    webhook-type: incoming-webhook   # required since v2; omitted, v1 targeted Workflow Builder
     payload: |
       {
         "text": "Dynatrace config deployment: ${{ job.status }}",
@@ -2299,9 +2403,9 @@ Add deployment notifications:
           }
         ]
       }
-  env:
-    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 ```
+
+> **`slack-github-action` v2+ needs `webhook-type`.** The [v2.0.0 release notes (Slack GitHub)](https://github.com/slackapi/slack-github-action/releases/tag/v2.0.0) say *"This Action now requires setting the webhook-type as a step input value."* — and that before v2 *"The webhook type could be omitted to send to Workflow Builder."* The webhook URL moves from the `SLACK_WEBHOOK_URL` environment variable to the `webhook` input. v4 parses multi-line YAML values more strictly, so keep the payload indented under `payload: |`.
 
 ---
 
@@ -2375,7 +2479,7 @@ Teams build and validate configuration in a **dev/test tenant** where they have 
 Single-SA-writer rule: humans never have prod write access. One auditable identity, one credential to rotate, one change trail to review.
 -->
 
-This model works with or without Sentinel. It directly addresses the access scoping challenge: within a single tenant, you cannot easily separate write access between teams for v1 resources. By splitting dev (where humans create) from prod (where only the pipeline writes), you get isolation through environment boundaries rather than token scoping. The SA's credentials live in Vault or HCP Terraform — never in human hands.
+This model works with or without Sentinel. It directly addresses the access scoping challenge: within a single tenant, you cannot easily separate write access between teams for resources that need a classic API token — such as the Terraform provider's synthetic monitors. By splitting dev (where humans create) from prod (where only the pipeline writes), you get isolation through environment boundaries rather than token scoping. The SA's credentials live in Vault or HCP Terraform — never in human hands.
 
 ### Defense-in-Depth Governance Layers
 
@@ -2387,7 +2491,7 @@ No single tool provides complete governance. Enterprise Dynatrace configuration 
 | **Service User + OAuth** | Scoped pipeline identity for Gen3 resources | OAuth client credentials |
 | **Dual Auth (OAuth + API)** | Full coverage when pipeline manages both Gen3 and v1 resources | Combined provider config |
 | **Sentinel / OPA** | Governance guardrails on what Terraform can do | Policy-as-code (see above) |
-| **Vault** | Runtime credential management with expiration and audit | HashiCorp Vault (see above) |
+| **Vault** | Runtime credential retrieval and read auditing (expiry comes from the token itself or §11) | HashiCorp Vault (see above) |
 | **PR Review + CODEOWNERS** | Human approval gate | GitHub/GitLab branch protection |
 | **Module Allowlists** | Only approved Terraform modules in use | Sentinel module restrictions or repo-level controls |
 | **State File Access Control** | Prevent credential extraction from Terraform state | HCP Terraform workspace permissions |
@@ -2401,21 +2505,25 @@ No single tool provides complete governance. Enterprise Dynatrace configuration 
 | Restrict which Terraform modules and resource types may be used | Integrate with Dynatrace IAM at runtime |
 | Enforce naming conventions, ownership tagging, and team boundaries | Reduce the runtime permissions of a Dynatrace token |
 | Prevent privilege escalation in IAM-as-code | Replace Dynatrace RBAC / IAM policies |
-| Validate team-to-object ownership in brokered self-service | Run outside HCP Terraform (Sentinel only — use OPA/Conftest for CI) |
+| Validate team-to-object ownership in brokered self-service | Run outside HCP Terraform / Terraform Enterprise (Sentinel only — use OPA/Conftest for CI) |
 
 > Sentinel does not _grant_ access. Sentinel decides whether Terraform is _allowed to grant_ access. Dynatrace IAM remains the source of truth for what the pipeline identity can actually do.
 
 ### Framing for Security Reviewers
 
-When presenting this architecture to security teams or auditors, document the v1 Synthetic limitation as an **accepted platform constraint with compensating controls**:
+When presenting this architecture to security teams or auditors, document the classic-API-token limitation for synthetics as an **accepted constraint of the Terraform path, with compensating controls**. Be precise about its scope: the provider's synthetic resources require a classic API token (`dynatrace_http_monitor`: *"This resource requires the API token scope"* `ExternalSyntheticIntegration`), and a classic token cannot be scoped per team. Dynatrace IAM, however, now lists `synthetic:monitors:write` with a `synthetic:dt.security_context` condition — *"Restricts the permission to synthetic monitors assigned to the matching security context."* — so check whether that scoping covers the API path your pipeline uses before calling the gap a platform limit.
+
+> <sub>**Sources:** [dynatrace_http_monitor (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md), [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
+
+The compensating controls:
 
 1. **Gen3/platform resources** — genuinely scoped via Service User + OAuth + IAM policies
-2. **v1 Synthetic monitors** — brokered API token access through central pipeline (teams never hold the token directly)
+2. **Synthetic monitors via Terraform** — brokered API token access through central pipeline (teams never hold the token directly)
 3. **Pipeline guardrails** — Sentinel/OPA enforce naming, ownership tagging, team boundaries, and resource type restrictions
-4. **Credential management** — Vault provides runtime retrieval, automatic expiration, and access audit logging
+4. **Credential management** — Vault provides runtime retrieval and access audit logging; per-job token expiry comes from the §11 minting pattern
 5. **Audit trail** — Git history + PR reviews + Dynatrace audit logs provide full change traceability
 
-This framing is much stronger than trying to pretend the v1 API scoping gap does not exist. It demonstrates a mature, defense-in-depth approach to a known platform limitation.
+This framing is much stronger than trying to pretend the classic-token scoping gap does not exist. It demonstrates a mature, defense-in-depth approach to a known platform limitation.
 
 ---
 
@@ -2473,6 +2581,32 @@ Two caveats worth knowing before you build on this. Entity selectors only match 
 
 > <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — `entitySelector` optional, environment fallback, and the 24-hour-active constraint with its `entityId` exception. **Derived:** "an environment-scoped event cannot appear in an entity-scoped view" follows from the association rule plus entity-scoped filtering; it is not stated as such in the API reference.</sub>
 
+#### Latest Dynatrace: SDLC deployment events
+
+On the latest Dynatrace, CI/CD deployment activity has a dedicated ingest endpoint, and it is what the pipeline-observability samples in the next section use. The Events API v2 call above remains valid; this is the path the Release Monitoring dashboard reads:
+
+```yaml
+- name: Send SDLC deployment event
+  run: |
+    curl -X POST "${{ secrets.DT_URL }}/platform/ingest/v1/events.sdlc" \
+      -H "Authorization: Bearer ${{ secrets.DT_PLATFORM_TOKEN }}" \
+      -H "Content-Type: application/json" \
+      -d '[{
+        "event.type": "deployment",
+        "event.status": "finished",
+        "event.category": "task",
+        "event.provider": "github-actions",
+        "cicd.deployment.name": "deploy checkout-service",
+        "cicd.deployment.release_stage": "production",
+        "cicd.deployment.status": "succeeded",
+        "task.outcome": "Success"
+      }]'
+```
+
+Here `DT_URL` is the environment URL (`https://{environment-id}.live.dynatrace.com`) and the platform token needs `openpipeline:events.sdlc:ingest`. The docs describe the deployment-finished event as *"the event type the Release Monitoring dashboard consumes"*; a `202 Accepted` response means it was received.
+
+> <sub>**Sources:** [Version detection strategies (DT docs)](https://docs.dynatrace.com/docs/deliver/release-monitoring/version-detection-strategies-latest) — *"This is the event type the Release Monitoring dashboard consumes."* [SDLC events (DT docs)](https://docs.dynatrace.com/docs/deliver/pipeline-observability-sdlc-events/sdlc-events) — endpoint `/platform/ingest/v1/events.sdlc`, required scope `openpipeline:events.sdlc:ingest`.</sub>
+
 ### Continue the Series
 
 | Next Notebook | Focus |
@@ -2502,14 +2636,14 @@ In this notebook, you learned:
 - GitOps fundamentals for Dynatrace configuration
 - Setting up GitHub Actions and GitLab CI/CD pipelines
 - **Combined auth** (Platform Token + API Token) for full resource coverage in Terraform pipelines
-- **Vault integration** for runtime credential retrieval with short-lived tokens
+- **Vault integration** for runtime credential retrieval and read auditing (per-job token expiry comes from the §11 minting pattern)
 - **Policy-as-code gates** using OPA/Conftest and Sentinel for governance enforcement
 - **Sentinel limitations** — it governs Terraform plans, not Dynatrace API permissions at runtime
 - **Drift detection** workflows to catch manual UI changes
 - **Reusable workflows** (`workflow_call`) for multi-team organizations
 - ArgoCD integration with External Secrets for token management
 - FluxCD with HelmRelease and SOPS for secret encryption
-- Dynatrace Operator GitOps patterns for multi-cluster and multi-tenant environments
+- Dynatrace Operator GitOps patterns for multi-cluster and multi-tenant environments (one OneAgent DynaKube per node pool)
 - **Two-pipeline model**: Pipeline A (IAM) creates identities, Pipeline B (Config) applies configuration under those grants
 - **Single SA writer**: only the pipeline SA writes to production; humans develop in dev/test
 - **Defense-in-depth**: layered governance from Dynatrace IAM through Sentinel/OPA, Vault, PR gates, and state file controls
@@ -2526,7 +2660,7 @@ In this notebook, you learned:
 
 The following GitHub repositories provide working CI/CD pipelines, validation scripts, and platform engineering references:
 
-### Pipeline Observability Samples (in `dynatrace-configuration-as-code-samples`)
+### Pipeline Observability Samples (in [`community-examples/configuration-as-code`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) — moved from the archived `dynatrace-configuration-as-code-samples` repo)
 
 Both Monaco and Terraform variants are available for each CI/CD platform:
 
@@ -2539,7 +2673,7 @@ Both Monaco and Terraform variants are available for each CI/CD platform:
 
 All samples ingest SDLC events via OpenPipeline and include pre-built dashboards.
 
-### CI Validation Scripts (in `dynatrace-configuration-as-code-samples/scripts/ci/`)
+### CI Validation Scripts (in [`configuration-as-code/scripts/ci/`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/scripts/ci))
 
 | Script | Purpose |
 |--------|---------|
@@ -2551,8 +2685,7 @@ All samples ingest SDLC events via OpenPipeline and include pre-built dashboards
 
 | Repository | Description |
 |------------|-------------|
-| [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) | CLI for Site Reliability Guardian automation and deployment event ingestion in CI/CD (v1.0.3) |
-| [monaco-demo](https://github.com/dt-demos/monaco-demo) | Working GitHub Actions workflow for Monaco deploy with `.github/workflows/monaco.yml` |
+| [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) | **Archived** — the README states *"This repository has been archived and is no longer maintained."* and points to [dtctl](https://github.com/dynatrace-oss/dtctl) for similar use cases. Previously: CLI for Site Reliability Guardian automation and deployment event ingestion in CI/CD |
 
 ### Platform Engineering References
 

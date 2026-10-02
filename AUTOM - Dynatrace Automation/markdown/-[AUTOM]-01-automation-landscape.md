@@ -1,6 +1,6 @@
 # AUTOM-01: Automation Landscape
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 Dynatrace provides multiple ways to automate configuration management and operational tasks. This series covers all major automation options, helping you choose the right approach for your needs.
 
@@ -54,7 +54,7 @@ By the end of this notebook, you will:
 | **AUTOM-03** | Monaco - Configuration-as-code CLI |
 | **AUTOM-04** | Terraform Provider - Infrastructure-as-code (incl. the repo's consolidated Terraform resource catalog) |
 | **AUTOM-05** | Dynatrace Workflows - Event-driven automation |
-| **AUTOM-06** | Dynatrace SDKs - TypeScript and Python clients |
+| **AUTOM-06** | Dynatrace SDKs - TypeScript SDK clients; Python via the REST APIs |
 | **AUTOM-07** | CI/CD Integration - GitOps patterns |
 | **AUTOM-08** | Migration Automation - Bulk configuration transfer |
 | **AUTOM-09** | Terraform GitOps Setup Recipe - Repo layout, state backends, lifecycle protections, team onboarding |
@@ -127,7 +127,7 @@ The foundation for all configuration automation. Direct REST API access to Dynat
 | Aspect | Details |
 |--------|----------|
 | **Type** | REST API |
-| **Access** | HTTP calls with API token |
+| **Access** | HTTP calls with a platform token or OAuth bearer token (`settings:objects:read` / `settings:objects:write`), or a classic access token (`settings.read` / `settings.write`) where the environment still has them |
 | **Schema** | JSON with schema validation |
 | **Use Case** | Custom scripts, one-off operations |
 | **Documentation** | [Settings API Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings) |
@@ -146,7 +146,7 @@ Dynatrace's official configuration-as-code CLI tool. YAML-based configuration ma
 
 ### Terraform Provider
 
-Official HashiCorp Terraform provider for Dynatrace. Infrastructure-as-code approach.
+Dynatrace's official Terraform provider (`dynatrace-oss/dynatrace`, published as a Partner-tier provider on the Terraform Registry). Infrastructure-as-code approach.
 
 | Aspect | Details |
 |--------|----------|
@@ -179,6 +179,11 @@ Official client libraries for programmatic access to Dynatrace APIs.
 | **Features** | Type-safe, auto-generated from OpenAPI |
 | **Use Case** | Custom applications, complex automation |
 | **Documentation** | [Dynatrace SDK](https://developer.dynatrace.com/develop/sdks/) |
+
+> <sub>**Sources:**</sub>
+> - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Dynatrace Terraform provider (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"The Dynatrace Terraform provider is officially supported by Dynatrace."*; Partner tier per the [Terraform Registry entry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest), checked 10/02/2026.</sub>
 
 ---
 
@@ -216,16 +221,24 @@ Not all tools support all Dynatrace features equally:
 |--------------------|--------------|--------|-----------|
 | Settings 2.0 objects | Full | Full | Full |
 | Classic config (legacy) | N/A | Full | Full |
-| Dashboards | Full | Full | Full |
+| Dashboards | N/A — Document API (classic dashboards: Configuration API) | Full (`document` type) | Full |
 | Synthetic monitors | Full | Full | Full |
-| Alerting profiles | Full | Full | Full |
-| Management zones | Full | Full | Full |
-| Auto-tagging rules | Full | Full | Full |
-| SLOs | Full | Full | Full |
-| Workflows | Full | Partial | Partial |
+| Alerting profiles ¹ | Full | Full | Full |
+| Management zones ¹ | Full | Full | Full |
+| Auto-tagging rules ¹ | Full | Full | Full |
+| SLOs (classic `builtin:monitoring.slo`) ¹ | Full | Full | Full |
+| Workflows | N/A — Automation API | Full (`automation` type) | Full (`dynatrace_automation_workflow`) |
 | OpenPipeline | Full | Full | Full |
 
-> **Note:** Monaco and Terraform use the Settings API under the hood. Feature parity depends on schema availability.
+¹ The schema behind this row is removed in Latest Dynatrace — it works until your environment upgrades. See the Settings 2.0 schema catalog in **AUTOM-02** for the status of each schema and its successor.
+
+> **Note:** Monaco and Terraform call the Settings API for Settings 2.0 objects and the platform APIs (Automation, Document, Grail storage) for platform resources — which is why Monaco takes a platform token or OAuth client alongside its access token. Feature parity for Settings objects depends on schema availability.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Monaco YAML configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas) — *"Automation defines a workflow."*; *"Document defines a dashboard, a notebook and a launchpad."*</sub>
+> - <sub>[Monaco manage resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"a platform token or OAuth client for the Dynatrace Platform APIs, such as automation workflows, documents, and Grail buckets."*</sub>
+> - <sub>[`dynatrace_automation_workflow` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md)</sub>
+> - <sub>[Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
 
 ---
 
@@ -239,9 +252,9 @@ Use this flowchart to choose the right automation approach:
 | Question | If Yes | If No |
 |----------|--------|-------|
 | Is this a one-time task? | Settings API | Continue... |
-| Do you need state management? | Terraform | Monaco |
 | Is it event-driven? | Workflows | Continue... |
-| Building a custom app? | SDK | Monaco |
+| Building a custom app? | SDK | Continue... |
+| Do you need state management or cross-system orchestration? | Terraform | Monaco |
 -->
 
 ---
@@ -284,7 +297,7 @@ The general guidance in §4 (Combining Tools) still applies: pick one tool per c
 | **Bulk download from an existing tenant** | When the *target* is Terraform, the Dynatrace Terraform provider's built-in [export utility](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) (`terraform-provider-dynatrace -export`) pulls every supported resource directly into ready-to-use HCL — no Monaco intermediate, no `terraform import` resource-by-resource authoring. When the *target* is Monaco, `monaco download` is the equivalent. For Terraform shops onboarding an inherited tenant, the provider's `-export` is the on-ramp — Monaco-as-intermediate adds a manual HCL-authoring step that the provider already does for you. |
 | **N tenants, identical configs** | Monaco's `manifest.yaml` lists multiple environments and deploys to all with variable substitution — no per-environment state, no workspaces. For *"we have prod + EU-prod + APAC-prod and they should all look the same"*, Monaco is less ceremony. Terraform workspaces can do it, but each has its own state and the divergence-over-time tax is real. |
 | **App-team self-service** | Letting product teams commit Dynatrace configs alongside their app code with a CI job running `monaco deploy` on merge — no state backend per team, no state-locking infrastructure. The platform team keeps Terraform-managed shared infra; app teams get a low-floor path for their own SLOs / dashboards / management zones. |
-| **Bleeding-edge Settings 2.0 schemas** | When a new schema ships, Monaco supports it immediately (generic schema-id pattern). The Terraform provider catches up later. For configs that haven't reached the provider yet, Monaco is the fallback while you wait for typed resources. |
+| **Bleeding-edge Settings 2.0 schemas** | In community practice, Monaco's schema-id configs reach a new schema first, while the Terraform provider's typed resources can lag (its `dynatrace_generic_setting` resource is documented for schemas contributed by custom platform apps, so coverage of new `builtin:` schemas is not documented either way). For a config that has no typed resource yet, Monaco is a fallback — verify against the provider's current resource list first. |
 
 ### What's NOT a Good Reason for a Terraform Shop
 
@@ -315,8 +328,8 @@ Two paths, picked by target:
 
 **Target = Terraform repo (most common for a Terraform shop):**
 
-1. `terraform-provider-dynatrace -export` — pulls every supported resource directly into HCL. Output lands in `DYNATRACE_TARGET_FOLDER` (defaults to `.configuration/`). Use `-flat` for a single directory; default is a module structure. Use `-list-exclusions` to see what's excluded by default (notably dashboards — opt in explicitly when you want them).
-2. Review and clean up — the export produces `.flawed/` for deprecated configs and `.required_attention/` for items missing essentials (e.g., credential payloads the API can't return). Triage both.
+1. `terraform-provider-dynatrace -export` — pulls every supported resource directly into HCL. Output lands in `DYNATRACE_TARGET_FOLDER` (defaults to `.configuration/`). Use `-flat` for a single directory; default is a module structure. Use `-list-exclusions` to see what's excluded by default (notably dashboards — opt in explicitly when you want them). Add `-admin-access` (requires the `settings:objects:admin` permission) so OpenPipeline resources owned by other users are exported too — without it only the current user's are.
+2. Review and clean up — the export produces `.flawed/` for deprecated configs and `.requires_attention/` (the docs page spells it `.required_attention`; AUTOM-04 § 8 quotes the utility source) for items missing essentials (e.g., credential payloads the API can't return). Triage both.
 3. Commit to Git as your *source-of-truth* baseline.
 4. From here you're on the standard Terraform workflow — `terraform plan` shows drift vs the tenant; `terraform apply` reconciles. See AUTOM-04 + AUTOM-09 for the operational layer.
 
@@ -331,7 +344,8 @@ Two paths, picked by target:
 **Don't use Monaco-download-as-Terraform-bootstrap.** Monaco's YAML and the Terraform provider's HCL don't share a converter (no Dynatrace-supplied tool, and no community OSS bridge found in GitHub searches as of September 2026). Hand-authoring HCL from Monaco YAML loses to running `-export` directly.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [<resourcename>[=<id>]]"*; module-structure vs `-flat`; `.flawed` / `.required_attention` triage dirs; default exclusions.</sub>
+> - <sub>[Dynatrace Terraform provider export utility (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — *"./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [-admin-access] [<resourcename>[=<id>]]"*; *"-admin-access : Export OpenPipeline resources of all owners, not just the current user's. Requires the settings:objects:admin permission."*; module-structure vs `-flat`; `.flawed` / `.requires_attention` triage dirs; default exclusions.</sub>
+> - <sub>[`dynatrace_generic_setting` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/generic_setting.md) — *"The resource `dynatrace_generic_setting` covers configuration for Schemas contributed by Custom Platform Apps"*</sub>
 > - <sub>[Monaco repo README (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code) — confirms Monaco and Terraform provider are separate tools; no built-in conversion. **Observed 09/28/2026:** GitHub repository searches for `monaco to terraform`, `monaco terraform dynatrace`, `dynatrace monaco convert` and `dynatrace monaco migration` returned no Monaco-to-Terraform converter (first checked 05/12/2026). An absence in search results is an observation, not a guarantee — re-check before relying on it.</sub>
 
 ---
@@ -346,8 +360,8 @@ Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path 
 > **Monaco does not appear in this path.** A Terraform-only setup is complete and supported end-to-end. If you later hit one of the patterns in §5, you can selectively add Monaco alongside — but the loop below stands on its own.
 
 1. **Install the Terraform CLI** — see **AUTOM-04 §2 Getting Started** for OS-specific install commands.
-2. **Configure the Dynatrace provider** — see **AUTOM-04 §3 Provider Configuration**. Set `DYNATRACE_ENV_URL` + a Platform Token (`dt0s16`) as the primary credential; optionally set a classic API Token (`dt0c01`) for resources outside Platform-Token coverage (synthetic monitors, network monitors, SLOs — the v1.88.0 exclusion list).
-3. **Bulk-export the tenant's existing config to HCL** — run `terraform-provider-dynatrace -export` (the provider's built-in export utility — **NOT** `terraform import`, which is per-resource). Output lands in `.configuration/`; triage `.flawed/` (deprecated configs) and `.required_attention/` (sensitive fields the API can't return) before committing. See **AUTOM-04 §8 Next Steps** for invocation details and **AUTOM-01 §5 bulk-download workflow** for the full triage flow.
+2. **Configure the Dynatrace provider** — see **AUTOM-04 §3 Provider Configuration**. Set `DYNATRACE_ENV_URL` + a Platform Token (`dt0s16`) for platform resources (workflows, documents, segments, buckets, OpenPipeline). Add a classic API Token (`dt0c01`) for classic resources — the provider documents that platform tokens cannot be used for them — and for the resources its v1.88.0 release moved to API-token-only (16 resources incl. synthetic and network monitors, SLOs, credentials and network zones; full list in **AUTOM-04 §3**). IAM resources need an OAuth client. Classic API tokens no longer exist once the environment is on Latest Dynatrace.
+3. **Bulk-export the tenant's existing config to HCL** — run `terraform-provider-dynatrace -export` (the provider's built-in export utility — **NOT** `terraform import`, which is per-resource). Output lands in `.configuration/`; triage `.flawed/` (deprecated configs) and `.requires_attention/` (sensitive fields the API can't return) before committing. See **AUTOM-04 §8 Next Steps** for invocation details and **AUTOM-01 §5 bulk-download workflow** for the full triage flow.
 4. **Stand up the repo layout** — choose single-repo (`modules/` + `envs/`) or two-repo (modules separate from consumer). See **AUTOM-09 §2 Opinionated Repo Layout**.
 5. **Configure the state backend** — S3+DynamoDB, GCS, Azure Storage, or HCP Terraform. See **AUTOM-09 §3 State Backend Setup** for `backend.tf` examples per backend.
 6. **Lock down version constraints** — `required_providers` + `~>` constraint discipline. See **AUTOM-09 §4 Provider Configuration and Version Discipline**.
@@ -359,7 +373,7 @@ Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path 
 ### Path B — Monaco target (config-only, single-tool simplicity)
 
 1. **Install Monaco** — see **AUTOM-03 §2 Getting Started**. `curl` the release binary (macOS/Linux) or download the `.exe` (Windows); there is no Homebrew formula.
-2. **Set environment variables** — tenant URL + API Token. See **AUTOM-03 §2 Environment Setup**.
+2. **Set environment variables** — tenant URL + access token, plus a platform token or OAuth client for platform configs (workflows, documents, buckets). See **AUTOM-03 §2 Environment Setup**.
 3. **Bulk-download the tenant's existing config to YAML** — `monaco download --manifest manifest.yaml --environment <tenant>`. See **AUTOM-08 Migration Automation** for the full migration flow.
 4. **Review and clean up** — Monaco's YAML is human-readable; delete noise, parameterize sensitive values, split into logical projects. See **AUTOM-03 §3 Project Structure**.
 5. **Author your `manifest.yaml`** — list every environment Monaco should deploy to. Per-env values via `parameters` block. See **AUTOM-03 §4 Configuration Files**.
@@ -374,9 +388,15 @@ Once you've picked Monaco or Terraform (per §3-§5), here's the sequenced path 
 |---|---|---|
 | Pushing a token in `terraform.tfvars` to Git | Source-control leak of long-lived credentials | Use `*.tfvars` in `.gitignore`; pass tokens via env vars or CI/CD secret store |
 | First `apply` without `prevent_destroy` on critical resources | One bad PR can delete production management zones / IAM policies | Add `lifecycle { prevent_destroy = true }` on prod resources before the first prod apply. See **AUTOM-09 §9** |
-| Skipping the `.required_attention/` triage after `-export` | Apply fails on missing credential payloads | Open the `.required_attention/` directory; fill in stub values; re-run validate; only then commit |
+| Skipping the `.requires_attention/` triage after `-export` | Apply fails on missing credential payloads | Open the `.requires_attention/` directory; fill in stub values; re-run validate; only then commit |
 | One state file across all environments | dev apply can corrupt prod state | Per-env state file from day 1. See **AUTOM-09 §3** + **§6** |
 | Apply runs without artifact reuse from the reviewed plan | The plan reviewers saw isn't what gets applied | Use the plan-artifact pattern: plan publishes `tfplan` → apply subscribes to it. See **AUTOM-07 §3-§7** for platform-specific syntax |
+
+> <sub>**Sources:**</sub>
+> - <sub>[Dynatrace Terraform provider (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"Platform tokens can't be used for IAM (Account Management) or classic resources."*</sub>
+> - <sub>[Terraform provider v1.88.0 release notes (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases/tag/v1.88.0) — *"For these resources, an API token must be provided"*</sub>
+> - <sub>[Monaco manage resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — *"Access tokens and platform tokens are not interchangeable."*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
 
 ---
 
@@ -389,7 +409,7 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 
 | Token Type | Description | Use Case |
 |------------|-------------|----------|
-| **Access Token (Classic)** | Scope-based token with explicit permissions (e.g., `settings.read`) | Settings API, Monaco, Terraform (settings/classic) |
+| **Access Token (Classic)** | Scope-based token with explicit permissions (e.g., `settings.read`). Exists only in classic and hybrid environments — not once the environment is on Latest Dynatrace | Settings API, Monaco, Terraform (settings/classic) |
 | **Platform Token** | Long-lived token bound to a user's permissions; simpler to create | Same as access token, but scopes are limited to user's existing permissions |
 | **OAuth Client** | Client ID + secret exchanged for short-lived tokens | **Required** for account IAM resources; workflows, documents and segments accept a Platform Token or an OAuth client |
 
@@ -397,8 +417,8 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 
 | Tool | Access/Platform Token | OAuth Client | Notes |
 |------|----------------------|--------------|-------|
-| **Settings API** | `settings.read`, `settings.write` | N/A | Direct REST calls |
-| **Monaco** | Access token: `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` (`auth.token`); platform token for platform configs (`auth.platformToken`) | Alternative to the platform token for platform configs (`auth.oAuth`) | Workflows, documents, Grail buckets and segments need `platformToken` or `oAuth`; access and platform tokens are not interchangeable |
+| **Settings API** | Platform token: `settings:objects:read`, `settings:objects:write` (`Authorization: Bearer`); classic access token: `settings.read`, `settings.write` (`Authorization: Api-Token`) | `settings:objects:read`, `settings:objects:write` | Direct REST calls; see AUTOM-02 |
+| **Monaco** | Access token: `DataExport`, `ReadConfig`, `WriteConfig`, `settings.read`, `settings.write` (`auth.token`); platform token for platform configs (`auth.platformToken`) | Alternative to the platform token for platform configs (`auth.oAuth`) | Workflows, documents, Grail buckets and segments need `platformToken` or `oAuth`; access and platform tokens are not interchangeable |
 | **Terraform** (settings/classic) | `settings.read`, `settings.write`, `ReadConfig`, `WriteConfig` | N/A | IaC for config objects |
 | **Terraform** (automation/documents) | Platform Token with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` (see AUTOM-04 §3) | `automation:workflows:read/write`, `document:documents:read/write` | Platform Token **or** OAuth |
 | **Terraform** (account management) | N/A | IAM scopes + `DT_ACCOUNT_ID` | OAuth **required** |
@@ -416,7 +436,14 @@ Dynatrace supports three types of credentials for automation tools. Which you ne
 | Platform tokens | Prefer over classic access tokens for simpler management |
 | OAuth for service identities | Prefer OAuth clients for CI/CD service identities managing Workflows or Documents; a Platform Token also works |
 
-> **Key Distinction:** Platform tokens work within the user's existing permissions (a scope only grants access if the user already has that permission). OAuth clients operate with their own independent scopes, making them more suitable for service accounts and CI/CD pipelines.
+> **Key Distinction:** Both platform tokens and OAuth clients act as a user. A platform token is limited to the permissions of the user or service user it belongs to (a scope only grants access if that user already has the permission). A client-credentials OAuth client is bound to a subject user, and its tokens get the intersection of the client's scopes and that user's permissions. For CI/CD, bind either one to a service user.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Settings API - POST an object (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object) — *"Platform Token / OAuth: Required scope: settings:objects:write"*</sub>
+> - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Platform tokens are also available alongside classic access tokens."* (hybrid); *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Monaco manage resources (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources) — access-token minimum includes *"Access problem and event feed, metrics, and topology ( DataExport )"*</sub>
+> - <sub>[OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients) — *"For Client credentials only: provide the Subject user email"*</sub>
+> - <sub>[Dynatrace MCP server (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) — *"the effective token permissions consist of the intersection of the permissions configured on the OAuth client and the permissions of the user who created the client."*</sub>
 
 ---
 
@@ -443,7 +470,7 @@ The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligenc
 
 | Aspect | Details |
 |--------|----------|
-| **Type** | Open-source MCP server |
+| **Type** | Dynatrace-hosted MCP server, reached through your environment's MCP gateway URL with a platform token or OAuth bearer token (the earlier open-source local server, `@dynatrace-oss/dynatrace-mcp-server`, is deprecated) |
 | **Access** | AI assistants can query problems, metrics, traces, logs, topology |
 | **Use Case** | AI-assisted development, triage, incident management |
 | **Documentation** | [MCP Server Documentation](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) |
@@ -457,6 +484,10 @@ The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligenc
 | **Supervised** | Workflows with human approval gates |
 | **Autonomous** | Intelligence Agents with guardrails |
 | **AI-Assisted** | MCP Server for developer and SRE tooling |
+
+> <sub>**Sources:**</sub>
+> - <sub>[Dynatrace MCP server (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) — *"Every request to the MCP server needs a bearer token in the authorization header."*</sub>
+> - <sub>[dynatrace-mcp README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-mcp) — *"This repository is deprecated. Version 2.1.2 was the final release — no further updates will be made."*</sub>
 
 ---
 
@@ -498,7 +529,7 @@ In this notebook, you learned:
 - How to choose the right tool based on your use case and team skills
 - Best practices for combining automation tools
 
-> **Key Takeaway:** Choose the automation tool that matches your team's skills and your operational model. Monaco is the best starting point for most teams due to its low barrier to entry and GitOps compatibility.
+> **Key Takeaway:** Choose the automation tool that matches your team's skills and your operational model. Terraform shops can stay Terraform-only (§5); in community practice, teams without IaC experience often find Monaco the lower-ceremony place to start.
 
 ---
 

@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -363,10 +363,11 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Query spans by service name pattern
+// dt.service.name is set on every span, whatever the ingest source
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| filter contains(service.name, "payment")
-| summarize request_count = count(), by: {service.name}
+| filter contains(dt.service.name, "payment")
+| summarize request_count = count(), by: {dt.service.name}
 | sort request_count desc
 | limit 20
 ```

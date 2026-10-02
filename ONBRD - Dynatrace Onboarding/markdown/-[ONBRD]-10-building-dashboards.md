@@ -171,9 +171,10 @@ fetch spans, from: now() - 1h
 
 ```dql
 // Top services by request count (Top List tile)
+// dt.service.name is set on every span, whatever the ingest source
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize requests = count(), by: {service.name}
+| summarize requests = count(), by: {dt.service.name}
 | sort requests desc
 | limit 10
 ```
@@ -182,10 +183,10 @@ fetch spans, from: now() - 1h
 // Service error rates (Table tile)
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize
+| summarize {
     requests = count(),
-    errors = countIf(span.status_code == "error"),
-    by: {service.name}
+    errors = countIf(span.status_code == "error")
+  }, by: {dt.service.name}
 | fieldsAdd error_rate = round(100.0 * errors / requests, decimals: 2)
 | sort error_rate desc
 | limit 15
