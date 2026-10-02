@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -30,8 +30,8 @@ A successful migration is measured not by the technical cutover but by whether e
 
 | Requirement | Details |
 |-------------|----------|
-| **Steps 1–7 Complete** | Discovery, strategy, design, preparation, execution, integration, and expansion phases finished |
-| **SaaS Tenant Stable** | All OneAgents reporting, integrations reconnected, SaaS-exclusive features enabled |
+| **Steps 1–6 Complete** | Discovery, strategy, design, preparation, execution, and integration phases finished |
+| **SaaS Tenant Stable** | All OneAgents reporting, integrations reconnected |
 | **IAM Configured** | User accounts, groups, and policies set up in SaaS |
 | **Stakeholder List** | Complete inventory of Dynatrace users by role and team |
 | **Communication Channels** | Access to organizational email, Slack/Teams, intranet |
@@ -87,7 +87,8 @@ What changes:
 What stays the same:
 - Your dashboards, management zones, and alerting rules are migrated
 - OneAgent monitoring continues without interruption
-- All historical data is preserved during the transition period
+- Historical data stays in Managed — it does not move to SaaS, so keep the
+  Managed environment readable until it is decommissioned
 
 Timeline: [Insert dates]
 Training: [Insert schedule link]
@@ -171,7 +172,7 @@ Training must address the specific changes users will encounter:
 | **Query language** | USQL (limited) | DQL (full Grail access) |
 | **Data analysis** | Custom charts, data explorer | Notebooks (interactive, shareable) |
 | **Alerting** | Notification rules + alerting profiles | Workflows (AutomationEngine) |
-| **Configuration** | Settings v1 | Settings 2.0 (schema-based) |
+| **Configuration** | Classic settings pages and Configuration API | Settings 2.0 (schema-based) and the Settings app |
 | **Data storage** | Elasticsearch + Cassandra | Grail data lakehouse |
 | **Updates** | Manual cluster updates (downtime) | Automatic, zero-downtime updates |
 
@@ -181,11 +182,13 @@ The biggest workflow change for power users is the transition from USQL to DQL. 
 
 | USQL Pattern | DQL Equivalent |
 |-------------|----------------|
-| `SELECT * FROM usersession` | `fetch logs, from:-1h` |
-| `WHERE country = 'US'` | `\| filter geo.country.name == "US"` |
-| `GROUP BY application` | `\| summarize count = count(), by:{dt.entity.application}` |
+| `SELECT * FROM usersession` | `fetch user.sessions, from:-24h` — the time range is mandatory in DQL |
+| `WHERE country = 'US'` | `\| filter country == "..."` (classic RUM on Grail) or `\| filter geo.country.iso_code == "US"` (New RUM) |
+| `GROUP BY browserFamily` | `\| summarize c = count(), by:{browserFamily}` (classic) or `by:{browser.name}` (New RUM) |
 | `ORDER BY duration DESC` | `\| sort duration desc` |
-| `TOP 10` | `\| limit 10` |
+| `LIMIT 10` | `\| limit 10` |
+
+Which column applies depends on whether the tenant runs classic RUM on Grail or New RUM — the field names differ. **WEBRUM-09** has the full grammar and field mapping for both, including the fields with no New RUM equivalent.
 
 > **Tip:** DQL is far more powerful than USQL. Frame the transition as an upgrade, not a disruption. Teams that learn DQL gain access to all Grail data sources (logs, spans, events, metrics, entities) through a single query language.
 
@@ -304,9 +307,9 @@ Publish answers to the questions you know users will ask:
 | Where do I log in? | `https://{tenant}.apps.dynatrace.com` — use your corporate SSO credentials |
 | What happened to my dashboards? | Migrated via SaaS Upgrade Assistant — find them in Dashboards (use search) |
 | How do I query data now? | DQL in Notebooks replaces USQL. See the DQL Cheat Sheet above |
-| Where are my management zones? | Migrated — find them in Settings > Ownership and Permissions > Management Zones |
-| Why do I see fewer problems? | Dynatrace Intelligence is re-establishing baselines on the new SaaS environment. This takes 7–14 days. Problem detection will normalize |
-| Can I still use the old Managed URL? | During the transition period, yes (read-only). After decommission, no |
+| Where are my management zones? | Migrated by the Upgrade Assistant where your archive carried them — find them by searching *Management zones* in Settings. For data access on the new platform, see the IAM and ORGNZ series |
+| Why do problem counts look different? | Dynatrace Intelligence is relearning baselines on the new SaaS environment — in community practice roughly one to four weeks depending on the signal. FAQ-25 § 5 has a query that measures each host's history depth |
+| Can I still use the old Managed URL? | Until decommission, yes — it still holds the history for every migrated host, but no new data for them. After decommission, no |
 | Where did USQL go? | USQL is not available in SaaS. Use DQL in Notebooks — it is more powerful and covers all data sources |
 | How do I create a new API token? | Go to Account Management > Identity & Access Management > OAuth clients, or use Settings > Access Tokens for environment tokens |
 | Why does the UI look different? | SaaS uses the unified platform UI. The app launcher on the left provides access to all features |

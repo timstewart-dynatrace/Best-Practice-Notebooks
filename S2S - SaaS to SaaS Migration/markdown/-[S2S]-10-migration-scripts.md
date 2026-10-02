@@ -1,6 +1,6 @@
 # S2S-10: Migration Scripts
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 10 | **Created:** April 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 10 | **Created:** April 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -501,7 +501,7 @@ A clean dry-run is not a guarantee: Monaco's flag help says a dry-run *"can not 
 | You only need specific config types | `monaco download --only-settings`, `--settings-schema <schema>` or `--api <api>` |
 | You want ongoing config management | Terraform with state management |
 | The source is a Managed environment | The SaaS Upgrade Assistant (see the M2S series) |
-| You need IAM migration | Terraform — Monaco cannot manage IAM |
+| You need IAM migration | Terraform (`dynatrace_iam_*`), or `monaco account download` / `deploy` with an OAuth client |
 
 ### Script vs. Manual Monaco
 

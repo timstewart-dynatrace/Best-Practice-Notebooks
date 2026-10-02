@@ -1,6 +1,6 @@
 # S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Expand | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -352,15 +352,15 @@ Notification rules that send alerts to external systems (PagerDuty, Slack, Servi
 | **Email** | Recipient list | Review and update distribution lists |
 | **Custom webhook** | Endpoint URL, authentication | Update URL and credentials |
 
-> **Important during parallel operation:** If both source and target tenants have active alerting, you will receive **duplicate alerts**. Consider disabling alerting in the target tenant until cutover, or routing target alerts to a staging channel.
+> **Important during parallel operation:** agent data does not produce duplicates — each host reports to one tenant. Duplicates come from what you deliberately run in **both** tenants: synthetic monitors, cloud connections, and dual-fed log or metric ingest. Disable each of those in the source as its target counterpart is validated. Do not disable alerting in the target; route alerts for recently migrated hosts to a staging channel while their baselines relearn (**FAQ-25** § 5).
 
 ### Maintenance Window Strategy
 
 | Approach | When to Use |
 |----------|-------------|
-| **Global suppression** | Deploy a tenant-wide maintenance window in target during parallel period |
-| **Per-zone suppression** | Suppress alerts for migrated zones only |
-| **No suppression** | If team is ready to triage duplicate alerts |
+| **Staging channel** (recommended) | Route alerts for recently migrated hosts to a staging channel; keep detection running so you can measure the noise |
+| **Wave-scoped maintenance window** | Cover only the hosts in a wave, only for its cutover window |
+| **Tenant-wide maintenance window** | Avoid — it suppresses real problems on every migrated host for the whole overlap |
 
 <a id="data-retention-optimization"></a>
 
@@ -374,7 +374,7 @@ The migration is an opportunity to rationalize data retention across data types.
 |-----------|-----------|---------|--------------------|
 | **Logs** | 35–90 days | 7–14 days | 365 days |
 | **Spans** | 35 days | 7 days | 90 days |
-| **Metrics** | 5 years (built-in) | 5 years | 5 years |
+| **Metrics** | 15 months included (extend up to 10 years) | 15 months | As compliance requires, up to 10 years |
 | **Events** | 35 days | 14 days | 90 days |
 | **Business events** | 90–365 days | 35 days | 365 days |
 
@@ -417,7 +417,7 @@ Before proceeding to **Step 8 — Enable**, confirm that you have completed each
 | SLOs deployed to target tenant | [ ] |
 | Alerting profiles migrated | [ ] |
 | Notification rules migrated with updated webhook URLs | [ ] |
-| Maintenance windows configured for parallel operation period | [ ] |
+| Alert routing for the parallel period decided (staging channel or wave-scoped maintenance windows) | [ ] |
 | Data retention policies aligned and documented | [ ] |
 | Stakeholders informed of SLO evaluation timeline (rolling window fill period) | [ ] |
 

@@ -1,6 +1,6 @@
 # S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 8 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -122,7 +122,7 @@ You cannot directly speed up Dynatrace Intelligence learning, but you can reduce
 
 | Action | Impact |
 |--------|--------|
-| Suppress maintenance alerts during migration | Prevents false positives from polluting baselines |
+| Use wave-scoped maintenance windows during each cutover | Keeps the cutover itself from raising problems |
 | Ensure consistent traffic patterns | Avoid load testing or unusual deployments during baseline period |
 | Configure sensitivity thresholds | Set anomaly detection sensitivity to match source tenant settings |
 | Migrate anomaly detection settings first | Ensures Dynatrace Intelligence uses the same thresholds from day one |
@@ -131,7 +131,7 @@ You cannot directly speed up Dynatrace Intelligence learning, but you can reduce
 
 | Week | Dynatrace Intelligence Behavior | Action Required |
 |------|---------------|------------------|
-| Week 1 | Many false positives (no baseline context) | Suppress or route to staging alert channel |
+| Week 1 | Many false positives (no baseline context) | Route to a staging alert channel — do not suppress or retune yet |
 | Week 2 | Infrastructure baselines forming, fewer false positives | Monitor and triage manually |
 | Week 3 | Service baselines forming, anomaly detection improving | Compare detected problems with source tenant |
 | Week 4+ | Baselines stable for most metrics | Ready for production alerting |
@@ -141,11 +141,12 @@ You cannot directly speed up Dynatrace Intelligence learning, but you can reduce
 Track detected problem volume in the target tenant to see baselines stabilize over time:
 
 ```dql
-// detected problem trend over the last 7 days (target tenant)
-// Expect high volume in week 1, decreasing as baselines stabilize
 fetch dt.davis.problems, from:-7d
-| summarize problem_count = count(), by:{day = bin(timestamp, 1d)}
+| summarize {problem_count = count()}, by:{day = bin(event.start, 24h)}
 | sort day asc
+
+// Bucketed by event.start (when the problem began) — timestamp on a problem record is its
+// last update. 24h rather than 1d: calendar durations are rewritten with an INFO notification.
 ```
 
 ```dql
@@ -217,7 +218,7 @@ Parallel operation is expensive — but only for what actually reaches both tena
 
 | DPS Capability | Impact During Parallel | Optimization |
 |---------------|----------------------|---------------|
-| **Full-Stack / Infrastructure Monitoring (host-hours)** | 1x per host — each host reports to one tenant | Keep wave windows short |
+| **Full-Stack (GiB-hours) / Infrastructure (host-hours) Monitoring** | 1x per host — each host reports to one tenant | Keep wave windows short |
 | **Log Management & Analytics (ingest & retain)** | 1x for agent-collected logs; 2x only for forwarders you deliberately dual-feed | Dual-feed only the sources you must compare |
 | **Traces** | 1x per host (agent-sourced) | — |
 | **Metrics** | 1x for agent metrics; 2x for cloud-integration and API-ingested metrics sent to both | Enable cloud integrations in the target per wave |
@@ -267,7 +268,7 @@ Users need to know what changes, what stays the same, and where to find things i
 |----------|--------|
 | Why are my dashboards showing less data? | The target tenant does not have historical data. Data accumulates from the migration date forward. |
 | Why am I getting more alerts than usual? | Dynatrace Intelligence is establishing baselines from the target's own data. Expect more noise for recently migrated hosts until they have built up history — the platform team tracks this per host. |
-| Where is my old dashboard? | Dashboards have been migrated. Find them at `<target-tenant-url>/ui/dashboards`. |
+| Where is my old dashboard? | Dashboards have been migrated. Open the Dashboards app in the target tenant and search by name. |
 | Do I need a new API token? | Yes. All API tokens must be regenerated in the target tenant. |
 | When will SLOs be accurate? | SLOs need one full evaluation window of data. 7-day SLOs: 1 week. 30-day SLOs: 4 weeks. |
 

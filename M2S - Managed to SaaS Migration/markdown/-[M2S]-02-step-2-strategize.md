@@ -1,6 +1,6 @@
 # M2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -203,7 +203,7 @@ These are the non-obvious factors that derail migrations when overlooked.
 | Consideration | Detail |
 |---------------|--------|
 | **Dual licensing** | You will run both Managed and SaaS in parallel during migration — coordinate with your Dynatrace account team early |
-| **Contract alignment** | SaaS licensing model differs from Managed — DPS (Dynatrace Intelligence Processing Units) vs. host-based |
+| **Contract alignment** | SaaS licensing model differs from Managed — the Dynatrace Platform Subscription (DPS), consumption-based, vs. host units |
 | **Timing** | Begin licensing discussions at least 4 weeks before migration start |
 
 ### Data Continuity
@@ -219,7 +219,7 @@ These are the non-obvious factors that derail migrations when overlooked.
 | Consideration | Detail |
 |---------------|--------|
 | **New ActiveGates required** | SaaS requires Environment ActiveGates — cannot reuse Managed Cluster ActiveGates |
-| **Network zones** | Must be recreated in SaaS — plan ActiveGate placement per zone |
+| **Network zones** | Must exist in SaaS with SaaS ActiveGates assigned before agents move — the Upgrade Assistant can import the definitions; plan ActiveGate placement per zone |
 | **Firewall rules** | New outbound rules to `*.live.dynatrace.com` and `*.apps.dynatrace.com` on port 443 |
 | **OneAgent version compatibility** | Dynatrace supports OneAgent versions for 9 months (Standard) / 12 months (Enterprise) — verify your oldest agents are within support. Separately, SaaS 1.347 (staged tenant rollout; pre-release notes) **rejects connections** from OneAgent 1.241 and earlier, so those hosts send no data after redirect — see the Step 1 (M2S-01) callout |
 
@@ -238,9 +238,9 @@ These are the non-obvious factors that derail migrations when overlooked.
 | Consideration | Detail |
 |---------------|--------|
 | **Security approvals** | Firewall change requests may require weeks of lead time |
-| **SSO/SAML configuration** | IdP must sign the **entire SAML message**, not just the assertion |
-| **SSO federation limits** | SaaS supports **SAML 2.0 only** (plus SCIM provisioning) — OIDC federation and direct LDAP are not available; confirm your IdP can federate via SAML |
-| **Outbound email (SMTP)** | No custom SMTP on SaaS — notifications are sent by Dynatrace; route to an internal relay via a webhook or Workflow email action if required |
+| **SSO/SAML configuration** | IdP must sign the **entire SAML message**, not just the assertion — Microsoft Entra signs only the assertion by default (M2S-04 § 3) |
+| **SSO federation** | Dynatrace documents **SAML 2.0** federation (plus SCIM provisioning) for SaaS — confirm your IdP can federate via SAML |
+| **Outbound email (SMTP)** | Notifications are sent by Dynatrace; we found no documented custom-SMTP option for SaaS — route to an internal relay via a webhook or Workflow action if required |
 | **API token rotation** | New tokens needed for SaaS — update all automation and integrations |
 | **Data residency** | Confirm SaaS tenant region meets compliance requirements |
 
@@ -261,25 +261,28 @@ Once your agents are reporting to SaaS, use these DQL queries to validate covera
 
 ```dql
 // Check OneAgent version distribution — agents outside the 9-month (Standard) / 12-month (Enterprise) support window need upgrading before migration
-fetch dt.entity.host
+fetch dt.entity.host, from:-24h
 | fieldsAdd version = installerVersion
-| summarize hostCount = count(), by:{version}
+| summarize {hostCount = count()}, by:{version}
 | sort hostCount desc
 
 // No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
 // field, so this version distribution stays on the classic entity store.
+// from:-24h: without it dt.entity.* counts only entities seen in the default 2-hour window.
+
 ```
 
 ```dql
-// Count monitored entities by type — confirms your discovery inventory matches what SaaS sees after redirect
-fetch dt.entity.host | summarize hosts = count()
-| append [fetch dt.entity.service | summarize services = count()]
-| append [fetch dt.entity.application | summarize applications = count()]
-| append [fetch dt.entity.process_group | summarize process_groups = count()]
+// Count monitored entities seen in the last 24 hours — confirms your discovery inventory matches what SaaS sees after redirect
+fetch dt.entity.host, from:-24h | summarize hosts = count()
+| append [fetch dt.entity.service, from:-24h | summarize services = count()]
+| append [fetch dt.entity.process_group, from:-24h | summarize process_groups = count()]
+| append [smartscapeNodes "FRONTEND", from:-24h | summarize frontends = count()]
 
-// Keep classic: this is a completeness inventory spanning types not all present on Grail
-// Smartscape (e.g. application). Smartscape would count live topology, not the full
-// monitored inventory — the wrong basis for a migration-completeness check.
+// Web and mobile applications are counted as Smartscape FRONTEND nodes (M2S-01). Classic
+// dt.entity.application counts only classic web applications and returned 0 on a validation tenant
+// with 34 frontends (10/01/2026). Every subquery uses the same from:-24h window.
+
 ```
 
 ```dql
@@ -348,14 +351,14 @@ Define measurable success criteria before migration starts. These criteria deter
 
 ```dql
 // Post-migration validation — compare host count to your discovery inventory
-fetch dt.entity.host
+fetch dt.entity.host, from:-24h
 | summarize totalHosts = count()
 | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "Compare totalHosts to target"
 
-// Smartscape equivalent (deprecated dt.entity.* still functional):
-//   smartscapeNodes "HOST" | summarize totalHosts = count() | fieldsAdd target = "<YOUR_DISCOVERY_COUNT>", coverage = "..."
-// Caveat: for validating against a discovery inventory keep the classic count — Smartscape's
-// live-topology count omits hosts not currently in active topology.
+// Smartscape equivalent: smartscapeNodes "HOST", from:-24h | summarize totalHosts = count()
+// For validating against a discovery inventory keep the classic count (FAQ-16 explains why the
+// two surfaces can disagree).
+
 ```
 
 ```dql
@@ -392,7 +395,7 @@ Build your timeline working backward from the desired Managed decommission date.
 | **Phased by Env** | Plan + Prepare | Dev wave | Staging wave | Prod wave | Parallel + Decommission |
 | **Phased by Region** | Plan + Prepare | Region 1 | Region 2 | Region 3 | Parallel + Decommission |
 
-> **Important:** The parallel operation period is non-negotiable. Dynatrace Intelligence needs 2-4 weeks to build baselines in SaaS before you can trust its problem detection. Do not decommission Managed until baselines are established.
+> **Important:** The parallel operation period is non-negotiable. In community practice, Dynatrace Intelligence baselines become trustworthy over roughly two to four weeks — FAQ-25 § 5 has a query that measures each host's history depth instead of guessing. Do not decommission Managed until baselines are established.
 
 ### Migration Plan Checklist
 
@@ -424,11 +427,11 @@ When building your high-level migration plan, ensure these items are addressed:
 
 ## 8. The 90/10 Rule
 
-Based on hundreds of successful migrations, a consistent pattern emerges:
+In community practice, migration teams describe a consistent pattern — treat the numbers as a planning heuristic, not a Dynatrace figure:
 
-> **90% of configurations migrate automatically** via the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant). The remaining **10% takes 90% of the manual effort**.
+> **Most configuration migrates through the [SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant); the small remainder takes most of the manual effort.** The "90/10" shorthand is folklore, not a documented ratio — your own Upgrade Assistant review screen gives the real split.
 
-### What Migrates Automatically (the 90%)
+### What Typically Migrates Through the Upgrade Assistant
 
 | Category | Tool |
 |----------|------|
@@ -440,7 +443,7 @@ Based on hundreds of successful migrations, a consistent pattern emerges:
 | Request attributes | SaaS Upgrade Assistant |
 | Calculated metrics | SaaS Upgrade Assistant |
 
-### What Requires Manual Effort (the 10%)
+### What Requires Manual Effort
 
 | Item | Why Manual | Effort Level |
 |------|-----------|-------------|

@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -12,17 +12,13 @@ The first step in any SaaS-to-SaaS migration is understanding *why* you are migr
 >
 > **Run:** 7. Expand | 8. Enable | 9. Optimize
 
-### Sprint 1.337 (April 2026) Updates Affecting S2S
+### Platform Changes That Affect an S2S Migration
 
-Three sprint-1.337 changes affect a SaaS-to-SaaS migration:
+1. **Primary Grail fields and tags enriched at the source** (OneAgent 1.333+) — when redesigning the post-migration tag taxonomy in S2S-03 (Design), prefer OneAgent primary fields and tags (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, `primary_tags.*`) over OpenPipeline parsing where possible. They arrive on every signal without ingest-time processors, and can be set in the same `oneagentctl` call that redirects each agent (S2S-05).
+2. **Platform tokens** for new automation in S2S-04/05/10 — this is the right time to retire classic `dt0c01` token use in migration tooling where a platform token or OAuth client is accepted. Use the right scheme: platform tokens go in `Authorization: Bearer …`, classic API tokens in `Authorization: Api-Token …`.
+3. **Extensions review** — if either tenant carries custom **Extensions Framework 1.0** extensions, rebuild them as **Extensions 2.0**. Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31); JMX and PMI extensions on Framework 1.0 have their own end-of-support date, **July 1, 2027**.
 
-1. **OneAgent primary fields/tags at source** — when redesigning the post-migration tag taxonomy in S2S-03 (Design), prefer OneAgent primary tags (`team`, `cost_center`, `env`) over OpenPipeline parsing where possible. They land as top-level fields on every signal without ingest-time processors.
-2. **Configuration API → Settings v2 acceleration** + **Platform tokens** for new automation in S2S-04/05/10 — this is the right time to retire any classic `dt0c01` token use in migration tooling. Auth-scheme rule: wrong scheme returns `401 Unsupported authorization scheme` even when scopes are correct.
-3. **Extensions review** (ToDo #1) — if either the source or target tenant carries custom **Extensions Framework 1.0** extensions, this is the time to rebuild them as **Extensions 2.0**, the current extensions framework, via the Dynatrace API Application → Extensions surface using Platform tokens. EF1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request.
-
-Sprint 1.337 also added the **`EXTENSION_AUTHENTICATION` credential enum** for credentials that authenticate Extensions API calls without expanding broader scope — useful when scoping CI service users for the migration window.
-
----
+> <sub>**Sources:** [Primary Grail fields and tags enrichment through OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment) — *"OneAgent version 1.333"*; [End of support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"EF1 JMX and PMI extensions reach end of support on July 1, 2027."*</sub>
 
 ---
 
@@ -153,7 +149,9 @@ Understanding portability constraints upfront prevents surprises during executio
 
 ## 3. Entity Inventory
 
-Run these DQL queries against the **source** tenant to understand the full monitoring footprint. This inventory drives license sizing, identifies migration complexity, and serves as the validation baseline after cutover.
+Run these DQL queries against the **source** tenant to understand the full monitoring footprint. This inventory identifies migration complexity and serves as the validation baseline after cutover.
+
+> **Compare like with like.** The three host surfaces do not agree. Over the same 24 hours on a validation tenant (10/01/2026), `smartscapeNodes "HOST"` returned **7** hosts, `fetch dt.entity.host` returned **33**, and the billing usage events named **39**. FAQ-16 explains why Smartscape and the classic entity store differ. Pick one surface, use it in both the source and the target, and run the same query on both. For license sizing, read host consumption from the billing usage events (ADOPT-02 § 6) rather than from either entity count.
 
 ### Host Inventory
 
@@ -290,7 +288,7 @@ Record your findings in this table:
 
 ## 4. Configuration Inventory
 
-Beyond entities, you need a count of configuration objects to estimate migration effort. Use the tables below as a checklist.
+Beyond entities, you need a count of configuration objects to estimate migration effort. Use the tables below as a checklist — the *Typical Range* column is an illustrative order of magnitude from community practice, not a benchmark.
 
 ### Gen2 (Classic) Configuration
 
@@ -307,7 +305,7 @@ Beyond entities, you need a count of configuration objects to estimate migration
 | Conditional naming rules ¹ | Config API v1 or Settings 2.0 | ___ | 5–15 |
 | Maintenance windows | Config API v1 or Settings 2.0 | ___ | 3–10 |
 | Classic dashboards | Dashboard API v1 | ___ | 20–200 |
-| Credential vault entries | Config API v1 | ___ | 5–20 |
+| Credential vault entries | Environment API v2: `/credentials` (secrets are never returned) | ___ | 5–20 |
 
 ¹ Classic only. [Service naming upgrade guide (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services-classic/upgrade-guide-service-naming): *"In Latest Dynatrace with Smartscape on Grail, service naming rules (builtin:naming.services) no longer apply."* Inventory them to migrate a Classic target; don't plan to recreate them on a Latest Dynatrace one.
 
@@ -334,12 +332,12 @@ Discovery is not just about counting what you have — it is also about identify
 
 ### Detected Problem Inventory
 
-Run these queries against the source tenant to understand the current problem landscape. Large numbers of active problems (especially frequent/duplicate events) indicate configuration debt that should be resolved *before* migration — not after.
+Run these queries against the source tenant to understand the current problem landscape. Large numbers of active, short-lived or duplicate problems indicate configuration debt that should be resolved *before* migration — not after.
 
 | Signal | Action |
 |--------|--------|
 | Active problems > 500 | Triage before migration — most are likely noise or duplicates |
-| Frequent events > 50% of total | Suppress or tune anomaly detection before export |
+| A large share of problems closing within 5 minutes | Tune the detectors behind those types before export (ADOPT-03 § 5) |
 | Problems older than 30 days | Investigate — likely stale or auto-resolved but not closed |
 
 ### Configuration Debt Cleanup Opportunity
@@ -356,18 +354,20 @@ Migration is the best time to leave legacy behind. Stale configuration inflates 
 
 > **Lesson from real migrations:** One engagement discovered 366 maintenance windows in the source tenant — all with expired dates. Migrating them would have cluttered the target tenant with useless configuration. Triaging before export saved significant cleanup effort later.
 
-```python
-// detected problem inventory — run on source tenant before migration
-// High active problem counts indicate noise that will carry to the target
+```dql
 fetch dt.davis.problems, from:-30d
-| summarize
+| summarize {
     total = count(),
     active = countIf(event.status == "ACTIVE"),
-    frequent = countIf(dt.davis.is_frequent_event == true),
+    closed_within_5min = countIf(resolved_problem_duration < 5m),
     duplicate = countIf(dt.davis.is_duplicate == true)
+  }
 | fieldsAdd triage_recommendation = if(active > 500,
-    then: "TRIAGE BEFORE MIGRATION — suppress frequent/duplicate events",
+    then: "TRIAGE BEFORE MIGRATION — tune short-lived and duplicate sources",
     else: "Manageable — review active problems during parallel period")
+
+// The frequent-issue flag is not used here: frequent issue detection is being phased out and
+// was set on 0 of 15,227 problems on the validation tenant (ADOPT-03 § 5).
 ```
 
 <a id="migration-tools-comparison"></a>
@@ -376,24 +376,24 @@ fetch dt.davis.problems, from:-30d
 
 | Tool | Best For | Strengths | Limitations |
 |------|---------|-----------|-------------|
-| **Monaco** | Bulk config export/import: settings, documents, automations, buckets, segments, slo-v2, openpipeline, classic API | `monaco download` bulk export, `monaco deploy` with automatic dependency resolution, no HCL knowledge needed | No state management, no drift detection, cannot manage IAM |
-| **Terraform** | IAM (policies, groups, bindings), ongoing infrastructure-as-code management | State tracking, drift detection via `terraform plan`, cross-platform resource references | Requires HCL knowledge, no bulk export equivalent |
+| **Monaco** | Bulk config export/import: settings, documents, automations, buckets, segments, slo-v2, openpipeline, classic API; account IAM through `monaco account` | `monaco download` bulk export, `monaco deploy` with automatic dependency resolution, no HCL knowledge needed | No state management, no drift detection; account commands need an OAuth client |
+| **Terraform** | IAM (policies, groups, bindings), ongoing infrastructure-as-code management | State tracking, drift detection via `terraform plan`, cross-platform resource references, bulk export with the provider's `-export` utility | Requires HCL knowledge; some resources are excluded from a default export and must be named |
 | **Settings API** | Targeted, surgical changes to specific settings | Fine-grained programmatic control | Custom scripting required for large-scale migration |
 
 > **Note:** The SaaS Upgrade Assistant is documented for a Managed source only — *"SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration"* ([SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)). No SaaS-source path is documented, so this series moves configuration with Monaco and Terraform directly (**S2S-10**).
 
-### When You Need Terraform
+### Where the Two Tools Differ
 
-Terraform is required **only** when you need to manage:
+- **Account IAM** (groups, policies, boundaries, users) — both can do it. Monaco uses dedicated `monaco account download` / `monaco account deploy` commands with an OAuth client; Terraform uses the `dynatrace_iam_*` resources.
+- **State and drift** — Terraform keeps state and `terraform plan` shows drift; Monaco deploys are stateless, so drift checking is a download-and-diff you script yourself.
 
-- **IAM policies, groups, and bindings** — Monaco cannot manage account-level IAM
-- **State management and drift detection** — Monaco deploys are stateless
+Choose based on your team's existing expertise. A common split, and the one this series follows, is Monaco for bulk environment configuration and Terraform for account IAM, because IAM is the part teams most want under state.
 
-For everything else, Monaco and Terraform are functionally equivalent. Choose based on your team's existing expertise.
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."*; *"Account management requires OAuth credentials."*</sub>
 
 ### Recommended Approach
 
-Use **Monaco for bulk configuration** and **Terraform for IAM only**:
+Use **Monaco for bulk configuration** and **Terraform (or `monaco account`) for IAM**:
 
 ```bash
 # Step 1: Monaco download from source tenant
@@ -414,12 +414,12 @@ terraform apply -target=dynatrace_iam_policy.example
 
 ## 7. The 90/10 Rule
 
-The 90/10 rule is the defining reality of SaaS-to-SaaS migration:
+In community practice, migration teams describe the same shape every time — treat the numbers as a planning heuristic, not a measured ratio:
 
 | Phase | Effort | What It Covers |
 |-------|--------|----------------|
-| **Automated Export/Import** (90% of config) | ~10% of total effort | Settings 2.0, dashboards, SLOs, notification rules, enrichment rules, OpenPipeline |
-| **Manual Remediation** (10% of config) | ~90% of total effort | Entity ID remapping, webhook URL updates, IAM redesign, cloud integration reconfiguration, parallel validation |
+| **Tooled export/import** (most of the configuration) | A small share of total effort | Settings 2.0, dashboards, SLOs, notification rules, enrichment rules, OpenPipeline |
+| **Manual remediation** (a small remainder) | Most of the effort | Entity ID remapping, webhook URL updates, IAM redesign, cloud integration reconfiguration, parallel validation |
 
 ### Why Manual Effort Dominates
 
@@ -482,7 +482,7 @@ In Step 1, you:
 - Completed an entity inventory (hosts, services, K8s clusters, applications, synthetics, ActiveGates)
 - Completed a configuration inventory (Gen2 classic + Gen3 Grail counts)
 - Selected migration tools (Monaco for bulk config, Terraform for IAM)
-- Understood the 90/10 rule: 90% of config migrates automatically, but the remaining 10% takes 90% of the effort
+- Understood the 90/10 shape: most configuration moves with tooling, but the small remainder takes most of the effort
 
 ---
 

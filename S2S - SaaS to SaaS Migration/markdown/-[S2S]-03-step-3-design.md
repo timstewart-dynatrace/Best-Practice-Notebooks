@@ -1,6 +1,6 @@
 # S2S-03: Step 3 — Design: Target Tenant Architecture
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -48,7 +48,9 @@ This notebook produces five deliverables: an IAM architecture, a Grail bucket an
 <a id="iam-architecture-design"></a>
 ## 1. IAM Architecture Design
 
-IAM is the most politically complex part of a SaaS-to-SaaS migration. Groups, policies, and bindings must be rebuilt in the target tenant — and **IAM is Terraform-only** (Monaco cannot manage account-level IAM).
+IAM is the most politically complex part of a SaaS-to-SaaS migration. Groups, policies, and bindings must be rebuilt in the target. They are account-level objects, managed with Terraform (`dynatrace_iam_*`) or Monaco's dedicated `monaco account` commands — this series uses Terraform, for its state and drift detection.
+
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."*; *"Account management requires OAuth credentials."*</sub>
 
 ### Decision: Lift-and-Shift vs Redesign
 
@@ -66,9 +68,9 @@ IAM is the most politically complex part of a SaaS-to-SaaS migration. Groups, po
 
 | Component | Description | Scope | Tool |
 |-----------|-------------|-------|------|
-| **Groups** | Collections of users with shared access needs | Account-level | Terraform |
-| **Policies** | Permission statements with `ALLOW` / `DENY` and `WHERE` clauses | Account, environment, or management zone | Terraform |
-| **Bindings** | Link policies to groups at a specific scope | Account, environment, or management zone | Terraform |
+| **Groups** | Collections of users with shared access needs | Account-level | Terraform or `monaco account` |
+| **Policies** | Permission statements with `ALLOW` / `DENY` and `WHERE` clauses | Account, environment, or management zone | Terraform or `monaco account` |
+| **Bindings** | Link policies to groups at a specific scope | Account, environment, or management zone | Terraform or `monaco account` |
 
 ### IAM Design Template
 
@@ -326,9 +328,9 @@ This is the single most important reference for Step 4 (Prepare) and Step 5 (Exe
 
 | Order | Category | Dependencies | Tool |
 |-------|----------|-------------|------|
-| 22 | IAM policies | All resources above exist | **Terraform only** |
-| 23 | IAM groups | Policies defined | **Terraform only** |
-| 24 | IAM policy bindings | Groups + policies | **Terraform only** |
+| 22 | IAM policies | All resources above exist | Terraform or `monaco account` |
+| 23 | IAM groups | Policies defined | Terraform or `monaco account` |
+| 24 | IAM policy bindings | Groups + policies | Terraform or `monaco account` |
 
 > **Why IAM last?** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket-name = "app_logs"`). If those resources do not exist yet, you cannot validate that the policies are correct. Deploy the resources first, then lock them down with IAM.
 
