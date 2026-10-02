@@ -1,6 +1,6 @@
 # DBMON-01: Database Monitoring Fundamentals
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ This notebook introduces how Dynatrace monitors databases across your environmen
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts making database calls |
 | **Permissions** | `storage:spans:read`, `storage:entities:read`, `storage:metrics:read` |
 | **Data** | At least 1 hour of application traffic generating database calls |
@@ -44,13 +44,15 @@ Dynatrace monitors databases through two complementary approaches:
 OneAgent captures every database call as a **span** in the distributed trace. These spans contain:
 
 - **`db.system`** — The database technology (e.g., `postgresql`, `mysql`, `mongodb`)
-- **`db.query.text`** — The query or command executed (normalized to remove literals)
+- **`db.query.text`** — The query or command executed. Literals in a SQL `WHERE` clause are masked; parameterized statements keep their own placeholders (`?`, `@p0`)
 - **`db.operation.name`** — The operation type (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `find`, `aggregate`)
 - **`db.namespace`** — The database or schema name
 - **`server.address`** — The database server hostname or IP
 - **`server.port`** — The database server port
 
-> **Note:** Dynatrace normalizes SQL statements by replacing literal values with `?` placeholders. This groups identical query patterns together regardless of parameter values.
+> **Note:** Dynatrace masks literals in a SQL `WHERE` clause — *"Literals that are part of the WHERE clause of an SQL statement are replaced with *****"*. Parameterized statements (prepared statements, ORMs) already carry placeholders such as `?` or `@p0`, so they group by `db.query.text` cleanly; SQL built with inline values outside the `WHERE` clause (for example `INSERT … VALUES (1, 'x')`) does not.
+>
+> <sub>**Sources:** [Personal data captured by Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/personal-data-captured-by-dynatrace) — *"Literals that are part of the WHERE clause of an SQL statement are replaced with ***** , for example, WHERE userId = '*********' ."*</sub>
 
 ![OneAgent vs ActiveGate Extensions Architecture](images/01-oneagent-vs-extensions-architecture.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
@@ -68,6 +70,7 @@ For environments where SVG doesn't render
 Let's examine the structure of a database span by querying for recent database calls and inspecting the available fields.
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
 // used throughout, and none of them has a row in the semantic dictionary (older OTel
 // instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
@@ -84,7 +87,7 @@ fetch spans, from:-1h
 | filter isNotNull(db.system)
 | fields start_time, db.system, db.operation.name, db.namespace,
         db.query.text, server.address, server.port,
-        duration, span.kind, dt.entity.service
+        duration, span.kind, dt.service.name
 | sort start_time desc
 | limit 10
 ```
@@ -98,8 +101,10 @@ The query above returns the key attributes of each database span:
 | `db.namespace` | Database or schema name | `orders_db`, `inventory` |
 | `db.query.text` | Normalized query text | `SELECT * FROM orders WHERE id = ?` |
 | `server.address` | Database host | `db-prod-01.internal` |
-| `duration` | Execution time in nanoseconds | `1500000` (1.5ms) |
+| `duration` | Execution time — a `duration` value; divide by `1ms` for milliseconds | `1.5 ms` |
 | `span.kind` | `client` for outgoing DB calls (lowercase) | `client` |
+
+`db.system` is `experimental` in the semantic dictionary and `db.query.text` is not always present — on the validation tenant (10/02/2026) it was set on 58% of SQL Server spans and on no Redis spans.
 
 <a id="discovering-database-services"></a>
 
@@ -111,6 +116,7 @@ Dynatrace records each database call as a **client span on the calling service**
 
 ```dql
 // Discover which services call databases, and what they call.
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Note: `serviceType`, `databaseVendor`, `databaseHostNames` and `softwareTechnologies` are
 // CLASSIC dt.entity.service attributes — the Smartscape SERVICE node does not carry them
 // (its model is id / id_classic / name / type / tags / lifetime / references), so filtering
@@ -120,9 +126,7 @@ Dynatrace records each database call as a **client span on the calling service**
 // and resolve the service identity from there.
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| summarize call_count = count(), by:{dt.entity.service, db.system, server.address}
-| fieldsAdd calling_service = entityName(dt.entity.service, type:"dt.entity.service")
-| fieldsKeep calling_service, db.system, server.address, call_count
+| summarize call_count = count(), by:{calling_service = dt.service.name, db.system, server.address}
 | sort call_count desc
 | limit 50
 ```
@@ -147,6 +151,14 @@ fetch spans, from:-1h
 ## 4. Database Span Exploration
 
 Understanding the distribution of database calls helps identify which databases are most heavily used and where optimization efforts should focus.
+
+> **Calls are not statements.** A database span is one *call* from the client. On SQL spans, many calls are not statements: `CONNECT` opens a connection and `COMMIT` ends a transaction (neither carries `db.query.text`), while `PREPARE` and `RESULTSET` are driver phases that repeat the text of a statement span in the same trace. On the validation tenant (SQL Server, 1 h, 10/02/2026) those four operations were 19,379 of 42,314 calls, `CONNECT` alone 16,723 at about 1 ms each. That inflates a query count by more than 80% and pulls every latency percentile down. Cells in this series that measure queries or query latency drop those four operations with:
+>
+> ```dql
+> | filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))
+> ```
+>
+> `coalesce` keeps spans with no `db.operation.name` (MongoDB and Redis on the validation tenant). Without it, `in()` returns null for them and the filter drops them. Cells that count calls or failures keep every span.
 
 ```dql
 // Database call volume by technology over the last hour
@@ -196,7 +208,7 @@ Dynatrace supports a broad range of database technologies through OneAgent auto-
 | **NoSQL Key-Value** | Redis, Memcached, Amazon ElastiCache | `redis`, `memcached` |
 | **NoSQL Column** | Apache Cassandra, Apache HBase, ScyllaDB | `cassandra`, `hbase` |
 | **Search Engines** | Elasticsearch, OpenSearch, Apache Solr | `elasticsearch`, `opensearch`, `solr` |
-| **Message Brokers** | Apache Kafka, RabbitMQ, Amazon SQS | `kafka`, `rabbitmq` |
+| **Message Brokers** | Apache Kafka, RabbitMQ, Amazon SQS | not `db.system` — brokers use **`messaging.system`** (`kafka`, `rabbitmq`, `aws_sqs`); see DBMON-04 |
 | **Graph** | Neo4j, Amazon Neptune | `neo4j`, `neptune` |
 
 > **Important:** The `db.system` field follows the OpenTelemetry semantic conventions. The exact values may vary depending on the database driver and instrumentation version.
@@ -284,9 +296,9 @@ ALLOW storage:logs:read WHERE storage:bucket-name = "default_database_monitoring
 
 ### Dynatrace Database App — Analysis-First Observability
 
-Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as **available for PostgreSQL and MySQL**, with support for additional technologies coming soon. (The announcement and docs page carry no **GA** or preview label — that lifecycle term is not applied by any source, so it is not used here.) Verify the app is enabled on your tenant before relying on it.
+Beyond OneAgent spans and ActiveGate extension metrics, Dynatrace ships a dedicated **Databases app** that layers automated analysis on top of both data sources. Announced 08/04/2026 as available for PostgreSQL and MySQL; the docs page (updated 08/05/2026) now lists monitored vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"*. (Neither source applies a **GA** or preview label, so none is used here.) Verify the app is enabled on your tenant before relying on it.
 
-The app evaluates each monitored database instance across five areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** (0–100) — and surfaces AI-generated remediation suggestions backed by Dynatrace Intelligence.
+The announcement describes five analysis areas — configuration, schema, query, execution plan, and a rolled-up **Health Score** (0–100) — with AI-generated remediation. The docs page describes health more simply: *"Health highlights instances with critical, warning, or no active alerts"*.
 
 | Capability | What it adds beyond this notebook's DQL approach |
 |---|---|
@@ -298,7 +310,7 @@ The app evaluates each monitored database instance across five areas — configu
 
 Treat the app as a triage front end, not a replacement for the span- and extension-level analysis in this series — the DQL patterns in DBMON-01/05/06 remain the way to build the custom dashboards, alerts, and SLOs the app's UI doesn't cover.
 
-> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/) — the announcement is the **only** source for the vendor list (PostgreSQL, MySQL), the five analysis areas, the 0–100 Health Score scale and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — supports the app's existence, its prerequisites and the health-score concept in general terms only. Re-read at source 08/27/2026: the previously cited `…/applications-and-microservices/databases/database-app` path now redirects here, and this page names no vendors, no GA label and none of the five areas — so the earlier placement implied documentation backing it does not carry.</sub>
+> <sub>**Sources:** [Introducing Intelligent Database Observability (DT blog)](https://www.dynatrace.com/news/blog/introducing-intelligent-database-observability-from-alerts-to-answers-at-scale/) — the announcement is the **only** source for the vendor list (PostgreSQL, MySQL), the five analysis areas, the 0–100 Health Score scale and the AI-generated remediation; treat those as announcement-backed, not documentation-backed. [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — the vendor list *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* and the alert-based Health column, re-read 10/02/2026. Re-read at source 08/27/2026: the previously cited `…/applications-and-microservices/databases/database-app` path now redirects here, and this page names no vendors, no GA label and none of the five areas — so the earlier placement implied documentation backing it does not carry.</sub>
 
 <a id="baseline-database-metrics"></a>
 
@@ -310,19 +322,22 @@ Establishing a performance baseline is essential for detecting anomalies. The fo
 // Database response time baseline — hourly P50, P95, P99 over the last 24 hours
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| makeTimeseries p50_ms = percentile(duration / 1ms, 50),
-                 p95_ms = percentile(duration / 1ms, 95),
-                 p99_ms = percentile(duration / 1ms, 99),
-                 interval:1h
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    p50_ms = percentile(duration / 1ms, 50),
+    p95_ms = percentile(duration / 1ms, 95),
+    p99_ms = percentile(duration / 1ms, 99)
+  }, interval:1h
 ```
 
 ```dql
 // Error rate baseline — database call failures over time
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| makeTimeseries total = count(),
-                 errors = countIf(span.status_code == "error", default:0),
-                 interval:1h
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == "error", default:0)
+  }, interval:1h
 | fieldsAdd error_rate_pct = round(arraySum(errors) / arraySum(total) * 100, decimals:2)
 ```
 

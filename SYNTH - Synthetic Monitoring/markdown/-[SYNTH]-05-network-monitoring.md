@@ -1,6 +1,6 @@
 # SYNTH-05: Synthetic Network Monitoring
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 5 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Network Availability, DNS, and ICMP Monitoring
 This notebook covers Dynatrace Synthetic **Network Availability Monitors** (multi-protocol monitors), which test ICMP (ping), DNS, and TCP port reachability.
@@ -24,12 +24,12 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 
 - ✅ Access to a Dynatrace environment with Synthetic Monitoring
 - ✅ Completed SYNTH-01 through SYNTH-04
-- ✅ Private synthetic locations (for internal network monitoring)
+- ✅ A private synthetic location — *"Network availability monitors are supported only on private Synthetic locations"*
 
-> **⚠️ Data model — read first:** ICMP, DNS, and TCP checks are **not** separate monitor types in Grail. They are protocols within a single **network availability monitor** (a *multi-protocol monitor*). In the data model:
+> **⚠️ Data model — read first:** the docs describe *"three types of network availability monitors"* — ICMP, TCP and DNS. All three are the same entity in the data model (the classic name is *multi-protocol monitor*):
 > - **Entity (classic):** `dt.entity.multiprotocol_monitor` — deprecated in DQL, supported for as long as Dynatrace Classic is supported
 > - **Entity (Smartscape, preferred):** node type **`NETWORK_AVAILABILITY_MONITOR`** (model `dt.smartscape.network_availability_monitor`) — note the **name changed**; it is *not* `MULTIPROTOCOL_MONITOR`
-> - **Events:** `fetch dt.synthetic.events | filter event.type == "multiprotocol_monitor_execution"`
+> - **Events:** `fetch dt.synthetic.events | filter event.type == "multiprotocol_monitor_execution"` — the literal is unverified: the validation tenant had no NAM executions and the Synthetic events reference does not list it. Run `fetch dt.synthetic.events, from:-24h | summarize count(), by:{event.type}` on a tenant with NAM monitors and adjust the filter
 > - **Metric:** `dt.synthetic.multi_protocol.executions` (execution count, by `dt.entity.multiprotocol_monitor`)
 > - **Success/failure:** `result.state` (`SUCCESS`/`FAIL`) / `result.status.code` — same as other monitor types
 >
@@ -42,7 +42,7 @@ This notebook covers Dynatrace Synthetic **Network Availability Monitors** (mult
 
 ### Synthetic Network Availability Monitors
 
-A single **network availability monitor** can verify multiple protocols:
+Network availability monitors come in three types:
 
 | Protocol | Purpose | Use Case |
 |----------|---------|----------|
@@ -50,7 +50,7 @@ A single **network availability monitor** can verify multiple protocols:
 | **DNS** | Name resolution | DNS infrastructure health |
 | **TCP** | Port connectivity | Service port availability |
 
-All of these run inside one multi-protocol monitor and land in Grail as `multiprotocol_monitor_execution` events — see the data-model note above.
+A NAM monitor can have several steps, and *"Unlike for HTTP and browser monitors, NAM monitors can contain multiple requests within a single step. All requests assigned to a particular step are executed in parallel."* — so one ICMP monitor can ping a whole host group. Limits: up to 1,000 network activities per monitor and 5,000 NAM monitors per environment.
 
 ### Why Network Monitoring?
 
@@ -72,7 +72,9 @@ Network monitors complement application-level monitoring by testing at different
 - **Infrastructure Validation**: Verify network paths are operational
 - **DNS Health**: Monitor critical DNS infrastructure
 - **Low Overhead**: Minimal resource consumption
-- **High Frequency**: Run every minute if needed
+- **High Frequency**: every 1, 2, 5, 10, 15 or 30 minutes, every hour, or on demand
+
+> <sub>**Sources:** [Network availability monitoring (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/network-availability-monitoring) — *"There are three types of network availability monitors."* and *"The maximum number of network activities executed per network availability monitor is 1,000."*, [Create a NAM monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic-monitoring/network-availability-monitors/create-a-nam-monitor) — *"All requests assigned to a particular step are executed in parallel."*</sub>
 
 ```python
 // DISCOVERY -- list your network availability (multi-protocol) monitors,
@@ -82,7 +84,7 @@ Network monitors complement application-level monitoring by testing at different
 // PREFERRED -- Smartscape. The node type is NETWORK_AVAILABILITY_MONITOR, NOT
 // MULTIPROTOCOL_MONITOR: the classic entity was renamed, not transliterated, and the
 // wrong spelling returns zero rows instead of an error.
-smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
+smartscapeNodes "NETWORK_AVAILABILITY_MONITOR", from: now() - 30d  // the default 2 h window can return none
 | fields name, id, id_classic, network_monitor.type, enabled, frequency
 | sort name asc
 | limit 50
@@ -104,21 +106,18 @@ smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
 ## 2. ICMP (Ping) Monitors
 ### What ICMP Monitors Test
 
-| Metric | Description |
-|--------|-------------|
-| **Reachability** | Host responds to ping |
-| **Latency** | Round-trip time (RTT) |
-| **Packet Loss** | Percentage of lost packets |
-| **Jitter** | Latency variation |
+*"ICMP—Sends pings with a configurable number of packets or size to validate if there's a network connection to the host or device. It also checks the quality of that connection."*
 
 ### Configuration Options
 
-| Setting | Description | Typical Value |
+| Setting | Description | Range / default |
 |---------|-------------|---------------|
-| **Target** | IP address or hostname | `192.168.1.1` or `server.example.com` |
-| **Packet Count** | Pings per execution | 3-10 |
-| **Timeout** | Wait time per packet | 5 seconds |
-| **Frequency** | Execution interval | 1-60 minutes |
+| **Target** | IP address, hostname, or a target filter (for example a host group) | — |
+| **Number of packets** | Echo requests (`ping -c` / `-n`) | 1–10, default 1 |
+| **Data length** | Packet size (`ping -s` / `-l`) | 0–65500, default 32 |
+| **Time to live**, **Timeout to reply**, **Do not fragment** | ICMP-only execution attributes | — |
+| **Request timeout** | Per request | up to 2 minutes |
+| **Success-rate constraint** | Share of requests in a step that must succeed | default ≥ 80% |
 
 ### Creating an ICMP Monitor
 
@@ -137,18 +136,20 @@ smartscapeNodes "NETWORK_AVAILABILITY_MONITOR"
 | **Avg Latency** | 48.3ms | |
 | **Min Latency** | 45ms | |
 | **Max Latency** | 52ms | |
-| **Jitter** | 3.5ms | |
+| **Packets sent** | 3 | |
 | **Packet Loss** | 0% | |
 -->
 
 ```dql
 // Network monitor execution results (last 24h) — multi-protocol events
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 // Covers ICMP/DNS/TCP checks; result.state reflects overall execution success
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "multiprotocol_monitor_execution"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          state = result.state,
          status = result.status.message,
          duration_ms = result.statistics.duration / 1ms
@@ -178,22 +179,15 @@ fetch dt.synthetic.events, from: now() - 24h
 ## 3. DNS Monitors
 ### What DNS Monitors Test
 
-| Check | Description |
-|-------|-------------|
-| **Resolution** | Hostname resolves to IP |
-| **Response Time** | DNS query duration |
-| **Expected IP** | Resolves to correct address |
-| **Record Type** | A, AAAA, CNAME, MX, etc. |
+*"DNS—Validates if a hostname can be resolved to an IP address."*
 
 ### Configuration Options
 
 | Setting | Description | Example |
 |---------|-------------|----------|
 | **Hostname** | Domain to resolve | `api.example.com` |
-| **DNS Server** | Specific resolver (optional) | `8.8.8.8` |
-| **Record Type** | DNS record type | A, AAAA, CNAME |
-| **Expected IP** | Validation (optional) | `10.0.0.50` |
-| **Timeout** | Query timeout | 10 seconds |
+| **DNS server** | Resolver to query, optional port; system default if empty | `1.1.1.1`, `dns.google:53` |
+| **Record types** | Comma-separated; each type × each host is one request | `A,AAAA` |
 
 ### DNS Record Types
 
@@ -215,14 +209,16 @@ timeseries executions = sum(dt.synthetic.multi_protocol.executions),
 
 ```dql
 // Network monitor availability by monitor and location (events path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "multiprotocol_monitor_execution"
 | summarize {
     total = count(),
     successful = countIf(result.state == "SUCCESS")
-  }, by: {monitor.name, dt.entity.synthetic_location}
+  }, by: {monitor.name, dt.smartscape.synthetic_location}
 | fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 2)
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort availability_pct asc
 | limit 30
 ```
@@ -231,11 +227,7 @@ fetch dt.synthetic.events, from: now() - 24h
 ## 4. TCP Port Monitors
 ### What TCP Monitors Test
 
-| Check | Description |
-|-------|-------------|
-| **Port Open** | TCP connection succeeds |
-| **Connect Time** | Time to establish connection |
-| **SSL Handshake** | TLS negotiation (if applicable) |
+*"TCP—Establishes a TCP connection to a particular port. It validates if a port is open and if it accepts TCP connections."* It does not perform a TLS handshake; use an HTTP monitor for certificate checks.
 
 ### Common Ports to Monitor
 
@@ -255,9 +247,7 @@ fetch dt.synthetic.events, from: now() - 24h
 | Setting | Description | Example |
 |---------|-------------|----------|
 | **Host** | Target server | `db.example.com` |
-| **Port** | TCP port number | `5432` |
-| **Timeout** | Connection timeout | 10 seconds |
-| **TLS** | Enable TLS check | true/false |
+| **Port ranges** | Single ports or ranges; each port × each host is one request | `5432`, `8000-8010` |
 
 ```dql
 // Network monitor availability summary by monitor (events path)
@@ -283,11 +273,9 @@ timeseries executions = sum(dt.synthetic.multi_protocol.executions),
 ## 5. Multi-Protocol Monitors
 ### Combining Network Checks
 
-Create comprehensive monitoring by combining multiple protocol checks:
+Layer the three types on the same target — one monitor per type, each with its own problems and alerting:
 
-Multi-protocol monitor example — target `db.example.com`:
-
-| Step | Protocol | Target | Check |
+| Monitor | Type | Target | Check |
 |------|----------|--------|-------|
 | 1 | DNS | `db.example.com` | Resolves to `10.0.1.50` |
 | 2 | ICMP | `10.0.1.50` | Host reachable |
@@ -337,6 +325,7 @@ Multi-protocol monitor example — target `db.example.com`:
 // All synthetic monitor types summary (HTTP / browser / network)
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     total_executions = count(),
     successful = countIf(result.state == "SUCCESS"),
@@ -373,12 +362,14 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ```dql
 // Failed network checks with details
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "multiprotocol_monitor_execution"
 | filter result.state == "FAIL"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          status = result.status.message,
          detail = result.status.details
 | sort timestamp desc

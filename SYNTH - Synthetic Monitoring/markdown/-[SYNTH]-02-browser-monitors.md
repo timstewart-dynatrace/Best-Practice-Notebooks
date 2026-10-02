@@ -1,6 +1,6 @@
 # SYNTH-02: Browser Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 2 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Creating and Optimizing Browser-Based Synthetic Tests
 This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.
@@ -38,7 +38,7 @@ Loads a single page and captures performance metrics:
 |---------|-------------|
 | **Execution** | Full Chrome browser render |
 | **Metrics** | W3C Navigation Timing, resource timing |
-| **Screenshots** | Automatic capture on completion/failure |
+| **Device profile** | Preset or custom device (orientation, screen size) and user agent |
 | **Validation** | Content validation, element checks |
 
 **Best For:**
@@ -75,11 +75,11 @@ Multi-step user journey simulation:
 
 1. **URL Configuration**
    - Enter the full URL (https://...)
-   - Set viewport size (desktop, tablet, mobile)
-   - Configure user agent string
+   - Optional device profile — *"Existing devices with preset characteristics"* or a custom device with your own screen height and width
+   - Optional user agent (pre-populated when you pick an existing device)
 
 2. **Execution Settings**
-   - Frequency: 5-60 minutes
+   - Frequency: every 5, 10, 15 or 30 minutes; every 1, 2 or 4 hours; or on demand only (SYNTH-01 § 3)
    - Locations: Select public or private
    - Timeout: Maximum execution time
 
@@ -88,20 +88,13 @@ Multi-step user journey simulation:
    - Content validation (text, regex)
    - Element presence checks
 
-### Viewport Presets
-
-| Preset | Dimensions | Use Case |
-|--------|------------|----------|
-| Desktop | 1920x1080 | Standard desktop |
-| Laptop | 1366x768 | Common laptop |
-| Tablet | 768x1024 | iPad portrait |
-| Mobile | 375x667 | iPhone 8 |
+> <sub>**Sources:** [Create and configure a browser monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors) — *"Existing devices with preset characteristics. You can modify only the orientation—make it either landscape or portrait."*</sub>
 
 ```dql
 // List browser/clickpath monitors
 // PREFERRED -- Smartscape. Classic dt.entity.synthetic_test maps to BROWSER_MONITOR.
 // entityName() is not needed: the node's `name` field IS the display name.
-smartscapeNodes "BROWSER_MONITOR"
+smartscapeNodes "BROWSER_MONITOR", from: now() - 7d
 | fields name, id, id_classic, url, enabled, frequency
 | sort name asc
 | limit 50
@@ -124,12 +117,22 @@ smartscapeNodes "BROWSER_MONITOR"
 ```
 
 ```dql
-// Browser monitor availability + duration (last 24h) — metrics path
-// Metric duration is already in milliseconds
-timeseries {
-    availability_pct = avg(dt.synthetic.browser.availability),
-    duration_ms      = avg(dt.synthetic.browser.duration)
-  }, from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_test}
+// Browser monitor availability (last 24h) — metrics path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Query availability on its own: combined with duration in one timeseries, monitors that
+// failed every run (and so report no duration) dropped out of the result.
+timeseries availability = avg(dt.synthetic.browser.availability),
+  from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor),
+            availability_pct = arrayAvg(availability)
+| sort availability_pct asc
+
+// Duration (milliseconds), run separately — only monitors with successful runs appear:
+// timeseries duration_ms = avg(dt.synthetic.browser.duration),
+//   from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+// | fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
+
 ```
 
 <a id="browser-clickpaths"></a>
@@ -147,30 +150,32 @@ timeseries {
 
 Define steps programmatically using the script editor.
 
-### Common Actions
+### Step Types
 
-| Action | Description | Example |
+*"For browser clickpaths, the following step types are available: Navigate Click Tap Keystroke Select option JavaScript Cookie"*. Each step also has a wait strategy.
+
+| Step type | Does | Example |
 |--------|-------------|----------|
-| `navigate` | Go to URL | Navigate to login page |
-| `click` | Click element | Click login button |
-| `type` | Enter text | Type username |
-| `selectOption` | Select dropdown | Select country |
-| `wait` | Wait for condition | Wait for element visible |
-| `javascript` | Execute JS | Custom validation |
+| **Navigate** | Load a URL | Open the login page |
+| **Click** / **Tap** | Click or tap an element | Click the login button |
+| **Keystroke** | Enter text | Type the username |
+| **Select option** | Choose from a dropdown | Select a country |
+| **JavaScript** | Run a script | Custom validation |
+| **Cookie** | Set cookies for the execution | Pre-authenticate (§ 4.5) |
 
-### Element Selectors
+### Element Locators
 
-| Selector Type | Example | Best Practice |
-|--------------|---------|---------------|
-| CSS | `#login-btn` | Preferred - stable |
-| XPath | `//button[@id='login']` | Complex structures |
-| Link Text | `Login` | Simple links |
-| Data Attribute | `[data-testid='login']` | Test automation |
+Locators are **CSS** or **DOM**. The recorder may capture several per element, and *"Locators are evaluated sequentially; if the first locator isn't found, the second is evaluated, and so on until there's a match."* Prefer stable attributes (`[data-testid='login']`, an `id`) over position in the page.
+
+> <sub>**Sources:** [Types of clickpath steps (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps) — *"Locators are evaluated sequentially; if the first locator isn't found, the second is evaluated, and so on until there's a match."*</sub>
 
 ```dql
 // Clickpath step performance — per-step duration (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 timeseries step_duration_ms = avg(dt.synthetic.browser.step.duration),
-    from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_test, step.name}
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
 ```
 
 <a id="monitoring-a-login-flow"></a>
@@ -289,6 +294,8 @@ In community practice, the single most common cause of a healthy login monitor g
 
 ```dql
 // Login clickpath — which step costs the most, and is it running everywhere?
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 // Ranks every step of every browser clickpath by average duration so the
 // authentication steps can be compared against the business steps that follow.
 //
@@ -300,11 +307,11 @@ In community practice, the single most common cause of a healthy login monitor g
 timeseries {
     step_ms = avg(dt.synthetic.browser.step.duration),
     runs    = sum(dt.synthetic.browser.step.executions)
-  }, from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_test, step.name}
+  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
 | fieldsAdd avg_step_ms = round(arrayAvg(step_ms), decimals: 0),
             max_step_ms = round(arrayMax(step_ms), decimals: 0),
             executions  = arraySum(runs)
-| fields monitor = dt.entity.synthetic_test, step = step.name,
+| fields monitor = getNodeName(dt.smartscape.browser_monitor), step = step.name,
          avg_step_ms, max_step_ms, executions
 | sort avg_step_ms desc
 | limit 25
@@ -374,10 +381,13 @@ Browser monitors capture full-page render timing. In Grail this is exposed as **
 
 ```dql
 // Browser duration — average and worst-case per monitor (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 timeseries {
     avg_duration_ms = avg(dt.synthetic.browser.duration),
     max_duration_ms = max(dt.synthetic.browser.duration)
-  }, from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_test}
+  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
 ```
 
 ```dql
@@ -404,29 +414,27 @@ timeseries {
 
 | Check | Default Behavior | Customization |
 |-------|------------------|---------------|
-| Status Code | Fails on 4xx/5xx (400-599) | Can configure to ignore specific codes |
+| Status Code | Main-document HTTP errors 400–599 cause an availability outage | *Ignore specific status codes* excludes codes, ranges or masks such as `404, 405-410, 5xx` |
 | Response Body | Content validation | Text/regex matching |
-| Screenshots | Captured on success/failure | Automatic |
 
 > **Note:** Response size validation and header validation are not available as built-in options. Use content validation or JavaScript steps for advanced checks.
 
-### Visual Validation
-
-- Automatic screenshots on success/failure
-- Visual comparison (pixel diff)
-- Layout validation
+Pixel-diff or layout comparison is not a documented browser-monitor validation; validate content and elements instead.
 
 ```dql
 // Failed browser executions with detail — events path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 // Requires classic browser execution events (browser_monitor_execution) in dt.synthetic.events.
 // If your tenant uses the new browser experience, this returns no rows — analyze failures via
 // the dt.synthetic.browser.availability metric (dips below 100) instead.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "browser_monitor_execution"
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "FAIL"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          status = result.status.message,
          detail = result.status.details
 | sort timestamp desc
@@ -438,29 +446,38 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ```dql
 // Browser availability by location (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 timeseries availability_pct = avg(dt.synthetic.browser.availability),
-    from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_test, dt.entity.synthetic_location}
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, dt.smartscape.synthetic_location}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor), location = getNodeName(dt.smartscape.synthetic_location)
 ```
 
 ```dql
 // Browser duration distribution by location (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 timeseries {
     avg_ms = avg(dt.synthetic.browser.duration),
     max_ms = max(dt.synthetic.browser.duration)
-  }, from: now() - 24h, interval: 1h, by: {dt.entity.synthetic_location}
+  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 ```
 
 ```dql
 // Slowest browser executions (outliers) — events path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 // Classic browser execution events only; see the note on cell above.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "browser_monitor_execution"
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | fieldsAdd duration_ms = result.statistics.duration / 1ms
 | filter duration_ms > 5000  // > 5 seconds
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          duration_ms
 | sort duration_ms desc
 | limit 20

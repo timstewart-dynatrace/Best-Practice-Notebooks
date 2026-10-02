@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ This notebook provides deep query analysis techniques for identifying database p
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts with database clients |
 | **Permissions** | `storage:spans:read` |
 | **Data** | Significant application traffic with diverse database query patterns |
@@ -72,6 +72,7 @@ For environments where SVG doesn't render
 // Detect N+1 patterns — query patterns with high repetition per trace
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     calls_per_trace = count(),
     total_ms = sum(duration) / 1ms,
@@ -90,6 +91,7 @@ The query above shows query patterns that are repeated 10 or more times within a
 // Aggregate N+1 candidates — which query patterns are most frequently repeated?
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize calls_per_trace = count(), by:{trace.id, db.query.text, db.system}
 | filter calls_per_trace >= 10
 | summarize {
@@ -111,6 +113,7 @@ Understanding which queries run most often helps prioritize optimization. A quer
 // Top 20 most frequent queries — highest call volume
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     call_count = count(),
     total_time_ms = sum(duration) / 1ms,
@@ -125,18 +128,22 @@ fetch spans, from:-1h
 // Query frequency trend — detect changing patterns over 6 hours
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries total_queries = count(),
-                 unique_patterns = countDistinct(db.query.text),
-                 interval:15m
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    total_queries = count(),
+    unique_patterns = countDistinct(db.query.text)
+  }, interval:15m
 ```
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Queries called by the most services — shared queries are high-impact optimization targets
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     call_count = count(),
-    calling_services = countDistinct(dt.entity.service),
+    calling_services = countDistinct(dt.service.name),
     avg_ms = avg(duration) / 1ms
 }, by:{db.query.text, db.system}
 | filter calling_services >= 2
@@ -154,6 +161,7 @@ Analyzing how query durations are distributed reveals bimodal patterns (e.g., ca
 // Duration percentile breakdown by database system
 fetch spans, from:-1h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     p50_ms = percentile(duration, 50) / 1ms,
     p90_ms = percentile(duration, 90) / 1ms,
@@ -170,15 +178,17 @@ The `tail_ratio` column shows how much worse the 99th percentile is compared to 
 
 ```dql
 // Latency bucket distribution — visualize where queries cluster
+// The numeric prefix makes the buckets sort in latency order rather than alphabetically.
 fetch spans, from:-1h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | fieldsAdd duration_ms = duration / 1ms
-| fieldsAdd bucket = if(duration_ms < 0.1, then:"<0.1ms",
-    else:if(duration_ms < 1, then:"0.1-1ms",
-    else:if(duration_ms < 10, then:"1-10ms",
-    else:if(duration_ms < 100, then:"10-100ms",
-    else:if(duration_ms < 1000, then:"100ms-1s",
-    else:">1s")))))
+| fieldsAdd bucket = if(duration_ms < 0.1, then:"1: <0.1ms",
+    else:if(duration_ms < 1, then:"2: 0.1-1ms",
+    else:if(duration_ms < 10, then:"3: 1-10ms",
+    else:if(duration_ms < 100, then:"4: 10-100ms",
+    else:if(duration_ms < 1000, then:"5: 100ms-1s",
+    else:"6: >1s")))))
 | summarize query_count = count(), by:{db.system, bucket}
 | sort db.system asc, bucket asc
 ```
@@ -221,29 +231,30 @@ fetch spans, from:-1h
 fetch spans, from:-24h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
 | filter isNotNull(db.operation.name) and db.operation.name == "SELECT"
-| makeTimeseries avg_ms = avg(duration / 1ms),
-                 call_count = count(),
-                 by:{db.system},
-                 interval:1h
+| makeTimeseries {
+    avg_ms = avg(duration / 1ms),
+    call_count = count()
+  }, by:{db.system}, interval:1h
 ```
 
 <a id="connection-pool-analysis"></a>
 
 ## 5. Connection Pool Analysis
 
-Connection pool exhaustion causes application threads to wait for available connections, leading to increased response times and timeouts. We detect connection pressure through concurrency analysis and error pattern monitoring.
+Connection pool exhaustion causes application threads to wait for available connections, leading to increased response times and timeouts. Spans do not carry pool counters, so the queries below look for its symptoms: call volume per service, connection errors, and error-rate spikes. Pool metrics themselves come from runtime metrics (for example JMX or .NET connection-pool counters), not from spans.
 
 ```dql
-// Concurrent database calls per service — identify connection pressure
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Database call volume per service — candidates for connection pressure
+// This counts calls in the window; it is not concurrency (calls in flight at the same moment).
 fetch spans, from:-1h
 | filter isNotNull(db.system)
 | summarize {
-    concurrent_calls = count(),
+    call_count = count(),
     unique_db_targets = countDistinct(server.address),
     avg_ms = avg(duration) / 1ms
-}, by:{dt.entity.service, db.system}
-| fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
-| sort concurrent_calls desc
+}, by:{dt.service.name, db.system}
+| sort call_count desc
 | limit 20
 ```
 
@@ -266,29 +277,36 @@ fetch spans, from:-6h
 // Database error rate trend — detect connection pool exhaustion episodes
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries total = count(),
-                 errors = countIf(span.status_code == "error", default:0),
-                 interval:5m
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == "error", default:0)
+  }, interval:5m
 ```
 
 <a id="query-normalization"></a>
 
 ## 6. Query Normalization and Grouping
 
-Dynatrace automatically normalizes SQL queries by replacing literal values with `?` placeholders. This allows grouping identical query patterns regardless of parameter values. Understanding normalization helps you interpret `db.query.text` values correctly.
+`db.query.text` groups well only when identical query shapes produce identical text. Two things decide that:
 
-### Normalization Examples
+- **Parameterized statements** (prepared statements, ORMs) already carry placeholders — `?`, `@p0`, `$1` — so every execution of the same statement has the same text.
+- **`WHERE`-clause literals are masked** by Dynatrace: *"Literals that are part of the WHERE clause of an SQL statement are replaced with *****"*.
 
-| Original Query | Normalized (`db.query.text`) |
+SQL built by string concatenation with inline values outside the `WHERE` clause (for example `INSERT … VALUES (42, 'x')`) produces a different text per execution — that is what the one-off query below surfaces.
+
+| Statement as executed | What `db.query.text` looks like |
 |---------------|----------------------------|
-| `SELECT * FROM users WHERE id = 42` | `SELECT * FROM users WHERE id = ?` |
-| `INSERT INTO orders (id, amount) VALUES (1, 99.50)` | `INSERT INTO orders (id, amount) VALUES (?, ?)` |
-| `UPDATE products SET stock = 5 WHERE sku = 'ABC123'` | `UPDATE products SET stock = ? WHERE sku = ?` |
+| `SELECT * FROM users WHERE id = ?` (prepared) | unchanged — one pattern |
+| `SELECT * FROM users WHERE id = 42` (inline literal) | the `WHERE` literal masked — one pattern |
+| `INSERT INTO orders (id, amount) VALUES (1, 99.50)` (inline literals) | literals outside `WHERE` remain — one pattern per value |
+
+> <sub>**Sources:** [Personal data captured by Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/personal-data-captured-by-dynatrace) — *"Literals that are part of the WHERE clause of an SQL statement are replaced with ***** , for example, WHERE userId = '*********' ."*</sub>
 
 ```dql
 // Query pattern diversity — how many unique normalized patterns per database?
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     unique_patterns = countDistinct(db.query.text),
     total_calls = count()
@@ -301,6 +319,7 @@ fetch spans, from:-1h
 // Identify one-off queries — patterns called only once (may indicate dynamic SQL)
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize call_count = count(), by:{db.query.text, db.system}
 | filter call_count == 1
 | summarize one_off_count = count(), by:{db.system}
@@ -319,6 +338,7 @@ Not all slow queries are worth optimizing. Use the **impact score** to prioritiz
 // Query optimization priority — ranked by total time impact
 fetch spans, from:-1h
 | filter isNotNull(db.system) and isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     call_count = count(),
     total_time_ms = sum(duration) / 1ms,
@@ -332,6 +352,8 @@ fetch spans, from:-1h
 ```
 
 The `total_time_ms` column represents the cumulative time spent on each query pattern. Optimizing the top entries yields the greatest overall performance improvement.
+
+In community practice, the total-time ranking is read with these heuristics — they suggest a cause, they do not establish one:
 
 | Priority | Criteria | Action |
 |----------|----------|--------|
@@ -350,7 +372,7 @@ In this notebook you learned:
 - Query frequency analysis to identify the most common database operations
 - Duration distribution analysis to reveal tail latency and bimodal patterns
 - Heuristic-based missing index detection using latency and variance metrics
-- Connection pool pressure analysis through concurrency and error monitoring
+- Connection pool pressure analysis through call volume and error monitoring
 - Query normalization concepts and one-off query detection
 - Impact-based optimization prioritization
 

@@ -1,6 +1,6 @@
 # DBMON-03: NoSQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ This notebook covers monitoring NoSQL databases with Dynatrace, including docume
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts with NoSQL database clients |
 | **Permissions** | `storage:spans:read`, `storage:entities:read` |
 | **Data** | Application traffic generating NoSQL database calls |
@@ -86,7 +86,7 @@ MongoDB is the most widely used document database. Dynatrace captures MongoDB op
 | Attribute | Description | Example |
 |-----------|-------------|---------|
 | `db.system` | Always `mongodb` | `mongodb` |
-| `db.operation.name` | MongoDB command | `find`, `insert`, `aggregate` |
+| `db.operation.name` | MongoDB command (often empty on OneAgent MongoDB spans — see below) | `find`, `insert`, `aggregate` |
 | `db.namespace` | Database name | `orders`, `inventory` |
 | `db.collection.name` | Target collection | `users`, `products` |
 | `server.address` | MongoDB host (or mongos for sharded) | `mongo-primary.internal` |
@@ -187,9 +187,10 @@ fetch spans, from:-1h
 // Cassandra latency spikes — detect operations exceeding 200ms
 fetch spans, from:-6h
 | filter db.system == "cassandra"
-| makeTimeseries total = count(),
-                 slow = countIf(duration > 200ms),
-                 interval:10m
+| makeTimeseries {
+    total = count(),
+    slow = countIf(duration > 200ms)
+  }, interval:10m
 ```
 
 <a id="cosmosdb-monitoring"></a>
@@ -220,13 +221,20 @@ Understanding the read/write ratio is critical for NoSQL database tuning. Read-h
 
 ```dql
 // Read vs Write ratio across all NoSQL databases
+// Falls back to code.function where db.operation.name is empty (OneAgent MongoDB, see § 2) —
+// filtering on db.operation.name alone dropped every MongoDB call on the validation tenant.
+// Operations in neither list are OTHER rather than silently counted as writes.
 fetch spans, from:-1h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb", "couchbase"})
-| filter isNotNull(db.operation.name)
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
 | fieldsAdd rw_type = if(
-    in(db.operation.name, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get", "search"}),
+    in(operation, {"find", "count", "aggregate", "distinct", "getMore", "Query", "Scan", "GetItem", "BatchGetItem", "SELECT", "ReadItem", "get", "search"}),
     then:"READ",
-    else:"WRITE")
+    else:if(
+      in(operation, {"insert", "update", "delete", "findAndModify", "bulkWrite", "PutItem", "UpdateItem", "DeleteItem", "BatchWriteItem", "INSERT", "UPDATE", "DELETE", "CreateItem", "ReplaceItem", "UpsertItem", "upsert", "replace", "remove"}),
+      then:"WRITE",
+      else:"OTHER"))
 | summarize {
     op_count = count(),
     avg_ms = avg(duration) / 1ms
@@ -238,11 +246,15 @@ fetch spans, from:-1h
 // Read/Write ratio trend over time — detect shifting workload patterns
 fetch spans, from:-6h
 | filter in(db.system, {"mongodb", "dynamodb", "cassandra", "cosmosdb"})
-| filter isNotNull(db.operation.name)
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
 | fieldsAdd rw_type = if(
-    in(db.operation.name, {"find", "Query", "GetItem", "SELECT", "ReadItem", "get"}),
+    in(operation, {"find", "count", "aggregate", "distinct", "getMore", "Query", "Scan", "GetItem", "BatchGetItem", "SELECT", "ReadItem", "get", "search"}),
     then:"READ",
-    else:"WRITE")
+    else:if(
+      in(operation, {"insert", "update", "delete", "findAndModify", "bulkWrite", "PutItem", "UpdateItem", "DeleteItem", "BatchWriteItem", "INSERT", "UPDATE", "DELETE", "CreateItem", "ReplaceItem", "UpsertItem", "upsert", "replace", "remove"}),
+      then:"WRITE",
+      else:"OTHER"))
 | makeTimeseries op_count = count(), by:{rw_type}, interval:15m
 ```
 

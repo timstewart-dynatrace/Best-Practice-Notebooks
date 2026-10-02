@@ -25,7 +25,7 @@ This notebook covers building database monitoring dashboards and configuring ale
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts with database clients |
 | **Permissions** | `storage:spans:read`, `storage:metrics:read`, `storage:entities:read` |
 | **Data** | Active database traffic across monitored services |
@@ -36,6 +36,8 @@ This notebook covers building database monitoring dashboards and configuring ale
 ## 1. Database KPIs
 
 Effective database monitoring revolves around a small set of key performance indicators. Each KPI maps to a specific dashboard tile and potential alert condition.
+
+*The alert thresholds in this notebook are community starting points — Dynatrace publishes none of them. Tune each against your own baseline.*
 
 | KPI | What It Measures | Dashboard Tile | Alert Threshold |
 |-----|-----------------|----------------|----------------|
@@ -77,6 +79,7 @@ fetch spans, from:-1h
 ```
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Dashboard tile: Database calls per service — identify heaviest consumers
 fetch spans, from:-1h
 | filter isNotNull(db.system)
@@ -84,15 +87,16 @@ fetch spans, from:-1h
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-}, by:{dt.entity.service}
-| fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
+}, by:{dt.service.name}
 | sort call_count desc
 | limit 10
 ```
 
 ### Health Score as a Prioritization Signal
 
-The queries above build a custom health overview from spans. If the **Dynatrace Database App** is enabled (available since 08/2026 for PostgreSQL and MySQL — verify it is enabled on your tenant), each monitored database instance also carries a built-in **Health Score** (0–100, combining availability, performance, configuration, and resource-usage signals) — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row.
+The queries above build a custom health overview from spans. If the **Databases** app is enabled (its docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"* — verify it is enabled on your tenant), its instance table shows health per instance — *"Health highlights instances with critical, warning, or no active alerts"* — a faster first pass for "which database needs attention right now" than scanning this dashboard row by row. (The 08/2026 announcement also describes a 0–100 Health Score; the docs page does not.)
+
+> <sub>**Sources:** [Databases app (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases) — *"Health highlights instances with critical, warning, or no active alerts"*.</sub>
 
 Use the two together rather than choosing one: the Health Score triages *which* instance to look at, and the span-based queries in this section remain the way to build custom dashboard tiles, thresholds, and SLOs the app's UI doesn't expose.
 
@@ -106,6 +110,7 @@ Response time monitoring is the most critical aspect of database dashboards. The
 // Dashboard tile: Database response time trend by system (6-hour view)
 fetch spans, from:-6h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | makeTimeseries p95_ms = percentile(duration / 1ms, 95),
                  by:{db.system},
                  interval:5m
@@ -129,10 +134,12 @@ fetch spans, from:-1h
 // Dashboard tile: P50 vs P95 vs P99 comparison — all databases combined
 fetch spans, from:-6h
 | filter isNotNull(db.system)
-| makeTimeseries p50_ms = percentile(duration / 1ms, 50),
-                 p95_ms = percentile(duration / 1ms, 95),
-                 p99_ms = percentile(duration / 1ms, 99),
-                 interval:5m
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    p50_ms = percentile(duration / 1ms, 50),
+    p95_ms = percentile(duration / 1ms, 95),
+    p99_ms = percentile(duration / 1ms, 99)
+  }, interval:5m
 ```
 
 <a id="error-rate-alerting"></a>
@@ -145,10 +152,10 @@ Database errors (connection timeouts, deadlocks, constraint violations) should t
 // Alert query: Database error rate per 5-minute window
 fetch spans, from:-1h
 | filter isNotNull(db.system)
-| makeTimeseries total = count(),
-                 errors = countIf(span.status_code == "error", default:0),
-                 by:{db.system},
-                 interval:5m
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == "error", default:0)
+  }, by:{db.system}, interval:5m
 ```
 
 ```dql
@@ -170,12 +177,15 @@ fetch spans, from:-1h
 // Alert query: Error rate trend over 24 hours — detect escalating problems
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| makeTimeseries total = count(),
-                 errors = countIf(span.status_code == "error", default:0),
-                 interval:30m
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == "error", default:0)
+  }, interval:30m
 ```
 
 ### Recommended Alert Thresholds
+
+These are starting points from community practice, not Dynatrace guidance.
 
 | Condition | Severity | Alert When |
 |-----------|----------|------------|
@@ -210,8 +220,11 @@ timeseries logUsedPct = avg(`sql-server.databases.log.percentUsed`), from:-24h
 
 ```dql
 // Alert query: failed SQL Server Agent jobs with failure context (Jobs feature set)
+// The extension writes failed jobs to their own log stream: dt.extension.name identifies the
+// extension and event.group == "failed_jobs" the stream (field names per the extension docs).
 fetch logs, from:-24h
-| filter isNotNull(job_name) and last_run_outcome == "Failed"
+| filter matchesValue(dt.extension.name, "com.dynatrace.extension.sql-server")
+| filter matchesValue(event.group, "failed_jobs")
 | summarize {failures = count(), latest = max(timestamp)}, by:{job_name, server}
 | sort failures desc
 ```
@@ -226,6 +239,7 @@ Monitoring query throughput helps detect traffic anomalies and plan for capacity
 // Dashboard tile: Queries per minute by database system
 fetch spans, from:-6h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | makeTimeseries qpm = count(), by:{db.system}, interval:1m
 ```
 
@@ -241,28 +255,35 @@ fetch spans, from:-6h
 //   db.name              -> db.namespace         (stable; 57,281)
 // Confirm the catalog for your tenant with:
 //   fetch dt.semantic_dictionary.fields | filter startsWith(name, "db.") | fields name, stability
-// Dashboard tile: Operation mix over time — read vs write trend
+// Dashboard tile: SQL operation mix over time — read vs write trend, classified from the statement text
+// db.operation.name alone misclassifies batched writes (named SET) and counts driver phases (DBMON-02 § 4).
+// For MongoDB, DynamoDB or Redis use the command lists in DBMON-03 § 6 and DBMON-04 § 2.
 fetch spans, from:-6h
-| filter isNotNull(db.system) and isNotNull(db.operation.name)
-| fieldsAdd op_type = if(
-    in(db.operation.name, {"SELECT", "find", "Query", "GetItem", "ReadItem", "GET", "HGET", "get", "search"}),
-    then:"READ",
-    else:"WRITE")
+| filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"PREPARE", "RESULTSET"}))
+| fieldsAdd q = upper(trim(db.query.text))
+| fieldsAdd op_type = if(startsWith(q, "SELECT") or startsWith(q, "WITH"), then:"READ",
+    else:if(contains(q, "INSERT ") or contains(q, "UPDATE ") or contains(q, "DELETE ") or contains(q, "MERGE "), then:"WRITE",
+    else:"OTHER"))
 | makeTimeseries op_count = count(), by:{op_type}, interval:5m
 ```
 
 ```dql
-// Dashboard tile: Hourly query volume comparison — today vs yesterday
-// (Restructured for clean 2-row output: each row has 'period' label + 'count')
+// Dashboard tile: Query volume — the last 24 hours vs the 24 hours before
+// Rolling windows, not calendar days. Scans 48 h of spans: run it on demand rather than as an
+// auto-refreshing tile.
 fetch spans, from:-24h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize count = count()
-| fieldsAdd period = "today"
+| fieldsAdd period = "last_24h"
 | append [
     fetch spans, from:-48h, to:-24h
     | filter isNotNull(db.system)
+    | filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
     | summarize count = count()
-    | fieldsAdd period = "yesterday"
+    | fieldsAdd period = "previous_24h"
   ]
 | fields period, count
 ```
@@ -288,6 +309,7 @@ fetch spans, from:-1h
 ```
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Alert query: Current slow query detail — for investigation
 fetch spans, from:-15m
 | filter isNotNull(db.system)
@@ -295,8 +317,7 @@ fetch spans, from:-15m
 | fields start_time, db.system, db.namespace, db.operation.name,
         db.query.text, server.address,
         duration_ms = duration / 1ms,
-        dt.entity.service
-| fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
+        dt.service.name
 | sort duration_ms desc
 | limit 20
 ```
@@ -305,12 +326,15 @@ fetch spans, from:-15m
 // Alert query: P95 response time exceeding SLO threshold
 fetch spans, from:-6h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | makeTimeseries p95_ms = percentile(duration / 1ms, 95),
                  by:{db.system, server.address},
                  interval:5m
 ```
 
 ### Slow Query Alert Thresholds
+
+Starting points from community practice — set yours from each system's observed baseline.
 
 | Database Type | Warning Threshold | Critical Threshold | Window |
 |--------------|-------------------|-------------------|---------|
@@ -353,6 +377,7 @@ fetch spans, from:-24h
 // SLO measurement: Latency compliance — percentage of calls under threshold
 fetch spans, from:-24h
 | filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     total = count(),
     under_threshold = countIf(duration < 500ms)
@@ -365,10 +390,10 @@ fetch spans, from:-24h
 // SLO trend: Hourly availability over 24 hours
 fetch spans, from:-24h
 | filter isNotNull(db.system)
-| makeTimeseries total = count(),
-                 errors = countIf(span.status_code == "error", default:0),
-                 by:{db.system},
-                 interval:1h
+| makeTimeseries {
+    total = count(),
+    errors = countIf(span.status_code == "error", default:0)
+  }, by:{db.system}, interval:1h
 ```
 
 <a id="summary"></a>

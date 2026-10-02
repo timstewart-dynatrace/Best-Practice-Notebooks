@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -31,7 +31,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | Requirement | Details |
 |-------------|--------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on all application hosts making database, cache, and messaging calls |
 | **ActiveGate** | Environment ActiveGate for Extensions 2.0 (remote DB metrics), or — SQL extensions only, Dynatrace 1.346+ (staged rollout; verify it has reached your tenant) — SQL Extension Executor on Kubernetes via Dynatrace Operator 1.8+ |
 | **Permissions** | `storage:spans:read`, `storage:entities:read`, `storage:metrics:read` |
@@ -46,7 +46,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 1 | Deploy OneAgent on every host that makes database calls | OneAgent installed on all application servers, not just database servers | **Critical** | Deployment |
 | 2 | Enable deep code-level instrumentation | OneAgent auto-instruments JDBC, ADO.NET, and native database drivers by default; do not disable | **Critical** | Deployment |
 | 3 | Verify `db.system` attribute is populated | Run `fetch spans, from:-1h \| filter isNotNull(db.system) \| summarize count(), by:{db.system}` — every expected technology must appear | **Critical** | Validation |
-| 4 | Verify `db.query.text` capture is enabled | Confirm normalized SQL/commands appear in `db.query.text` field; if blank, check OneAgent deep monitoring settings | **Critical** | Validation |
+| 4 | Verify `db.query.text` capture | Confirm statements appear in `db.query.text` (parameterized SQL keeps its placeholders; `WHERE`-clause literals are masked). It is not on every DB span — 58% of SQL Server and 0% of Redis spans on the validation tenant — so check coverage before grouping on it | **Critical** | Validation |
 | 5 | Confirm `db.namespace` is present | Run `filter isNotNull(db.namespace)` on spans; missing values indicate driver-level gaps | **Recommended** | Validation |
 | 6 | Ensure `server.address` and `server.port` resolve | These fields must contain the actual database endpoint, not `localhost` or `127.0.0.1` when the DB is remote | **Recommended** | Validation |
 
@@ -70,7 +70,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 13b | Use the Database App Health Score for first-pass triage | available since 08/2026 (no GA label is applied by any source) for **PostgreSQL and MySQL** (additional technologies planned); each instance gets a 0-100 score combining availability, performance, configuration, and resource usage — check it before running manual DQL analysis | **Recommended** | Triage |
+| 13b | Use the Databases app for first-pass triage | The docs list vendors *"such as PostgreSQL, MySQL, MSSQL, Oracle, MariaDB, and HanaDB"*, and *"Health highlights instances with critical, warning, or no active alerts"* — check it before running manual DQL analysis (the 08/2026 announcement also describes a 0–100 Health Score) | **Recommended** | Triage |
 | 13c | Use the app's execution-plan visualization as a first pass, not a replacement | Normalizes execution plans across PostgreSQL, MySQL, and SQL Server; fall back to the ActiveGate extension metrics above (rows 8-11) and the DQL patterns in DBMON-02/05 for deep-dive analysis the app's UI doesn't cover | **Recommended** | Diagnostics |
 
 > <sub>**Sources:** [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — the Extensions 2.0 framework and the EEC execution model, [Extension data sources (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources) — the built-in SQL / Prometheus / SNMP data sources and the optional Python data source, [Run SQL extensions on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/kubernetes), [Enable Dynatrace SQL database extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/sql-database-extensions), [What's new in Dynatrace SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — the `default_database_monitoring` bucket, [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — lists *"Dynatrace Extension Framework 1.0"* under the 2025-03-31 end-of-support date and *"Dynatrace Extension Framework 1.0 (Python 3.8)"* under 2024-10-31, with the note *"Note that JMX and PMI Extensions Framework 1.0 are supported past March 2025 but are deprecated"*, re-read 09/28/2026, [EF1 JMX and PMI extensions end of support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation) — *"As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments"*.</sub>
@@ -94,7 +94,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 19 | Set slow query threshold for SQL databases | **500ms** — any SQL query exceeding `duration > 500ms` is classified as slow | **Critical** | Threshold |
-| 20 | Track read/write ratio | Classify operations: `SELECT` = READ, `INSERT/UPDATE/DELETE` = WRITE; monitor ratio shifts over time | **Recommended** | Analysis |
+| 20 | Track read/write ratio | Classify SQL from the statement text, not `db.operation.name`: batched writes are named after their first keyword (`SET`), `PREPARE` / `RESULTSET` repeat a statement's text, and `CONNECT` / `COMMIT` are not statements | **Recommended** | Analysis |
 | 21 | Rank queries by total execution time, not average | Sort by `total_time_ms = sum(duration)` to find highest-impact patterns regardless of individual speed | **Critical** | Optimization |
 | 22 | Monitor response time distribution using latency tiers | Bucket into: `<1ms`, `1-10ms`, `10-100ms`, `100ms-1s`, `>1s` — track tier distribution over time | **Recommended** | Analysis |
 | 23 | Baseline P50, P95, P99 over 24 hours | Run hourly percentile query on `duration` for each `db.system`; this is your performance reference point | **Critical** | Baseline |
@@ -121,7 +121,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 28 | Track DynamoDB Scan-to-Query ratio | `Scan` operations read every item in the table; ratio must be Query-dominated; any high Scan count signals missing Global Secondary Indexes | **Critical** | DynamoDB |
 | 29 | Set Cassandra slow threshold at 200ms | `filter duration > 200ms` — Cassandra operations exceeding 200ms indicate partition hotspots or cross-DC reads | **Recommended** | Cassandra |
 | 30 | Monitor Cosmos DB by operation and error rate | Track `ReadItem`, `CreateItem`, `Query`, `ReplaceItem` separately; errors indicate RU throttling (HTTP 429) | **Recommended** | Cosmos DB |
-| 31 | Classify NoSQL read/write operations correctly | READ: `find`, `Query`, `GetItem`, `SELECT`, `ReadItem`, `get`, `search`; everything else: WRITE | **Recommended** | Analysis |
+| 31 | Classify NoSQL read/write operations correctly | Use `coalesce(db.operation.name, code.function)` (OneAgent MongoDB leaves `db.operation.name` empty); READ: `find`, `count`, `aggregate`, `getMore`, `Query`, `Scan`, `GetItem`, `SELECT`, `ReadItem`, `get`, `search`; WRITE: an explicit insert/update/delete/put list; anything else OTHER | **Recommended** | Analysis |
 | 32 | Run cross-database comparison | Compare `total_calls`, `avg_ms`, `p95_ms`, `error_rate_pct` across all NoSQL systems in a single query for unified health view | **Recommended** | Analysis |
 
 <a id="cache-monitoring"></a>
@@ -152,7 +152,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation.type` (`publish` vs `process`) at 5m intervals | **Critical** | Kafka |
+| 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation.type` (Dynatrace's dictionary: `publish`, `receive`, `process`, `peek`; newer OpenTelemetry producers send `send`) at 5m intervals | **Critical** | Kafka |
 | 39 | Monitor Kafka consumer group processing latency | Group by `messaging.consumer.group.name` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
 | 40 | Detect Kafka consumer errors | Filter `span.status_code == "error"` on `messaging.operation.type == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
 | 41 | Track RabbitMQ publish/consume rate per queue | Group by `messaging.destination.name` and `messaging.operation.type`; a publish rate exceeding consume rate signals backpressure | **Critical** | RabbitMQ |
@@ -181,7 +181,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 50 | Flag dynamic SQL / poor parameterization | Count one-off query patterns (`call_count == 1`); high count per `db.system` means queries are not parameterized, preventing plan caching | **Recommended** | Anti-Pattern |
 | 51 | Prioritize optimization by total time impact | Sort query patterns by `total_time_ms = sum(duration)`, not by `avg_ms` — a fast query called 1M times has more impact than a slow query called once | **Critical** | Optimization |
 | 52 | Use the tail ratio to detect outliers | Calculate `p99_ms / p50_ms`; a ratio above 10 indicates severe tail latency requiring investigation | **Recommended** | Analysis |
-| 53 | Monitor connection pool pressure | Track `countIf(span.status_code == "error")` grouped by `dt.entity.service` and `server.address`; connection refused or timeout errors indicate pool exhaustion | **Critical** | Connection Pool |
+| 53 | Monitor connection pool pressure | Track `countIf(span.status_code == "error")` grouped by `dt.service.name` and `server.address`; connection refused or timeout errors indicate pool exhaustion | **Critical** | Connection Pool |
 | 54 | Track error rate trend over 6h at 5m intervals | Use `makeTimeseries` with `total` and `errors` counts; a rising error trend within 30 minutes demands immediate action | **Critical** | Error Handling |
 
 <a id="dashboards-and-kpis"></a>
@@ -192,9 +192,9 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |---|--------------|----------------|----------|----------|
 | 55 | Build a unified health overview tile | Single query: group by `db.system`, show `total_calls`, `avg_ms`, `p95_ms`, `error_rate_pct`, `slow_rate_pct` | **Critical** | Dashboard |
 | 56 | Include a "total database calls" single-value tile | `fetch spans, from:-1h \| filter isNotNull(db.system) \| summarize total_db_calls = count()` | **Critical** | Dashboard |
-| 57 | Add "top 10 heaviest services" table tile | Group by `dt.entity.service` with `call_count`, `avg_ms`, `error_count`; resolve names with `entityName()` | **Critical** | Dashboard |
+| 57 | Add "top 10 heaviest services" table tile | Group by `dt.service.name` with `call_count`, `avg_ms`, `error_count` (`dt.entity.service` is deprecated in the semantic dictionary) | **Critical** | Dashboard |
 | 58 | Show P50 vs P95 vs P99 trend chart | 6h timeseries at 5m intervals; three lines on one chart reveals tail latency divergence | **Critical** | Dashboard |
-| 59 | Add read vs write ratio trend tile | Classify operations into READ/WRITE; 6h timeseries at 5m intervals | **Recommended** | Dashboard |
+| 59 | Add read vs write ratio trend tile | Classify operations into READ / WRITE / OTHER (rule 20); 6h timeseries at 5m intervals | **Recommended** | Dashboard |
 | 60 | Add queries-per-minute trend by db.system | 6h timeseries at 1m intervals; used for throughput anomaly detection | **Recommended** | Dashboard |
 | 61 | Add today-vs-yesterday volume comparison | Use `append` pattern: `from:-24h` for today, `from:-48h, to:-24h` for yesterday | **Recommended** | Dashboard |
 | 62 | Include slow query detail table | Last 15m, `duration > 500ms`, fields: start_time, db.system, db.namespace, db.query.text, duration_ms, service_name | **Critical** | Dashboard |
@@ -255,7 +255,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 84 | Use named parameters in functions | `round(value, decimals: 2)`, `if(cond, then: "x", else: "y")` — positional parameters cause errors | **Critical** | DQL |
 | 85 | Alias all aggregations | `summarize c = count()`, not `summarize count()` — unaliased aggregations cannot be used in `sort` or `fieldsAdd` | **Critical** | DQL |
 | 86 | Use duration arithmetic (NOT nanosecond constants) | Write `duration / 1ms`, `duration / 1s`, `(t2-t1) / 1m` — divide a duration by another duration to get a unitless number. Never `duration / 1000000.0`; never `toLong(duration) / 1ms` (long/duration fails type-check). Per `dt-dql-essentials`. | **Critical** | DQL |
-| 87 | Use `entityName()` (or `getNodeName()` on smartscape) to resolve service IDs | `fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")` for the legacy form; `fieldsAdd service_name = getNodeName(dt.smartscape.service)` for the modern Smartscape form. Never show raw entity IDs in dashboards. | **Recommended** | DQL |
+| 87 | Show service names, not IDs | On spans, group by `dt.service.name` (stable). Where you hold a Smartscape ID, `getNodeName(dt.smartscape.service)` resolves it; `entityName(dt.entity.service, …)` is the classic form and `dt.entity.service` is deprecated. Never show raw entity IDs in dashboards. | **Recommended** | DQL |
 | 88 | Filter early, sort last | Apply `filter` immediately after `fetch`; apply `sort` only after `summarize`; never `sort` right after `fetch` | **Critical** | DQL |
 | 89 | Use `countIf()` for conditional aggregation | `errors = countIf(span.status_code == "error")` inside `summarize` — do not use separate filter + count | **Recommended** | DQL |
 | 90 | Calculate error rate with safe division | `error_rate_pct = round((toDouble(error_count) / toDouble(total_calls)) * 100, decimals: 2)` — use `toDouble()` to avoid integer truncation | **Recommended** | DQL |

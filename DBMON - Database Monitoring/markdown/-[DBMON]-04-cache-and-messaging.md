@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ This notebook covers monitoring caches and message brokers with Dynatrace. Cache
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts using Redis, Kafka, RabbitMQ, or Elasticsearch |
 | **Permissions** | `storage:spans:read`, `storage:metrics:read` |
 | **Data** | Application traffic generating cache/messaging calls |
@@ -36,13 +36,13 @@ This notebook covers monitoring caches and message brokers with Dynatrace. Cache
 
 Caches and message brokers serve fundamentally different purposes from databases, but Dynatrace monitors them through the same span instrumentation framework.
 
-| System | Category | `db.system` | Typical Latency | Key Concern |
+| System | Category | System field | Typical Latency | Key Concern |
 |--------|----------|-------------|-----------------|-------------|
-| Redis | In-Memory Cache/Store | `redis` | <1ms | Memory pressure, eviction rate |
-| Memcached | In-Memory Cache | `memcached` | <1ms | Hit ratio, eviction |
-| Kafka | Distributed Streaming | `kafka` | 1-50ms | Consumer lag, partition balance |
-| RabbitMQ | Message Broker | `rabbitmq` | 1-10ms | Queue depth, consumer throughput |
-| Elasticsearch | Search Engine | `elasticsearch` | 5-500ms | Query latency, indexing throughput |
+| Redis | In-Memory Cache/Store | `db.system == "redis"` | <1ms | Memory pressure, eviction rate |
+| Memcached | In-Memory Cache | `db.system == "memcached"` | <1ms | Hit ratio, eviction |
+| Kafka | Distributed Streaming | `messaging.system == "kafka"` | 1-50ms | Consumer lag, partition balance |
+| RabbitMQ | Message Broker | `messaging.system == "rabbitmq"` | 1-10ms | Queue depth, consumer throughput |
+| Elasticsearch | Search Engine | `db.system == "elasticsearch"` | 5-500ms | Query latency, indexing throughput |
 
 > **Note:** Cache and messaging systems often have sub-millisecond latency. Even small increases in response time can indicate significant issues (memory pressure, network problems, or hot keys).
 
@@ -52,7 +52,7 @@ Caches and message brokers serve fundamentally different purposes from databases
 |-------|---------------|--------|---------------|
 | Messaging (Kafka/RabbitMQ) | messaging.operation.type = publish | No span on broker; trace context flows via headers | messaging.operation.type = process; messaging.consumer.group.name |
 | Cache (Redis/Memcached) | db.system = redis; span.kind = client; db.operation.name = GET/SET | Sub-millisecond responses; compare in microseconds; slow > 5ms | (request-response, no separate consumer) |
-Note: messaging.system is canonical OTel; db.system == "kafka" is legacy compat
+Note: brokers are identified by messaging.system; the cells also accept db.system for instrumentations that set it
 For environments where SVG doesn't render
 -->
 
@@ -115,7 +115,7 @@ fetch spans, from:-1h
     in(operation, {"GET", "MGET", "HGET", "HGETALL", "LRANGE", "SMEMBERS", "ZRANGE"}),
     then:"READ",
     else:if(
-      in(operation, {"SET", "MSET", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL"}),
+      in(operation, {"SET", "MSET", "HSET", "HMSET", "LPUSH", "RPUSH", "SADD", "ZADD", "DEL", "EXPIRE"}),
       then:"WRITE",
       else:"OTHER"))
 | summarize op_count = count(), by:{op_type}
@@ -126,19 +126,22 @@ fetch spans, from:-1h
 // Redis latency over time — detect performance degradation
 fetch spans, from:-6h
 | filter db.system == "redis"
-| makeTimeseries avg_us = avg(duration / 1us),
-                 p95_us = percentile(duration / 1us, 95),
-                 call_count = count(),
-                 interval:5m
+| makeTimeseries {
+    avg_us = avg(duration / 1us),
+    p95_us = percentile(duration / 1us, 95),
+    call_count = count()
+  }, interval:5m
 ```
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Redis slow commands — operations exceeding 5ms (abnormal for Redis)
 fetch spans, from:-1h
 | filter db.system == "redis"
 | filter duration > 5ms
-| fields start_time, db.operation.name, db.query.text, server.address,
-        duration_ms = duration / 1ms, dt.entity.service
+// The command is in span.name when db.operation.name is empty (as on the validation tenant)
+| fields start_time, command = coalesce(db.operation.name, span.name), server.address,
+        duration_ms = duration / 1ms, dt.service.name
 | sort duration_ms desc
 | limit 20
 ```
@@ -153,14 +156,16 @@ Apache Kafka monitoring through spans captures both producer (publish) and consu
 
 ### Kafka Span Attributes
 
-Per the OTel semantic conventions, **`messaging.system`** is the canonical field for Kafka and other message brokers — not `db.system`. Older OneAgent/legacy instrumentation may set `db.system == "kafka"` for backward compatibility; queries below filter both for hybrid-tenant compatibility, but new instrumentation should rely on `messaging.system` only.
+**`messaging.system`** (`stable` in the semantic dictionary) is the field for Kafka and other message brokers — not `db.system`. The queries below also accept `db.system == "kafka"` defensively, for instrumentations that set it; no source documents which ones do.
 
 | Attribute | Description | Example |
 |-----------|-------------|---------|
 | `messaging.system` | Always `kafka` (canonical OTel field) | `kafka` |
-| `messaging.operation.type` | `publish` or `process` | `process` |
+| `messaging.operation.type` | Dynatrace's dictionary lists `publish`, `receive`, `process` and `peek`; newer OpenTelemetry instrumentations send `send` for producers | `process` |
 | `messaging.destination.name` | Topic name | `orders.created` |
 | `messaging.consumer.group.name` | Consumer group ID | `order-processor-group` |
+
+> <sub>**Dictionary:** `messaging.system`, `messaging.operation.type`, `messaging.destination.name`, `messaging.consumer.group.name`, `messaging.destination.partition.id` (all `stable`), `db.system` (`experimental`), read 10/02/2026. No messaging spans existed on the validation tenant over 7 days, so these cells were checked for syntax only.</sub>
 | `messaging.destination.partition.id` | Partition number | `3` |
 
 ```dql
@@ -180,10 +185,10 @@ fetch spans, from:-1h
 fetch spans, from:-6h
 | filter messaging.system == "kafka" and messaging.operation.type == "process"
 | filter isNotNull(messaging.destination.name)
-| makeTimeseries msg_count = count(),
-                 avg_process_ms = avg(duration / 1ms),
-                 by:{messaging.destination.name},
-                 interval:5m
+| makeTimeseries {
+    msg_count = count(),
+    avg_process_ms = avg(duration / 1ms)
+  }, by:{messaging.destination.name}, interval:5m
 ```
 
 ```dql
