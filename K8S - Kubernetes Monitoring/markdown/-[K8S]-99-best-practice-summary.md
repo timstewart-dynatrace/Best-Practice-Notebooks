@@ -1,18 +1,20 @@
 # K8S-99: Best Practice Summary
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
-This notebook consolidates every actionable best practice for Dynatrace Kubernetes monitoring and DynaKube configuration extracted from the K8S series (notebooks 01-13). Each practice specifies the exact setting, value, priority, and category. Use this as a definitive checklist for new deployments and audits of existing environments.
+This notebook consolidates every actionable best practice for Dynatrace Kubernetes monitoring and DynaKube configuration extracted from the K8S series (notebooks 01-14). Each practice specifies the exact setting, value, priority, and category. Use this as a definitive checklist for new deployments and audits of existing environments.
 
-**Operator Version:** 1.10.2 (recommended pin; 1.10.1 remains a working pin until you upgrade) | **DynaKube API:** `dynatrace.com/v1beta6` — current, use for new DynaKubes (`v1beta5` remains accepted; no rewrite required) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2` — skip 1.10.0 (pin the version you have validated in your estate)
+**Operator Version:** 1.10.2 (validated pin in this series; 1.11.0, released 10/01/2026, is the newest — see the note below) | **DynaKube API:** `dynatrace.com/v1beta6` — current, use for new DynaKubes (`v1beta5` remains accepted; no rewrite required) | **Helm:** `oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2` — skip 1.10.0 (pin the version you have validated in your estate)
 
 > **Operator version policy (as of 08/11/2026).** **1.10.2 is the recommendation** — released July 30, 2026 with a published changelog. It resolves four issues: a workload/namespace **tagging-precedence regression**, a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and metadata-enrichment rules that could not be applied being silently disregarded rather than logged.
 >
 > **The tagging fix is a behaviour change, not just a bug fix.** Where several tagging rules match the same key, 1.10.2 applies **only the first matching rule**; earlier versions let each subsequent rule overwrite the previous one. A cluster whose enrichment depends on last-rule-wins ordering will produce different tags after the upgrade — audit your rules first. See K8S-10.
 >
 > **1.10.1 remains a working pin.** Estates upgrade operators on their own schedule, and 1.10.1 is still the fix for the 1.10.0 defects — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases), a signal you can verify before pinning. Do not pin below 1.4.1 in any case (CSI liveness-probe crash-loop window — K8S-09 §2).
+
+> **Operator 1.11.0 (released 10/01/2026).** Removes the `v1beta4` DynaKube API from the CRD (*"Applying DynaKube resources that still use v1beta4 will fail"*), adds image-volume code-module injection, which *"replaces the CSI driver as the recommended approach"* (Kubernetes 1.35+ and containerd 2.2+ or CRI-O 1.33+ required; rule 7), adds `spec.kubernetesMonitoring` to size the Kubernetes-monitoring ActiveGate separately in one DynaKube, and accepts workload and pod labels and annotations as enrichment sources (rules 39–41). Minimum version for a direct upgrade: 1.6.0. Move the pin once you have validated 1.11.0 on a non-production cluster.
 
 > **Token currency note:** Platform Tokens (`dt0s16`) are the recommended choice for new tenants per Dynatrace SaaS sprint-1.337+; the Operator itself accepts platform tokens from **Operator 1.10.0** (July 15, 2026) — Classic API Tokens (`dt0c01`) continue to be accepted and remain the working path on earlier Operator versions. See K8S-02 §Prerequisites.
 
@@ -47,7 +49,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail and Kubernetes monitoring enabled |
-| **Kubernetes Cluster** | v1.24+ |
+| **Kubernetes Cluster** | A version supported by your Operator release |
 | **Helm** | v3.x |
 | **Dynatrace Operator** | v1.10.2 (July 30, 2026, recommended pin) via `oci://public.ecr.aws/dynatrace/dynatrace-operator` — v1.10.1 remains a working pin until you upgrade; skip 1.10.0 (see the version-policy note above) |
 | **Knowledge** | K8S-01 through K8S-13 |
@@ -63,7 +65,7 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | 4 | Use `hostMonitoring` for infra-only clusters | `spec.oneAgent.hostMonitoring: {}` | Optional | Deployment |
 | 5 | Omit `oneAgent` entirely for infrastructure-only monitoring alongside other APM tools | Only configure `spec.activeGate` | Recommended | Deployment |
 
-> **classicFullStack** is legacy. It uses host-path mounts and shares a single OneAgent across all pods. `cloudNativeFullStack` injects code modules via webhook and CSI driver, enabling independent app/infra monitoring with no privileged containers for applications.
+> **classicFullStack** is legacy. It uses host-path mounts and shares a single OneAgent across all pods. `cloudNativeFullStack` injects code modules via the webhook — delivered by image volume, CSI driver or ephemeral volume (rule 7) — enabling independent app/infra monitoring with no privileged containers for applications.
 
 <a id="operator-installation"></a>
 ## 2. Operator Installation
@@ -71,36 +73,39 @@ This notebook consolidates every actionable best practice for Dynatrace Kubernet
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
 | 6 | Install operator via Helm OCI, always with an explicit `--version` | `helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator --version 1.10.2 --namespace dynatrace --create-namespace --install --atomic` | **Critical** | Installation |
-| 7 | Choose a code-module delivery mode deliberately | `csidriver.enabled: true` is the default recommendation; ephemeral volumes are a supported alternative from Operator 1.10.0 (see note). To migrate, use `csidriver.migrationMode` — never flip `csidriver.enabled: false` first | **Critical** *(making the choice)* | Installation |
+| 7 | Choose a code-module delivery mode deliberately | Image volumes on Operator 1.11.0+ where nodes meet the requirements (Dynatrace's recommended approach); otherwise `csidriver.enabled: true`; ephemeral volumes when a privileged DaemonSet is ruled out (Operator 1.10.0+). To leave CSI, migrate first — never flip `csidriver.enabled: false` first | **Critical** *(making the choice)* | Installation |
 | 8 | Set platform explicitly | `platform: "kubernetes"` or `platform: "openshift"` | Recommended | Installation |
 | 9 | Create dedicated namespace | `kubectl create namespace dynatrace` | **Critical** | Installation |
 | 10 | Create API token secret before applying DynaKube | `kubectl create secret generic dynakube --namespace dynatrace --from-literal=apiToken=<TOKEN> --from-literal=dataIngestToken=<TOKEN>` | **Critical** | Installation |
 
-> **Rule 7 — CSI driver is now a choice, not an invariant.** Through Operator 1.9.x, `csidriver.enabled: true` was effectively the only production answer, which is why earlier revisions of this checklist rated the *value* as Critical. **Operator 1.10.0 adds a CSI-to-ephemeral-volume migration mode**, so what is Critical now is *making the decision consciously* — not the specific value.
+> **Rule 7 — code-module delivery is a choice, not an invariant.** Through Operator 1.9.x, `csidriver.enabled: true` was effectively the only production answer. **Operator 1.10.0 adds a CSI-to-ephemeral-volume migration mode**, and **Operator 1.11.0 adds image volumes**, which Dynatrace now recommends over the CSI driver. What is Critical is *making the decision consciously* — not one specific value.
 >
 > | Delivery mode | Choose it when | Cost |
 > |---------------|----------------|------|
-> | **CSI driver** (`csidriver.enabled: true`) | Default. You want code modules cached per node and shared across pods, and you can run a privileged DaemonSet with a host-path socket. | An extra 5-container DaemonSet to size and monitor; a mount-storm failure mode (rules 57–59, K8S-09 §2). |
+> | **Image volumes** (Operator 1.11.0+; DynaKube flag `feature.dynatrace.com/mount-code-modules-via-image-volume: "true"`) | Dynatrace's recommended approach where the cluster runs Kubernetes 1.35+ with containerd 2.2+ or CRI-O 1.33+. Not compatible with the built-in tenant registry. | Existing pods keep their mounts until restarted, so a full switch needs a rolling restart. |
+> | **CSI driver** (`csidriver.enabled: true`) | The image-volume requirements are not met. You want code modules cached per node and shared across pods, and you can run a privileged DaemonSet with a host-path socket. | An extra 5-container DaemonSet to size and monitor; a mount-storm failure mode (rules 57–59, K8S-09 §2). |
 > | **Ephemeral volumes** (Operator 1.10.0+) | A CSI DaemonSet is unacceptable — restrictive admission policy, a managed platform that limits CSI drivers, or a node pool where you will not run privileged workloads. | Code modules are provisioned per pod rather than shared per node, so expect more image/volume churn and slower pod starts at high density. |
 >
 > Migrating CSI → ephemeral (the documented direction) is a Helm-values change plus one workload-restart cycle, not an application change: enable `csidriver.migrationMode`, restart injected workloads, confirm no pod still mounts `csi.oneagent.dynatrace.com`, and only then set `csidriver.enabled: false` — pods still on CSI mounts stop working once the driver is disabled. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — **on Operator 1.9.x and earlier the CSI driver remains the only supported mode**, so `csidriver.enabled: true` stays the correct setting there. Mechanics and trade-offs: K8S-12 §2–§3.
 
 ### Required Token Scopes
 
-**Operator Token:** `activeGateTokenManagement.create`, `entities.read`, `settings.read`, `settings.write`, `InstallerDownload`
+The docs describe platform tokens (Operator 1.10.0+); classic access tokens remain accepted. Full tables: K8S-02 § Prerequisites.
 
-**Data Ingest Token:** `metrics.ingest`, `logs.ingest`
+**Operator token:** `fleet-management:activegate.connection-info:read`, `fleet-management:activegate.tokens:create`, `fleet-management:container-images:read`, `fleet-management:oneagent.connection-info:read`, `fleet-management:oneagents:download`, `settings:objects:read`, `settings:objects:write`
+
+**Data Ingest token:** `openpipeline:logs:ingest`, `openpipeline:metrics:ingest`, `openpipeline:traces:ingest`, `storage:metrics:write`
 
 <a id="dynakube-core-configuration"></a>
 ## 3. DynaKube Core Configuration
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 11 | Use `v1beta6` for new DynaKubes | `apiVersion: dynatrace.com/v1beta6`. `v1beta5` still applies but is **deprecated from 1.10.0**; `v1beta4` is **no longer served from 1.10.0** (apply fails); `v1beta3` **removed** in 1.9.0 | **Critical** | Configuration |
+| 11 | Use `v1beta6` for new DynaKubes | `apiVersion: dynatrace.com/v1beta6`. `v1beta5` still applies but is **deprecated from 1.10.0**; `v1beta4` is **not served from 1.10.0** and **removed from the CRD in 1.11.0** (apply fails); `v1beta3` **removed** in 1.9.0 | **Critical** | Configuration |
 | 12 | Set `apiUrl` to your SaaS tenant | `spec.apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api` | **Critical** | Configuration |
 | 13 | Add control-plane tolerations to OneAgent | `tolerations: [{effect: NoSchedule, key: node-role.kubernetes.io/master, operator: Exists}, {effect: NoSchedule, key: node-role.kubernetes.io/control-plane, operator: Exists}]` | Recommended | Configuration |
 | 14 | Set `nodeSelector` for linux-only | `nodeSelector: {kubernetes.io/os: linux}` | Recommended | Configuration |
-| 15 | Set OneAgent resource requests and limits | `requests: {cpu: 100m, memory: 256Mi}`, `limits: {cpu: 300m, memory: 512Mi}` | Recommended | Configuration |
+| 15 | Set OneAgent resource requests and limits | `spec.oneAgent.cloudNativeFullStack.oneAgentResources` — e.g. `requests: {cpu: 100m, memory: 256Mi}`, `limits: {cpu: 300m, memory: 512Mi}` as a community starting point; size from measured usage | Recommended | Configuration |
 | 16 | Set `networkZone` for routing isolation | `spec.networkZone: production` | Optional | Configuration |
 | 17 | Set `hostGroup` for logical grouping | `spec.oneAgent.hostGroup: production` | Optional | Configuration |
 
@@ -140,10 +145,12 @@ spec:
 | 18 | Enable `kubernetes-monitoring` capability | `spec.activeGate.capabilities: [kubernetes-monitoring, routing]` | **Critical** | ActiveGate |
 | 19 | Add `dynatrace-api` capability | Add `dynatrace-api` to capabilities list | Recommended | ActiveGate |
 | 20 | Set ActiveGate replicas >= 2 for production | `spec.activeGate.replicas: 2` | **Critical** | ActiveGate |
-| 21 | Set ActiveGate resource limits | `limits: {cpu: 1000m, memory: 2Gi}` for medium clusters | **Critical** | ActiveGate |
+| 21 | Set ActiveGate resource limits | e.g. `limits: {cpu: 1000m, memory: 2Gi}` for medium clusters (community starting point; FAQ-10 for sizing) | **Critical** | ActiveGate |
 | 22 | Add zone-aware topology spread | `topologySpreadConstraints: [{maxSkew: 1, topologyKey: topology.kubernetes.io/zone, whenUnsatisfiable: ScheduleAnyway}]` | Recommended | ActiveGate |
 
 ### ActiveGate Sizing Reference
+
+Starting points from community practice, not Dynatrace-published figures — measure and adjust (FAQ-10).
 
 | Cluster Size | Nodes | CPU Limit | Memory Limit | Replicas |
 |--------------|-------|-----------|--------------|----------|
@@ -162,7 +169,7 @@ spec:
 | 25 | Apply consistent labels to all namespaces | `team`, `env`, `cost-center` labels | Recommended | Namespace |
 | 26 | Use `matchExpressions` to exclude system namespaces | `operator: NotIn, values: [kube-system, newrelic, datadog]` | Recommended | Injection |
 | 27 | Use pod annotation to disable injection for specific pods | `oneagent.dynatrace.com/inject: "false"` | Optional | Injection |
-| 28 | Limit injected technologies when needed | `oneagent.dynatrace.com/technologies: "java,nodejs"` | Optional | Injection |
+| 28 | Limit injected technologies when needed | `oneagent.dynatrace.com/technologies: "java,nodejs"` — *"Ignored if the CSI volume is used or node image pull via ephemeral volume is used"* | Optional | Injection |
 | 29 | Set ResourceQuotas on every namespace | `requests.cpu`, `requests.memory`, `limits.cpu`, `limits.memory`, `pods` | Recommended | Namespace |
 | 30 | Set LimitRanges for default container limits | `default: {cpu: 500m, memory: 512Mi}`, `defaultRequest: {cpu: 100m, memory: 128Mi}` | Recommended | Namespace |
 
@@ -171,25 +178,25 @@ spec:
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 31 | Enable Kubernetes app detection (unofficial — not in Dynatrace docs; verify before using) | `feature.dynatrace.com/k8s-app-enabled: "true"` on DynaKube metadata | Recommended | Feature Flag |
+| 31 | Do not set the obsolete `k8s-app-enabled` flag | The docs: *"The schema is no longer available on newer Dynatrace environments, where the Kubernetes app experience is enabled automatically."* | Recommended | Feature Flag |
 | 32 | Enable version detection from K8s labels | `feature.dynatrace.com/label-version-detection: "true"` | Recommended | Feature Flag |
 | 33 | Set injection failure policy to `fail` in non-prod | `feature.dynatrace.com/injection-failure-policy: "fail"` | Recommended | Feature Flag |
 | 34 | Set injection failure policy to `silent` in prod | `feature.dynatrace.com/injection-failure-policy: "silent"` | **Critical** | Feature Flag |
-| 35 | Use opt-in mode for multi-tool coexistence | `feature.dynatrace.com/automatic-injection: "false"` + `namespaceSelector` | Recommended | Feature Flag |
-| 36 | Apply `app.kubernetes.io/version` label to all deployments | `app.kubernetes.io/version: "1.2.3"` in pod template labels | Recommended | Labels |
-| 37 | Apply all Kubernetes recommended labels | `app.kubernetes.io/name`, `app.kubernetes.io/component`, `app.kubernetes.io/part-of` | Recommended | Labels |
+| 35 | Use opt-in for multi-tool coexistence | Namespace opt-in: `namespaceSelector` alone. Pod opt-in: `feature.dynatrace.com/automatic-injection: "false"` **plus** `oneagent.dynatrace.com/inject: "true"` on each pod — the flag alone injects nothing (K8S-11 § 2) | Recommended | Feature Flag |
+| 36 | Apply `app.kubernetes.io/version` and `app.kubernetes.io/part-of` to pod templates | Read as `DT_RELEASE_VERSION` / `DT_RELEASE_PRODUCT`; only pod labels count | Recommended | Labels |
+| 37 | Set the release stage label where you want it tracked | `dynatrace-release-stage` → `DT_RELEASE_STAGE` | Optional | Labels |
 
 <a id="metadata-enrichment"></a>
 ## 7. Metadata Enrichment
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 38 | Enable metadata enrichment | `spec.metadataEnrichment.enabled: true` | **Critical** | Enrichment |
-| 39 | Use settings-based enrichment (not pod annotations) | Configure rules in Settings > Cloud and virtualization > Kubernetes telemetry enrichment | **Critical** | Enrichment |
-| 40 | Do NOT mix settings-based and pod-annotation enrichment | Use one method only | **Critical** | Enrichment |
-| 41 | Create enrichment rules for `team`, `env`, `cost-center` labels | Metadata type: Label, Key: `team`, Prefix: `k8s.` | Recommended | Enrichment |
-| 42 | Configure enrichment rules before deploying DynaKube | Rules propagate immediately when DynaKube is first applied | Recommended | Enrichment |
-| 43 | Allow 45 minutes for enrichment propagation after rule changes | New/modified rules take up to 45 min on existing deployments | Recommended | Enrichment |
+| 38 | Enable metadata enrichment where OneAgent does not inject | `spec.metadataEnrichment.enabled: true` (`false` by default in `v1beta6`; OneAgent injection enriches injected pods on its own) | **Critical** | Enrichment |
+| 39 | Choose the enrichment method by where the value is maintained | Central rules for existing namespace labels; `metadata.dynatrace.com/<key>` annotations for per-workload or per-pod values; DynaKube `resourceAttributes` for cluster-wide facts (K8S-10 § 2) | **Critical** | Enrichment |
+| 40 | Know the precedence when two methods set the same key | Annotations > DynaKube attributes > central rules; within annotations, pod > workload > namespace | **Critical** | Enrichment |
+| 41 | Create enrichment rules for `team`, `env`, `cost-center` labels | Metadata type `Label`, Source `cost-center`, Target `dt.cost.costcenter` (or "enrich directly" for a `k8s.namespace.label.<key>` field) | Recommended | Enrichment |
+| 42 | Check version floors before relying on a level | Kubernetes enrichment: Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+; workload-level annotations: Operator 1.11.0+, ActiveGate 1.349+ | Recommended | Enrichment |
+| 43 | Wait, then restart, after rule changes | *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins"* | Recommended | Enrichment |
 | 44 | Label namespaces with cost allocation metadata | `cost-center`, `budget-owner` labels on Namespace objects | Recommended | Enrichment |
 
 <a id="log-monitoring"></a>
@@ -197,58 +204,58 @@ spec:
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 45 | Enable log monitoring with empty object | `spec.logMonitoring: {}` | Recommended | Logs |
+| 45 | Enable log monitoring | `spec.logMonitoring: {}`, optionally with `ingestRuleMatchers` (immutable once set) | Recommended | Logs |
 | 46 | Configure log monitoring resources under `templates` | `spec.templates.logMonitoring.resources: {limits: {cpu: 500m, memory: 512Mi}}` | **Critical** | Logs |
-| 47 | Never nest properties inside `spec.logMonitoring` | `spec.logMonitoring: {}` only; resources/tolerations go under `spec.templates.logMonitoring` | **Critical** | Logs |
+| 47 | Keep pod settings out of `spec.logMonitoring` | Its only field is `ingestRuleMatchers`; resources and tolerations go under `spec.templates.logMonitoring` | **Critical** | Logs |
 | 48 | Add control-plane tolerations to log monitoring | `spec.templates.logMonitoring.tolerations: [{effect: NoSchedule, key: node-role.kubernetes.io/control-plane, operator: Exists}]` | Recommended | Logs |
 | 49 | Use OpenPipeline to filter debug logs before storage | Drop `loglevel == "DEBUG"` in processing pipeline | Recommended | Logs |
-| 50 | Route logs to separate Grail buckets by environment | OpenPipeline route rules based on `k8s.env` enriched label | Optional | Logs |
+| 50 | Store logs in separate Grail buckets by environment | OpenPipeline Bucket assignment processors matching an enriched field such as `k8s.namespace.label.env` | Optional | Logs |
 
 <a id="otel-collector-and-telemetry-ingest"></a>
 ## 9. OTel Collector and Telemetry Ingest
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 51 | Pin OTel Collector image to a specific, verified version (example: `0.56.0`, Sept 2026 — check the [releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) before installing) | `spec.templates.otelCollector.imageRef.tag: "0.56.0"` | **Critical** | OTel |
+| 51 | Pin OTel Collector image to a specific, verified version (example: `0.57.0`, released 09/24/2026 — check the [releases](https://github.com/Dynatrace/dynatrace-otel-collector/releases) before installing) | `spec.templates.otelCollector.imageRef.tag: "0.57.0"` | **Critical** | OTel |
 | 52 | Never use `latest` tag for OTel Collector | Always specify explicit version tag | **Critical** | OTel |
 | 53 | Set OTel Collector resource limits | `limits: {cpu: 500m, memory: 512Mi}` for staging; `{cpu: 1000m, memory: 1Gi}` for production | Recommended | OTel |
 | 54 | Configure `telemetryIngest` with required protocols | `spec.telemetryIngest.protocols: [otlp]` (add `statsd`, `jaeger`, `zipkin` as needed) | Recommended | OTel |
-| 55 | Use StatsD via OTel Collector on K8s (not OneAgent StatsD daemon) | Deploy OTel Collector with StatsD receiver; OneAgent StatsD is not available on K8s | **Critical** | OTel |
-| 56 | Deploy StatsD OTel Collector in a dedicated `monitoring` namespace | Cluster-wide Deployment; apps reference via FQDN `otel-collector-statsd.monitoring.svc.cluster.local:8125` | Recommended | OTel |
+| 55 | Do not use the OneAgent StatsD daemon on Kubernetes | Use an environment ActiveGate as remote listener (the docs' recommendation), DynaKube `telemetryIngest` with `statsd`, or a self-managed OTel Collector | **Critical** | OTel |
+| 56 | If you run your own StatsD collector, give it a dedicated namespace | Cluster-wide Deployment; apps reference via FQDN `otel-collector-statsd.monitoring.svc.cluster.local:8125` | Recommended | OTel |
 
 <a id="csi-driver-configuration"></a>
 ## 10. CSI Driver Configuration
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 57 | Decide CSI vs. ephemeral volumes, then set it explicitly | `csidriver.enabled: true` for the CSI path (the default recommendation); ephemeral volumes are supported from Operator 1.10.0 — see rule 7 | **Critical** *(making the choice)* | CSI |
+| 57 | Decide image volumes vs. CSI vs. ephemeral volumes, then set it explicitly | See rule 7 — image volumes are recommended from Operator 1.11.0 where nodes qualify | **Critical** *(making the choice)* | CSI |
 | 58 | Set resource limits on provisioner container | `provisioner.resources.limits: {cpu: 500m, memory: 256Mi}` | **Critical** | CSI |
 | 59 | Set resource limits on all 5 CSI containers | `csiInit`, `server`, `provisioner`, `registrar`, `livenessprobe` | Recommended | CSI |
 
 ### CSI Driver Container Resource Reference
 
-| Container | CPU Request | CPU Limit | Memory Request | Memory Limit |
-|-----------|-------------|-----------|----------------|---------------|
-| `csiInit` | 50m | 100m | 100Mi | 128Mi |
-| `server` | 50m | 100m | 100Mi | 128Mi |
-| `provisioner` | 300m | 500m | 100Mi | 256Mi |
-| `registrar` | 20m | 50m | 30Mi | 64Mi |
-| `livenessprobe` | 20m | 50m | 30Mi | 64Mi |
+| Container | Chart default (Operator 1.11.0) requests / limits | Suggested (community starting point) requests / limits |
+|-----------|---------------------------------------------------|--------------------------------------------------------|
+| `csiInit` | 50m, 100Mi / 50m, 100Mi | 50m, 100Mi / 100m, 128Mi |
+| `server` | 50m, 100Mi / 50m, 100Mi | 50m, 100Mi / 100m, 128Mi |
+| `provisioner` | 300m, 100Mi / **none** | 300m, 100Mi / 500m, 256Mi |
+| `registrar` | 20m, 30Mi / 20m, 30Mi | 20m, 30Mi / 50m, 64Mi |
+| `livenessprobe` | 20m, 30Mi / 20m, 30Mi | 20m, 30Mi / 50m, 64Mi |
 
-> **Warning:** Default Helm `values.yaml` may be missing limits for the `provisioner` container. Always add them explicitly.
+> **Warning:** In the Operator 1.11.0 Helm chart the `provisioner` container has requests but no limits. Add them explicitly if your policies require limits.
 
-> **Rules 58–59 apply only on the CSI path.** If you chose ephemeral volumes (Operator 1.10.0+, see rule 7) there is no CSI DaemonSet to size, and this entire section is not applicable — the corresponding work moves to per-pod volume provisioning and pod-start latency at high density. On Operator 1.9.x and earlier the CSI path is the only supported mode, so these rules always apply.
+> **Rules 58–59 apply only on the CSI path.** If you chose image volumes (Operator 1.11.0+) or ephemeral volumes (Operator 1.10.0+, see rule 7) there is no CSI DaemonSet to size, and this entire section is not applicable — the corresponding work moves to per-pod volume provisioning and pod-start latency at high density. On Operator 1.9.x and earlier the CSI path is the only supported mode, so these rules always apply.
 
 <a id="resource-sizing"></a>
 ## 11. Resource Sizing
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 60 | Set OneAgent resources for cloudNativeFullStack | `requests: {cpu: 100m, memory: 256Mi}`, `limits: {cpu: 300m, memory: 512Mi}` | Recommended | Sizing |
+| 60 | Set OneAgent resources for cloudNativeFullStack | `oneAgentResources` — e.g. `requests: {cpu: 100m, memory: 256Mi}`, `limits: {cpu: 300m, memory: 512Mi}` (community starting point) | Recommended | Sizing |
 | 61 | Size ActiveGate by cluster node count | See ActiveGate Sizing Reference in Section 4 | **Critical** | Sizing |
-| 62 | Size OTel Collector by telemetry volume | Low: 200m/256Mi, Medium: 500m/512Mi, High: 1000m/1Gi, Very High: 2000m/2Gi | Recommended | Sizing |
-| 63 | Size Log Monitoring by daily log volume | Low (<1GB): 200m/256Mi, Medium (1-10GB): 500m/512Mi, High (10-50GB): 1000m/1Gi | Recommended | Sizing |
-| 64 | Monitor OneAgent memory by absolute usage (no limits by default) | OneAgent runs without resource limits; use `dt.kubernetes.container.memory_working_set` with `matchesValue(k8s.container.name, "dynatrace-oneagent")` | Recommended | Sizing |
+| 62 | Size OTel Collector by telemetry volume (community starting points) | Low: 200m/256Mi, Medium: 500m/512Mi, High: 1000m/1Gi, Very High: 2000m/2Gi | Recommended | Sizing |
+| 63 | Size Log Monitoring by daily log volume (community starting points) | Low (<1GB): 200m/256Mi, Medium (1-10GB): 500m/512Mi, High (10-50GB): 1000m/1Gi | Recommended | Sizing |
+| 64 | Monitor OneAgent memory by absolute usage | OneAgent pods have limits only if you set `oneAgentResources`; use `dt.kubernetes.container.memory_working_set` with `matchesValue(k8s.container.name, "dynatrace-oneagent")` | Recommended | Sizing |
 
 <a id="security-and-secrets"></a>
 ## 12. Security and Secrets
@@ -259,7 +266,7 @@ spec:
 | 66 | Use External Secrets Operator for token management | `ExternalSecret` CR referencing Vault, AWS Secrets Manager, or GCP Secret Manager | Recommended | Security |
 | 67 | Apply NetworkPolicies allowing Dynatrace egress on port 443 | `egress: [{to: [{ipBlock: {cidr: 0.0.0.0/0}}], ports: [{protocol: TCP, port: 443}]}]` | Recommended | Security |
 | 68 | Configure proxy via DynaKube spec (not env vars) | `spec.proxy.value: https://proxy.example.com:8080` or `spec.proxy.valueFrom.secretKeyRef` | Recommended | Security |
-| 69 | Apply RBAC per namespace aligned with Dynatrace boundaries | K8s `namespace-admin` = full namespace visibility in Dynatrace | Recommended | Security |
+| 69 | Mirror Kubernetes namespace RBAC in Dynatrace IAM | A namespace bound to `view`/`edit`/`admin` maps to a read policy with `WHERE storage:k8s.namespace.name = "<ns>"` (K8S-06 § 4) | Recommended | Security |
 
 <a id="gitops-and-lifecycle"></a>
 ## 13. GitOps and Lifecycle
@@ -281,17 +288,17 @@ spec:
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
-| 79 | Alert on Node NotReady | Node condition != Ready for >5 min = Critical | **Critical** | Alerting |
+| 79 | Alert on Node NotReady | Built-in *Detect node readiness issues*, or `dt.kubernetes.node.conditions` Ready = false for >5 min = Critical | **Critical** | Alerting |
 | 80 | Alert on high node CPU | CPU > 85% for 15 min = Warning | Recommended | Alerting |
 | 81 | Alert on high node memory | Memory > 90% for 10 min = Critical | **Critical** | Alerting |
-| 82 | Alert on disk pressure | Disk > 85% = Warning | Recommended | Alerting |
-| 83 | Alert on OOMKilled events | Any OOMKilled event = Warning | **Critical** | Alerting |
-| 84 | Alert on CrashLoopBackOff | Any CrashLoopBackOff = Warning | Recommended | Alerting |
+| 82 | Alert on disk pressure | DiskPressure condition true, or disk > 85% = Warning | Recommended | Alerting |
+| 83 | Alert on OOM kills | `dt.kubernetes.container.oom_kills` > 0 = Warning (a metric, not an event) | **Critical** | Alerting |
+| 84 | Alert on restart loops | `BackOff` events or `dt.kubernetes.container.restarts` = Warning (CrashLoopBackOff is message text, not a reason) | Recommended | Alerting |
 | 85 | Alert on FailedScheduling | Events > 5 in 10 min = Warning | Recommended | Alerting |
 | 86 | Alert on volume mount failures | Any FailedMount or FailedAttachVolume = Critical | **Critical** | Alerting |
 | 87 | Monitor Dynatrace component health (OA, AG, CSI) | Track restarts, OOMKills, and data gaps for `dynatrace-oneagent` and `activegate` containers | **Critical** | Alerting |
-| 88 | Target CPU utilization >40% avg for cost efficiency | Right-size if avg CPU usage <40% | Recommended | Cost |
-| 89 | Target memory utilization >50% avg for cost efficiency | Right-size if avg memory usage <50% | Recommended | Cost |
+| 88 | Right-size CPU requests | Workload CPU used / requested; ~40% average is a community starting point (K8S-04 § 6) | Recommended | Cost |
+| 89 | Right-size memory requests | Workload working set / requested; ~50% average is a community starting point, keep peak headroom | Recommended | Cost |
 
 <a id="workload-and-application-monitoring"></a>
 ## 15. Workload and Application Monitoring
@@ -311,9 +318,9 @@ spec:
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
 | 96 | Instrument NGINX Ingress via ConfigMap `main-snippet` | `load_module /opt/dynatrace/oneagent-paas/agent/bin/current/linux-musl-x86-64/liboneagentnginx.so;` | Recommended | NGINX |
-| 97 | NGINX instrumentation requires x86-64 and OneAgent 1.227+ | No ARM support; pod name must contain `ingress-nginx-` | Recommended | NGINX |
+| 97 | NGINX instrumentation requires OneAgent 1.227+ and no ARM64 | Pod or container name must contain `ingress-nginx-` or `nginx-ingress-` | Recommended | NGINX |
 | 98 | Enable Prometheus scraping for custom metrics | Annotate pods with `metrics.dynatrace.com/scrape: "true"`, `/port`, `/path` | Recommended | Prometheus |
-| 99 | ActiveGate must be in-cluster for annotation-based Prometheus scraping | External ActiveGate cannot reach pod endpoints | **Critical** | Prometheus |
+| 99 | Scrape Prometheus from inside the cluster — and prefer the OTel Collector for new setups | An external ActiveGate cannot scrape endpoints that require authentication; the ActiveGate integration has hard limits (1,000 exporter pods, 1,000 metrics per pod), and the docs recommend the OpenTelemetry Collector for new deployments | **Critical** | Prometheus |
 | 100 | Use Kpow + Prometheus scraping for Kafka consumer lag monitoring | `PROMETHEUS_EGRESS: "true"` in Kpow config; scrape annotations on Kpow pods | Optional | Kafka |
 
 <a id="troubleshooting-practices"></a>
@@ -327,8 +334,8 @@ spec:
 | 104 | Check namespace labels when injection fails | `kubectl get namespace <ns> -o jsonpath='{.metadata.labels}'` must match DynaKube `namespaceSelector` | Recommended | Troubleshooting |
 | 105 | Verify init container present for injected pods | `kubectl get pod <pod> -o jsonpath='{.spec.initContainers[*].name}'` | Recommended | Troubleshooting |
 | 106 | Check webhook registration | `kubectl get mutatingwebhookconfigurations` — Dynatrace webhook must exist | Recommended | Troubleshooting |
-| 107 | Collect support bundle for escalation | DynaKube YAML, pod YAML, events, operator logs, OneAgent logs in a tar.gz | Optional | Troubleshooting |
-| 108 | Use DQL to detect Dynatrace component failures across fleet | Query `events` for `dynatrace` + `Failed/OOMKilled/BackOff` | Recommended | Troubleshooting |
+| 107 | Collect a support archive for escalation | `kubectl exec -n dynatrace deployment/dynatrace-operator -- dynatrace-operator support-archive --stdout > operator-support-archive.zip` (K8S-09 § 8) | Optional | Troubleshooting |
+| 108 | Use DQL to detect Dynatrace component failures across fleet | `events` with `event.provider == "KUBERNETES_EVENT"` in the `dynatrace` namespace (`Failed`, `BackOff`, `FailedMount`), plus the `oom_kills` and `restarts` metrics | Recommended | Troubleshooting |
 | 109 | Detect metric data gaps from null buckets | `timeseries … = avg(dt.host.cpu.usage)` then compare `arraySize(arrayRemoveNulls(…))` to `arraySize(…)` — `arraySize` counts empty buckets and `arrayMin` skips them | Recommended | Troubleshooting |
 
 ---
@@ -340,21 +347,21 @@ This notebook contains **109 actionable best practices** across 17 categories fo
 | Category | Count | Key Takeaway |
 |----------|-------|--------------|
 | Deployment Mode | 5 | Use `cloudNativeFullStack`; never `classicFullStack` for new deployments |
-| Operator Installation | 5 | Helm OCI install with CSI driver enabled |
-| DynaKube Core | 7 | v1beta5/v1beta6, tolerations, resource limits |
+| Operator Installation | 5 | Helm OCI install with an explicit version; choose code-module delivery deliberately |
+| DynaKube Core | 7 | `v1beta6`, tolerations, resource limits |
 | ActiveGate | 5 | `kubernetes-monitoring` + `routing`, 2+ replicas in prod |
 | Namespace/Injection | 8 | `namespaceSelector` for scope control, ResourceQuotas on every namespace |
-| Feature Flags | 7 | Version detection, K8s app detection, injection failure policy |
-| Metadata Enrichment | 7 | Settings-based only, never mix with pod annotations |
-| Log Monitoring | 6 | Empty `logMonitoring: {}`, resources under `templates` |
-| OTel/Telemetry Ingest | 6 | Pin version, StatsD via OTel Collector only |
-| CSI Driver | 3 | Always set provisioner limits |
+| Feature Flags | 7 | Version detection, opt-in levels, injection failure policy |
+| Metadata Enrichment | 7 | Three methods, one precedence order, version floors |
+| Log Monitoring | 6 | `logMonitoring` (optionally `ingestRuleMatchers`), resources under `templates` |
+| OTel/Telemetry Ingest | 6 | Pin version; StatsD via environment ActiveGate, telemetry ingest or a collector |
+| CSI Driver | 3 | Provisioner has no default limits; set them on the CSI path |
 | Resource Sizing | 5 | Size by cluster/volume tier |
 | Security | 5 | Never store tokens in Git, use ESO |
 | GitOps/Lifecycle | 9 | Pin versions, progressive rollouts, prune: false for DynaKube |
 | Cluster Alerting | 11 | Node health, OOMKill, CrashLoop, Dynatrace component health |
 | Workload Monitoring | 6 | CPU throttling, P99 SLOs, `arrayAvg()` for timeseries |
-| Specialized Monitoring | 5 | NGINX via ConfigMap, in-cluster AG for Prometheus |
+| Specialized Monitoring | 5 | NGINX via ConfigMap; Prometheus from inside the cluster, OTel Collector for new setups |
 | Troubleshooting | 9 | DynaKube status, connectivity, DQL-based diagnostics |
 
 ---
@@ -373,6 +380,8 @@ This notebook contains **109 actionable best practices** across 17 categories fo
 - [Operator + DynaKube troubleshooting (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/troubleshooting)
 - [Dynatrace Operator Helm chart (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml)
 - [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)
+- [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0)
+- [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s)
 
 ---
 

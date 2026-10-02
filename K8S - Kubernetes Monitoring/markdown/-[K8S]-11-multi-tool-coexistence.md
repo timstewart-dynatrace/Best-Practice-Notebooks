@@ -1,6 +1,6 @@
 # K8S-11: Multi-Tool Coexistence & Advanced Configuration
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Running Dynatrace Alongside Other Monitoring Tools
 Many organizations run multiple monitoring tools during migrations or for specialized use cases. This notebook covers patterns for running Dynatrace alongside tools like New Relic, Datadog, or Prometheus without conflicts.
@@ -53,7 +53,7 @@ If you omit `oneAgent.cloudNativeFullStack` entirely:
 
 ```yaml
 # Infrastructure-only DynaKube (no cloudNativeFullStack)
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -81,17 +81,18 @@ This is appropriate when:
 ## 2. Opt-In Mode Configuration
 ### Enable Selective Monitoring
 
-For selective APM where Dynatrace monitors some workloads while other tools monitor others:
+There are two opt-in levels, and they behave differently. Pick one deliberately.
 
-**Step 1: Disable automatic injection globally**
+| Level | How | What gets injected |
+|-------|-----|--------------------|
+| **Namespace opt-in** | `namespaceSelector` inside the injection mode | Every pod in a matching namespace |
+| **Pod opt-in** | `feature.dynatrace.com/automatic-injection: "false"` on the DynaKube | Only pods annotated `oneagent.dynatrace.com/inject: "true"`, in namespaces the DynaKube monitors |
 
-```yaml
-metadata:
-  annotations:
-    feature.dynatrace.com/automatic-injection: "false"
-```
+The feature flag does not opt namespaces in. The docs: with automatic injection off, *"Dynatrace Operator can be set to monitor namespaces without injecting into any Pods, so you can choose which Pods to monitor. Pods that should be injected have to be annotated with oneagent.dynatrace.com/inject: "true""*. Setting the flag and only labelling namespaces therefore injects nothing.
 
-**Step 2: Add namespace selector to only monitor labeled namespaces**
+### Namespace opt-in (most coexistence setups)
+
+**Step 1: Add a namespace selector so only labelled namespaces are monitored**
 
 ```yaml
 spec:
@@ -102,15 +103,32 @@ spec:
           dt-monitoring: "true"
 ```
 
-**Step 3: Label namespaces you want Dynatrace to monitor**
+**Step 2: Label the namespaces you want Dynatrace to monitor**
 
 ```bash
-# Enable Dynatrace monitoring for specific namespaces
 kubectl label namespace checkout dt-monitoring=true
 kubectl label namespace payment dt-monitoring=true
 
 # Verify labels
 kubectl get namespaces -l dt-monitoring=true
+```
+
+### Pod opt-in (finer control)
+
+Add the flag to the DynaKube, then annotate each pod template that should be injected:
+
+```yaml
+# DynaKube
+metadata:
+  annotations:
+    feature.dynatrace.com/automatic-injection: "false"
+---
+# Workload pod template
+spec:
+  template:
+    metadata:
+      annotations:
+        oneagent.dynatrace.com/inject: "true"
 ```
 
 ### Explicit Exclusions (Belt-and-Suspenders)
@@ -143,6 +161,8 @@ spec:
 | No label | Namespace ignored by Dynatrace |
 | `dt-monitoring: "false"` | Explicit opt-out (for documentation) |
 
+> <sub>**Sources:** [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — *"Pods that should be injected have to be annotated with oneagent.dynatrace.com/inject: "true""*.</sub>
+
 <a id="oneagent-otel-injector-coexistence"></a>
 ## 2a. OneAgent + OpenTelemetry Auto-Instrumentation Coexistence
 
@@ -153,17 +173,17 @@ The two injectors can conflict in several ways:
 | Conflict | Symptom | Mitigation |
 |---|---|---|
 | **Double instrumentation of the same process** | Duplicate spans, doubled metrics, increased CPU/memory overhead | Set `OTEL_INSTRUMENTATION_<lib>_ENABLED=false` for libraries OneAgent already covers, OR scope OTel injection by namespace selector |
-| **Init-container ordering** | Pod stuck in `Init:CrashLoopBackOff`; one injector overwrites the other's bytecode | Order init containers explicitly via `pod.spec.initContainers` ordering, or pick one injector per namespace |
-| **Conflicting `LD_PRELOAD` / `JAVA_TOOL_OPTIONS`** | Application starts but only one agent attaches; the other's env vars are clobbered | Use the **OpenTelemetry Operator** with the `instrumentation.opentelemetry.io/inject-*` annotation rather than mutating env vars manually; OneAgent's CSI-driver model coexists with this |
+| **Two injectors in one pod** | Pod stuck in `Init:CrashLoopBackOff`, or only one agent attaches | Pick one injector per namespace (or per workload) |
+| **Conflicting `LD_PRELOAD` / `JAVA_TOOL_OPTIONS`** | Application starts but only one agent attaches; the other's env vars are clobbered | Keep OTel injection (the OpenTelemetry Operator's `instrumentation.opentelemetry.io/inject-*` annotations) and OneAgent injection on separate namespaces |
 | **Trace context conflicts** | Spans appear in both backends but parent-child links are broken | Ensure both agents emit W3C trace context (`traceparent`); newer OneAgent versions and OTel SDKs both default to W3C |
 
 ### Analyzing the conflict surface
 
-The `opentelemetry-injector` project ([github.com/open-telemetry/opentelemetry-injector](https://github.com/open-telemetry/opentelemetry-injector)) is the OTel community's mutation-webhook injector. When evaluating coexistence, profile against:
+OTel auto-instrumentation reaches a Kubernetes pod in one of two ways: the **OpenTelemetry Operator**, a mutating webhook driven by `instrumentation.opentelemetry.io/inject-*` annotations, or the **OpenTelemetry injector** ([github.com/open-telemetry/opentelemetry-injector](https://github.com/open-telemetry/opentelemetry-injector)), a shared library loaded through `LD_PRELOAD` or `/etc/ld.so.preload`. Both put an agent into the process at startup, which is exactly where OneAgent's code module goes. When evaluating coexistence, list:
 
-- Which language runtimes are dual-injected (Java + Node + .NET often differ)
-- Whether your OTel collector is the Dynatrace OTel Collector image (auto-deduplicated downstream) or a generic build (no de-duplication)
-- Whether OneAgent is in `cloudNativeFullStack` (full process injection) or `applicationMonitoring` (lighter footprint that conflicts less)
+- Which language runtimes are dual-injected (Java, Node.js and .NET agents differ)
+- Which mechanism delivers the OTel agent, since `LD_PRELOAD` and webhook injection fail differently
+- Which OneAgent mode is active: `cloudNativeFullStack` (host agent plus code modules) or `applicationMonitoring` (code modules only)
 
 ### Recommended decision flow
 
@@ -186,34 +206,33 @@ metadata:
     feature.dynatrace.com/<flag-name>: "<value>"
 ```
 
-### Complete Feature Flags Table
+### Flags Used in This Notebook
 
 | Feature Flag | Values | Default | Purpose |
 |--------------|--------|---------|----------|
-| `automatic-injection` | `true`/`false` | `true` | Global injection control |
-| `injection-failure-policy` | `fail`/`silent` | `silent` | Pod startup behavior on injection failure |
-| `label-version-detection` | `true`/`false` | `false` | Detect version from K8s labels |
-| `k8s-app-enabled` | `true`/`false` | `false` | Enable K8s application detection (unofficial — not in Dynatrace docs; verify before using) |
-| `max-csi-mount-attempts` | `1-10` | `2` | CSI mount retry attempts |
-| `ignore-unknown-state` | `true`/`false` | `false` | Ignore unknown OneAgent state |
+| `automatic-injection` | `true`/`false` | `true` | `false` = inject only pods annotated `oneagent.dynatrace.com/inject: "true"` |
+| `injection-failure-policy` | `fail`/`silent` | `silent` | Pod startup behaviour when injection fails |
+| `label-version-detection` | `true`/`false` | `false` | Propagate version labels to the injected OneAgent (§ 4) |
+| `max-csi-mount-attempts` | integer | `10` | CSI driver mount attempts before the pod starts with a dummy volume, unmonitored |
+| `max-csi-mount-timeout` | duration | `10m` | CSI driver mount timeout before the pod starts with a dummy volume, unmonitored |
+
+`k8s-app-enabled` is obsolete: the docs say it was *"Previously used to trigger the creation of the builtin:app-transition.kubernetes settings schema. The schema is no longer available on newer Dynatrace environments, where the Kubernetes app experience is enabled automatically."* Do not set it.
 
 ### Recommended Configuration for Coexistence
 
 ```yaml
 metadata:
   annotations:
-    # Enable Kubernetes app detection (unofficial — not in Dynatrace docs; verify before using)
-    feature.dynatrace.com/k8s-app-enabled: "true"
-    
-    # Opt-in mode - only monitor labeled namespaces
-    feature.dynatrace.com/automatic-injection: "false"
-    
     # Detect version from Kubernetes labels
     feature.dynatrace.com/label-version-detection: "true"
-    
-    # Fail pod if injection fails (instead of silent failure)
+
+    # Non-production: fail the pod if injection fails (production keeps the default, silent)
     feature.dynatrace.com/injection-failure-policy: "fail"
 ```
+
+Scope injection with a `namespaceSelector` (§ 2). Add `automatic-injection: "false"` only if you also annotate the pods to inject.
+
+> <sub>**Sources:** [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — *"Defines the maximum number of attempts for the Dynatrace Operator CSI driver to mount a volume. If this limit is reached, the Pod will start with a dummy volume, which will result in missing out on deep monitoring data."*</sub>
 
 <a id="build-version-propagation"></a>
 ## 4. Build Version Propagation
@@ -252,15 +271,17 @@ spec:
         app.kubernetes.io/version: "1.2.3"
 ```
 
-### Kubernetes Recommended Labels
+### Labels the flag reads
 
-| Label | Description | Dynatrace Usage |
-|-------|-------------|------------------|
-| `app.kubernetes.io/name` | Application name | Service name |
-| `app.kubernetes.io/version` | Application version | Version tracking |
-| `app.kubernetes.io/component` | Component type | Service grouping |
-| `app.kubernetes.io/part-of` | Higher-level application | Application grouping |
-| `app.kubernetes.io/instance` | Instance identifier | Instance differentiation |
+| Pod label | Maps to |
+|-----------|---------|
+| `app.kubernetes.io/version` | `DT_RELEASE_VERSION` |
+| `app.kubernetes.io/part-of` | `DT_RELEASE_PRODUCT` |
+| `dynatrace-release-stage` | `DT_RELEASE_STAGE` |
+
+*"Only pod labels are detected, not workload (Deployment/StatefulSet) labels. To update a version, update the pod template and trigger a rollout. Patching labels directly with kubectl label on existing pods has no effect."* The other `app.kubernetes.io/*` labels above are good Kubernetes practice but are not read by this flag. Build label propagation needs webhook injection, so it works with `applicationMonitoring` and `cloudNativeFullStack` only.
+
+> <sub>**Sources:** [Version detection methods (DT docs)](https://docs.dynatrace.com/docs/deliver/release-monitoring/version-detection-strategies-latest) — *"Only pod labels are detected, not workload (Deployment/StatefulSet) labels."*</sub>
 
 <a id="injection-failure-policy"></a>
 ## 5. Injection Failure Policy
@@ -309,14 +330,14 @@ kubectl describe pod <pod-name> -n <namespace>
 ### Understanding the Configuration Structure
 
 > **Important:** Log monitoring has a split configuration:
-> - `spec.logMonitoring: {}` - Enables the feature (empty object only)
-> - `spec.templates.logMonitoring` - Configures resources and tolerations
+> - `spec.logMonitoring` — enables the feature; its only field is the optional `ingestRuleMatchers`
+> - `spec.templates.logMonitoring` — configures the Log module pods: image, resources, tolerations
 
 ### Correct Configuration
 
 ```yaml
 spec:
-  # Enable log monitoring (empty object only - no nested properties)
+  # Enable log monitoring ({} or with ingestRuleMatchers — nothing else)
   logMonitoring: {}
 
   # Resource configuration goes under templates
@@ -338,66 +359,59 @@ spec:
 ### Common Mistakes
 
 ```yaml
-# WRONG - These will fail with validation errors
+# WRONG - not fields of spec.logMonitoring
 spec:
   logMonitoring:
-    enabled: true          # Not allowed
-    resources: ...         # Not allowed here
+    enabled: true          # Not a field
+    resources: ...         # Belongs under templates.logMonitoring
 
 # CORRECT
 spec:
-  logMonitoring: {}        # Just empty object
+  logMonitoring: {}        # or ingestRuleMatchers, see below
   templates:
     logMonitoring:         # Resources go here
       resources: ...
 ```
 
-### Excluding Namespaces from Log Collection
+### Choosing Which Namespaces' Logs Are Collected
 
-To exclude namespaces from log collection (e.g., other monitoring tool namespaces), configure log ingest rules in Dynatrace UI:
+`spec.logMonitoring.ingestRuleMatchers` takes an `attribute` and a list of `values` for the initial log ingest rule — for example only the namespaces Dynatrace owns:
 
-1. Navigate to **Settings > Log Monitoring > Log ingest rules**
-2. Create rules to include/exclude specific namespaces
-3. This is done in the UI, not in the DynaKube YAML
+```yaml
+spec:
+  logMonitoring:
+    ingestRuleMatchers:
+      - attribute: k8s.namespace.name
+        values:
+          - checkout
+          - payment
+```
+
+The parameter reference marks it *"This field is immutable. Once set, it will no longer be updated."* Change the rules afterwards in **Settings → Log Monitoring → Log ingest rules**, not by editing the DynaKube.
+
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — *"This field is immutable. Once set, it will no longer be updated."*</sub>
 
 ```dql
-// Verify which namespaces have Dynatrace-monitored pods
-fetch dt.entity.cloud_application_instance
-| expand tag = tags
-| filter contains(toString(tag), "dynatrace")
-| summarize count = count(), by:{entity.name}
-| sort count desc
-| limit 20
-
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "K8S_POD"
-//   | expand tag = tags
-//   | filter contains(toString(tag), "dynatrace")
-//   | summarize count = count(), by:{name}
-//   | sort count desc
-//   | limit 20
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Which namespaces have OneAgent-instrumented pods (spans arriving from OneAgent)
+// A pod that is injected but serves no traffic in the window does not appear.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == "oneagent" and isNotNull(k8s.namespace.name)
+| summarize {spans = count(), pods = countDistinctExact(k8s.pod.name)}, by:{k8s.cluster.name, k8s.namespace.name}
+| sort pods desc
+| limit 30
 ```
 
 ```dql
-// Check if version information is being detected (via tags)
-fetch dt.entity.service
-| filter isNotNull(tags)
-| fields entity.name, tags
-| sort entity.name asc
+// Check that version information is being detected
+// DT_RELEASE_* values land on the process group instance as releasesVersion / releasesProduct /
+// releasesStage. Executed 10/02/2026: releasesVersion is a string such as
+// "ReleaseVersionInfo{version='1.5.2', source=AGENT_REGISTRY, timestamp=0}".
+fetch dt.entity.process_group_instance, from:-24h
+| fieldsAdd releasesVersion, releasesProduct, releasesStage
+| filter isNotNull(releasesVersion)
+| summarize {instances = count()}, by:{releasesProduct, releasesVersion, releasesStage}
+| sort instances desc
 | limit 30
-
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "SERVICE"
-//   | filter isNotNull(tags)
-//   | fields name, tags
-//   | sort name asc
-//   | limit 30
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 <a id="complete-configuration-example"></a>
@@ -405,7 +419,7 @@ fetch dt.entity.service
 ### Production-Ready DynaKube with Coexistence
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -413,12 +427,6 @@ metadata:
   labels:
     dynatrace.com/created-by: dynatrace.kubernetes
   annotations:
-    # Enable Kubernetes app detection (unofficial — not in Dynatrace docs; verify before using)
-    feature.dynatrace.com/k8s-app-enabled: "true"
-    
-    # Opt-in mode for coexistence with other tools
-    feature.dynatrace.com/automatic-injection: "false"
-    
     # Enable version detection from K8s labels
     feature.dynatrace.com/label-version-detection: "true"
     
@@ -468,7 +476,7 @@ spec:
     otelCollector:
       imageRef:
         repository: public.ecr.aws/dynatrace/dynatrace-otel-collector
-        tag: "0.56.0"  # Example pin (Sept 2026) - never use 'latest'; check the releases first
+        tag: "0.57.0"  # Example pin (released 09/24/2026) - never use 'latest'; check the releases first
       resources:
         requests:
           cpu: 100m
@@ -503,7 +511,7 @@ spec:
 In this notebook, you learned:
 
 - **Coexistence patterns** for running Dynatrace with other monitoring tools
-- **Opt-in mode** using namespace selectors and automatic-injection flag
+- **Opt-in mode**: namespace selectors, and pod-level opt-in with the automatic-injection flag plus pod annotations
 - **Feature flags reference** for DynaKube annotations
 - **Build version propagation** from Kubernetes labels
 - **Injection failure policy** for controlling pod startup behavior

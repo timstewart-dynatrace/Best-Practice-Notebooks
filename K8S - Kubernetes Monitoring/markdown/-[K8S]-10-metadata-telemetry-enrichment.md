@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -68,8 +68,8 @@ DT_TAGS="primary_tags.team=platform primary_tags.environment=production"
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail |
-| **Permissions** | `settings.read`, `settings.write` |
-| **DynaKube** | Deployed with `metadataEnrichment` enabled |
+| **Permissions** | `settings:objects:read`, `settings:objects:write` (classic tokens: `settings.read`, `settings.write`) |
+| **DynaKube** | Deployed with OneAgent injection, or with `metadataEnrichment.enabled: true` |
 | **Kubernetes** | Namespaces with labels/annotations to enrich |
 
 <a id="why-metadata-enrichment"></a>
@@ -111,31 +111,31 @@ In addition to settings-based enrichment, Dynatrace automatically propagates cer
 
 **Primary Grail Tags** (prefix `primary_tags.`) extend this concept for custom dimensions like `primary_tags.app` or `primary_tags.team`. Use them when Primary Grail Fields don't align with your organizational structure (e.g., shared infrastructure hosting multiple applications).
 
-#### Setting Primary Tags Directly from Kubernetes (June 2026)
+#### Setting Primary Tags Directly from Kubernetes
 
-The [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) page documents dedicated annotations for emitting primary tags at namespace or pod scope:
+The [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) page documents dedicated `metadata.dynatrace.com` annotations for primary tags and primary fields:
 
 ```yaml
 metadata:
   annotations:
     metadata.dynatrace.com/primary_tags.team: payments
     metadata.dynatrace.com/primary_tags.environment: production
+    metadata.dynatrace.com/dt.security_context: confidential
+    metadata.dynatrace.com/dt.cost.costcenter: it_services
 ```
 
-Primary fields ride the same surface (`metadata.dynatrace.com/dt.security_context`, `metadata.dynatrace.com/dt.cost.costcenter`, `metadata.dynatrace.com/dt.cost.product`). Precedence is documented as pod over namespace: *"When the same key is set at both scopes, the pod-level value wins for that pod."* With Dynatrace Operator 1.10.0 the documented specificity chain extends to four levels (highest wins): pod annotations → namespace annotations → DynaKube resource attributes (see §3) → central configuration rules.
+They can sit on a namespace, a workload object or a pod. Within the annotations, *"the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."* Across the enrichment methods, *"the priority from highest to lowest is: metadata.dynatrace.com/<key> annotations DynaKube resource attributes Central enrichment rules"* — § 2 compares the three.
 
-Two adoption caveats:
+| Capability | Minimum versions (Kubernetes tag setup page, read 10/02/2026) |
+|---|---|
+| Kubernetes primary-field and tag enrichment | Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+ |
+| Workload-level annotations | Operator 1.11.0+, ActiveGate 1.349+ |
+| At-source host and process tags (`--set-host-tag`, `DT_TAGS`) | OneAgent 1.333+ |
+| Central configuration opt-in | Dynatrace platform 1.345+ (§ 9) |
 
-- **Version gates (corrected 07/31/2026).** These notebooks previously carried the quoted sentence *"the at-source and central configuration options require minimum component versions: OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"*. That no longer matches the source pages, and it conflated two capabilities with different floors. The current published figures:
+Operator 1.11.0 (released 10/01/2026) and ActiveGate 1.347 (rollout from 09/30/2026) both announce workload and pod labels and annotations as enrichment sources, but the docs page gates the workload level on **ActiveGate 1.349** — use that figure, and verify your ActiveGate version before relying on workload-level values. Until then, namespace- and pod-level annotations are the working path. Agent and ActiveGate versions lag the tenant version, so check the fleet, not the tenant.
 
-  | Capability | Minimum version | Source |
-  |---|---|---|
-  | At-source / static tag enrichment (host tags, `DT_TAGS`) | **OneAgent 1.333+** | [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent), [OneAgent attribute enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment) |
-  | **Central** enrichment configuration | **OneAgent 1.343** | [What's new in OneAgent 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — *"OneAgent now enriches telemetry data at the source based on a central enrichment configuration defined in the platform"* |
-  | Kubernetes telemetry enrichment | **Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+** | [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) |
-
-  Two practical consequences. **At-source tagging is available far earlier than previously stated** — a 1.333–1.342 fleet can already emit primary tags at source and only lacks the *central* configuration surface. And the ActiveGate figure was **1.343+**, not 1.341+. OneAgent 1.343 has shipped. As always, tenant version is not agent version: verify your own fleet before relying on either floor.
-- **Central configuration ships with SaaS 1.343 (July 2026 — staged tenant rollout):** rules that promote existing namespace labels to primary tags without manifest changes (limited to 20 rules per scope) arrive as *Centralized telemetry metadata enrichment* — key-value pairs, namespace annotations, and domain tags managed centrally. The docs previously flagged this as *"the recommended approach"* arriving mid-2026; it is the documented forward path alongside the settings-based enrichment described in this notebook — which remains the working path until 1.343 reaches your tenant (verify availability before designing against the central rules). On the ActiveGate side, AG 1.341 adds full namespace- and pod-level `metadata.dynatrace.com/primary_tags.<key>` enrichment and primary-Grail-field enrichment (`dt.security_context`, `dt.cost.product`) for Prometheus metrics monitored via ActiveGate. Note the remaining version gate — and note it supersedes the older figures quoted above: the at-source annotation path documents **OneAgent 1.333+**, **ActiveGate 1.343+**, and **Operator 1.10+** (shipped July 15, 2026), re-verified against the Kubernetes tag-setup page on 08/24/2026. The earlier "OneAgent 1.343+ / ActiveGate 1.341+" pairing was wrong in both directions: it over-stated the OneAgent floor and, more dangerously, under-stated the ActiveGate one.
+> <sub>**Sources:** [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"the ingest enrichment configuration now supports workload and pod annotations and labels as sources for primary tags and Kubernetes tags."*</sub>
 
 **Cost allocation fields** like `dt.cost.costcenter` and `dt.cost.product` also propagate to service metrics, enabling chargeback reporting across teams.
 
@@ -148,30 +148,27 @@ Dynatrace offers multiple ways to add Kubernetes metadata. Choose based on your 
 ![Enrichment Methods Comparison](images/10-enrichment-methods-comparison.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Method | Scope | All Signals? | Recommendation |
-|--------|-------|--------------|----------------|
-| **Settings-based rules** | Namespace labels/annotations | **Yes** | **Recommended** |
-| Pod annotations | Individual pods | No | Fallback only |
-| Environment variables | Container env vars | No | Legacy |
+| Method | Scope | Precedence | Use for |
+|--------|-------|------------|---------|
+| Dedicated `metadata.dynatrace.com` annotations | Namespace, workload (Operator 1.11.0+, AG 1.349+) or pod | Highest; pod > workload > namespace | Per-object values kept in manifests |
+| DynaKube resource attributes | Everything the DynaKube instruments | Middle | Static, cluster-wide facts |
+| Central enrichment rules (Settings) | Existing namespace labels and annotations | Lowest | Promoting labels you already have, with no manifest change |
+
+Coverage: annotations and central rules both reach traces, OneAgent/JMX/service metrics, Kubernetes platform metrics, Kubernetes events, Smartscape Kubernetes entities, Prometheus scraping, OneAgent and Fluent Bit logs, and OpenTelemetry Collector data. OneAgent-based paths need Cloud Native Full Stack or Application Monitoring.
 For environments where SVG doesn't render
 -->
 
-### Why Settings-Based is Recommended
+### Choosing a method
 
-Settings-based enrichment:
-- Enriches **all signals**: logs, metrics, traces, events, entities
-- Single configuration point (Dynatrace Settings)
-- Leverages existing namespace labels
-- No application changes required
-- Works with Kubernetes platform metrics
+- **Central enrichment rules** promote namespace labels and annotations you already maintain, from one place in Settings, with no change to manifests.
+- **Dedicated annotations** carry values that differ per workload or pod, and win over every other method when the same key is set twice.
+- **DynaKube resource attributes** attach fixed, cluster-wide facts (account, platform team) to everything the DynaKube instruments.
 
-Manual pod annotations:
-- Does NOT enrich: Kubernetes metrics, events, Smartscape entities, Prometheus metrics
-- Requires changes to every pod spec
+The docs' coverage table marks the same signals for central rules and dedicated annotations, so the choice is about where the value is maintained, not which signals it reaches. OneAgent-based enrichment *"requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported."*
 
-> **Warning:** Do not mix settings-based enrichment with manual pod annotations. Using both simultaneously may cause conflicts and unexpected behavior.
+> <sub>**Sources:** [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported."*</sub>
 
-> **New (ActiveGate 1.345 — rollout from 08/25/2026): Kubernetes ingest enrichment supports custom rules.** The release note states plainly that *"ActiveGate now supports ingest enrichment for custom rules."* This adds a third lever alongside the DynaKube-level and settings-based methods compared above: enrichment applied at the ActiveGate on ingest, driven by your own rules rather than only the built-in Kubernetes metadata set. Where you already maintain enrichment in two places, check whether a custom ingest rule consolidates it — and mind precedence, since another enrichment source setting the same key still wins or loses by the ordering rules in §5. One documented limit from the same release note: *"Ingest enrichment rules with conditions are ignored by the ActiveGate."* — a conditional rule silently does nothing on this path, so keep conditional logic in the settings-based method.
+> **New (ActiveGate 1.345 — rollout from 08/25/2026): Kubernetes ingest enrichment supports custom rules.** The release note states plainly that *"ActiveGate now supports ingest enrichment for custom rules."* This adds a third lever alongside the DynaKube-level and settings-based methods compared above: enrichment applied at the ActiveGate on ingest, driven by your own rules rather than only the built-in Kubernetes metadata set. Where you already maintain enrichment in two places, check whether a custom ingest rule consolidates it — and mind precedence, since another enrichment source setting the same key still wins or loses by the precedence order above. One documented limit from the same release note: *"Ingest enrichment rules with conditions are ignored by the ActiveGate."* — a conditional rule silently does nothing on this path, so keep conditional logic in the settings-based method.
 >
 > The same release adds **`container.runtime.name` to the Smartscape `CONTAINER` node** — useful for fleets running more than one runtime (containerd, CRI-O, gVisor), because it makes "which runtime is this workload on" a queryable dimension rather than a node-labelling exercise. That matters in practice: gVisor is exactly the runtime behind the `dynatrace-webhook` `CrashLoopBackOff` fixed in Operator 1.10.2, and this field is how you find those nodes before an upgrade.
 
@@ -184,7 +181,7 @@ Metadata enrichment must be enabled in your DynaKube custom resource.
 ### Enable Metadata Enrichment
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -192,7 +189,9 @@ metadata:
 spec:
   apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api
   
-  # Enable metadata enrichment (enabled by default)
+  # In v1beta6, metadataEnrichment.enabled is false by default; OneAgent
+  # injection enables enrichment for injected pods on its own. Set it to
+  # true for enrichment without OneAgent injection.
   metadataEnrichment:
     enabled: true
   
@@ -205,14 +204,6 @@ spec:
 ```
 
 ### Disable Metadata Enrichment (if needed)
-
-```bash
-# Using annotation
-kubectl annotate dynakube -n dynatrace dynakube \
-  feature.dynatrace.com/disable-metadata-enrichment="true"
-```
-
-Or in the DynaKube spec:
 
 ```yaml
 spec:
@@ -296,18 +287,20 @@ kubectl -n dynatrace logs -l app.kubernetes.io/name=dynatrace-operator --tail=20
 ## 4. Configuring Settings-Based Enrichment
 ### Access Settings
 
-1. Navigate to **Settings** > **Cloud and virtualization** > **Kubernetes telemetry enrichment**
-2. Select **Add rule**
+Rules live in the **Kubernetes telemetry enrichment** setting (schema `builtin:kubernetes.generic.metadata.enrichment`), at environment or cluster scope. § 9 covers the central configuration that replaces this schema from SaaS 1.345.
 
 ### Rule Configuration Options
 
-| Field | Description | Example |
-|-------|-------------|----------|
-| **Metadata type** | Source type (annotation or label) | `Label` |
-| **Key** | The label/annotation key to capture | `team` |
-| **Prefix** | Optional prefix for the enriched attribute | `k8s.` |
+| Field | Description |
+|-------|-------------|
+| **Metadata type** | `LABEL` or `ANNOTATION` — *"Only namespace-level labels or annotations can be used as source."* |
+| **Source** | The label or annotation key on the namespace |
+| **Target** | `dt.security_context`, `dt.cost.costcenter` or `dt.cost.product` |
+| **Enrich telemetry with label/annotation directly** | Adds the value as a field of its own, for example `k8s.namespace.label.<key>` |
 
-### Example: Capture Team Label
+Up to 20 rules. *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect."*
+
+### Example: Capture Team, Cost Center and Environment
 
 If your namespaces have:
 
@@ -324,16 +317,13 @@ metadata:
 
 Create enrichment rules:
 
-| Rule | Metadata Type | Key | Prefix |
-|------|---------------|-----|--------|
-| 1 | Label | `team` | `k8s.` |
-| 2 | Label | `cost-center` | `k8s.` |
-| 3 | Label | `env` | `k8s.` |
+| Rule | Metadata Type | Source | Target / option | Field on telemetry |
+|------|---------------|--------|-----------------|--------------------|
+| 1 | Label | `team` | Target `dt.security_context` | `dt.security_context: checkout-team` |
+| 2 | Label | `cost-center` | Target `dt.cost.costcenter` | `dt.cost.costcenter: engineering` |
+| 3 | Label | `env` | Enrich directly | `k8s.namespace.label.env: production` |
 
-Result: All telemetry from the `checkout` namespace will have:
-- `k8s.team: checkout-team`
-- `k8s.cost-center: engineering`
-- `k8s.env: production`
+> <sub>**Sources:** [Kubernetes telemetry enrichment schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-kubernetes-generic-metadata-enrichment) — *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect."*</sub>
 
 <a id="namespace-selectors"></a>
 ## 5. Namespace Selectors
@@ -384,19 +374,20 @@ The Dynatrace Operator creates enrichment files that are used by OneAgent and ap
 
 | File | Location | Purpose |
 |------|----------|----------|
-| `dt_metadata.json` | `/var/lib/dynatrace/enrichment/` | JSON format metadata |
-| `dt_metadata.properties` | `/var/lib/dynatrace/enrichment/` | Properties format |
-| `dt_host_metadata.json` | `/var/lib/dynatrace/enrichment/` | Host-level metadata |
+| `dt_metadata.json` | `/var/lib/dynatrace/enrichment/` in the pod | JSON format metadata |
+| `dt_metadata.properties` | `/var/lib/dynatrace/enrichment/` in the pod | Properties format |
+
+The Operator also writes the same metadata to the `metadata.dynatrace.com` pod annotation, and DynaKube resource attributes to `dt_node_metadata.properties` for host OneAgents.
 
 ### Example dt_metadata.json Content
 
 ```json
 {
+  "k8s.cluster.name": "prod-eu-1",
   "k8s.namespace.name": "checkout",
   "k8s.pod.name": "checkout-api-7d9f8c6b4d-x2k9m",
-  "k8s.team": "checkout-team",
-  "k8s.cost-center": "engineering",
-  "k8s.env": "production"
+  "k8s.workload.kind": "deployment",
+  "k8s.workload.name": "checkout-api"
 }
 ```
 
@@ -411,7 +402,6 @@ import os
 # Load Dynatrace metadata
 enrichment_paths = [
     '/var/lib/dynatrace/enrichment/dt_metadata.json',
-    '/var/lib/dynatrace/enrichment/dt_host_metadata.json'
 ]
 
 metadata = {}
@@ -423,36 +413,42 @@ for path in enrichment_paths:
 print(metadata)
 ```
 
+> <sub>**Sources:** [Metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/metadata-enrichment) — *"Dynatrace Operator writes metadata to the enrichment directory at /var/lib/dynatrace/enrichment and to the metadata.dynatrace.com pod annotation."*</sub>
+
 <a id="querying-enriched-data"></a>
 ## 7. Querying Enriched Data
 Once enrichment is configured, you can filter and group by the enriched attributes.
 
 ```dql
-// Query logs by enriched team label
+// Log volume by namespace and team (primary tag)
+// primary_tags.team is null until an annotation, DynaKube attribute or central rule sets it.
 fetch logs, from:-1h
 | filter isNotNull(k8s.namespace.name)
-| summarize logCount = count(), by:{k8s.namespace.name}
+| summarize logCount = count(), by:{k8s.namespace.name, primary_tags.team}
 | sort logCount desc
 | limit 20
 ```
 
 ```dql
-// Group metrics by cost center (enriched label) — sum() of every container in the namespace
+// CPU by cost center — sum() of every container carrying that dt.cost.costcenter value
 // rollup: avg averages each container within a time bucket before the cross-container sum;
 // without it, sum() also adds the 1-min points in each bucket and wide timeframes read ~10x high.
-timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{k8s.namespace.name}
-| fieldsAdd avgCpuMillicores = arrayAvg(cpuMillicores)
+timeseries cpuMillicores = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, dt.cost.costcenter}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpuMillicores), decimals: 0)
+| fields k8s.cluster.name, dt.cost.costcenter, avgCpuMillicores
 | sort avgCpuMillicores desc
 ```
 
 ```dql
-// Find all spans from production environment
+// Span volume and latency by namespace and service
+// dt.service.name, not service.name: service.name is the OpenTelemetry resource attribute and is
+// absent on OneAgent spans (on the validation tenant, 10/02/2026, it was set on 4,258 of 304,602
+// spans carrying k8s.namespace.name). dt.service.name is set on every span.
 fetch spans, from:-1h
 | filter isNotNull(k8s.namespace.name)
-| summarize 
-    spanCount = count(),
-    avgDuration = avg(duration),
-    by:{k8s.namespace.name, service.name}
+| summarize {spanCount = count(), avgDurationMs = avg(duration) / 1ms},
+    by:{k8s.namespace.name, dt.service.name}
 | sort spanCount desc
 | limit 20
 ```
@@ -469,10 +465,10 @@ kubectl label namespace catalog cost-center=catalog-team
 kubectl label namespace shared cost-center=platform
 ```
 
-Create enrichment rule for `cost-center` label, then query:
+Create an enrichment rule with source `cost-center` and target `dt.cost.costcenter`, then query:
 
 ```dql
-timeseries totalCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{`k8s.cost-center`}   // backticks required — the hyphen is not a valid bare identifier
+timeseries totalCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.cost.costcenter}
 ```
 
 ### Pipeline Routing (Bucket Assignment)
@@ -481,14 +477,14 @@ Send logs to different buckets based on enriched metadata. OpenPipeline has no "
 
 | Matching condition (DQL) | Bucket |
 |---|---|
-| `k8s.env == "production"` | `prod_logs_365d` |
-| `k8s.env == "staging"` | `staging_logs_35d` |
+| `k8s.namespace.label.env == "production"` | `prod_logs_365d` |
+| `k8s.namespace.label.env == "staging"` | `staging_logs_35d` |
 
-The stage applies the first matching processor only, so order processors from most to least specific. Matching conditions are DQL: strings take double quotes, and a single-quoted condition such as `k8s.env == 'production'` is rejected.
+The stage applies the first matching processor only, so order processors from most to least specific. Matching conditions are DQL: strings take double quotes, and a single-quoted condition such as `k8s.namespace.label.env == 'production'` is rejected.
 
 ### Security Context Assignment
 
-Use enriched metadata in security context for fine-grained access. This happens in the pipeline's **Permission** stage: add a **Set security context** processor with the matching condition `k8s.team == "checkout-team"` and the value `team:checkout`.
+The simplest route is an enrichment rule with target `dt.security_context` (§ 4), which sets the field before ingest. To derive it in the pipeline instead, use the **Permission** stage: add a **Set security context** processor with a matching condition such as `k8s.namespace.label.team == "checkout-team"` and the value `team:checkout`.
 
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Bucket assignment stage: *"Assign records to the best fit bucket."* Permission stage: *"Apply security context to the records that match the query."*</sub>
 
@@ -560,7 +556,7 @@ curl -X POST "https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects"
 
 | Symptom | Cause | Solution |
 |---------|-------|----------|
-| No enriched attributes | Rules not propagated | Wait 45 minutes after rule creation |
+| No enriched attributes | Rules not propagated | Wait up to 45 minutes after rule creation, then restart the pods |
 | Some namespaces missing | namespaceSelector mismatch | Verify DynaKube namespaceSelector |
 | Pods not enriched | metadataEnrichment disabled | Check DynaKube spec |
 
@@ -570,8 +566,6 @@ curl -X POST "https://ENVIRONMENT_ID.live.dynatrace.com/api/v2/settings/objects"
 # Check DynaKube configuration
 kubectl -n dynatrace get dynakube -o yaml | grep -A5 metadataEnrichment
 
-# Check for disable annotation
-kubectl -n dynatrace get dynakube -o yaml | grep disable-metadata-enrichment
 ```
 
 ### Verify Enrichment Files
@@ -586,21 +580,15 @@ kubectl exec -it <pod-name> -- cat /var/lib/dynatrace/enrichment/dt_metadata.jso
 
 ### Timing Considerations
 
-| Action | Propagation Time |
-|--------|------------------|
-| New rule created | Up to 45 minutes |
-| Rule modified | Up to 45 minutes |
-| DynaKube deployed first | Immediate (if rules exist) |
-
-> **Tip:** If you configure enrichment rules **before** deploying DynaKube, the rules take effect immediately when DynaKube is applied.
+For the settings-based rules, the schema states: *"New rules may take up to 45 minutes to take effect. Pod restarts are required after the 45 mins to ensure the changes take effect."*
 
 ## Summary
 
 In this notebook, you learned:
 
-- Why settings-based metadata enrichment is the recommended approach
+- The three enrichment methods — dedicated annotations, DynaKube attributes, central rules — and their precedence
 - How to enable enrichment in DynaKube
-- Creating enrichment rules in Settings UI
+- Creating enrichment rules in Settings, and what each rule field does
 - Using namespace selectors to scope enrichment
 - Understanding enrichment file locations and formats
 - Querying enriched data with DQL

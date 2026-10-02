@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 13 | **Created:** January 2026 | **Last Updated:** 09/25/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -26,7 +26,7 @@ Cluster health monitoring provides visibility into the infrastructure layer of K
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
 | **DynaKube** | ActiveGate with `kubernetes-monitoring` capability |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read`, `events.read` |
+| **Permissions** | `storage:metrics:read`, `storage:events:read`, `storage:smartscape:read` (plus `storage:entities:read` for the classic `dt.entity.*` fallbacks) |
 | **Data** | At least 24 hours of cluster data |
 
 <a id="cluster-health-overview"></a>
@@ -52,17 +52,17 @@ The built-in Kubernetes dashboard provides:
 
 Navigate to: **Infrastructure > Kubernetes**
 
-### Release Radar (April 2026): Enhanced Kubernetes Visibility
+### Enhanced Kubernetes Visibility in the Kubernetes App
 
 Three additions to the Kubernetes app's cluster and workload views:
 
 | Capability | What it surfaces | Why it matters |
 |---|---|---|
 | **Horizontal Pod Autoscaler (HPA)** | HPA is now a first-class object — scaling triggers, current/desired replica counts, and the workloads it drives | See *why* a workload scaled (which metric crossed which threshold) without leaving Dynatrace |
-| **Custom Resources (CRs)** | Monitor up to **5 Custom Resources per cluster**, surfacing CRD-heavy ecosystems (Argo, Istio, Cert-Manager, Kyverno, operator-managed databases) | Brings operator/CRD state into the same view as native Kubernetes objects |
+| **Custom Resources (CRs)** | Monitor up to **5 Custom Resources** (ActiveGate 1.335+), surfacing CRD-heavy ecosystems (Argo, Istio, Cert-Manager, Kyverno, operator-managed databases) | Brings operator/CRD state into the same view as native Kubernetes objects |
 | **Cloud configuration in cluster details** | The underlying managed-cluster configuration (EKS, AKS, GKE) shown inline as YAML or JSON | Correlate cluster and cloud state in one place — no jumping to the cloud console |
 
-> **Note:** The per-cluster Custom Resource cap (5) means you choose which CRDs matter most — prioritize the operators whose state actually drives incidents in your environment.
+> **Note:** *"Starting with ActiveGate version 1.335+, ActiveGate supports monitoring up to five CRs."* The cap means you choose which CRDs matter most — prioritize the operators whose state actually drives incidents in your environment.
 
 #### Kubernetes Enhanced Object Visibility (ActiveGate 1.327+)
 
@@ -72,20 +72,22 @@ Building on the above, the Kubernetes app now surfaces a broader set of objects 
 - **YAML definitions inline** — view an object's YAML to debug and validate configuration in real time without leaving Dynatrace.
 - **Query YAML across clusters with DQL** — surface misconfigurations, missing references, or policy violations across all clusters and namespaces at once.
 
-**Prerequisite:** ActiveGate version 1.327+. Older ActiveGate versions stay in backward-compatibility mode, where an extra **Explorer (Classic)** tab appears. From June 2026, Explorer Classic transitions to *maintenance-only* support — upgrade ActiveGate to 1.327+ to move clusters to the new Explorer before automatic migration. No monitoring data is lost during the transition.
+**Prerequisite:** ActiveGate version 1.327+. Older ActiveGate versions stay in backward-compatibility mode, where an extra **Explorer (Classic)** tab appears. *"From June 2026, Explorer Classic is transitioning to a 'maintenance only' support mode. Clusters running on ActiveGate version 1.327+ that meet all prerequisites will be accessible the new Explorer."* Upgrade ActiveGate to 1.327+ to move a cluster to the new Explorer.
 
-#### Kubernetes Connection Lifecycle — Automatic Stale Cleanup (SaaS 1.344)
+#### Kubernetes Connection Lifecycle — Stale Connections Are Disabled (SaaS 1.344)
 
-Every monitored cluster has a **Kubernetes connection** on the tenant side. Its lifecycle is worth knowing in both directions, because it cuts two ways.
+Every monitored cluster has a **Kubernetes connection** on the tenant side. SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026) adds: *"Dynatrace will automatically disable stale Kubernetes connection settings if no successful connection has been established for 60 days. This action is recorded in the audit log and can be reversed by re-enabling the connection via the API or the web UI."*
 
-**SaaS 1.344** (released 07/27/2026, **staged tenant rollout from 07/29/2026** — verify it has reached your tenant before relying on it) adds **automatic cleanup of stale Kubernetes connections at a 60-day threshold**:
+The connection is **disabled, not deleted**, and the change cuts two ways:
 
 | Direction | What happens | What you should do |
 |---|---|---|
-| **Decommissioned cluster** | Its connection stops reporting and is now cleaned up automatically once it crosses 60 days stale — the connection list stops accumulating entries for clusters that no longer exist. | Nothing. This is the behavior you want; it removes a recurring housekeeping chore. |
-| **Live but long-idle cluster** | A cluster that is still real but has not reported for 60 days — a lab, a seasonal environment, a cluster whose ActiveGate has been down a long time — **can be reaped by the same rule**, and reconnecting means re-establishing the connection. | Treat "no data for weeks" as an issue to fix rather than a state to tolerate. If an environment is legitimately dormant for months, expect to re-add it and note that in your runbook. |
+| **Decommissioned cluster** | After 60 days without a successful connection, its connection setting is disabled automatically. | Nothing required. Delete the setting yourself if you want the list clean — disabling does not remove it. |
+| **Live but long-idle cluster** | A cluster that is real but has not connected for 60 days — a lab, a seasonal environment, a cluster whose ActiveGate has been down — is disabled by the same rule. | Treat "no data for weeks" as an issue to fix. To bring a dormant cluster back, re-enable the connection in the web UI or via the API; the audit log records when it was disabled. |
 
-**Until 1.344 reaches your tenant**, stale connections persist until someone removes them manually — the existing housekeeping step remains the working path, and reviewing the connection list periodically is still worth doing.
+Tenants still on an earlier version keep stale connections enabled until someone removes them.
+
+> <sub>**Sources:** [Getting started with Kubernetes experience (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/enable-k8s-experience) — *"Starting with ActiveGate version 1.335+, ActiveGate supports monitoring up to five CRs."*, [SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — the stale-connection quote.</sub>
 
 SaaS 1.344 also adds **cross-app navigation with context preservation**, so a jump from the Kubernetes app into another app (for example, into logs or a dashboard) carries the cluster/namespace context with it instead of dropping you at an unfiltered start.
 
@@ -114,6 +116,8 @@ smartscapeNodes "K8S_CLUSTER"
 | **PIDPressure** | Too many processes | True |
 | **NetworkUnavailable** | Network not configured | True |
 
+Dynatrace records node conditions as the metric `dt.kubernetes.node.conditions`, one series per node, `node_condition` and boolean `condition_status`. The query below lists every node currently not Ready or under pressure.
+
 ```dql
 // List all Kubernetes nodes (smartscape topology)
 smartscapeNodes "K8S_NODE"
@@ -125,6 +129,20 @@ smartscapeNodes "K8S_NODE"
 // | fields entity.name, tags
 // | sort entity.name asc
 
+```
+
+```dql
+// Nodes that are not Ready, or are under memory / disk / PID pressure
+// dt.kubernetes.node.conditions writes 1 per (node, node_condition, condition_status) present;
+// condition_status is a boolean. bucketsInState counts time buckets: at from:-1h a bucket is
+// one minute, at wider timeframes it is longer. Executed 10/02/2026.
+timeseries c = max(dt.kubernetes.node.conditions), from:-1h,
+  by:{k8s.cluster.name, k8s.node.name, node_condition, condition_status}
+| filter (node_condition == "Ready" and condition_status == false)
+      or (in(node_condition, {"MemoryPressure", "DiskPressure", "PIDPressure"}) and condition_status == true)
+| fieldsAdd bucketsInState = arraySize(arrayRemoveNulls(c))
+| fields k8s.cluster.name, k8s.node.name, node_condition, condition_status, bucketsInState
+| sort bucketsInState desc
 ```
 
 ```dql
@@ -231,10 +249,18 @@ timeseries memReq = sum(dt.kubernetes.container.requests_memory, rollup: avg), f
 ```
 
 ```dql
-// Find over-provisioned workloads (low CPU usage)
-timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.cloud_application}
-| fieldsAdd avgCpuUsageMillicoresValue = arrayAvg(avgCpuUsageMillicores)
-| sort avgCpuUsageMillicoresValue asc
+// Requested vs used CPU by namespace — the capacity-planning view of § 3
+// Container-grain metrics summed into the namespace (rollup: avg first, see above).
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_cpu, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name}
+| fieldsAdd usedMillicores = round(arrayAvg(used), decimals: 0),
+            requestedMillicores = round(arrayAvg(requested), decimals: 0)
+| filter requestedMillicores > 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMillicores / requestedMillicores, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, requestedMillicores, usedMillicores, usagePctOfRequest
+| sort requestedMillicores desc
 | limit 20
 ```
 
@@ -255,6 +281,7 @@ For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus
 - API server response times (client-side)
 - Kubernetes events for scheduling issues
 - Cloud provider metrics for control plane health
+- `dt.kubernetes.cluster.readyz` — the cluster's API-server readiness as Dynatrace sees it
 
 ```dql
 // Node-level and control-plane events
@@ -266,12 +293,13 @@ For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-6h
@@ -359,26 +387,50 @@ fetch events, from:-24h
 ## 6. Cost Optimization Queries
 ### Resource Efficiency Analysis
 
-| Metric | Target | Action If Not Met |
-|--------|--------|-------------------|
-| **CPU Utilization** | >40% avg | Reduce requests |
-| **Memory Utilization** | >50% avg | Reduce requests |
-| **Node Utilization** | >60% | Scale down nodes |
-| **Idle Pods** | 0 | Review necessity |
+Right-sizing compares what a workload **requests** with what it **uses**. Requests are what the scheduler reserves and what a node pays for; usage below the request is reserved-but-idle capacity.
+
+| Signal | Typical starting point | Action if not met |
+|--------|------------------------|-------------------|
+| **CPU used / CPU requested** | ~40% or more on average | Reduce requests |
+| **Memory working set / memory requested** | ~50% or more on average | Reduce requests — keep headroom for peaks, since memory over the limit is an OOM kill |
+| **Node utilization** (§ 2 queries) | ~60% or more | Consolidate or scale down nodes |
+
+These starting points are community practice, not Dynatrace guidance — set yours from the workload's peak-to-average ratio and its tolerance for throttling. Look at a full business cycle (24 h at least) before cutting a request.
 
 ```dql
-// Find workloads with very low CPU utilization (candidates for right-sizing)
-timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.cloud_application}
-| fieldsAdd avgCpuUsageMillicoresValue = arrayAvg(avgCpuUsageMillicores)
-| sort avgCpuUsageMillicoresValue asc
+// Right-sizing candidates — CPU requested vs CPU actually used, per workload
+// Both metrics are container-grain: sum(..., rollup: avg) adds containers (and replicas) into the
+// workload, after averaging each container within a time bucket. An avg() of the per-container
+// value would describe a typical container, not the workload, and has no request to compare against.
+timeseries {
+    used = sum(dt.kubernetes.container.cpu_usage, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_cpu, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd usedMillicores = round(arrayAvg(used), decimals: 0),
+            requestedMillicores = round(arrayAvg(requested), decimals: 0)
+| filter requestedMillicores > 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMillicores / requestedMillicores, decimals: 1),
+            idleMillicores = requestedMillicores - usedMillicores
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name,
+         requestedMillicores, usedMillicores, usagePctOfRequest, idleMillicores
+| sort idleMillicores desc
 | limit 25
 ```
 
 ```dql
-// Memory usage efficiency by workload (low usage = over-provisioned)
-timeseries avgMemUsageBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.cloud_application}
-| fieldsAdd avgMemUsageBytesValue = arrayAvg(avgMemUsageBytes)
-| sort avgMemUsageBytesValue asc
+// Over-provisioned workloads — memory requested vs working set, per workload (MiB)
+timeseries {
+    used = sum(dt.kubernetes.container.memory_working_set, rollup: avg),
+    requested = sum(dt.kubernetes.container.requests_memory, rollup: avg)
+  }, from:-24h, by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            requestedMiB = round(arrayAvg(requested) / 1048576, decimals: 0)
+| filter requestedMiB > 0
+| fieldsAdd usagePctOfRequest = round(100 * usedMiB / requestedMiB, decimals: 1),
+            idleMiB = requestedMiB - usedMiB
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name,
+         requestedMiB, usedMiB, usagePctOfRequest, idleMiB
+| sort idleMiB desc
 | limit 25
 ```
 
@@ -396,7 +448,7 @@ Monitor the health of Dynatrace's own components (OneAgent, ActiveGate) running 
 | **CSI Driver** | Volume mount failures | Any mount timeout |
 | **Operator** | Reconciliation errors | Failed CR updates |
 
-> **Note:** OneAgent runs without resource limits or requests by default. Headroom queries using `limits_memory` will return no data for OneAgent containers. Use absolute memory usage instead. ActiveGate **does** have limits configured, so headroom queries work for AG.
+> **Note:** A headroom query divides usage by `limits_memory`, so it returns nothing for a container with no limit. OneAgent pods have limits only if you set them (`oneAgentResources` in the DynaKube), so the OneAgent queries below use absolute usage. Confirm the ActiveGate pod has a memory limit (`kubectl -n dynatrace describe pod <activegate-pod>`) before relying on an ActiveGate headroom query.
 
 > **Tip:** These queries use `matchesValue(k8s.container.name, "dynatrace-oneagent")` to isolate Dynatrace components from application workloads.
 
@@ -436,25 +488,24 @@ fetch events, from:-24h
 
 | Alert | Condition | Severity |
 |-------|-----------|----------|
-| **Node NotReady** | Node condition != Ready for 5 min | Critical |
+| **Node NotReady** | `dt.kubernetes.node.conditions` Ready = false for 5 min (§ 2 query) | Critical |
 | **High Node CPU** | CPU > 85% for 15 min | Warning |
 | **High Node Memory** | Memory > 90% for 10 min | Critical |
-| **Disk Pressure** | Disk > 85% | Warning |
+| **Disk Pressure** | DiskPressure = true, or disk > 85% | Warning |
 | **Pod Scheduling Failed** | FailedScheduling events | Warning |
-| **OOM Kills** | OOMKilled events | Warning |
+| **OOM Kills** | `dt.kubernetes.container.oom_kills` > 0 (§ 5 query — a metric, not an event) | Warning |
 
-### Alert Configuration in Dynatrace
+The thresholds are common starting points from community practice; tune them to your nodes.
 
-Navigate to: **Settings > Anomaly detection > Kubernetes**
+### Built-in Kubernetes alerts
 
-Configure:
-- Node availability alerts
-- Resource saturation thresholds
-- Workload health anomalies
+Dynatrace ships Kubernetes anomaly detection as settings at four scopes — `builtin:anomaly-detection.kubernetes.cluster`, `.node`, `.namespace` and `.workload`. The node scope, for example, has *"Detect node readiness issues"* (*"Evaluates node condition 'Ready'"*), *"Detect problematic node conditions"* (MemoryPressure, DiskPressure and the others), and CPU-requests, memory-requests and pod saturation. Turn these on before writing your own.
 
-### Custom Metric Events
+### Custom alerts
 
-For advanced alerting, use custom metric events with DQL-derived thresholds.
+For conditions the built-in settings do not cover, create a custom alert on a DQL query such as the § 2 node-conditions query. From SaaS 1.344 custom alerts live in **Settings**; before that, in the Anomaly Detection app (see K8S-07 § 7).
+
+> <sub>**Sources:** [Kubernetes node anomaly detection schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-kubernetes-node) — *"Evaluates node condition 'Ready'"*.</sub>
 
 ## Next Steps
 

@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -148,7 +148,7 @@ The Advanced path exposes fine-grained controls. The table below combines the do
 | Control | What it does |
 |---|---|
 | **CloudWatch Metrics scope** | Choose ingestion mode per service: **Recommended** (DT-curated essentials), **Recommended + Custom** (essentials plus tenant-specified metric keys / dimensions), or **Auto-Discovery** (poll all available metrics, then narrow down) |
-| **CloudWatch Logs** | Enable log ingestion per region; toggleable post-onboard by updating the CFN stack. Delivered via Kinesis Data Firehose subscriptions — see CLOUD-07. Note the scope: this control covers logs flowing *through CloudWatch*. Logs **already resident in S3** take a separate **direct-ingestion** path (a Dynatrace-maintained Lambda forwarder, forthcoming / rolling out with SaaS 1.344) that bypasses CloudWatch and Firehose entirely — see CLOUD-07 §3 |
+| **CloudWatch Logs** | Enable log ingestion per region; toggleable post-onboard by updating the CFN stack. Delivered via Kinesis Data Firehose subscriptions — see CLOUD-07. Note the scope: this control covers logs flowing *through CloudWatch*. Logs **already resident in S3** take a separate **direct-ingestion** path (a Dynatrace-maintained Lambda forwarder, available from SaaS 1.344 — verify it has reached your tenant) that bypasses CloudWatch and Firehose entirely — see CLOUD-07 §3 |
 | **Tag Enrichment** | All AWS tags are collected by default. This control selects which tags propagate to logs / metrics / spans / events as dimensions |
 | **Tag-Based Filtering** | Include / exclude resources from monitoring based on AWS tag predicates — scope to specific workloads or teams |
 | **Dynatrace Attribute Enrichment** | Map AWS tag values onto Dynatrace native attributes such as `dt.security_context`, `dt.cost.product`, `dt.cost.costcenter` — enables IAM segments and cost-allocation dashboards driven by AWS-side metadata. **Enrichment configured inside a connection is moving to a central ingest-time configuration** — see the note below |
@@ -284,18 +284,21 @@ fetch dt.entity.aws_lambda_function, from:-7d
 ### List RDS Instances
 
 ```dql
-// List all monitored RDS instances
-fetch dt.entity.relational_database_service, from:-30d
-| fieldsKeep id, entity.name, tags
-| sort entity.name asc
+// List all monitored RDS instances (Smartscape)
+// On Clouds-app connections the classic dt.entity.relational_database_service type can return
+// nothing for the same estate (validation tenant: 0 classic vs 3 Smartscape nodes, 09/24 and
+// 10/02/2026), so the Smartscape node is the primary query. A misspelled node type returns zero
+// rows with no warning — check the type against an existing node before trusting an empty result.
+smartscapeNodes "AWS_RDS_DBINSTANCE", from:-30d
+| fields id, name, tags
+| sort name asc
 | limit 20
 
-// Smartscape note (dt.entity.* is deprecated but still functional): this resource IS a Smartscape
-// node — AWS_EC2_INSTANCE, AWS_RDS_DBINSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
-// AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On Clouds-app connections the
-// classic dt.entity.* type can under-count or return nothing for the same estate (validation
-// tenant 09/24/2026: RDS 0 classic vs 3 Smartscape; EC2 6 vs 25 running). Prefer the Smartscape
-// query.
+// Classic alternative (dt.entity.* is deprecated but still functional; may under-count):
+// fetch dt.entity.relational_database_service, from:-30d
+// | fieldsKeep id, entity.name, tags
+// | sort entity.name asc
+// | limit 20
 ```
 
 ### Governance Pattern — Find Resources Missing a Required Tag

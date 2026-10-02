@@ -1,6 +1,6 @@
 # K8S-05: Workload Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Application-Level Observability in Kubernetes
 Workload monitoring focuses on the application layer: deployments, pods, containers, and the services they provide. This notebook covers monitoring Kubernetes workloads from deployment health to service performance.
@@ -25,7 +25,7 @@ Workload monitoring focuses on the application layer: deployments, pods, contain
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Kubernetes monitoring |
 | **DynaKube** | cloudNativeFullStack or applicationMonitoring |
-| **Permissions** | `metrics.read`, `entities.read`, `logs.read` |
+| **Permissions** | `storage:metrics:read`, `storage:spans:read`, `storage:logs:read`, `storage:events:read`, `storage:smartscape:read` |
 | **Knowledge** | K8S-01 Fundamentals, K8S-04 Cluster Monitoring |
 
 <a id="workload-types-and-monitoring"></a>
@@ -42,12 +42,15 @@ Workload monitoring focuses on the application layer: deployments, pods, contain
 
 ### Dynatrace Workload Entities
 
-| Entity Type | Kubernetes Resource | Key Attributes |
-|-------------|---------------------|----------------|
-| `CLOUD_APPLICATION` | Deployment, StatefulSet | Replicas, strategy |
-| `CLOUD_APPLICATION_NAMESPACE` | Namespace | Labels, quotas |
-| `PROCESS_GROUP_INSTANCE` | Pod/Container | Resources, image |
-| `SERVICE` | Service (detected) | Endpoints, traffic |
+| Smartscape node | Classic entity | Kubernetes resource |
+|-----------------|----------------|---------------------|
+| `K8S_DEPLOYMENT`, `K8S_STATEFULSET`, `K8S_DAEMONSET`, `K8S_REPLICASET`, `K8S_JOB`, `K8S_CRONJOB` | `CLOUD_APPLICATION` (one classic type for every workload kind) | The workload controllers |
+| `K8S_NAMESPACE` | `CLOUD_APPLICATION_NAMESPACE` | Namespace |
+| `K8S_POD` | `CLOUD_APPLICATION_INSTANCE` | Pod |
+| `CONTAINER` | `CONTAINER_GROUP_INSTANCE` | Container |
+| `SERVICE` | `SERVICE` | A Dynatrace-detected service — not the Kubernetes `Service` object (`K8S_SERVICE`) |
+
+In metrics, spans and logs the workload is identified by the dimensions `k8s.workload.name` and `k8s.workload.kind`, which cover every workload kind.
 
 ```dql
 // List Kubernetes workloads (Deployments) via smartscape topology
@@ -79,12 +82,26 @@ smartscapeNodes "K8S_DEPLOYMENT"
 | **Updated Replicas** | Pods with latest spec | Equals desired |
 | **Collision Count** | Hash collisions | Zero |
 
+Dynatrace records the Deployment conditions as the metric `dt.kubernetes.workload.conditions` (dimensions `workload_condition`, boolean `condition_status`). A workload whose `Available` condition is false has fewer available replicas than its minimum — the query below lists them.
+
 ### Rollout Monitoring
 
 During deployments, monitor:
 - Old ReplicaSet scaling down
 - New ReplicaSet scaling up
 - Pod readiness during transition
+
+```dql
+// Workloads whose Available condition is false in the last hour
+// dt.kubernetes.workload.conditions writes 1 per (workload, condition, status) present.
+// bucketsUnavailable counts time buckets (one minute each at from:-1h). Executed 10/02/2026.
+timeseries c = max(dt.kubernetes.workload.conditions), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.kind, k8s.workload.name, workload_condition, condition_status}
+| filter workload_condition == "Available" and condition_status == false
+| fieldsAdd bucketsUnavailable = arraySize(arrayRemoveNulls(c))
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.kind, k8s.workload.name, bucketsUnavailable
+| sort bucketsUnavailable desc
+```
 
 ```dql
 // Workload lifecycle events - track rollouts and restarts
@@ -96,12 +113,13 @@ During deployments, monitor:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
 //   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
+//   status                                "WARN" for Kubernetes Warning events, "INFO" for Normal
 //   dt.kubernetes.event.involved_object.kind / .name
 //   dt.kubernetes.event.count / .first_seen / .last_seen
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
+// split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
+// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
 //   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
 fetch events, from:-6h
@@ -113,27 +131,15 @@ fetch events, from:-6h
 ```
 
 ```dql
-// Pod restart counts - identify unstable workloads
-// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
-// `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
-// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
-// They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
-//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
-//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
-//   dt.kubernetes.event.message           the human-readable text
-//   dt.kubernetes.event.important         "true" marks the warning-class events
-//   dt.kubernetes.event.involved_object.kind / .name
-//   dt.kubernetes.event.count / .first_seen / .last_seen
-//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
-// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning"; severity lives in
-// dt.kubernetes.event.important. Enumerate reasons with:
-//   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
-fetch events, from:-24h
-| filter event.provider == "KUBERNETES_EVENT"
-| filter in(dt.kubernetes.event.reason, {"BackOff", "Killing", "Unhealthy"})
-| summarize restarts = count(), by:{k8s.namespace.name, k8s.pod.name}
+// Container restarts per pod - identify unstable workloads
+// Use the restart counter, not events: a BackOff or Unhealthy event is not a restart, and one
+// restart loop can produce many events (or few, since Kubernetes aggregates repeats into one
+// event with a rising count). Executed 10/02/2026.
+timeseries r = sum(dt.kubernetes.container.restarts), from:-24h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name, k8s.pod.name}
+| fieldsAdd restarts = arraySum(r)
+| filter restarts > 0
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, k8s.pod.name, restarts
 | sort restarts desc
 | limit 25
 ```
@@ -160,17 +166,32 @@ fetch events, from:-24h
 | **Unknown** | Node communication lost | Check node health |
 
 ```dql
-// Container CPU usage - find high consumers
-timeseries avgCpuUsageMillicores = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{dt.entity.container_group_instance}
-| sort avgCpuUsageMillicores desc
+// Container CPU usage — high consumers
+// Sort on a scalar. `sort` on the timeseries array itself compares arrays element by element,
+// so the order has nothing to do with the average — reduce with arrayAvg() first.
+timeseries cpu = avg(dt.kubernetes.container.cpu_usage), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpu), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, avgCpuMillicores
+| sort avgCpuMillicores desc
 | limit 15
 ```
 
 ```dql
 // Container memory usage approaching limits
-timeseries avgMemUsageBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.container_group_instance}
-| fieldsAdd avgMemUsageBytesValue = arrayAvg(avgMemUsageBytes)
-| sort avgMemUsageBytesValue desc
+// "Approaching the limit" needs the limit: compare working set with limits_memory per container.
+// Containers with no memory limit drop out (limitMiB is null) — they cannot be OOM-killed for
+// exceeding a limit, only by node pressure.
+timeseries {
+    used = avg(dt.kubernetes.container.memory_working_set),
+    lim = avg(dt.kubernetes.container.limits_memory)
+  }, from:-1h, by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            limitMiB = round(arrayAvg(lim) / 1048576, decimals: 0)
+| filter limitMiB > 0
+| fieldsAdd pctOfLimit = round(100 * usedMiB / limitMiB, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, usedMiB, limitMiB, pctOfLimit
+| sort pctOfLimit desc
 | limit 15
 ```
 
@@ -214,15 +235,15 @@ timeseries avgThrottled = avg(dt.containers.cpu.throttled_time), from:-1h, by:{d
 > The third trap is the expensive one: an availability SLO built on `countIf(… != "error")` reads **0% available** on a healthy service, and nothing in the query errors to tell you.
 
 ```dql
-// Service response time (spans)
+// Service response time (server spans), slowest p99 first
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize 
-    p50 = percentile(duration, 50),
-    p90 = percentile(duration, 90),
-    p99 = percentile(duration, 99),
-    by:{dt.entity.service}
-| sort p99 desc
+| summarize {
+    p50_ms = percentile(duration, 50) / 1ms,
+    p90_ms = percentile(duration, 90) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+  }, by:{dt.service.name}
+| sort p99_ms desc
 | limit 15
 ```
 
@@ -266,17 +287,20 @@ Distributed tracing in Kubernetes follows requests across:
 
 | Attribute | Source | Use Case |
 |-----------|--------|----------|
+| `k8s.cluster.name` | OneAgent | Filter by cluster |
 | `k8s.namespace.name` | OneAgent | Filter by namespace |
-| `k8s.deployment.name` | OneAgent | Identify workload |
+| `k8s.workload.name` | OneAgent | Identify workload (any kind — use `k8s.workload.kind` to tell them apart) |
 | `k8s.pod.name` | OneAgent | Instance-level analysis |
 | `k8s.container.name` | OneAgent | Container identification |
 
+On the validation tenant (10/02/2026) every span carrying `k8s.namespace.name` also carried the four fields above, and none carried `k8s.deployment.name` — group spans by `k8s.workload.name`.
+
 ```dql
-// Traces by namespace
+// Spans by namespace — span volume, not request count (one request produces many spans)
 fetch spans, from:-1h
 | filter isNotNull(k8s.namespace.name)
-| summarize requestCount = count(), avgDuration = avg(duration), by:{k8s.namespace.name}
-| sort requestCount desc
+| summarize {spanCount = count(), avgDurationMs = avg(duration) / 1ms}, by:{k8s.namespace.name}
+| sort spanCount desc
 | limit 15
 ```
 
@@ -340,7 +364,7 @@ fetch logs, from:-1h
 
 ### Dynatrace Intelligence for Workloads
 
-Dynatrace Dynatrace Intelligence automatically detects:
+Dynatrace Intelligence automatically detects:
 - Response time degradation
 - Error rate increases
 - Resource saturation
@@ -358,8 +382,13 @@ fetch logs, from:-1h
 
 ```dql
 // Memory usage by workload (detecting high consumers)
-timeseries avgMemoryBytes = avg(dt.kubernetes.container.memory_working_set), from:-1h, by:{dt.entity.cloud_application}
-| sort avgMemoryBytes desc
+// Workload memory is the sum of its containers (and replicas). rollup: avg averages each container
+// within a time bucket before the cross-container sum. Sort on the scalar, never on the array.
+timeseries mem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd avgMemMiB = round(arrayAvg(mem) / 1048576, decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, avgMemMiB
+| sort avgMemMiB desc
 | limit 10
 ```
 

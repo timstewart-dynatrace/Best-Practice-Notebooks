@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 13 | **Created:** February 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 14 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -67,14 +67,14 @@ Kpow exposes OpenMetrics-compatible endpoints when `PROMETHEUS_EGRESS=true`:
 | `topic_count` | Gauge | Number of topics in the cluster |
 | `group_count` | Gauge | Number of consumer groups |
 | `group_offset_lag` | Histogram | Consumer group lag across assignments |
-| `group_state` | Gauge | Consumer group state (0=DEAD, 1=EMPTY, 2=UNKNOWN, 4=STABLE) |
-| `broker_end_delta` | Histogram | Production rate per broker |
-| `topic_urp_total` | Meter | Under-replicated partitions |
+| `group_state` | Gauge | Consumer group state — the ordinal of Kafka's `ConsumerGroupState` (0=UNKNOWN, 1=PREPARING_REBALANCE, 2=COMPLETING_REBALANCE, 3=STABLE, 4=DEAD, 5=EMPTY) |
+| `broker_end_delta` | Histogram | Delta of end offsets per broker (produced msgs/s) |
+| `topic_urp_total` | Meter | Under-replicated partitions across all topics in the cluster |
 | `acl_count` | Gauge | Number of ACLs in the cluster |
-| `connect_connector_task_state` | Gauge | Connector task state (1=RUNNING) |
+| `connect_connector_task_state` | Gauge | Connector task state |
 | `connect_connector_running_total` | Gauge | Number of active connectors |
-| `partition_end` | Gauge | Topic partition end offset |
-| `group_assignment_offset` | Gauge | Current consumer position |
+| `partition_end` | Gauge | Topic partition end offset (from `/offsets/v1`) |
+| `group_assignment_offset` | Gauge | Current consumer position (from `/group-offsets/v1`) |
 
 ### Metric Label Structure
 
@@ -88,6 +88,10 @@ All Kpow metrics use consistent labels:
 | `env` | Environment name | `Production`, `Staging` |
 
 > **Note:** Non-compliant characters in Kafka resource names (topics, groups) are converted to underscores to meet Prometheus naming standards.
+
+> **`group_state` ordinals come from Kafka, not Kpow.** Kpow's glossary defines the value as *"the ordinal of org.apache.kafka.common.ConsumerGroupState"*, and that enum is declared in the order UNKNOWN, PREPARING_REBALANCE, COMPLETING_REBALANCE, STABLE, DEAD, EMPTY (then ASSIGNING, RECONCILING). A dead group is **4**; 0 means unknown.
+
+> <sub>**Sources:** [Kpow metrics glossary (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary) — *"The state of the consumer group, where the value is the ordinal of org.apache.kafka.common.ConsumerGroupState"*, [ConsumerGroupState.java (Apache Kafka GitHub)](https://github.com/apache/kafka/blob/3.9/clients/src/main/java/org/apache/kafka/common/ConsumerGroupState.java).</sub>
 
 <a id="deploying-kpow-on-kubernetes"></a>
 ## 2. Deploying Kpow on Kubernetes
@@ -186,7 +190,9 @@ curl http://localhost:3000/metrics/v1
 
 Dynatrace collects metrics from any Kubernetes pod annotated with `metrics.dynatrace.com/scrape: "true"`. The Dynatrace Operator's ActiveGate connects directly to annotated pods and scrapes their Prometheus endpoints, enriching the metrics with Kubernetes topology information.
 
-> **Important:** The ActiveGate must be deployed **inside** the monitored Kubernetes cluster for annotation-based scraping to work. An ActiveGate running outside the cluster cannot reach pod endpoints that require RBAC or network-level access.
+> **Important:** Dynatrace recommends an ActiveGate running **inside** the monitored cluster. One running outside *"won't be able to scrape any Prometheus endpoints on pods which require authentication (such as RBAC or client authentication)"*.
+
+> **ActiveGate scraping has hard limits — consider the OpenTelemetry Collector for new setups.** The docs: *"This page describes the ActiveGate Kubernetes module's Prometheus integration, which has hard limits of 1,000 exporter pods, 1,000 metrics per pod, and 500,000 metric data points per pod. For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead."* A single Kpow pod is far below these limits, so the annotation route below works, but on a cluster that already scrapes many exporters, add Kpow to an OpenTelemetry Collector scrape instead — it can reuse the same `metrics.dynatrace.com/scrape` annotations.
 
 ### Required Pod Annotations
 
@@ -196,8 +202,8 @@ Dynatrace collects metrics from any Kubernetes pod annotated with `metrics.dynat
 | `metrics.dynatrace.com/port` | No | First TCP port | Port where metrics are exposed |
 | `metrics.dynatrace.com/path` | No | `/metrics` | Path to the metrics endpoint |
 | `metrics.dynatrace.com/secure` | No | `"false"` | Use HTTPS for scraping |
-| `metrics.dynatrace.com/insecure_skip_verify` | No | `"false"` | Skip TLS certificate verification (self-signed certs) |
-| `metrics.dynatrace.com/filter` | No | - | Include/exclude metrics matching pattern (supports `*` wildcard) |
+| `metrics.dynatrace.com/insecure_skip_verify` | No | `"false"` | Skip TLS certificate verification (self-signed certs); honoured only by an in-cluster ActiveGate |
+| `metrics.dynatrace.com/filter` | No | - | JSON filter, for example `{"mode": "include", "names": ["broker_*", "group_*"]}`; `*` wildcards allowed |
 
 ### Applying Annotations to Kpow
 
@@ -220,7 +226,7 @@ kubectl annotate pods -n kpow -l app=kpow \
 
 Kpow exposes several metric endpoints. The primary `/metrics/v1` endpoint includes all cluster metrics. For offset-specific data, you can deploy a sidecar or use additional scrape targets.
 
-To scrape the offsets endpoint separately, add a second annotated service:
+Topic offsets (`partition_start`, `partition_end`, `topic_end_sum`) come from `/offsets/v1`, and group-assignment offsets (`group_assignment_offset` and related) from `/group-offsets/v1`. Each annotation set names one path. To scrape the offsets endpoint separately, add a second annotated service, and a third for `/group-offsets/v1` if you need it:
 
 ```yaml
 # Additional Service for offset metrics
@@ -243,14 +249,15 @@ spec:
 
 ### Enabling Prometheus Monitoring in Dynatrace
 
-Ensure Prometheus scraping is enabled in your Dynatrace environment:
+Ensure Prometheus scraping is enabled in the cluster's Kubernetes monitoring settings:
 
-1. Navigate to **Settings > Cloud and virtualization > Kubernetes**
-2. Select your cluster connection
-3. Enable **Monitor annotated Prometheus exporters**
-4. Metrics will appear within minutes of annotation application
+1. Open the cluster's monitoring settings
+2. Enable **Monitor Kubernetes namespaces, services, workloads, and pods**
+3. Enable **Monitor annotated Prometheus exporters** — the settings schema notes *"Prometheus metrics in kubernetes environments are subject to licensing."*
 
-> **Note:** Dynatrace ingests Prometheus Counter, Gauge, Histogram, and Summary metric types. All Kpow metrics are compatible.
+> **Note:** Dynatrace ingests Prometheus Counter, Gauge, Histogram and Summary types. Kpow's glossary also lists *meter* types (for example `topic_urp_total`); check those arrive before building on them.
+
+> <sub>**Sources:** [Monitor Prometheus metrics on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring/kubernetes-monitoring/monitor-prometheus-metrics) — *"For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead."*, [Kubernetes monitoring settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring) — *"Prometheus metrics in kubernetes environments are subject to licensing."*</sub>
 
 ```dql
 // Verify Kpow metrics are being ingested
@@ -289,13 +296,15 @@ timeseries lag = avg(group_offset_lag), from:-1h, by:{target}
 ### Consumer Group State
 
 ```dql
-// Consumer group state: 0=DEAD, 1=EMPTY, 2=UNKNOWN, 4=STABLE
-timeseries state = avg(group_state), from:-1h, by:{target}
-| fieldsAdd currentState = arrayLast(state)
-| fieldsAdd stateLabel = if(currentState == 0, then: "DEAD",
-    else: if(currentState == 1, then: "EMPTY",
-    else: if(currentState == 2, then: "UNKNOWN",
-    else: if(currentState == 4, then: "STABLE", else: "OTHER"))))
+// Consumer group state — the value is the ordinal of Kafka's ConsumerGroupState:
+// 0=UNKNOWN, 1=PREPARING_REBALANCE, 2=COMPLETING_REBALANCE, 3=STABLE, 4=DEAD, 5=EMPTY
+timeseries state = max(group_state), from:-1h, by:{target}
+| fieldsAdd currentState = arrayLast(arrayRemoveNulls(state))
+| fieldsAdd stateLabel = if(currentState == 3, then: "STABLE",
+    else: if(currentState == 4, then: "DEAD",
+    else: if(currentState == 5, then: "EMPTY",
+    else: if(currentState == 1 or currentState == 2, then: "REBALANCING",
+    else: if(currentState == 0, then: "UNKNOWN", else: "OTHER")))))
 | fields target, currentState, stateLabel
 | sort stateLabel asc
 ```
@@ -322,11 +331,17 @@ timeseries delta = avg(broker_end_delta), from:-1h, by:{target}
 ### Kafka Connect Health
 
 ```dql
-// Kafka Connect: connector task states (1=RUNNING)
-timeseries taskState = avg(connect_connector_task_state), from:-1h, by:{target}
-| fieldsAdd currentTaskState = arrayLast(taskState)
-| fieldsAdd healthy = if(currentTaskState == 1, then: "RUNNING", else: "NOT RUNNING")
-| fields target, healthy, currentTaskState
+// Kafka Connect: tasks per connector that are not running
+// Kpow's glossary does not publish the value mapping for connect_connector_task_state, so use
+// the explicit counters instead.
+timeseries {
+    running = max(connect_connector_task_running_total),
+    total = max(connect_connector_task_total)
+  }, from:-1h, by:{target}
+| fieldsAdd runningNow = arrayLast(arrayRemoveNulls(running)), totalNow = arrayLast(arrayRemoveNulls(total))
+| fieldsAdd notRunning = totalNow - runningNow
+| fields target, totalNow, runningNow, notRunning
+| sort notRunning desc
 ```
 
 <a id="monitoring-kpow-as-a-kubernetes-workload"></a>
@@ -344,21 +359,23 @@ Beyond the Kafka metrics Kpow exposes, you should also monitor Kpow itself as a 
 ### Kpow Pod Resource Usage
 
 ```dql
-// Kpow pod CPU and memory usage
-timeseries cpuUsage = avg(dt.kubernetes.container.cpu_usage), from:-1h,
+// Kpow pod CPU usage — the pod is the sum of its containers
+timeseries cpuUsage = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
   by:{k8s.namespace.name, k8s.pod.name},
   filter:{k8s.namespace.name == "kpow"}
-| fieldsAdd avgCpu = arrayAvg(cpuUsage)
-| sort avgCpu desc
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpuUsage), decimals: 0)
+| fields k8s.namespace.name, k8s.pod.name, avgCpuMillicores
+| sort avgCpuMillicores desc
 ```
 
 ```dql
-// Kpow pod memory working set
-timeseries memUsage = avg(dt.kubernetes.container.memory_working_set), from:-1h,
+// Kpow pod memory working set — the pod is the sum of its containers
+timeseries memUsage = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h,
   by:{k8s.namespace.name, k8s.pod.name},
   filter:{k8s.namespace.name == "kpow"}
-| fieldsAdd avgMemMB = arrayAvg(memUsage) / 1048576
-| sort avgMemMB desc
+| fieldsAdd avgMemMiB = round(arrayAvg(memUsage) / 1048576, decimals: 0)
+| fields k8s.namespace.name, k8s.pod.name, avgMemMiB
+| sort avgMemMiB desc
 ```
 
 ### Kpow Application Logs
@@ -388,7 +405,7 @@ fetch events, from:-24h
 <a id="alerting-on-kafka-health"></a>
 ## 6. Alerting on Kafka Health
 
-Kpow does not provide its own alerting — it delegates to external tools. With Dynatrace ingesting Kpow metrics, you can use Dynatrace metric events, Workflows, and the new Dynatrace Intelligence Agents for alerting and automated response.
+Kpow does not provide its own alerting — it delegates to external tools. With Dynatrace ingesting Kpow metrics, you can alert with custom alerts on DQL queries and route the resulting problems with Workflows.
 
 ### Recommended Alert Thresholds
 
@@ -396,29 +413,17 @@ Kpow does not provide its own alerting — it delegates to external tools. With 
 |-------|--------|-----------|----------|
 | **Consumer lag spike** | `group_offset_lag` | Lag > 10,000 for 5 min | Warning |
 | **Consumer lag critical** | `group_offset_lag` | Lag > 100,000 for 5 min | Critical |
-| **Consumer group dead** | `group_state` | State == 0 (DEAD) | Critical |
+| **Consumer group dead** | `group_state` | State == 4 (DEAD) | Critical |
 | **Under-replicated partitions** | `topic_urp_total` | URP > 0 for 5 min | Critical |
 | **Broker count drop** | `broker_count` | Count < expected | Critical |
-| **Connector task failure** | `connect_connector_task_state` | State != 1 | Warning |
-| **Kpow pod unhealthy** | K8s pod status | Restart count > 3 | Warning |
+| **Connector task failure** | `connect_connector_task_failed_total` | > 0 | Warning |
+| **Kpow pod unhealthy** | `dt.kubernetes.container.restarts` | > 3 in an hour | Warning |
 
-### Setting Up Metric Events
+The lag thresholds are community starting points; set them from your consumers' normal lag.
 
-Create metric events in Dynatrace for automated alerting:
+### Setting Up Custom Alerts
 
-1. Navigate to **Settings > Anomaly detection > Metric events**
-2. Click **Add metric event**
-3. Configure:
-
-| Field | Consumer Lag Example |
-|-------|---------------------|
-| **Summary** | Kafka consumer lag critical |
-| **Metric key** | `group_offset_lag` |
-| **Aggregation** | Average |
-| **Threshold** | 100,000 |
-| **Violating samples** | 3 of 5 (sliding window) |
-| **Event type** | Custom alert |
-| **Severity** | Error |
+Build each alert as a custom alert on a DQL `timeseries` query over the Kpow metric — for example `timeseries lag = max(group_offset_lag), by:{target}` with a static threshold of 100,000 for the critical lag alert. From SaaS 1.344 custom alerts are created in **Settings**; on earlier versions, in the Anomaly Detection app (K8S-07 § 7 has the detail and source).
 
 ### Workflow Integration
 
@@ -431,13 +436,9 @@ Connect metric events to Dynatrace Workflows for automated response:
 | URP > 0 sustained | Alert Kafka admin team |
 | Connector task fails | Auto-restart connector via API |
 
-### Dynatrace Intelligence Agents
+### Agentic triage
 
-Announced at Perform 2026, Dynatrace Intelligence Agents can automate incident response by reasoning over real-time causal context. For Kafka scenarios, this means:
-
-- **SRE Agents** can correlate Kpow consumer lag spikes with upstream service errors detected by OneAgent
-- **Automated triage** links Kafka health metrics to Dynatrace Intelligence root-cause analysis
-- **Cross-domain correlation** connects Kafka platform metrics (via Kpow) with application traces and Kubernetes events
+For AI-assisted triage on top of these problems, see the AIOPS series.
 
 > **Tip:** See **WFLOW-01** through **WFLOW-09** for comprehensive Dynatrace Workflow configuration patterns.
 
@@ -447,6 +448,8 @@ Announced at Perform 2026, Dynatrace Intelligence Agents can automate incident r
 ### Dynatrace's Built-in Kafka Support
 
 Dynatrace provides native Kafka monitoring through OneAgent, which automatically detects Kafka broker processes and collects JMX-based metrics.
+
+The split below is community practice, not a Dynatrace comparison — check the Kafka extension's Hub page and your OneAgent version for what each covers today.
 
 | Capability | OneAgent (Native) | Kpow |
 |------------|-------------------|------|
@@ -480,7 +483,7 @@ For environments where Kpow is not available, Dynatrace also offers the **Apache
 - Consumer group metrics
 - Pre-built dashboards
 
-Install from: **Dynatrace Hub > Apache Kafka**
+Install from: **Dynatrace Hub > Apache Kafka**. Check the Hub listing for its current feature set and requirements.
 
 ```dql
 // Combine: Kpow consumer lag with OneAgent service traces
@@ -490,6 +493,7 @@ Install from: **Dynatrace Hub > Apache Kafka**
 //   span.status_code is the real field (otel.status_code does not exist),
 //   its values are lowercase ("error", never "ERROR"),
 //   and it is null on successful spans, so derive successes as total - errors.
+// Group by dt.service.name: service.name exists only on OpenTelemetry spans.
 //
 // If this returns nothing, check span.kind before assuming a healthy fleet:
 //   fetch spans, from:-1h | summarize c = count(), by:{span.kind}
@@ -500,7 +504,7 @@ fetch spans, from:-1h
 | summarize {
     total = count(),
     errors = countIf(span.status_code == "error")
-  }, by:{service.name}
+  }, by:{dt.service.name}
 | fieldsAdd successes = total - errors
 | fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
 | sort errorRate desc
@@ -535,7 +539,7 @@ In this notebook, you learned:
 - **Dynatrace Prometheus scraping** via pod annotations for automatic metric ingestion
 - **DQL queries** for consumer lag, group state, under-replicated partitions, and broker production rates
 - **Workload monitoring** of the Kpow pod itself (CPU, memory, logs, restarts)
-- **Alerting patterns** using Dynatrace metric events and Workflows
+- **Alerting patterns** using custom alerts on DQL queries and Workflows
 - **Combining Kpow with native Kafka monitoring** for comprehensive observability
 
 ---
@@ -557,7 +561,8 @@ In this notebook, you learned:
 - [Kpow metrics glossary (Factor House)](https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary)
 - [Kpow Helm charts (Factor House)](https://charts.factorhouse.io)
 - [Monitor Prometheus metrics on K8s (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/container-platform-monitoring/kubernetes-monitoring/monitor-prometheus-metrics)
-- [Apache Kafka technology support (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/confluent-cloud-kafka)
+- [Confluent Cloud (Kafka) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/confluent-cloud-kafka)
+- [ConsumerGroupState.java (Apache Kafka GitHub)](https://github.com/apache/kafka/blob/3.9/clients/src/main/java/org/apache/kafka/common/ConsumerGroupState.java)
 - [Apache Kafka extension (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/apache-kafka/)
 - [Set up Dynatrace on Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s)
 

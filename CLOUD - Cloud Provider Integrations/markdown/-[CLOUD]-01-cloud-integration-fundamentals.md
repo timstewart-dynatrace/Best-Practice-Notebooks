@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -107,6 +107,14 @@ For Managed deployments or environments with specific network constraints, the c
 | Large-scale environments (1000+ resources) | Clouds app + selective streaming for critical metrics |
 
 > <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — CloudFormation onboarding and the connection model, [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration) — the Azure onboarding path, [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) — the Helm/Pub-Sub deployment. **Derived:** the Clouds-app-vs-classic advantages list is this entry's comparison; no page frames them as a trade-off table. *(The AWS row previously read "Generally Available" — no source applies that lifecycle term, so it now reads "Available", matching CLOUD-05 § 4 and DBMON-01 § 7.)*</sub>
+
+### Two Directions of Authentication
+
+A cloud connection is *Dynatrace reading your cloud*: AWS role assumption, an Azure service principal, or GCP service-account impersonation. **Workload identity federation** is the opposite direction — *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* It suits CI jobs, Azure and GCP workloads and Kubernetes pods that call Dynatrace APIs, and it is configured through the Account Management API. It is Preview: *"Workload identity federation is an Early Access feature."*
+
+It does not replace the tokens that push paths such as Firehose and CloudWatch Metric Streams authenticate with; those send a static key. The page does not list which ingest endpoints accept a federated token, so verify before designing around it.
+
+> <sub>**Sources:** [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) — *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."*</sub>
 
 <a id="cloud-entity-model"></a>
 

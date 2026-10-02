@@ -1,6 +1,6 @@
 # K8S-09: Troubleshooting Kubernetes Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 13 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 9 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Debugging Dynatrace Monitoring in Kubernetes
 When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.
@@ -123,7 +123,7 @@ Some failures are not configuration mistakes — they are known defects in speci
 
 | First affected | Fixed / Mitigated | Issue |
 |----------------|-------------------|-------|
-| 1.9.0 | **Still open at 1.10.2** — by design; the fix is cluster-side | **OpenShift only** — the injected init container carries `seccompProfile: RuntimeDefault` by default from 1.9.0 (the `feature.dynatrace.com/init-container-seccomp-profile` flag flipped to `true`). Pods that previously ran under the **`anyuid`** SCC are rejected at admission with `Forbidden: seccomp may not be set` — before scheduling, with no Dynatrace component logging an error. This is not a defect being fixed in a later Operator: the default is unchanged through 1.10.2 (verified from the operator source at each tag, 08/27/2026), and the flag that disables it is **marked deprecated for removal**. The durable fix is a custom SCC that permits `runtime/default` seccomp for the affected workloads. **FAQ-13** covers admission mechanics, the SCC matrix, the custom-SCC manifest and the RBAC gotcha. |
+| 1.9.0 | **Still open at 1.11.0** — listed under *Known issues* in the 1.11.0 release notes; the fix is cluster-side | **OpenShift only** — the injected init container carries `seccompProfile: RuntimeDefault` by default from 1.9.0 (the `feature.dynatrace.com/init-container-seccomp-profile` flag flipped to `true`). Pods that previously ran under the **`anyuid`** SCC are rejected at admission with `Forbidden: seccomp may not be set` — before scheduling, with no Dynatrace component logging an error. This is not a defect being fixed in a later Operator: the default is unchanged through 1.10.2 (verified from the operator source at each tag, 08/27/2026), the 1.11.0 release notes still list it (*"Since Dynatrace Operator 1.9.0, a RuntimeDefault seccomp profile is applied to the Dynatrace init container by default."*), and the flag that disables it was **marked deprecated for removal** at 1.10.2. The durable fix is a custom SCC that permits `runtime/default` seccomp for the affected workloads. **FAQ-13** covers admission mechanics, the SCC matrix, the custom-SCC manifest and the RBAC gotcha. |
 | 1.10.1 and earlier | **1.10.2** (released July 30, 2026 — staged adoption; upgrade on your own schedule) | Four defects fixed at once: (1) **Kubernetes workload and namespace tagging regression** — where several rules matched the same key, each later rule overwrote the previous one; from 1.10.2 **only the first matching rule for a key applies**, which is a *behaviour change*, not just a fix (see K8S-10). (2) **`dynatrace-webhook` `CrashLoopBackOff` on gVisor** runtime-class nodes. (3) **Injected pods hanging at startup** when the OneAgent-binary download init container timed out — the timeout is now 15 minutes. (4) **Metadata-enrichment rules that cannot be applied are now logged** instead of being silently disregarded, so a rule that never took effect is finally visible. |
 | 1.10.1 (OpenShift manifests) | 1.10.1 (corrected manifests re-uploaded 07/2026) | **OpenShift only** — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at `Init:0/1` and `dynatrace-webhook` pods stay `0/1`, waiting for a `dynatrace-webhook-certs` secret that is never created. Root cause is a bootstrap deadlock between the two Operator 1.10.x init containers: **`crd-storage-migrator`** waits for webhook readiness, the webhook waits for its cert secret, and the OpenShift manifest omitted the **`webhook-cert-generator`** init container that creates it. Vanilla-Kubernetes Helm and kubectl manifests ship it and are unaffected. **Fix:** re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's `certgen` command as a `Job` or `oc run` pod to create the secret and patch the webhook caBundle. |
 | 1.10.0 | 1.10.1 | **Auto-update failures** across ActiveGate, CodeModule, and OneAgent, plus the **OneAgent rollout integrity check hanging** — a rollout that never completes rather than one that visibly fails. The 1.10.0 release notes themselves recommend skipping the release, and it is now flagged **`prerelease: true`** on the [GitHub releases page](https://github.com/Dynatrace/dynatrace-operator/releases) — a structural signal you can check yourself before pinning. **Fix:** upgrade to 1.10.1. |
@@ -292,7 +292,7 @@ kubectl get mutatingwebhookconfigurations
 | Namespace not selected | Add matching labels |
 | Pod has opt-out annotation | Remove annotation |
 | Webhook not registered | Restart operator |
-| CSI driver not mounted | Enable CSI in DynaKube |
+| Code modules not delivered | With the CSI driver: check the `dynatrace-oneagent-csi-driver` pod on that node. With image volumes (Operator 1.11.0+): check the node meets the Kubernetes 1.35+ and runtime requirements. Otherwise check the init container's download (ephemeral storage) |
 
 ### Check Injection Status
 
@@ -306,15 +306,18 @@ kubectl exec <pod> -c <container> -- env | grep DT_
 
 ### Namespace Selector Debugging
 
-If using `namespaceSelector` in DynaKube:
+The selector sits inside the injection mode, not at the top of `spec`:
 
 ```bash
-# DynaKube selector
-kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.namespaceSelector}'
+# DynaKube selector (cloudNativeFullStack or applicationMonitoring)
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.oneAgent.cloudNativeFullStack.namespaceSelector}'
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.oneAgent.applicationMonitoring.namespaceSelector}'
 
-# Label a namespace for injection
-kubectl label namespace <namespace> dynatrace-injection=enabled
+# Label a namespace with whatever key/value that selector matches
+kubectl label namespace <namespace> <key>=<value>
 ```
+
+An empty result from both means no selector is set, and every namespace is in scope.
 
 ### Documented Injection-Skip Reason Annotations
 
@@ -371,8 +374,8 @@ fetch logs, from: now() - 1h
 **Diagnostic:**
 
 ```bash
-# Check if log analytics is enabled
-kubectl -n dynatrace get dynakube -o yaml | grep -A5 "env:"
+# Is log monitoring configured on the DynaKube? (spec.logMonitoring)
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.logMonitoring}'
 
 # Verify OneAgent log collection
 kubectl -n dynatrace exec <oneagent-pod> -c oneagent -- cat /var/lib/dynatrace/oneagent/log/oneagent.log | tail -50
@@ -382,7 +385,8 @@ kubectl -n dynatrace exec <oneagent-pod> -c oneagent -- cat /var/lib/dynatrace/o
 
 | Cause | Resolution |
 |-------|------------|
-| Log ingest disabled | Enable in tenant settings |
+| `spec.logMonitoring` not set | Add `spec.logMonitoring: {}` (K8S-07 § 3) |
+| Application logs to a file, not stdout/stderr | The Log modules read stdout/stderr only — use a forwarder or custom log source |
 | Log volume too high | Configure sampling/filtering |
 | Log format unsupported | Configure custom parsing |
 
@@ -513,7 +517,6 @@ tar -czf dynatrace-debug.tar.gz dynatrace-debug/
 | `kubectl -n dynatrace describe dynakube` | DynaKube details |
 | `kubectl -n dynatrace logs <pod>` | Pod logs |
 | `kubectl -n dynatrace exec -it <pod> -- sh` | Shell access |
-| `kubectl -n dynatrace port-forward <pod> 9999:9999` | Local port forward |
 
 <a id="dql-diagnostics"></a>
 ## 9. DQL-Based Diagnostics
@@ -531,7 +534,7 @@ Complement kubectl diagnostics with DQL queries that detect Dynatrace component 
 | **ActiveGate scheduling failure** | AG never starts, data gaps | `dt.kubernetes.event.reason == "FailedScheduling"` |
 | **OneAgent CrashLoop** | Incomplete monitoring | `dt.kubernetes.event.reason == "BackOff"` (`CrashLoopBackOff` appears in `.message`) |
 | **OOM kill** | AG/OA restarts, data gaps | `dt.kubernetes.container.oom_kills` metric — no reliable event reason |
-| **Connection Loss** | Stale data, no updates | `fetch dt.davis.events` with `AGENT_CONNECTION` event types |
+| **ActiveGate gone quiet** | Stale data, no updates | `smartscapeNodes "ACTIVEGATE"` whose last-seen time is older than two hours (query below) |
 
 ```dql
 // Detect Dynatrace component failures in the last 24h
@@ -552,13 +555,17 @@ fetch events, from:-24h
 ```
 
 ```dql
-// Detect ActiveGate connection issues via detected events
-fetch dt.davis.events, from:-24h
-| filter contains(toString(event.type), "ACTIVEGATE") OR
-        contains(toString(event.type), "AGENT_CONNECTION")
-| fields timestamp, event.type, event.category, affected_entity_ids
-| sort timestamp desc
-| limit 30
+// ActiveGates that stopped reporting — last seen more than 2 h ago
+// Uses Smartscape node lifetimes (no bytes scanned). from:-7d is required: without it only nodes
+// seen in the default window are returned, so a long-silent ActiveGate is invisible.
+// A re-created ActiveGate pod gets a new node with the same name, so group by name and take the
+// latest last-seen time — a name with a current instance drops out.
+// This replaces a dt.davis.events filter on "ACTIVEGATE" / "AGENT_CONNECTION" event types, which
+// matched nothing over 30 days on the validation tenant (10/02/2026): no such event types exist there.
+smartscapeNodes "ACTIVEGATE", from:-7d
+| summarize {lastSeen = max(lifetime[end]), instances = count()}, by:{name}
+| filter lastSeen < now() - 2h
+| sort lastSeen desc
 ```
 
 ```dql

@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ This notebook provides a deep dive into monitoring Amazon Elastic Kubernetes Ser
 | **Dynatrace Environment** | SaaS with Grail (the DQL cells do not run on Dynatrace Managed) |
 | **Permissions** | `storage:metrics:read`, `storage:entities:read` + `storage:smartscape:read`, `storage:logs:read`, `storage:buckets:read` (Grail IAM permissions) |
 | **AWS EKS Cluster** | At least one EKS cluster with Dynatrace Operator installed |
-| **Dynatrace Operator** | 1.8+ (installs the current `v1beta6` DynaKube API; latest release line 1.10.x) via Helm or kubectl — `v1beta5` with Operator 1.6+ still works and auto-migrates on upgrade |
+| **Dynatrace Operator** | 1.8+ (installs the current `v1beta6` DynaKube API; newest release 1.11.0, released 10/01/2026, which removes `v1beta4`) via Helm or kubectl — `v1beta5` with Operator 1.6+ still works and auto-migrates on upgrade |
 | **Prior Knowledge** | CLOUD-01 fundamentals, basic Kubernetes concepts |
 
 <a id="eks-architecture"></a>
@@ -96,7 +96,7 @@ spec:
 - Use **nodeSelector** to exclude Windows nodes if running mixed clusters
 - Consider **resource limits** to prevent OneAgent from consuming excessive node resources
 
-> <sub>**Sources:** [Kubernetes setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s) — the Operator/DynaKube deployment model, [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the deployment modes and the API versions; the worked YAML here targets `v1beta6` (see K8S-02 § 4 for the served-version table — `v1beta4` stopped being served in Operator 1.10.0), [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — the EKS side of the connection.</sub>
+> <sub>**Sources:** [Kubernetes setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s) — the Operator/DynaKube deployment model, [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the deployment modes and the API versions (the worked YAML here targets `v1beta6`; K8S-02 § 4 has the served-version table), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."*, [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — the EKS side of the connection.</sub>
 
 <a id="node-groups"></a>
 
@@ -204,7 +204,7 @@ spec:
 > kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
 > ```
 >
-> The guide pins the current release (`v1.10.2` on 09/24/2026) — substitute the Operator version you run.
+> The guide pinned `v1.10.2`, the current release on 09/24/2026; 1.11.0 followed on 10/01/2026 — substitute the Operator version you run.
 
 > <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the per-version `applicationMonitoring` parameter tables, [Application observability setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability) — *"CSI driver is optional (see Step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver Pod on each node."*, [Fargate considerations (AWS docs)](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html) — *"Daemonsets aren't supported on Fargate."*</sub>
 
@@ -241,12 +241,13 @@ timeseries containerMem = sum(dt.kubernetes.container.memory_working_set, rollup
 //      the only values are DAVIS_EVENT, SYNTHETIC_EVENT, FLEET_EVENT and DAVIS_PROBLEM.
 //      Kubernetes events arrive as DAVIS_EVENT; the discriminator is event.provider.
 //   2. `event.type == "Warning"` — every KUBERNETES_EVENT record carries CUSTOM_INFO
-//      (3,571 of 3,571 checked). Severity lives in dt.kubernetes.event.important.
+//      (3,571 of 3,571 checked). The Warning/Normal split is in status ("WARN" / "INFO");
+//      dt.kubernetes.event.important was "true" on every event over 30 days (10/02/2026).
 //   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
 // Each filter was valid syntax that executed cleanly, which is why this survived review.
 fetch events, from:-6h
 | filter event.provider == "KUBERNETES_EVENT"
-| filter dt.kubernetes.event.important == "true"
+| filter status == "WARN"
 | summarize event_count = count(), by:{dt.kubernetes.event.reason, k8s.namespace.name}
 | sort event_count desc
 | limit 20

@@ -219,7 +219,7 @@ Best practices for monitoring Kubernetes with Dynatrace.
 - [K8S-09: Troubleshooting](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-09-troubleshooting.md) — Diagnosing Kubernetes monitoring issues
 - [K8S-10: Metadata Telemetry Enrichment](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-10-metadata-telemetry-enrichment.md) — Enriching telemetry with Kubernetes metadata
 - [K8S-11: Multi-Tool Coexistence](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-11-multi-tool-coexistence.md) — Running Dynatrace alongside other monitoring tools
-- [K8S-12: Specialized Monitoring](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-12-specialized-monitoring.md) — NGINX Ingress, CSI driver vs ephemeral-volume code-module delivery, resource tuning, and StatsD
+- [K8S-12: Specialized Monitoring](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-12-specialized-monitoring.md) — NGINX Ingress, code-module delivery (image volumes, CSI driver, ephemeral volumes), resource tuning, and StatsD
 - [K8S-13: Kafka Monitoring with Kpow](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-13-kafka-monitoring-with-kpow.md) — Kafka observability using Kpow Prometheus metrics
 - [K8S-14: [LAB] Kubernetes Deployment Guide](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-14-%5BLAB%5D-deployment-guide.md) — Hands-on lab: end-to-end Dynatrace Kubernetes deployment walkthrough
 - [K8S-99: Best Practice Summary](K8S%20-%20Kubernetes%20Monitoring/markdown/-%5BK8S%5D-99-best-practice-summary.md) — Consolidated best practices from the K8S series

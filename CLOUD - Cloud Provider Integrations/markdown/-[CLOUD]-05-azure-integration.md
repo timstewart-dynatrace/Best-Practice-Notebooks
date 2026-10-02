@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -80,7 +80,7 @@ The Azure connection covers **Azure public cloud** only. Its *Limitations* list 
 > - <sub>[Create an Azure connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection) — *"Azure Government and Azure China sovereign clouds are not supported."* and *"The new integration does not deploy or use ActiveGate compute resources inside your Azure subscription to poll telemetry"*</sub>
 > - <sub>[Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration)</sub>
 > - <sub>[Azure monitoring guide — classic (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-integrations/azure-monitoring-guide) — *"At least one ActiveGate needs to be able to connect to Azure Monitor to perform the monitoring tasks."*</sub>
-> - <sub>[Manage the Azure Native Dynatrace Service (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/partner-solutions/dynatrace/dynatrace-how-to-manage) — *"Diagnostics settings are automatically added to the subscription's resources that match the defined tag rules."*</sub>
+> - <sub>[Manage the Azure Native Dynatrace Service (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/partner-solutions/dynatrace/manage) — *"Diagnostics settings are automatically added to the subscription's resources that match the defined tag rules."*</sub>
 
 ### Release Radar (April 2026): the Clouds app extends to Microsoft Azure
 

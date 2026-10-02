@@ -1,6 +1,6 @@
 # K8S-03: GitOps for DynaKube
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 13 | **Created:** January 2026 | **Last Updated:** 08/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Managing DynaKube with ArgoCD and Flux
 GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.
@@ -121,9 +121,10 @@ spec:
 > |------------|-----|
 > | **Do not pin below 1.4.1** | Operator 1.3.0 through 1.4.0 are inside the CSI driver liveness-probe crash-loop window; 1.4.1 adjusted the probe parameters. See K8S-09 §2. |
 > | **Skip 1.10.0** | Its own release notes advise skipping it (auto-update defect), and it is now flagged `prerelease: true` on the GitHub releases page — a signal you can verify yourself before pinning. Fixed in 1.10.1. |
-> | **1.10.2 is the recommended pin** | Released July 30, 2026 with a published changelog. It fixes a workload/namespace **tagging-precedence regression** (subsequent matching rules used to overwrite earlier ones; now only the *first* matching rule per key applies — a behaviour change, see K8S-10), a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and it now logs metadata-enrichment rules it cannot apply instead of dropping them silently. |
+> | **1.11.0 is the newest release** (10/01/2026) | It removes DynaKube `v1beta4` from the CRD — a manifest still declaring it fails to apply after the upgrade — and adds image-volume injection and `spec.kubernetesMonitoring`. Move every DynaKube manifest in Git to `v1beta6` *before* bumping this pin, and read the notes of each minor version you cross (K8S-02 §8). |
+> | **1.10.2 is the validated pin in this series** | Released July 30, 2026 with a published changelog. It fixes a workload/namespace **tagging-precedence regression** (subsequent matching rules used to overwrite earlier ones; now only the *first* matching rule per key applies — a behaviour change, see K8S-10), a `dynatrace-webhook` `CrashLoopBackOff` under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and it now logs metadata-enrichment rules it cannot apply instead of dropping them silently. |
 > | **1.10.1 remains a working pin** | Estates move GitOps pins on their own cadence. Until you upgrade, 1.10.1 is still supported and still the fix for the 1.10.0 defects — subject to the OpenShift-manifest caveat in K8S-09 §2. Read the K8S-10 tagging note before bumping a cluster whose enrichment relies on last-rule-wins ordering. |
-> | **Anything below 1.7.x is likely past EOL** | Standard 9-month / Enterprise 12-month support window. |
+> | **Below 1.6.0 cannot upgrade directly** | [Operator 1.11.0 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0): *"Minimum operator version required for direct upgrade: 1.6.0"* — older clusters step through intermediate versions. |
 >
 > Pin an exact version rather than a range for the operator itself — an operator upgrade can change chart *defaults* (see K8S-02 §8), and a range lets that happen without a Git commit to review.
 
@@ -180,7 +181,7 @@ spec:
 ### Flux HelmRelease for Operator
 
 ```yaml
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: dynatrace
@@ -189,7 +190,7 @@ spec:
   interval: 1h
   url: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: dynatrace-operator
@@ -210,6 +211,8 @@ spec:
       enabled: true
 ```
 
+> **API versions.** Current Flux controllers serve `HelmRelease` only at `helm.toolkit.fluxcd.io/v2` and `HelmRepository` only at `source.toolkit.fluxcd.io/v1`; the older `v2beta1` / `v1beta2` manifests fail to apply there. CRD versions read from the `fluxcd/helm-controller` and `fluxcd/source-controller` repositories, 10/02/2026.
+
 ### Flux Kustomization for DynaKube
 
 ```yaml
@@ -226,7 +229,7 @@ spec:
     kind: GitRepository
     name: monitoring-config
   healthChecks:
-    - apiVersion: dynatrace.com/v1beta5
+    - apiVersion: dynatrace.com/v1beta6
       kind: DynaKube
       name: dynakube
       namespace: dynatrace
@@ -258,7 +261,7 @@ API tokens should never be stored in Git. Use these approaches:
 ### Option 1: External Secrets Operator
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1   # v1beta1 is no longer served by current ESO releases
 kind: ExternalSecret
 metadata:
   name: dynakube
@@ -328,7 +331,7 @@ sops --encrypt secrets.yaml > secrets.secret.yaml
 **Base DynaKube (`base/dynakube/dynakube.yaml`):**
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -371,7 +374,7 @@ patches:
 **Dev Patch (`overlays/dev/dynakube-patch.yaml`):**
 
 ```yaml
-apiVersion: dynatrace.com/v1beta5
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
   name: dynakube
@@ -482,20 +485,26 @@ kubectl -n flux-system get events --sort-by='.lastTimestamp'
 | **Drift detected** | Manual changes | Revert or accept drift in Git |
 
 ```dql
-// Monitor GitOps-related events in the cluster
-fetch logs, from:-1h
-| filter matchesPhrase(content, "argocd") or matchesPhrase(content, "flux")
-| fields timestamp, content
+// GitOps controller activity, from Kubernetes events (events, not logs — K8S-01 §6).
+// Shows sync-driven pod churn and failures in the controller namespaces.
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT"
+| filter in(k8s.namespace.name, {"argocd", "flux-system"})
+| fields timestamp, k8s.namespace.name, dt.kubernetes.event.involved_object.kind,
+    dt.kubernetes.event.involved_object.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
 | sort timestamp desc
 | limit 30
 ```
 
 ```dql
-// Track DynaKube configuration changes
-fetch logs, from:-1h
-| filter matchesPhrase(content, "dynakube") and (matchesPhrase(content, "updated") or matchesPhrase(content, "created") or matchesPhrase(content, "deleted"))
-| fields timestamp, content
-| sort timestamp desc
+// What changed in the dynatrace namespace after a DynaKube sync?
+// A DynaKube change rolls OneAgent / ActiveGate / webhook pods; their Kubernetes events
+// (Killing, BackOff, FailedScheduling, Unhealthy …) show whether the rollout settled.
+fetch events, from:-24h
+| filter event.provider == "KUBERNETES_EVENT" and k8s.namespace.name == "dynatrace"
+| summarize {events = count(), last_seen = max(timestamp)},
+    by:{dt.kubernetes.event.involved_object.kind, dt.kubernetes.event.reason}
+| sort last_seen desc
 | limit 20
 ```
 

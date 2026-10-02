@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 09/25/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -93,37 +93,21 @@ Some entities are provider-specific and require separate queries:
 ### Compute Resource Count by Provider
 
 ```dql
-// Compare compute resource counts across cloud providers
-fetch dt.entity.ec2_instance, from:-7d
-| summarize resource_count = count()
-| fieldsAdd provider = "AWS", resource_type = "EC2 Instance"
-| append [
-    fetch dt.entity.azure_vm, from:-7d
-    | summarize resource_count = count()
-    | fieldsAdd provider = "Azure", resource_type = "Virtual Machine"
-  ]
-| append [
-    fetch dt.entity.aws_lambda_function, from:-7d
-    | summarize resource_count = count()
-    | fieldsAdd provider = "AWS", resource_type = "Lambda Function"
-  ]
-| append [
-    fetch dt.entity.azure_web_app, from:-7d
-    | summarize resource_count = count()
-    | fieldsAdd provider = "Azure", resource_type = "Web App"
-  ]
+// Compare compute resource counts across cloud providers (Smartscape)
+// smartscapeNodes takes a list of node types. Without from: it returns nodes seen in the default
+// window (the last 2 hours), which is the current inventory; from:-7d also counts instances that
+// were replaced in the week (85 vs 1,439 EC2 nodes on the validation tenant, 10/02/2026).
+smartscapeNodes {"AWS_EC2_INSTANCE", "AWS_LAMBDA_FUNCTION",
+                 "AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES", "AZURE_MICROSOFT_WEB_SITES"}
+| summarize {resource_count = count()}, by:{type}
+| fieldsAdd provider = if(startsWith(type, "AWS_"), then: "AWS", else: "Azure")
 | sort provider asc, resource_count desc
 
-// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
-// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
-// this under-counted against the notebook default window and still looked like a valid answer.
-
-// Smartscape note (dt.entity.* is deprecated but still functional): these resources ARE
-// Smartscape nodes — AWS_EC2_INSTANCE, AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES,
-// AWS_LAMBDA_FUNCTION, AZURE_MICROSOFT_WEB_SITES (CloudFormation / ARM type, uppercased). On
-// Clouds-app connections the classic dt.entity.* types can under-count or return nothing for the
-// same estate (validation tenant 09/24/2026: EC2 6 classic vs 25 running on Smartscape; Lambda 2
-// vs 34; Azure VM 1 vs 8; Web App 0 vs 2). Prefer smartscapeNodes for the cloud-resource inventory.
+// Classic alternative (dt.entity.* is deprecated but still functional): on Clouds-app connections
+// the classic types under-count or return nothing for the same estate (validation tenant
+// 09/24/2026: EC2 6 classic vs 25 Smartscape; Lambda 2 vs 34; Azure VM 1 vs 8; Web App 0 vs 2),
+// so use dt.entity.ec2_instance / azure_vm / aws_lambda_function / azure_web_app with from:-7d
+// only where the classic AWS/Azure integration is the source.
 ```
 
 ### Unified Host CPU Usage (All Providers)
