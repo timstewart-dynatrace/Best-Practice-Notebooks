@@ -1,6 +1,6 @@
 # AUTOM-04: Terraform Provider
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.
 
@@ -15,7 +15,6 @@ The Dynatrace Terraform provider enables infrastructure-as-code management of Dy
 5. [State Management](#state-management)
 6. [Advanced Patterns](#advanced-patterns)
 7. [Governance Architecture](#governance-architecture)
-8. [Next Steps](#next-steps)
 8. [Next Steps](#next-steps)
 
 ---
@@ -308,8 +307,7 @@ To manage **all** resources that require OAuth authentication, create an OAuth c
 | `document:direct-shares:write` | Create/update document shares |
 | `document:direct-shares:delete` | Delete document shares |
 | **OpenPipeline** | |
-| `openpipeline:configurations:read` | Read OpenPipeline configurations |
-| `openpipeline:configurations:write` | Create/update OpenPipeline configs |
+| `settings:objects:read` / `settings:objects:write` | OpenPipeline pipelines, ingest sources and routing (`dynatrace_openpipeline_v2_*`) are Settings 2.0 objects, so the **Settings** scopes above cover them. Routing needs more — see the note below the table. |
 | **SLO** | |
 | `slo:slos:read` | Read SLO definitions |
 | `slo:slos:write` | Create/update SLO definitions |
@@ -328,6 +326,12 @@ To manage **all** resources that require OAuth authentication, create an OAuth c
 | `account-idm-write` | Create/update IAM users, groups, service users |
 | `iam-policies-management` | Create/update/delete IAM policies |
 | `account-env-read` | Read account environment metadata |
+
+> **OpenPipeline permissions are Settings 2.0 permissions.** Each `dynatrace_openpipeline_v2_*` resource (for example `dynatrace_openpipeline_v2_logs_pipelines`, `_ingestsources` and `_routing`) states that it requires the API token scopes `settings.read` and `settings.write`, or the OAuth scopes `settings:objects:read` and `settings:objects:write`. **Routing needs more than write:** *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."* The identity behind the credential therefore either holds `settings:objects:admin` or is granted a policy such as `ALLOW settings:objects:write WHERE settings:schemaId = "builtin:openpipeline.logs.routing"`.
+>
+> **Older guides list `openpipeline:configurations:read` / `openpipeline:configurations:write`.** Those scopes belonged to the OpenPipeline Configurations API (`/platform/openpipeline/v1/configurations`) and the deprecated `dynatrace_openpipeline_<scope>` resources built on it. That API reached end of life on June 29, 2026. Don't request those scopes for `dynatrace_openpipeline_v2_*` resources. The read scope remains valid only for the OpenPipeline Preview, Matcher, Processor and Technology APIs.
+>
+> <sub>**Sources:** [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings), [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*, [`openpipeline_v2_logs_pipelines` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_pipelines.md), [`openpipeline_v2_logs_routing` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md).</sub>
 
 > **Principle of least privilege:** The table above is the **full-access superset** from the [Terraform Registry](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs). For production, grant only the scopes your pipeline requires. A pipeline managing only workflows needs `automation:workflows:read` + `automation:workflows:write`.
 

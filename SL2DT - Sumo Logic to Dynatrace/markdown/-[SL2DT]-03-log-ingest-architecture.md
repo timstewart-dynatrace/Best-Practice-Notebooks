@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -32,7 +32,7 @@ This step is gating. Downstream monitors (SL2DT-05), dashboards (SL2DT-06), and 
 | Requirement | Details |
 |-------------|---------|
 | **Audience** | Platform engineering + ingest team |
-| **Dynatrace tenant** | Gen3 SaaS, Platform Token with `storage:buckets:write`, `settings:objects:write`, `openpipeline:configurations:write` scopes |
+| **Dynatrace tenant** | Gen3 SaaS, Platform Token with `storage:buckets:write` and `settings:objects:write` scopes (OpenPipeline pipelines, ingest sources and routing are Settings 2.0 objects). Changing **routing** also needs `settings:objects:admin`, or a policy granting `settings:objects:write` on `builtin:openpipeline.logs.routing` — see §2 |
 | **Prior reading** | SL2DT-02 (taxonomy map + collector inventory + FER inventory); OPMIG-01 (OpenPipeline fundamentals); K8S-01 (if K8s sources) |
 | **Tools** | Terraform + Monaco for config-as-code (recommended); kubectl for K8s; cURL for Platform Token validation |
 
@@ -57,17 +57,26 @@ This step uses two distinct credential types — they are **not interchangeable*
 
 ### Platform Token — query/runtime API calls
 
-Platform Token (prefix `dt0s16.`) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline config read/write, IAM policy read/write via the platform APIs):
+Platform Token (prefix `dt0s16.`) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline configuration through the Settings API, IAM policy read/write via the platform APIs):
 
 ```
 storage:buckets:read, storage:buckets:write
 storage:logs:read, storage:logs:write
-settings:objects:read, settings:objects:write
-openpipeline:configurations:read, openpipeline:configurations:write
+settings:objects:read, settings:objects:write   (includes OpenPipeline pipelines, ingest sources, routing)
 iam:policies:read, iam:policies:write (for bucket-scoped policies)
 ```
 
-**Critical:** Platform Token uses `Authorization: Bearer <token>`, not `Api-Token`. See user memory if needed.
+**OpenPipeline is configured through the Settings API.** Log pipelines, ingest sources and routing are the Settings 2.0 schemas `builtin:openpipeline.logs.pipelines`, `builtin:openpipeline.logs.ingest-sources` and `builtin:openpipeline.logs.routing`, governed by `settings:objects:read` / `settings:objects:write`. Routing is stricter: *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."* If the token's owner is not a settings administrator, an administrator grants write access with a policy such as:
+
+```text
+ALLOW settings:objects:write WHERE settings:schemaId IN ("builtin:openpipeline.logs.pipelines", "builtin:openpipeline.logs.ingest-sources", "builtin:openpipeline.logs.routing");
+```
+
+> Older guides list `openpipeline:configurations:read` / `openpipeline:configurations:write`. Those scopes belonged to the OpenPipeline Configurations API (`/platform/openpipeline/v1/configurations`), which reached end of life on June 29, 2026. Don't request them for pipeline or routing changes. The read scope remains valid only for the OpenPipeline Preview, Matcher, Processor and Technology APIs.
+>
+> <sub>**Sources:** [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings), [OpenPipeline API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-api) — *"The Configurations API is deprecated and reached its end of life on June 29, 2026."*</sub>
+
+**Critical:** Platform Token uses `Authorization: Bearer <token>`, not `Api-Token`.
 
 ```bash
 export DT_TENANT="https://<env-id>.apps.dynatrace.com"
