@@ -1,14 +1,14 @@
 # AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 09/18/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 96 — GitHub Actions CI/CD LAB | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
 Hands-on lab that takes the GitHub Actions material from **AUTOM-07: CI/CD Integration** §3 and the credential-handling pattern from **AUTOM-04: Terraform Provider** §3 and walks through them end-to-end. By the end of this lab you have a working pipeline that:
 
 - Runs `terraform fmt -check`, `terraform validate`, and `terraform plan` on every pull request, posting the plan summary back as a PR comment.
-- Runs `terraform apply` on merge to `main`, gated by a GitHub Environment with required reviewers.
-- Authenticates to Dynatrace via **GitHub OIDC -> AWS IAM role -> HashiCorp Vault -> runtime fetch** of a Dynatrace Platform Token. **No static Dynatrace token lives in GitHub Secrets.**
+- Runs `terraform apply` on merge to `main`, gated by a GitHub Environment with required reviewers (on a private repo that gate needs GitHub Enterprise — see Prerequisites).
+- Uses one GitHub OIDC token for **two parallel trusts**: an **AWS IAM role** for the S3 state backend, and a **HashiCorp Vault `jwt` role** for the runtime fetch of a Dynatrace Platform Token. **No static Dynatrace token lives in GitHub Secrets.**
 - Stores Terraform state in S3 with native S3 lockfile locking, encrypted at rest.
 - Manages a single Settings 2.0 resource (an ownership team, `builtin:ownership.teams`) end-to-end so the credential plumbing is the focus, not the resource model.
 
@@ -53,9 +53,10 @@ This LAB is the hands-on companion to AUTOM-07 §3 (which describes the patterns
 | **Completed** | AUTOM-04 (Terraform Provider) and AUTOM-07 (CI/CD Integration) §3 read at least once |
 | **Dynatrace Environment** | Gen3 SaaS tenant; account-admin access to mint a Platform Token on a service user |
 | **GitHub Account** | Repository with admin access (to add Environments, configure OIDC permissions, set repo secrets) |
+| **GitHub plan** | The apply gate uses an environment with **required reviewers**. On GitHub Free, Pro and Team those are available **only for public repositories** — use a public repo for this LAB (nothing secret lives in it) or GitHub Enterprise. See Step 4. |
 | **AWS Account** | Account where you can create an IAM OIDC identity provider, an IAM role, an S3 bucket, and (optionally) a KMS key. A Free Tier account works. |
-| **HashiCorp Vault** | An instance reachable from GitHub Actions. **HCP Vault Free** (managed, free tier) works; a self-hosted Vault behind a public endpoint or a GitHub-hosted-runner-reachable VPN endpoint also works. |
-| **Local tools** | `terraform >= 1.6`, `aws` CLI, `vault` CLI, `gh` CLI (GitHub CLI), `git` |
+| **HashiCorp Vault** | An instance reachable from GitHub Actions, with a KV v2 engine at `secret/`: a self-hosted Vault behind a public endpoint or a runner-reachable VPN endpoint, or **HCP Vault Dedicated** (check its current tiers and trial). On HCP Vault Dedicated the top-level namespace is `admin`, which the commands below must target — see Step 3. |
+| **Local tools** | `terraform >= 1.11` (S3 native locking is GA from 1.11), `aws` CLI, `vault` CLI, `gh` CLI (GitHub CLI), `git` |
 | **Time budget** | Roughly 1.5–2 hours end-to-end, the first time you run it. |
 
 > **Tenant URL placeholder.** Throughout this LAB, replace `https://<your-tenant>.apps.dynatrace.com` (UI host) and `https://<your-tenant>.live.dynatrace.com` (API host) with your actual tenant identifier.
@@ -74,9 +75,9 @@ The pipeline has three zones: **GitHub** (source + runner + state), a **trust bo
 |------|-----------|------|
 | GitHub | Developer / Repo / Actions Runner / PR comment / Merge | The source-of-truth + execution surface |
 | GitHub | S3 state backend | Durable Terraform state; itself authn'd via OIDC |
-| Trust boundary | GitHub OIDC token | JWT issued per workflow run, sub claim ties back to repo + branch + env |
-| Trust boundary | AWS IAM trust + Vault jwt auth | Federated trust chain — no static credential at any hop |
-| Trust boundary | DT Platform Token | Lives in Vault; only ephemerally in runner memory; never in GitHub Secrets, never in Terraform state |
+| Trust boundary | GitHub OIDC token | JWT issued per workflow run; sub claim carries the repo plus either the ref or the environment |
+| Trust boundary | AWS IAM trust + Vault jwt auth | Two parallel federated trusts (GitHub -> AWS for state, GitHub -> Vault for the token), scoped by a sub-claim glob — no static credential |
+| Trust boundary | DT Platform Token | Lives in Vault at secret/dynatrace/lab; scopes settings:objects:read/write; only ephemerally in runner memory; never in GitHub Secrets, never in Terraform state |
 | Dynatrace | DT Admin (out-of-band) | Mints the Platform Token in DT UI, deposits it in Vault |
 | Dynatrace | API auth + tenant | Validates the bearer token; applies the Settings 2.0 change |
 For environments where SVG doesn't render
@@ -109,7 +110,6 @@ touch versions.tf main.tf backend.tf .gitignore
 ```gitignore
 # Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfplan
@@ -123,11 +123,13 @@ crash.log
 
 > **Why this matters.** State files and `.tfvars` files routinely contain sensitive values — even with `sensitive = true` they are still plain-text on disk (see AUTOM-04 §3 *Operational Safety*). Committing them to Git is the most common credential-leak path in real Terraform shops.
 
+> **Do commit `.terraform.lock.hcl`.** It records the exact provider build `terraform init` selected, so the PR plan and the merge apply run the same provider. HashiCorp: *"You should include this file in your version control repository"* ([Dependency lock file (Terraform docs)](https://developer.hashicorp.com/terraform/language/files/dependency-lock)). Run `terraform init` once locally and commit the file it creates.
+
 ### `versions.tf` — pin everything
 
 ```hcl
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.11.0" # use_lockfile (backend.tf) is GA from 1.11
 
   required_providers {
     dynatrace = {
@@ -143,16 +145,17 @@ terraform {
 ```hcl
 terraform {
   backend "s3" {
-    bucket       = "my-org-terraform-state"
-    key          = "dynatrace/lab/terraform.tfstate"
-    region       = "us-east-1"
+    bucket = "my-org-terraform-state"
+    key    = "dynatrace/lab/terraform.tfstate"
+    region = "us-east-1"
 
-    # Native S3 lockfile (Terraform 1.10+) — replaces the old DynamoDB lock table.
+    # Native S3 lockfile — added in Terraform 1.10, GA in 1.11; replaces the
+    # DynamoDB lock table, which HashiCorp has deprecated.
     # See https://developer.hashicorp.com/terraform/language/backend/s3 for the
     # current locking model.
     use_lockfile = true
 
-    encrypt      = true
+    encrypt = true
   }
 }
 ```
@@ -220,6 +223,10 @@ This step happens **once**, in the Dynatrace UI, by a human admin. It is deliber
 # Authenticate to Vault as a human admin (any auth method that works for you)
 vault login -method=oidc
 
+# On HCP Vault Dedicated: export VAULT_NAMESPACE=admin   (see Step 3)
+# If no KV v2 engine is mounted at secret/ yet:
+#   vault secrets enable -path=secret kv-v2
+
 # Write the token to the path the workflow will read from
 vault kv put secret/dynatrace/lab \
   platform_token="dt0s16.XXXX..." \
@@ -233,12 +240,26 @@ vault kv put secret/dynatrace/lab \
 <a id="step-3-oidc-trust"></a>
 ## 5. Step 3 — Wire OIDC trust
 
-Two trust relationships need to exist before the workflow can run:
+Two trust relationships need to exist before the workflow can run. Both rest on the same GitHub OIDC token, and they are **independent** of each other:
 
-1. **GitHub -> AWS** — so that the workflow can assume an AWS IAM role to access S3 (state) without a static AWS access key.
-2. **AWS -> Vault** — so that the workflow, having assumed an AWS role, can authenticate to Vault and pull the Dynatrace Platform Token.
+1. **GitHub -> AWS** — the workflow assumes an AWS IAM role to reach S3 (state) without a static AWS access key. AWS is used for nothing else.
+2. **GitHub -> Vault** — Vault's `jwt` auth method trusts GitHub's OIDC issuer directly, so the workflow pulls the Dynatrace Platform Token without a static Vault token. No AWS credential is involved.
 
-Equivalently you can do **GitHub -> Vault directly** via Vault's `jwt` auth method bound to GitHub's OIDC issuer, skipping the AWS hop entirely. Both shapes are recommended in the [GitHub OIDC docs (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect). This LAB uses the AWS hop because it (a) is the most common shape in enterprises and (b) gets you AWS access for the state backend in the same step.
+The [GitHub OIDC docs (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect) name both kinds of target: *"access a cloud provider (such as AWS, Azure, GCP, HashiCorp Vault, and others)"*.
+
+### The `sub` claim — check its format first
+
+Both trusts match on the token's `sub` claim, and its format depends on the repository and the job:
+
+| Case | `sub` looks like |
+|------|------------------|
+| Repo created on GitHub.com **after July 15, 2026** (or opted in) — includes any repo you create for this LAB | `repo:<org>@<org-id>/<repo>@<repo-id>:ref:refs/heads/main` |
+| Older repo | `repo:<org>/<repo>:ref:refs/heads/main` |
+| A job that references an environment (the `apply` job uses `production`) | `…:environment:production` — the ref is **not** included |
+
+Get the two IDs with `gh api repos/<your-org>/<your-repo> --jq '.owner.id, .id'`. If in doubt, run [`github/actions-oidc-debugger` (GitHub)](https://github.com/github/actions-oidc-debugger) once and copy the `sub` it prints.
+
+> <sub>**Sources:** [OIDC reference (GitHub docs)](https://docs.github.com/en/actions/reference/security/oidc) — *"repositories created after July 15, 2026 now use an immutable default subject format that includes both the owner ID and repository ID"*; *"The subject claim includes the branch name of the workflow, but only if the job doesn't reference an environment"*.</sub>
 
 > **Preview — skipping the stored Dynatrace token entirely.** Dynatrace now documents [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation) as a **Preview** feature: *"Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider."* The page names a GitHub Actions job as a fitting workload, so the GitHub OIDC token could authenticate to Dynatrace directly, mapped to a service user — no Platform Token in Vault at all. Verify that WIF is available in your account before relying on it; until then, the Vault-held Platform Token in this LAB remains the working path.
 
@@ -250,11 +271,10 @@ This is a one-time, account-wide setup. If your AWS account already has the GitH
 # Use the AWS account where the S3 state bucket lives
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com \
-  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+  --client-id-list sts.amazonaws.com
 ```
 
-> **Thumbprint note.** AWS no longer strictly verifies the thumbprint when the provider URL host is `token.actions.githubusercontent.com`, but the API still requires the field. The value above is the one GitHub's docs reference; check the [Configuring OpenID Connect in AWS (GitHub docs)](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws) page for the current guidance.
+> **No thumbprint needed.** `--thumbprint-list` is optional: *"If it is not included, IAM will retrieve and use the top intermediate certificate authority (CA) thumbprint of the OpenID Connect identity provider server certificate."* ([CreateOpenIDConnectProvider (AWS docs)](https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateOpenIDConnectProvider.html))
 
 ### 5.2 — Create the AWS IAM role the workflow assumes
 
@@ -275,7 +295,7 @@ Create `trust-policy.json`:
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:<your-org>/<your-repo>:*"
+          "token.actions.githubusercontent.com:sub": "repo:<your-org>@<org-id>/<your-repo>@<repo-id>:*"
         }
       }
     }
@@ -283,7 +303,7 @@ Create `trust-policy.json`:
 }
 ```
 
-> **The `sub` claim is the load-bearing scoping mechanism.** `repo:<your-org>/<your-repo>:*` lets any branch in this repo assume the role. Tighten to `repo:<your-org>/<your-repo>:ref:refs/heads/main` for the apply role; keep the wildcard for the plan role. Mismatched `sub` claims are the single most common OIDC misconfiguration — see Common Pitfalls.
+> **The `sub` claim is the load-bearing scoping mechanism.** The policy uses the immutable format of a repo created after July 15, 2026 (see the table above); for an older repo use `repo:<your-org>/<your-repo>:*`. The `:*` suffix admits any branch, pull request and environment in the repo — right for a shared plan/apply role like this LAB's. To tighten a separate **apply** role, match the environment, not the branch: `repo:<your-org>@<org-id>/<your-repo>@<repo-id>:environment:production`. A `:ref:refs/heads/main` condition never matches the apply job, because a job that references an environment presents `:environment:…` instead of the ref. A mismatched `sub` is a frequent cause of a failed role assumption — see Common Pitfalls.
 
 Create the role and attach a least-privilege policy that allows S3 state access only:
 
@@ -314,7 +334,10 @@ aws iam put-role-policy \
 
 ### 5.3 — Configure Vault to trust GitHub OIDC
 
-The cleanest path is to skip AWS and let Vault accept the GitHub OIDC JWT directly. You only need this once per Vault instance:
+Vault accepts the GitHub OIDC JWT directly through its `jwt` auth method — AWS plays no part in this trust. You only need this once per Vault instance.
+
+> **On HCP Vault Dedicated**, the top-level namespace is `admin`, not root. Run `export VAULT_NAMESPACE=admin` before these commands (and before the `vault kv put` in Step 2), and uncomment `namespace: admin` on both `vault-action` steps in Step 4. Without it, the commands and the workflow reach the wrong namespace. ([What is HCP Vault Dedicated (HashiCorp)](https://developer.hashicorp.com/vault/cloud), [Vault CLI `VAULT_NAMESPACE` (Vault docs)](https://developer.hashicorp.com/vault/docs/commands))
+
 
 ```bash
 # Enable the jwt auth method (idempotent; skip if already enabled)
@@ -338,12 +361,14 @@ vault write auth/jwt/role/dynatrace-terraform-lab \
   user_claim="actor" \
   bound_audiences="https://github.com/<your-org>" \
   bound_claims_type="glob" \
-  bound_claims='{"sub":"repo:<your-org>/<your-repo>:*"}' \
+  bound_claims='{"sub":"repo:<your-org>@<org-id>/<your-repo>@<repo-id>:*"}' \
   policies="dynatrace-lab-read" \
   ttl="15m"
 ```
 
-> **`bound_audiences` must match the audience the workflow requests.** The `hashicorp/vault-action` step lets you specify `jwtGithubAudience`. The default for that input is `sigstore`; we override it below to `https://github.com/<your-org>`.
+> **`bound_claims` uses the same `sub` format as the AWS trust policy** — for a repo created before July 15, 2026, use `repo:<your-org>/<your-repo>:*`.
+>
+> **`bound_audiences` must match the audience the workflow requests.** If `jwtGithubAudience` is omitted, the token carries GitHub's default audience — *"the URL of the repository owner"*, i.e. `https://github.com/<your-org>` ([OIDC reference (GitHub docs)](https://docs.github.com/en/actions/reference/security/oidc)). The workflow below sets it explicitly so the value visibly matches `bound_audiences`.
 
 See the [Vault JWT auth method (Vault docs)](https://developer.hashicorp.com/vault/docs/auth/jwt) for the full claim-binding reference.
 
@@ -382,30 +407,32 @@ env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
 
+# Action majors checked 10/2026 — all run on Node 24 (GitHub removed Node 20 from the
+# runners on 09/23/2026). Terraform pinned to an exact release.
 jobs:
   plan:
     name: terraform plan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: "1.10.0"
-          terraform_wrapper: true   # exposes step outputs we read below
+          terraform_version: "1.16.5"
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::<your-aws-account-id>:role/github-actions-dynatrace-terraform
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Fetch Dynatrace Platform Token from Vault
         id: vault
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: https://vault.example.com:8200
+          # namespace: admin   # HCP Vault Dedicated only
           method: jwt
           jwtGithubAudience: https://github.com/<your-org>
           role: dynatrace-terraform-lab
@@ -433,9 +460,7 @@ jobs:
 
       - name: Post plan to PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          PLAN: ${{ steps.plan.outputs.stdout }}
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -465,23 +490,24 @@ jobs:
     runs-on: ubuntu-latest
     environment: production    # gated by GitHub Environment Protection Rules
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: "1.10.0"
+          terraform_version: "1.16.5"
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::<your-aws-account-id>:role/github-actions-dynatrace-terraform
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Fetch Dynatrace Platform Token from Vault
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: https://vault.example.com:8200
+          # namespace: admin   # HCP Vault Dedicated only
           method: jwt
           jwtGithubAudience: https://github.com/<your-org>
           role: dynatrace-terraform-lab
@@ -499,7 +525,7 @@ jobs:
 ### What the workflow does, in order
 
 1. **Checkout the repo** — standard.
-2. **Setup Terraform** — `hashicorp/setup-terraform@v3` pins to a known version. Pin a real version, not `latest`, so plan output is reproducible across reruns.
+2. **Setup Terraform** — `hashicorp/setup-terraform@v4` pins to a known version. Pin a real version, not `latest`, so plan output is reproducible across reruns.
 3. **AWS credentials via OIDC** — the workflow's OIDC token is exchanged for short-lived AWS credentials by assuming the IAM role created in Step 3.2. **No static AWS access key in GitHub Secrets.**
 4. **Vault token fetch** — the same OIDC token (re-issued for the Vault audience) is exchanged for a short-lived Vault token bound to `dynatrace-terraform-lab` role. **No static Vault token in GitHub Secrets.** `vault-action` automatically masks the secrets in subsequent log lines.
 5. **`terraform fmt -check`** — fail fast on style.
@@ -507,7 +533,7 @@ jobs:
 7. **`terraform validate`** — schema/HCL validation.
 8. **`terraform plan`** — generates the plan; environment variables for the Dynatrace provider come from the Vault step.
 9. **PR-comment step** — only runs on `pull_request` events; posts the plan back as a comment using `actions/github-script`.
-10. **Apply job** — only runs on push-to-main, only after `plan` succeeds, only after the GitHub Environment's required reviewers approve.
+10. **Apply job** — only runs on push-to-main, only after `plan` succeeds, and only after the GitHub Environment's required reviewers approve — if your plan supports required reviewers on this repo (below).
 
 > **`workflow_dispatch` is intentionally omitted.** Adding manual-trigger support is a one-line addition (`on.workflow_dispatch:` block) but it widens the surface — anyone with workflow-write permission can apply on demand. Add it explicitly if your team needs it; defaulting it off is safer.
 
@@ -516,6 +542,9 @@ jobs:
 In the GitHub UI: **Settings -> Environments -> New environment -> `production`**. Then:
 
 - **Required reviewers:** add at least one team member who is not the author. This is the apply gate.
+
+> **Check your GitHub plan before relying on the gate.** *"If you are on a GitHub Free, GitHub Pro, or GitHub Team plan, other deployment protection rules, such as a wait timer or required reviewers, are only available for public repositories."* On GitHub Free, a private repository gets no environments at all. Without the gate, every merge to `main` runs `terraform apply -auto-approve` with no approval and no warning. Use a public repository for this LAB (the token lives in Vault, not the repo) or GitHub Enterprise. ([Managing environments (GitHub docs)](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments))
+
 - **Wait timer:** optional 5–15 minute delay before the gate can be approved (useful for last-call review).
 - **Deployment branches:** restrict to `main` only.
 - **Environment secrets:** none needed for this LAB — secrets come from Vault at runtime.
@@ -578,7 +607,7 @@ gh pr merge --squash --delete-branch
 
 ### Manual approval is the load-bearing safety net
 
-Because `apply` is `-auto-approve`, the GitHub Environment gate is the **only** human checkpoint. Treat the required-reviewers list with the same care as production deploy access for any other system. Two-person rule (author cannot self-approve) is the standard configuration in **Settings -> Environments -> production -> *Prevent self-review***.
+Because `apply` is `-auto-approve`, the GitHub Environment gate is the **only** human checkpoint — and it exists only where your plan provides required reviewers for this repository (Step 4). Without it, a merge applies unattended. Treat the required-reviewers list with the same care as production deploy access for any other system. Two-person rule (author cannot self-approve) is the standard configuration in **Settings -> Environments -> production -> *Prevent self-review***.
 
 ---
 
@@ -602,14 +631,19 @@ Three places to check, in order:
 
 ### 9.3 — Vault audit log
 
+Vault starts with auditing **disabled**, and `vault audit list` only lists the audit devices that are enabled — it shows no requests. To check the reads, enable a file audit device **before** the merge run (on a Vault where you can manage audit devices), then search the log on the Vault server:
+
 ```bash
-# Tail the audit log if you have access
-vault audit list
-# Look for two reads in the last 10 minutes against secret/data/dynatrace/lab,
-# both authenticated via auth/jwt with role=dynatrace-terraform-lab.
+# Before the run
+vault audit enable file file_path=/var/log/vault_audit.log
+
+# After the run, on the Vault server
+grep 'secret/data/dynatrace/lab' /var/log/vault_audit.log
+# Expect two reads from the merge run (plan + apply), each authenticated
+# via auth/jwt with role dynatrace-terraform-lab.
 ```
 
-The role's *Last vault token issued* metadata also updates — visible in the Vault UI under **Access -> Auth methods -> jwt -> Roles -> dynatrace-terraform-lab**.
+> <sub>**Sources:** [Audit logging (Vault docs)](https://developer.hashicorp.com/vault/docs/audit) — *"When you initialize a new Vault cluster, auditing is disabled."*; [audit list (Vault docs)](https://developer.hashicorp.com/vault/docs/commands/audit/list) — *"List information about active audit devices."*</sub>
 
 If all three places show what you expect, the pipeline is wired correctly end-to-end.
 
@@ -622,11 +656,12 @@ If all three places show what you expect, the pipeline is wired correctly end-to
 |---|---------|-------|-----|
 | 1 | `Error: Could not satisfy plugin requirements` on `terraform init` after a state-backend change | Stale `.terraform/` cache | `rm -rf .terraform && terraform init` |
 | 2 | `Error: state lock could not be acquired` | A previous run died holding the lock; with `use_lockfile = true` the lock object is `key.tflock` in the same prefix | Verify no run is actually in progress, then `terraform force-unlock <LOCK_ID>` (the ID is in the error message) |
-| 3 | `Error: AccessDenied` on `s3:GetObject` during `terraform init` | The AWS IAM role is right but the trust policy `sub` claim does not match the workflow context | Compare the OIDC `sub` printed by `actions/github-script` (debug step) against the role's trust policy `StringLike` condition; usually a typo in the org or repo name |
-| 4 | `permission denied: cannot retrieve credential from Vault` | Workflow lacks `id-token: write` permission, or the Vault role's `bound_audiences` does not match `jwtGithubAudience` | Add `id-token: write` to the workflow's `permissions:` block; align the audience strings exactly — Vault is whitespace and case sensitive on this field |
+| 3 | `Not authorized to perform sts:AssumeRoleWithWebIdentity` at the *Configure AWS credentials* step (`terraform init` never runs) | The trust policy's `sub` (or `aud`) condition does not match the token — commonly the old `repo:<org>/<repo>:*` form on a repo that issues the immutable `repo:<org>@<id>/<repo>@<id>:…` format, or a `:ref:refs/heads/main` condition on the apply job, which presents `:environment:production` | Print the token's claims once with `github/actions-oidc-debugger` and match the condition to the `sub` it shows (Step 3 table) |
+| 4 | `permission denied: cannot retrieve credential from Vault` | Workflow lacks `id-token: write` permission, the Vault role's `bound_audiences` does not match `jwtGithubAudience`, or its `bound_claims` `sub` glob uses the wrong `sub` format (Step 3 table) | Add `id-token: write` to the workflow's `permissions:` block; align the audience strings exactly — Vault is whitespace and case sensitive on this field |
 | 5 | Plan posts the Dynatrace token in cleartext into the PR comment | `terraform plan` rendered an attribute that contains the token (e.g. an output, or a debug `local`) | Mark any `output` referencing the token as `sensitive = true` and, more importantly, **never echo `TF_VAR_*` or `DYNATRACE_PLATFORM_TOKEN` from a `run:` step** — `vault-action`'s masking only catches values it injected, not values you re-stringify |
 | 6 | `Error: 403 Forbidden` from the Dynatrace API on apply | Three-things-align failure: service user IAM permissions, creator's `iam:service-users:use` at mint time, or scope selection | Re-read AUTOM-04 §3 *Service User Credentials*; the most common variant is the service user lacking the **Change monitoring settings** permission |
 | 7 | Plan on PR succeeds; same plan on merge-to-main fails | Drift between PR-time and merge-time tenant state, or the apply role can read state but the plan role cannot (or vice versa) | If you split the IAM roles per environment, both must permit S3 state access on the same prefix; for this LAB they share a role, so look for tenant drift first |
+| 8 | `AccessDenied` on `s3:GetObject` / `s3:PutObject` during `terraform init` | The role was assumed, but its **permission** policy does not cover the bucket, the `dynatrace/lab/` prefix or the `.tflock` lock object | Fix the resource ARNs in the role's `terraform-state-access` policy (Step 3.2) |
 
 ---
 
@@ -652,21 +687,21 @@ If all three places show what you expect, the pipeline is wired correctly end-to
 
 Tick off each item to confirm a working LAB:
 
-- [ ] Repo created with `versions.tf`, `main.tf`, `backend.tf`, `.gitignore`
+- [ ] Repo created with `versions.tf`, `main.tf`, `backend.tf`, `.gitignore`; `.terraform.lock.hcl` committed
 - [ ] S3 state bucket created, versioning enabled, encryption enabled
 - [ ] Platform Token minted in DT UI on a service user; deposited in Vault at `secret/dynatrace/lab`
 - [ ] AWS OIDC identity provider for `token.actions.githubusercontent.com` exists
-- [ ] AWS IAM role `github-actions-dynatrace-terraform` with trust policy scoped to your repo
+- [ ] AWS IAM role `github-actions-dynatrace-terraform` with trust policy scoped to your repo, in the `sub` format your repo issues
 - [ ] Vault `jwt` auth method enabled and bound to GitHub's OIDC issuer
 - [ ] Vault role `dynatrace-terraform-lab` with policy granting read on `secret/data/dynatrace/lab`
 - [ ] `.github/workflows/terraform.yml` committed; permissions block contains `id-token: write`
 - [ ] PR run shows green `plan` job; PR comment with plan summary posted
 - [ ] No raw token values appear in any log line
-- [ ] `production` GitHub Environment created; required reviewers configured; deployment branches restricted to `main`
+- [ ] `production` GitHub Environment created; required reviewers configured (public repo or GitHub Enterprise); deployment branches restricted to `main`
 - [ ] Merge-to-main run shows `apply` job waiting on approval; approval triggers apply
 - [ ] Validation: DT tenant shows the new ownership team; modified-by = service user
 - [ ] Validation: GitHub Environments page shows the deployment with approver's name
-- [ ] Validation: Vault audit log shows two reads from the workflow's OIDC identity
+- [ ] Validation: Vault audit log (device enabled before the run) shows two reads from the workflow's OIDC identity
 
 ---
 
@@ -683,6 +718,8 @@ Tick off each item to confirm a working LAB:
 ### GitHub Actions
 
 - [About security hardening with OpenID Connect (GitHub docs)](https://docs.github.com/en/actions/concepts/security/openid-connect)
+- [OpenID Connect reference — subject claims and immutable format (GitHub docs)](https://docs.github.com/en/actions/reference/security/oidc)
+- [Deprecation of Node 20 on GitHub Actions runners (GitHub changelog)](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/) — *"remove Node20 on September 23rd, 2026"*
 - [Configuring OpenID Connect in Amazon Web Services (GitHub docs)](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)
 - [Using secrets in GitHub Actions (GitHub docs)](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)
 - [Using environments for deployment (GitHub docs)](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)
@@ -693,12 +730,21 @@ Tick off each item to confirm a working LAB:
 - [hashicorp/vault-action (HashiCorp GitHub)](https://github.com/hashicorp/vault-action)
 - [aws-actions/configure-aws-credentials (AWS GitHub)](https://github.com/aws-actions/configure-aws-credentials)
 - [actions/github-script (GitHub)](https://github.com/actions/github-script)
+- [github/actions-oidc-debugger (GitHub)](https://github.com/github/actions-oidc-debugger)
 
 ### Terraform / Vault
 
 - [S3 backend (Terraform docs)](https://developer.hashicorp.com/terraform/language/backend/s3) — current S3-lockfile locking model
 - [Sensitive data in state (Terraform docs)](https://developer.hashicorp.com/terraform/language/manage-sensitive-data)
 - [JWT auth method (Vault docs)](https://developer.hashicorp.com/vault/docs/auth/jwt)
+- [Dependency lock file (Terraform docs)](https://developer.hashicorp.com/terraform/language/files/dependency-lock)
+- [Terraform v1.11.0 release notes (HashiCorp GitHub)](https://github.com/hashicorp/terraform/releases/tag/v1.11.0) — *"S3 native state locking is now generally available."*
+- [What is HCP Vault Dedicated (HashiCorp)](https://developer.hashicorp.com/vault/cloud)
+- [Audit logging (Vault docs)](https://developer.hashicorp.com/vault/docs/audit)
+
+### AWS
+
+- [CreateOpenIDConnectProvider (AWS docs)](https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateOpenIDConnectProvider.html)
 
 ---
 

@@ -265,9 +265,10 @@ fetch dt.entity.service
 
 ```dql
 // Find services with recent traffic (spans)
+// dt.service.name is set on every span, whatever the ingest source
 fetch spans, from: now() - 1h
 | filter span.kind == "server"
-| summarize request_count = count(), by: {service.name}
+| summarize request_count = count(), by: {dt.service.name}
 | sort request_count desc
 | limit 20
 ```

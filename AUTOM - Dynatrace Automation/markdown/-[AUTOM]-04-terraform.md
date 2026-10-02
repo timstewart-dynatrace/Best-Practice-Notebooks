@@ -48,7 +48,7 @@ The Dynatrace Terraform provider supports three authentication methods. Each cov
 
 **Preference order (current Dynatrace guidance):**
 
-1. **Platform Token** — recommended default for most integrations. Pair with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` to authenticate to Gen3 Platform resources. Any user can create one (no admin required); long-lived; inherits the creating user's privileges.
+1. **Platform Token** — recommended default for most integrations. Gen3 Platform resources (workflows, documents, segments) use it directly; set `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` when an API token is configured alongside it, so Settings 2.0 resources use the Platform Token too (see §3). Any user can create one (no admin required); long-lived; inherits the creating user's privileges.
 2. **Classic API Token** — legacy; being phased out. Use only for surfaces Platform Token does not yet cover (synthetic monitors primarily).
 3. **OAuth Client** — specialized. Use for external-system integrations and account-level IAM automation (policies, groups, service users). Requires account admin to create.
 
@@ -187,9 +187,9 @@ provider "dynatrace" {
 }
 ```
 
-**Key env var:** `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` tells the provider to use the Platform Token for OAuth-based resources (workflows, documents, segments) in addition to Settings 2.0.
+**Key env var:** `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` makes Settings 2.0 resources use the Platform Token or OAuth client instead of the API token when both are configured, which gives the objects an owner (see the owner-empty note below). Workflows, documents, segments and Grail buckets always use the platform credentials and do not need the flag.
 
-> **How `DYNATRACE_HTTP_OAUTH_PREFERENCE` works:** When set to `true` and OAuth/Platform Token credentials are provided, the provider **prefers REST endpoints that support OAuth** over API Token endpoints. When not set (or `false`), the provider defaults to API Token authentication. Not all resources support OAuth — for example, `dynatrace_json_dashboard` can only be configured using API Tokens regardless of this setting.
+> **How `DYNATRACE_HTTP_OAUTH_PREFERENCE` works:** When set to `true` and OAuth/Platform Token credentials are provided, the provider **prefers REST endpoints that support OAuth** over API Token endpoints. When not set (or `false`), the provider defaults to API Token authentication. Not all resources support OAuth — for example, `dynatrace_json_dashboard` can only be configured using API Tokens regardless of this setting. The flag only arbitrates on resources that accept both credential types: in the provider source, the hybrid client falls back to the API token when the flag is off, while the workflow, document, segment and bucket services build a platform client unconditionally ([`hybrid_client.go` (Dynatrace GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/rest/hybrid_client.go), read 10/02/2026 at v1.105.0).
 
 > **Owner-empty failure mode (combined auth):** When both API Token and OAuth/Platform Token are configured but `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` is **not** set, the provider routes through API Token endpoints and Dynatrace records the resulting Settings 2.0 objects with an **empty owner field**. The provider docs flag this verbatim across 18+ resource pages ([`generic_setting` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/generic_setting.md), [`aws_connection`](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/aws_connection.md), [`github_connection`](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/github_connection.md), and others): *"If a resource is created using an API token or without setting `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` (when both are used), the settings object's owner will remain empty."* Owner-empty settings are harder to audit, can't be filtered by owner in IAM policies, and lose creator attribution in the UI. For any combined-auth pipeline, set `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` even if your immediate use case doesn't seem to need it.
 
@@ -197,9 +197,9 @@ provider "dynatrace" {
 
 ### Method 3: OAuth Client Credentials
 
-**Required** for Account Management (IAM) resources, Grail buckets and `dynatrace_platform_slo`; an alternative to a Platform Token for Automation (Workflows) and Document resources. The provider exchanges your client ID and secret for short-lived OAuth access tokens automatically.
+**Required** for Account Management (IAM) resources and `dynatrace_platform_slo`; an alternative to a Platform Token for Automation (Workflows), Document, Segment and Grail-bucket resources (the bucket resource page documents only the OAuth client — see the note in §4). The provider exchanges your client ID and secret for short-lived OAuth access tokens automatically.
 
-> **IAM is OAuth-only by construction.** Unlike Workflows and Documents (which support Platform Token via `DYNATRACE_HTTP_OAUTH_PREFERENCE=true`), the IAM Account Management API rejects Platform Tokens and classic API tokens — the [`dynatrace_iam_group` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) explicitly requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client."* The minimum-viable OAuth client for IAM needs four scopes: `account-idm-read`, `account-idm-write`, `iam-policies-management`, `account-env-read`. For the full IAM lifecycle (groups + policies + boundaries + bindings + bulk export + DSL discovery), see **AUTOM-95 LAB: Terraform IAM Management**.
+> **IAM is OAuth-only in the provider.** Unlike Workflows and Documents (which accept a Platform Token), the provider's IAM resources take only an OAuth client. Its [configuration reference (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) states *"Platform tokens can't be used for IAM (Account Management)"*, and the [`dynatrace_iam_group` resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group) explicitly requires *"the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID` with an OAuth client."* The minimum-viable OAuth client for IAM needs four scopes: `account-idm-read`, `account-idm-write`, `iam-policies-management`, `account-env-read`. For the full IAM lifecycle (groups + policies + boundaries + bindings + bulk export + DSL discovery), see **AUTOM-95 LAB: Terraform IAM Management**.
 
 ```hcl
 provider "dynatrace" {
@@ -252,7 +252,7 @@ export DYNATRACE_API_TOKEN="dt0c01.xxxx.yyyy"
 | `DYNATRACE_ENV_URL` / `DT_ENV_URL` / `DT_ENVIRONMENT_URL` | Tenant URL |
 | `DYNATRACE_API_TOKEN` / `DT_API_TOKEN` | Classic API token (`dt0c01`) |
 | `DYNATRACE_PLATFORM_TOKEN` / `DT_PLATFORM_TOKEN` | Platform token (`dt0s16`) |
-| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Set to `true` to prefer OAuth endpoints for Platform Token / OAuth resources |
+| `DYNATRACE_HTTP_OAUTH_PREFERENCE` | Set to `true` so resources that accept either credential (Settings 2.0) use the Platform Token / OAuth client instead of the API token |
 | `DT_CLIENT_ID` / `DYNATRACE_CLIENT_ID` | OAuth client ID (for automation/document/IAM resources) |
 | `DT_CLIENT_SECRET` / `DYNATRACE_CLIENT_SECRET` | OAuth client secret |
 | `DT_ACCOUNT_ID` / `DYNATRACE_ACCOUNT_ID` | Account UUID (required for account-level IAM resources) |
@@ -266,9 +266,11 @@ export DYNATRACE_API_TOKEN="dt0c01.xxxx.yyyy"
 | Gen3: Davis anomaly detectors (`dynatrace_davis_anomaly_detectors`) | No | Yes | **Yes** |
 | SLO — Classic (`dynatrace_slo_v2`) | **Yes (required)** | No | No |
 | Synthetic monitors | **Yes (required)** | No (v1.88.0) | No (v1.88.0) |
-| Gen3: Workflows, scheduling | No | Yes (with `HTTP_OAUTH_PREFERENCE`) | **Yes** |
-| Gen3: Documents (dashboards, notebooks) | No | Yes (with `HTTP_OAUTH_PREFERENCE`) | **Yes** |
-| Gen3: Segments | No | Yes (with `HTTP_OAUTH_PREFERENCE`) | **Yes** |
+| Gen3: Workflows, scheduling | No | Yes | **Yes** |
+| Gen3: Documents (dashboards, notebooks) | No | Yes | **Yes** |
+| Gen3: Segments | No | Yes | **Yes** |
+| Grail buckets (`dynatrace_platform_bucket`) | No | Yes (code path — see §4 note) | **Yes** |
+| OpenPipeline (`dynatrace_openpipeline_v2_*`) | Yes | Yes | Yes |
 | Account Management (IAM, policies, groups) | No | No | **Yes** (`DT_ACCOUNT_ID` also needed) |
 | Legacy dashboards (`dynatrace_json_dashboard`) | **Yes (only)** | No | No |
 
@@ -316,6 +318,7 @@ To manage **all** resources that require OAuth authentication, create an OAuth c
 | `storage:bizevents:read` | Read business events |
 | `storage:bucket-definitions:read` | Read Grail bucket definitions |
 | `storage:bucket-definitions:write` | Create/update Grail bucket definitions |
+| `storage:bucket-definitions:delete` | Delete Grail bucket definitions (needed to destroy or replace a bucket) |
 | `storage:filter-segments:read` | Read segments |
 | `storage:filter-segments:write` | Create/update segments |
 | `storage:filter-segments:share` | Share segments |
@@ -380,26 +383,26 @@ Map your resource mix to the token type the Service User should hold:
 
 | Resource the Service User manages | Service User token to issue | Why |
 |-----------------------------------|------------------------------|-----|
-| Settings 2.0 (maintenance windows; classic management zones, auto-tags, alerting profiles, `dynatrace_slo_v2`) | Platform Token (`dt0s16`) | Platform Token service catalog includes `settings`. |
-| Gen3 Platform (workflows, documents, segments, Davis anomaly detectors) | Platform Token (`dt0s16`) with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` | Platform Token service catalog includes `automation`, `document`, `storage`. |
-| Synthetic monitors, the original `dynatrace_slo` resource, legacy config APIs | Classic API Token (`dt0c01`) | Provider v1.88.0+ requires classic API Token for these resources. |
-| SLOs on the modern SLO app (`dynatrace_platform_slo`), OpenPipeline, Grail buckets | OAuth Client (+ `DT_ACCOUNT_ID` for `dynatrace_platform_slo`) | The resource docs require `DT_CLIENT_ID` / `DT_CLIENT_SECRET`; a Platform Token does not drive these. |
+| Settings 2.0 (maintenance windows; OpenPipeline `dynatrace_openpipeline_v2_*`; classic management zones, auto-tags, alerting profiles) | Platform Token (`dt0s16`) | Platform Token service catalog includes `settings`. |
+| Gen3 Platform (workflows, documents, segments, Davis anomaly detectors, Grail buckets) | Platform Token (`dt0s16`) | Platform Token service catalog includes `automation`, `document`, `storage`. The bucket resource page documents only an OAuth client — see the §4 note. |
+| Synthetic monitors, `dynatrace_slo` / `dynatrace_slo_v2`, legacy config APIs | Classic API Token (`dt0c01`) | Provider v1.88.0 removed OAuth for these resources: *"For these resources, an API token must be provided"*. |
+| SLOs on the modern SLO app (`dynatrace_platform_slo`) | OAuth Client (+ `DT_ACCOUNT_ID`) | The resource docs require `DT_CLIENT_ID` / `DT_CLIENT_SECRET`, and `slo` is not among the services the platform-tokens page lists. |
 | **Access Tokens (the `dynatrace_api_token` resource itself)** | **Classic API Token (`dt0c01`) — see disclaimer below** | Documented requirement: `apiTokens.read` + `apiTokens.write` scopes, which are classic-API-Token scopes. |
 | Account Management / IAM (policies, groups, service users) | OAuth Client + `DT_ACCOUNT_ID` | IAM resources are account-level; Platform Token cannot manage them. |
 
-#### Sprint update (SaaS 1.340) — classic REST APIs now accept Platform Tokens
+#### Sprint update (SaaS 1.340–1.342) — classic REST APIs now accept Platform Tokens
 
-The decision table above routes Synthetics / SLO v1 / legacy *Terraform resources* to classic API Tokens because the provider requires them. For **direct REST API calls** (outside Terraform), the classic-token-only constraint has loosened: as of SaaS 1.340, the **classic network-zone, ActiveGate, and OneAgent REST APIs** accept Platform Tokens as an authentication option alongside classic API tokens.
+The decision table above routes Synthetics / SLO v1 / legacy *Terraform resources* to classic API Tokens because the provider requires them. For **direct REST API calls** (outside Terraform), the classic-token-only constraint has loosened: as of SaaS 1.340 the classic **ActiveGate** REST APIs, and from SaaS 1.342 the classic **OneAgent-management and network-zone** REST APIs, accept Platform Tokens as an authentication option alongside classic API tokens.
 
-| Classic REST API | Before SaaS 1.340 | SaaS 1.340+ |
-|------------------|-------------------|-------------|
-| Network-zone REST API | Classic API Token only | Classic API Token **or** Platform Token |
-| ActiveGate REST API | Classic API Token only | Classic API Token **or** Platform Token |
-| OneAgent REST API | Classic API Token only | Classic API Token **or** Platform Token |
+| Classic REST API | Before | Since | Accepted |
+|------------------|--------|-------|----------|
+| Network-zone REST API | Classic API Token only | SaaS 1.342 | Classic API Token **or** Platform Token |
+| ActiveGate REST API | Classic API Token only | SaaS 1.340 | Classic API Token **or** Platform Token |
+| OneAgent REST API | Classic API Token only | SaaS 1.342 | Classic API Token **or** Platform Token |
 
 This narrows the set of surfaces that *force* a classic token. Two caveats: (1) it applies to **direct REST API consumption**, not the Terraform provider — the provider's resource-level token requirements are unchanged until a provider release says otherwise; (2) the release note adds the capability but does not publish the exact Platform Token **scope** required for each API — verify the scope against the API Explorer / Swagger before relying on it. The auth-scheme rule still holds: a Platform Token uses `Authorization: Bearer`, a classic token uses `Authorization: Api-Token` — sending the wrong scheme returns 401 even when the token is otherwise valid.
 
-> <sub>**Sources:** [Dynatrace SaaS 1.340 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340) — *"Added support for platform tokens for classic ActiveGate REST APIs."* (re-read at source 08/24/2026 — an earlier revision of this entry quoted the scope as *"classic network zone / ActiveGate / OneAgent REST APIs"*, which is broader than the release note states: only the classic **ActiveGate** REST APIs are named. Do not assume the classic network-zone or OneAgent REST APIs accept a platform token without testing.)* **Softened:** the exact Platform Token scope per classic API is not stated in the release note — verify at the API Explorer before relying on it.</sub>
+> <sub>**Sources:** [Dynatrace SaaS 1.340 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340) — *"Added support for platform tokens for classic ActiveGate REST APIs."*; [Dynatrace SaaS 1.342 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-342) — *"Platform tokens can now be used to authenticate classic REST APIs for OneAgent management and network zones, in addition to the existing access token support."* (both re-read 10/02/2026). **Softened:** the exact Platform Token scope per classic API is not stated in the release note — verify at the API Explorer before relying on it.</sub>
 
 #### Sprint update (SaaS 1.342–1.343) — platform tokens reach effectively all classic APIs
 
@@ -496,7 +499,7 @@ The previous subsection recommended *minting out-of-band, delivering in-band* �
 | Step | Zone | Action |
 |------|------|--------|
 | 1 | Dynatrace | DT Admin opens the Access Tokens app (or runs an admin one-shot script) |
-| 2 | Dynatrace | Token lands in the DT-side Credential Vault |
+| 2 | Dynatrace | The token value is shown once — the admin copies it (nothing stores it automatically) |
 | 3 | Boundary | **Provision** — the token crosses from DT to GitHub. THIS is the question. |
 | 4 | GitHub | GitHub User triggers a workflow |
 | 5 | GitHub | GitHub Action invokes Terraform |
@@ -539,7 +542,7 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Fetch Dynatrace token from Vault
         id: secrets
@@ -580,16 +583,16 @@ The pattern transposes cleanly to other secret managers — pick whichever your 
 |----------------|---------------|------------------------|
 | HashiCorp Vault | `hashicorp/vault-action` | JWT via GitHub OIDC (above) |
 | AWS Secrets Manager | `aws-actions/aws-secretsmanager-get-secrets` (pair with `aws-actions/configure-aws-credentials` for OIDC) | OIDC → IAM role |
-| Azure Key Vault | `Azure/get-keyvault-secrets` (pair with `azure/login` for OIDC) | OIDC → Azure AD service principal |
+| Azure Key Vault | `azure/login` for OIDC, then `azure/cli` running `az keyvault secret show` (the dedicated `Azure/get-keyvault-secrets` action is deprecated and archived) | OIDC → Azure AD service principal |
 | GCP Secret Manager | `google-github-actions/get-secretmanager-secrets` (pair with `google-github-actions/auth` for OIDC) | OIDC → Workload Identity Federation |
 
-All four follow the same shape as the Vault example: federated identity in step 1, fetch secrets in step 2, consume in `env:` in step 3. None of them require a long-lived credential in GitHub Secrets.
+All four follow the same shape as the Vault example: federated identity in step 1, fetch secrets in step 2, consume in `env:` in step 3. None of them require a long-lived credential in GitHub Secrets. The Azure path is a hand-written script step rather than a dedicated secrets action, so mask the value yourself (`echo "::add-mask::$VALUE"`) before writing it to `$GITHUB_ENV` or an output — the automatic masking quoted above for `vault-action` does not apply to it.
 
 #### Cross-CI-platform note
 
 The mechanisms table generalizes to other CI/CD platforms — GitLab CI variables, Bitbucket workspace variables, Bamboo encrypted plan variables, and Azure DevOps variable groups (optionally Key Vault‐linked) all play the role of "GitHub Secrets" in this discussion. Platform-specific worked examples for those platforms are in **AUTOM-07** (§3 GitHub Actions, §4 GitLab, §5 Bitbucket Pipelines, §6 Atlassian Bamboo, §7 Azure DevOps). The architectural pattern — mint out-of-band, fetch at runtime from an external secret manager via federated identity, never let the long-lived token sit at rest in the CI platform — applies identically.
 
-> <sub>**Sources:** [`hashicorp/vault-action` (HashiCorp GitHub)](https://github.com/hashicorp/vault-action) — current major version v4 (May 2026), JWT/OIDC method, automatic log masking; [Using secrets in GitHub Actions (GitHub docs)](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets) — log redaction behavior, OIDC alternative to long-lived credentials. **Derived:** the five-mechanism comparison table is a synthesis — each row maps to a documented GitHub Actions integration pattern but no primary source ranks them against one another. The recommendation of mechanisms 3 and 4 follows from combining the prior subsection's state-security mandate with each mechanism's at-rest exposure surface.</sub>
+> <sub>**Sources:** [`hashicorp/vault-action` (HashiCorp GitHub)](https://github.com/hashicorp/vault-action) — current major version v4 (May 2026), JWT/OIDC method, automatic log masking; [`Azure/get-keyvault-secrets` (Microsoft GitHub)](https://github.com/Azure/get-keyvault-secrets) — *"This Action is deprecated."*, archived (checked 10/02/2026); [Using secrets in GitHub Actions (GitHub docs)](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets) — log redaction behavior, OIDC alternative to long-lived credentials. **Derived:** the five-mechanism comparison table is a synthesis — each row maps to a documented GitHub Actions integration pattern but no primary source ranks them against one another. The recommendation of mechanisms 3 and 4 follows from combining the prior subsection's state-security mandate with each mechanism's at-rest exposure surface.</sub>
 
 ### Initialize and Validate
 
@@ -618,8 +621,8 @@ This section is the repo's consolidated Terraform resource catalog, organized by
 | SLO | `dynatrace_platform_slo` (modern SLO app, provider v1.78.0+) | **OAuth client only** | Carries forward | Below — DQL SLI in `custom_sli.indicator`; full treatment in SLO-05 |
 | Anomaly detection | `dynatrace_davis_anomaly_detectors` (Davis Anomaly Detection app) | Platform Token or OAuth client | Carries forward | Below — the successor to `dynatrace_metric_events`; DQL-based (AIOPS-02) |
 | Maintenance | `dynatrace_maintenance_windows` (v1.98+) · `dynatrace_maintenance` (provider ≤ v1.97, deprecated) | Classic API token (`settings.read`/`settings.write`) | Carries forward / **Blocked** | Below. The provider-deprecation fix and the upgrade fix are the same move: `dynatrace_maintenance` → `builtin:alerting.maintenance-window` is blocked, `dynatrace_maintenance_windows` → `builtin:maintenance-windows` survives |
-| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingest_sources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | OAuth client only | Carries forward | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
-| Grail buckets | `dynatrace_platform_bucket` | **OAuth client only** — Platform Token cannot drive this resource | Carries forward | Below — see also ORGNZ for bucket strategy |
+| OpenPipeline | `dynatrace_openpipeline_v2_<type>_pipelines` / `_routing` / `_ingestsources` (per-data-type family — e.g. `dynatrace_openpipeline_v2_logs_pipelines`; no single generic `dynatrace_openpipeline` resource exists) | API token (`settings.read`/`settings.write`), Platform Token or OAuth client (`settings:objects:*`; routing needs `settings:objects:admin`) — prefer platform credentials so the object gets an owner | Carries forward | Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (`builtin:openpipeline.<scope>.*`) |
+| Grail buckets | `dynatrace_platform_bucket` | OAuth client (`storage:bucket-definitions:*`) per the resource page; Platform Token per the provider's code path — see the note below | Carries forward | Below — see also ORGNZ for bucket strategy |
 | IAM (Gen3) | `dynatrace_iam_group`, `dynatrace_iam_policy`, `dynatrace_iam_policy_bindings_v2`, `dynatrace_iam_service_user` | **OAuth client only** — Platform Token cannot drive IAM resources | Carries forward | Below — full hands-on walkthrough in AUTOM-95 LAB |
 | Synthetic | `dynatrace_http_monitor`, `dynatrace_browser_monitor` | Classic API token (`ExternalSyntheticIntegration`) | Carries forward | Below. Third-party synthetic monitors are a separate, blocked surface — see SYNTH |
 | *Classic* — config | `dynatrace_management_zone_v2`, `dynatrace_autotag_v2` | Classic API token (`settings.read`/`settings.write`) | **Blocked** | *Classic Resources* below. Successors: `dynatrace_segment` (filtering) + IAM policies (access) — MZ2POL |
@@ -630,11 +633,15 @@ This section is the repo's consolidated Terraform resource catalog, organized by
 
 > **Auth requirement is a strong predictor here, but not a rule.** Every blocked row is a **Classic API token** row, and every Platform-Token-or-OAuth row carries forward — which makes sense, since the Gen3-native resources were built on the surfaces that survive. The exception worth remembering is **Synthetic**: it authenticates with a classic token and still carries forward. Do not infer status from the auth column alone.
 
-> **The OAuth-client-only resources above are a distinct category, not a version nuance.** Unlike most Gen3 resources (which accept either a Platform Token with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true` or an OAuth client), buckets, IAM objects and `dynatrace_platform_slo` only work with `DT_CLIENT_ID`/`DT_CLIENT_SECRET`/`DT_ACCOUNT_ID` OAuth client credentials — a Platform Token will not authenticate against these APIs regardless of scopes. This surfaced repeatedly during a 07/01/2026 cross-series audit (SL2DT-03/07, S2S) where notebooks had implied Platform-Token eligibility for these resources.
+> **The OAuth-client-only resources above are a distinct category, not a version nuance.** Unlike most Gen3 resources (which accept either a Platform Token or an OAuth client), IAM objects and `dynatrace_platform_slo` only work with `DT_CLIENT_ID`/`DT_CLIENT_SECRET`/`DT_ACCOUNT_ID` OAuth client credentials. The provider's configuration reference states *"Platform tokens can't be used for IAM (Account Management) or classic resources."*, and `slo` is not among the services the platform-tokens page lists as covered.
+>
+> **Grail buckets are not in that category.** The `platform_bucket` resource page asks for an OAuth client in the same words the `document` page uses, and the provider builds both on the same platform client — which uses a Platform Token in preference to the OAuth client when one is configured. `storage` is a platform-token service. A Platform Token for buckets is therefore supported by the provider's code path rather than stated on the resource page: confirm it in a non-production tenant before relying on it.
+>
+> <sub>**Sources:** [Provider configuration reference (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"When specified, it is used in preference to `client_id`, `client_secret`"* (the `platform_token` attribute); [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"The following services are covered by platform tokens"* (lists `storage`, not `slo`); [`platform_bucket` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md); [`buckets/service.go` (Dynatrace GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/api/platform/buckets/service.go) — `clientSet.PlatformClient()`, read 10/02/2026 at v1.105.0.</sub>
 
 ### Gen3 Platform Resources — start here
 
-Most Gen3 resources (Workflow, Document, Segment, Davis anomaly detector, Maintenance below) accept **either** a Platform Token (with `DYNATRACE_HTTP_OAUTH_PREFERENCE=true`) **or** OAuth Client Credentials. **Three categories below are the exception and require OAuth Client Credentials only** — a Platform Token will not authenticate against the SLO, Grail Buckets or IAM APIs regardless of scopes (confirmed at the provider registry 07/01/2026, after this exact assumption was found wrong in SL2DT-03/07 during a cross-series audit).
+Most Gen3 resources (Workflow, Document, Segment, Davis anomaly detector, Grail bucket, Maintenance below) accept **either** a Platform Token **or** OAuth Client Credentials. **Two categories below are the exception and require OAuth Client Credentials only:** `dynatrace_platform_slo` (`slo` is not a platform-token service) and the IAM resources (the provider states *"Platform tokens can't be used for IAM (Account Management)"*). Grail buckets sit in between — see the note above the examples.
 
 #### Automation Workflow
 
@@ -666,12 +673,16 @@ resource "dynatrace_automation_workflow" "problem_email" {
     task {
       name        = "send_email"
       description = "Send email notification"
-      action      = "dynatrace.email:email-action"
+      action      = "dynatrace.email:send-email"
       active      = true
       input = jsonencode({
-        to      = ["team@example.com"]
-        subject = "Dynatrace Problem: {{event()['event.name']}}"
-        body    = "Problem detected.\nName: {{event()['event.name']}}\nSeverity: {{event()['event.category']}}"
+        to          = ["team@example.com"]
+        cc          = []
+        bcc         = []
+        subject     = "Dynatrace Problem: {{event()['event.name']}}"
+        content     = "Problem detected.\nName: {{event()['event.name']}}\nSeverity: {{event()['event.category']}}"
+        taskId      = "{{ task().id }}"
+        executionId = "{{ execution().id }}"
       })
       position {
         x = 0
@@ -681,6 +692,8 @@ resource "dynatrace_automation_workflow" "problem_email" {
   }
 }
 ```
+
+**The email task's action ID and input keys are not checked by Terraform.** `action` is a free string and `input` is opaque JSON, so a wrong action ID or input key applies cleanly and then fails, or sends nothing, at run time. The email action is `dynatrace.email:send-email`, and the message body goes in `content`; the field set above follows Dynatrace's published [Send Email workflow sample (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_send_email.yaml). Build the task in the Workflows app and export it when in doubt.
 
 #### Service-Level Objective — OAuth client only
 
@@ -918,6 +931,17 @@ The variable query lists the values the segment's `$cluster` picker offers. It u
 Use `dynatrace_maintenance_windows` (schema `builtin:maintenance-windows`, carries forward). The older `dynatrace_maintenance` resource writes `builtin:alerting.maintenance-window`, which is on the removed-schemas list.
 
 ```hcl
+// Which days an instance is created on comes from a Workflows scheduling rule. This is an
+// automation resource: its credential needs automation:rules:read / automation:rules:write.
+resource "dynatrace_automation_scheduling_rule" "sundays" {
+  title = "Every Sunday"
+  recurrence {
+    datestart = "2026-01-01"
+    frequency = "WEEKLY"
+    weekdays  = ["SU"]
+  }
+}
+
 resource "dynatrace_maintenance_windows" "weekly_patch" {
   name        = "Weekly Patch Window"
   description = "Weekly 02:00-04:00 UTC patching"
@@ -938,15 +962,15 @@ resource "dynatrace_maintenance_windows" "weekly_patch" {
         time           = "02:00:00"
         earliest_start = "2026-01-01"
         until          = "2027-12-31"
-        # Which days an instance is created on comes from a scheduling rule:
-        # rule = dynatrace_automation_scheduling_rule.sundays.id
+        # The days an instance is created on come from the scheduling rule above
+        rule           = dynatrace_automation_scheduling_rule.sundays.id
       }
     }
   }
 }
 ```
 
-> **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` is **deprecated** in provider v1.98+ in favor of **`dynatrace_maintenance_windows`** (example above; shape from the provider's [`maintenance_windows` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/maintenance_windows.md), `terraform validate` clean on v1.104.1). If you are pinned below v1.98, `dynatrace_maintenance` is still the working resource there, but it takes `general_properties` and `schedule` blocks rather than top-level `name`/`type`/`suppression` — export an existing window (`terraform-provider-dynatrace -export dynatrace_maintenance`) for the exact shape, and plan the move to `dynatrace_maintenance_windows` before your tenant upgrades.
+> **Provider version note (v1.98.0, June 2026):** `dynatrace_maintenance` is **deprecated** in provider v1.98+ in favor of **`dynatrace_maintenance_windows`** (example above; shape from the provider's [`maintenance_windows` resource docs (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/maintenance_windows.md), `terraform validate` clean on v1.105.0, 10/02/2026). `rule` is the *"Reference to rule which specifies on which days instance of this maintenance window should be created"*, so the example sets it; the page does not say which days a recurring window uses without one. If you are pinned below v1.98, `dynatrace_maintenance` is still the working resource there, but it takes `general_properties` and `schedule` blocks rather than top-level `name`/`type`/`suppression` — export an existing window (`terraform-provider-dynatrace -export dynatrace_maintenance`) for the exact shape, and plan the move to `dynatrace_maintenance_windows` before your tenant upgrades.
 
 #### OpenPipeline (per-data-type resource family)
 
@@ -957,9 +981,9 @@ resource "dynatrace_openpipeline_v2_logs_pipelines" "custom_logs" {
 }
 ```
 
-**There is no single `dynatrace_openpipeline` resource.** OpenPipeline is Terraform-managed as a per-data-type family — `dynatrace_openpipeline_v2_logs_pipelines`, `_logs_routing`, `_logs_ingest_sources`, and equivalents for `spans`/`metrics`/`events`/`bizevents` — each backed by its own `builtin:openpipeline.<scope>.*` Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough.
+**There is no single `dynatrace_openpipeline` resource.** OpenPipeline is Terraform-managed as a per-data-type family — `dynatrace_openpipeline_v2_logs_pipelines`, `_logs_routing`, `_logs_ingestsources`, and equivalents for `spans`/`metrics`/`events`/`bizevents` — each backed by its own `builtin:openpipeline.<scope>.*` Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough.
 
-#### Grail Bucket — OAuth client only
+#### Grail Bucket
 
 ```hcl
 resource "dynatrace_platform_bucket" "custom_logs" {
@@ -970,7 +994,7 @@ resource "dynatrace_platform_bucket" "custom_logs" {
 }
 ```
 
-**SaaS only, OAuth client credentials only.** Requires an OAuth client with `storage:bucket-definitions:read`, `storage:bucket-definitions:write`, and `storage:bucket-definitions:delete` (verified at the provider registry 07/01/2026). See ORGNZ for bucket-strategy guidance and `terraform-provider-dynatrace -export dynatrace_platform_bucket` to bootstrap from existing buckets.
+**SaaS only.** The resource page documents an OAuth client with `storage:bucket-definitions:read`, `storage:bucket-definitions:write`, and `storage:bucket-definitions:delete` (re-read 10/02/2026). The provider also drives buckets with a Platform Token when one is configured (see the note under the resource table) — verify that in a non-production tenant before relying on it. See ORGNZ for bucket-strategy guidance and `terraform-provider-dynatrace -export dynatrace_platform_bucket` to bootstrap from existing buckets.
 
 #### IAM (group, policy, binding) — OAuth client only
 
@@ -1144,7 +1168,7 @@ resource "dynatrace_autotag_v2" "application" {
 
 #### Alerting Profile → successor `dynatrace_automation_workflow`
 
-> **Dynatrace Classic.** *"Alerting profiles and problem notifications are Dynatrace Classic."* They keep working on Classic tenants, but `builtin:alerting.profile` (the schema behind `dynatrace_alerting`) is on Dynatrace's list of [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."* Delay has no successor field: per the [alert-notification upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification), *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* The example shows the resource shape for estates you still maintain; build new routing with `dynatrace_automation_workflow` (below, and WFLOW / ALERT-03).
+> **Dynatrace Classic.** *"Alerting profiles and problem notifications are Dynatrace Classic."* They keep working on Classic tenants, but `builtin:alerting.profile` (the schema behind `dynatrace_alerting`) is on Dynatrace's list of [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."* Delay has no field on the alerting profile's successor schema: per the [alert-notification upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification), *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* The provider exposes that delay as `problem_open_duration` on the workflow's Davis trigger (v1.102.0+, see §6). The example shows the resource shape for estates you still maintain; build new routing with `dynatrace_automation_workflow` (below, and WFLOW / ALERT-03).
 
 ```hcl
 resource "dynatrace_alerting" "production_alerts" {
@@ -1184,7 +1208,7 @@ resource "dynatrace_slo_v2" "availability" {
   
   metric_expression = "builtin:synthetic.http.availability.location.total:splitBy()"
   
-  filter            = "type(SYNTHETIC_TEST)"
+  filter            = "type(HTTP_CHECK)" # HTTP monitors are HTTP_CHECK entities (SYNTHETIC_TEST is browser monitors)
 
   # required block (fixed 07/01/2026 — missing this causes terraform apply to fail schema validation;
   # confirmed against the current provider schema, same fix applied to SLO-05 / S2S-07 the same day)
@@ -1324,6 +1348,17 @@ For more than a handful of objects, skip hand-written imports and use the export
 
 Create reusable modules:
 
+**modules/team-problem-routing/versions.tf** — every module that uses Dynatrace resources must declare the `dynatrace-oss/dynatrace` source itself. Without it, Terraform looks for an implied `hashicorp/dynatrace` provider, which does not exist, and `terraform init` fails:
+```hcl
+terraform {
+  required_providers {
+    dynatrace = {
+      source = "dynatrace-oss/dynatrace"
+    }
+  }
+}
+```
+
 **modules/team-problem-routing/main.tf** — one problem-notification workflow per owning team, routed on the `owner` tag (FAQ-21):
 ```hcl
 variable "team" {
@@ -1362,12 +1397,16 @@ resource "dynatrace_automation_workflow" "problem_route" {
   tasks {
     task {
       name   = "notify_team"
-      action = "dynatrace.email:email-action"
+      action = "dynatrace.email:send-email"
       active = true
       input = jsonencode({
-        to      = var.recipients
-        subject = "[${var.team}] {{event()['event.name']}}"
-        body    = "Problem affecting an entity owned by ${var.team}.\nName: {{event()['event.name']}}"
+        to          = var.recipients
+        cc          = []
+        bcc         = []
+        subject     = "[${var.team}] {{event()['event.name']}}"
+        content     = "Problem affecting an entity owned by ${var.team}.\nName: {{event()['event.name']}}"
+        taskId      = "{{ task().id }}"
+        executionId = "{{ execution().id }}"
       })
       position {
         x = 0
@@ -1467,12 +1506,16 @@ resource "dynatrace_automation_workflow" "problem_alerts" {
   tasks {
     task {
       name   = "notify"
-      action = "dynatrace.email:email-action"
+      action = "dynatrace.email:send-email"
       active = true
       input = jsonencode({
-        to      = local.config[local.environment].recipients
-        subject = "[${local.environment}] {{event()['event.name']}}"
-        body    = "{{event()['event.name']}}"
+        to          = local.config[local.environment].recipients
+        cc          = []
+        bcc         = []
+        subject     = "[${local.environment}] {{event()['event.name']}}"
+        content     = "{{event()['event.name']}}"
+        taskId      = "{{ task().id }}"
+        executionId = "{{ execution().id }}"
       })
       position {
         x = 0
@@ -1539,7 +1582,7 @@ The Dynatrace Terraform provider can manage IAM policies, groups, and bindings. 
 
 > **Important:** Managing IAM resources requires OAuth client credentials with `DT_ACCOUNT_ID`. API tokens cannot manage IAM.
 
-> **Hands-on lab:** This subsection covers IAM at lecture depth. For a full hands-on walkthrough — OAuth client setup with the four minimal scopes, DSL discovery (no public catalog), the four IAM resource types (groups + policies + boundaries + bindings_v2), the `bindings_v2` re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting with `TF_LOG=DEBUG` — see **AUTOM-95 LAB: Terraform IAM Management**. Note the deprecated-arguments section (LAB-95 §12): `dynatrace_iam_policy.environment` is deprecated in favor of `account = var.account_uuid`, and the provider itself emits a deprecation warning for environment-level policies — the example below defines and binds the policy at account level.
+> **Hands-on lab:** This subsection covers IAM at lecture depth. For a full hands-on walkthrough — OAuth client setup with the four minimal scopes, DSL discovery (no public catalog), the four IAM resource types (groups + policies + boundaries + bindings_v2), the `bindings_v2` re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting with `TF_LOG=DEBUG` — see **AUTOM-95 LAB: Terraform IAM Management**. Note the deprecated-arguments section (AUTOM-95 §13): `dynatrace_iam_policy.environment` is deprecated in favor of `account = var.account_uuid`, and the provider itself emits a deprecation warning for environment-level policies — the example below defines and binds the policy at account level.
 
 ```hcl
 # Create a policy that restricts a team to specific settings schemas
@@ -1574,14 +1617,17 @@ resource "dynatrace_iam_policy_bindings_v2" "payments_binding" {
 
 The schema IDs in a `settings:schemaId` condition must exist: a misspelled ID (for example `builtin:maintenance-window`, which is not a schema) makes the condition silently match nothing. Pick schemas that survive the upgrade — `builtin:alerting.profile` and `builtin:problem.notifications` are on the removed-schemas list.
 
-IAM policies support multiple condition operators:
+IAM policy conditions support several operators. For `settings:schemaId` on `settings:objects:write` these are `IN`, `=`, `!=`, `startsWith` and `NOT startsWith` — there is no substring operator, so a policy using `contains` on a schema ID is rejected:
 
 | Operator | Example | Use Case |
 |----------|---------|----------|
 | `IN` | `settings:schemaId IN ("builtin:davis.anomaly-detectors", ...)` | Explicit list |
 | `startsWith` | `settings:schemaId startsWith "builtin:alerting"` | Schema family |
-| `contains` | `settings:schemaId contains "custom"` | Substring match |
+| `NOT startsWith` | `settings:schemaId NOT startsWith "builtin:alerting"` | Exclude a schema family |
+| `!=` | `settings:schemaId != "builtin:maintenance-windows"` | Exclude one schema |
 | `=` | `storage:bucket-name = "team_logs"` | Data isolation |
+
+> <sub>**Sources:** [IAM policy statements reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — operator list for `settings:schemaId`, re-read 10/02/2026.</sub>
 
 > **Key insight:** The API token scope `settings.write` grants access to ALL schemas. IAM policies with `WHERE settings:schemaId` clauses (using the IAM action `settings:objects:write`) are the only way to restrict schema access at the platform level.
 
@@ -1592,18 +1638,22 @@ IAM policies support multiple condition operators:
 
 ### Token Scoping & the Synthetic Access Problem
 
-A common enterprise requirement is **scoped API access** — allowing Team A to manage only their Synthetic monitors via Terraform while preventing them from modifying Team B's monitors. Today, Dynatrace does not provide object-level or team-scoped API access for Synthetic Monitors because they are managed via the **Classic API v1**, not the modern platform APIs.
+A common enterprise requirement is **scoped API access** — allowing Team A to manage only their Synthetic monitors via Terraform while preventing them from modifying Team B's monitors. **Through the Terraform provider this is still not possible:** the provider manages synthetics only through classic resources (`dynatrace_http_monitor`, `dynatrace_browser_monitor`) that require *"the API token scope **Create and read synthetic monitors, locations, and nodes** (`ExternalSyntheticIntegration`)"*, and classic permissions are tenant-wide.
 
-Here is why each token approach fails for scoped Synthetic access:
+> **Latest Dynatrace — Synthetic access can be scoped per monitor, outside Terraform.** On Latest Dynatrace, Synthetic monitors carry security contexts, and IAM policies can restrict the Synthetic platform permissions to them: *"A user with this policy has platform API access only to monitors with the team-a or platform-ops security context."* (for `ALLOW synthetic:monitors:read WHERE synthetic:dt.security_context IN ("team-a", "platform-ops");`). Dynatrace *"recommends migrating to the Synthetic platform permissions and the Synthetic Platform API to manage Synthetic in Latest Dynatrace"*, and *"Classic permissions remain functional, but they always apply tenant-wide."* For environments created before January 2026, **SaaS 1.343** (staged tenant rollout — verify it has reached yours) performs a one-time migration of each monitor's management zone to a security context of the same name. For automation that calls the Synthetic Platform API as a service user with a security-context-scoped `synthetic:monitors:write` policy, this replaces the workaround patterns below. For **Terraform-managed** synthetics, which still go through the classic resources, the patterns below remain the working path.
+>
+> <sub>**Sources:** [Synthetic access control (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control) — updated 08/05/2026, re-read 10/02/2026; [SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"One-time migration from management zones to security contexts"*; [`http_monitor` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md), [`browser_monitor` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/browser_monitor.md) — classic-token scope quoted above.</sub>
+
+Here is why each token approach fails for scoped Synthetic access **through Terraform**:
 
 | Token Approach | Why It Fails for Synthetic Scoping |
 |----------------|-----------------------------------|
-| **Platform Token** (cluster page) | As of SaaS 1.343 (staged rollout — verify it has reached your tenant) a platform token can authenticate to classic endpoints, but it inherits the holder's environment-wide permissions: there is still no object- or team-level scoping for synthetic monitors, and the Terraform provider still requires a classic token for them (v1.88.0+) |
-| **OAuth Client** | The v1 Synthetic API **does not accept OAuth bearer tokens**. It requires a classic API token (`dt0c01`) with `ExternalSyntheticIntegration` scope. OAuth works for Gen3/platform resources only. |
+| **Platform Token** (cluster page) | The Terraform provider requires a classic token for its synthetic resources (v1.88.0+). On classic endpoints (SaaS 1.343+, staged rollout) a platform token gets only classic, tenant-wide synthetic access; per-monitor scoping applies on the Synthetic Platform API, which the provider does not use |
+| **OAuth Client** | Provider v1.88.0 removed OAuth for `dynatrace_http_monitor` and `dynatrace_browser_monitor` — they take a classic API token (`dt0c01`) with `ExternalSyntheticIntegration` scope. A security-context-scoped service user works only through the Synthetic Platform API, outside the provider |
 | **Personal Access Token** | Still a classic API token — scopes are broad and environment-wide |
 | **Environment Token** | Cannot be restricted to specific objects or teams. This is how classic tokens work by design. |
 
-> **Key insight:** There is no supported way today to say "Team A can manage only their Synthetic monitors via API." For Gen3/platform resources (workflows, documents, segments, Settings 2.0), Service User + OAuth provides genuinely scoped access through IAM policies. Synthetics remain the gap.
+> **Key insight:** There is no way today to say "Team A can manage only their Synthetic monitors" **through the Terraform provider**. On Latest Dynatrace you can say it through the Synthetic Platform API with security-context policies. For Gen3/platform resources (workflows, documents, segments, Settings 2.0), Service User + OAuth provides genuinely scoped access through IAM policies. Terraform-managed synthetics remain the gap.
 
 ### Dual-Auth: Bridging Gen3 and v1
 
@@ -1614,7 +1664,7 @@ provider "dynatrace" {
   dt_env_url       = var.dynatrace_env_url
 
   # Service User + OAuth — for Gen3/platform resources (scoped via IAM)
-  client_id     = var.dt_client_id           # Canonical attribute (v1.93+)
+  client_id     = var.dt_client_id           # Also the fallback for iam_client_id / automation_client_id
   client_secret = var.dt_client_secret
   account_id    = var.dt_account_id
 
@@ -1625,13 +1675,13 @@ provider "dynatrace" {
 
 The service user's group memberships and IAM policies provide **real, scoped access** for Gen3 resources. The classic API token covers synthetics with compensating controls (see workaround patterns below).
 
-> **Migration timeline:** Dynatrace has been progressively migrating features off v1 APIs. When Synthetic monitoring moves to platform APIs with IAM policy-aware services, the OAuth client will cover it and the dual-auth requirement disappears. Track [Dynatrace release notes](https://docs.dynatrace.com/docs/whats-new) for updates.
+> **Migration timeline:** The Synthetic Platform API with security-context scoping already exists on Latest Dynatrace (above). The dual-auth requirement disappears for Terraform once the provider manages synthetics through it — as of v1.105.0 its HTTP and browser monitor resources still require the classic token. Track [provider releases (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) and [Dynatrace release notes](https://docs.dynatrace.com/docs/whats-new) for updates.
 
 ---
 
 ### Synthetic Monitor Workaround Patterns
 
-Since OAuth and Sentinel cannot solve scoped Synthetic access via the v1 API, these are the realistic enterprise patterns:
+For **Terraform-managed** synthetics — classic resources, classic token, tenant-wide access — OAuth and Sentinel cannot provide scoped access, so these are the realistic enterprise patterns. (Automation outside Terraform can use the Synthetic Platform API with security-context policies instead — see above.)
 
 #### Pattern 1: Brokered Self-Service (Recommended)
 
@@ -1643,23 +1693,23 @@ Teams submit **declarative requests** (YAML, Terraform variables, or JSON) descr
 | Team Repo (product team) | Central Terraform Repo (platform team) |
 |---|---|
 | Declares desired synthetics (YAML / Terraform vars / JSON intent) | Owns the environment-wide API token (long-lived, rotated) |
-| No Dynatrace credentials in the repo | Sentinel/OPA enforces team ownership tags, naming conventions, management-zone scoping, allowed locations |
+| No Dynatrace credentials in the repo | Sentinel/OPA enforces team ownership tags, naming conventions, security-context assignment (management zones on Classic tenants), allowed locations |
 | Repo compromise cannot issue Dynatrace API calls | Applies synthetics on behalf of teams |
-| | Result: synthetics in Dynatrace with mandatory tags + management-zone scoping; ownership auditable via tags |
+| | Result: synthetics in Dynatrace with mandatory tags + security-context assignment; ownership auditable via tags |
 For environments where SVG doesn't render
 -->
 
 > **Key principle:** Teams never get direct API access. They get **intent-based self-service**, not credentials.
 
-#### Pattern 2: Management Zone Fencing (Soft Isolation)
+#### Pattern 2: Tag and Security-Context Fencing (Soft Isolation)
 
-Every Synthetic monitor must include a mandatory tag (e.g., `team=payments`) and be bound to a management zone. Terraform modules hard-code the MZ ID and naming prefix. Sentinel or OPA ensures the team repo can only reference its own MZ. *(Classic scoping. Management zones are blocked at upgrade — on an upgraded tenant the same fence is the mandatory ownership tag plus a Conftest rule on it, with visibility scoped by segment and IAM policy.)*
+Every Synthetic monitor must include a mandatory tag (e.g., `team=payments`) and belong to its team's fence: a management zone on Classic tenants, a security context on Latest Dynatrace. Terraform modules hard-code the tag and naming prefix. Sentinel or OPA ensures the team repo can only reference its own fence. *(SaaS 1.343 — staged rollout — migrates each monitor's management zone to a security context of the same name, so an existing MZ fence carries over. Management zones themselves are blocked at upgrade.)*
 
 > **Limitation:** This is **policy enforcement**, not permission enforcement. A compromised pipeline token still has full environment-wide access.
 
 #### Pattern 3: Split Environments (True Isolation)
 
-One Dynatrace environment per business unit, platform, or trust boundary. Synthetic API tokens become effectively scoped by environment since each environment has its own token. This is heavy-handed but the **only way to get true security isolation** for Synthetic monitors today. Recommended in regulated or multi-tenant scenarios.
+One Dynatrace environment per business unit, platform, or trust boundary. Synthetic API tokens become effectively scoped by environment since each environment has its own token. This is heavy-handed, but for **Terraform-managed** synthetics it is the only pattern here that isolates the credential itself. (On Latest Dynatrace, automation outside Terraform can get per-monitor isolation from security-context policies instead.) Recommended in regulated or multi-tenant scenarios.
 
 #### Pattern 4: UI Self-Service + API Read-Only
 
@@ -1667,12 +1717,12 @@ Teams create Synthetic monitors via the Dynatrace UI, where RBAC applies and sco
 
 #### What Does Not Work
 
-These approaches **do not** overcome the v1 API limitation:
+These approaches **do not** overcome the limitation for Terraform-managed synthetics:
 
-- Per-team OAuth clients for Synthetics (OAuth works for Gen3, not v1 APIs)
+- Per-team OAuth clients for Terraform-managed synthetics (the provider's synthetic resources take only a classic API token)
 - Sentinel-only enforcement without pipeline architecture (Sentinel constrains Terraform plans, not API permissions)
 - Terraform modules alone without CI governance (modules can be bypassed without pipeline guardrails)
-- Expecting a platform token to give per-team scoping on synthetic monitors (from SaaS 1.343 it can reach classic endpoints, but with the holder's environment-wide rights)
+- Expecting a platform token on the *classic* synthetic endpoints to give per-team scoping (from SaaS 1.343 it can reach them, but classic permissions always apply tenant-wide; scoping comes from the Synthetic platform permissions on the Synthetic Platform API)
 
 ---
 
@@ -1686,7 +1736,7 @@ These approaches **do not** overcome the v1 API limitation:
 | **Version pinning** | Pin provider versions |
 | **Plan before apply** | Always review plan output |
 | **Meaningful names** | Resource names should be descriptive |
-| **Synthetic access** | Use brokered self-service for v1 API resources; never distribute environment-wide write tokens to teams |
+| **Synthetic access** | Use brokered self-service for Terraform-managed synthetics (classic token); on Latest Dynatrace, scope non-Terraform synthetic automation with security-context policies; never distribute environment-wide write tokens to teams |
 
 ### Common Issues
 
@@ -1716,26 +1766,28 @@ terraform-provider-dynatrace.exe -export [options] [resourcename[=id]]
 
 **Recommended invocation** (canonical Dynatrace-documented form): `./terraform-provider-dynatrace -export -ref -id`. The `-ref` flag emits inter-resource data-source references instead of hardcoded UUIDs (much more maintainable HCL); `-id` adds commented resource IDs above each block for traceability. Skipping `-ref` leaves you with HCL that hard-codes IDs and is painful to maintain. Source: [Terraform CLI commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands) — verbatim: *"Export all configurations with data sources/dependencies and include commented IDs: `./terraform-provider-dynatrace -export -ref -id`"*. Supply credentials via env vars per §3 — never via shell args (visible in process listings).
 
-Executable typically lives at `.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/{version}/{os}/terraform-provider-dynatrace_x.y.z/` after `terraform init`.
+After `terraform init`, the executable is the file `.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/<version>/<os_arch>/terraform-provider-dynatrace_v<version>` — for example `…/1.105.0/darwin_arm64/terraform-provider-dynatrace_v1.105.0`. Run it by that name, or copy it to `./terraform-provider-dynatrace` in your working directory so the commands here work as written. (The DT docs page describes a `terraform-provider-dynatrace_x.y.z/` directory; with v1.105.0 it is a single executable file, observed 10/02/2026.)
 
-**Required env vars:**
+**Env vars:**
 
 - `DYNATRACE_ENV_URL` (required) — tenant endpoint
-- `DYNATRACE_API_TOKEN` (required) — API token for that tenant
+- At least one credential (required): `DYNATRACE_API_TOKEN`, `DYNATRACE_PLATFORM_TOKEN`, or an OAuth client (`DT_CLIENT_ID` / `DT_CLIENT_SECRET`). Each resource type needs a credential it supports (§3): classic-only resources such as synthetic monitors need the API token, and platform resources such as workflows and documents need the platform token or OAuth client — supply both kinds to export everything.
 - `DYNATRACE_TARGET_FOLDER` (optional) — output directory; defaults to `./configuration`
-- **Gen3/IAM resources** additionally need an OAuth client: `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`.
+- **IAM resources** additionally need an OAuth client and `DT_ACCOUNT_ID`.
+
+The provider's export check fails only when none is set — *"No API Token, Platform Token, or OAuth has been specified for export"* ([`provider/config/config.go` (Dynatrace GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/provider/config/config.go), read 10/02/2026).
 
 **Output structure:**
 
 - Default: module structure (one directory per resource family)
 - `-flat` flag: single-directory HCL
 - `.flawed/` — deprecated configs requiring modification
-- `.required_attention/` — items missing essentials (e.g., credential payloads the API can't return); triage before committing
+- `.requires_attention/` — items missing essentials (e.g., credential payloads the API can't return); triage before committing. The DT docs page spells it `.required_attention`; the utility writes `.requires_attention` ([`export/environment.go` (Dynatrace GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/export/environment.go), read 10/02/2026).
 
 **Caveats:**
 
 - **Dashboards excluded by default** — opt in by naming the resource explicitly, or use `-list-exclusions` to see the full opt-in list
-- Sensitive data (e.g., `dynatrace_credentials` confidential strings) lands in `.required_attention/`
+- Sensitive data (e.g., `dynatrace_credentials` confidential strings) lands in `.requires_attention/`
 
 **Flag reference** (verified against [`dynatrace/export/initialize.go`](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/export/initialize.go)):
 
@@ -1757,7 +1809,7 @@ Running `-export` is step 3 of the full setup path. The remaining steps:
 
 1. ✅ Install Terraform CLI (this notebook §2)
 2. ✅ Configure provider + combined auth (this notebook §3)
-3. ✅ Run `terraform-provider-dynatrace -export` (above) → triage `.flawed/` + `.required_attention/`
+3. ✅ Run `terraform-provider-dynatrace -export` (above) → triage `.flawed/` + `.requires_attention/`
 4. **Stand up the repo layout** — see **AUTOM-09 §2 Opinionated Repo Layout** (single-repo or two-repo model)
 5. **Configure the state backend** — see **AUTOM-09 §3 State Backend Setup** (S3+DynamoDB / GCS / Azure / HCP)
 6. **Add lifecycle protections** on critical resources — see **AUTOM-09 §9 Lifecycle Protections**
@@ -1796,12 +1848,12 @@ In this notebook, you learned:
 - Creating resources like management zones, auto-tags, SLOs, and Gen3 platform resources
 - State management and drift detection
 - Advanced patterns with modules, workspaces, and governance inputs
-- Why Synthetic monitors require classic API tokens (v1 API limitation) and workaround patterns
+- Why Terraform-managed Synthetic monitors require classic API tokens, the workaround patterns, and where Latest Dynatrace's security-context policies change that
 - IAM policy management for schema-level access restrictions
 - Brokered self-service as the recommended pattern for governed Synthetic access
 - The provider's built-in `-export` utility for bulk-importing an existing tenant's configuration
 
-> **Key Takeaway:** Use Service User + OAuth for Gen3 resources where IAM provides real scoped access. For Synthetic monitors (v1 API), use brokered self-service with compensating controls — never distribute environment-wide write tokens directly to teams. For first-time setup, see **AUTOM-01 §6 Path A** for the sequenced from-zero-to-pipeline path.
+> **Key Takeaway:** Use Service User + OAuth for Gen3 resources where IAM provides real scoped access. For Terraform-managed Synthetic monitors (classic API token), use brokered self-service with compensating controls — never distribute environment-wide write tokens directly to teams. For first-time setup, see **AUTOM-01 §6 Path A** for the sequenced from-zero-to-pipeline path.
 
 ---
 
@@ -1816,25 +1868,25 @@ The following GitHub repositories provide starter templates, reusable modules, a
 | Repository | Description |
 |------------|-------------|
 | [terraform-provider-dynatrace](https://github.com/dynatrace-oss/terraform-provider-dynatrace) | Official provider (v1.105.0 at time of writing, 09/2026) -- supports hundreds of resource types with export capability |
-| [dynatrace-configuration-as-code-samples](https://github.com/Dynatrace/dynatrace-configuration-as-code-samples) | Official samples repo with 10 Terraform starter templates in `basic-templates-terraform` |
+| [community-examples / configuration-as-code](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code) | Dynatrace's configuration-as-code samples, including the Terraform directories below. They moved here from the archived `Dynatrace/dynatrace-configuration-as-code-samples` repo |
 
-### Starter Templates & Modules (in `dynatrace-configuration-as-code-samples`)
+### Starter Templates & Modules (in `community-examples/configuration-as-code`)
 
 | Template Directory | What It Demonstrates |
 |--------------------|----------------------|
-| `basic-templates-terraform` | 10 starter resources: alerting, app detection, synthetic, SLOs, auto-tags, ownership teams |
-| `terraform_modules` | Reusable module pattern for synthetic HTTP and NAM monitors |
-| `terraform_dql_example` | DQL as a Terraform `data` source -- query entities and create configs dynamically |
-| `terraform_team_onboarding` | IAM policies, groups, and Azure Entra ID integration for team onboarding |
-| `iam_tf_sample` | IAM policies, Grail buckets, OpenPipelines, segments, and team access |
+| [`basic-templates-terraform`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/basic-templates-terraform) | A single `main.tf` with 10 example resources: management zone, alerting profile, auto-tag, web application + detection rule, ownership, email notification, HTTP monitor, SLO. Several (management zone, alerting profile, auto-tag, email notification, `dynatrace_slo_v2`) are Classic resources blocked at upgrade (§4) — use them as shape references on unupgraded tenants only |
+| [`terraform_modules`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_modules) | Reusable module pattern for synthetic HTTP and NAM monitors |
+| [`terraform_dql_example`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_dql_example) | DQL as a Terraform `data` source -- query entities and create configs dynamically |
+| [`terraform_team_onboarding`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_team_onboarding) | IAM policies, groups, and Azure Entra ID integration for team onboarding |
+| [`iam_tf_sample`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/iam_tf_sample) | IAM policies, Grail buckets, OpenPipelines, segments, and team access |
 
 ### Pipeline Observability Samples (Terraform Variants)
 
 | Directory | CI/CD Platform |
 |-----------|---------------|
-| `github_pipeline_observability_terraform` | GitHub Actions |
-| `gitlab_pipeline_observability_terraform` | GitLab CI |
-| `argocd_observability_terraform` | ArgoCD |
+| [`github_pipeline_observability_terraform`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/github_pipeline_observability_terraform) | GitHub Actions |
+| [`gitlab_pipeline_observability_terraform`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/gitlab_pipeline_observability_terraform) | GitLab CI |
+| [`argocd_observability_terraform`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/argocd_observability_terraform) | ArgoCD |
 
 ### Provider Export Feature
 
@@ -1843,8 +1895,8 @@ The provider binary can export existing Dynatrace configuration to `.tf` files:
 ```bash
 # Export all configs from a tenant as HCL (canonical Dynatrace-recommended form)
 ./terraform-provider-dynatrace -export -ref -id
-# Credentials supplied via env vars (DYNATRACE_ENV_URL + Platform/OAuth
-# creds + DYNATRACE_HTTP_OAUTH_PREFERENCE=true) per §3 — never via shell
+# Credentials supplied via env vars (DYNATRACE_ENV_URL plus an API token
+# and/or a platform token or OAuth client) per §3 and §8 — never via shell
 # args, which appear in process listings. See §8 for the full flag table.
 ```
 

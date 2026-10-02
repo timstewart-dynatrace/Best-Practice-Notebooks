@@ -1,6 +1,6 @@
 # AUTOM-05: Dynatrace Workflows
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 Dynatrace Workflows is a built-in automation engine that enables event-driven actions directly within the platform. Unlike external tools, workflows run inside Dynatrace with full access to observability data.
 
@@ -16,8 +16,6 @@ Dynatrace Workflows is a built-in automation engine that enables event-driven ac
 6. [Best Practices](#best-practices)
 7. [Recent Enhancements](#recent-enhancements)
 8. [Next Steps](#next-steps)
-8. [Next Steps](#next-steps)
-8. [Next Steps](#next-steps)
 
 ---
 
@@ -28,7 +26,7 @@ Before starting this notebook, ensure you have:
 | Requirement | Description |
 |-------------|-------------|
 | Dynatrace SaaS | Tenant with Workflows enabled |
-| Permissions | AutomationWorkflows permission |
+| Permissions | `automation:workflows:read` to view workflows; `automation:workflows:write`, `automation:workflows:run` and `app-engine:functions:run` to build and run them ([Workflows security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security)) |
 | Basic DQL | Understanding of Dynatrace Query Language |
 
 ---
@@ -75,15 +73,18 @@ By the end of this notebook, you will:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Component | Purpose |
 |-----------|----------|
-| Trigger | What starts the workflow |
-| Tasks | Actions to perform |
+| Trigger | What starts the workflow: a problem, an event, a schedule, a manual run, or an API request (run endpoint) |
+| Tasks | Actions to perform, linked by predecessors; they run in sequence or in parallel |
 | Conditions | Logic to control flow |
-| Variables | Data passed between tasks |
+| Results | A task's output, readable by the tasks downstream of it |
+| Outputs | ServiceNow ticket, Slack / Teams message, PagerDuty incident, webhook call, auto-remediation |
 -->
 
 ![Workflow Architecture](images/05-workflow-architecture_930x500.png)
 
 ### Triggers
+
+*"A trigger can be a schedule, an event, a manual interaction (on demand), or an API request."* There is no inbound-webhook trigger; an external system starts a workflow by calling its run endpoint ([Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build)).
 
 | Trigger Type | Description | Example |
 |--------------|-------------|----------|
@@ -91,7 +92,7 @@ By the end of this notebook, you will:
 | **Event** | Custom or ingest event | Deployment completed |
 | **Schedule** | Time-based (cron) | Daily at 9 AM |
 | **Manual** | User-initiated | On-demand execution |
-| **On Demand** | API or SDK call | External system trigger |
+| **API request** | Call to the workflow's run endpoint (API or SDK) | External system trigger |
 
 ### Tasks
 
@@ -112,36 +113,45 @@ By the end of this notebook, you will:
 
 Navigate to: **Apps → Workflows**
 
-Or via URL: `https://{tenant}.apps.dynatrace.com/platform/app/dynatrace.automations/workflows`
+Or via URL: `https://{tenant}.apps.dynatrace.com/ui/apps/dynatrace.automations/workflows`
 
 ### Simple Notification Workflow
 
-**Workflow YAML (schematic — shows the trigger → task → input shape, not the exact export format):**
+The examples in this notebook use the workflow **template** format (`schemaVersion: 3`) that the Workflows app imports and exports, trimmed for reading: the `metadata` block and each task's `position` are left out, and connection fields are empty — select the connection in the editor after import.
 
-> **Check connector action IDs in your tenant.** The Slack and ServiceNow action IDs in this notebook are illustrative. Before copying one, add the action in the workflow editor (or export an existing workflow) and use the action ID it shows. The core automation actions are `dynatrace.automations:execute-dql-query`, `dynatrace.automations:run-javascript` and `dynatrace.automations:http-function`.
+> **Action IDs** come from Dynatrace's own workflow samples: `dynatrace.slack:slack-send-message`, `dynatrace.servicenow:snow-create-incident` and `dynatrace.email:send-email`, plus the core `dynatrace.automations:execute-dql-query`, `dynatrace.automations:run-javascript` and `dynatrace.automations:http-function`. Connector actions need the connector installed from Dynatrace Hub. If the editor shows a different ID for an action, use the one it shows. ([Dynatrace-workflow-samples AGENTS.md (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/AGENTS.md))
 
 ```yaml
-title: Problem Notification
-description: Send Slack notification for critical problems
-trigger:
-  type: davis-problem
-  config:
-    categories:
-      - AVAILABILITY
-      - ERROR
-tasks:
-  send_slack:
-    name: Send Slack Alert
-    action: dynatrace.slack:send-message
-    input:
-      connection: slack-webhook
-      channel: "#alerts"
-      message: |
-        :warning: *Problem Detected*
-        *Problem:* {{ event()["display_id"] }} — {{ event()["event.name"] }}
-        *Category:* {{ event()["event.category"] }}
-        *Status:* {{ event()["event.status"] }}
+workflow:
+  title: Problem Notification
+  description: Send a Slack message for availability and error problems
+  tasks:
+    send_slack:
+      name: send_slack
+      description: Send Slack alert
+      action: dynatrace.slack:slack-send-message
+      input:
+        connection: ""          # select the Slack connection in the editor
+        channel: "<channel-id>" # Slack channel ID
+        message: |-
+          :warning: *Problem Detected*
+          *Problem:* {{ event()["display_id"] }} — {{ event()["event.name"] }}
+          *Category:* {{ event()["event.category"] }}
+          *Status:* {{ event()["event.status"] }}
+      predecessors: []
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+            error: true
+  schemaVersion: 3
 ```
+
+Slack calls leave the platform, so allow `slack.com` under **Settings → General → External requests** before the first run.
 
 Problem-trigger event fields are the Grail problem-record field names (`event.name`, `event.category`, `event.status`, `display_id`, `root_cause_entity_id`, `affected_entity_ids`) — the same fields `fetch dt.davis.problems` returns — not the Classic problem-API names (`title`, `severity`, `impactLevel`, `rootCauseEntity`).
 
@@ -149,10 +159,15 @@ Problem-trigger event fields are the Grail problem-record field names (`event.na
 
 | Option | Description |
 |--------|-------------|
-| Categories | AVAILABILITY, ERROR, SLOWDOWN, RESOURCE, CUSTOM |
-| Severities | Filter by severity level |
-| Management Zones | Scope to specific zones |
-| Entity Types | Filter by entity (HOST, SERVICE, etc.) |
+| Problem state | Active (default), active or closed, or closed only |
+| Event category | Availability, Error, Slowdown, Resource, Custom, Info, Monitoring unavailable (`resource` matches `event.category == "RESOURCE_CONTENTION"`) |
+| Severity | The level at or above which problems start the workflow |
+| Affected entities | Filter by entity tags — all defined tags, or any of them |
+| Minimum duration | Postpone the trigger until the problem has been open 5 minutes to one week |
+| Wait for root cause analysis | Start only after root-cause analysis has finished |
+| Additional custom filter query | A DQL matcher, for example `startsWith(root_cause_entity_id, "HOST-")` |
+
+There is no management-zone or entity-type option: scope with entity tags, or with a custom filter on fields such as `root_cause_entity_id`. ([Event triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger), [dynatrace_automation_workflow resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md), [ServiceNow incident sample (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml))
 
 ---
 
@@ -164,9 +179,9 @@ Custom logic with JavaScript:
 // Task: Enrich problem data
 import { execution } from '@dynatrace-sdk/automation-utils';
 
-export default async function ({ execution_id }) {
+export default async function () {
   // The triggering event is on the execution, not a global
-  const ex = await execution(execution_id);
+  const ex = await execution();
   const problem = ex.event() ?? {};
 
   // Build enrichment data
@@ -180,7 +195,7 @@ export default async function ({ execution_id }) {
 }
 ```
 
-A predecessor task's output is `await ex.result('task_name')` (or the standalone `result('task_name')` export) — see the [automation-utils SDK reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/automation-utils/).
+A predecessor task's output is `await ex.result('task_name')` (or the standalone `result('task_name')` export) — see the [automation-utils SDK reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/automation-utils/). List that task under `predecessors`: *"A task can reference only the outputs of its direct predecessors in the workflow graph. If the producing task is not a direct predecessor, the expression resolves to Undefined variables at runtime."* A task with no predecessors starts as soon as the workflow does. ([Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action))
 
 ### Using DQL Tasks
 
@@ -209,10 +224,12 @@ tasks:
 | **Slack** | Send message, post to channel |
 | **Microsoft Teams** | Send adaptive card |
 | **Jira** | Create/update issue |
-| **ServiceNow** | Create incident, update CI |
+| **ServiceNow** | Create, search and comment on incidents; import ServiceNow groups as Ownership teams |
 | **PagerDuty** | Create incident |
-| **OpsGenie** | Create alert |
+| **Jenkins** | Trigger builds and query build status |
 | **Email** | Send email notification |
+
+Connectors other than Email are installed from Dynatrace Hub. ([Workflow actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions), [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now))
 
 ### HTTP Request Task
 
@@ -230,13 +247,15 @@ tasks:
         Content-Type: application/json
         # No Authorization header: select a Credential Vault token in the
         # action's Authentication input instead (see Credential Management below)
-      body: |
+      payload: |
         {
           "title": "{{ event()['event.name'] }}",
           "category": "{{ event()['event.category'] }}",
           "source": "dynatrace"
         }
 ```
+
+The request body goes in `payload` (*"The payload of the HTTP request. Set an appropriate content-type header."*); `body` is a field of the action's *result*, not an input. Add the target domain under **Settings → General → External requests** first: *"All HTTP calls are validated against the global allowlist."* ([HTTP Request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action))
 
 ### Credential Management
 
@@ -255,71 +274,96 @@ The workflow expression language has no `env` or `credential` object, so `{{ env
 ### Pattern: Restart Service
 
 ```yaml
-title: Auto-Restart on Crash
-trigger:
-  type: davis-problem
-  config:
-    categories:
-      - AVAILABILITY
-tasks:
-  check_entity:
-    name: Validate Entity Type
-    action: dynatrace.automations:run-javascript
-    input:
-      script: |
-        import { execution } from '@dynatrace-sdk/automation-utils';
-        export default async function ({ execution_id }) {
-          const ex = await execution(execution_id);
-          const entityId = (ex.event() ?? {})['root_cause_entity_id'] ?? '';
-          if (!entityId.startsWith('PROCESS_GROUP_INSTANCE-')) {
-            return { skip: true };
+workflow:
+  title: Auto-Restart on Crash
+  tasks:
+    check_entity:
+      name: check_entity
+      description: Validate the root-cause entity type
+      action: dynatrace.automations:run-javascript
+      input:
+        script: |-
+          import { execution } from '@dynatrace-sdk/automation-utils';
+          export default async function () {
+            const ex = await execution();
+            const entityId = (ex.event() ?? {})['root_cause_entity_id'] ?? '';
+            if (!entityId.startsWith('PROCESS_GROUP_INSTANCE-')) {
+              return { skip: true };
+            }
+            return { entityId, skip: false };
           }
-          return { entityId, skip: false };
-        }
-  
-  restart_service:
-    name: Execute Restart
-    action: dynatrace.automations:http-function
-    conditions:
-      states:
-        check_entity: OK
-      custom: "{{ result('check_entity').skip == false }}"
-    input:
-      url: "https://runbook.example.com/restart"
-      method: POST
-      body: |
-        {
-          "entityId": "{{ result('check_entity').entityId }}"
-        }
+      predecessors: []
+    restart_service:
+      name: restart_service
+      description: Call the restart runbook
+      action: dynatrace.automations:http-function
+      input:
+        url: "https://runbook.example.com/restart"
+        method: POST
+        headers:
+          Content-Type: application/json
+        payload: |-
+          { "entityId": "{{ result('check_entity').entityId }}" }
+      predecessors:
+        - check_entity
+      conditions:
+        states:
+          check_entity: OK
+        custom: "{{ result('check_entity').skip == false }}"
+        else: SKIP
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+  schemaVersion: 3
 ```
 
 ### Pattern: Scale on High CPU
 
 ```yaml
-title: Auto-Scale on Resource Pressure
-trigger:
-  type: davis-problem
-  config:
-    categories:
-      - RESOURCE
-tasks:
-  check_cpu:
-    name: Query Current CPU
-    action: dynatrace.automations:execute-dql-query
-    input:
-      query: |
-        timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.entity.host == "{{ event()['root_cause_entity_id'] }}"}
-        | fieldsAdd avg_cpu = arrayAvg(cpu)
-  
-  scale_up:
-    name: Trigger Scale Event
-    action: dynatrace.automations:http-function
-    conditions:
-      custom: "{{ result('check_cpu').records[0].avg_cpu > 90 }}"
-    input:
-      url: "https://api.cloud.example.com/scale"
-      method: POST
+workflow:
+  title: Auto-Scale on Resource Pressure
+  tasks:
+    check_cpu:
+      name: check_cpu
+      description: Query current CPU of the root-cause host
+      action: dynatrace.automations:execute-dql-query
+      input:
+        query: |-
+          timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.entity.host == "{{ event()['root_cause_entity_id'] }}"}
+          | fieldsAdd avg_cpu = arrayAvg(cpu)
+      predecessors: []
+    scale_up:
+      name: scale_up
+      description: Trigger scale event
+      action: dynatrace.automations:http-function
+      input:
+        url: "https://api.cloud.example.com/scale"
+        method: POST
+      predecessors:
+        - check_cpu
+      conditions:
+        states:
+          check_cpu: OK
+        custom: "{{ result('check_cpu').records | length > 0 and result('check_cpu').records[0].avg_cpu > 90 }}"
+        else: SKIP
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            resource: true
+          customFilter: startsWith(root_cause_entity_id, "HOST-")
+  schemaVersion: 3
 ```
+
+This pattern only fits problems whose root cause is a host. On a validation tenant over seven days (10/02/2026), 16 resource-contention problems had a host as root cause, 45 a process group, and 1,477 no root-cause entity at all; for anything but a host the query returns no records, and `records[0].avg_cpu` would be undefined. The trigger's custom filter keeps the workflow to host-rooted problems, and the `length > 0` guard skips the scale call when the query comes back empty.
 
 > A bare `timeseries avg(dt.host.cpu.usage) | filter dt.entity.host == …` fails with `FIELD_DOES_NOT_EXIST`: without `by:{dt.entity.host}` the series carries no host dimension to filter on. Filter inside `timeseries` (as above) or add the `by:` clause.
 
@@ -328,42 +372,56 @@ tasks:
 ### Pattern: Create Incident Ticket
 
 ```yaml
-title: ServiceNow Incident Creation
-trigger:
-  type: davis-problem
-  config:
-    categories:
-      - AVAILABILITY
-      - ERROR
-tasks:
-  create_incident:
-    name: Create ServiceNow Incident
-    action: dynatrace.servicenow:create-incident
-    input:
-      connection: servicenow-prod
-      short_description: "Dynatrace: {{ event()['event.name'] }}"
-      description: |
-        Problem detected by Dynatrace Intelligence
+workflow:
+  title: ServiceNow Incident Creation
+  tasks:
+    create_incident:
+      name: create_incident
+      description: Create a ServiceNow incident
+      action: dynatrace.servicenow:snow-create-incident
+      input:
+        connectionId: ""        # select the ServiceNow connection in the editor
+        shortDescription: "Dynatrace: {{ event()['event.name'] }}"
+        description: |-
+          Problem detected by Dynatrace Intelligence
 
-        Problem: {{ event()['display_id'] }}
-        Name: {{ event()['event.name'] }}
-        Category: {{ event()['event.category'] }}
-        Root Cause: {{ event()['root_cause_entity_name'] }}
-      urgency: 2
-      impact: 2
-
-  add_comment:
-    name: Comment on Problem
-    action: dynatrace.automations:run-javascript
-    input:
-      script: |
-        import { result } from '@dynatrace-sdk/automation-utils';
-        export default async function () {
-          const incident = await result('create_incident');
-          // Add comment to Dynatrace problem with ticket reference
-          return { ticketId: incident?.sys_id, status: 'created' };
-        }
+          Problem: {{ event()['display_id'] }}
+          Name: {{ event()['event.name'] }}
+          Category: {{ event()['event.category'] }}
+          Root Cause: {{ event()['root_cause_entity_name'] }}
+        urgency: "2"
+        impact: "2"
+        correlationId: DT_{{ event()['event.id'] }}
+      predecessors: []
+    record_ticket:
+      name: record_ticket
+      description: Keep the incident reference for later tasks
+      action: dynatrace.automations:run-javascript
+      input:
+        script: |-
+          import { result } from '@dynatrace-sdk/automation-utils';
+          export default async function () {
+            const incident = await result('create_incident');
+            return { incidentUrl: incident?.url, status: 'created' };
+          }
+      predecessors:
+        - create_incident
+      conditions:
+        states:
+          create_incident: OK
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+            error: true
+  schemaVersion: 3
 ```
+
+Input names follow Dynatrace's ServiceNow sample, which also searches for an existing incident by `correlationId` (`snow-search-incidents`) before creating one, so a re-triggered problem does not open a second ticket. ([ServiceNow incident sample (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml))
 
 ---
 
@@ -383,9 +441,9 @@ tasks:
 
 | Practice | Description |
 |----------|-------------|
-| **Scope narrowly** | Use management zones and filters |
+| **Scope narrowly** | Use the trigger's entity-tag filter and a custom filter query |
 | **Avoid duplicates** | Check if action already taken |
-| **Debounce** | Add delays for flapping alerts |
+| **Debounce** | Use the trigger's **Minimum duration** option (5 minutes to one week) for flapping problems |
 
 ### Security
 
@@ -409,13 +467,16 @@ tasks:
       delay: 30          # seconds
 
   error_handler:
-    name: Handle Error
-    action: dynatrace.slack:send-message   # verify the action ID in your workflow editor
+    name: error_handler
+    action: dynatrace.slack:slack-send-message
+    predecessors:
+      - api_call
     conditions:
       states:
         api_call: ERROR
     input:
-      channel: "#alerts"
+      connection: ""          # select the Slack connection in the editor
+      channel: "<channel-id>"
       message: "Task api_call failed after 3 retries"
 ```
 
@@ -438,20 +499,19 @@ Dynatrace has added several capabilities to the Workflows engine:
 | **Simple Workflows** | Quickly automate single-step tasks (e.g., send a Slack notification) at no additional cost |
 | **Persistent Execution Data** | Retain execution history for analysis and refinement |
 | **Real-time Notifications** | Get notified when workflows complete or fail |
-| **ServiceNow Integration** | Six pre-built integrations for incident creation, CMDB enrichment |
+| **ServiceNow Connector** | Create, search and comment on incidents; import ServiceNow groups as Ownership teams |
 
-### Dynatrace Intelligence Agents
+### Agentic Workflows
 
-With Dynatrace Intelligence (announced Perform 2026), workflows can now host **agentic workflows** that use Intelligence Agents for autonomous operations:
+An agentic workflow is a workflow with at least one agentic action — a task that reasons over live environment data instead of producing a fixed output:
 
 | Capability | Description |
 |------------|-------------|
-| **Agentic Workflows** | AI agents execute decisions within workflow tasks |
-| **Closed-loop Remediation** | Agents can autonomously resolve issues with guardrails |
-| **SRE Agents** | Specialized agents for incident triage and resolution |
-| **Governance** | Human oversight controls for supervised or autonomous modes |
+| **Prompt generative AI** | Agentic action for generative tasks, such as a summary |
+| **Prompt agentic AI** | Agentic action that calls tools to query and act on your environment |
+| **Request Approval** | A task that pauses for a human decision before a consequential step |
 
-> **Note:** Intelligence Agents build on top of the Workflows engine. Existing workflow patterns remain valid; Agents add an AI reasoning layer for autonomous decision-making.
+Dynatrace's guidance: *"When an agentic workflow drives consequential actions, consider adding a Request Approval task to keep a human in the loop."* Agentic actions are tasks like any other, so the trigger, predecessor and condition patterns above apply unchanged. ([Workflows concepts (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/concepts))
 
 ---
 

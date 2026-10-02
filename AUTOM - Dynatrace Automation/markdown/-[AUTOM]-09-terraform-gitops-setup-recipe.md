@@ -1,6 +1,6 @@
 # AUTOM-09: Terraform GitOps Setup Recipe
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 9 of 9 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 A practical, opinionated recipe for standing up a Terraform GitOps shop for Dynatrace from scratch. This notebook covers what AUTOM-04 (Terraform resources) and AUTOM-07 (CI/CD integration) deliberately don't — repo layout, state backend choices, multi-environment promotion, lifecycle protections, secrets handling end-to-end, team onboarding, and operational realities. Use it as the bootstrap reference; consult AUTOM-04 for resource-level patterns and AUTOM-07 for CI/CD pipeline specifics.
 
@@ -116,7 +116,7 @@ The consumer repo organizes by ownership rather than by environment alone:
 dynatrace-config-platform/
 ├─ org/
 │  ├─ _account_template/             # ← Shared root used by every environment below
-│  │  ├─ backend.tf                  # Remote state backend config (S3 + DynamoDB locking)
+│  │  ├─ backend.tf                  # Remote state backend config (S3, native lockfile locking)
 │  │  ├─ modules.tf                  # Calls reusable modules with pinned Git-tag versions
 │  │  ├─ variables.tf                # Input variable definitions
 │  │  ├─ locals.tf                   # Derived values (env flags, naming conventions)
@@ -186,8 +186,8 @@ State is the durable record of what Terraform manages. Remote backends matter fo
 | Backend | Choose when | Trade-off |
 |---------|-------------|-----------|
 | **HCP Terraform** (`cloud {}`) | You want managed state + run-on-HCP + Sentinel policy enforcement out-of-box | Paid SaaS; ties you to HashiCorp; runs originate on HCP unless you configure agents |
-| **S3 + DynamoDB lock** | You're an AWS shop already; want self-hosted; have ops capacity to maintain it | Two AWS resources to keep healthy; bucket + DynamoDB table both need encryption + versioning |
-| **GCS** (with built-in locking) | You're a GCP shop; want self-hosted | Built-in locking simpler than the S3+DynamoDB pair |
+| **S3 (native lockfile)** | You're an AWS shop already; want self-hosted; have ops capacity to maintain it | Bucket needs encryption + versioning; native locking needs Terraform 1.11+ (DynamoDB-based locking is deprecated) |
+| **GCS** (with built-in locking) | You're a GCP shop; want self-hosted | Built-in locking; no extra resources |
 | **Azure Storage** (with built-in lease-based locking) | You're an Azure shop | Built-in locking via blob lease |
 
 > The four examples below show one `backend.tf` per environment. Each environment has its own state file / workspace — the line between envs is the line between state files. Cross-env access happens via `terraform_remote_state` data sources (used sparingly).
@@ -208,7 +208,7 @@ terraform {
 
 Workspace per environment; HCP manages state, locking, and run history. Sentinel policies attach to the workspace.
 
-### S3 + DynamoDB lock backend
+### S3 backend (native locking)
 
 ```hcl
 # envs/production/backend.tf
@@ -218,18 +218,20 @@ terraform {
     key            = "dynatrace/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "terraform-state-lock"
+    use_lockfile   = true # S3-native locking (GA in Terraform 1.11)
     kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
   }
 }
 ```
+
+`use_lockfile` writes a `<key>.tflock` object next to the state, so no lock table is needed. HashiCorp's S3 backend page: *"DynamoDB-based locking is deprecated and will be removed in a future minor version."* The [Terraform 1.11 changelog (HashiCorp GitHub)](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md) marks the switch: *"S3 native state locking is now generally available."*
 
 **Bucket setup checklist:**
 - Versioning enabled (recovery from accidental state deletion)
 - Server-side encryption with KMS CMK (not just SSE-S3)
 - Public-access block on
 - Lifecycle policy keeping at least 90 days of versions
-- Bucket policy restricting access to the CI/CD service principal + the platform team
+- Bucket policy restricting access to the CI/CD service principal + the platform team — and allowing that principal `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject` on the `.tflock` object
 
 **State-key naming — derive from repo + env path:** for shops with multiple Dynatrace-Terraform repos sharing one state bucket, derive the S3 key from `<repo-name>/<env-path>/terraform.tfstate` rather than a flat `dynatrace/<env>.tfstate`. Examples: `dynatrace-config-platform/team-a/prod/terraform.tfstate`, `dynatrace-tenant-bootstrap/sandbox/terraform.tfstate`. This isolation lets multiple repos coexist in one bucket without key collisions; the bucket-policy + KMS-key boundary still applies at the prefix level. A simple `backend.tf` template that interpolates the key from repo + env:
 
@@ -241,7 +243,7 @@ terraform {
     # key = "<repo-name>/<env-path>/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "terraform-state-lock"
+    use_lockfile   = true
     kms_key_id     = "arn:aws:kms:us-east-1:123456789012:key/abcd-..."
   }
 }
@@ -249,10 +251,7 @@ terraform {
 
 Initialize per-env: `terraform init -backend-config="key=dynatrace-config-platform/team-a/prod/terraform.tfstate"`.
 
-**DynamoDB lock table:**
-- Primary key: `LockID` (string)
-- On-demand billing (locks are short-lived; provisioned is wasteful)
-- Point-in-time recovery enabled
+**Migrating from a DynamoDB lock table:** HashiCorp allows both during the move — *"To support migration from older versions of Terraform that only support DynamoDB-based locking, the S3 and DynamoDB arguments can be configured simultaneously."* Add `use_lockfile = true` next to the existing `dynamodb_table`, run `terraform init -reconfigure`, confirm that plans acquire the lock, then remove `dynamodb_table` (and later the table itself).
 
 ### GCS backend
 
@@ -266,7 +265,7 @@ terraform {
 }
 ```
 
-Built-in locking via GCS object generation. Less infrastructure to maintain than S3+DynamoDB. Enable bucket versioning + CMEK for parity.
+Built-in locking via GCS object generation. Enable bucket versioning + CMEK for parity.
 
 ### Azure Storage backend
 
@@ -295,7 +294,9 @@ Regardless of backend, treat the state file like a tier-0 asset:
 
 > <sub>**Sources:**</sub>
 > - <sub>[Backend types (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend) — backend configuration reference.</sub>
-> - <sub>[S3 backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/s3), [GCS backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/gcs), [Azure backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/azurerm) — per-backend config details.</sub>
+> - <sub>[S3 backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/s3) — *"DynamoDB-based locking is deprecated and will be removed in a future minor version."*; `.tflock` permissions.</sub>
+> - <sub>[Terraform 1.11 changelog (HashiCorp GitHub)](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md) — *"S3 native state locking is now generally available."*</sub>
+> - <sub>[GCS backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/gcs), [Azure backend (HashiCorp)](https://developer.hashicorp.com/terraform/language/backend/azurerm) — per-backend config details.</sub>
 > - <sub>**Derived:** the bucket-setup checklist (versioning + CMK + public-access-block + lifecycle + bucket policy) is industry-standard cloud-storage hardening applied to state buckets specifically; not vendor-documented as a single checklist.</sub>
 
 <a id="provider-config"></a>
@@ -341,12 +342,14 @@ The middle two are the practical defaults. Use the **tighter** form (`~> 1.96.0`
 provider "dynatrace" {
   dt_env_url   = var.dt_env_url
   dt_api_token = var.dt_api_token
-  # Platform Token is read from DT_PLATFORM_TOKEN env var
-  # HTTP_OAUTH_PREFERENCE=true should be set in the CI/CD env
+  # Platform Token is read from the DYNATRACE_PLATFORM_TOKEN (or DT_PLATFORM_TOKEN) env var.
+  # OAuth client for dynatrace_platform_slo (§5) and IAM: DT_CLIENT_ID,
+  # DT_CLIENT_SECRET and DT_ACCOUNT_ID env vars.
+  # Set DYNATRACE_HTTP_OAUTH_PREFERENCE=true in the CI/CD env.
 }
 ```
 
-See **AUTOM-07 §3 *Terraform Workflow with Combined Auth*** for the full pattern — Platform Token + API Token together give full Dynatrace resource coverage. Don't pick one; use both.
+See **AUTOM-07 §3 *Terraform Workflow with Combined Auth*** for the pipeline pattern. Plan for **three** credentials, not two: a classic API token for classic resources, a Platform Token for most platform resources, **plus an OAuth client** (`DT_CLIENT_ID` / `DT_CLIENT_SECRET` / `DT_ACCOUNT_ID`) for `dynatrace_platform_slo` — the representative module in §5 — and for IAM. The provider docs state that *"Platform tokens can't be used for IAM (Account Management) or classic resources"*, its `dynatrace_platform_slo` page asks for an OAuth client with `slo:slos:read` / `slo:slos:write`, and the SLO service is not among the services the [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) page lists as covered. With only the two tokens, the recipe's first module cannot authenticate.
 
 ### Upgrade cadence
 
@@ -356,12 +359,14 @@ See **AUTOM-07 §3 *Terraform Workflow with Combined Auth*** for the full patter
 | **Quarterly** | Bump the production version constraint after staging has been on the newer version for 2–4 weeks without issue |
 | **On a known breaking change** | Coordinate the bump across all envs in one PR; bring a rollback plan |
 
-The Dynatrace provider has been on a steady cadence — v1.88 (November 2025) through v1.104 (September 2026), several of them with breaking changes (v1.101, v1.102 and v1.104 each removed resources, attributes or environment variables). Staying current is straightforward if you treat it as a recurring chore.
+The Dynatrace provider has been on a steady cadence — v1.88 (November 2025) through v1.105 (September 2026), several of them with breaking changes (v1.101, v1.102 and v1.104 each removed resources, attributes or environment variables). Staying current is straightforward if you treat it as a recurring chore.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Provider requirements (HashiCorp)](https://developer.hashicorp.com/terraform/language/providers/requirements) — `required_providers` syntax.</sub>
 > - <sub>[Version constraints (HashiCorp)](https://developer.hashicorp.com/terraform/language/expressions/version-constraints) — *"Allows Terraform to install 1.2 and 1.10 but not 2.0."* (the `~> 1.1` example).</sub>
-> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (v1.104.1, released 09/10/2026, at time of writing).</sub>
+> - <sub>[dynatrace-oss/terraform-provider-dynatrace releases (GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases) — release cadence reference (v1.105.0, released 09/23/2026, at time of writing).</sub>
+> - <sub>[Provider index (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — `platform_token`: *"Platform tokens can't be used for IAM (Account Management) or classic resources."*; the `DYNATRACE_HTTP_OAUTH_PREFERENCE` variable.</sub>
+> - <sub>[`platform_slo.md` (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) — OAuth client with **View SLOs** (`slo:slos:read`) and **Create and edit SLOs** (`slo:slos:write`).</sub>
 
 <a id="module-strategy"></a>
 ## 5. Module Strategy
@@ -563,7 +568,7 @@ variable "dt_platform_token" {
 
 1. **Plan output masks the value** — `terraform plan` shows `(sensitive value)` instead of the token
 2. **Apply output masks the value** — same masking in the success log
-3. **Outputs that pass sensitive values through inherit the marking** — propagation prevents accidental exposure downstream
+3. **Terraform refuses to pass it out unmarked** — a root-module output that references a sensitive value fails `plan` until you mark the output `sensitive = true` (reproduced on Terraform 1.14.5)
 
 It does **not** encrypt the value in state. State is in plaintext; the masking is for *log* output only.
 
@@ -602,7 +607,7 @@ Lifecycle blocks are Terraform's safety net for production. Four meta-arguments 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Meta-argument | Effect | Use for |
 |---------------|--------|---------|
-| `prevent_destroy = true` | Refuses any plan that would delete this resource | Grail buckets, IAM policies / bindings, segments other config references, ActiveGate tokens |
+| `prevent_destroy = true` | Rejects plans that would destroy it — but not removal of its resource block | Grail buckets, IAM policies / bindings, segments other config references, ActiveGate tokens |
 | `ignore_changes = [field, ...]` | Stops Terraform from "fixing" drift on listed fields | Human-owned fields (description, tags), UI-tuned thresholds, auto-populated metadata |
 | `create_before_destroy = true` | New resource stood up before old one removed | Synthetics, problem-routing workflows (no observability gap) |
 | `replace_triggered_by = [ref, ...]` | Force-recreate when a referenced resource changes | Workflows whose webhook credential rotates, dashboards tied to a recreated data source |
@@ -625,6 +630,8 @@ resource "dynatrace_platform_bucket" "audit_logs" {
 ```
 
 Catches `terraform destroy` and any plan that would `-/+` the resource. The plan fails with an error and the apply doesn't proceed.
+
+**It does not protect against deleting the resource block itself.** HashiCorp: *"This rule doesn't prevent Terraform from destroying a resource if you remove its configuration."* A PR that deletes the block — or the module call, or a team's whole directory — destroys the resource on apply, `prevent_destroy` or not. Pair it with a policy gate on `delete` actions (*Policy instead of lifecycle*, below).
 
 **Use for:** production Grail buckets (lose the data in them), production IAM policies / group bindings (lose access), segments that IAM policies or dashboards reference, ActiveGate token resources backing on-call notifications. On a tenant not yet upgraded, add production management zones — they still carry IAM scope and alerting routing there.
 
@@ -697,7 +704,7 @@ It is tempting to drive `prevent_destroy` from a module input (`prevent_destroy 
 - **A protected module variant.** Keep `modules/grail-bucket/` unprotected and add `modules/grail-bucket-protected/` with `prevent_destroy = true` hard-coded; only production roots consume the protected variant.
 - **Policy instead of lifecycle.** Enforce it in the pipeline — a Conftest (AUTOM-07 §3 *Policy-as-Code Gates*) rule that fails any production plan containing a `delete` action on the protected resource types.
 
-> <sub>**Sources:** [The lifecycle meta-argument (HashiCorp)](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle) — all four meta-arguments documented; *"only literal values can be used because the processing happens too early for arbitrary expression evaluation."*</sub>
+> <sub>**Sources:** [The lifecycle meta-argument (HashiCorp)](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle) — all four meta-arguments documented; *"only literal values can be used because the processing happens too early for arbitrary expression evaluation."*; *"This rule doesn't prevent Terraform from destroying a resource if you remove its configuration."*</sub>
 
 <a id="onboarding"></a>
 ## 10. Onboarding New App Teams
@@ -755,7 +762,7 @@ Less glamorous but equally important. When a team's product is decommissioned:
 4. **Apply destruction in dev first**, validate clean removal, then staging, then production
 5. **Off-board the Git team and remove CODEOWNERS** entries in a follow-up PR
 
-The `prevent_destroy` lifecycle on critical resources may need to be temporarily removed for deliberate off-boarding — do this in a dedicated PR, not bundled with destruction.
+Removing the team's directory destroys its resources even where `prevent_destroy` is set (§9), so review the plan's destroy list before merge — that review, and any policy gate on `delete` actions, is the real protection here.
 
 > <sub>**Sources:**</sub>
 > - <sub>**AUTOM-04 §7 Brokered Self-Service** (this repo) — the architectural pattern this section operationalizes.</sub>
@@ -773,10 +780,10 @@ Some Dynatrace resources drive Dynatrace Platform Subscription (DPS) consumption
 | Resource | DPS impact |
 |----------|------------------|
 | `dynatrace_platform_bucket` | Retention length multiplies stored volume — longer retention, more Retain consumption (ORGNZ, FINOPS-03) |
-| `dynatrace_http_monitor` (synthetic) | Each monitor execution consumes Synthetic actions |
-| `dynatrace_browser_monitor` | Each monitor execution consumes Synthetic actions (higher rate than HTTP) |
+| `dynatrace_http_monitor` (synthetic) | Each run consumes one synthetic request per HTTP request, per location |
+| `dynatrace_browser_monitor` | Each run consumes synthetic actions (driven by its steps) |
 | `dynatrace_davis_anomaly_detectors` | Each evaluation runs the detector's DQL — on logs, spans or events that is billable query; metric queries are not billed (FAQ-09) |
-| `dynatrace_automation_workflow` | Executions bill as workflow automation — ALERT-03 covers how simple and multi-step workflows differ |
+| `dynatrace_automation_workflow` | Standard workflows consume workflow hours for as long as they exist, run or not; simple workflows don't, but their tasks can trigger other billable capabilities (ALERT-03) |
 | Mass-creation via a module loop (`count = 100`) | Multiplies the above by 100 |
 
 The pattern that bites: someone runs `terraform apply` against a module configured with `count = var.synthetic_count`, the variable defaults to a number that looked sensible in dev but is too large for production, and the apply provisions hundreds of synthetics — each consuming actions.
@@ -792,16 +799,20 @@ The pattern that bites: someone runs `terraform apply` against a module configur
 The Dynatrace API has rate limits. Plans against a tenant with hundreds of resources can take 5-20 minutes — apply, longer. Costs:
 
 - **CI minutes** — runner time × number of plans per day. Drift-detection runs every 15 minutes against a 500-resource state file are not free.
-- **Throttling failures** — large applies that hit API rate limits return errors mid-apply, leaving state partially updated. Recovery requires manual `terraform refresh` or partial apply.
+- **Throttling failures** — large applies that hit API rate limits return errors mid-apply, leaving state partially updated. Recovery requires `terraform apply -refresh-only` (`terraform refresh` is deprecated) or a partial apply.
 
 **Guardrails:**
 
-- **`terraform apply -parallelism=10`** instead of the default 10 — actually 10 is the default; consider lowering to 5 for very large tenants to avoid throttling.
+- **`terraform apply -parallelism=5`** (the default is 10) for very large tenants — in community practice, lowering it is the usual first response to API throttling.
 - **Split large states.** If a single state file is over ~500 resources, consider splitting by product or by resource family. The boundary is the line of "this group rarely changes when that group changes."
 - **Drift detection cadence.** Hourly is plenty for most environments; every-15-minutes is rarely justified by the value it adds.
 
 > <sub>**Sources:**</sub>
 > - <sub>**Derived:** the DPS-impact list combines documented Dynatrace billing categories (FINOPS-01, FAQ-09, ALERT-03) with how each maps to Terraform resource types; not a single vendor-published checklist. Classic tenants on DDU licensing see the same pattern under different unit names — a custom metric (`dynatrace_calculated_service_metric`) or extra events count against DDUs instead. Verify specific resource cost behavior against current [Dynatrace pricing documentation](https://www.dynatrace.com/pricing/) at use time.</sub>
+> - <sub>[HTTP Monitor consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/http-monitor) — *"One synthetic request is consumed each time a monitor runs, for each HTTP(S) request that is executed, at each location."*</sub>
+> - <sub>[Browser Monitor or Clickpath consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring/browser-monitor-clickpath) — *"Browser Monitors consume usage based on the number of synthetic actions executed"*.</sub>
+> - <sub>[Automation consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."*; *"Simple workflows do not directly consume workflow hours"*.</sub>
+> - <sub>[terraform refresh (HashiCorp)](https://developer.hashicorp.com/terraform/cli/commands/refresh) — *"This command is deprecated. Instead, add the -refresh-only flag to terraform apply and terraform plan commands."*</sub>
 > - <sub>[Terraform CLI command — apply (HashiCorp)](https://developer.hashicorp.com/terraform/cli/commands/apply) — `-parallelism` flag.</sub>
 
 <a id="operational"></a>
@@ -816,14 +827,14 @@ Symptom: `terraform plan` or `apply` hangs with *"Error acquiring the state lock
 Causes:
 - Previous CI run killed mid-apply; lock not released
 - Network partition between the CI runner and the lock store
-- Lock-table outage (DynamoDB)
+- Lock-store outage (the state bucket holding the `.tflock`, or a legacy DynamoDB lock table)
 - Someone ran `terraform apply` from their laptop and Ctrl-C'd
 
 Recovery:
 
 1. **Confirm the lock is genuinely abandoned.** Check the lock-store record — the lock includes `Who`, `Operation`, `Created` timestamps. If `Created` is recent (< 10 min) and someone owns it, wait or message them.
 2. **`terraform force-unlock <LOCK_ID>`** if the lock is abandoned. This removes the lock without doing anything to state.
-3. **For HCP Terraform**, use the workspace UI's "Force cancel" — same idea, different UX.
+3. **For HCP Terraform**, use **Force unlock** on the workspace (admin access) — *"Users with admin access to a workspace can force unlock a workspace even if another user has locked it."* Use **Force cancel** only for a run that will not terminate: *"Force-canceling requires admin access to the workspace because it can have dangerous side-effects, including loss of state and orphaned resources."*
 
 Document the procedure in your team's runbook. Force-unlock is safe **when the lock is genuinely abandoned**; it is dangerous if another apply is mid-flight, because two applies running simultaneously corrupt state. Verify, don't guess.
 
@@ -847,7 +858,7 @@ The danger pattern: break-glass change happens, nobody backports it, two weeks l
 Scenarios:
 - State bucket accidentally deleted
 - `terraform state rm` removed a resource and the next apply destroyed it
-- A `terraform refresh` corrupted state due to a provider bug
+- A refresh (`terraform apply -refresh-only`, or the refresh inside a normal plan) wrote bad state due to a provider bug
 
 Recovery sequence:
 
@@ -873,6 +884,8 @@ The drill is not optional — discovering that your "documented" DR procedure ha
 > <sub>**Sources:**</sub>
 > - <sub>[Force-unlock state (HashiCorp)](https://developer.hashicorp.com/terraform/cli/commands/force-unlock) — `terraform force-unlock` semantics and safety caveats.</sub>
 > - <sub>[Terraform import (HashiCorp)](https://developer.hashicorp.com/terraform/cli/commands/import) — bringing UI-created resources into Terraform state.</sub>
+> - <sub>[Workspace settings (HashiCorp)](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings) — *"Users with admin access to a workspace can force unlock a workspace even if another user has locked it."*</sub>
+> - <sub>[Manage runs (HashiCorp)](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/manage) — *"Force-canceling requires admin access to the workspace because it can have dangerous side-effects, including loss of state and orphaned resources."*</sub>
 
 <a id="next-steps"></a>
 ## 13. Next Steps
@@ -881,7 +894,7 @@ You now have the recipe to stand up a Terraform GitOps shop for Dynatrace. Pract
 
 1. **Pick a state backend** (§3) — usually whichever cloud your team already runs in
 2. **Set up the repo layout** (§2) with `modules/`, `envs/`, `policy/`
-3. **Provision the dev environment first** — backend, providers, a single module (the SLO or problem-routing module from §5), one root config
+3. **Provision the dev environment first** — backend, providers, a single module (the SLO or problem-routing module from §5 — the SLO module needs the OAuth client from §4), one root config
 4. **Wire up CI/CD for dev** following AUTOM-07 §3 (or §4/§5 for GitLab/Bitbucket)
 5. **Validate the round-trip** — PR, plan, merge, apply, observe in Dynatrace
 6. **Add staging**, repeat steps 3-5

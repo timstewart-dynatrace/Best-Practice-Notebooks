@@ -1,6 +1,6 @@
 # AUTOM-06: Dynatrace SDKs
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 09/18/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 Dynatrace publishes official TypeScript SDK clients (`@dynatrace-sdk/*`) for programmatic access to the platform, auto-generated from OpenAPI specifications. There is no official Python SDK package — Python automation calls the REST APIs directly.
 
@@ -57,19 +57,21 @@ By the end of this notebook, you will:
 | Type safety | Yes | No |
 | Auto-completion | Yes | No |
 | Authentication | Built-in | Manual |
-| Pagination | Handled | Manual |
+| Pagination | Cursor exposed (`nextPageKey`); you loop | Manual |
 | Error handling | Structured | Raw HTTP |
 
 ### Client Libraries
 
-| Client | Purpose |
+| Client (package) | Purpose |
 |--------|----------|
-| **QueryClient** | Execute DQL queries |
-| **SettingsClient** | Manage Settings 2.0 objects |
-| **EntitiesClient** | Query entity topology |
-| **MetricsClient** | Query and ingest metrics |
-| **EventsClient** | Query and ingest events |
-| **LogsClient** | Query and ingest logs |
+| **`queryExecutionClient`** (`client-query`) | Execute DQL queries (`queryExecute`, then `queryPoll`) |
+| **`settingsObjectsClient`** (`client-classic-environment-v2`) | Manage Settings 2.0 objects |
+| **`monitoredEntitiesClient`** (`client-classic-environment-v2`) | Query entity topology |
+| **`metricsClient`** (`client-classic-environment-v2`) | Query and ingest metrics |
+| **`eventsClient`** (`client-classic-environment-v2`) | Query and create events |
+| **`logsClient`** (`client-classic-environment-v2`) | Query and store logs |
+
+Names are the exports of `@dynatrace-sdk/client-query` 1.27.0 and `@dynatrace-sdk/client-classic-environment-v2` 9.1.0 ([client-query reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/), [client-classic-environment-v2 reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/)); a list call returns `nextPageKey` for the caller to follow.
 
 ---
 
@@ -90,25 +92,40 @@ The `@dynatrace-sdk/*` clients are built for code that runs on the Dynatrace pla
 
 ### Query Example
 
-```typescript
-import { queryClient } from '@dynatrace-sdk/client-query';
+`queryExecute` starts the query and returns its result only if it finishes within `requestTimeoutMilliseconds`; otherwise it returns `state: 'RUNNING'` and a `requestToken` to poll with `queryPoll`. Put the timeframe in the DQL (`from:`) — `defaultTimeframeStart` / `defaultTimeframeEnd` take ISO-8601 timestamps (*"The query timeframe 'start' timestamp in ISO-8601 or RFC3339 format"*), not relative strings such as `now-24h`. ([client-query reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/))
 
-async function queryHosts() {
-  const result = await queryClient.query({
-    body: {
-      query: `
-        fetch dt.entity.host
-        | fieldsAdd name = entity.name, osType
-        | sort name asc
-        | limit 10
-      `,
-      defaultTimeframeStart: 'now-24h',
-      defaultTimeframeEnd: 'now'
-    }
+```typescript
+import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+// Start a DQL query, then poll until it finishes
+async function runQuery(query: string) {
+  const start = await queryExecutionClient.queryExecute({
+    body: { query, requestTimeoutMilliseconds: 30000 },
   });
 
-  console.log('Hosts:', result.result?.records);
-  return result.result?.records;
+  let { state, result } = start;
+  while (state === 'RUNNING' || state === 'NOT_STARTED') {
+    ({ state, result } = await queryExecutionClient.queryPoll({
+      requestToken: start.requestToken!,
+      requestTimeoutMilliseconds: 30000,
+    }));
+  }
+  if (state !== 'SUCCEEDED') {
+    throw new Error(`Query ended in state ${state}`);
+  }
+  return result?.records ?? [];
+}
+
+async function queryHosts() {
+  const records = await runQuery(`
+    fetch dt.entity.host
+    | fieldsAdd name = entity.name, osType
+    | sort name asc
+    | limit 10
+  `);
+
+  console.log('Hosts:', records);
+  return records;
 }
 ```
 
@@ -116,43 +133,40 @@ async function queryHosts() {
 
 ### Settings Management
 
+Schema-agnostic helpers: list every object of a schema (following `nextPageKey`), and create an object after a `validateOnly` dry run. Pass a schema that exists in your environment — management zones (`builtin:management-zones`) are **Blocked** at upgrade and not available in Latest Dynatrace (AUTOM-02 § 2), so prefer a current schema such as `builtin:ownership.teams`. Fetch the schema first (`GET /api/v2/settings/schemas/<schemaId>`) to build a valid `value`.
+
 ```typescript
 import { settingsObjectsClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-// List management zones
-async function listManagementZones() {
-  const response = await settingsObjectsClient.getSettingsObjects({
-    schemaIds: 'builtin:management-zones',
-    pageSize: 100
-  });
-  
-  return response.items;
+// List all objects of one schema, following nextPageKey
+async function listSettings(schemaId: string) {
+  const items = [];
+  let nextPageKey: string | undefined;
+  do {
+    const page = nextPageKey
+      ? await settingsObjectsClient.getSettingsObjects({ nextPageKey })
+      : await settingsObjectsClient.getSettingsObjects({ schemaIds: schemaId, pageSize: 500 });
+    items.push(...(page.items ?? []));
+    nextPageKey = page.nextPageKey;
+  } while (nextPageKey);
+  return items;
 }
 
-// Create management zone
-async function createManagementZone(name: string) {
-  const response = await settingsObjectsClient.postSettingsObjects({
-    body: [{
-      schemaId: 'builtin:management-zones',
-      scope: 'environment',
-      value: {
-        name: name,
-        rules: []
-      }
-    }]
-  });
-  
-  return response;
+// Create one object — validate first, then write
+async function createSetting(schemaId: string, scope: string, value: Record<string, unknown>) {
+  const body = [{ schemaId, scope, value }];
+  await settingsObjectsClient.postSettingsObjects({ body, validateOnly: true });
+  return settingsObjectsClient.postSettingsObjects({ body });
 }
 ```
 
 ### Entity Queries
 
 ```typescript
-import { entitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
+import { monitoredEntitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
 async function getServices() {
-  const response = await entitiesClient.getEntities({
+  const response = await monitoredEntitiesClient.getEntities({
     entitySelector: 'type(SERVICE)',
     fields: '+properties,+tags',
     pageSize: 100
@@ -237,43 +251,45 @@ def get_all_hosts() -> list[dict]:
 ### Bulk Configuration Export
 
 ```typescript
-// TypeScript: Export all settings for backup
+// TypeScript: collect all settings objects for backup (app function or workflow task)
 import { settingsObjectsClient, settingsSchemasClient } from '@dynatrace-sdk/client-classic-environment-v2';
-import * as fs from 'fs';
+import type { SettingsObject } from '@dynatrace-sdk/client-classic-environment-v2';
 
 async function exportAllSettings() {
   // Get all available schemas
   const schemas = await settingsSchemasClient.getAvailableSchemaDefinitions();
-  
-  const export_data: Record<string, any[]> = {};
-  
-  for (const schema of schemas.items || []) {
-    const objects = await settingsObjectsClient.getSettingsObjects({
-      schemaIds: schema.schemaId,
-      pageSize: 500
-    });
-    
-    if (objects.items && objects.items.length > 0) {
-      export_data[schema.schemaId] = objects.items;
+
+  const exportData: Record<string, SettingsObject[]> = {};
+
+  for (const { schemaId } of schemas.items) {
+    if (!schemaId) continue;
+    let page = await settingsObjectsClient.getSettingsObjects({ schemaIds: schemaId, pageSize: 500 });
+    const objects = [...page.items];
+    // Follow the cursor; with nextPageKey set, omit the other query parameters
+    while (page.nextPageKey) {
+      page = await settingsObjectsClient.getSettingsObjects({ nextPageKey: page.nextPageKey });
+      objects.push(...page.items);
+    }
+    if (objects.length > 0) {
+      exportData[schemaId] = objects;
     }
   }
-  
-  fs.writeFileSync('settings-export.json', JSON.stringify(export_data, null, 2));
-  return export_data;
+
+  // The platform runtime has no usable file system: return the data
+  // (or store it in a document) instead of writing a file
+  return exportData;
 }
 ```
+
+The SDK clients run on the Dynatrace platform, where `fs` is a stub: *"You can import the following modules to ensure compatibility with specific third-party packages, but all exposed functions throw errors when called."* Return the export (or store it in a document) rather than writing a file. To write a backup file from a CI job, use the Python REST pattern in §3, which follows `nextPageKey` the same way. ([JavaScript runtime (Dynatrace Developer)](https://developer.dynatrace.com/develop/reference/javascript-runtime/))
 
 ### Error Handling
 
 ```typescript
-import { queryClient } from '@dynatrace-sdk/client-query';
-
 async function safeQuery(query: string) {
   try {
-    const result = await queryClient.query({
-      body: { query }
-    });
-    return { success: true, data: result };
+    const records = await runQuery(query);   // runQuery from §2
+    return { success: true, data: records };
   } catch (error) {
     // Log and surface the failure; re-throw anything you cannot handle
     console.error('Query failed:', error instanceof Error ? error.message : error);
@@ -317,23 +333,19 @@ def api_call(entity_id: str) -> dict:
 ### Async Operations
 
 ```typescript
-// TypeScript: Concurrent queries with rate limiting
+// TypeScript: concurrent queries with a concurrency cap
 import pLimit from 'p-limit';
 
-const limit = pLimit(5);  // Max 5 concurrent requests
+const limit = pLimit(5);  // Max 5 queries in flight
 
 async function queryMultipleHosts(hostIds: string[]) {
-  const queries = hostIds.map(hostId => 
-    limit(() => queryClient.query({
-      body: {
-        query: `
-          fetch dt.entity.host
-          | filter id == "${hostId}"
-        `
-      }
-    }))
+  const queries = hostIds.map(hostId =>
+    limit(() => runQuery(`
+      fetch dt.entity.host
+      | filter id == "${hostId}"
+    `))   // runQuery from §2
   );
-  
+
   return Promise.all(queries);
 }
 ```
@@ -391,43 +403,43 @@ def generate_host_report() -> pd.DataFrame:
 
 ### Dynatrace MCP Server
 
-The [Dynatrace MCP Server](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) provides an alternative to traditional SDKs for AI-assisted workflows. It implements the Model Context Protocol (MCP), allowing AI assistants to interact with Dynatrace programmatically.
+The [Dynatrace MCP server (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) is hosted in your Dynatrace environment and gives AI assistants (MCP clients) a set of Dynatrace tools through the Model Context Protocol. There is nothing to install or run locally.
 
-### Setup
+### Connection
 
-```bash
-# Install and run via npx
-npx -y @dynatrace-oss/dynatrace-mcp-server@2
-```
-
-### Configuration (Claude Code / AI Assistants)
+Point the client at `https://{environment-name}.apps.dynatrace.com/platform-reserved/mcp-gateway/v0.1/servers/dynatrace-mcp/mcp`. *"Every request to the MCP server needs a bearer token in the authorization header."* The docs recommend a platform token, *"because a token generated from an OAuth client is short-lived."*
 
 ```json
 {
-  "mcpServers": {
-    "dynatrace": {
-      "command": "npx",
-      "args": ["-y", "@dynatrace-oss/dynatrace-mcp-server@2"],
-      "env": {
-        "DT_ENVIRONMENT": "https://{tenant}.apps.dynatrace.com",
-        "DT_PLATFORM_TOKEN": "<platform-token>"
+  "servers": {
+    "dynatrace-mcp": {
+      "url": "https://{environment-name}.apps.dynatrace.com/platform-reserved/mcp-gateway/v0.1/servers/dynatrace-mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer <platform-token>"
       }
     }
   }
 }
 ```
 
-The server reads `DT_ENVIRONMENT` (a platform `apps.dynatrace.com` URL, not a classic `live` URL) and authenticates with `DT_PLATFORM_TOKEN` or an OAuth client (`OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET`), per the [dynatrace-mcp-server README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-mcp). Pinning the major version (`@2`) keeps a breaking release from reaching your assistant unannounced.
+This is the VS Code form shown on the docs page; other clients wrap the same `url` and `headers` in their own format (Claude Code, for example, uses an `mcpServers` entry with `"type": "http"`). Both the user and the token need `mcp-gateway:servers:invoke` and `mcp-gateway:servers:read`, plus the permissions of the tools you call. Where the client supports it, read the token from a secret store rather than writing it into the file.
+
+> **The local `@dynatrace-oss/dynatrace-mcp-server` npm package is deprecated.** Its README states: *"This repository is deprecated. Version 2.1.2 was the final release — no further updates will be made."* The GitHub repository is archived. Move `npx`-based configurations to the hosted server above. ([dynatrace-mcp README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-mcp))
 
 ### MCP Server Capabilities
 
+The use cases the docs page lists for the hosted server:
+
 | Capability | Description |
 |------------|-------------|
-| **DQL Queries** | Execute DQL queries against Grail |
-| **Entity Discovery** | Find and explore entities by name or type |
-| **Problem Analysis** | Retrieve detected problems and events |
-| **Event Ingestion** | Send custom events into Grail |
-| **Natural Language** | AI assistants translate prompts to DQL |
+| **DQL generation and explanation** | Generate a DQL query, or explain one, with generative AI |
+| **DQL execution** | Run a generated DQL query |
+| **Product questions** | Answer product-related questions with generative AI |
+| **Problems and vulnerabilities** | Investigate detected problems and vulnerabilities |
+| **Kubernetes events** | Analyze Kubernetes events |
+| **Forecasting** | Forecast and analyze timeseries data |
+| **Documents** | Find documents and troubleshooting guides |
+| **Entities** | Resolve entity names and IDs |
 
 ### When to Use MCP vs SDKs
 
