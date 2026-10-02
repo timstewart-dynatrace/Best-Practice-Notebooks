@@ -788,6 +788,10 @@ resource "dynatrace_iam_service_user" "detectors" {
 
 The Davis Anomaly Detection app's resource — the replacement for `dynatrace_metric_events`. The detection query is **DQL**, not a metric key, so the same resource covers logs, spans and business events as well as metrics. **SaaS only**; Platform Token or OAuth client. `execution_settings` is a required block; its `actor` is the service user the query runs as. Since provider v1.97.2 `actor` may be omitted and defaults to the user behind the provider's credentials — set it explicitly so a detector does not depend on a person's account, and give that service user read access to the data the query touches, or the detector evaluates to nothing. Analyzer input keys follow the provider's [`davis_anomaly_detectors` example (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/davis_anomaly_detectors.md), read 09/28/2026 (v1.105.0); the query is the disk-usage timeseries AIOPS-06/07 use, one series per host and disk. Build and tune the detector in the app first, then export it (`terraform-provider-dynatrace -export dynatrace_davis_anomaly_detectors`) rather than hand-writing analyzer inputs. See AIOPS-02 for choosing the analyzer (static threshold vs auto-adaptive vs seasonal baseline).
 
+> **Where to build the detector before export (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and "build and tune the detector in the app first" above refers to it.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+
 #### Grail Dashboard (Document)
 
 ```hcl

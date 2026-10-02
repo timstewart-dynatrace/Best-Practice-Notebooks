@@ -1,6 +1,6 @@
 # AIOPS-07: Putting It Together — Detect, Investigate, Remediate
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -21,6 +21,10 @@ The previous six notebooks each focused on one slice of Dynatrace Intelligence. 
 For environments where SVG doesn't render
 -->
 
+> **The Detect surface depends on tenant version (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and it is the Detect surface the diagram shows.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+
 ---
 
 ## Table of Contents
@@ -39,7 +43,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 |
-| **Apps** | Problems, Anomaly Detection, Notebooks, Workflows |
+| **Apps** | Problems, Anomaly Detection (custom alerts are created in **Settings** from SaaS 1.344 — see Overview), Notebooks, Workflows |
 | **Series Background** | AIOPS-01 through AIOPS-06; this notebook composes those building blocks |
 | **Permissions** | All read permissions and `davis:analyzers:execute`, `automation:workflows:run` |
 

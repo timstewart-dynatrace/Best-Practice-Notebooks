@@ -1,6 +1,6 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -273,11 +273,11 @@ fetch spans, from:-24h
 
 Slow query alerts detect when query performance degrades beyond acceptable thresholds.
 
-**Modern path (recommended for new alerting):** wire these queries into a **custom alert (Davis anomaly detector)** — created in **Settings** (the Anomaly Detection app still works but is deprecated) — and route the resulting events with **Workflows**, so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
+**Modern path (recommended for new alerting):** wire these queries into a **custom alert (Davis anomaly detector)** — created in **Settings** from SaaS 1.344, or in the Anomaly Detection app on earlier versions (SaaS 1.344 rolls out to tenants in stages; check your tenant's version, and note the app is deprecated) — and route the resulting events with **Workflows**, so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
 
 **Legacy path (still supported for fixed-threshold cases):** the queries below are also directly usable as **metric events** in Settings → Anomaly detection → Metric events when you want a fixed threshold instead of an adaptive baseline.
 
-> <sub>**Sources:** [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"To manually create or edit a simple custom alert configuration, you can use Anomaly Detection or Settings."* and *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*</sub>
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*; [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"To manually create or edit a simple custom alert configuration, you can use Anomaly Detection or Settings."* and *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*</sub>
 
 ```dql
 // Alert query: Slow query count per 5-minute window (> 500ms threshold)

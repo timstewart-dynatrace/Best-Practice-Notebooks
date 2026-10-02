@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ This is the doorway for the ALERT series. It does not re-document mechanics; it 
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS Gen3 with Grail, the Anomaly Detection app, the SLO app, and AutomationEngine (Workflows) |
+| **Dynatrace Environment** | SaaS Gen3 with Grail, the Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 3), the SLO app, and AutomationEngine (Workflows) |
 | **Audience** | Platform owners and SREs standing up alerting for the first time, or rationalising an ad-hoc setup |
 | **Companion series** | AIOPS (detection), SLO (reliability targets), WFLOW (routing) |
 
@@ -75,6 +75,10 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 | Routing | Problem-trigger workflow | AutomationEngine — simple (no workflow-hours) vs multi-step (workflow-hours) | choose deliberately |
 | Destinations | Connector per channel | workflow connectors; legacy via alerting profiles | — |
 | Closed loop | Remediation / bi-directional sync | workflow / ServiceNow-side app | — |
+
+> **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the *Anomaly Detection app* entry in the table above is the working path there.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 ### A noise control on the routing side
 

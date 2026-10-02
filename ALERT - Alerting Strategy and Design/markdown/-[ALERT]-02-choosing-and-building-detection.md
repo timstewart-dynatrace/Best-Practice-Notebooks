@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 09/29/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -23,7 +23,7 @@ Detection is a choice between four mechanisms, and picking the wrong one is the 
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS Gen3 with the Anomaly Detection app |
+| **Dynatrace Environment** | SaaS Gen3 with the Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 2) |
 | **Prior reading** | ALERT-01 (the end-to-end picture) |
 | **Build mechanics** | AIOPS-02 (anomaly detector setup), SLO-02/04 (SLIs and burn-rate) |
 
@@ -50,6 +50,10 @@ Walk it top-down and stop at the first match:
 4. **Is it a custom condition on existing metrics?** → a **custom Davis anomaly detector** with an auto-adaptive or seasonal analyzer.
 
 The cost — to build and to maintain — rises as you go down. Staying high is the lever on noise (ALERT-01 §2).
+
+> **Where a custom detector is created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and AIOPS-02 § 4 walks that build.
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
 
 <a id="antipatterns"></a>
 ## 3. Anti-Patterns

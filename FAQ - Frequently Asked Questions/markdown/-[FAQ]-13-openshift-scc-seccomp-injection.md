@@ -1,6 +1,6 @@
 # FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -71,7 +71,7 @@ metadata:
 **Is the flag a long-term answer?** No — and this is now a documented fact rather than an inference. In the operator source the flag carries an explicit removal notice:
 
 ```go
-// pkg/api/exp/injection.go — identical at v1.9.0, v1.10.0, v1.10.1 and v1.10.2
+// pkg/api/exp/injection.go — identical at v1.9.0, v1.10.0, v1.10.1, v1.10.2 and v1.11.0
 // Deprecated: This field will be removed in a future release.
 InjectionSeccompKey = FFPrefix + "init-container-seccomp-profile"
 
@@ -82,18 +82,18 @@ func (ff *FeatureFlags) HasInitSeccomp() bool {
 
 So the escape hatch is on a removal path: (1) it rolls back a security improvement rather than solving the SCC conflict; (2) it is **marked deprecated for removal in the source**, in the operator's experimental API package (`pkg/api/exp/`), so an estate that sets it to `"false"` permanently is scheduled to break when the flag goes; (3) the custom-SCC fix (§5) solves the actual conflict, keeps the hardening, and survives the flag's removal. Use the flag to buy time for §5, not instead of it.
 
-> **Still current at Operator 1.10.2.** The latest Operator release is **1.10.2 (07/30/2026)**; the seccomp default has been `true` continuously since 1.9.0 and nothing in the 1.10.0 / 1.10.1 / 1.10.2 release notes reverses it, so everything in this entry applies unchanged on the current version. Verified against the operator source at each tag, 08/27/2026.
+> **Still current at Operator 1.11.0.** The latest Operator release is **1.11.0 (10/01/2026)**. The seccomp default has been `true` continuously since 1.9.0, and the 1.11.0 release notes still list the OpenShift interaction under **Known issues** rather than reversing it, so everything in this entry applies unchanged on the current version. Verified against the operator source at each tag through v1.10.2 on 08/27/2026, and at v1.11.0 on 10/02/2026.
 
-**Also in 1.9.0** — relevant to any upgrade assessment (§6): the DynaKube **`v1beta3` API version is removed from the CRD** (*"Applying DynaKube resources using this version will fail"* — migrate to `v1beta6` first), `v1beta4` is deprecated, pods injected via `applicationMonitoring`/`cloudNativeFullStack` now receive **automatic metadata enrichment**, legacy `dt.kubernetes.*` attributes are deprecated for `k8s.*`, and the `dynatrace/helm-charts` repository is deprecated in favor of `dynatrace/dynatrace-operator`.
+**Also in 1.9.0** — relevant to any upgrade assessment (§6): the DynaKube **`v1beta3` API version is removed from the CRD** (*"Applying DynaKube resources using this version will fail"* — migrate to `v1beta6` first), `v1beta4` is deprecated (it stopped being served in 1.10.0 and was removed from the CRD in 1.11.0), pods injected via `applicationMonitoring`/`cloudNativeFullStack` now receive **automatic metadata enrichment**, legacy `dt.kubernetes.*` attributes are deprecated for `k8s.*`, and the `dynatrace/helm-charts` repository is deprecated in favor of `dynatrace/dynatrace-operator`.
 
-> **Now a documented Known Issue (Operator 1.10.2, published 07/30/2026).** Verbatim: *"Since Dynatrace Operator 1.9.0, a `RuntimeDefault` seccomp profile is applied to the Dynatrace init container by default. On OpenShift, this can interfere with SecurityContextConstraints (SCCs) — such as `anyuid`, `restricted`, or `nonroot` — that prevent seccomp profile usage, causing the system to fall back to a different SCC (for example `restricted-v2`). This may render application pods unschedulable or cause workload degradation."* Dynatrace's own remediation is to disable the seccomp profile for Dynatrace init containers — the same workaround given above. Three things this confirms and one it adds:
+> **Now a documented Known Issue (Operator 1.10.2, published 07/30/2026; still listed in 1.11.0).** Verbatim: *"Since Dynatrace Operator 1.9.0, a `RuntimeDefault` seccomp profile is applied to the Dynatrace init container by default. On OpenShift, this can interfere with SecurityContextConstraints (SCCs) — such as `anyuid`, `restricted`, or `nonroot` — that prevent seccomp profile usage, causing the system to fall back to a different SCC (for example `restricted-v2`). This may render application pods unschedulable or cause workload degradation."* Dynatrace's own remediation is to disable the seccomp profile for Dynatrace init containers — the same workaround given above. Three things this confirms and one it adds:
 >
-> - **The default is still `true` through 1.10.2.** The Known Issue documents the behavior rather than reverting it, which is consistent with the source read at each tag. Nothing here is fixed by upgrading.
+> - **The default is still `true` through 1.11.0.** The Known Issue documents the behavior rather than reverting it, which is consistent with the source read at each tag. Nothing here is fixed by upgrading.
 > - **The blast radius is wider than `anyuid`.** Dynatrace names `restricted` and `nonroot` alongside it. The matrix in §4 remains the per-SCC authority, and the in-cluster `oc` check there is still how you settle your own cluster.
 > - **Dynatrace endorses the flag as the remediation** — but the flag is marked for removal (below), so it is still a bridge with an exit date, not a destination. The custom SCC in §5 remains the durable fix.
 > - **New: a second failure mode.** *Fallback* to a different SCC, ending in unschedulable pods or degraded workloads — not the clean `Forbidden: seccomp may not be set` rejection. See §3.
 
-> <sub>**Sources:** [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0) — quoted remediation + breaking changes; [Seccomp profiles (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp) — quoted PSS rationale; [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — lists the default as *"true"* (read 09/28/2026; it showed `"false"` in July 2026); flag location verified in the operator source 07/08/2026. [operator source `pkg/api/exp/injection.go` (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/api/exp/injection.go) — *"Deprecated: This field will be removed in a future release"* on `InjectionSeccompKey`, and `getBoolWithDefault(…, true)`; read at tags v1.9.0/v1.10.0/v1.10.1/v1.10.2 on 08/27/2026; [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2) — the Known Issue quoted above, read 08/28/2026.
+> <sub>**Sources:** [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0) — quoted remediation + breaking changes; [Seccomp profiles (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp) — quoted PSS rationale; [DynaKube feature flags (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags) — lists the default as *"true"* (read 09/28/2026; it showed `"false"` in July 2026); flag location verified in the operator source 07/08/2026. [operator source `pkg/api/exp/injection.go` (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/api/exp/injection.go) — *"Deprecated: This field will be removed in a future release"* on `InjectionSeccompKey`, and `getBoolWithDefault(…, true)`; read at tags v1.9.0/v1.10.0/v1.10.1/v1.10.2 on 08/27/2026 and v1.11.0 on 10/02/2026; [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2) — the Known Issue quoted above, read 08/28/2026; [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — the same Known Issue, still listed, read 10/02/2026.
 
 > <sub>**Corrected 08/27/2026.** This section previously read *"no deprecation is published for this flag today"* and softened the bridge-not-destination advice to a **Derived** inference from the flag's package location. The source has carried an explicit removal notice since 1.9.0 — the original check confirmed where the flag lives without reading the two lines above it. The advice was right; its basis is now a citation rather than a pattern argument.</sub>
 
@@ -195,6 +195,8 @@ volumes:
 priority: 5                  # outrank anyuid (10 default? verify) only if you want auto-selection; omit and pin via required-scc for determinism
 ```
 
+**If you move to image volumes (Operator 1.11.0+).** Image-volume injection mounts the code modules as a volume of type `Image`, not `csi` — the Dynatrace verification step looks for exactly that in `kubectl describe pod`. Before switching workloads that run under a custom SCC, check in-cluster whether the SCC's `volumes` list admits that volume (`oc get scc anyuid-seccomp -o jsonpath='{.volumes}'`) and re-create one canary pod (§6). Image volumes also need Kubernetes 1.35+, so whether this applies yet depends on your OpenShift release. Until then the CSI driver, and the `csi` entry above, remain the working path.
+
 **The RBAC step everyone misses:** since OpenShift 4.5, the *built-in* SCCs ship with auto-generated `system:openshift:scc:<name>` ClusterRoles — **a custom SCC gets no such role automatically**. Grant access explicitly, either per-namespace:
 
 ```bash
@@ -208,7 +210,7 @@ or with `oc adm policy add-scc-to-user anyuid-seccomp -z <serviceaccount> -n <na
 
 **Verify before rollout:** re-create one affected pod and confirm its admitting SCC with `oc get pod <pod> -o jsonpath='{.metadata.annotations.openshift\.io/scc}'` — the pod-level `openshift.io/scc` annotation records what actually admitted it. Once workloads run under the custom SCC, set the DynaKube flag back to its secure default (remove the `"false"` override).
 
-> <sub>**Sources:** [Managing security context constraints, OCP 4.18 (Red Hat docs)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies) — custom-SCC + RBAC `use`-verb model, don't-modify-defaults guidance; [`oc adm policy add-scc-to-user` behavior change in 4.x (Red Hat KB, solution 5529581)](https://access.redhat.com/solutions/5529581) — role-binding-based since 4.5; [Additional OpenShift configurations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration) — CSI volume requirement for CSI-driver deployments. **Derived:** the `anyuid-seccomp` YAML is a worked synthesis of the anyuid posture plus the seccomp allowance — review every field against your security baseline before applying</sub>
+> <sub>**Sources:** [Managing security context constraints, OCP 4.18 (Red Hat docs)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies) — custom-SCC + RBAC `use`-verb model, don't-modify-defaults guidance; [`oc adm policy add-scc-to-user` behavior change in 4.x (Red Hat KB, solution 5529581)](https://access.redhat.com/solutions/5529581) — role-binding-based since 4.5; [Additional OpenShift configurations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration) — CSI volume requirement for CSI-driver deployments; [Use image volumes for code modules injection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes) — the `Image` volume type in its verification step, and the Kubernetes 1.35+ requirement. **Derived:** the `anyuid-seccomp` YAML is a worked synthesis of the anyuid posture plus the seccomp allowance — review every field against your security baseline before applying</sub>
 
 <a id="pre-upgrade"></a>
 ## 6. Assessing Impact Before You Upgrade
@@ -222,20 +224,20 @@ oc get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metada
 # 2. Narrow to Dynatrace-injected pods (init container name) admitted under anyuid
 oc get pods -A -o json | jq -r '.items[]
   | select(.metadata.annotations."openshift.io/scc" == "anyuid")
-  # init-container name per operator source InstallContainerName, v1.9.0–v1.10.2
+  # init-container name per operator source InstallContainerName, v1.9.0–v1.11.0
   | select([.spec.initContainers[]?.name] | index("dynatrace-operator"))
   | "\(.metadata.namespace)\t\(.metadata.name)"'
 ```
 
 Every hit on query 2 is a pod that will be rejected on its next re-creation after the upgrade (unless the flag is `false` or a custom SCC lands first). Run the same *annotation-vs-new-spec* thinking against each release's notes: the general checklist —
 
-1. **Read the release notes for the versions you're crossing** — Dynatrace publishes per-version operator notes; 1.9.0 alone carried the seccomp default, a CRD API-version **removal** (`v1beta3`), and behavioral changes (automatic metadata enrichment). Multi-version jumps compound.
+1. **Read the release notes for the versions you're crossing** — Dynatrace publishes per-version operator notes; 1.9.0 alone carried the seccomp default, a CRD API-version **removal** (`v1beta3`), and behavioral changes (automatic metadata enrichment); 1.11.0 removed another (`v1beta4`). Multi-version jumps compound.
 2. **Diff the rendered manifests** — `helm template` old vs. new (or `oc diff`) shows exactly what the upgrade changes cluster-side before anything applies.
 3. **Canary one non-production DynaKube first** and re-create (not just observe) injected pods there — admission failures only fire on creation (§3).
 4. **Check API-version currency** — `oc get dynakube -o jsonpath='{.items[*].apiVersion}'` before any upgrade that removes CRD versions.
 5. **Watch the injection webhook's events after upgrade** — `oc get events -A --field-selector reason=FailedCreate` catches admission rejections centrally (they surface on the ReplicaSet, not the pod).
 
-> <sub>**Sources:** the pod-level `openshift.io/scc` annotation and admission behavior per [Red Hat SCC documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies); [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0). [operator source `pkg/webhook/mutation/pod/mutator/config.go` (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/webhook/mutation/pod/mutator/config.go) — `InstallContainerName = "dynatrace-operator"` at v1.9.0 and v1.10.2, read 09/28/2026. **Derived:** the assessment commands and five-step checklist are worked examples — verify the injected init-container name against your operator version first</sub>
+> <sub>**Sources:** the pod-level `openshift.io/scc` annotation and admission behavior per [Red Hat SCC documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies); [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0). [operator source `pkg/webhook/mutation/pod/mutator/config.go` (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/webhook/mutation/pod/mutator/config.go) — `InstallContainerName = "dynatrace-operator"` at v1.9.0 and v1.10.2, read 09/28/2026, and at v1.11.0, read 10/02/2026. **Derived:** the assessment commands and five-step checklist are worked examples — verify the injected init-container name against your operator version first</sub>
 
 <a id="change-management"></a>
 ## 7. Operator Change Management: Scope, Uninstall Residue, and Failure Isolation
@@ -280,7 +282,7 @@ The first row is the 1.9.0 case — no Dynatrace log anywhere shows an error, be
 | 5 | Custom SCC created, pods still rejected | No auto-generated ClusterRole for custom SCCs — nothing may `use` it | Explicit `use`-verb role + binding (§5) |
 | 6 | Changing `required-scc` on live pods | Admission fails — the annotation is validated against the live manifest | Change it on the pod template; pods re-create (§4) |
 | 7 | Leaving the flag at `"false"` permanently | Hardening rolled back estate-wide for one workload class's problem — and the flag is **marked deprecated for removal** in the operator source, so this breaks by itself eventually (§2) | Scope the fix to the workloads (custom SCC), restore the default (§8) |
-| 8 | Skipping DynaKube API-version checks on upgrade | 1.9.0 removed `v1beta3` — applies fail outright | `oc get dynakube -o jsonpath='{.items[*].apiVersion}'` first (§6) |
+| 8 | Skipping DynaKube API-version checks on upgrade | 1.9.0 removed `v1beta3` and 1.11.0 removed `v1beta4` — applies fail outright | `oc get dynakube -o jsonpath='{.items[*].apiVersion}'` first (§6) |
 
 ## Summary
 
