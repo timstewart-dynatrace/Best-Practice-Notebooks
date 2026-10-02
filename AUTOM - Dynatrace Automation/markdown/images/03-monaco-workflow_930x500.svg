@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Monaco Download → Deploy Workflow</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Six-step config-as-code lifecycle for Dynatrace</text>
+
+  <defs>
+    <marker id="mwarr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Step boxes across top (6 boxes, each 130 wide + 10 gap) -->
+  <g font-size="11">
+    <rect x="40" y="100" width="130" height="85" rx="6" fill="#6366f1"/>
+    <text x="105" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">1. Download</text>
+    <text x="105" y="150" text-anchor="middle" fill="#e0e7ff" font-family="monospace" font-size="10">monaco download</text>
+    <text x="105" y="170" text-anchor="middle" fill="#e0e7ff">Pull current config</text>
+
+    <rect x="190" y="100" width="130" height="85" rx="6" fill="#8b5cf6"/>
+    <text x="255" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">2. Edit YAML</text>
+    <text x="255" y="150" text-anchor="middle" fill="#e0e7ff">Modify manifest</text>
+    <text x="255" y="170" text-anchor="middle" fill="#e0e7ff">and config files</text>
+
+    <rect x="340" y="100" width="130" height="85" rx="6" fill="#a78bfa"/>
+    <text x="405" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">3. Dry Run</text>
+    <text x="405" y="150" text-anchor="middle" fill="#e0e7ff" font-family="monospace" font-size="10">deploy --dry-run</text>
+    <text x="405" y="170" text-anchor="middle" fill="#e0e7ff">Parse + JSON check</text>
+
+    <rect x="490" y="100" width="130" height="85" rx="6" fill="#f97316"/>
+    <text x="555" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">4. Git Commit</text>
+    <text x="555" y="150" text-anchor="middle" fill="#fff7ed">Version control</text>
+    <text x="555" y="170" text-anchor="middle" fill="#fff7ed">Peer review</text>
+
+    <rect x="640" y="100" width="130" height="85" rx="6" fill="#14b8a6"/>
+    <text x="705" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">5. CI Dry Run</text>
+    <text x="705" y="148" text-anchor="middle" fill="#ccfbf1" font-family="monospace" font-size="10">deploy --dry-run</text>
+    <text x="705" y="170" text-anchor="middle" fill="#ccfbf1">Pipeline gate</text>
+
+    <rect x="790" y="100" width="130" height="85" rx="6" fill="#22c55e"/>
+    <text x="855" y="128" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">6. Deploy</text>
+    <text x="855" y="150" text-anchor="middle" fill="#dcfce7" font-family="monospace" font-size="10">monaco deploy</text>
+    <text x="855" y="170" text-anchor="middle" fill="#dcfce7">Apply to tenant</text>
+  </g>
+
+  <!-- Arrows between steps -->
+  <g stroke="#64748B" stroke-width="2" fill="none">
+    <line x1="170" y1="142" x2="190" y2="142" marker-end="url(#mwarr)"/>
+    <line x1="320" y1="142" x2="340" y2="142" marker-end="url(#mwarr)"/>
+    <line x1="470" y1="142" x2="490" y2="142" marker-end="url(#mwarr)"/>
+    <line x1="620" y1="142" x2="640" y2="142" marker-end="url(#mwarr)"/>
+    <line x1="770" y1="142" x2="790" y2="142" marker-end="url(#mwarr)"/>
+  </g>
+
+  <!-- Target environments panel (bottom-left) -->
+  <rect x="40" y="240" width="380" height="220" rx="8" fill="#1E293B" stroke="#334155"/>
+  <text x="230" y="268" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Target Environments</text>
+
+  <g font-size="12">
+    <rect x="70" y="290" width="140" height="50" rx="4" fill="#3b82f6" opacity="0.6"/>
+    <text x="140" y="310" text-anchor="middle" fill="#ffffff" font-weight="600">Dev</text>
+    <text x="140" y="328" text-anchor="middle" fill="#dbeafe" font-size="10">environment: dev</text>
+
+    <rect x="240" y="290" width="140" height="50" rx="4" fill="#8b5cf6" opacity="0.6"/>
+    <text x="310" y="310" text-anchor="middle" fill="#ffffff" font-weight="600">Staging</text>
+    <text x="310" y="328" text-anchor="middle" fill="#ede9fe" font-size="10">environment: staging</text>
+
+    <rect x="155" y="360" width="140" height="50" rx="4" fill="#22c55e" opacity="0.6"/>
+    <text x="225" y="380" text-anchor="middle" fill="#ffffff" font-weight="600">Production</text>
+    <text x="225" y="398" text-anchor="middle" fill="#dcfce7" font-size="10">environment: prod</text>
+  </g>
+  <text x="230" y="440" text-anchor="middle" fill="#94A3B8" font-size="11" font-style="italic">Same manifest, environmentOverrides per env</text>
+
+  <!-- Commands reference (bottom-right) -->
+  <rect x="440" y="240" width="450" height="220" rx="8" fill="#1E293B" stroke="#334155"/>
+  <text x="665" y="268" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Monaco Commands</text>
+
+  <g font-family="monospace" font-size="12">
+    <text x="465" y="298" fill="#86efac">monaco download</text>
+    <text x="625" y="298" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">pull config from tenant</text>
+    <text x="465" y="322" fill="#86efac">monaco generate</text>
+    <text x="625" y="322" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">deletefile, graph, schema</text>
+    <text x="465" y="346" fill="#86efac">monaco deploy</text>
+    <text x="625" y="346" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">apply to environment</text>
+    <text x="465" y="370" fill="#86efac">monaco deploy --dry-run</text>
+    <text x="625" y="370" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">structure check, no API calls</text>
+    <text x="465" y="394" fill="#86efac">monaco delete</text>
+    <text x="625" y="394" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">remove managed configs</text>
+    <text x="465" y="418" fill="#86efac">monaco account</text>
+    <text x="625" y="418" fill="#94A3B8" font-family="Inter, system-ui, sans-serif">account IAM resources</text>
+  </g>
+  <text x="665" y="445" text-anchor="middle" fill="#FBBF24" font-size="11" font-style="italic">Monaco v2.x uses manifest.yaml (not environments.yaml)</text>
+</svg>

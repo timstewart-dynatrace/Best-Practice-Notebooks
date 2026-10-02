@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Box &#8594; Dynatrace Collector Architecture</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">Box never pushes. Everything below is driven by a scheduled pull that owns a cursor.</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#64748B"/>
+    </marker>
+    <marker id="arrowCyan" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#22D3EE"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1: Box -->
+  <rect x="26" y="96" width="172" height="132" rx="8" fill="#1496FF" opacity="0.08"/>
+  <rect x="26" y="96" width="172" height="132" rx="8" fill="none" stroke="#1496FF" stroke-width="2"/>
+  <text x="112" y="122" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">Box Events API</text>
+  <text x="42" y="146" fill="#F8FAFC" font-size="11" font-family="monospace">GET /events</text>
+  <text x="42" y="166" fill="#94A3B8" font-size="11">500 events / page</text>
+  <text x="42" y="182" fill="#94A3B8" font-size="11">1,000 req / min limit</text>
+  <text x="42" y="202" fill="#FCD34D" font-size="11" font-weight="700">streaming = 2 wk only</text>
+  <text x="42" y="218" fill="#FCD34D" font-size="11" font-weight="700">+ duplicates</text>
+
+  <line x1="198" y1="162" x2="246" y2="162" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="222" y="153" text-anchor="middle" fill="#94A3B8" font-size="10">OAuth2</text>
+
+  <!-- Stage 2: Collector -->
+  <rect x="248" y="96" width="196" height="132" rx="8" fill="#A78BFA" opacity="0.08"/>
+  <rect x="248" y="96" width="196" height="132" rx="8" fill="none" stroke="#A78BFA" stroke-width="2"/>
+  <text x="346" y="122" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Collector</text>
+  <text x="264" y="146" fill="#F8FAFC" font-size="11" font-weight="700">Workflow (JS) or Python</text>
+  <text x="264" y="168" fill="#94A3B8" font-size="11">1. Read cursor</text>
+  <text x="264" y="184" fill="#94A3B8" font-size="11">2. Page until drained</text>
+  <text x="264" y="200" fill="#94A3B8" font-size="11">3. Dedupe on event_id</text>
+  <text x="264" y="216" fill="#94A3B8" font-size="11">4. Write cursor back</text>
+
+  <line x1="444" y1="162" x2="492" y2="162" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="468" y="153" text-anchor="middle" fill="#94A3B8" font-size="10">POST</text>
+
+  <!-- Stage 3: Ingest -->
+  <rect x="494" y="96" width="180" height="132" rx="8" fill="#22D3EE" opacity="0.08"/>
+  <rect x="494" y="96" width="180" height="132" rx="8" fill="none" stroke="#22D3EE" stroke-width="2"/>
+  <text x="584" y="122" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">Log Ingest API v2</text>
+  <text x="510" y="146" fill="#F8FAFC" font-size="11" font-family="monospace">logs.ingest scope</text>
+  <text x="510" y="168" fill="#94A3B8" font-size="11">10 MB / request</text>
+  <text x="510" y="184" fill="#94A3B8" font-size="11">50,000 records / req</text>
+  <text x="510" y="204" fill="#86EFAC" font-size="11" font-weight="700">No events/min cap</text>
+  <text x="510" y="220" fill="#94A3B8" font-size="10.5">16 MB post-processing</text>
+
+  <line x1="674" y1="162" x2="722" y2="162" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4: OpenPipeline -->
+  <rect x="724" y="96" width="180" height="132" rx="8" fill="#FFB800" opacity="0.08"/>
+  <rect x="724" y="96" width="180" height="132" rx="8" fill="none" stroke="#FFB800" stroke-width="2"/>
+  <text x="814" y="122" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">OpenPipeline</text>
+  <text x="740" y="146" fill="#94A3B8" font-size="11">Parse JSON &#8594; fields</text>
+  <text x="740" y="162" fill="#94A3B8" font-size="11">Mask / hash identity</text>
+  <text x="740" y="178" fill="#94A3B8" font-size="11">Extract metrics</text>
+  <text x="740" y="198" fill="#FCA5A5" font-size="11" font-weight="700">Discard raw: No storage</text>
+  <text x="740" y="214" fill="#FCA5A5" font-size="11" font-weight="700">assignment, not Drop</text>
+
+  <!-- Cursor store -->
+  <rect x="248" y="266" width="196" height="76" rx="8" fill="#73BE28" opacity="0.08"/>
+  <rect x="248" y="266" width="196" height="76" rx="8" fill="none" stroke="#73BE28" stroke-width="2"/>
+  <text x="346" y="290" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Cursor store</text>
+  <text x="264" y="311" fill="#F8FAFC" font-size="10.5" font-family="monospace">stateClient.setAppState</text>
+  <text x="264" y="330" fill="#FCD34D" font-size="10.5">TTL max 90 d &#8212; omit it</text>
+
+  <path d="M330,228 L330,266" stroke="#22D3EE" stroke-width="2" fill="none" marker-end="url(#arrowCyan)"/>
+  <path d="M362,266 L362,228" stroke="#22D3EE" stroke-width="2" fill="none" marker-end="url(#arrowCyan)"/>
+
+  <!-- Buckets -->
+  <rect x="724" y="266" width="180" height="76" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+  <text x="814" y="290" text-anchor="middle" fill="#F8FAFC" font-size="13" font-weight="700">Dedicated bucket</text>
+  <text x="740" y="311" fill="#94A3B8" font-size="11">Own retention + own</text>
+  <text x="740" y="327" fill="#94A3B8" font-size="11">IAM boundary</text>
+  <path d="M814,228 L814,266" stroke="#64748B" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Worked example strip -->
+  <rect x="26" y="376" width="878" height="96" rx="8" fill="#1E293B" stroke="#1496FF" stroke-width="1.5"/>
+  <text x="46" y="400" fill="#BFDBFE" font-size="13" font-weight="700">Worked example &#8212; 1,000,000 events / day</text>
+  <text x="46" y="423" fill="#94A3B8" font-size="12">Box side: 1M &#247; 500 per page = 2,000 requests/day &#8776; <tspan fill="#86EFAC" font-weight="700">1.4 req/min against a 1,000/min limit</tspan> &#8212; about 0.1% of budget.</text>
+  <text x="46" y="443" fill="#94A3B8" font-size="12">Dynatrace side: &#8776; 11.6 events/sec, and the ingest API has <tspan fill="#86EFAC" font-weight="700">no events-per-minute cap</tspan> &#8212; not a constraint.</text>
+  <text x="46" y="463" fill="#94A3B8" font-size="12">Neither endpoint is the bottleneck. <tspan fill="#FCD34D" font-weight="700">The only thing missing is the collector in the middle.</tspan></text>
+</svg>

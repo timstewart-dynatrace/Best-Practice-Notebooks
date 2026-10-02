@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="20" font-weight="700">Opinionated Repo Layout — Terraform GitOps for Dynatrace</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="12">Modules separated from environments; one root per environment; shared CI definitions at the top</text>
+
+  <!-- Tree visualization as boxes -->
+  <text x="80" y="100" fill="#F8FAFC" font-size="14" font-weight="700" font-family="JetBrains Mono, Menlo, monospace">dynatrace-terraform/</text>
+
+  <text x="100" y="128" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">├── .github/workflows/</text>
+  <text x="540" y="128" fill="#94A3B8" font-size="11">CI/CD pipelines (or .gitlab-ci.yml, bitbucket-pipelines.yml)</text>
+
+  <text x="100" y="152" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">├── modules/</text>
+  <text x="540" y="152" fill="#FCD34D" font-size="11" font-weight="700">Reusable modules — versioned, env-agnostic</text>
+
+  <text x="120" y="173" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   ├── segment/</text>
+  <text x="120" y="193" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   ├── problem-routing/</text>
+  <text x="120" y="213" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   ├── slo/</text>
+  <text x="120" y="233" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   └── synthetic-http/</text>
+
+  <text x="100" y="261" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">├── envs/</text>
+  <text x="540" y="261" fill="#86EFAC" font-size="11" font-weight="700">One root per environment — references modules + per-env tfvars</text>
+
+  <text x="120" y="282" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   ├── dev/</text>
+  <text x="140" y="302" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   │   ├── main.tf</text>
+  <text x="140" y="322" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   │   ├── backend.tf</text>
+  <text x="140" y="342" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   │   └── terraform.tfvars</text>
+  <text x="120" y="362" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   ├── staging/</text>
+  <text x="120" y="382" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">│   └── production/</text>
+
+  <text x="100" y="410" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">├── policy/</text>
+  <text x="540" y="410" fill="#DDD6FE" font-size="11" font-weight="700">Sentinel / OPA rules enforced in CI</text>
+
+  <text x="100" y="434" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">├── DECISIONS.md</text>
+  <text x="540" y="434" fill="#94A3B8" font-size="11">Architectural decisions log</text>
+
+  <text x="100" y="458" fill="#94A3B8" font-size="13" font-family="JetBrains Mono, Menlo, monospace">└── README.md</text>
+  <text x="540" y="458" fill="#94A3B8" font-size="11">Onboarding entry point + repo conventions</text>
+</svg>

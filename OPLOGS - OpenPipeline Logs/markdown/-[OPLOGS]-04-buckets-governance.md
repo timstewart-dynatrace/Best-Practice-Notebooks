@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -45,7 +45,7 @@ fetch logs, from: now() - 24h
 ```dql
 // Bucket volume analysis over time
 fetch logs, from: now() - 7d
-| makeTimeseries {count = count()}, by: {dt.system.bucket}, interval: 1d
+| makeTimeseries {count = count()}, by: {dt.system.bucket}, interval: 24h
 | limit 100
 ```
 
@@ -145,6 +145,8 @@ fetch logs, from: now() - 24h
 ## 3. Retention Policies
 ### Retention Strategy Matrix
 
+Starting points from community practice — your audit, legal and investigation needs set the real numbers:
+
 | Data Type | Min Retention | Recommended | Max | Rationale |
 |-----------|---------------|-------------|-----|------------|
 | DEBUG/TRACE | 3 days | 7 days | 14 days | High volume, temporary |
@@ -202,46 +204,31 @@ fetch logs, from: now() - 24h
 
 <a id="bucket-routing-configuration"></a>
 ## 4. Bucket Routing Configuration
-Route logs to appropriate buckets using **OpenPipeline routing rules**.
+A **route** sends a record to a **pipeline**; the **bucket** is chosen inside that pipeline by **Bucket assignment** processors in the Bucket assignment stage. There is no route-level bucket setting.
 
-### OpenPipeline Routing Rules
+### Bucket Assignment Processors
 
-```yaml
-# Route logs based on conditions
-routes:
-  # Route debug logs to short-retention bucket
-  - name: debug-to-debug-bucket
-    condition: loglevel == "DEBUG" OR loglevel == "TRACE"
-    bucket: debug_logs
-    
-  # Route errors to extended-retention bucket
-  - name: errors-to-error-bucket
-    condition: loglevel == "ERROR" OR loglevel == "FATAL"
-    bucket: error_logs
-    
-  # Route audit logs to compliance bucket
-  - name: audit-to-audit-bucket
-    condition: matchesValue(content, "*audit*") OR matchesValue(k8s.namespace.name, "*security*")  # contains() is not enabled in OpenPipeline matchers
-    bucket: audit_logs
-    
-  # Default catch-all
-  - name: default-route
-    condition: true
-    bucket: default_logs
-```
+| # | Matching condition | Bucket |
+|---|---|---|
+| 1 | `loglevel == "DEBUG" OR loglevel == "TRACE"` | `debug_logs` |
+| 2 | `status == "ERROR"` | `error_logs` |
+| 3 | `matchesValue(content, "*audit*") OR matchesValue(k8s.namespace.name, "*security*")` | `audit_logs` |
 
-### Routing Priority
+`contains()` is not enabled in OpenPipeline matching conditions, hence `matchesValue`. `status == "ERROR"` covers SEVERE, CRITICAL and FATAL as well as ERROR.
 
-1. First matching rule wins
-2. Order rules from specific to general
-3. Always include a default catch-all
+### Assignment Priority
+1. Bucket assignment is **first match only** — the first processor whose condition matches decides
+2. Order processors from specific to general
+3. A last processor with condition `true` makes the fallback explicit; in community practice, records that match none land in the default bucket
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Bucket assignment stage: *"Assign records to the best-fit bucket."*, executed *first match only*.</sub>
 
 ```dql
 // Preview routing decision logic
 fetch logs, from: now() - 1h
 | limit 1000
 | fieldsAdd target_bucket = if(loglevel == "DEBUG" OR loglevel == "TRACE", "debug_logs",
-                            else: if(loglevel == "ERROR" OR loglevel == "FATAL", "error_logs",
+                            else: if(status == "ERROR", "error_logs",
                             else: if(contains(content, "audit") OR contains(content, "security"), "audit_logs",
                             else: "default_logs")))
 | summarize {count = count()}, by: {target_bucket, loglevel}
@@ -371,11 +358,11 @@ fetch logs, from: now() - 24h
 ## 7. Cost Optimization Strategies
 ### Storage Cost Reduction Tactics
 
-| Strategy | Savings | Implementation |
-|----------|---------|----------------|
-| Shorten DEBUG retention | 60-80% | Route to 7-day bucket |
-| Drop health check logs | 10-30% | OpenPipeline filter |
-| Compress long content | 20-40% | Field truncation |
+| Strategy | Effect | Implementation |
+|----------|--------|----------------|
+| Shorten DEBUG retention | Retained DEBUG volume falls with retention (7 of 35 days ≈ 80% less) | Bucket assignment to a 7-day bucket |
+| Drop health check logs | Saves your health-check share — measure it first (OPLOGS-03 §7) | Drop record processor |
+| Trim long content | Depends on how much of each record you can remove | DQL processor (`fieldsRemove`, or a shortened `content`) |
 
 ### ROI Calculation
 
@@ -404,7 +391,7 @@ fetch logs, from: now() - 24h
   }, by: {loglevel}
 | fieldsAdd current_35d_gb = round(daily_gb * 35, decimals: 1)
 | fieldsAdd optimal_retention = if(loglevel == "DEBUG" OR loglevel == "TRACE", 7,
-                                else: if(loglevel == "ERROR" OR loglevel == "FATAL", 90,
+                                else: if(in(loglevel, {"ERROR", "SEVERE", "CRITICAL", "FATAL", "ALERT", "EMERGENCY"}), 90,
                                 else: 35))
 | fieldsAdd optimal_storage_gb = round(daily_gb * optimal_retention, decimals: 1)
 | fieldsAdd savings_gb = round(current_35d_gb - optimal_storage_gb, decimals: 1)

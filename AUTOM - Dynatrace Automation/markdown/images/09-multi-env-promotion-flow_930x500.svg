@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="20" font-weight="700">Multi-Environment Promotion — Same Modules, Per-Env tfvars</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="12">Module code is shared; environment-specific values, backends, and state are isolated per env</text>
+
+  <defs>
+    <marker id="arrow-09a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Shared module layer -->
+  <rect x="40" y="90" width="850" height="80" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="465" y="115" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">Shared Modules (modules/segment, modules/problem-routing, modules/slo, modules/synthetic-http)</text>
+  <text x="465" y="138" text-anchor="middle" fill="#94A3B8" font-size="11">Versioned with Git tags (v1.2.3) or registry references. Same code consumed by every environment below.</text>
+  <text x="465" y="156" text-anchor="middle" fill="#94A3B8" font-size="11">Modules accept env-agnostic inputs (host_group_prefix, severity_levels, location_ids) — no hard-coded environment values.</text>
+
+  <!-- Three environment columns -->
+  <!-- Dev -->
+  <rect x="60" y="200" width="240" height="220" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="180" y="225" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">envs/dev/</text>
+  <text x="180" y="248" text-anchor="middle" fill="#94A3B8" font-size="11">Tenant: dev.live.dynatrace.com</text>
+
+  <rect x="80" y="265" width="200" height="40" fill="#1E293B" stroke="#73BE28" stroke-width="1" rx="6"/>
+  <text x="180" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">main.tf · module sources</text>
+
+  <rect x="80" y="315" width="200" height="40" fill="#1E293B" stroke="#73BE28" stroke-width="1" rx="6"/>
+  <text x="180" y="340" text-anchor="middle" fill="#94A3B8" font-size="11">terraform.tfvars (dev)</text>
+
+  <rect x="80" y="365" width="200" height="40" fill="#1E293B" stroke="#73BE28" stroke-width="1" rx="6"/>
+  <text x="180" y="390" text-anchor="middle" fill="#94A3B8" font-size="11">backend.tf · state: dev-state</text>
+
+  <!-- Staging -->
+  <rect x="345" y="200" width="240" height="220" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="465" y="225" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">envs/staging/</text>
+  <text x="465" y="248" text-anchor="middle" fill="#94A3B8" font-size="11">Tenant: staging.live.dynatrace.com</text>
+
+  <rect x="365" y="265" width="200" height="40" fill="#1E293B" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="465" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">main.tf · module sources</text>
+
+  <rect x="365" y="315" width="200" height="40" fill="#1E293B" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="465" y="340" text-anchor="middle" fill="#94A3B8" font-size="11">terraform.tfvars (staging)</text>
+
+  <rect x="365" y="365" width="200" height="40" fill="#1E293B" stroke="#1496FF" stroke-width="1" rx="6"/>
+  <text x="465" y="390" text-anchor="middle" fill="#94A3B8" font-size="11">backend.tf · state: staging-state</text>
+
+  <!-- Production -->
+  <rect x="630" y="200" width="240" height="220" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="750" y="225" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">envs/production/</text>
+  <text x="750" y="248" text-anchor="middle" fill="#94A3B8" font-size="11">Tenant: prod.live.dynatrace.com</text>
+
+  <rect x="650" y="265" width="200" height="40" fill="#1E293B" stroke="#DE350B" stroke-width="1" rx="6"/>
+  <text x="750" y="290" text-anchor="middle" fill="#94A3B8" font-size="11">main.tf · module sources</text>
+
+  <rect x="650" y="315" width="200" height="40" fill="#1E293B" stroke="#DE350B" stroke-width="1" rx="6"/>
+  <text x="750" y="340" text-anchor="middle" fill="#94A3B8" font-size="11">terraform.tfvars (production)</text>
+
+  <rect x="650" y="365" width="200" height="40" fill="#1E293B" stroke="#DE350B" stroke-width="1" rx="6"/>
+  <text x="750" y="390" text-anchor="middle" fill="#94A3B8" font-size="11">backend.tf · state: prod-state</text>
+
+  <!-- Promotion arrows between envs -->
+  <line x1="305" y1="310" x2="340" y2="310" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-09a)"/>
+  <line x1="590" y1="310" x2="625" y2="310" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-09a)"/>
+
+  <text x="322" y="300" text-anchor="middle" fill="#94A3B8" font-size="10" font-style="italic">promote</text>
+  <text x="607" y="300" text-anchor="middle" fill="#94A3B8" font-size="10" font-style="italic">manual gate</text>
+
+  <!-- Footer -->
+  <text x="465" y="450" text-anchor="middle" fill="#94A3B8" font-size="11">Promotion = bump module version in the next env's main.tf (e.g., v1.2.3 → v1.2.4), open PR, apply on merge.</text>
+  <text x="465" y="468" text-anchor="middle" fill="#94A3B8" font-size="11">Each env has its own state file and its own credentials. Production behind a manual approval gate.</text>
+</svg>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="axisArrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#454646"/>
+    </marker>
+  </defs>
+  <rect width="930" height="500" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="465" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A1A">Three Migration Paths — Effort vs. Capability Gain</text>
+  <text x="465" y="40" text-anchor="middle" font-size="11" fill="#6F7274">Where each path lands on the trade-off between engineering effort and what you actually gain</text>
+
+  <!-- Quadrant tints -->
+  <rect x="140" y="80" width="340" height="140" fill="#73BE28" fill-opacity="0.07"/>
+  <rect x="480" y="220" width="340" height="140" fill="#FF5454" fill-opacity="0.06"/>
+
+  <!-- Quadrant labels — both at top of their quadrant so they don't compete with bubbles -->
+  <text x="310" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#73BE28" letter-spacing="1">SWEET SPOT</text>
+  <text x="310" y="114" text-anchor="middle" font-size="9" fill="#6F7274">low effort, high gain</text>
+
+  <text x="650" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#C73734" letter-spacing="1">AVOID</text>
+  <text x="650" y="252" text-anchor="middle" font-size="9" fill="#6F7274">high effort, low gain</text>
+
+  <!-- Y axis -->
+  <line x1="140" y1="360" x2="140" y2="74" stroke="#454646" stroke-width="1.5" marker-end="url(#axisArrow3)"/>
+  <text x="56" y="220" font-size="11" font-weight="700" fill="#454646" transform="rotate(-90 56 220)" text-anchor="middle">Capability gain</text>
+  <text x="120" y="86" text-anchor="end" font-size="10" fill="#6F7274">High</text>
+  <text x="120" y="358" text-anchor="end" font-size="10" fill="#6F7274">Low</text>
+
+  <!-- X axis -->
+  <line x1="140" y1="360" x2="826" y2="360" stroke="#454646" stroke-width="1.5" marker-end="url(#axisArrow3)"/>
+  <text x="480" y="395" text-anchor="middle" font-size="11" font-weight="700" fill="#454646">Engineering effort</text>
+  <text x="142" y="378" text-anchor="start" font-size="10" fill="#6F7274">Low / zero</text>
+  <text x="818" y="378" text-anchor="end" font-size="10" fill="#6F7274">High</text>
+
+  <!-- Midlines (subtle) -->
+  <line x1="480" y1="80" x2="480" y2="360" stroke="#E5E5E5" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="140" y1="220" x2="820" y2="220" stroke="#E5E5E5" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- ============ Path A: Stay OTel-only ============ -->
+  <!-- Position: low effort, low-medium gain. -->
+  <circle cx="220" cy="305" r="40" fill="#B4DC00" fill-opacity="0.30" stroke="#73BE28" stroke-width="2"/>
+  <text x="220" y="302" text-anchor="middle" font-size="13" font-weight="700" fill="#1A1A1A">Path A</text>
+  <text x="220" y="318" text-anchor="middle" font-size="9" fill="#454646">Stay OTel-only</text>
+  <text x="270" y="300" text-anchor="start" font-size="10" fill="#6F7274">No code change</text>
+  <text x="270" y="314" text-anchor="start" font-size="10" fill="#6F7274">No Smartscape, PurePath; Davis limited</text>
+
+  <!-- ============ Path B: Layer (recommended) ============ -->
+  <!-- Position: low effort, HIGH gain. Solid blue fill = visual emphasis without size inflation. -->
+  <circle cx="320" cy="160" r="42" fill="#1496FF" stroke="#0E72C2" stroke-width="2.5"/>
+  <text x="320" y="158" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">Path B</text>
+  <text x="320" y="174" text-anchor="middle" font-size="10" fill="#FFFFFF">Layer alongside</text>
+
+  <!-- RECOMMENDED pill below the Path B bubble (in the SWEET SPOT quadrant, below the bubble, above the midline) -->
+  <rect x="271" y="208" width="98" height="22" fill="#73BE28" rx="11"/>
+  <text x="320" y="223" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF" letter-spacing="0.8">RECOMMENDED</text>
+
+  <!-- ============ Path C: Rip-and-replace ============ -->
+  <!-- Position: HIGH effort, LOW gain. Dashed red outline = avoid. -->
+  <circle cx="580" cy="305" r="40" fill="#FFFFFF" stroke="#C73734" stroke-width="2.5" stroke-dasharray="6,3"/>
+  <text x="580" y="302" text-anchor="middle" font-size="13" font-weight="700" fill="#1A1A1A">Path C</text>
+  <text x="580" y="318" text-anchor="middle" font-size="9" fill="#454646">Rip-and-replace</text>
+  <text x="630" y="300" text-anchor="start" font-size="10" fill="#6F7274">Multi-service rewrite</text>
+  <text x="630" y="314" text-anchor="start" font-size="10" fill="#6F7274">Loses portability + metrics / logs</text>
+
+  <!-- ============ Bottom callout: Path C unavailable for some runtimes ============ -->
+  <rect x="140" y="410" width="680" height="58" fill="#FFFFFF" stroke="#C73734" stroke-width="1.5" stroke-dasharray="4,3" rx="6"/>
+  <text x="480" y="430" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Path C is technically impossible for Python, Go, PHP, and Ruby</text>
+  <text x="480" y="446" text-anchor="middle" font-size="10" fill="#454646">No OneAgent SDK exists for these runtimes — there is no replacement target for OTel application code.</text>
+  <text x="480" y="460" text-anchor="middle" font-size="10" fill="#454646">For these runtimes the choice is Path A (OTel only) or Path B (layer OneAgent alongside OTel).</text>
+
+  <text x="465" y="490" text-anchor="middle" font-size="10" font-style="italic" fill="#6F7274">Position on the chart shows each path's location on the effort × gain trade-off — Path B is the only option that wins on both axes.</text>
+</svg>

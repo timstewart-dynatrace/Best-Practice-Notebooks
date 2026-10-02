@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -31,7 +31,7 @@ For log-derived metrics (which are not affected by sampling), see **OPMIG-07: Me
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail and distributed tracing |
-| **Permissions** | `storage:spans:read`, `storage:metrics:read`, `openpipeline:configurations:write` |
+| **Permissions** | `storage:spans:read`, `storage:metrics:read`; `settings:objects:write` on `builtin:openpipeline.spans.pipelines` to configure extraction (OpenPipeline configuration is stored as Settings objects) |
 | **Data** | Active span data from instrumented services |
 | **Recommended** | **OPIPE-02** (span processing) and **SPANS-01** (fundamentals) |
 
@@ -45,7 +45,7 @@ For log-derived metrics (which are not affected by sampling), see **OPMIG-07: Me
 |------|--------------|----------------------------------------------------|
 | Trace sampler keeps 10% | 1,000 spans reach OpenPipeline | — |
 | Naive counter | Counts each arriving span = 1 | 80 (undercounts by 10×) |
-| Sampling-aware counter | Multiplies by 1 / sampling_ratio | ~800 (unbiased estimate) |
+| Sampling-aware counter | Multiplies by 1 / sampling probability | ~800 (unbiased estimate) |
 -->
 
 ### Why Sampling Exists
@@ -70,32 +70,44 @@ When you extract metrics from sampled spans, the raw numbers are wrong:
 | 500 errors/min | ~50 error spans stored | `countIf(error) = 50` (10x under-reported) |
 | Avg latency 200ms | ~1,000 spans sampled | `avg(duration) = ~200ms` (approximately correct) |
 
-**Key insight**: Counts and rates are severely affected by sampling. Averages and percentiles are approximately correct (the sample is statistically representative). This distinction drives how sampling-aware metrics work.
+**Key insight**: Counts and rates are severely affected by sampling. Averages and percentiles stay approximately correct **when every request had the same chance of being kept** — the sample is then representative. This distinction drives how sampling-aware metrics work.
+
+> **When the sample is not representative.** Two common cases break the "averages are fine" rule. **Tail sampling** keeps errors and slow traces on purpose, so averages, percentiles and error *rates* computed from the kept spans are biased toward the bad cases. **Adaptive Traffic Management** samples different request types at different rates, so an average or ratio that pools request types without weighting by each span's multiplicity over-represents the rarely-sampled ones. In both cases, weight by multiplicity (next cells) or compute per request type.
 
 ```dql
-// Check: Is your environment using span sampling?
+// Check: Is trace sampling in effect, and from which mechanism?
 //
-// The field is `dt.system.sampling_ratio` (stable). `sampling.ratio` and
-// `sampling.probability` DO NOT EXIST — neither has a row in the semantic
-// dictionary, so filtering on either returns null with no error and gives you
-// no way to tell "not sampled" from "wrong field name". Verified 08/27/2026:
-// dt.system.sampling_ratio was populated on all 642,584 spans in a 2h window,
-// while sampling.threshold was null on every one of them.
-// `supportability.atm_sampling_ratio` (experimental) carries the Adaptive
-// Traffic Management ratio specifically, on 99.8% of those spans.
-//
-// This cell shows the ratio per service; the next cell summarizes it tenant-wide.
+// `dt.system.sampling_ratio` is NOT the trace sampler — it is the query's own read
+// sampling (`fetch ..., samplingRatio:`), so it reads 1 unless you set samplingRatio.
+// Verified 10/02/2026: `samplingRatio:10` turns it into 10 on every span.
+// The trace-sampling fields are:
+//   supportability.atm_sampling_ratio  agent-side Adaptive Traffic Management, denominator
+//                                      (16 means 1 in 16 kept) — experimental
+//   supportability.alr_sampling_ratio  cluster-side Adaptive Load Reduction, denominator
+//                                      — experimental, only set while ALR is active
+//   sampling.threshold                 W3C trace-state threshold used by the documented
+//                                      extrapolation formula (next cell)
+// and `aggregation.count` (stable) is the number of spans OneAgent aggregated into one.
 fetch spans, from:-1h
-| summarize spans = count(), by:{service.name, dt.system.sampling_ratio}
+| summarize {
+    spans = count(),
+    with_threshold = countIf(isNotNull(sampling.threshold)),
+    aggregated = countIf(isNotNull(aggregation.count))
+  }, by:{dt.service.name, supportability.atm_sampling_ratio, supportability.alr_sampling_ratio}
 | sort spans desc
 | limit 20
 ```
 
 ```dql
-// Is sampling actually in effect? A ratio of 1 means every span is kept.
+// Stored spans vs. extrapolated spans, using the multiplicity formula from
+// "Advanced Tracing Analytics powered by Grail" (DT docs). A factor of 1.0 means
+// nothing was sampled or aggregated away; 16.0 means each stored span stands for 16.
 fetch spans, from:-1h
-| summarize spans = count(), by:{dt.system.sampling_ratio}
-| sort spans desc
+| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56)
+| fieldsAdd sampling.multiplicity = 1 / sampling.probability
+| fieldsAdd multiplicity = coalesce(sampling.multiplicity, 1) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
+| summarize {stored_spans = count(), extrapolated_spans = sum(multiplicity)}
+| fieldsAdd factor = round(extrapolated_spans / stored_spans, decimals: 2)
 ```
 
 <a id="what-makes-a-metric-sampling-aware"></a>
@@ -107,13 +119,13 @@ A **sampling-aware metric** adjusts its calculation based on the sampling rate t
 
 Each sampled span carries metadata about the sampling decision — typically a sampling ratio or probability. When OpenPipeline extracts a metric, it can use this information.
 
-> **OpenTelemetry caveat.** The method depends on that metadata being present. Per the Metric extraction stage docs, *"Note that OpenTelemetry spans don't typically expose sampling rate metadata, making extrapolation less effective."* Check `dt.system.sampling_ratio` on your OTel spans (cells above) before trusting extrapolated counts from them.
+> **OpenTelemetry caveat.** The method depends on that metadata being present. Per the Metric extraction stage docs, *"Note that OpenTelemetry spans don't typically expose sampling rate metadata, making extrapolation less effective."* Check whether your OTel spans carry `sampling.threshold` (cells above) before trusting extrapolated counts from them.
 >
 > <sub>**Sources:** [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction).</sub>
 
 | Metric Type | Standard Extraction | Sampling-Aware Extraction |
 |-------------|--------------------|--------------------------|
-| **Request count** | `count()` → 1,000 | `count()` weighted by 1/sampling_ratio → 10,000 |
+| **Request count** | `count()` → 1,000 | each span weighted by 1 / sampling probability → 10,000 |
 | **Error count** | `countIf(error)` → 50 | `countIf(error)` weighted → 500 |
 | **Error rate** | 50/1,000 = 5% | 500/10,000 = 5% (same — ratio cancels out) |
 | **Avg duration** | `avg(duration)` → 200ms | `avg(duration)` → 200ms (same — sample is representative) |
@@ -124,9 +136,9 @@ Each sampled span carries metadata about the sampling decision — typically a s
 | Metric | Sampling-Aware Needed? | Why |
 |--------|----------------------|-----|
 | Request rate (throughput) | **Yes** | Absolute counts are under-reported |
-| Error rate (ratio) | No | Ratio of sampled errors to sampled total is representative |
+| Error rate (ratio) | No, if sampling is uniform | Representative only when every request had the same chance of being kept — not under tail sampling |
 | Error count (absolute) | **Yes** | Absolute counts are under-reported |
-| Average latency | No | Sample mean approximates population mean |
+| Average latency | No, if sampling is uniform | Sample mean approximates population mean under uniform sampling |
 | P95/P99 latency | Partially | Approximation degrades at extreme percentiles with aggressive sampling |
 | Throughput for SLO | **Yes** | SLO calculations need accurate request volume |
 
@@ -170,7 +182,7 @@ Measures how long requests take to complete.
 // RED: Request rate by service (from stored spans)
 fetch spans, from:-1h
 | filter span.kind == "server"
-| makeTimeseries request_count = count(), by:{service.name}, interval:5m
+| makeTimeseries request_count = count(), by:{dt.service.name}, interval:5m
 ```
 
 ```dql
@@ -183,7 +195,7 @@ fetch spans, from:-1h
 | summarize {
     total = count(),
     errors = countIf(http.response.status_code >= 500 or span.status_code == "error")
-  }, by:{service.name}
+  }, by:{dt.service.name}
 | fieldsAdd successes = total - errors
 | fieldsAdd error_rate_pct = round(100.0 * errors / total, decimals: 2)
 | sort error_rate_pct desc
@@ -193,10 +205,8 @@ fetch spans, from:-1h
 // RED: Duration percentiles by service
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize p50 = percentile(duration, 50),
-    p95 = percentile(duration, 95),
-    p99 = percentile(duration, 99),
-    by:{service.name}
+| summarize {p50 = percentile(duration, 50), p95 = percentile(duration, 95), p99 = percentile(duration, 99)},
+    by:{dt.service.name}
 | sort p95 desc
 | limit 15
 ```
@@ -248,17 +258,21 @@ Cardinality management is covered in depth in **OPIPE-04: Cardinality Management
 After configuring metric extraction, validate that sampling-aware metrics produce accurate results by comparing them against known baselines.
 
 ```dql
-// Compare: Raw span count vs. built-in service request metric
-// If sampling is active, raw span count will be lower than the metric
+// Compare: stored server spans vs. the extrapolated count, per service.
+// If sampling or aggregation is active, extrapolated_count is larger than stored_spans.
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize raw_span_count = count(), by:{service.name}
-| sort raw_span_count desc
+| fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56)
+| fieldsAdd multiplicity = (1 / sampling.probability) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
+| summarize {stored_spans = count(), extrapolated_count = sum(multiplicity)}, by:{dt.service.name}
+| sort extrapolated_count desc
 | limit 10
 ```
 
 ```dql
-// Built-in service request count metric (not affected by span sampling)
+// Built-in service request count metric, for comparison with the extrapolated count above.
+// It is not a sampling-free ground truth: per the Adaptive Traffic Management FAQ, service
+// metrics "are based on captured traces", and low-frequency requests can be under-captured.
 timeseries request_count = sum(dt.service.request.count), from:-1h, by:{dt.entity.service}
 | fieldsAdd total_requests = arraySum(request_count)
 | sort total_requests desc
@@ -326,7 +340,8 @@ Continue to **OPIPE-04: Cardinality Management** for strategies to control dimen
 ## References
 
 - [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)
-- [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps)
+- [Adaptive Traffic Management with DPS (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-saas-dps) — *"Yes, in a few cases, as service monitoring metrics are based on captured traces."*
+- [Advanced Tracing Analytics powered by Grail (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/advanced-tracing-analytics) — the multiplicity formula used in cells 3 and 11
 - [Metric extraction stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction)
 - [The RED Method (Grafana)](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/)
 - [Metric limits and cardinality (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits)

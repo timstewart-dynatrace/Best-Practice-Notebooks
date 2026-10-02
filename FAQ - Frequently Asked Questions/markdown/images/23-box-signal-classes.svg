@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Box — Four Signal Classes</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Start with the one that costs nothing. Only two of the four require a collector.</text>
+
+  <!-- Card 1: your apps -->
+  <rect x="30" y="90" width="202" height="300" rx="8" fill="#73BE28" opacity="0.08"/>
+  <rect x="30" y="90" width="202" height="300" rx="8" fill="none" stroke="#73BE28" stroke-width="2"/>
+  <rect x="46" y="106" width="94" height="20" rx="10" fill="#73BE28"/>
+  <text x="93" y="120" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">ZERO EFFORT</text>
+  <text x="46" y="152" fill="#86EFAC" font-size="14" font-weight="700">Your apps</text>
+  <text x="46" y="170" fill="#86EFAC" font-size="14" font-weight="700">calling Box</text>
+  <text x="46" y="198" fill="#94A3B8" font-size="11">Source:</text>
+  <text x="46" y="214" fill="#F8FAFC" font-size="11" font-weight="700">OneAgent (already on)</text>
+  <text x="46" y="242" fill="#94A3B8" font-size="11">Answers:</text>
+  <text x="46" y="258" fill="#94A3B8" font-size="11">Latency and errors on</text>
+  <text x="46" y="273" fill="#94A3B8" font-size="11">outbound Box API calls</text>
+  <text x="46" y="288" fill="#94A3B8" font-size="11">from your own services</text>
+  <text x="46" y="322" fill="#94A3B8" font-size="11">Query today:</text>
+  <text x="46" y="340" fill="#86EFAC" font-size="10.5" font-family="monospace">span.kind ==</text>
+  <text x="46" y="355" fill="#86EFAC" font-size="10.5" font-family="monospace">  "client"</text>
+  <text x="46" y="370" fill="#86EFAC" font-size="10.5" font-family="monospace">server.address</text>
+
+  <!-- Card 2: audit events -->
+  <rect x="252" y="90" width="202" height="300" rx="8" fill="#1496FF" opacity="0.08"/>
+  <rect x="252" y="90" width="202" height="300" rx="8" fill="none" stroke="#1496FF" stroke-width="2"/>
+  <rect x="268" y="106" width="122" height="20" rx="10" fill="#1496FF"/>
+  <text x="329" y="120" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">BUILD COLLECTOR</text>
+  <text x="268" y="152" fill="#BFDBFE" font-size="14" font-weight="700">Audit events</text>
+  <text x="268" y="170" fill="#BFDBFE" font-size="14" font-weight="700">(enterprise)</text>
+  <text x="268" y="198" fill="#94A3B8" font-size="11">Source:</text>
+  <text x="268" y="214" fill="#F8FAFC" font-size="11" font-weight="700">GET /events (pull)</text>
+  <text x="268" y="242" fill="#94A3B8" font-size="11">Answers:</text>
+  <text x="268" y="258" fill="#94A3B8" font-size="11">Who did what — logins,</text>
+  <text x="268" y="273" fill="#94A3B8" font-size="11">downloads, shares,</text>
+  <text x="268" y="288" fill="#94A3B8" font-size="11">permission changes</text>
+  <text x="268" y="322" fill="#94A3B8" font-size="11">Constraint:</text>
+  <text x="268" y="340" fill="#FCD34D" font-size="11" font-weight="700">No push. No webhooks.</text>
+  <text x="268" y="356" fill="#FCD34D" font-size="11" font-weight="700">No long polling.</text>
+  <text x="268" y="374" fill="#94A3B8" font-size="10.5">Cursor must persist.</text>
+
+  <!-- Card 3: shield -->
+  <rect x="474" y="90" width="202" height="300" rx="8" fill="#DE350B" opacity="0.08"/>
+  <rect x="474" y="90" width="202" height="300" rx="8" fill="none" stroke="#DE350B" stroke-width="2"/>
+  <rect x="490" y="106" width="100" height="20" rx="10" fill="#DE350B"/>
+  <text x="540" y="120" text-anchor="middle" fill="#F8FAFC" font-size="11" font-weight="700">FREE IF ABOVE</text>
+  <text x="490" y="152" fill="#FCA5A5" font-size="14" font-weight="700">Shield alerts</text>
+  <text x="490" y="170" fill="#FCA5A5" font-size="14" font-weight="700">(security)</text>
+  <text x="490" y="198" fill="#94A3B8" font-size="11">Source:</text>
+  <text x="490" y="214" fill="#F8FAFC" font-size="11" font-weight="700">Same event stream</text>
+  <text x="490" y="242" fill="#94A3B8" font-size="11">Answers:</text>
+  <text x="490" y="258" fill="#94A3B8" font-size="11">Compromised accounts,</text>
+  <text x="490" y="273" fill="#94A3B8" font-size="11">anomalous downloads,</text>
+  <text x="490" y="288" fill="#94A3B8" font-size="11">malware, ransomware</text>
+  <text x="490" y="322" fill="#94A3B8" font-size="11">Filter on:</text>
+  <text x="490" y="340" fill="#FCA5A5" font-size="10.5" font-family="monospace">event_type ==</text>
+  <text x="490" y="355" fill="#FCA5A5" font-size="10.5" font-family="monospace">"SHIELD_ALERT"</text>
+  <text x="490" y="374" fill="#FCD34D" font-size="10.5">Separate licence.</text>
+
+  <!-- Card 4: availability -->
+  <rect x="696" y="90" width="202" height="300" rx="8" fill="#22D3EE" opacity="0.08"/>
+  <rect x="696" y="90" width="202" height="300" rx="8" fill="none" stroke="#22D3EE" stroke-width="2"/>
+  <rect x="712" y="106" width="70" height="20" rx="10" fill="#22D3EE"/>
+  <text x="747" y="120" text-anchor="middle" fill="#0F172A" font-size="11" font-weight="700">LOW LIFT</text>
+  <text x="712" y="152" fill="#A5F3FC" font-size="14" font-weight="700">Availability</text>
+  <text x="712" y="198" fill="#94A3B8" font-size="11">Source:</text>
+  <text x="712" y="214" fill="#F8FAFC" font-size="11" font-weight="700">Statuspage JSON</text>
+  <text x="712" y="229" fill="#F8FAFC" font-size="11" font-weight="700">+ Synthetic monitor</text>
+  <text x="712" y="256" fill="#94A3B8" font-size="11">Answers:</text>
+  <text x="712" y="272" fill="#94A3B8" font-size="11">Is Box up (vendor view)</text>
+  <text x="712" y="287" fill="#94A3B8" font-size="11">vs. is Box up for us</text>
+  <text x="712" y="302" fill="#94A3B8" font-size="11">(your view)</text>
+  <text x="712" y="334" fill="#94A3B8" font-size="11">Both matter — they</text>
+  <text x="712" y="349" fill="#94A3B8" font-size="11">disagree more often</text>
+  <text x="712" y="364" fill="#94A3B8" font-size="11">than you would expect.</text>
+
+  <!-- Footer -->
+  <rect x="30" y="406" width="868" height="74" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+  <text x="50" y="428" fill="#F8FAFC" font-size="13" font-weight="700">Sequencing</text>
+  <text x="50" y="449" fill="#94A3B8" font-size="12">Query signal 1 before building anything — if it answers &#8220;is Box hurting us&#8221;, the collector may not be needed.</text>
+  <text x="50" y="467" fill="#94A3B8" font-size="12">Signals 2 and 3 share one collector, so build it once.</text>
+</svg>

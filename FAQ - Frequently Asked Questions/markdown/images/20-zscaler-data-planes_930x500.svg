@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Three Data Planes, Three Different Questions</text>
+  <text x="465" y="60" text-anchor="middle" fill="#94A3B8" font-size="13">Access logs record what the platform handled. Only experience telemetry records how it felt.</text>
+
+  <!-- ZPA -->
+  <rect x="40" y="82" width="272" height="300" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="176" y="110" text-anchor="middle" fill="#BFDBFE" font-size="16" font-weight="700">ZPA</text>
+  <text x="176" y="130" text-anchor="middle" fill="#94A3B8" font-size="11">Private application access</text>
+
+  <rect x="60" y="144" width="232" height="74" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="176" y="165" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Answers well</text>
+  <text x="176" y="184" text-anchor="middle" fill="#94A3B8" font-size="11">Who reached which private app</text>
+  <text x="176" y="200" text-anchor="middle" fill="#94A3B8" font-size="11">Connector health and saturation</text>
+
+  <rect x="60" y="230" width="232" height="62" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="176" y="251" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Transport</text>
+  <text x="176" y="271" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="600">LSS — raw TCP / TLS</text>
+
+  <rect x="60" y="304" width="232" height="62" fill="#DE350B" opacity="0.10" stroke="#DE350B" rx="6"/>
+  <text x="176" y="325" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="700">Cannot answer</text>
+  <text x="176" y="345" text-anchor="middle" fill="#94A3B8" font-size="11">Endpoint health · path quality</text>
+  <text x="176" y="360" text-anchor="middle" fill="#94A3B8" font-size="11">Page-fetch timing</text>
+
+  <!-- ZIA -->
+  <rect x="329" y="82" width="272" height="300" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="465" y="110" text-anchor="middle" fill="#FCD34D" font-size="16" font-weight="700">ZIA</text>
+  <text x="465" y="130" text-anchor="middle" fill="#94A3B8" font-size="11">Internet and SaaS access</text>
+
+  <rect x="349" y="144" width="232" height="74" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="465" y="165" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">Answers well</text>
+  <text x="465" y="184" text-anchor="middle" fill="#94A3B8" font-size="11">SaaS usage, URLs, response codes</text>
+  <text x="465" y="200" text-anchor="middle" fill="#94A3B8" font-size="11">Policy outcomes and throughput</text>
+
+  <rect x="349" y="230" width="232" height="62" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="465" y="251" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Transport</text>
+  <text x="465" y="271" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="600">Cloud NSS — HTTPS push</text>
+
+  <rect x="349" y="304" width="232" height="62" fill="#DE350B" opacity="0.10" stroke="#DE350B" rx="6"/>
+  <text x="465" y="325" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="700">Cannot answer</text>
+  <text x="465" y="345" text-anchor="middle" fill="#94A3B8" font-size="11">Endpoint health · path quality</text>
+  <text x="465" y="360" text-anchor="middle" fill="#94A3B8" font-size="11">Timing is proxy-observed only</text>
+
+  <!-- ZDX -->
+  <rect x="618" y="82" width="272" height="300" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="2" rx="8"/>
+  <text x="754" y="110" text-anchor="middle" fill="#86EFAC" font-size="16" font-weight="700">ZDX</text>
+  <text x="754" y="130" text-anchor="middle" fill="#94A3B8" font-size="11">Digital experience — separate SKU</text>
+
+  <rect x="638" y="144" width="232" height="74" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="754" y="165" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">Answers well</text>
+  <text x="754" y="184" text-anchor="middle" fill="#94A3B8" font-size="11">Device health · path · DNS / PFT / TTFB</text>
+  <text x="754" y="200" text-anchor="middle" fill="#94A3B8" font-size="11">ZDX score 0–100 per user</text>
+
+  <rect x="638" y="230" width="232" height="62" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="754" y="251" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Transport</text>
+  <text x="754" y="271" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="600">REST API — pull only (OAuth 2.0)</text>
+
+  <rect x="638" y="304" width="232" height="62" fill="#73BE28" opacity="0.12" stroke="#73BE28" rx="6"/>
+  <text x="754" y="325" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">The experience answer</text>
+  <text x="754" y="345" text-anchor="middle" fill="#94A3B8" font-size="11">Measures actively from the endpoint,</text>
+  <text x="754" y="360" text-anchor="middle" fill="#94A3B8" font-size="11">not at the proxy</text>
+
+  <line x1="40" y1="404" x2="890" y2="404" stroke="#334155" stroke-width="1"/>
+
+  <rect x="40" y="418" width="850" height="58" fill="#DE350B" opacity="0.10" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="465" y="441" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">ZIA and ZPA logs are not a substitute for ZDX</text>
+  <text x="465" y="462" text-anchor="middle" fill="#94A3B8" font-size="11">Without ZDX you can build excellent access, traffic, and infrastructure-health monitoring — and not user-experience monitoring. Scope on that basis.</text>
+</svg>

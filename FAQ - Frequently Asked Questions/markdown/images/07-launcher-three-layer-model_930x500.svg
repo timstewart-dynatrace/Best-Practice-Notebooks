@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Launchpad Precedence Model</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">How a user's Home Launchpad is resolved — three layers, highest precedence wins</text>
+
+  <defs>
+    <marker id="arrow-down" viewBox="0 0 10 10" refX="5" refY="10" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 0 L 5 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- LEFT: The 3 precedence layers (stacked top to bottom: highest to lowest) -->
+  <text x="40" y="100" fill="#F8FAFC" font-size="15" font-weight="700">Precedence (highest wins)</text>
+
+  <!-- Layer 1: User Personal (top - highest precedence) -->
+  <rect x="40" y="115" width="500" height="80" fill="#73BE28" opacity="0.10" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="60" y="140" fill="#86EFAC" font-size="14" font-weight="700">1. User Personal Launchpad</text>
+  <text x="60" y="160" fill="#94A3B8" font-size="11">Set by the user themselves via the Launcher app.</text>
+  <text x="60" y="177" fill="#94A3B8" font-size="11">Overrides everything below. Admin's Launchpad drops to "Suggested."</text>
+  <text x="525" y="170" text-anchor="end" fill="#86EFAC" font-size="10" font-weight="600">PER USER</text>
+
+  <!-- arrow between layers -->
+  <line x1="290" y1="195" x2="290" y2="205" stroke="#475569" stroke-width="1"/>
+
+  <!-- Layer 2: Group Home Launchpad (middle) -->
+  <rect x="40" y="210" width="500" height="80" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="60" y="235" fill="#DDD6FE" font-size="14" font-weight="700">2. Group Home Launchpad</text>
+  <text x="60" y="255" fill="#94A3B8" font-size="11">Admin-assigned to a specific IAM user group (e.g., team-sre, team-sec).</text>
+  <text x="60" y="272" fill="#94A3B8" font-size="11">Multiple groups can each have their own Launchpad; the highest-ranked entry wins. The persona layer.</text>
+  <text x="525" y="265" text-anchor="end" fill="#DDD6FE" font-size="10" font-weight="600">PER GROUP</text>
+
+  <!-- arrow between layers -->
+  <line x1="290" y1="290" x2="290" y2="300" stroke="#475569" stroke-width="1"/>
+
+  <!-- Layer 3: "Everyone" Default (bottom - foundation) -->
+  <rect x="40" y="305" width="500" height="80" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="60" y="330" fill="#BFDBFE" font-size="14" font-weight="700">3. "Everyone" Home Launchpad</text>
+  <text x="60" y="350" fill="#94A3B8" font-size="11">Admin-assigned tenant default. The floor — every user falls back to</text>
+  <text x="60" y="367" fill="#94A3B8" font-size="11">this if not bound to a group override and no personal one is set.</text>
+  <text x="525" y="360" text-anchor="end" fill="#BFDBFE" font-size="10" font-weight="600">TENANT</text>
+
+  <!-- RIGHT: The admin mechanism -->
+  <text x="580" y="100" fill="#F8FAFC" font-size="15" font-weight="700">Admin path</text>
+
+  <rect x="580" y="115" width="310" height="270" fill="#1E293B" stroke="#334155" stroke-width="1.5" rx="6"/>
+
+  <text x="600" y="142" fill="#F8FAFC" font-size="12" font-weight="600">Settings → General → Launcher</text>
+  <text x="600" y="160" fill="#FCD34D" font-size="12" font-weight="600">→ Home launchpad → Add</text>
+
+  <line x1="600" y1="176" x2="870" y2="176" stroke="#334155" stroke-width="1"/>
+
+  <text x="600" y="198" fill="#94A3B8" font-size="11">1. Build the Launchpad first in</text>
+  <text x="600" y="213" fill="#94A3B8" font-size="11">   the Launcher app (links, markdown, cards).</text>
+
+  <text x="600" y="237" fill="#94A3B8" font-size="11">2. Select a Launchpad from the list.</text>
+
+  <text x="600" y="261" fill="#94A3B8" font-size="11">3. Assign to a user group OR "Everyone."</text>
+
+  <text x="600" y="285" fill="#94A3B8" font-size="11">4. Repeat per group as needed.</text>
+
+  <text x="600" y="309" fill="#94A3B8" font-size="11">5. Users can override personally —</text>
+  <text x="600" y="324" fill="#94A3B8" font-size="11">   admin's Launchpad drops to "Suggested."</text>
+
+  <text x="600" y="354" fill="#86EFAC" font-size="11" font-weight="600">Group binding is first-class.</text>
+  <text x="600" y="371" fill="#FCD34D" font-size="11" font-weight="600">Per-persona content is community discipline.</text>
+
+  <!-- Footer note about Document Service -->
+  <line x1="40" y1="405" x2="890" y2="405" stroke="#334155" stroke-width="1"/>
+  <text x="40" y="428" fill="#F8FAFC" font-size="13" font-weight="700">Backing: Document Service</text>
+  <text x="40" y="446" fill="#94A3B8" font-size="11">Launchpads persist via the Document Service API (type='launchpad') — same store as dashboards and notebooks.</text>
+  <text x="40" y="463" fill="#94A3B8" font-size="11">Sharing and access scoping inherit from the Document Service IAM model (no Launchpad-specific policy DSL today).</text>
+  <text x="40" y="480" fill="#94A3B8" font-size="11">Export/import via the Documents app or Document Service API enables versioning and tenant-to-tenant migration.</text>
+</svg>

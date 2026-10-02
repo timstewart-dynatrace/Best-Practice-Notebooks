@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <defs>
+    <marker id="fa19-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">The Vendor's Transport Decides the Route</text>
+  <text x="465" y="60" text-anchor="middle" fill="#94A3B8" font-size="13">Not your preference — a single vendor commonly uses two or three transports across its product lines</text>
+
+  <!-- Column headers -->
+  <text x="140" y="94" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">What the vendor sends</text>
+  <text x="465" y="94" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Route</text>
+  <text x="800" y="94" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">You operate</text>
+
+  <line x1="40" y1="104" x2="890" y2="104" stroke="#334155" stroke-width="1"/>
+
+  <!-- Row 1: HTTPS push -->
+  <rect x="40" y="118" width="200" height="62" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="140" y="143" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">HTTPS push</text>
+  <text x="140" y="163" text-anchor="middle" fill="#94A3B8" font-size="11">custom URL + auth header</text>
+
+  <line x1="240" y1="149" x2="330" y2="149" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+
+  <rect x="330" y="118" width="270" height="62" fill="#1E293B" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="465" y="143" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Direct to log ingest API</text>
+  <text x="465" y="163" text-anchor="middle" fill="#94A3B8" font-size="11">the only genuinely direct route</text>
+
+  <line x1="600" y1="149" x2="690" y2="149" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+  <text x="800" y="153" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="600">Nothing</text>
+
+  <!-- Row 2: raw TCP -->
+  <rect x="40" y="192" width="200" height="62" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="140" y="217" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">Raw TCP / TLS</text>
+  <text x="140" y="237" text-anchor="middle" fill="#94A3B8" font-size="11">no headers, no auth</text>
+
+  <line x1="240" y1="223" x2="330" y2="223" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+
+  <rect x="330" y="192" width="270" height="62" fill="#1E293B" stroke="#DE350B" stroke-width="2" rx="6"/>
+  <text x="465" y="217" text-anchor="middle" fill="#FCA5A5" font-size="14" font-weight="700">Collector hop required</text>
+  <text x="465" y="237" text-anchor="middle" fill="#94A3B8" font-size="11">cannot reach a Dynatrace API unaided</text>
+
+  <line x1="600" y1="223" x2="690" y2="223" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+  <text x="800" y="220" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="600">OTel Collector</text>
+  <text x="800" y="236" text-anchor="middle" fill="#94A3B8" font-size="10">or ActiveGate syslog</text>
+
+  <!-- Row 3: syslog -->
+  <rect x="40" y="266" width="200" height="62" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="140" y="291" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">Syslog</text>
+  <text x="140" y="311" text-anchor="middle" fill="#94A3B8" font-size="11">RFC 3164 / 5424</text>
+
+  <line x1="240" y1="297" x2="330" y2="297" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+
+  <rect x="330" y="266" width="270" height="62" fill="#1E293B" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="465" y="291" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">ActiveGate syslog ingest</text>
+  <text x="465" y="311" text-anchor="middle" fill="#94A3B8" font-size="11">Linux Environment AG 1.295+</text>
+
+  <line x1="600" y1="297" x2="690" y2="297" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+  <text x="800" y="294" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="600">ActiveGate</text>
+  <text x="800" y="310" text-anchor="middle" fill="#94A3B8" font-size="10">multi-env AG not supported</text>
+
+  <!-- Row 4: pull only -->
+  <rect x="40" y="340" width="200" height="62" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="140" y="365" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Nothing — pull only</text>
+  <text x="140" y="385" text-anchor="middle" fill="#94A3B8" font-size="11">REST API</text>
+
+  <line x1="240" y1="371" x2="330" y2="371" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+
+  <rect x="330" y="340" width="270" height="62" fill="#1E293B" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="465" y="365" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Scheduled poller</text>
+  <text x="465" y="385" text-anchor="middle" fill="#94A3B8" font-size="11">mind per-request time windows</text>
+
+  <line x1="600" y1="371" x2="690" y2="371" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+  <text x="800" y="368" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="600">Workflow</text>
+  <text x="800" y="384" text-anchor="middle" fill="#94A3B8" font-size="10">or extension / collector</text>
+
+  <!-- Row 5: existing pipeline -->
+  <rect x="40" y="414" width="200" height="62" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="140" y="439" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">Already in a pipeline</text>
+  <text x="140" y="459" text-anchor="middle" fill="#94A3B8" font-size="11">SIEM / data lake feed exists</text>
+
+  <line x1="240" y1="445" x2="330" y2="445" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+
+  <rect x="330" y="414" width="270" height="62" fill="#1E293B" stroke="#22D3EE" stroke-width="2" rx="6"/>
+  <text x="465" y="439" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">Multi-home an output</text>
+  <text x="465" y="459" text-anchor="middle" fill="#94A3B8" font-size="11">add an output — never re-point the source</text>
+
+  <line x1="600" y1="445" x2="690" y2="445" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa19-arrow)"/>
+  <text x="800" y="442" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="600">Nothing new</text>
+  <text x="800" y="458" text-anchor="middle" fill="#94A3B8" font-size="10">inherits pipeline availability</text>
+</svg>

@@ -1,6 +1,6 @@
 # OPLOGS-08: Security & Data Protection
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Sensitive Data Discovery, Masking, and Compliance
 This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.
@@ -147,7 +147,7 @@ Step 2: Configure Masking Processors
 - Mask value: Replace with fixed pattern (***MASKED***)
 - Hash value: One-way hash for correlation
 - Remove field: Completely remove the field
-- Pattern mask: Partial masking (****1234)
+- Partial masking (keep the last 4 digits) is NOT possible with replacePattern — it has no back-references; mask the whole value
 
 Step 3: Apply at Ingestion
 - Masking occurs BEFORE storage in Grail
@@ -181,24 +181,24 @@ Step 4: Verify Masking
 fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
 fieldsAdd content = replacePattern(content, "CREDITCARD", "[CC-MASKED]")
 fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", "[SSN-MASKED]")
-fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9]{20,}", "[KEY-MASKED]")
+fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
 fieldsAdd content = replacePattern(content, "IPADDR", "xxx.xxx.xxx.xxx")
 ```
 
-> DPL, not regex — see FAQ-15 §3. `CREDITCARD` validates the Luhn checksum. There is no `EMAIL` matcher; the character-class pattern above is the working form. Regex syntax (`\b`, `\d`, `(?:…)`, `$1`) is rejected when you save the processor. Test every statement with `data record(content="…") | fieldsAdd x = replacePattern(…)` before deploying.
+> DPL, not regex — see FAQ-15 §3. `CREDITCARD` validates the Luhn checksum. There is no `EMAIL` matcher; the character-class pattern above is the working form. Regex syntax (`\b`, `\d`, `(?:…)`, `$1`) is rejected when you save the processor. Test every statement with `data record(content="…") | fieldsAdd x = replacePattern(…)` before deploying — including against your real key formats. The key class includes `_` and `-`: with `[A-Za-z0-9]{20,}`, a key like `sk_live_51Hx…` (underscores) or a dash-separated key matched nothing and was **stored in clear** (verified 10/02/2026). Keys shorter than 20 characters are not matched by design; lower the bound if yours are shorter.
 >
 > <sub>**Sources:** [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data) — *"You can mask parts of an attribute by leveraging replacePattern in combination with other DQL functions."*</sub>
 
 ```dql
-// Verify masking is working (look for masked patterns)
+// Verify masking is working
+// 1) Leak check — unmasked values that the masking patterns would still catch (should be 0)
 fetch logs, from: now() - 1h
-| filter contains(content, "MASKED")
-        OR contains(content, "***")
-        OR contains(content, "[REDACTED]")
-| fieldsAdd content_preview = substring(content, from: 0, to: 120)
-| summarize {count = count()}, by: {content_preview}
-| sort count desc
-| limit 15
+| summarize {
+    total = count(),
+    unmasked_email = countIf(replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "") != content),
+    unmasked_card = countIf(replacePattern(content, "CREDITCARD", "") != content),
+    masked_markers = countIf(contains(content, "MASKED"))
+  }
 ```
 
 ```dql
@@ -401,7 +401,7 @@ One **DQL** processor in the **Processing** stage (matcher `true`, or a narrower
 
 ```text
 fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
-| fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9]{20,}", "[KEY-MASKED]")
+| fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
 ```
 
 The patterns are DPL, not regex; `<<(…)` is a lookbehind, so the key name stays and only the value is replaced — no `$1` back-reference is needed (or supported).

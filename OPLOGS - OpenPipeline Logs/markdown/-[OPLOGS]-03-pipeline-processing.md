@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -73,7 +73,7 @@ Time / Date:
 - TIMESTAMP: Date/time (default yyyy-MM-dd HH:mm:ss) - 2024-01-15 14:30:00
 - ISO8601: ISO 8601 timestamp - 2024-01-15T14:30:00Z
 - TIME: Time, e.g. TIME('HH:mm:ss') - 14:30:00
-- DURATION: Time duration - 2h30m, 1d
+- DURATION: Time duration (unit set by its configuration — `2h30m` is NOT parsed as two and a half hours; test with `data record(...)`)
 
 Syntax: MATCHER:fieldname (e.g., INT:status_code) or MATCHER (no capture). Full catalog: FAQ-15 section 4.
 -->
@@ -90,17 +90,22 @@ Syntax: MATCHER:fieldname (e.g., INT:status_code) or MATCHER (no capture). Full 
 
 ### OpenPipeline Parse Processor
 
-```yaml
-# Parse HTTP access logs
-processors:
-  - name: parse-http-logs
-    type: dql
-    source: content
-    dql: |
-      parse content, "IPADDR:client_ip SPACE LD SPACE '[' TIMESTAMP:request_time ']' 
-                      SPACE '\"' LD:method SPACE LD:path SPACE LD '\"' 
-                      SPACE INT:status SPACE INT:bytes"
+A parse is a **DQL** processor in the pipeline's **Processing** stage. OpenPipeline has no processor configuration file; you add the processor in **Settings > Process and contextualize > OpenPipeline > Logs > Pipelines**:
+
+| Field | Value |
+|---|---|
+| Processor | DQL |
+| Name | `parse-http-logs` |
+| Matching condition | `matchesValue(content, "*HTTP/1.1*")` |
+| DQL processor definition | see below |
+
+```dql
+// Apache/Nginx common log format, e.g.
+// 10.1.1.1 - frank [12/Dec/2024:10:30:45 +0000] "GET /api/users HTTP/1.1" 200 1234
+parse content, "IPADDR:client_ip SPACE LD SPACE LD SPACE '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):request_time ']' SPACE '\"' LD:method SPACE LD:path SPACE LD '\"' SPACE INT:status_code SPACE INT:bytes"
 ```
+
+`TIMESTAMP` needs the format string when the log is not `yyyy-MM-dd HH:mm:ss`, and identity and user are two separate `LD` fields — without either, the whole parse returns null (verified with `data record(...)`, 10/02/2026).
 
 ```dql
 // Discover log patterns for parsing design
@@ -113,6 +118,7 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Test parse pattern before configuring in OpenPipeline
+// Expects lines that START with the method, e.g. "GET /api/users 200 45ms" — parse anchors at the start of the field
 fetch logs, from: now() - 1h
 | filter contains(content, "GET") OR contains(content, "POST")
 | parse content, "LD:method SPACE '/' LD:path SPACE INT:status_code"
@@ -142,20 +148,16 @@ fetch logs, from: now() - 1h
 
 ### OpenPipeline Metric Extraction
 
-```yaml
-# Extract request duration metric from logs
-processors:
-  - name: extract-request-metric
-    type: metric
-    enabled: true
-    condition: matchesValue(content, "*duration=*")
-    metricKey: log.request.duration
-    dimensions:
-      - service: k8s.namespace.name
-      - method: extracted_method
-      - status: extracted_status
-    value: extracted_duration_ms
-```
+A **Value metric** processor in the **Metric extraction** stage. The fields it reads (`duration_ms`, `http.method`, `http.status_code`) must already exist — parse them in the Processing stage first.
+
+| Field | Value |
+|---|---|
+| Processor | Value metric |
+| Name | `extract-request-metric` |
+| Matching condition | `isNotNull(duration_ms)` |
+| Metric key | `log.request.duration` |
+| Value | field `duration_ms` |
+| Dimensions | `k8s.namespace.name`, `http.method`, `http.status_code` |
 
 > **Write matching conditions without `contains()`.** OpenPipeline matchers accept only a subset of DQL, and `contains()` and `in()` are rejected there (the verifier error `The function contains() isn't enabled.`). Use `matchesValue(field, "*text*")` (case-insensitive substring) or `matchesPhrase(field, "text")` (whole words). The conditions in this notebook's configuration sketches are written that way. `contains()` is still fine inside a DQL processor statement and in queries.
 
@@ -235,30 +237,21 @@ Add **computed attributes** to logs for enhanced analysis and filtering.
 
 ### OpenPipeline Field Processor
 
-```yaml
-# Add computed attributes
-processors:
-  - name: enrich-environment
-    type: fieldsAdd
-    fields:
-      - name: environment
-        value: |
-          if(contains(k8s.namespace.name, "prod"), "production",
-          else: if(contains(k8s.namespace.name, "staging"), "staging",
-          else: "development"))
-      
-      - name: severity_score
-        value: |
-          if(loglevel == "ERROR", 3,
-          else: if(loglevel == "WARN", 2,
-          else: 1))
-      
-      - name: team_owner
-        value: |
-          if(contains(k8s.namespace.name, "payment"), "platform-team",
-          else: if(contains(k8s.namespace.name, "frontend"), "web-team",
-          else: "unknown"))
+Computed attributes are a **DQL** processor in the Processing stage. Matching condition `true`; processor definition:
+
+```dql
+fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production",
+                        else: if(contains(k8s.namespace.name, "staging"), "staging",
+                        else: "development"))
+| fieldsAdd severity_score = if(status == "ERROR", 3,
+                             else: if(status == "WARN", 2,
+                             else: 1))
+| fieldsAdd team_owner = if(contains(k8s.namespace.name, "payment"), "platform-team",
+                         else: if(contains(k8s.namespace.name, "frontend"), "web-team",
+                         else: "unknown"))
 ```
+
+`contains()` is fine **inside** a DQL processor definition; it is only the matching condition that rejects it.
 
 ### Common Attribute Patterns
 
@@ -386,30 +379,21 @@ Route logs to **appropriate buckets** based on content, source, or computed attr
 | Bucket | Logs | Retention | Cost Impact |
 |--------|------|-----------|-------------|
 | `default_logs` | Standard | 35 days | Baseline |
-| `debug_logs` | DEBUG/TRACE | 7 days | 80% savings |
+| `debug_logs` | DEBUG/TRACE | 7 days | Storage for that data ~80% lower (7 of 35 days) |
 | `audit_logs` | Security/compliance | 365 days | Compliance |
 | `error_logs` | Errors only | 90 days | Investigation |
 
-### OpenPipeline Route Processor
+### Bucket Assignment Processors
 
-```yaml
-# Route logs to appropriate buckets
-processors:
-  - name: route-debug-logs
-    type: route
-    condition: loglevel == "DEBUG" OR loglevel == "TRACE"
-    bucket: debug_logs
-    
-  - name: route-audit-logs
-    type: route
-    condition: matchesValue(content, "*audit*") OR matchesValue(content, "*security*")
-    bucket: audit_logs
-    
-  - name: route-error-logs
-    type: route
-    condition: loglevel == "ERROR" OR loglevel == "FATAL"
-    bucket: error_logs
-```
+Buckets are chosen by **Bucket assignment** processors in the pipeline's **Bucket assignment** stage — *first match only*, so the order of the rows matters. (A *route* picks the pipeline; it does not pick the bucket.)
+
+| # | Matching condition | Bucket |
+|---|---|---|
+| 1 | `loglevel == "DEBUG" OR loglevel == "TRACE"` | `debug_logs` |
+| 2 | `matchesValue(content, "*audit*") OR matchesValue(content, "*security*")` | `audit_logs` |
+| 3 | `status == "ERROR"` | `error_logs` |
+
+`status == "ERROR"` covers SEVERE, CRITICAL, FATAL and the other error-class levels; `loglevel == "ERROR" OR loglevel == "FATAL"` would miss SEVERE. In community practice, records matching none of the rows land in the default bucket (`default_logs`) — confirm with the bucket query below.
 
 ```dql
 // Current bucket distribution
@@ -422,8 +406,8 @@ fetch logs, from: now() - 1h
 // Preview routing decisions
 fetch logs, from: now() - 1h
 | fieldsAdd target_bucket = if(loglevel == "DEBUG" OR loglevel == "TRACE", "debug_logs",
-                            else: if(loglevel == "ERROR" OR loglevel == "FATAL", "error_logs",
                             else: if(contains(content, "audit") OR contains(content, "security"), "audit_logs",
+                            else: if(status == "ERROR", "error_logs",
                             else: "default_logs")))
 | summarize {count = count()}, by: {target_bucket, loglevel}
 | sort count desc
@@ -447,21 +431,14 @@ fetch logs, from: now() - 24h
 ## 7. Filtering (Drop Record)
 Reduce log volume by **dropping** low-value records at ingestion.
 
-### OpenPipeline Filter Processor
+### Drop Record Processors
 
-```yaml
-# Drop noisy, low-value logs
-processors:
-  - name: drop-health-checks
-    type: filter
-    condition: matchesValue(content, "*health*") AND loglevel == "INFO"
-    action: drop
-    
-  - name: drop-heartbeats
-    type: filter
-    condition: matchesValue(content, "*heartbeat*") OR matchesValue(content, "*keepalive*")
-    action: drop
-```
+Two **Drop record** processors in the Processing stage (the processor has a name and a matching condition — nothing else):
+
+| Name | Matching condition |
+|---|---|
+| `drop-health-checks` | `matchesValue(content, "*health*") AND loglevel == "INFO"` |
+| `drop-heartbeats` | `matchesValue(content, "*heartbeat*") OR matchesValue(content, "*keepalive*")` |
 
 > **There is no log-sampling processor.** None appears in the complete processor list in *Processing in OpenPipeline*, and a matcher cannot sample — `random()` is rejected in OpenPipeline matchers. To drop DEBUG records outright, use a **Drop record** processor (`loglevel == "DEBUG"`) in the Processing stage. To keep metric extraction from DEBUG records while not storing them, use a **No storage assignment** processor in the Bucket assignment stage instead: *"The record continues through all pipeline stages, including metric extraction, and is not stored only at the end."*
 >
@@ -489,7 +466,7 @@ fetch logs, from: now() - 24h
   }
 | fieldsAdd health_pct = round((health_logs * 100.0) / total_logs, decimals: 1)
 | fieldsAdd debug_pct = round((debug_logs * 100.0) / total_logs, decimals: 1)
-| fieldsAdd potential_reduction = round(((health_logs + debug_logs * 0.9) * 100.0) / total_logs, decimals: 1)
+| fieldsAdd potential_reduction = round(((health_logs + debug_logs) * 100.0) / total_logs, decimals: 1)   // upper bound: a record can be both
 ```
 
 <a id="complete-pipeline-example"></a>
@@ -499,7 +476,7 @@ Here is one complete log pipeline, written as the processors you add in **Settin
 | # | Stage | Processor | Matching condition | Configuration |
 |---|-------|-----------|--------------------|---------------|
 | 1 | Processing | **Drop record** | `matchesValue(content, "*health*") AND loglevel == "INFO"` | — |
-| 2 | Processing | **DQL** | `matchesValue(content, "*HTTP*")` | `parse content, "LD:method SPACE '/' LD:path SPACE INT:http.status_code SPACE INT:duration_ms"` — parse into `http.status_code`, not `status`, which is the log record's own status field |
+| 2 | Processing | **DQL** | `matchesValue(content, "*HTTP*")` | `parse content, "LD:method SPACE '/' LD:path SPACE INT:http.status_code SPACE INT:duration_ms"` — for lines that start with the method (`GET /api/users 200 45`); parse into `http.status_code`, not `status`, which is the log record's own status field |
 | 3 | Processing | **DQL** | `true` | `fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production", else: "non-prod")` |
 | 4 | Processing | **DQL** (masking — the pattern is DPL, not regex) | `true` | `fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")` |
 | 5 | Bucket assignment | **Bucket assignment** | `loglevel == "DEBUG"` | Bucket: `debug_logs` |
@@ -520,11 +497,12 @@ What the stage order means for this pipeline:
 > - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline)</sub>
 
 ```dql
-// Verify current pipeline processing
+// Verify current pipeline processing — and how much is still on the classic pipeline
+// dt.openpipeline.pipelines is set on classic records too ("logs:default"), so isNotNull() proves nothing
 fetch logs, from: now() - 1h
 | summarize {
     total_logs = count(),
-    with_pipeline = countIf(isNotNull(dt.openpipeline.pipelines)),
+    classic = countIf(in(dt.openpipeline.pipelines, "logs:default")),
     unique_pipelines = countDistinct(dt.openpipeline.pipelines)
   }, by: {dt.openpipeline.source}
 | sort total_logs desc

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Helvetica, Arial, sans-serif">
+  <rect width="930" height="500" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="465" y="22" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A1A">Runtime Tooling Availability — OTel and OneAgent by Runtime</text>
+  <text x="465" y="40" text-anchor="middle" font-size="11" fill="#6F7274">Where each instrumentation path exists — and where rip-and-replace (Path C) is technically impossible</text>
+
+  <!-- Legend -->
+  <circle cx="60" cy="60" r="6" fill="#73BE28"/>
+  <text x="72" y="64" font-size="10" fill="#454646">Available</text>
+  <circle cx="160" cy="60" r="6" fill="#B4DC00"/>
+  <text x="172" y="64" font-size="10" fill="#454646">Partial / version-dependent</text>
+  <circle cx="330" cy="60" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+  <text x="342" y="64" font-size="10" fill="#454646">Not available — gap</text>
+
+  <!-- Column header band -->
+  <rect x="40" y="78" width="240" height="34" fill="#454646" rx="4"/>
+  <text x="160" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">Runtime</text>
+
+  <rect x="282" y="78" width="150" height="34" fill="#73BE28" rx="4"/>
+  <text x="357" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">OTel</text>
+  <text x="357" y="108" text-anchor="middle" font-size="9" fill="#FFFFFF">auto-instrumentation</text>
+
+  <rect x="434" y="78" width="150" height="34" fill="#73BE28" rx="4"/>
+  <text x="509" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">OTel</text>
+  <text x="509" y="108" text-anchor="middle" font-size="9" fill="#FFFFFF">manual SDK</text>
+
+  <rect x="586" y="78" width="150" height="34" fill="#1496FF" rx="4"/>
+  <text x="661" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">OneAgent</text>
+  <text x="661" y="108" text-anchor="middle" font-size="9" fill="#FFFFFF">runtime injection</text>
+
+  <rect x="738" y="78" width="150" height="34" fill="#1496FF" rx="4"/>
+  <text x="813" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">OneAgent</text>
+  <text x="813" y="108" text-anchor="middle" font-size="9" fill="#FFFFFF">SDK (custom spans)</text>
+
+  <!-- Row template helper: row y starts at 116, height 32, gap 2 -->
+  <!-- Row 1: Java / Kotlin / Scala / Groovy (JVM) -->
+  <rect x="40" y="116" width="240" height="32" fill="#F5F5F5" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="131" font-size="11" font-weight="700" fill="#1A1A1A">Java / Kotlin / Scala / Groovy</text>
+  <text x="50" y="143" font-size="9" fill="#6F7274">JVM</text>
+  <rect x="282" y="116" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="132" r="6" fill="#73BE28"/>
+  <rect x="434" y="116" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="132" r="6" fill="#73BE28"/>
+  <rect x="586" y="116" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="661" cy="132" r="6" fill="#73BE28"/>
+  <rect x="738" y="116" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="813" cy="132" r="6" fill="#73BE28"/>
+
+  <!-- Row 2: .NET (CLR) -->
+  <rect x="40" y="150" width="240" height="32" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="165" font-size="11" font-weight="700" fill="#1A1A1A">.NET</text>
+  <text x="50" y="177" font-size="9" fill="#6F7274">C# / F# / VB — CLR + .NET 6/7/8+</text>
+  <rect x="282" y="150" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="166" r="6" fill="#73BE28"/>
+  <rect x="434" y="150" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="166" r="6" fill="#73BE28"/>
+  <rect x="586" y="150" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="661" cy="166" r="6" fill="#73BE28"/>
+  <rect x="738" y="150" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="813" cy="166" r="6" fill="#73BE28"/>
+
+  <!-- Row 3: Node.js (V8) -->
+  <rect x="40" y="184" width="240" height="32" fill="#F5F5F5" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="199" font-size="11" font-weight="700" fill="#1A1A1A">Node.js</text>
+  <text x="50" y="211" font-size="9" fill="#6F7274">JavaScript / TypeScript — V8</text>
+  <rect x="282" y="184" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="200" r="6" fill="#73BE28"/>
+  <rect x="434" y="184" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="200" r="6" fill="#73BE28"/>
+  <rect x="586" y="184" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="661" cy="200" r="6" fill="#73BE28"/>
+  <rect x="738" y="184" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="813" cy="200" r="6" fill="#73BE28"/>
+
+  <!-- Row 4: Python (CPython) -->
+  <rect x="40" y="218" width="240" height="32" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="233" font-size="11" font-weight="700" fill="#1A1A1A">Python</text>
+  <text x="50" y="245" font-size="9" fill="#6F7274">CPython — sync + asyncio</text>
+  <rect x="282" y="218" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="234" r="6" fill="#73BE28"/>
+  <rect x="434" y="218" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="234" r="6" fill="#73BE28"/>
+  <rect x="586" y="218" width="150" height="32" fill="#B4DC00" fill-opacity="0.30" stroke="#B4DC00" stroke-width="1" rx="3"/>
+  <circle cx="661" cy="234" r="6" fill="#B4DC00"/>
+  <rect x="738" y="218" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="813" cy="234" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+
+  <!-- Row 5: Go -->
+  <rect x="40" y="252" width="240" height="32" fill="#F5F5F5" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="267" font-size="11" font-weight="700" fill="#1A1A1A">Go</text>
+  <text x="50" y="279" font-size="9" fill="#6F7274">compiled — OneAgent auto-injects (1.323+)</text>
+  <rect x="282" y="252" width="150" height="32" fill="#B4DC00" fill-opacity="0.30" stroke="#B4DC00" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="268" r="6" fill="#B4DC00"/>
+  <text x="370" y="271" font-size="9" fill="#454646">explicit imports</text>
+  <rect x="434" y="252" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="268" r="6" fill="#73BE28"/>
+  <rect x="586" y="252" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="604" cy="268" r="6" fill="#73BE28"/>
+  <text x="616" y="271" font-size="9" fill="#454646">web + database/sql</text>
+  <rect x="738" y="252" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="813" cy="268" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+
+  <!-- Row 6: PHP -->
+  <rect x="40" y="286" width="240" height="32" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="301" font-size="11" font-weight="700" fill="#1A1A1A">PHP</text>
+  <text x="50" y="313" font-size="9" fill="#6F7274">Zend Engine 7 / 8</text>
+  <rect x="282" y="286" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="302" r="6" fill="#73BE28"/>
+  <rect x="434" y="286" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="302" r="6" fill="#73BE28"/>
+  <rect x="586" y="286" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="661" cy="302" r="6" fill="#73BE28"/>
+  <rect x="738" y="286" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="813" cy="302" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+
+  <!-- Row 7: Ruby -->
+  <rect x="40" y="320" width="240" height="32" fill="#F5F5F5" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="335" font-size="11" font-weight="700" fill="#1A1A1A">Ruby</text>
+  <text x="50" y="347" font-size="9" fill="#6F7274">MRI / JRuby</text>
+  <rect x="282" y="320" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="357" cy="336" r="6" fill="#73BE28"/>
+  <rect x="434" y="320" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="336" r="6" fill="#73BE28"/>
+  <rect x="586" y="320" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="661" cy="336" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+  <text x="675" y="339" font-size="9" fill="#454646">host/process only</text>
+  <rect x="738" y="320" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="813" cy="336" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+
+  <!-- Row 8: C / C++ -->
+  <rect x="40" y="354" width="240" height="32" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="1" rx="3"/>
+  <text x="50" y="369" font-size="11" font-weight="700" fill="#1A1A1A">C / C++</text>
+  <text x="50" y="381" font-size="9" fill="#6F7274">native binaries</text>
+  <rect x="282" y="354" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="357" cy="370" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+  <text x="370" y="373" font-size="9" fill="#454646">no auto-instr.</text>
+  <rect x="434" y="354" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="509" cy="370" r="6" fill="#73BE28"/>
+  <rect x="586" y="354" width="150" height="32" fill="#FFFFFF" stroke="#6F7274" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <circle cx="661" cy="370" r="6" fill="#FFFFFF" stroke="#6F7274" stroke-width="1.5"/>
+  <rect x="738" y="354" width="150" height="32" fill="#73BE28" fill-opacity="0.20" stroke="#73BE28" stroke-width="1" rx="3"/>
+  <circle cx="813" cy="370" r="6" fill="#73BE28"/>
+
+  <!-- Negative-space callout -->
+  <rect x="40" y="402" width="850" height="58" fill="#1496FF" fill-opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="465" y="422" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Why \"rip-and-replace\" (Path C) is impossible for Python, Go, PHP, and Ruby</text>
+  <text x="465" y="440" text-anchor="middle" font-size="10" fill="#454646">No OneAgent SDK exists for these runtimes — there is nothing to replace OTel application code with.</text>
+  <text x="465" y="454" text-anchor="middle" font-size="10" fill="#454646">For these runtimes the only supported path for custom application telemetry is OpenTelemetry.</text>
+
+  <text x="465" y="490" text-anchor="middle" font-size="10" font-style="italic" fill="#6F7274">Read across each row: which tooling is available for that runtime — and where the gaps make a conversion infeasible.</text>
+</svg>

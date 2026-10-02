@@ -1,6 +1,6 @@
 # OPIPE-02: Span Processing & Enrichment
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Filtering, Enriching, and Routing Distributed Traces at Ingestion
 
@@ -29,7 +29,7 @@ This notebook covers the span-specific capabilities of OpenPipeline. For general
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail and distributed tracing enabled |
-| **Permissions** | `storage:spans:read`, `openpipeline:configurations:write` |
+| **Permissions** | `storage:spans:read`; `settings:objects:write` on `builtin:openpipeline.spans.pipelines` (OpenPipeline configuration is stored as Settings objects). Routing changes need `settings:objects:admin` or a policy granting write on `builtin:openpipeline.spans.routing`. |
 | **Data** | At least 1 hour of span data from instrumented services |
 | **Recommended** | **OPIPE-01** (multi-scope architecture) and **SPANS-01** (span fundamentals) |
 
@@ -43,21 +43,26 @@ Before configuring span processing, you need to understand what fields are avail
 | Field | Description | Pipeline Use |
 |-------|-------------|-------------|
 | `span.kind` | `server`, `client`, `internal`, `producer`, `consumer` | Route by span type |
-| `service.name` | The service that generated the span | Route by service |
+| `service.name` | Logical service name set by the OpenTelemetry SDK — present on OTel spans only | Route OTel spans by service |
+| `dt.service.name` | Dynatrace service name from service detection, *"equal to the Smartscape service node name"* — present on every span | Group and filter by service in DQL |
 | `span.name` | The operation name (e.g., `GET /health`) | Filter noise |
 | `http.route` | The HTTP route pattern | Filter health checks |
 | `http.request.method` | HTTP method (GET, POST, etc.) | Filter by method |
 | `http.response.status_code` | HTTP response code | Filter or extract metrics |
 | `db.system` | Database type (mysql, postgresql, redis) | Route DB spans |
 | `k8s.namespace.name` | Kubernetes namespace | Route by environment |
-| `dt.entity.service` | Dynatrace service entity ID | Route by service entity |
+| `dt.smartscape.service` | Dynatrace service ID (`stable`; `dt.entity.service` is `deprecated` in the semantic dictionary) | Route by service entity — `service.name` is usually the simpler key |
+
+> **Which service field?** On the validation tenant, `service.name` was set on 21,586 of 322,799 spans in an hour (6.7%, the OTel ones) while `dt.service.name` was set on all of them. A query grouped by `service.name` puts every OneAgent span in one null row, so the DQL cells in this series use `dt.service.name`. For a pipeline matcher, check in the pipeline's sample-data preview that the field you match on is present on the records at that point.
+
+> <sub>**Dictionary:** `service.name` (`stable`), `dt.service.name` (`stable`), `dt.smartscape.service` (`stable`), `dt.entity.service` (`deprecated`), read 10/02/2026.</sub>
 
 ### Discovering Your Span Landscape
 
 ```dql
 // Span volume by kind and service (top 20)
 fetch spans, from:-1h
-| summarize span_count = count(), by:{span.kind, service.name}
+| summarize span_count = count(), by:{span.kind, dt.service.name}
 | sort span_count desc
 | limit 20
 ```
@@ -65,7 +70,7 @@ fetch spans, from:-1h
 ```dql
 // Top span operations by volume (candidates for filtering)
 fetch spans, from:-1h
-| summarize span_count = count(), by:{span.name, service.name}
+| summarize span_count = count(), by:{span.name, dt.service.name}
 | sort span_count desc
 | limit 20
 ```
@@ -73,7 +78,7 @@ fetch spans, from:-1h
 <a id="span-filtering"></a>
 ## 2. Span Filtering: Dropping Noise at Ingestion
 
-Span filtering is the highest-impact optimization in the spans scope. Typical environments generate 30-60% of span volume from operations that provide no troubleshooting value.
+Span filtering is usually the highest-impact optimization in the spans scope. In community practice, health checks, probes, scrapes and preflight requests are a large share of span volume in many environments — measure your own share with the query below before writing drop rules.
 
 ### Common Noise Patterns to Drop
 
@@ -103,7 +108,7 @@ fetch spans, from:-1h
 ```dql
 // Detail: Top 10 span names that look like noise (short-lived, high-frequency)
 fetch spans, from:-1h
-| summarize span_count = count(), avg_duration = avg(duration), by:{span.name}
+| summarize {span_count = count(), avg_duration = avg(duration)}, by:{span.name}
 | sort span_count desc
 | limit 10
 | fieldsAdd avg_duration_ms = round(avg_duration / 1ms, decimals: 2)
@@ -121,7 +126,7 @@ Add business-meaningful attributes based on technical fields:
 | Condition | Enrichment Field | Value | Purpose |
 |-----------|-----------------|-------|--------|
 | `service.name` starts with `"checkout"` | `business.domain` | `"commerce"` | Business domain tagging |
-| `k8s.namespace.name` contains `"prod"` | `environment` | `"production"` | Environment classification |
+| `matchesValue(k8s.namespace.name, "*prod*")` | `environment` | `"production"` | Environment classification |
 | `http.response.status_code` >= 500 | `incident.severity` | `"high"` | Severity pre-classification |
 | `db.system` is not null | `span.category` | `"database"` | Span categorization |
 
@@ -140,9 +145,8 @@ Add `dt.security_context` based on service ownership (see **OPIPE-01** and **ORG
 ```dql
 // Check which spans have security context enrichment
 fetch spans, from:-1h
-| summarize total = count(),
-    with_security_context = countIf(isNotNull(dt.security_context)),
-    by:{service.name}
+| summarize {total = count(), with_security_context = countIf(isNotNull(dt.security_context))},
+    by:{dt.service.name}
 | fieldsAdd coverage_pct = round(toDouble(with_security_context) / toDouble(total) * 100, decimals: 1)
 | sort total desc
 | limit 15
@@ -174,7 +178,7 @@ Metric extraction from spans is covered in detail in **OPIPE-03: Sampling-Aware 
 // Identify error spans that could trigger event generation
 fetch spans, from:-1h
 | filter http.response.status_code >= 500
-| summarize error_count = count(), by:{service.name, http.response.status_code}
+| summarize error_count = count(), by:{dt.service.name, http.response.status_code}
 | sort error_count desc
 | limit 15
 ```
@@ -191,8 +195,10 @@ Just as logs benefit from bucket separation (see **OPLOGS-04: Buckets & Data Gov
 | `frontend-traces` | `span.kind == "server"` AND `service.name` matches frontend | `frontend_spans` | 14 days | High volume, short-term debugging |
 | `api-traces` | `span.kind == "server"` AND `http.route` starts with `"/api"` | `api_spans` | 35 days | API SLO tracking |
 | `database-traces` | `span.kind == "client"` AND `db.system` is not null | `db_spans` | 14 days | Query performance analysis |
-| `messaging-traces` | `span.kind` in `{"producer", "consumer"}` | `messaging_spans` | 14 days | Async flow debugging |
-| Default Pipeline | Everything else | `default_spans` | 7 days | Low-retention catch-all |
+| `messaging-traces` | `span.kind == "producer" or span.kind == "consumer"` (`in()` is not enabled in OpenPipeline matchers) | `messaging_spans` | 14 days | Async flow debugging |
+| Default route | Everything else | `default_spans` | Built-in (10 days on the validation tenant — read yours with `fetch dt.system.buckets`) | Catch-all |
+
+Routes are evaluated in order and the first match wins, so a frontend service's `/api` server span goes to `frontend-traces` here; put the more specific route first if that is not what you want. The route chooses the pipeline; the pipeline's **Bucket assignment** stage chooses the bucket.
 
 ### Verifying Bucket Distribution
 
@@ -224,7 +230,7 @@ fetch spans, from:-24h
 ```dql
 // Span volume by service over 24h (spot unexpected spikes)
 fetch spans, from:-24h
-| makeTimeseries span_count = count(), by:{service.name}, interval:1h
+| makeTimeseries span_count = count(), by:{dt.service.name}, interval:1h
 ```
 
 ### Seeing What Was Dropped: Self-Monitoring Metrics
@@ -283,6 +289,7 @@ Continue to **OPIPE-03: Sampling-Aware Metrics** to learn how to extract accurat
 - [Davis stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/davis-stage)
 - [OpenPipeline self-monitoring metrics (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/self-monitoring-metrics)
 - [Organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
+- [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators (`settings:objects:admin`)."*
 
 ---
 

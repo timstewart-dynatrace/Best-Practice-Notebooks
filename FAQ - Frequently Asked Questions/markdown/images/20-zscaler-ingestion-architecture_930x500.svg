@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <defs>
+    <marker id="fa20-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Two Ingestion Patterns — and Why ZPA Needs a Hop</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">ZDX never joins the log path: it is an API pull producing metrics, and stays a separate track</text>
+
+  <!-- Pattern A -->
+  <rect x="40" y="76" width="850" height="184" fill="#1496FF" opacity="0.06" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="62" y="100" fill="#BFDBFE" font-size="15" font-weight="700">Pattern A — direct, plus a collector for ZPA</text>
+  <text x="62" y="118" fill="#94A3B8" font-size="11">When logs are not already centralized. You run one collector; the feed depends on nobody else.</text>
+
+  <rect x="62" y="130" width="130" height="46" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="127" y="149" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">ZIA</text>
+  <text x="127" y="165" text-anchor="middle" fill="#94A3B8" font-size="10">Cloud NSS · HTTPS</text>
+  <line x1="192" y1="153" x2="252" y2="153" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+
+  <rect x="62" y="192" width="130" height="46" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="127" y="211" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">ZPA</text>
+  <text x="127" y="227" text-anchor="middle" fill="#FCA5A5" font-size="10">LSS · raw TCP/TLS</text>
+  <line x1="192" y1="215" x2="252" y2="215" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+
+  <rect x="252" y="192" width="150" height="46" fill="#DE350B" opacity="0.12" stroke="#DE350B" stroke-width="2" rx="6"/>
+  <text x="327" y="211" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="700">Collector hop</text>
+  <text x="327" y="227" text-anchor="middle" fill="#94A3B8" font-size="10">OTel Collector / AG syslog</text>
+  <line x1="402" y1="215" x2="472" y2="182" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+  <line x1="252" y1="153" x2="472" y2="153" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+
+  <rect x="472" y="130" width="150" height="108" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="6"/>
+  <text x="547" y="164" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">Dynatrace</text>
+  <text x="547" y="184" text-anchor="middle" fill="#94A3B8" font-size="10">log ingest API</text>
+  <text x="547" y="202" text-anchor="middle" fill="#94A3B8" font-size="10">+ OpenPipeline</text>
+  <line x1="622" y1="184" x2="682" y2="184" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+
+  <rect x="682" y="130" width="186" height="108" fill="#73BE28" opacity="0.10" stroke="#73BE28" rx="6"/>
+  <text x="775" y="154" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">Extract, then discard</text>
+  <text x="775" y="174" text-anchor="middle" fill="#94A3B8" font-size="10">metrics · events · CUSTOM_* nodes</text>
+  <text x="775" y="192" text-anchor="middle" fill="#94A3B8" font-size="10">raw → No storage assignment</text>
+  <text x="775" y="214" text-anchor="middle" fill="#FCD34D" font-size="10">retained raw → dedicated bucket</text>
+
+  <!-- ZDX separate track -->
+  <rect x="62" y="272" width="130" height="46" fill="#1E293B" stroke="#73BE28" stroke-width="2" rx="6"/>
+  <text x="127" y="291" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">ZDX</text>
+  <text x="127" y="307" text-anchor="middle" fill="#DDD6FE" font-size="10">REST API · pull</text>
+
+  <rect x="252" y="272" width="150" height="46" fill="#A78BFA" opacity="0.12" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="327" y="291" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">Scheduled poller</text>
+  <text x="327" y="307" text-anchor="middle" fill="#94A3B8" font-size="10">2-hour window per request</text>
+  <line x1="192" y1="295" x2="252" y2="295" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+  <path d="M 402 295 Q 460 295 500 246" fill="none" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#fa20-arrow)"/>
+  <text x="455" y="316" text-anchor="middle" fill="#94A3B8" font-size="10">metric ingest — separate track</text>
+
+  <!-- Pattern B -->
+  <rect x="40" y="338" width="850" height="140" fill="#22D3EE" opacity="0.06" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="62" y="362" fill="#A5F3FC" font-size="15" font-weight="700">Pattern B — multi-home from an existing pipeline</text>
+  <text x="62" y="380" fill="#94A3B8" font-size="11">When logs already reach a SIEM. Add an output — never re-point the source. Solves the ZPA transport problem for free.</text>
+
+  <rect x="62" y="394" width="130" height="60" fill="#1E293B" stroke="#475569" rx="6"/>
+  <text x="127" y="418" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">ZIA + ZPA</text>
+  <text x="127" y="436" text-anchor="middle" fill="#94A3B8" font-size="10">unchanged</text>
+  <line x1="192" y1="424" x2="252" y2="424" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+
+  <rect x="252" y="394" width="150" height="60" fill="#22D3EE" opacity="0.12" stroke="#22D3EE" stroke-width="2" rx="6"/>
+  <text x="327" y="418" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">Existing pipeline</text>
+  <text x="327" y="436" text-anchor="middle" fill="#94A3B8" font-size="10">already terminates TCP</text>
+
+  <line x1="402" y1="410" x2="472" y2="410" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+  <rect x="472" y="390" width="180" height="34" fill="#1E293B" stroke="#475569" rx="6"/>
+  <text x="562" y="412" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="600">SIEM output — untouched</text>
+
+  <line x1="402" y1="440" x2="472" y2="446" stroke="#64748B" stroke-width="1.5" marker-end="url(#fa20-arrow)"/>
+  <rect x="472" y="430" width="180" height="34" fill="#73BE28" opacity="0.12" stroke="#73BE28" stroke-width="2" rx="6"/>
+  <text x="562" y="452" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="600">New Dynatrace output</text>
+
+  <rect x="672" y="394" width="196" height="60" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="770" y="416" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">Trade-off</text>
+  <text x="770" y="435" text-anchor="middle" fill="#94A3B8" font-size="10">inherits the pipeline's availability</text>
+  <text x="770" y="449" text-anchor="middle" fill="#94A3B8" font-size="10">and change process</text>
+</svg>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="20" font-weight="700">Lifecycle Protections — Decision Guide</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="12">When to use `prevent_destroy`, `ignore_changes`, `create_before_destroy`, and `replace_triggered_by`</text>
+
+  <!-- prevent_destroy -->
+  <rect x="40" y="90" width="420" height="180" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="250" y="115" text-anchor="middle" fill="#FCA5A5" font-size="15" font-weight="700">prevent_destroy = true</text>
+  <text x="250" y="135" text-anchor="middle" fill="#94A3B8" font-size="11">Refuses `terraform destroy` and any plan that would delete this resource</text>
+
+  <text x="60" y="162" fill="#F8FAFC" font-size="12" font-weight="700">Use for:</text>
+  <text x="60" y="183" fill="#94A3B8" font-size="11">• Segments other config references</text>
+  <text x="60" y="201" fill="#94A3B8" font-size="11">• Production IAM policies / group bindings</text>
+  <text x="60" y="219" fill="#94A3B8" font-size="11">• Production Grail buckets (lose data if destroyed)</text>
+  <text x="60" y="237" fill="#94A3B8" font-size="11">• ActiveGate token resources backing oncall flows</text>
+  <text x="60" y="259" fill="#FCA5A5" font-size="11" font-style="italic">Caveat: cannot terraform-apply a deliberate rename — remove the lifecycle block first.</text>
+
+  <!-- ignore_changes -->
+  <rect x="480" y="90" width="410" height="180" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="685" y="115" text-anchor="middle" fill="#FCD34D" font-size="15" font-weight="700">ignore_changes = [field, ...]</text>
+  <text x="685" y="135" text-anchor="middle" fill="#94A3B8" font-size="11">Stops Terraform from "fixing" drift on the listed fields after the initial apply</text>
+
+  <text x="500" y="162" fill="#F8FAFC" font-size="12" font-weight="700">Use for:</text>
+  <text x="500" y="183" fill="#94A3B8" font-size="11">• Fields a human team owns (description, custom tags)</text>
+  <text x="500" y="201" fill="#94A3B8" font-size="11">• Threshold values tuned via the UI by domain SMEs</text>
+  <text x="500" y="219" fill="#94A3B8" font-size="11">• Auto-populated metadata (last_modified, version)</text>
+  <text x="500" y="237" fill="#94A3B8" font-size="11">• Schema fields that drift via Dynatrace platform updates</text>
+  <text x="500" y="259" fill="#FCD34D" font-size="11" font-style="italic">Caveat: ignored fields drift silently — confirm you're OK with that before adding.</text>
+
+  <!-- create_before_destroy -->
+  <rect x="40" y="290" width="420" height="180" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="250" y="315" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">create_before_destroy = true</text>
+  <text x="250" y="335" text-anchor="middle" fill="#94A3B8" font-size="11">Stand up the replacement before tearing down the original — no observability gap</text>
+
+  <text x="60" y="362" fill="#F8FAFC" font-size="12" font-weight="700">Use for:</text>
+  <text x="60" y="383" fill="#94A3B8" font-size="11">• Synthetic monitors whose recreation = data gap in SLO</text>
+  <text x="60" y="401" fill="#94A3B8" font-size="11">• Problem-routing workflows tied to on-call</text>
+  <text x="60" y="419" fill="#94A3B8" font-size="11">• Webhook integrations with live connections</text>
+  <text x="60" y="441" fill="#BFDBFE" font-size="11" font-style="italic">Caveat: temporarily doubles the resource — check unique-name constraints.</text>
+
+  <!-- replace_triggered_by -->
+  <rect x="480" y="290" width="410" height="180" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="685" y="315" text-anchor="middle" fill="#DDD6FE" font-size="15" font-weight="700">replace_triggered_by = [...]</text>
+  <text x="685" y="335" text-anchor="middle" fill="#94A3B8" font-size="11">Force-recreate this resource when a referenced resource changes</text>
+
+  <text x="500" y="362" fill="#F8FAFC" font-size="12" font-weight="700">Use for:</text>
+  <text x="500" y="383" fill="#94A3B8" font-size="11">• Webhook URLs that need to refresh when secret rotates</text>
+  <text x="500" y="401" fill="#94A3B8" font-size="11">• Non-resource values via terraform_data markers</text>
+  <text x="500" y="419" fill="#94A3B8" font-size="11">• Dashboards whose data sources reference a recreated entity</text>
+  <text x="500" y="441" fill="#DDD6FE" font-size="11" font-style="italic">Caveat: chained recreations can have non-obvious blast radius.</text>
+</svg>
