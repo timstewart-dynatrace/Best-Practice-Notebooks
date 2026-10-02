@@ -1,6 +1,6 @@
 # OPMIG-01: OpenPipeline Migration Guide: Part 1
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Introduction & Why Migrate from Classic to OpenPipeline v2.0
 
@@ -92,19 +92,21 @@ Understanding the fundamental differences helps you plan your migration effectiv
 
 ### Feature Comparison
 
-| Feature | Classic Ingestion | OpenPipeline v2.0 |
-|---------|-------------------|-------------------|
-| **Data Types** | Logs only | Logs, Spans, Metrics, Events, Bizevents |
-| **Processing Location** | Post-storage | Pre-storage (at ingestion) |
-| **Parsing** | Limited built-in parsers | Full DQL + DPL (Dynatrace Pattern Language) |
-| **Routing** | Basic log sources | Dynamic routing with matching conditions |
-| **Metric Extraction** | Not available | Extract metrics with dimensions |
-| **Event Generation** | Not available | Generate events and bizevents |
-| **Data Masking** | Post-processing only | At ingestion (before storage) |
-| **Cost Control** | Limited | Drop unwanted data before storage |
-| **Bucket Routing** | Default only | Route to custom buckets per pipeline |
-| **API Endpoints** | `/api/v2/logs/ingest` | Multiple endpoints per data type |
-| **Configuration** | Settings → Logs | Settings → OpenPipeline |
+| Feature | Classic pipeline | OpenPipeline |
+|---------|------------------|--------------|
+| **Data Types** | Logs and business events | Logs, spans, metrics, events, business events, and more |
+| **Processing Location** | At ingest, before storage | At ingest, before storage |
+| **Rule language** | Processing-rule commands (`PARSE`, `FIELDS_ADD`, `FILTER_OUT`, …) with DPL | DQL processors with DPL, plus no-code processors |
+| **Routing** | One ordered list of rules, each with a matcher | Dynamic routing to many pipelines, pipeline groups |
+| **Extraction** | Log metrics | Metric, Davis event, business event, SDLC event and Smartscape stages |
+| **Data Masking** | At ingest (mask, drop or rename attributes in a rule) | At ingest (Processing-stage processors) |
+| **Bucket Assignment** | — | Bucket assignment stage, or No storage assignment |
+| **Ownership** | Shared settings | Owner-based access per custom pipeline |
+| **Configuration** | Settings → Log Monitoring → processing rules | Settings → Process and contextualize → OpenPipeline |
+
+Both pipelines process records **before** they are written to Grail. The move to OpenPipeline is not about *when* processing happens; it is about scope (every signal type, not just logs), language (DQL instead of rule commands), structure (routed pipelines with fixed stages instead of one rule list) and what you can extract.
+
+> <sub>**Sources:** [Log processing with classic pipeline (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-classic-log-processing) — *"Log processing occurs as log data arrives in the Dynatrace SaaS environment and before it is written to disk (stored)."*; [Customize incoming log data with log processing rules (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-classic-log-processing/lma-log-processing-examples) — rule examples for *Drop a log event*, *Mask attributes* and log metrics; [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — classic pipeline per configuration scope, *Logs or Business events*.</sub>
 
 ### Processing Stage Comparison
 
@@ -113,11 +115,11 @@ Understanding the fundamental differences helps you plan your migration effectiv
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Model | Flow | Key Difference |
 |-------|------|----------------|
-| **Classic** | Ingest → Store → Query (parse at query time) | Post-storage processing |
-| **OpenPipeline** | Ingest → Route → pipeline (fixed stage sequence: Processing … Bucket assignment → Metric extraction → Davis → Data extraction) → Store | Pre-storage processing — see OPMIG-02 § Understanding Processing Order for the full stage table |
+| **Classic pipeline** | Ingest → processing rules (PARSE, mask, drop, log metrics) → Store | Logs and business events only; one ordered rule list; rule commands + DPL, not DQL |
+| **OpenPipeline** | Ingest → Route → pipeline (fixed stage sequence: Processing … Bucket assignment → Metric extraction → Davis → Data extraction) → Store | All signal types; routing to many pipelines; DQL processors; extraction and bucket stages — see OPMIG-02 § Understanding Processing Order for the full stage table |
 -->
 
-> ⚠️ **Important:** With OpenPipeline, data processing happens **before** storage. This means you can reduce storage costs by dropping unwanted data and masking sensitive information before it's ever written to Grail.
+> ⚠️ **Important:** With OpenPipeline, as with the classic pipeline, data processing happens **before** storage — dropping unwanted data and masking sensitive information happen before anything is written to Grail. What OpenPipeline adds is the ability to do it per pipeline, for every signal type, and to send records to buckets with different retention (or to no storage at all).
 
 ---
 
@@ -127,7 +129,7 @@ Understanding the fundamental differences helps you plan your migration effectiv
 
 **Drop unwanted data before storage:**
 - Filter out debug logs, health checks, and noise
-- Reduce storage costs by 30-70% in typical deployments
+- How much you save depends on how much of your volume is noise — the assessment queries in this notebook measure that for your own data before you commit to a number
 - Route high-volume, low-value data to shorter retention buckets
 
 ### 2. 🔐 Security & Compliance
@@ -256,6 +258,8 @@ For a built-in API source, `dt.openpipeline.source` holds the endpoint **path**,
 
 <a id="real-world-migration-scenarios"></a>
 ## Real-World Migration Scenarios
+
+> These are **illustrative** scenarios, not customer case studies. The savings percentages assume the volume mix described in each challenge; measure your own mix with the assessment queries below before you plan to a number.
 ### Scenario 1: E-Commerce Platform
 
 **Challenge:**
@@ -521,16 +525,18 @@ Before migrating, understand these key limits:
 - `dt.retain.*` - Retention information
 - `dt.system.*` - System metadata (including bucket)
 
-**Entity Fields** (Added **after** Processing stage):
+**Entity Fields** (Added **after** Processing stage — examples from the documented list):
 - `dt.entity.service`
-- `dt.entity.host`
-- `dt.entity.process_group`
-- `dt.entity.kubernetes_cluster`
+- `dt.entity.kubernetes_cluster`, `dt.entity.kubernetes_node`, `dt.entity.kubernetes_service`
+- `dt.entity.cloud_application`, `dt.entity.cloud_application_instance`
+- `dt.source_entity`
 
-> 💡 **Design Tip:** Entity fields are NOT available during routing or processing. They're added automatically by Dynatrace after the Processing stage, so they can be used in the later stages — such as Bucket assignment and the extraction stages — but not in routing conditions or Processing-stage processors.
+OPMIG-02 carries the full list. `dt.entity.host` and `dt.entity.process_group` are **not** on it.
+
+> 💡 **Design Tip:** The listed entity fields are NOT available during routing or processing. They're added automatically by Dynatrace after the Processing stage, so they can be used in the later stages — such as Bucket assignment and the extraction stages — but not in routing conditions or Processing-stage processors.
 
 > <sub>**Sources:**</sub>
-> - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The maximum size of a record after processing is 16 MB."*; *"You can extract data on a single record in a maximum of five different pipelines"*</sub>
+> - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."*; *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The maximum size of a record after processing is 16 MB."*; *"You can extract data on a single record in a maximum of five different pipelines"*</sub>
 > - <sub>[What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
 
 ---

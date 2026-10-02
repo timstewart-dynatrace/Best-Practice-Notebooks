@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 09/29/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -211,9 +211,12 @@ Visual decision trees for diagnosing and resolving common OpenPipeline issues.
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Issue Type | Symptoms | Solutions | Expected Improvement |
 |------------|----------|-----------|---------------------|
-| High Volume | Delayed logs, slow queries | Drop DEBUG early, reduce parsing, sampling | 60-90% reduction |
-| Cardinality | Millions of time series, high DPS/DDU cost | Bucket fields, remove user_id dimensions | 99%+ reduction |
-| Cost | High storage costs | Drop low-value logs, reduce retention, extract metrics | 99.9% savings |
+| High Volume | Delayed logs, unexpected volume | Drop DEBUG early, narrow processors with matching conditions | Measure first — depends on your volume mix |
+| Cardinality | Millions of time series, high metric cost | Bucket fields, remove user_id dimensions | Bounded series count (<10K per metric as a working target) |
+| Cost | High storage costs | Drop low-value logs, reduce retention, extract metrics + No storage assignment | Measure first |
+| Pattern efficiency | — | Match first, then parse; one `replacePattern` with DPL alternatives | Fewer passes per record |
+
+Note: OpenPipeline exposes no per-record processing-time field — diagnose by volume, not by timing.
 -->
 
 ---
@@ -241,8 +244,8 @@ When OpenPipeline issues occur in production, follow these emergency procedures.
 
 1. **Disable Drop Processor (UI)**
 ```
-   Settings → Log Monitoring → OpenPipeline
-   → Select pipeline → Processors tab
+   Settings → Process and contextualize → OpenPipeline → Logs
+   → Pipelines → select pipeline → Processing stage
    → Find drop processor → Toggle OFF
    → Save pipeline
    
@@ -270,9 +273,8 @@ When OpenPipeline issues occur in production, follow these emergency procedures.
 
 3. **Verify Logs Reappear**
 ```dql
-   fetch logs
+   fetch logs, from: now() - 5m
    | filter log.source == "critical-service"
-   | filter timestamp > now() - 5m
    | summarize count()
 ```
 
@@ -304,10 +306,11 @@ When OpenPipeline issues occur in production, follow these emergency procedures.
 
 2. **Check Processing Metrics**
 ```
-   ⚠️ QUERY DISABLED: Fields return NULL in this tenant
-   
-   dt.openpipeline.processing_time_ms - EXISTS but returns NULL
-   dt.openpipeline.status - EXISTS but returns NULL
+   OpenPipeline records no per-record processing time or status:
+   dt.openpipeline.processing_time_ms and dt.openpipeline.status are not
+   Grail fields (no row in dt.semantic_dictionary.fields, 10/02/2026).
+   Use the volume query below and the dt.sfm.openpipeline.* metrics in
+   Performance Troubleshooting instead.
 ```
 
    **Alternative Query:**
@@ -365,9 +368,11 @@ fetch logs, from: now() - 1h
 
 2. **Identify Exposure Window**
 ```dql
-   fetch logs
+   // Widen from: until first_exposure stops moving. replacePattern finds a card number
+   // anywhere in the line; matchesPhrase on a fixed number would miss every other card.
+   fetch logs, from: now() - 7d
    | filter log.source == "payment-service"
-   | filter matchesPhrase(content, "4111-1111-1111-1111") // Test pattern
+   | filter replacePattern(content, "CREDITCARD", replacement: "") != content
    | summarize 
        first_exposure = min(timestamp),
        last_exposure = max(timestamp),
@@ -429,7 +434,7 @@ fetch logs, from: now() - 1h
 
 1. **Verify Current Routing**
 ```dql
-   fetch logs
+   fetch logs, from: now() - 1h
    | filter log.source == "production-api"
    | summarize {count = count()}, by: {dt.system.bucket}
 | sort count desc
@@ -437,10 +442,11 @@ fetch logs, from: now() - 1h
 
 2. **Create Temporary High-Retention Bucket**
 ```
-   Settings → Buckets → Create Bucket
+   Settings → Storage management → Bucket storage management → Bucket
    Name: emergency_recovery_logs
+   Table: logs
    Retention: 90 days
-   Access: Admins only
+   (Access is granted by IAM policy, not on the bucket — restrict it there)
 ```
 
 3. **Point the Pipeline's Bucket Assignment at the Safe Bucket**
@@ -515,8 +521,7 @@ fetch logs, from: now() - 1h
 
 3. **Verify Rollback Success**
 ```dql
-   fetch logs
-   | filter timestamp > now() - 5m
+   fetch logs, from: now() - 5m
    | summarize 
        count(),
        pipelines = collectDistinct(dt.openpipeline.pipelines),
@@ -592,85 +597,45 @@ Diagnose and resolve performance issues in high-volume OpenPipeline environments
 ### Performance Issue 1: Slow Processing / High Latency
 
 **Symptoms:**
-- Logs delayed (ingestion_time - timestamp > 5 minutes)
-- Pipeline processing time > 100ms
+- Logs arriving later than expected
+- One pipeline carrying far more volume than planned
 - Queries timing out or slow to return
 
 **Diagnosis Queries:**
 
-```dql
-// 1. Identify slow pipelines
-// ⚠️ Original query disabled: dt.openpipeline.processing_time_ms returns NULL
-//
-// fetch logs
-// | filter timestamp > now() - 1h
-// | summarize
-//     avg_processing = avg(dt.openpipeline.processing_time_ms),
-//     p95_processing = percentile(dt.openpipeline.processing_time_ms, 95),
-//     max_processing = max(dt.openpipeline.processing_time_ms),
-//     log_count = count(),
-//     by: {dt.openpipeline.pipelines}
-// | sort avg_processing desc
+OpenPipeline does not record processing time per record or per processor — there is no `dt.openpipeline.processing_time_ms`, `dt.openpipeline.processor_*` or `dt.system.ingestion_time` field (none has a row in `dt.semantic_dictionary.fields`, while `dt.openpipeline.source` and `dt.openpipeline.pipelines` do; checked 10/02/2026). Diagnose by **volume** and by **ingest warnings**.
 
-// Alternative: Analyze pipeline volume to identify high-load pipelines
-fetch logs
-| filter timestamp > now() - 1h
-| summarize
-    log_count = count(),
-    sources = countDistinct(dt.openpipeline.source),
-    logs_per_minute = count() / 60,
-    by: {dt.openpipeline.pipelines}
-| sort log_count desc
+```dql
+// 1. Records out of each pipeline, from OpenPipeline self-monitoring — no log scan
+timeseries records_out = sum(dt.sfm.openpipeline.pipelines_out.records, default: 0),
+  from: now() - 6h, interval: 15m, by: { configuration, pipeline_id }
+| fieldsAdd total = arraySum(records_out)
+| sort total desc
 ```
 
 ```dql
-// 2. Check ingestion lag
-// ⚠️ QUERY DISABLED: dt.system.ingestion_time returns NULL in this tenant
-//
-// Original query (commented out):
-// fetch logs
-// | filter timestamp > now() - 15m
-// | fieldsAdd lag_seconds = (dt.system.ingestion_time - timestamp) / 1s
-// | summarize
-//     avg_lag = avg(lag_seconds),
-//     p95_lag = percentile(lag_seconds, 95),
-//     max_lag = max(lag_seconds),
-//     by: {log.source}
-// | filter avg_lag > 60
-// | sort avg_lag desc
-//
-// Note: Ingestion lag monitoring requires dt.system.ingestion_time field
-// which is not populated in this tenant.
+// 2. Records Dynatrace changed or truncated on ingest, by source
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.ingest.warnings)
+| summarize n = count(), by: {dt.ingest.warnings, dt.openpipeline.source}
+| sort n desc
 ```
 
-```dql
-// 3. Find expensive processors
-// ⚠️ QUERY DISABLED: Processor-level metrics not available
-//
-// dt.openpipeline.processor_time_ms - Not available in this tenant
-// dt.openpipeline.processor_name - Not available in this tenant
-//
-// Original query (commented out):
-// fetch logs
-// | filter dt.openpipeline.pipelines == "my-slow-pipeline"
-// | summarize
-//     processor_time = avg(dt.openpipeline.processor_time_ms),
-//     by: {dt.openpipeline.processor_name}
-// | sort processor_time desc
-//
-// Note: Processor-level performance metrics require additional telemetry
-// configuration. Monitor overall pipeline performance instead (see Query 1 alternative).
-```
+To find an expensive processor, there is no timing to read: narrow its matching condition, or disable processors one at a time in a staging copy of the pipeline and compare.
+
+> <sub>**Dictionary:** `dt.openpipeline.pipelines` (`experimental`), `dt.openpipeline.source` (`experimental`), `dt.ingest.warnings` (`experimental`); no row for `dt.openpipeline.processing_time_ms`, `dt.openpipeline.status` or `dt.system.ingestion_time` under `filter startsWith(name, "dt.openpipeline") OR startsWith(name, "dt.ingest")`, read 10/02/2026 (control: the same filter returned 10 rows). Metric keys `dt.sfm.openpipeline.pipelines_out.records` and `dt.sfm.openpipeline.not_stored.records` read from the `metrics` command the same day.</sub>
 
 **Common Causes & Solutions:**
 
-| Cause | Solution | Expected Improvement |
-|-------|----------|---------------------|
-| Complex DPL patterns in parse/mask | Simplify patterns, start with literals | 50-80% faster |
-| Too many processors | Consolidate logic, remove unused | 30-50% faster |
-| High-volume debug logs | Add drop processor early | 60-90% reduction |
-| Expensive fieldsAdd logic | Pre-compute values, use lookup | 40-70% faster |
-| Large log messages (>10KB) | Truncate content field | 30-50% faster |
+| Cause | Solution |
+|-------|----------|
+| Complex DPL patterns in parse/mask | Simplify patterns; narrow the processor's matching condition |
+| Too many processors | Consolidate logic, remove unused |
+| High-volume debug logs | Add a drop processor early |
+| Expensive fieldsAdd logic | Pre-compute values, use Inline lookup |
+| Large log messages | Remove or truncate fields you do not need |
+
+In community practice these are the usual levers; the gain from each depends on your data — measure before and after with query 1.
 
 **Optimization Example:**
 
@@ -707,12 +672,8 @@ parse content, """complex pattern"""
 **Diagnosis Queries:**
 
 ```dql
-// 1. Identify high-volume sources
-// ⚠️ PARTIAL: dt.system.log_size_bytes returns NULL in this tenant
-//
-// Alternative: Use log count instead of byte size
-fetch logs
-| filter timestamp > now() - 1h
+// 1. Identify high-volume sources (by record count — dt.system.log_size_bytes is not a Grail field)
+fetch logs, from: now() - 1h
 | summarize
     log_count = count(),
     logs_per_second = count() / 3600,
@@ -722,12 +683,8 @@ fetch logs
 ```
 
 ```dql
-// 2. Check for volume spikes
-// ⚠️ PARTIAL: dt.system.log_size_bytes returns NULL in this tenant
-//
-// Alternative: Monitor log count spikes instead
-fetch logs
-| filter timestamp > now() - 6h
+// 2. Check for volume spikes (record counts)
+fetch logs, from: now() - 6h
 | makeTimeseries
     log_count = count(),
     by: {log.source},
@@ -799,8 +756,7 @@ matchesPhrase(content, "/ping") OR
 
 ```dql
 // 1. Count unique dimension combinations
-fetch logs
-| filter timestamp > now() - 1h
+fetch logs, from: now() - 1h
 | filter isNotNull(user_id)  // Example high-cardinality field
 | summarize 
     unique_users = countDistinct(user_id),
@@ -810,8 +766,7 @@ fetch logs
 
 ```dql
 // 2. Estimate metric cardinality
-fetch logs
-| filter timestamp > now() - 24h
+fetch logs, from: now() - 24h
 | summarize 
     dim1_count = countDistinct(dimension1),
     dim2_count = countDistinct(dimension2),
@@ -823,8 +778,7 @@ fetch logs
 
 ```dql
 // 3. Find high-cardinality fields
-fetch logs
-| filter timestamp > now() - 1h
+fetch logs, from: now() - 1h
 | summarize 
     user_ids = countDistinct(user_id),
     request_ids = countDistinct(request_id),
@@ -1084,7 +1038,7 @@ Bucket assignment and metric/event extraction are not part of this list — they
 
 | Efficient | Less Efficient |
 |-----------|----------------|
-| `'prefix=' LD:val` | `LD 'prefix=' LD:val` |
+| `LD? 'prefix=' NSPACE:val` — finds the key anywhere, stops at the next space | `'prefix=' LD:val` — matches only lines that *start* with `prefix=`, then runs to end of line |
 | Specific literals | Greedy matchers |
 | Short patterns | Long complex patterns |
 

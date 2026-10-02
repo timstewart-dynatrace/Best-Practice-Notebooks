@@ -1,6 +1,6 @@
 # MOBL-11: Dashboards & Alerting
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 11 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -75,7 +75,9 @@ For environments where SVG doesn't render
 
 ## 2. Crash Rate Monitoring
 
-Crash rate is the most critical mobile KPI. App store algorithms use crash rate to determine visibility and ranking, and users who experience crashes are significantly more likely to uninstall. A crash-free rate below 99% typically indicates a serious quality problem.
+Crash rate is the most critical mobile KPI. Google Play states that its Android vitals thresholds affect visibility — *"To maximize your title's visibility on Google Play, please keep it under these thresholds"* (user-perceived crash rate 1.09%, ANR rate 0.47%; MOBL-10 §8 explains why those are per-user, not per-session, rates).
+
+> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/topic/performance/vitals).</sub>
 
 The following query builds a daily timeseries of mobile sessions and of sessions that contained a crash, read from `user.sessions` (one record per session, with `error.has_crash`). Dividing the two gives a session crash rate.
 
@@ -83,12 +85,12 @@ The following query builds a daily timeseries of mobile sessions and of sessions
 // Crash rate timeseries (session grain): sessions vs. sessions with a crash
 fetch user.sessions, from:-7d
 | filter dt.rum.application.type == "mobile"
-| makeTimeseries {total_sessions = count(), crash_sessions = countIf(error.has_crash == true)}, time:start_time, interval:1d
+| makeTimeseries {total_sessions = count(), crash_sessions = countIf(error.has_crash == true)}, time:start_time, interval:24h
 ```
 
 ### Interpreting the Results
 
-This query produces two timeseries arrays: `total_sessions` (all mobile sessions) and `crash_sessions` (sessions with `error.has_crash`). To calculate the crash rate percentage on a dashboard tile, divide crash sessions by total sessions and multiply by 100; the crash-free rate is 100 minus that. A healthy app should maintain a session crash rate below 1%.
+This query produces two timeseries arrays: `total_sessions` (all mobile sessions) and `crash_sessions` (sessions with `error.has_crash`). To calculate the crash rate percentage on a dashboard tile, divide crash sessions by total sessions and multiply by 100; the crash-free rate is 100 minus that. The bands below are a community rule of thumb — set your own targets from your app's baseline:
 
 | Crash-Free Rate | Health Status | Action |
 |----------------|---------------|--------|
@@ -120,6 +122,8 @@ For environments where SVG doesn't render
 -->
 
 ### Key Performance Indicators
+
+Starting bands from community practice — tune them to your app and audience:
 
 | Metric | Good | Warning | Critical |
 |--------|------|---------|----------|

@@ -1,6 +1,6 @@
 # OPMIG-03: OpenPipeline Migration Guide: Part 3
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Migration Assessment & Planning
 ---
@@ -103,8 +103,7 @@ fetch logs, from: now() - 1h
 | Benefit | Description |
 |---------|-------------|
 | **Natural Language** | No need to know DQL syntax |
-| **Real Data** | Execute against live tenant |
-| **Syntax Validation** | Catch errors before execution |
+| **Real Data** | Execute against live tenant — a syntax error comes back in the response, so read it before reading the row count |
 | **Explanation** | Understand complex patterns |
 | **Faster Discovery** | Iterate quickly on queries |
 
@@ -129,10 +128,12 @@ fetch logs, from: now() - 7d
 ```
 
 ```dql
-// Compare logs processed by OpenPipeline vs potentially classic
-// Identifies migration progress
+// Compare logs still processed by the classic pipeline vs OpenPipeline
+// Identifies migration progress. Classic records carry the pipeline id "logs:default";
+// dt.openpipeline.source and dt.openpipeline.pipelines are populated for BOTH paths,
+// so isNotNull() on either field cannot tell them apart.
 fetch logs, from: now() - 7d
-| fieldsAdd processing_type = if(isNotNull(dt.openpipeline.source), "OpenPipeline", else: "Unknown/Classic")
+| fieldsAdd processing_type = if(in(dt.openpipeline.pipelines, "logs:default"), "Classic pipeline", else: "OpenPipeline")
 | summarize {record_count = count()}, by: {processing_type}
 | fieldsAdd daily_avg = record_count / 7
 | sort record_count desc
@@ -170,9 +171,11 @@ fetch logs, from: now() - 30d
 
 ```dql
 // Hourly volume pattern (typical day)
-// Understand when peak ingestion occurs
+// Understand when peak ingestion occurs.
+// getHour() uses the query timezone (UTC when run through the API) unless you pass one —
+// set timezone: to the zone your operations team works in.
 fetch logs, from: now() - 7d
-| fieldsAdd hour_of_day = getHour(timestamp)
+| fieldsAdd hour_of_day = getHour(timestamp, timezone: "UTC")
 | summarize {avg_hourly = count() / 7}, by: {hour_of_day}
 | sort hour_of_day asc
 ```
@@ -556,10 +559,12 @@ Organize your migration into manageable waves based on priority scores.
 
 ### Wave Planning Template
 
+The timelines and source counts below are an illustrative starting point, not a benchmark — size each wave from your own scoring results.
+
 | Wave | Timeline | Sources | Expected Outcome |
 |------|----------|---------|------------------|
 | **Wave 1** | Week 1-2 | 5-10 critical sources | Security compliance, audit logs |
-| **Wave 2** | Week 3-4 | 10-20 high-volume sources | 50%+ cost savings |
+| **Wave 2** | Week 3-4 | 10-20 high-volume sources | Largest volume reductions (size them with the cost queries above) |
 | **Wave 3** | Week 5-6 | 20-30 standard sources | Complete production migration |
 | **Wave 4** | Week 7+ | Remaining sources | 100% migration complete |
 

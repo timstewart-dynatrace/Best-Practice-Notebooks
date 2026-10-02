@@ -1,6 +1,6 @@
 # OPMIG-08: Security, Masking & Compliance
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ---
 
@@ -239,8 +239,10 @@ fieldsAdd content = replacePattern(content, "'Bearer ' NSPACE", replacement: "Be
 **Pattern:** Password parameter in query strings
 
 ```dql
-fieldsAdd content = replacePattern(content, "'password=' LD:pwd ('&'|EOL)", replacement: "password=[REDACTED]&")
+fieldsAdd content = replacePattern(content, "'password=' [^&\\s]+", replacement: "password=[REDACTED]")
 ```
+
+> **Why not `'password=' LD:pwd ('&'|EOL)`?** It only masks when another parameter follows. On `…?user=bob&password=hunter2`, with the password last, it matched nothing and the password was **stored in clear** (verified 10/02/2026). The DPL character class `[^&\s]+` (written `\\s` inside the DQL string) stops at the next `&` or whitespace and masks both cases.
 
 ### Chaining Multiple Masks
 
@@ -255,6 +257,8 @@ fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDA
 
 <a id="compliance-patterns"></a>
 ## Compliance Patterns
+> **End a key=value mask with `NSPACE`, not `LD`.** A trailing `LD` runs to the end of the line, so `'userId=' LD:uid` turns `userId=u-77 action=view status=OK` into `userId=[USER_REDACTED]` — everything after the key is destroyed, including fields you parse later. `NSPACE` stops at the next space (verified 10/02/2026). If a value can contain spaces, close the pattern with its delimiter instead.
+
 ### PCI-DSS Compliance
 
 **Requirements:**
@@ -286,7 +290,7 @@ fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]
 // Mask IP addresses
 | fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
 // Mask user IDs
-| fieldsAdd content = replacePattern(content, "'userId=' LD:uid", replacement: "userId=[USER_REDACTED]")
+| fieldsAdd content = replacePattern(content, "'userId=' NSPACE", replacement: "userId=[USER_REDACTED]")
 ```
 
 ### HIPAA Compliance
@@ -300,9 +304,9 @@ fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]
 
 ```dql
 // Mask patient IDs
-fieldsAdd content = replacePattern(content, "'patientId=' LD:pid", replacement: "patientId=[PHI_REDACTED]")
+fieldsAdd content = replacePattern(content, "'patientId=' NSPACE", replacement: "patientId=[PHI_REDACTED]")
 // Mask MRNs
-| fieldsAdd content = replacePattern(content, "'mrn=' LD:mrn", replacement: "mrn=[PHI_REDACTED]")
+| fieldsAdd content = replacePattern(content, "'mrn=' NSPACE", replacement: "mrn=[PHI_REDACTED]")
 // Mask SSNs
 | fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "[SSN_REDACTED]")
 ```
@@ -318,9 +322,9 @@ fieldsAdd content = replacePattern(content, "'patientId=' LD:pid", replacement: 
 
 ```dql
 // Mask passwords
-fieldsAdd content = replacePattern(content, "('password='|'pwd='|'passwd=') LD:pwd", replacement: "password=[REDACTED]")
+fieldsAdd content = replacePattern(content, "('password='|'pwd='|'passwd=') NSPACE", replacement: "password=[REDACTED]")
 // Mask API keys
-| fieldsAdd content = replacePattern(content, "('api_key='|'apiKey='|'API_KEY=') LD:key", replacement: "api_key=[REDACTED]")
+| fieldsAdd content = replacePattern(content, "('api_key='|'apiKey='|'API_KEY=') NSPACE", replacement: "api_key=[REDACTED]")
 // Mask tokens
 | fieldsAdd content = replacePattern(content, "'Bearer ' NSPACE", replacement: "Bearer [REDACTED]")
 ```
@@ -365,22 +369,21 @@ After configuring masking, verify it's working correctly.
 > ⚠️ **Important:** Test with sample data before deploying to production.
 
 ```dql
-// Check for any remaining credit card patterns in stored logs
-// If masking works, this should return 0 results
+// Check for any remaining card numbers in stored logs — if masking works, this returns 0 rows.
+// replacePattern() finds a CREDITCARD match anywhere; matchesPhrase(content, "4111") would not,
+// because an unbroken 16-digit number is a single token that "4111" never equals.
 fetch logs, from: now() - 24h
-| filter matchesPhrase(content, "4111")
-   OR matchesPhrase(content, "5500")
-   OR matchesPhrase(content, "3782")
+| filter replacePattern(content, "CREDITCARD", replacement: "") != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
 | limit 10
 ```
 
 ```dql
-// Check for any remaining email patterns
-// Look for @ symbol with surrounding text
+// Check for any remaining email addresses — if masking works, this returns 0 rows.
+// Uses the same DPL pattern as the masking processor, so it finds any address, not a fixed domain list.
 fetch logs, from: now() - 24h
-| filter matchesPhrase(content, "@gmail.com")
-   OR matchesPhrase(content, "@yahoo.com")
-   OR matchesPhrase(content, "@example.com")
+| filter replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "") != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
 | limit 10
 ```
 
@@ -421,12 +424,10 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Check for potential SSN patterns that might be missed
-// Pattern: ###-##-#### where # is a digit
+// Check for SSN-shaped values (###-##-####) that masking missed — should return 0 rows
 fetch logs, from: now() - 24h
-| filter matchesPhrase(content, "-")
-| filter NOT contains(content, "[SSN_REDACTED]")
-| fields content
+| filter replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "") != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
 | limit 50
 ```
 

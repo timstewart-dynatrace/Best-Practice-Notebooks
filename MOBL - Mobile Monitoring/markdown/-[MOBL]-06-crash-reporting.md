@@ -1,6 +1,6 @@
 # MOBL-06: Crash Reporting & ANR Detection
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -79,25 +79,36 @@ A dSYM file is a companion file generated during the Xcode build process that ma
 
 ### Upload Methods
 
+iOS dSYM files are **preprocessed with the DSSClient** (shipped with OneAgent for iOS) into symbol extract files before Dynatrace accepts them. Four upload routes are documented:
+
 | Method | Description | Best For |
 |--------|-------------|----------|
-| **Xcode Build Phase Script** | Add a run script phase to your Xcode project that automatically uploads dSYMs after each build | CI/CD pipelines using Xcode |
-| **Manual Upload** | Upload dSYM files through the Dynatrace UI (Settings > Mobile > Symbol Files) | Ad-hoc builds, troubleshooting |
-| **Fastlane** | Use the `dynatrace_process_symbols` Fastlane action in your deployment lane | Teams already using Fastlane |
-| **REST API** | Upload via the Dynatrace API endpoint for symbol file management | Custom CI/CD systems |
+| **DSSClient** | `DTXDssClient -decode` then `DTXDssClient -upload` — scriptable in an Xcode run-script phase or CI | CI/CD pipelines |
+| **REST API** | Mobile Symbolication API, `PUT /api/config/v1/symfiles/...` with a `DssFileManagement` token (upload the DSSClient's zip) | Custom CI/CD systems |
+| **Fastlane** | The Dynatrace Fastlane plugin automates processing and upload | Teams already using Fastlane |
+| **Web UI** | **Settings > Web and mobile monitoring > Source maps and symbol files** → **iOS** → **Upload files** | Ad-hoc builds, troubleshooting |
 
-### Xcode Build Phase Script Example
+### DSSClient Example
 
-Add this as a **Run Script** build phase in Xcode:
+1. Preprocess the dSYMs (from the `.xcarchive`, or a dSYM zip from App Store Connect):
 
 ```bash
-"${PODS_ROOT}/Dynatrace/DTXDssClient" \
-  -ApiToken "YOUR_API_TOKEN" \
-  -DtApplicationID "YOUR_APP_ID" \
-  -Server "https://your-environment.live.dynatrace.com" \
-  -CFBundleVersion "${CURRENT_PROJECT_VERSION}" \
-  -DTXLogLevel ALL
+DTXDssClient -decode symbolsfile=MyApp.xcarchive
 ```
+
+2. Upload the symbol extract files:
+
+```bash
+DTXDssClient -upload appid=<APPLICATION_ID> apitoken=<API_TOKEN> os=ios \
+  bundleId=com.yourcompany.app bundleName=MyApp versionStr=1.0 version=1 \
+  symbolsfile=MyApp.xcarchive/dSYMs server=https://<your-environment-id>.live.dynatrace.com
+```
+
+`versionStr` and `version` must match the app's `CFBundleShortVersionString` and `CFBundleVersion`. Only stack-trace lines from your app and third-party libraries you supply dSYMs for are symbolicated — **system library frames are not**.
+
+> **Correction (10/02/2026).** Earlier revisions showed `DTXDssClient -ApiToken … -DtApplicationID … -Server …` flags. The documented syntax is `key=value` pairs after `-upload`, as above.
+
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"For iOS or tvOS symbolication, you need to preprocess dSYM files using the DSSClient before you can upload them to Dynatrace."*; *"Symbolication of system library stack trace lines is not supported."*</sub>
 
 ### Bitcode Considerations
 
@@ -110,6 +121,7 @@ If your app uses Bitcode (now deprecated in Xcode 14+), Apple recompiles the bin
 | `MyApp -[PaymentViewController processPayment:] + 42` | Fully symbolicated -- dSYM uploaded correctly |
 | `MyApp 0x00000001045a3b2c` | Not symbolicated -- dSYM missing or UUID mismatch |
 | `MyFramework 0x00000001089d1f30` | Framework dSYM missing -- upload framework symbols too |
+| `libsystem_kernel.dylib 0x...` | System library frame -- not symbolicated by Dynatrace, by design |
 
 > **Tip:** Always verify symbolication status after uploading dSYMs. If crashes still show memory addresses, check that the dSYM UUID matches the app binary UUID using `dwarfdump --uuid` on both files.
 
@@ -122,8 +134,8 @@ Android crash reporting covers three distinct types of failures, each with diffe
 | Type | Description | Detection |
 |------|-------------|----------|
 | **Unhandled Exception** | `RuntimeException`, `NullPointerException`, `OutOfMemoryError`, etc. | Automatic -- SDK installs an `UncaughtExceptionHandler` |
-| **ANR (Application Not Responding)** | Main thread blocked for more than 5 seconds, causing the system to display the ANR dialog | Automatic -- SDK monitors the main thread responsiveness |
-| **Native Crash** | Segfault or other fatal signal in NDK/C++ code (e.g., `SIGSEGV`, `SIGABRT`) | Requires enabling NDK crash reporting in the SDK configuration |
+| **ANR (Application Not Responding)** | The system's ANR condition — for input events, no response within about 5 seconds | Reported by OneAgent for Android (`characteristics.has_anr` in Grail) |
+| **Native Crash** | Segfault or other fatal signal in NDK/C++ code (e.g., `SIGSEGV`, `SIGABRT`) | Reported with its signal in `exception.crash_signal_name`; NDK code itself is not instrumented. Check your agent version's crash-reporting settings |
 
 ### ANR Detection in Detail
 
@@ -135,34 +147,23 @@ An ANR occurs when the Android system detects that the main (UI) thread has been
 - **Lock contention** -- Main thread waiting for a lock held by a background thread
 - **Deadlocks** -- Two threads waiting on each other
 
-The Dynatrace SDK captures the full thread dump at the time of the ANR, including the main thread's stack trace showing exactly where it was blocked. This makes ANRs significantly easier to diagnose compared to the limited information in the Android vitals dashboard.
+The ANR record carries the stack trace where the main thread was blocked, alongside the session and user actions that led up to it — context the platform's own ANR counts do not give you.
 
 ### ProGuard/R8 Mapping Files
 
 When you enable code shrinking with ProGuard or R8 (the default for release builds), class and method names are obfuscated. Without the mapping file, crash stack traces show names like `a.b.c.d()` instead of `com.example.PaymentService.processPayment()`.
 
-**Upload mapping files** through:
+**Upload mapping files** through any of the documented routes — none of them is automatic in the Gradle build:
+- **DSSClient** — `DTXDssClient -upload appid=… apitoken=… os=android bundleId=… versionStr=… version=… file=…/mapping.txt server=…`
+- **REST API** — Mobile Symbolication API `PUT /api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}` with a `DssFileManagement` token (MOBL-03 §6 has a `curl` example)
+- **Fastlane** — the Dynatrace Fastlane plugin
+- **Web UI** — **Settings > Web and mobile monitoring > Source maps and symbol files** → **Android** → **Upload files** (package name, version code, version name, mapping file)
 
-- **Dynatrace Gradle plugin** -- Uploads mapping files as part of the build process when the `symbols` block below is configured
-- **Manual upload** -- Upload via Dynatrace UI (Settings > Mobile > Symbol Files)
-- **REST API** -- Upload programmatically in CI/CD pipelines
+Source maps and symbol files share a 1 GiB storage quota per SaaS environment; when it fills, older files are deleted automatically unless **pinned**.
 
-```groovy
-// build.gradle - Dynatrace Gradle plugin configuration
-dynatrace {
-    configurations {
-        release {
-            autoStart {
-                applicationId 'YOUR_APP_ID'
-                beaconUrl 'https://your-environment.live.dynatrace.com/mbeacon'
-            }
-            symbols {
-                apitoken 'YOUR_API_TOKEN'
-            }
-        }
-    }
-}
-```
+> **Correction (10/02/2026).** Earlier revisions showed a Gradle `symbols { apitoken '…' }` block that uploads mapping files during the build. That block is not documented; the upload routes are the four above.
+
+> <sub>**Sources:** [Upload and manage symbol files (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files) — *"The Dynatrace platform supports four different ways of uploading Android mapping files and iOS or tvOS symbol extract files"*; *"For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB."*; [Mobile Symbolication API — PUT (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version) — *"you need an access token with DssFileManagement scope"*.</sub>
 
 > **Important:** Upload mapping files for every release build. If a mapping file is missing for a specific app version, crashes from that version will show obfuscated stack traces.
 
@@ -174,11 +175,7 @@ When Dynatrace receives crash reports, it does not treat each individual crash a
 
 ### How Grouping Works
 
-Crashes are grouped based on a combination of:
-
-1. **Exception type** -- The class of the exception (e.g., `NullPointerException`, `EXC_BAD_ACCESS`)
-2. **Top stack frame** -- The topmost relevant frame in the stack trace (the method where the crash occurred)
-3. **Crash message** -- The exception message (when available and consistent)
+Each crash record carries `error.id`, a fingerprint that groups similar crashes; the exact fingerprint inputs are not published, but in community practice crashes with the same exception type and the same crashing frame land in the same group.
 
 This means that 500 users crashing on the same `NullPointerException` in `PaymentViewController.processPayment()` will appear as a **single crash group** with a count of 500, rather than 500 individual crash entries.
 
@@ -249,7 +246,7 @@ Visualize how overall crash volume is trending day-over-day. Spikes may indicate
 // Daily crash trend
 fetch user.events, from:-7d
 | filter characteristics.has_crash
-| makeTimeseries crash_count = count(), interval:1d
+| makeTimeseries crash_count = count(), interval:24h
 ```
 
 <a id="crash-rate-trends"></a>
@@ -266,7 +263,7 @@ Compare daily crash volumes between iOS and Android to spot platform-specific re
 // Crash timeseries by platform
 fetch user.events, from:-7d
 | filter characteristics.has_crash
-| makeTimeseries crash_count = count(), by:{os.name}, interval:1d
+| makeTimeseries crash_count = count(), by:{os.name}, interval:24h
 ```
 
 ### Reported Errors (Handled Exceptions)
@@ -327,9 +324,9 @@ Dynatrace.reportError("Payment Failed", Exception("Card declined"))
 In this notebook, you learned:
 
 - **How crash reporting works** -- from the moment the app crashes through SDK capture, transmission (usually immediate, otherwise on a relaunch within 10 minutes), server-side symbolication, and display in the UI
-- **iOS symbolication** -- why dSYM files are essential, how to upload them (Xcode build phase, Fastlane, manual), and Bitcode considerations
+- **iOS symbolication** -- why dSYM files are essential, how to preprocess and upload them (DSSClient, REST API, Fastlane, web UI), and Bitcode considerations
 - **Android crash types** -- unhandled exceptions, ANRs (main thread blocked >5 seconds), and native NDK crashes, plus ProGuard/R8 mapping file upload
-- **Crash grouping** -- how Dynatrace groups crashes by exception type and top stack frame to help you prioritize fixes by frequency
+- **Crash grouping** -- the `error.id` fingerprint that groups similar crashes so you can prioritize fixes by frequency
 - **Querying crash data with DQL** -- reading `user.events` with `characteristics.has_crash`: fetching recent crashes, counting by application, and visualizing daily crash trends
 - **Crash rate trends** -- comparing crash volumes across iOS and Android platforms, plus querying handled exceptions
 - **Manual error reporting** -- using the SDK API to report handled exceptions in Swift and Kotlin with best practices for naming and context

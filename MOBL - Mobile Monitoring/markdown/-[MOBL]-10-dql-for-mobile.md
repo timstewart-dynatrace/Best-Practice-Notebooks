@@ -1,6 +1,6 @@
 # MOBL-10: DQL for Mobile Analytics
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -151,7 +151,7 @@ The following query creates a 7-day timeseries of daily crash counts, broken dow
 // Daily crash volume by application (7 day trend)
 fetch user.events, from:-7d
 | filter characteristics.has_crash
-| makeTimeseries crash_count = count(), by:{frontend.name}, interval:1d
+| makeTimeseries crash_count = count(), by:{frontend.name}, interval:24h
 ```
 
 **Expected output:** A time chart with one line per mobile application showing daily crash counts over the past 7 days.
@@ -162,7 +162,7 @@ fetch user.events, from:-7d
 
 ## 5. Performance Metrics
 
-App launch time is a key performance indicator for mobile applications. Users expect apps to start within 1–2 seconds on modern devices. Slow launch times correlate with higher abandonment rates.
+App launch time is a key performance indicator for mobile applications — it is the first thing every user waits for.
 
 This query tracks the average app launch duration over the past 24 hours at hourly granularity, using app-start events (`characteristics.has_app_start`, mobile-only) and reporting both the average and the 90th percentile per OS.
 
@@ -175,7 +175,7 @@ fetch user.events, from:-24h
 
 **Expected output:** A time chart showing average and p90 app-start duration per hour and OS over the last 24 hours. `duration` is a duration value, so charts show it with time units.
 
-**Performance benchmarks:**
+**Rule-of-thumb bands** (community practice — set your own targets from your app's baseline):
 
 | Launch Time | Rating |
 |-------------|--------|
@@ -260,14 +260,9 @@ fetch user.sessions, from:-7d
 
 **Expected output:** A table showing each app version and OS combination with total sessions, crash sessions, and crash rate percentage.
 
-**Interpreting crash rates:**
+**Interpreting crash rates.** There is no single industry standard. One published external anchor is Google Play's Android vitals *bad behavior threshold*: a user-perceived crash rate of **1.09%** overall (8% per phone model) and an ANR rate of **0.47%**. Google measures the share of **daily active users** who saw a crash, not the share of sessions, so this query's session rate is not directly comparable — use the threshold as a ceiling to stay well below, and set your own target from your app's baseline.
 
-| Crash Rate | Assessment |
-|------------|------------|
-| < 0.5% | Healthy — industry standard target |
-| 0.5–1.0% | Acceptable — monitor for trends |
-| 1.0–2.0% | Elevated — investigate root causes |
-| > 2.0% | Critical — immediate action required |
+> <sub>**Sources:** [Android vitals (Android Developers)](https://developer.android.com/topic/performance/vitals) — bad-behavior thresholds table: *"User-perceived crash rate 1.09% 8% 4%"*, *"User-perceived ANR rate 0.47% 8% 5%"*.</sub>
 
 > **Note:** Because `user.sessions` has one record per session, `countIf(error.has_crash == true)` counts each crashed session once, however many crashes it had. Subtract the rate from 100% for the crash-free session rate.
 

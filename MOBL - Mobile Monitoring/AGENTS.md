@@ -15,8 +15,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | When the question is about… | Read |
 |---|---|
 | Mobile RUM architecture, supported platforms, mobile entity types, beacon-to-Grail data flow, mobile vs web RUM | `-[MOBL]-01-fundamentals.md` |
-| iOS setup: SPM/CocoaPods install, Info.plist config (`DTXApplicationID`, beacon URL), UIKit auto-instrumentation, SwiftUI instrumentation (DTSwiftInstrumentor), verifying data | `-[MOBL]-02-sdk-setup-ios.md` |
-| Android setup: top-level Gradle plugin, variant-specific configurations, Activities/Fragments and Jetpack Compose auto-instrumentation, ProGuard/R8 | `-[MOBL]-03-sdk-setup-android.md` |
+| iOS setup: turning on the New RUM Experience (no `user.events` data without it), SPM/CocoaPods install, Info.plist config (`DTXApplicationID`, beacon URL), UIKit auto-instrumentation, SwiftUI instrumentation (DTSwiftInstrumentor), verifying data | `-[MOBL]-02-sdk-setup-ios.md` |
+| Android setup: turning on the New RUM Experience, top-level Gradle plugin, variant-specific configurations, Activities/Fragments and Jetpack Compose auto-instrumentation, R8 keep rules and mapping-file upload | `-[MOBL]-03-sdk-setup-android.md` |
 | Flutter, React Native, Cordova, or .NET MAUI apps (Xamarin end of support): plugin setup, configuration bridging, React Native symbolication | `-[MOBL]-04-cross-platform-frameworks.md` |
 | Taps, swipes, app starts not showing or misnamed: auto-detected vs custom actions, action lifecycle, rage tap detection, action naming | `-[MOBL]-05-user-action-tracking.md` |
 | Crashes and ANRs: dSYM upload/symbolication, ProGuard mapping, crash grouping, crash-rate DQL, manual error reporting | `-[MOBL]-06-crash-reporting.md` |

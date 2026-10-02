@@ -1,6 +1,6 @@
 # MOBL-01: Mobile Monitoring Fundamentals
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 1 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -103,7 +103,7 @@ For environments where SVG doesn't render
 
 1. **SDK embedded in app** -- The Dynatrace mobile SDK is integrated into your app during the build process. It hooks into lifecycle events, network layers, and crash handlers automatically.
 2. **Collects telemetry** -- As users interact with the app, the SDK captures user actions (taps, screen loads), network requests (URL, status code, duration), crashes (stack traces, thread state), and device context.
-3. **Sends beacons** -- Captured data is packaged into beacon payloads (compressed JSON) and sent to the Dynatrace beacon endpoint over HTTPS. Beacons are batched and buffered for efficiency.
+3. **Sends beacons** -- Captured data is packaged into compressed beacon payloads and sent to the Dynatrace beacon endpoint over HTTPS. Beacons are batched and buffered for efficiency.
 4. **Processed by cluster** -- The cluster (or ActiveGate) receives beacons, validates them, enriches with server-side correlation data, and normalizes fields.
 5. **Stored in Grail** -- Processed mobile data is stored in Grail, making it queryable via DQL alongside logs, spans, metrics, and other telemetry.
 6. **Analyzed in UI** -- Use Dynatrace dashboards, notebooks, and the mobile app overview to visualize performance, detect regressions, and drill into individual sessions.
@@ -189,7 +189,7 @@ smartscapeNodes "FRONTEND"
 |------|-------|-------------|
 | 1 | User Interaction | User taps a button, loads a screen, or triggers a network request |
 | 2 | SDK Capture | The Dynatrace SDK captures the action with timing, context, and metadata |
-| 3 | Beacon Creation | Captured data is serialized into a beacon payload (compressed JSON) |
+| 3 | Beacon Creation | Captured data is serialized into a compressed beacon payload |
 | 4 | Beacon Transmission | Beacon is sent to the Dynatrace beacon endpoint over HTTPS |
 | 5 | Processing & Enrichment | Cluster processes the beacon, correlates with server-side data, enriches fields |
 | 6 | Grail Storage | Processed data is stored in Grail for querying via DQL |
@@ -200,7 +200,7 @@ For environments where SVG doesn't render
 
 **Batching:** The SDK does not send a beacon for every individual action. Instead, it batches multiple events into a single beacon payload to reduce network overhead and battery consumption.
 
-**Offline Buffering:** When the device has no network connectivity, the SDK buffers beacons locally. Once connectivity is restored, buffered beacons are sent in order. This ensures no data is lost during subway rides, airplane mode, or poor signal areas.
+**Offline Buffering:** When the device has no network connectivity, the SDK buffers monitoring data locally and sends it once connectivity is restored. The buffer is bounded by the agent, so a long offline period can still lose data — treat the buffer as protection against short gaps (a subway ride, a dead zone), not as a guarantee.
 
 **Compression:** Beacon payloads are compressed before transmission to minimize bandwidth usage, which is especially important for users on metered cellular connections.
 
@@ -265,7 +265,7 @@ What this changes in practice:
 ### Key Implications
 
 - **Version fragmentation:** Mobile apps have multiple versions in the wild simultaneously. Your DQL queries should account for `app.version` when analyzing performance.
-- **Offline data gaps:** Mobile beacons may arrive hours or days after the actual user action if the device was offline. Time-based queries should consider this latency.
+- **Offline data gaps:** Data from a device that was offline arrives late, when it reconnects. Recent time windows can still fill in after you first query them — re-check before treating a dip in the last hour as real.
 - **Platform-specific issues:** iOS and Android have different crash signatures, lifecycle events, and performance characteristics. Analyze them separately when troubleshooting.
 
 <a id="getting-started-checklist"></a>
@@ -274,7 +274,7 @@ What this changes in practice:
 
 Follow these steps to set up mobile monitoring for your application:
 
-1. **Create a mobile application in Dynatrace** -- Navigate to the Mobile section in the Dynatrace UI and create a new application configuration. Choose the correct platform (iOS, Android, or hybrid).
+1. **Create a mobile frontend and turn on the New RUM Experience** -- Turn on **Enable RUM** for mobile (**Settings > Collect and capture > Real User Monitoring > Enablement and cost control > Mobile**), create the frontend with **Experience Vitals > Add Frontend**, then turn on **New Real User Monitoring Experience** in the frontend's **Settings > Enablement and cost control**. The Grail `user.events` / `user.sessions` queries throughout this series read the data the New RUM Experience sends; with it off they return nothing. MOBL-02 / MOBL-03 have the step-by-step.
 
 2. **Integrate the SDK** -- Add the Dynatrace mobile SDK to your app's build system (CocoaPods/SPM for iOS, Gradle for Android, npm for React Native/Flutter). Follow the platform-specific setup guide.
 

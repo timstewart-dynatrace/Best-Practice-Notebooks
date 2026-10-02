@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Architecture & Key Concepts
 ---
@@ -71,8 +71,8 @@ Understanding how data flows through OpenPipeline is essential for designing eff
 
 1. **Pre-storage Processing**: All transformations happen BEFORE data is written to Grail.
 2. **Order Matters**: Processors execute in the order defined within each pipeline.
-3. **Multi-pipeline Support**: A single record can be processed by up to 5 pipelines.
-4. **Entity Detection**: Entity fields (`dt.entity.*`) are added AFTER the Processing stage.
+3. **One route, possibly several pipelines**: Each record takes the first matching route. Routed to a pipeline group's member pipeline, it is also processed by the group's base pipelines; data is extracted from one record in at most 5 pipelines.
+4. **Entity Detection**: A documented set of entity fields — `dt.entity.service`, the Kubernetes and cloud-application entities, `dt.source_entity` and others — is added AFTER the Processing stage (full list under [Field & Matching Restrictions](#complete-openpipeline-limits-reference)).
 5. **Immutable Storage**: Once stored, data cannot be modified (mask early!).
 
 ---
@@ -103,7 +103,8 @@ The routing stage determines which pipeline(s) process each incoming record.
 | **Purpose** | Match incoming data to appropriate pipelines |
 | **Timing** | Before any pipeline processing |
 | **Configuration** | Dynamic routing rules with matching conditions, or static assignment for custom sources |
-| **Fallback** | Unmatched data goes to the default pipeline |
+| **Order** | First matching route wins — a record takes one route |
+| **Fallback** | Unmatched data takes the default route (classic pipeline for logs and business events) |
 
 **Matching Condition Examples:**
 ```
@@ -146,27 +147,26 @@ The storage stage routes data to Grail buckets. Use the **No storage assignment*
 
 <a id="pipeline-types"></a>
 ## Pipeline Types
-OpenPipeline supports three types of pipelines:
 
-### 1. Default Pipeline
+*Processing in OpenPipeline* defines three pipeline types, by who owns them:
 
-- **Purpose**: Handles data that doesn't match any custom pipeline
-- **Configuration**: Minimal processing, default bucket
-- **Modification**: Can add processors but cannot delete
+| Type | Owner | Access | What it is |
+|------|-------|--------|------------|
+| **Custom** | User or user group | Owner-based; editable | The pipelines you build. All migrated processing lives here. |
+| **Ready-made** | Extension | View-only | Created when an extension is installed, often with its own ingest source and route. To add processing, use a **pipeline group** with the ready-made pipeline as a member or base pipeline. |
+| **Built-in** | OpenPipeline | View-only | Provided out of the box and *"generally cannot be modified within OpenPipeline."* |
 
-### 2. Custom Pipelines
+### The default pipeline
 
-- **Purpose**: Targeted processing for specific data sources or patterns
-- **Configuration**: Full control over all processing stages
-- **Routing**: Requires matching conditions in dynamic routing
+The **default pipeline** is a built-in pipeline. It *"processes unassigned incoming data for storage"* — every record no route matches — and sends it to the configuration scope's default bucket so it is *"not unintentionally dropped."* It is view-only: you cannot add processors to it. Processing you need on unmatched data belongs in a custom pipeline behind an explicit route.
 
-### 3. Built-in Pipelines
+**Logs and business events are the exception.** The default pipeline, in the docs' words, is *"not available for log and business event configuration scopes where the Classic pipeline is available."* There, records that fall through to the default route are processed by the **classic pipeline** and carry the pipeline id `logs:default` (or `bizevents:default`) in `dt.openpipeline.pipelines`. The query [in the exploration section](#exploring-your-pipeline-configuration) counts them; OPMIG-09 uses the same id to measure how much traffic has not been migrated yet.
 
-- **Purpose**: Pre-configured for common technologies
-- **Examples**: Kubernetes logs, AWS logs, Azure logs
-- **Modification**: Can extend but not fundamentally change
+Technology parsing for common formats is not a pipeline type. It is the **Technology bundle** processor, which you add to a custom pipeline (see [Processor Types](#processor-types)).
 
 > 💡 **Best Practice:** Create focused pipelines for specific use cases rather than one large pipeline with complex conditionals.
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — pipeline-type table; *"The default pipeline is a built-in pipeline that processes unassigned incoming data for storage."*, *"not available for log and business event configuration scopes where the Classic pipeline is available."*; [Upgrade from classic pipeline to OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-your-data-pipeline/migration-classic-pipeline) — *"Data that doesn't match falls back to the default route and continues to be processed by the classic pipeline until you turn off the rules."*</sub>
 
 ---
 
@@ -207,16 +207,11 @@ Matching Condition: loglevel == "DEBUG"
 Result: All DEBUG logs are dropped before storage
 ```
 
-### Technology Processors
+### Technology Bundle Processor
 
-Built-in parsers for common log formats:
+The **Technology bundle** processor *"matches records for the selected technology and processes them according to predefined context-sensitive processing statements."* Pick the technology (for example a web server, a runtime or a syslog source) and the bundle parses its records for you. The fields each bundle produces are defined by the bundle, not by you — open the processor's preview on a sample record to see exactly which fields it adds before you write anything downstream that depends on them.
 
-| Technology | Parsed Fields |
-|------------|---------------|
-| Apache | client_ip, method, path, status, bytes |
-| Nginx | Similar to Apache with nginx-specific fields |
-| JSON | Flattens JSON structure to fields |
-| Syslog | facility, severity, hostname, message |
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — processor table, *Technology bundle*.</sub>
 
 ---
 
@@ -263,8 +258,8 @@ DPL is a powerful pattern matching language used in the `parse` command.
 // Extract IP and port from log
 | parse content, "IPADDR:client_ip ':' INT:port"
 
-// Extract user ID with flexible prefix
-| parse content, "('user='|'userId='|'user_id=')LD:user_id"
+// Extract user ID with flexible prefix, anywhere in the line
+| parse content, "LD? ('user='|'userId='|'user_id=') NSPACE:user_id"
 
 // Parse Apache-style log
 | parse content, "IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']'"
@@ -275,9 +270,11 @@ DPL is a powerful pattern matching language used in the `parse` command.
 // Parse with optional port
 | parse content, "IPADDR:ip (':' INT:port)?"
 
-// Extract error code
-| parse content, "'error_code=' INT:error_code"
+// Extract error code, anywhere in the line
+| parse content, "LD? 'error_code=' INT:error_code"
 ```
+
+> **`parse` matches from the start of the field.** A pattern that opens with a literal such as `'error_code='` returns **null** on every line that does not begin with it — no error, just an empty field. Prefix the pattern with `LD?` to skip any leading text (or none). And a trailing `LD:x` runs to the **end of the line**, not the end of the value: use `NSPACE:x` (stops at the next space) or a closing literal. Both verified with `data record(...)` on 10/02/2026; FAQ-15 covers DPL matching semantics in depth.
 
 ### Timestamp Format Patterns
 
@@ -314,7 +311,7 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 
 | Limit | Value | Impact |
 |-------|-------|--------|
-| **Max pipelines per record** | 5 | A record can be processed by up to 5 different pipelines. After 5, data extraction stops but the record is still persisted. |
+| **Max pipelines per record** | 5 | Data can be extracted from one record in at most 5 pipelines (a pipeline group's base + member pipelines). After 5, data extraction stops but the record is still persisted. |
 | **Max processors per pipeline** | 1,000 (100 in a base pipeline) | Cannot add more processors to pipeline |
 | **Max DQL commands per processor** | 10 commands † | Split complex logic into multiple processors |
 | **Max parse operations per processor** | 100 patterns † | Create additional parse processors |
@@ -395,40 +392,38 @@ This comprehensive reference contains ALL OpenPipeline limits you need to know f
 
 ### Field & Matching Restrictions
 
-**Read-Only Fields** (Cannot be modified):
-```
+**View-only fields** — *"editing via OpenPipeline is not supported"*:
+```text
 dt.ingest.*          - Ingestion metadata
 dt.openpipeline.*    - Pipeline processing metadata
 dt.retain.*          - Retention information
 dt.system.*          - System metadata (bucket, etc.)
-timestamp            - Record timestamp (can parse new, not modify original)
 ```
 
-**Reserved Field Prefixes** (Cannot create):
-```
-dt.*                 - Reserved for Dynatrace
-dynatrace.*          - Reserved for Dynatrace
-```
-
-**Entity Fields** (Available ONLY after Processing stage):
-```
+**Fields added after the Processing stage** — usable *"only in stages after the Processing stage, but not in pre-processing, routing, or the Processing stage"*:
+```text
 dt.entity.service
-dt.entity.host
-dt.entity.process_group
-dt.entity.process_group_instance
-dt.entity.kubernetes_cluster
-dt.entity.cloud_application
-dt.entity.cloud_application_namespace
+dt.entity.kubernetes_cluster, dt.entity.kubernetes_node, dt.entity.kubernetes_service
+dt.entity.cloud_application, dt.entity.cloud_application_instance (and the cloud-application namespace field)
+dt.entity.custom_device, dt.entity.aws_lambda_function, dt.entity.<genericEntityType>
+dt.source_entity
+dt.kubernetes.cluster.id, dt.kubernetes.cluster.name, k8s.cluster.name
+dt.env_vars.dt_tags
+dt.process.name  (classic pipelines only — use dt.process_group.detected_name before Processing)
 ```
 
-> 💡 **Design Pattern:** Entity fields are added by Dynatrace AFTER the Processing stage. You cannot:
+`k8s.cluster.name` is available before Processing when the OneAgent Log module runs in standalone mode (OneAgent 1.309, Dynatrace Operator 1.4.2+). `dt.entity.host`, `dt.entity.process_group` and `dt.entity.process_group_instance` are **not** on this list — the limits page does not restrict them, so do not design around them being missing; preview a processor on a real record to confirm what is present at that point.
+
+> 💡 **Design Pattern:** For the fields on the list above, you cannot:
 > - Use them in routing conditions
 > - Use them in matching conditions during processing
 > - Modify them with fieldsAdd/fieldsRename
-> 
-> You CAN use them in:
-> - Extraction stage (metrics, events)
-> - Storage stage (bucket routing based on entity)
+>
+> You CAN use them in the stages after Processing — for example Bucket assignment and the extraction stages (metrics, events).
+
+The limits page does not publish a general ban on creating `dt.*` fields, but that namespace belongs to the Dynatrace semantic dictionary. In community practice, custom fields use your own prefix (or none) so they never collide with a field Dynatrace adds later.
+
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *Restricted fields*: *"The following fields can be viewed-only; editing via OpenPipeline is not supported."*; *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."* (list read 10/02/2026).</sub>
 
 ### Workarounds for Common Limit Issues
 
@@ -438,7 +433,7 @@ dt.entity.cloud_application_namespace
 | **>10 DQL commands** | Break into multiple processors (order matters!) |
 | **>100 parse patterns** | Use multiple parse processors in sequence |
 | **>16MB after processing** | Drop unnecessary fields, reduce field sizes |
-| **>5 pipelines needed** | Consolidate processing logic, use conditional processors |
+| **>5 pipelines in a group needed** | Consolidate processing logic, use conditional processors |
 | **>10 metric dimensions** | Reduce cardinality, use separate metrics |
 
 † Not stated on the *OpenPipeline limits* page (read 09/28/2026) — treat as community-reported and verify in your tenant before planning to it. Every unmarked number in the tables above is on that page.
@@ -567,7 +562,7 @@ Run the first query in [Exploring Your Pipeline Configuration](#exploring-your-p
 | `host.name` | Host name (string) |
 | `process.executable.name` | Process executable name |
 
-> ⚠️ **Important:** Entity fields (`dt.entity.*`) are added AFTER the Processing stage. You cannot use them in routing or processing conditions.
+> ⚠️ **Important:** `dt.entity.service`, the Kubernetes and cloud-application entity fields and `dt.source_entity` are added AFTER the Processing stage, so you cannot use them in routing or processing conditions. The full list is under [Field & Matching Restrictions](#complete-openpipeline-limits-reference).
 
 ---
 
@@ -627,10 +622,11 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Identify logs going to default pipeline (may need custom routing)
-// High volume in default may indicate missing routing rules
+// Records that fell through to the default route, last 24 hours.
+// During a migration these are processed by the classic pipeline (id "logs:default").
+// dt.openpipeline.pipelines is an array, so compare with in(), never ==.
 fetch logs, from: now() - 24h
-| filter isNull(dt.openpipeline.pipelines) OR dt.openpipeline.pipelines == "[]"
+| filter in(dt.openpipeline.pipelines, "logs:default")
 | summarize {unrouted_count = count()}, by: {log.source}
 | sort unrouted_count desc
 | limit 20
@@ -680,7 +676,7 @@ Two orders are in play, and only one of them is yours to choose:
 | **Routing** | Dynamic (DQL matcher) or static (custom sources only) |
 | **Processing Order** | Fixed stages: Processing (mask, drop, parse, transform — in the order you list them) → Smartscape node/edge → Permission → Product and cost allocation → Bucket assignment → Metric extraction → Davis → Data extraction |
 | **Entity Detection** | Happens AFTER processing, BEFORE most extraction processors run |
-| **Multi-pipeline** | One record can be processed by up to 5 pipelines (`/reference/limits`) |
+| **Multi-pipeline** | One route per record; pipeline groups add base pipelines; extraction in at most 5 pipelines (`/reference/limits`) |
 | **DPL** | Powerful pattern language for parsing |
 | **Buckets** | Control retention and cost at the storage assignment step; or skip with No storage assignment |
 

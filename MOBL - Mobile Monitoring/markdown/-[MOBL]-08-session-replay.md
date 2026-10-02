@@ -1,6 +1,6 @@
 # MOBL-08: Session Replay for Mobile
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 8 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -62,7 +62,7 @@ Two capture modes exist:
 
 ## 2. Enabling Session Replay
 
-Session Replay is switched on **in the mobile app's settings in Dynatrace**, not in `Info.plist` or the Gradle block. Once the app is instrumented (instrumentation wizard complete), the steps are the same for iOS and Android:
+Session Replay is switched on **in the mobile app's settings in Dynatrace**, not in `Info.plist` or the Gradle block. Once the app is instrumented (instrumentation wizard complete), the steps are the same for iOS and Android. The path below is the one the *Session Replay Classic* pages document; on a New RUM Experience frontend, look for the same toggles under the frontend's **Settings > Enablement and cost control**:
 
 1. Go to **Mobile** and select the mobile application.
 2. Select **More (…) > Edit** in the upper-right corner of the application tile.
@@ -171,13 +171,15 @@ On both platforms, a view whose `accessibilityIdentifier` (iOS) or `android:tag`
 
 ## 4. Sampling & Cost Control
 
-Session Replay data consumes **DEM (Digital Experience Monitoring) units**. The Full Session Replay percentage under **General > Enablement and cost control** (Section 2) is the primary lever for managing costs while still capturing enough data for meaningful analysis.
+Session Replay is billed on top of the session itself — in **DEM (Digital Experience Monitoring) units** on classic licensing; on a Dynatrace Platform Subscription, check the Session Replay line of your rate card. The Full Session Replay percentage under **General > Enablement and cost control** (Section 2) is the primary lever for managing costs while still capturing enough data for meaningful analysis.
 
 ### Sampling Strategy
 
 The Full Session Replay percentage determines what share of user sessions is recorded for replay. Not every session needs to be captured -- statistical sampling provides representative coverage.
 
-| Environment | Recommended Sample Rate | Rationale |
+In community practice, teams start from percentages like these and tune them to their traffic and budget:
+
+| Environment | Starting Percentage | Rationale |
 |-------------|------------------------|----------|
 | **Production** | 5--10% | Captures enough sessions for trend analysis while controlling DEM consumption |
 | **Staging / QA** | 100% | Full coverage for pre-release testing and bug verification |
@@ -190,7 +192,7 @@ Session Replay cost depends on:
 
 1. **Number of captured sessions** -- Directly proportional to sample rate and total traffic.
 2. **Session length** -- Longer sessions generate more replay data.
-3. **UI complexity** -- Apps with frequent screen transitions and animations produce more delta events.
+3. **UI activity** -- in community practice, busier screens (frequent transitions and animation) produce more replay data per session.
 
 **Formula:**
 ```
@@ -220,7 +222,6 @@ With **Enable Session Replay on crashes** turned on, every session that ends in 
 | Benefit | Description |
 |---------|-------------|
 | **Always-on crash capture** | Crash replays are saved regardless of the general sample rate |
-| **Zero overhead until crash** | The rolling buffer uses minimal memory and only triggers transmission on crash |
 | **Full context** | See the exact sequence of screens and interactions leading to the crash |
 | **Faster root cause** | Developers can visually reproduce the crash scenario without relying on user descriptions |
 
@@ -292,7 +293,7 @@ Track session volume over the past 7 days, and how many sessions carry a replay 
 // Daily session volume trends, and how many carry a replay
 fetch user.sessions, from:-7d
 | filter dt.rum.application.type == "mobile"
-| makeTimeseries {sessions = count(), replay_sessions = countIf(characteristics.has_replay == true)}, time:start_time, interval:1d
+| makeTimeseries {sessions = count(), replay_sessions = countIf(characteristics.has_replay == true)}, time:start_time, interval:24h
 ```
 
 ### Crash Sessions for Replay Review
