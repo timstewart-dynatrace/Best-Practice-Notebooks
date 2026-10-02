@@ -1,6 +1,6 @@
 # DASH-07: Sharing and Reporting
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ A dashboard only delivers value when the right people can access it. This final 
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `document:documents:write`, `document:direct-shares:write`, `automation:workflows:write` |
 | **API Access** | For dashboard-as-code: a platform token or OAuth client with `document:documents:read` and `document:documents:write` (Monaco requires an OAuth client for documents — see §5). Dashboards are documents, not Settings objects |
 | **Prior Reading** | DASH-01 through DASH-06 |

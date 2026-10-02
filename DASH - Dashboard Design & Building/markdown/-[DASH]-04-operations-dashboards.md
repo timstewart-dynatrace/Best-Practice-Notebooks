@@ -1,6 +1,6 @@
 # DASH-04: Operations Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ Operations dashboards serve as the real-time control panel for SREs, platform en
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:events:read`, `storage:spans:read` |
 | **Data** | Active services with span data, log ingestion, host metrics |
 | **Prior Reading** | DASH-01, DASH-02 |

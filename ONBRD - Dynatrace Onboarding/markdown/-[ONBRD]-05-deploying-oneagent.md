@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -421,41 +421,41 @@ After installation, verify OneAgent is reporting data.
 ```dql
 // Check all hosts with OneAgent
 fetch dt.entity.host
-| fields entity.name, state, monitoringMode
+| fields entity.name, state
 | filter state == "RUNNING"
 | sort entity.name
 | limit 50
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (see the billing query in this section).
 // Other fields do map: entity.name -> name.
 ```
 
 ```dql
-// Check hosts by monitoring state
-fetch dt.entity.host
-| summarize host_count = count(), by: {state, monitoringMode}
-| sort host_count desc
-
-// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
-// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// Check hosts by monitoring mode — read from billing, not from monitoringMode.
+// monitoringMode on dt.entity.host is empty for Kubernetes and Fargate hosts, even when
+// they are billed Full-Stack. A host billed for more than one capability (for example
+// Full-Stack and Code Monitoring) is counted in each row, so do not add the rows up.
+fetch dt.system.events, from:-24h
+| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
+| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| sort hosts desc
 ```
 
 ```dql
 // Check hosts by monitoring state - useful for verifying deployment
 fetch dt.entity.host
-| fields entity.name, state, monitoringMode
 | summarize host_count = count(), by: {state}
 | sort host_count desc
 
 // Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
-// classic-only fields state / monitoringMode, which have NO Smartscape node equivalent
+// classic-only field state, which has NO Smartscape node equivalent
 // (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
-// query above for state / monitoring-mode detail.
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (see the billing query in this section).
 // Other fields do map: entity.name -> name.
 ```
 

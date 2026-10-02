@@ -1,6 +1,6 @@
 # DASH-02: Dashboard Hierarchy
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ Not every stakeholder needs the same view. A well-designed dashboard strategy us
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:logs:read`, `storage:metrics:read`, `storage:events:read`, `storage:spans:read` |
 | **Prior Reading** | DASH-01: Dashboard Fundamentals |
 
@@ -79,8 +79,8 @@ Executive dashboards answer: **"Is the business healthy?"**
 
 | KPI | Query Approach | Tile Type |
 |-----|---------------|------------|
-| Overall availability % | detected problem downtime vs total time | Single value |
-| Mean time to resolve | Closed problem duration average | Single value |
+| Overall availability % | Successful ÷ total requests, or an SLO — **not** problem downtime, which overlaps and over-counts (DASH-03 § 2) | Single value |
+| Mean time to resolve | Closed problem duration average — how long problems stayed open, not time to human resolution (ADOPT-03 § 3) | Single value |
 | Active problem count | Count of open detected problems | Single value |
 | Problem trend (7 day) | Problem count timeseries | Line chart |
 
@@ -91,7 +91,7 @@ Executive dashboards answer: **"Is the business healthy?"**
 // time:event.start bins each problem on the day it opened. The default (timestamp) is the
 // problem's last update, which counts old problems again on the day they were touched.
 fetch dt.davis.problems, from:-7d
-| makeTimeseries problem_count = count(), interval:1d, time:event.start
+| makeTimeseries problem_count = count(), interval:24h, time:event.start
 ```
 
 ### Example: Active Problem Count (Single Value)
@@ -224,7 +224,7 @@ Auto-refresh should match how the dashboard is consumed.
 | Operations (NOC wall) | 1-2 min | Real-time situational awareness |
 | Operations (on-call) | 2-5 min | Balance freshness with query cost |
 | Engineering (investigation) | Manual | Engineer triggers when ready |
-| Engineering (CI/CD) | On deployment event | Refresh after each release |
+| Engineering (release check) | Manual, after each deployment | Dashboards refresh on a timer or by hand — nothing triggers a refresh from a deployment |
 
 > **Important:** Aggressive refresh intervals (< 1 min) on complex queries can cause unnecessary load. Start at 5 minutes and decrease only if real-time awareness is critical.
 

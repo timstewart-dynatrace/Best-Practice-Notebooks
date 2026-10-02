@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -157,14 +157,15 @@ The scanner sees what *could* be vulnerable; RVA sees what is **loaded and reach
 
 Before arguing about what to enable, measure what you have. Three queries:
 
-**Query 1 — hosts by monitoring mode.** Note this reads the classic entity surface: on current tenants the `monitoringMode` attribute is exposed on `dt.entity.host` but not (yet) on `smartscapeNodes "HOST"` — validated live 07/08/2026. Hosts with a `null` mode are typically inactive or monitoring candidates.
+**Query 1 — hosts by monitoring mode, read from billing.** Do not break hosts down by the `monitoringMode` attribute on `fetch dt.entity.host`. On the validation tenant it was empty on 26 of 33 hosts — every Kubernetes and AWS Fargate host — although all 26 were billed as Full-Stack, so a breakdown on it files most of a containerized estate under no mode at all. (`smartscapeNodes "HOST"` does not expose the attribute either.) The billing events record the capability each host is actually charged for. A host billed under more than one capability appears in each row — 18 of 39 hosts on the validation tenant were billed for both Full-Stack and Code Monitoring — so do not add the rows up.
 
 ```dql
-// Coverage audit — hosts by OneAgent monitoring mode (FULL_STACK / INFRASTRUCTURE / DISCOVERY)
-// Uses the classic entity surface: monitoringMode is not exposed via smartscapeNodes (verified 07/08/2026)
-fetch dt.entity.host
-| fieldsAdd mode = monitoringMode
-| summarize hosts = count(), by:{mode}
+// Coverage audit — hosts by the monitoring capability they are billed for.
+// Not monitoringMode: that attribute is empty on Kubernetes and Fargate hosts, even Full-Stack ones.
+// A host billed under two capabilities is counted in both rows.
+fetch dt.system.events, from:-24h
+| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
+| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
 | sort hosts desc
 ```
 
@@ -190,7 +191,7 @@ For the **cost-side view of the same split**, the pre-aggregated billing series 
 
 Deep-monitoring exceptions themselves are configuration, not telemetry: review them under **Settings → Processes and containers → Process group monitoring** rather than DQL.
 
-> <sub>**Sources:** Queries 1–2 executed live on a SaaS tenant (07/08/2026 — 10 FULL_STACK hosts; 17 hosts shipping 17.5 M log records/24 h). Query 3 executed live 09/28/2026: 0 real-user sessions over 24 h on the validation tenant, whose 32,926 sessions over 7 days were all `synthetic` — the case the filter exists for. An earlier version counted `app.short_name`, which is not a user-session field. The classic-vs-Smartscape `monitoringMode` observation is a live finding on one tenant — re-check as Smartscape on Grail evolves. Billing series validated in FINOPS-01 (05/19/2026).</sub>
+> <sub>**Sources:** Query 1 executed live 10/02/2026: 39 hosts billed — 36 Full-Stack Monitoring, 21 Code Monitoring, 18 under both. On the same tenant `monitoringMode` was empty on 26 of 33 `dt.entity.host` records, all with `paasVendorType` `KUBERNETES` (24) or `AWS_ECS_FARGATE` (2) and all billed Full-Stack, and set on 0 of 7 `smartscapeNodes "HOST"` records. Query 2 executed live 07/08/2026 (17 hosts shipping 17.5 M log records/24 h). Query 3 executed live 09/28/2026: 0 real-user sessions over 24 h on the validation tenant, whose 32,926 sessions over 7 days were all `synthetic` — the case the filter exists for. An earlier version counted `app.short_name`, which is not a user-session field. The `monitoringMode` observations are live findings on one tenant — re-check as Smartscape on Grail evolves. Billing series validated in FINOPS-01 (05/19/2026).</sub>
 
 <a id="reduced-modes"></a>
 ## 6. When Reduced Modes Are the Right Call
@@ -252,7 +253,7 @@ The honest framing for the customer conversation: **you can absolutely run Dynat
 | 1 | Full-Stack host, deep monitoring off on the main PG | Full-Stack cost, Infrastructure value | Audit PG monitoring rules alongside host modes (§5) |
 | 2 | Expecting traces from Infrastructure mode's injection | Infra-mode injection covers Java backing-services + runtime metrics only — no PurePaths | Tracing requires Full-Stack (or OTel — FAQ-03) |
 | 3 | Enabling Full-Stack but never restarting processes | Code modules attach at process start — coverage stays dark until restarts | Plan restarts into the enablement change window |
-| 4 | Auditing modes via `smartscapeNodes "HOST"` | `monitoringMode` resolves null there on current tenants | Use `fetch dt.entity.host` for this attribute (§5, verified 07/08/2026) |
+| 4 | Auditing modes on the `monitoringMode` attribute | Empty on Kubernetes and Fargate hosts in `fetch dt.entity.host` (26 of 33 on the validation tenant, all billed Full-Stack) and not exposed on `smartscapeNodes "HOST"` — most of a containerized estate shows no mode | Read the mode from `BILLING_USAGE_EVENT` (§5, verified 10/02/2026) |
 | 5 | Treating AppSec as independent of mode | AppSec runs in all modes, but outside Full-Stack detection is *limited* and exposure/data-asset context is missing | Decide AppSec depth inside the mode decision, not after it |
 | 6 | Discovery mode assumed to include process details | Discovery is inventory only — no process details, disk, network, or memory analysis | That's Infrastructure mode's tier (§2 matrix) |
 | 7 | "We'll add RUM when we need it" | Baselines, experience SLOs, and Davis user-impact history start at zero on enablement day | Enable before you need the history |

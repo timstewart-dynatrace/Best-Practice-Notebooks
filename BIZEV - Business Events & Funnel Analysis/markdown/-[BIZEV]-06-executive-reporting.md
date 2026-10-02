@@ -1,6 +1,6 @@
 # BIZEV-06: Executive Reporting
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -96,7 +96,7 @@ fetch dt.davis.problems, from:-7d
 // Side-by-side: business events and problems over the past week
 // Business event volume
 fetch bizevents, from:-7d
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize daily_transactions = count(), by:{day}
 | sort day asc
 ```
@@ -105,7 +105,7 @@ fetch bizevents, from:-7d
 // Problem count per day — overlay with business event volume
 fetch dt.davis.problems, from:-7d
 | filter dt.davis.is_duplicate == false
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(event.start, 24h)   // the day the problem opened; timestamp is its last update
 | summarize daily_problems = count(), by:{day}
 | sort day asc
 ```
@@ -151,7 +151,7 @@ fetch bizevents, from:-7d
 // MTTR SLO — mean time to resolve over the last 30 days
 fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
-| filter dt.davis.is_duplicate == false and dt.davis.is_frequent_event == false
+| filter dt.davis.is_duplicate == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 | summarize {avg_mttr = avg(duration_hours),
            median_mttr = median(duration_hours),
@@ -255,7 +255,7 @@ These queries produce the data needed for a weekly business review meeting.
 ```dql
 // Weekly review: daily business event summary for the past week
 fetch bizevents, from:-7d
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize {daily_volume = count(),
            event_types = countDistinct(event.type)}, by:{day}
 | sort day asc
@@ -284,8 +284,8 @@ fetch bizevents, from:-7d
 ```dql
 // Weekly review: busiest hours of the week (for capacity planning)
 fetch bizevents, from:-7d
-| fieldsAdd dow = getDayOfWeek(timestamp),
-           hour = getHour(timestamp)
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: "America/New_York"),
+           hour = getHour(timestamp, timezone: "America/New_York")
 | summarize volume = count(), by:{dow, hour}
 | sort volume desc
 | limit 20

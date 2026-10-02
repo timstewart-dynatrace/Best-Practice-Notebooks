@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ Engineering dashboards are the deepest tier in the dashboard hierarchy. They ser
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:spans:read`, `storage:logs:read`, `storage:metrics:read` |
 | **Data** | Distributed trace data (spans), database spans, deployment events |
 | **Prior Reading** | DASH-01 through DASH-04 |

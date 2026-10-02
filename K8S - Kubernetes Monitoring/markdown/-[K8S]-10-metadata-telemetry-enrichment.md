@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 09/29/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 13 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -22,9 +22,9 @@ Kubernetes metadata enrichment automatically adds labels and annotations from yo
 
 ---
 
-### OneAgent Attribute Enrichment (OneAgent 1.331+)
+### OneAgent Attribute Enrichment (OneAgent 1.333+)
 
-> **Requires:** OneAgent version **1.331** or later
+> **Requires:** OneAgent version **1.333** or later
 
 OneAgent can enrich **all telemetry signals** (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.
 

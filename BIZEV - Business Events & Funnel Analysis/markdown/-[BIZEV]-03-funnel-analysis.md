@@ -1,6 +1,6 @@
 # BIZEV-03: Funnel Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 08/24/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -63,7 +63,7 @@ A **conversion funnel** models a sequence of steps that users take to complete a
 
 ## 2. Building a Basic Funnel
 
-The simplest funnel counts distinct users (or sessions) at each step. We use `countIf` to count events matching each step condition in a single query.
+The simplest funnel counts **events** at each step with `countIf`, in a single query. Event counts are a quick health signal but not a conversion rate: a user who updates the cart three times is three `cart.updated` events, so a step can exceed the one before it. For user-level conversion, count distinct users or sessions per step — the second query below.
 
 > **Note:** Adapt the `event.type` values below to match your actual business event names. The examples use a generic e-commerce pattern.
 
@@ -93,7 +93,7 @@ fetch bizevents, from:-24h
 
 ## 3. Step-by-Step Conversion Rates
 
-Conversion rates reveal the percentage of users who proceed from one step to the next. This is the core metric for funnel optimization.
+Conversion rates reveal the percentage of users who proceed from one step to the next. This is the core metric for funnel optimization. The query below divides **event** counts for brevity — swap in the distinct-user counts from § 2 when a step can repeat per user, or a rate above 100% will appear.
 
 ```dql
 // Calculate conversion rates between each funnel step
@@ -202,7 +202,7 @@ fetch bizevents, from:-7d
 ```dql
 // Daily overall conversion rate trend over the past week
 fetch bizevents, from:-7d
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize {views = countIf(event.type == "com.myapp.product.viewed"),
            orders = countIf(event.type == "com.myapp.order.completed")}, by:{day}
 | filter views > 0

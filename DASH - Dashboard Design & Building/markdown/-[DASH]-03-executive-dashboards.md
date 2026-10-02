@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -25,7 +25,7 @@ Executive dashboards distill complex observability data into a handful of busine
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards |
 | **Permissions** | `storage:events:read`, `storage:metrics:read`, `storage:spans:read` |
 | **Data** | detected problems with closed events (for MTTR), service spans |
 | **Prior Reading** | DASH-01 and DASH-02 |
@@ -90,9 +90,11 @@ fetch dt.davis.problems, from:-7d
 | summarize
     impact_hours = sum(resolved_problem_duration / 1h),
     problem_count = count(),
-    affected_entities = countDistinctExact(affected_entity_ids),
+    entity_arrays = collectArray(affected_entity_ids),
     longest_problem_hours = max(resolved_problem_duration / 1h)
-
+// affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayDistinct(arrayFlatten(entity_arrays)))
+| fieldsRemove entity_arrays
 ```
 
 ### Approach 2: Based on Service Success Rate
@@ -131,7 +133,7 @@ fetch spans, from:-24h
 
 ## 3. Mean Time to Resolve (MTTR)
 
-MTTR measures how quickly your team resolves problems. It is one of the four DORA-adjacent reliability metrics that executives track.
+MTTR here is the average duration of closed problems. A problem closes when its events close, so this measures how long anomalies lasted — including issues that recovered on their own — not how long a team took to resolve them, and it is not DORA's failed-deployment recovery time (ADOPT-03 § 3). Label the tile accordingly.
 
 ### Current MTTR (Single Value)
 
@@ -139,7 +141,6 @@ MTTR measures how quickly your team resolves problems. It is one of the four DOR
 // Average MTTR over last 7 days in hours
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
-| filter dt.davis.is_frequent_event == false
 | filter dt.davis.is_duplicate == false
 | summarize mttr_hours = avg(resolved_problem_duration / 1h)
 ```
@@ -152,8 +153,8 @@ Show MTTR as a daily trend to highlight improvement or degradation.
 // MTTR trend — daily average over 30 days
 fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
-| filter dt.davis.is_frequent_event == false and dt.davis.is_duplicate == false
-| makeTimeseries mttr_hours = avg(resolved_problem_duration / 1h), interval:1d, time:event.end
+| filter dt.davis.is_duplicate == false
+| makeTimeseries mttr_hours = avg(resolved_problem_duration / 1h), interval:24h, time:event.end
 ```
 
 <a id="problem-trends"></a>
@@ -169,10 +170,10 @@ Problem trends reveal whether operational health is improving or declining over 
 // time:event.start bins each problem on the day it opened, not the day it was last updated
 fetch dt.davis.problems, from:-7d
 | filter dt.davis.is_duplicate == false
-| makeTimeseries problem_count = count(), interval:1d, by:{event.category}, time:event.start
+| makeTimeseries problem_count = count(), interval:24h, by:{event.category}, time:event.start
 ```
 
-### Problems by Severity — Executive Summary Table
+### Problems by Category — Executive Summary Table
 
 ```dql
 // Problem summary by category — executive table tile
@@ -247,9 +248,11 @@ fetch dt.davis.problems, from:-30d
 | summarize
     impact_minutes = sum(resolved_problem_duration / 1m),
     problem_count = count(),
-    affected_entities = countDistinctExact(affected_entity_ids)
+    entity_arrays = collectArray(affected_entity_ids)
 | fieldsAdd budget_reference_min_999 = 43.2
-
+// affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not entities.
+| fieldsAdd affected_entities = arraySize(arrayDistinct(arrayFlatten(entity_arrays)))
+| fieldsRemove entity_arrays
 ```
 
 <a id="storytelling"></a>

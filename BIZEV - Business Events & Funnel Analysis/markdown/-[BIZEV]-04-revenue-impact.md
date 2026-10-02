@@ -1,6 +1,6 @@
 # BIZEV-04: Revenue Impact Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
 
 ## Overview
 
@@ -127,7 +127,7 @@ fetch bizevents, from:-24h
 fetch bizevents, from:-24h
 | filter event.type == "com.myapp.order.completed"
 | filter isNotNull(amount)
-| fieldsAdd hour = getHour(timestamp)
+| fieldsAdd hour = getHour(timestamp)   // UTC unless you pass timezone: — see Section 4
 | summarize {hourly_revenue = sum(toDouble(amount)),
            order_count = count()}, by:{hour}
 | sort hour asc
@@ -139,14 +139,16 @@ fetch bizevents, from:-24h
 
 Not all hours are equal. An incident at 3 AM on a Sunday has different business impact than one at 10 AM on a Tuesday. Filter analysis to business hours for more meaningful impact assessment.
 
+> **Pass the timezone explicitly.** `getHour()` and `getDayOfWeek()` evaluate in the query's timezone unless you give them one — UTC when the query runs through the API or a workflow — so "9 to 5" silently shifts by your UTC offset. Give both a `timezone:` parameter (the queries below use `America/New_York`; substitute your own). `getDayOfWeek()` numbers days ISO-style: 1 = Monday … 7 = Sunday.
+
 ```dql
 // Business events during business hours only (Mon-Fri, 9 AM - 5 PM)
 fetch bizevents, from:-7d
-| fieldsAdd dow = getDayOfWeek(timestamp),
-           hour = getHour(timestamp)
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: "America/New_York"),
+           hour = getHour(timestamp, timezone: "America/New_York")
 | filter dow >= 1 and dow <= 5 and hour >= 9 and hour < 17
 | summarize business_hours_events = count(),
-           by:{day = bin(timestamp, 1d)}
+           by:{day = bin(timestamp, 24h)}
 | sort day asc
 ```
 
@@ -155,8 +157,8 @@ fetch bizevents, from:-7d
 fetch bizevents, from:-7d
 | filter event.type == "com.myapp.order.completed"
 | filter isNotNull(amount)
-| fieldsAdd dow = getDayOfWeek(timestamp),
-           hour = getHour(timestamp)
+| fieldsAdd dow = getDayOfWeek(timestamp, timezone: "America/New_York"),
+           hour = getHour(timestamp, timezone: "America/New_York")
 | fieldsAdd period = if(dow >= 1 and dow <= 5 and hour >= 9 and hour < 17,
                         then: "Business Hours",
                         else: "After Hours")
@@ -186,7 +188,7 @@ fetch bizevents, from:bin(now(), 24h)
 // Week-over-week trend — daily order counts for the past 2 weeks
 fetch bizevents, from:-14d
 | filter event.type == "com.myapp.order.completed"
-| fieldsAdd day = bin(timestamp, 1d)
+| fieldsAdd day = bin(timestamp, 24h)
 | summarize daily_orders = count(), by:{day}
 | sort day asc
 ```
