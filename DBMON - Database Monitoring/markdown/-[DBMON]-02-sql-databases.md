@@ -1,6 +1,6 @@
 # DBMON-02: SQL Database Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 09/18/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -13,7 +13,7 @@ This notebook focuses on monitoring relational SQL databases with Dynatrace. You
 1. [SQL Database Landscape](#sql-database-landscape)
 2. [Query Performance Analysis](#query-performance-analysis)
 3. [Slow Query Detection](#slow-query-detection)
-4. [Operation Breakdown by Table](#operation-breakdown-by-table)
+4. [Operation Breakdown](#operation-breakdown-by-table)
 5. [Connection Pool Monitoring](#connection-pool-monitoring)
 6. [Database-Specific Patterns](#database-specific-patterns)
 7. [Response Time Distribution](#response-time-distribution)
@@ -25,7 +25,7 @@ This notebook focuses on monitoring relational SQL databases with Dynatrace. You
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS or Managed with Grail enabled |
+| **Dynatrace Environment** | Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there) |
 | **OneAgent** | Deployed on application hosts with SQL database clients |
 | **Permissions** | `storage:spans:read`, `storage:entities:read` |
 | **Data** | Application traffic generating SQL database calls (PostgreSQL, MySQL, MS SQL, or Oracle) |
@@ -44,6 +44,14 @@ Relational databases share a common monitoring model: they all execute SQL state
 | Microsoft SQL Server | `mssql` | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `EXEC` | 1433 |
 | Oracle | `oracle` | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE` | 1521 |
 | IBM Db2 | `db2` | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | 50000 |
+
+> **A call is not always a statement, and the operation name is not always the statement kind.** On OneAgent-captured SQL spans, `db.operation.name` holds the leading keyword of what the driver sent, and also records connection and driver phases. On the validation tenant (SQL Server, 1 h, 10/02/2026): `SELECT` 20,820 · `CONNECT` 16,723 · `RESULTSET` 1,112 · `SET` 1,089 · `EXECUTE` 1,015 · `COMMIT` 964 · `PREPARE` 580 · `INSERT`/`UPDATE`/`DELETE` 11.
+>
+> - `CONNECT` and `COMMIT` carry no query text: they open a connection and end a transaction.
+> - `PREPARE` and `RESULTSET` repeat a statement's text. Every one of them shared its trace and its `db.query.text` with a `SELECT`, `SET` or write span, so a cell keyed on the text counts that statement twice unless it drops them.
+> - Batched writes are named after their first keyword. 974 of the 1,089 `SET` spans were `SET NOCOUNT ON; INSERT …` batches, so a read/write split on `db.operation.name` alone would report almost no writes. § 4 classifies from the statement text instead.
+>
+> Cells that measure queries drop the four non-statement operations (DBMON-01 § 4). Cells that count calls or failures keep them.
 
 Let's start by identifying which SQL databases are active in your environment.
 
@@ -75,12 +83,13 @@ fetch spans, from:-1h
 
 ## 2. Query Performance Analysis
 
-The most important aspect of SQL database monitoring is understanding query performance. Dynatrace normalizes SQL statements by replacing literal values with `?` placeholders, allowing you to group identical query patterns together.
+The most important aspect of SQL database monitoring is understanding query performance. Parameterized statements keep their placeholders and `WHERE`-clause literals are masked (DBMON-01 § 1), so `db.query.text` groups identical query shapes together.
 
 ```dql
 // Top 20 SQL queries by total execution time (highest impact)
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | filter isNotNull(db.query.text)
 | summarize {
     total_time_ms = sum(duration) / 1ms,
@@ -96,7 +105,8 @@ fetch spans, from:-1h
 // Query throughput over time by database system
 fetch spans, from:-6h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| makeTimeseries queries_per_min = count(), by:{db.system}, interval:5m
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries queries_per_min = count(), by:{db.system}, interval:1m
 ```
 
 <a id="slow-query-detection"></a>
@@ -106,6 +116,7 @@ fetch spans, from:-6h
 Slow queries are the most common cause of database-related performance problems. A query is considered "slow" relative to its own baseline or an absolute threshold. We use both approaches below.
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Detect slow queries — calls exceeding 500ms
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
@@ -113,7 +124,7 @@ fetch spans, from:-1h
 | fields start_time, db.system, db.namespace, db.operation.name,
         db.query.text, server.address,
         duration_ms = duration / 1ms,
-        dt.entity.service
+        dt.service.name
 | sort duration_ms desc
 | limit 25
 ```
@@ -122,15 +133,18 @@ fetch spans, from:-1h
 // Slow query frequency over time — how often do queries exceed 500ms?
 fetch spans, from:-6h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| makeTimeseries total = count(),
-                 slow = countIf(duration > 500ms),
-                 interval:10m
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    total = count(),
+    slow = countIf(duration > 500ms)
+  }, interval:10m
 ```
 
 ```dql
 // Identify query patterns with the highest P95 — potential optimization candidates
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | filter isNotNull(db.query.text)
 | summarize {
     call_count = count(),
@@ -145,16 +159,23 @@ fetch spans, from:-1h
 
 <a id="operation-breakdown-by-table"></a>
 
-## 4. Operation Breakdown by Table
+## 4. Operation Breakdown
 
-Understanding which tables receive the most read and write traffic helps identify hot spots. We parse the table name from the normalized SQL statement to group by table.
+Understanding the mix of reads and writes shows where load comes from. Grouping by table needs `db.collection.name`, which was not set on any SQL span on the validation tenant, so the breakdown below is by database and operation type.
 
 ```dql
-// Operation mix by database — read vs write ratio
+// Operation mix by database — reads, writes and everything else, classified from the statement text
+// db.operation.name is only the leading keyword: an ORM batch "SET NOCOUNT ON; INSERT …" is named SET.
+// PREPARE and RESULTSET repeat a statement's text, so they are dropped to avoid counting it twice.
+// The text test is approximate: a CTE that writes (WITH … INSERT) is counted as READ.
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
-| filter isNotNull(db.operation.name)
-| fieldsAdd op_type = if(db.operation.name == "SELECT", then:"READ", else:"WRITE")
+| filter isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, ""), {"PREPARE", "RESULTSET"}))
+| fieldsAdd q = upper(trim(db.query.text))
+| fieldsAdd op_type = if(startsWith(q, "SELECT") or startsWith(q, "WITH"), then:"READ",
+    else:if(contains(q, "INSERT ") or contains(q, "UPDATE ") or contains(q, "DELETE ") or contains(q, "MERGE "), then:"WRITE",
+    else:"OTHER"))
 | summarize op_count = count(), by:{db.system, db.namespace, op_type}
 | sort db.system asc, op_count desc
 ```
@@ -179,6 +200,7 @@ fetch spans, from:-1h
 Connection pool exhaustion is a common source of application errors. While Dynatrace does not directly expose connection pool counters through spans, you can infer connection pressure by analyzing concurrent database calls and error patterns.
 
 ```dql
+// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
 // Database calls per service — identify which services make the most DB calls
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
@@ -186,8 +208,7 @@ fetch spans, from:-1h
     call_count = count(),
     avg_ms = avg(duration) / 1ms,
     error_count = countIf(span.status_code == "error")
-}, by:{dt.entity.service, db.system, server.address}
-| fieldsAdd service_name = entityName(dt.entity.service, type:"dt.entity.service")
+}, by:{dt.service.name, db.system, server.address}
 | sort call_count desc
 | limit 20
 ```
@@ -239,10 +260,12 @@ MySQL monitoring focuses on query cache effectiveness, InnoDB buffer pool usage,
 // MySQL — response time trend over 6 hours
 fetch spans, from:-6h
 | filter db.system == "mysql"
-| makeTimeseries avg_ms = avg(duration / 1ms),
-                 p95_ms = percentile(duration / 1ms, 95),
-                 call_count = count(),
-                 interval:10m
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    avg_ms = avg(duration / 1ms),
+    p95_ms = percentile(duration / 1ms, 95),
+    call_count = count()
+  }, interval:10m
 ```
 
 ### Microsoft SQL Server — Server-Side View via the ActiveGate Extension
@@ -306,14 +329,16 @@ Understanding the distribution of response times helps set realistic SLOs and id
 
 ```dql
 // Response time distribution buckets — group queries into latency tiers
+// The numeric prefix makes the tiers sort in latency order rather than alphabetically.
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | fieldsAdd duration_ms = duration / 1ms
-| fieldsAdd latency_tier = if(duration_ms < 1, then:"<1ms",
-    else:if(duration_ms < 10, then:"1-10ms",
-    else:if(duration_ms < 100, then:"10-100ms",
-    else:if(duration_ms < 1000, then:"100ms-1s",
-    else:">1s"))))
+| fieldsAdd latency_tier = if(duration_ms < 1, then:"1: <1ms",
+    else:if(duration_ms < 10, then:"2: 1-10ms",
+    else:if(duration_ms < 100, then:"3: 10-100ms",
+    else:if(duration_ms < 1000, then:"4: 100ms-1s",
+    else:"5: >1s"))))
 | summarize query_count = count(), by:{latency_tier}
 | sort latency_tier asc
 ```
@@ -322,6 +347,7 @@ fetch spans, from:-1h
 // Percentile summary across all SQL databases
 fetch spans, from:-1h
 | filter in(db.system, {"postgresql", "mysql", "mssql", "oracle", "db2"})
+| filter not(in(coalesce(db.operation.name, ""), {"CONNECT", "COMMIT", "PREPARE", "RESULTSET"}))  // statements only (DBMON-01 § 4)
 | summarize {
     p50_ms = percentile(duration, 50) / 1ms,
     p90_ms = percentile(duration, 90) / 1ms,
@@ -341,7 +367,7 @@ In this notebook you learned:
 
 - How to identify and inventory SQL databases in your environment using span data
 - Techniques for finding the highest-impact and slowest queries
-- How to break down database operations by type and table to identify hot spots
+- How to separate statements from connection and driver calls, and reads from writes
 - Connection pressure and error pattern analysis
 - Vendor-specific monitoring patterns for PostgreSQL and MySQL, plus the server-side SQL Server view via the ActiveGate extension (`sql-server.*` metrics, job-outcome log streams)
 - Response time distribution analysis for setting realistic SLOs

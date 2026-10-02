@@ -1,6 +1,6 @@
 # SYNTH-99: Best Practice Summary
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -70,14 +70,14 @@ Verify 1.344 has reached your tenant before relying on the combined form; until 
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Set explicit request timeout | Timeout: **30 seconds** (default) | Critical |
+| Set a per-request performance threshold where response time matters | *Generate a problem and send an alert on performance threshold violations* on the request | Recommended |
 | Set `Content-Type` and `Accept` headers on every request | `Content-Type: application/json`, `Accept: application/json` | Critical |
 | Add User-Agent header for identification | `User-Agent: Dynatrace Synthetic` | Recommended |
-| Enable SSL certificate monitoring on every HTTPS endpoint | SSL check: enabled (automatic on HTTP monitors) | Critical |
+| Keep certificate validation on, and alert before expiry | Invalid certificates fail the monitor by default (leave *Accept any SSL certificate* off); turn on the expiry problem (n ≤ 100 days) | Critical |
 | Validate API responses with a text/regex rule, or with `api.fail()` in a post-execution script for structured checks (JSON-path assertions are not a rule type) | Regex rule: `"status":\s*"success"` (evaluated over the first 50 KB of the body) | Critical |
 | Pass values between requests with a post-execution script | `api.setValue("token", JSON.parse(response.getResponseBody()).access_token)` | Critical |
 | Reference stored values in later requests as `{variable_name}` — single braces, no `$` | URL: `https://api.example.com/users/{userId}` | Critical |
-| Validate HTTP status codes fail on 4xx/5xx | Default behavior: fail on 400-599 | Critical |
+| Validate HTTP status codes | Response status code validation is a rule type, evaluated first | Critical |
 | Add content-present assertion for positive match | Validation: contains `"status": "ok"` | Recommended |
 | Add content-absent assertion to catch error states | Validation: does not contain `"error"` | Recommended |
 
@@ -101,16 +101,15 @@ Verify 1.344 has reached your tenant before relying on the combined form; until 
 <a id="network-monitor-configuration"></a>
 ## 4. Network Monitor Configuration
 
+NAM monitors run only on private locations. The values below are starting points from community practice unless quoted.
+
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Set ICMP packet count to 3-10 per execution | Packet count: **5** (balanced accuracy vs speed) | Recommended |
-| Set ICMP timeout to 5 seconds per packet | Timeout: **5 seconds** | Recommended |
-| Configure DNS monitors with expected IP validation | Expected IP: set to known-good resolved address | Critical |
-| Monitor DNS record type A for primary resolution | Record type: **A** | Critical |
-| Set DNS query timeout to 10 seconds | Timeout: **10 seconds** | Recommended |
-| Monitor TCP ports for every critical service: 443 (HTTPS), 5432 (PostgreSQL), 6379 (Redis), 3306 (MySQL), 27017 (MongoDB) | TCP monitor per port per service | Critical |
-| Set TCP connection timeout to 10 seconds | Timeout: **10 seconds** | Recommended |
-| Deploy multi-protocol monitors for critical infrastructure: DNS + ICMP + TCP in sequence | One monitor per protocol per target | Recommended |
+| Send several ICMP packets per request | Number of packets: 3–5 (range 1–10, default 1) | Recommended |
+| Name the DNS server and record types explicitly | DNS server + `A` (and `AAAA` where you serve IPv6) | Critical |
+| Monitor TCP ports for every critical service: 443 (HTTPS), 5432 (PostgreSQL), 6379 (Redis), 3306 (MySQL), 27017 (MongoDB) | Port ranges per request | Critical |
+| Layer DNS, ICMP and TCP checks on critical infrastructure | One monitor per type per target, so each raises its own problem | Recommended |
+| Set the step success-rate constraint deliberately | Default ≥ 80%; 100 for single-target requests (the docs suggest it) | Recommended |
 
 <a id="scheduling-and-frequency"></a>
 ## 5. Scheduling and Frequency
@@ -253,7 +252,7 @@ Set definitive thresholds for synthetic response time.
 | Pair every synthetic monitor with a corresponding RUM configuration for the same application | Synthetic = baseline/SLA; RUM = actual user experience | Recommended |
 | Review and disable stale monitors that no longer have valid targets | Audit: quarterly review of all enabled monitors | Recommended |
 | Use the HTTP timing breakdown (DNS, TCP connect, TLS, TTFB) to isolate root cause of slowness | Query: avg per phase by monitor from `http_step_execution` records | Critical |
-| Check ActiveGate logs at `/var/log/dynatrace/gateway/synthetic.log` when private location tests fail | Log: `synthetic.log` for execution errors | Critical |
+| Check the private-location logs when tests fail | `/var/log/dynatrace/synthetic` (synthetic) and `/var/log/dynatrace/gateway` (ActiveGate) | Critical |
 | Test network connectivity from ActiveGate to targets with `curl -v` and `nslookup` before configuring monitors | Pre-check: verify DNS resolution and HTTPS connectivity | Critical |
 | Use `fetch dt.synthetic.events` (event.type `*_monitor_execution`, success via `result.state`) as the primary data source for DQL analysis; use `timeseries dt.synthetic.*` metrics for trends | Data source: `dt.synthetic.events` + synthetic metrics, not `bizevents` | Recommended |
 

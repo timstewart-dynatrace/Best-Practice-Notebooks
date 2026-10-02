@@ -1,6 +1,6 @@
 # SYNTH-06: Synthetic Analytics & Alerting
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 6 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Dashboards, SLOs, and Alerting Strategies
 This notebook covers advanced analytics for synthetic monitoring, including building dashboards, configuring SLOs, and implementing effective alerting strategies using the latest Dynatrace platform.
@@ -71,6 +71,12 @@ Example SLA Targets:
 - 99.0% = max 87.6 hours downtime/year
 ```
 
+> **Count each scheduled run once.** A browser monitor that retries on error writes the failed attempt *and* a re-run (`execution.type` `RE_RUN`) for the same scheduled run. The Synthetic events model describes `execution.retry_on_error` as *"Should we ignore this execution attempt (which was a failure) - will there be retry."* Counting both inflates failures: on the validation tenant, 2,015 of 4,701 browser executions in 24 hours were re-runs. The aggregating queries below drop the superseded attempt with `filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")`. The `coalesce` matters: HTTP executions carry no value for the field, and without it their failures would be filtered out as well.
+>
+> **Monitor names are not unique.** A browser monitor and an HTTP monitor can share a name, so per-monitor queries group by `dt.synthetic.monitor.id` as well as `monitor.name`.
+
+> <sub>**Sources:** [Synthetic events model (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/synthetic) — *"execution.type MUST be one of the following"* (the list includes `re-run` and `standard`; the tenant returned `RE_RUN` / `STANDARD` for browser and `standard` for HTTP, read 10/02/2026).</sub>
+
 ```dql
 // Overall synthetic availability (last 7 days)
 // Execution-weighted across every monitor and location. For a downtime estimate,
@@ -78,6 +84,7 @@ Example SLA Targets:
 // into minutes, because it sums failures across monitors, locations and frequencies.
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     total_executions = count(),
     successful = countIf(result.state == "SUCCESS"),
@@ -88,15 +95,18 @@ fetch dt.synthetic.events, from: now() - 7d
 
 ```dql
 // Estimated failed minutes per monitor (last 7 days)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 // Share of executions that failed x the minutes in the window. This needs no
 // frequency assumption and never exceeds the window, unlike failed-count x 5,
 // which sums failures across every monitor and location.
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     executions = count(),
     failed = countIf(result.state == "FAIL"),
-    locations = countDistinct(dt.entity.synthetic_location)
+    locations = countDistinct(dt.smartscape.synthetic_location)
   }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd failed_pct = round(failed * 100.0 / executions, decimals: 2)
 | fieldsAdd est_failed_minutes = round(failed * 10080.0 / executions, decimals: 0)  // 10,080 = minutes in 7 days
@@ -108,11 +118,12 @@ fetch dt.synthetic.events, from: now() - 7d
 // Availability by monitor (last 7 days)
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     total = count(),
     successful = countIf(result.state == "SUCCESS"),
     failed = countIf(result.state == "FAIL")
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 3)
 | sort availability_pct asc
 | limit 30
@@ -122,6 +133,7 @@ fetch dt.synthetic.events, from: now() - 7d
 // Availability trend over time
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | fieldsAdd hour_bucket = bin(timestamp, 1h)
 | summarize {
     success_count = countIf(result.state == "SUCCESS"),
@@ -135,6 +147,7 @@ fetch dt.synthetic.events, from: now() - 7d
 // Daily availability report
 fetch dt.synthetic.events, from: now() - 30d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | fieldsAdd day = formatTimestamp(timestamp, format: "yyyy-MM-dd")
 | summarize {
     total = count(),
@@ -150,6 +163,8 @@ fetch dt.synthetic.events, from: now() - 30d
 ## 3. Performance Analysis
 ### Performance Metrics
 
+Starting points from community practice — set yours from each monitor's observed baseline.
+
 | Metric | Description | Good | Warning | Critical |
 |--------|-------------|------|---------|----------|
 | **Response Time** | Total execution time | < 2s | 2-5s | > 5s |
@@ -161,6 +176,7 @@ fetch dt.synthetic.events, from: now() - 30d
 // Response time percentiles by monitor
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | summarize {
     p50 = percentile(result.statistics.duration, 50),
@@ -169,7 +185,7 @@ fetch dt.synthetic.events, from: now() - 24h
     p95 = percentile(result.statistics.duration, 95),
     p99 = percentile(result.statistics.duration, 99),
     executions = count()
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd p50_ms = round(p50/1ms, decimals:1), p75_ms = round(p75/1ms, decimals:1),
             p90_ms = round(p90/1ms, decimals:1), p95_ms = round(p95/1ms, decimals:1),
             p99_ms = round(p99/1ms, decimals:1)
@@ -182,13 +198,14 @@ fetch dt.synthetic.events, from: now() - 24h
 // Performance trend comparison (this week vs last week)
 fetch dt.synthetic.events, from: now() - 14d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | fieldsAdd week = if(timestamp > now() - 7d, "This Week", else: "Last Week")
 | summarize {
     avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
     p95 = percentile(result.statistics.duration / 1ms, 95),
     executions = count()
-  }, by: {monitor.name, week}
+  }, by: {monitor.name, dt.synthetic.monitor.id, week}
 | fieldsAdd p95_response_ms = round(p95, decimals: 1)
 | fieldsRemove p95
 | sort monitor.name asc, week asc
@@ -215,6 +232,7 @@ fetch dt.synthetic.events, from: now() - 24h
 // Performance anomalies (max response time > 2x average per monitor)
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | fieldsAdd response_ms = result.statistics.duration / 1ms
 | summarize {
@@ -222,7 +240,7 @@ fetch dt.synthetic.events, from: now() - 24h
     max_response = max(response_ms),
     min_response = min(response_ms),
     executions = count()
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd deviation_factor = round(max_response / avg_response, decimals: 1)
 | filter deviation_factor > 2
 | sort deviation_factor desc
@@ -241,61 +259,73 @@ Compare synthetic results across locations to:
 
 ```dql
 // Availability by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     total = count(),
     successful = countIf(result.state == "SUCCESS"),
     failed = countIf(result.state == "FAIL")
-  }, by: {dt.entity.synthetic_location}
+  }, by: {dt.smartscape.synthetic_location}
 | fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 2)
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort availability_pct asc
 | limit 30
 ```
 
 ```dql
 // Performance by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | summarize {
     avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
     p50 = percentile(result.statistics.duration, 50),
     p95 = percentile(result.statistics.duration, 95),
     executions = count()
-  }, by: {dt.entity.synthetic_location}
+  }, by: {dt.smartscape.synthetic_location}
 | fieldsAdd p50_ms = round(p50 / 1ms, decimals: 1), p95_ms = round(p95 / 1ms, decimals: 1)
 | fieldsRemove p50, p95
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort avg_response_ms desc
 | limit 30
 ```
 
 ```dql
 // Location performance heatmap (monitor x location)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     executions = count(),
     availability_pct = round(countIf(result.state == "SUCCESS") * 100.0 / count(), decimals: 2),
     avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1)
-  }, by: {monitor.name, dt.entity.synthetic_location}
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort monitor.name asc, avg_response_ms desc
 ```
 
 ```dql
 // Location-specific failures
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "FAIL"
 | summarize {
     failure_count = count(),
-    unique_monitors = countDistinct(monitor.name),
+    unique_monitors = countDistinct(dt.synthetic.monitor.id),
     error_types = collectDistinct(result.status.message)
-  }, by: {dt.entity.synthetic_location}
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+  }, by: {dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort failure_count desc
 | limit 20
 ```
@@ -312,26 +342,24 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ### Creating Synthetic SLOs
 
-1. **Navigate to**: Settings → Service-level objectives
-2. **Create SLO**: Name, description, timeframe
-3. **Define metric**: Use synthetic availability or response time
-4. **Set target**: e.g., 99.9% availability
-5. **Configure alerting**: Error budget alerts
+Create SLOs in the **Service-Level Objectives** app on a DQL query — the availability and P95 queries below are the shape it takes. The SLO series covers defining the SLI, error budgets and burn-rate alerting (SLO-02 to SLO-04).
 
 ```dql
 // SLO calculation - Availability (30-day window)
 fetch dt.synthetic.events, from: now() - 30d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     total_executions = count(),
     successful = countIf(result.state == "SUCCESS"),
     failed = countIf(result.state == "FAIL")
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd sli_availability = round((successful * 100.0) / total_executions, decimals: 4)
 | fieldsAdd slo_target = 99.9
-| fieldsAdd error_budget_total = round(total_executions * 0.001, decimals: 0)  // 0.1% budget
-| fieldsAdd error_budget_remaining = round(error_budget_total - failed, decimals: 0)
-| fieldsAdd error_budget_pct = round((error_budget_remaining * 100.0) / error_budget_total, decimals: 1)
+| fieldsAdd error_budget_total = total_executions * 0.001  // 0.1% budget, in failed runs (not rounded before use)
+| fieldsAdd error_budget_remaining = error_budget_total - failed
+| fieldsAdd error_budget_pct = if(error_budget_total > 0,
+    round((error_budget_remaining * 100.0) / error_budget_total, decimals: 1))
 | fieldsAdd slo_status = if(sli_availability >= slo_target, "✅ Met", else: "❌ Breached")
 | sort sli_availability asc
 | limit 30
@@ -341,13 +369,14 @@ fetch dt.synthetic.events, from: now() - 30d
 // SLO calculation - Performance (P95 < 3000ms)
 fetch dt.synthetic.events, from: now() - 30d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | fieldsAdd response_ms = result.statistics.duration / 1ms
 | summarize {
     executions = count(),
     p95 = percentile(response_ms, 95),
     within_target = countIf(response_ms < 3000)
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd p95_response_ms = round(p95, decimals: 1)
 | fieldsRemove p95
 | fieldsAdd sli_performance = round((within_target * 100.0) / executions, decimals: 2)
@@ -361,11 +390,12 @@ fetch dt.synthetic.events, from: now() - 30d
 // Error budget burn rate (last 7 days)
 fetch dt.synthetic.events, from: now() - 7d
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | fieldsAdd day = formatTimestamp(timestamp, format: "yyyy-MM-dd")
 | summarize {
     total = count(),
     failed = countIf(result.state == "FAIL")
-  }, by: {monitor.name, day}
+  }, by: {monitor.name, dt.synthetic.monitor.id, day}
 | fieldsAdd daily_error_rate = round((failed * 100.0) / total, decimals: 3)
 | fieldsAdd budget_consumed = round(failed * 100.0 / (total * 0.001), decimals: 1)  // vs 0.1% budget
 | sort monitor.name asc, day desc
@@ -396,16 +426,19 @@ Synthetic outage handling has no separate alert-delay or auto-resolve-after-N-su
 
 ```dql
 // Monitors with recent failures (potential outages)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 1h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "FAIL"
 | summarize {
     failure_count = count(),
     last_failure = max(timestamp),
     first_failure = min(timestamp)
-  }, by: {monitor.name, dt.entity.synthetic_location}
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
 | filter failure_count >= 2
-| fieldsAdd location = entityName(dt.entity.synthetic_location)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
 | sort failure_count desc
 | limit 20
 ```
@@ -414,12 +447,13 @@ fetch dt.synthetic.events, from: now() - 1h
 // Performance degradation alerts (P95 > threshold)
 fetch dt.synthetic.events, from: now() - 1h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | summarize {
     avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
     p95 = percentile(result.statistics.duration / 1ms, 95),
     executions = count()
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd p95_response_ms = round(p95, decimals: 1)
 | fieldsRemove p95
 | filter p95_response_ms > 5000  // > 5 seconds threshold
@@ -428,14 +462,17 @@ fetch dt.synthetic.events, from: now() - 1h
 
 ```dql
 // Multi-location failure detection (global outage indicator)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 30m
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "FAIL"
 | summarize {
-    failing_locations = countDistinct(dt.entity.synthetic_location),
+    failing_locations = countDistinct(dt.smartscape.synthetic_location),
     failure_count = count(),
-    locations = collectDistinct(dt.entity.synthetic_location)
-  }, by: {monitor.name}
+    locations = collectDistinct(dt.smartscape.synthetic_location)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | filter failing_locations >= 2
 | fieldsAdd severity = if(failing_locations >= 3, "CRITICAL", else: "WARNING")
 | sort failing_locations desc
@@ -470,6 +507,7 @@ fetch dt.synthetic.events, from: now() - 30m
 // Dashboard tile: Overall availability (single value)
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     availability_pct = round(countIf(result.state == "SUCCESS") * 100.0 / count(), decimals: 2)
   }
@@ -479,10 +517,11 @@ fetch dt.synthetic.events, from: now() - 24h
 // Dashboard tile: Healthy vs failing monitors (last hour)
 fetch dt.synthetic.events, from: now() - 1h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | summarize {
     failed_recent = countIf(result.state == "FAIL"),
     executions = count()
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | summarize {
     total_monitors = count(),
     healthy = countIf(failed_recent == 0),
@@ -494,10 +533,11 @@ fetch dt.synthetic.events, from: now() - 1h
 // Dashboard tile: Response time by monitor (bar chart)
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "SUCCESS"
 | summarize {
     p95 = percentile(result.statistics.duration / 1ms, 95)
-  }, by: {monitor.name}
+  }, by: {monitor.name, dt.synthetic.monitor.id}
 | fieldsAdd p95_response_ms = round(p95, decimals: 1)
 | fieldsRemove p95
 | sort p95_response_ms desc
@@ -506,12 +546,15 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ```dql
 // Dashboard tile: Recent failures table
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | filter result.state == "FAIL"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          status = result.status.message,
          detail = result.status.details
 | sort timestamp desc
@@ -522,6 +565,7 @@ fetch dt.synthetic.events, from: now() - 24h
 // Dashboard tile: Hourly availability trend (line chart)
 fetch dt.synthetic.events, from: now() - 24h
 | filter endsWith(event.type, "_monitor_execution")
+| filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")  // one result per scheduled run
 | fieldsAdd hour_bucket = bin(timestamp, 1h)
 | summarize {
     success_count = countIf(result.state == "SUCCESS"),

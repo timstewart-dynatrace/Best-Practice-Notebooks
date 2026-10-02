@@ -1,6 +1,6 @@
 # SYNTH-03: HTTP Monitors
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 09/18/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 3 of 6 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Lightweight API and Endpoint Monitoring
 This notebook covers HTTP monitors for API health checks, endpoint validation, and multi-step API workflows using the latest Dynatrace platform.
@@ -69,7 +69,7 @@ HTTP monitors execute lightweight HTTP requests without browser overhead:
 | **Method** | HTTP verb | GET, POST, PUT, DELETE, PATCH |
 | **Headers** | Custom headers | `Authorization: Bearer ...` |
 | **Body** | Request payload | JSON, form data, raw |
-| **Timeout** | Max wait time | 30 seconds (default) |
+| **Performance threshold** | Per-request threshold that can raise a problem | Set in the request's settings |
 
 ### Common HTTP Methods
 
@@ -120,11 +120,13 @@ smartscapeNodes "HTTP_MONITOR"
 
 ```dql
 // HTTP monitor execution results (last 24h)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "http_monitor_execution"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          state = result.state,
          status_code = result.statistics.response_status_code,
          response_ms = result.statistics.duration / 1ms
@@ -143,9 +145,9 @@ Chain multiple HTTP requests with data passing between steps:
 | Step | Action | Description |
 |------|--------|-------------|
 | 1 | POST /auth/login | Authenticate and get token |
-| 2 | Extract token | Save token from response |
+| 2 | `api.setValue("token", …)` | Post-execution script stores the token |
 | 3 | GET /api/users/me | Call API with Bearer token |
-| 4 | Extract userId | Save user ID from response |
+| 4 | `api.setValue("userId", …)` | Post-execution script stores the user ID |
 | 5 | GET /api/users/{userId}/orders | Fetch user orders |
 | 6 | Validate response | Verify orders array exists |
 -->
@@ -281,12 +283,14 @@ fetch dt.synthetic.events, from: now() - 24h
 
 ```dql
 // Failed HTTP requests with error details
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated ("will be removed in the future") in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
 fetch dt.synthetic.events, from: now() - 24h
 | filter event.type == "http_monitor_execution"
 | filter result.state == "FAIL"
 | fields timestamp,
          monitor = monitor.name,
-         location = entityName(dt.entity.synthetic_location),
+         location = getNodeName(dt.smartscape.synthetic_location),
          status = result.status.message,
          status_code = result.status.code,
          detail = result.status.details
@@ -300,19 +304,13 @@ HTTP monitors automatically check SSL certificates:
 
 ### Certificate Checks
 
-| Check | Description | Alert Threshold |
-|-------|-------------|----------------|
-| **Validity** | Certificate not expired | Configurable days |
-| **Chain** | Valid certificate chain | Any break |
-| **Hostname** | Matches request domain | Mismatch |
-| **Trust** | Issued by trusted CA | Untrusted |
+*"Accept any SSL certificate —by default, HTTP monitors fail when SSL certificates are invalid."* The docs list what counts as invalid: self-signed, expired, inactive, lifetime greater than 398 days, missing hostname, invalid or incomplete chain, untrusted certificate authority, insecure signature algorithm.
 
-### Expiration Alerts
+### Expiration Problems
 
-Configure alerts for certificates expiring within:
-- 30 days (warning)
-- 14 days (critical)
-- 7 days (emergency)
+*"Generate a problem if the SSL certificate expires within the next n days"* — n is at most 100 — raises a problem *"without failing the monitor or affecting monitor availability"*. Pick n to leave time to renew; in community practice 30 days is a common setting, with the § 6 query as an early view.
+
+> <sub>**Sources:** [Create and configure an HTTP monitor (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor) — *"Accept any SSL certificate —by default, HTTP monitors fail when SSL certificates are invalid."*</sub>
 
 ```dql
 // SSL certificate expiration status (per monitor)
