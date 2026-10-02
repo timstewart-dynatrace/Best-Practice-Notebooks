@@ -44,7 +44,7 @@
   <text x="620" y="232" text-anchor="middle" fill="#94A3B8" font-size="11">Roll OneAgent updates</text>
   <text x="620" y="249" text-anchor="middle" fill="#94A3B8" font-size="11">across host groups</text>
   <text x="620" y="275" text-anchor="middle" fill="#94A3B8" font-size="11">Respect update windows</text>
-  <text x="620" y="292" text-anchor="middle" fill="#94A3B8" font-size="11">and maintenance windows</text>
+  <text x="620" y="292" text-anchor="middle" fill="#94A3B8" font-size="11">(not maintenance windows)</text>
 
   <!-- Arrow 3→4 -->
   <line x1="715" y1="248" x2="785" y2="248" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow-05a)"/>
@@ -61,8 +61,8 @@
   <!-- Why box -->
   <rect x="80" y="350" width="770" height="105" fill="#1E293B" stroke="#334155" stroke-width="1" rx="6"/>
   <text x="100" y="375" fill="#F8FAFC" font-size="13" font-weight="700">Why this order (when updating manually):</text>
-  <text x="100" y="397" fill="#94A3B8" font-size="12">• OneAgents reach Dynatrace through the ActiveGates in their path. Dynatrace has required AGs to be upgraded for a</text>
-  <text x="100" y="414" fill="#94A3B8" font-size="12">  OneAgent change once (AG 1.154+ for 64-bit host IDs); updating AGs first means no OneAgent gets ahead of its AG.</text>
+  <text x="100" y="397" fill="#94A3B8" font-size="12">• OneAgents reach Dynatrace through the ActiveGates in their path. Dynatrace has set a minimum AG version for a</text>
+  <text x="100" y="414" fill="#94A3B8" font-size="12">  OneAgent change (AG 1.154+ for 64-bit host IDs) — a floor for one feature, not an AG ≥ OneAgent rule.</text>
   <text x="100" y="431" fill="#94A3B8" font-size="12">• Synthetic AGs are not in the OneAgent path — their order does not matter; the browser has its own switch (§6).</text>
   <text x="100" y="448" fill="#94A3B8" font-size="12">• Validating AGs before touching OneAgents keeps one variable changing at a time.</text>
 </svg>

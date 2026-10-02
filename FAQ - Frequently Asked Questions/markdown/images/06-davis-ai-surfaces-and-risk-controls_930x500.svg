@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Davis AI Surfaces and Applied Risk Controls</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="13">Four surfaces, four risk profiles, four control sets — tenant-scoped by default</text>
+
+  <!-- Causal AI (top-left) -->
+  <rect x="50" y="80" width="400" height="170" fill="#22C55E" opacity="0.08" stroke="#22C55E" stroke-width="1.5" rx="10"/>
+  <text x="70" y="108" fill="#86EFAC" font-size="15" font-weight="700">Causal AI — Davis Problems &amp; RCA</text>
+  <text x="70" y="130" fill="#94A3B8" font-size="11">Deterministic graph correlation on tenant topology</text>
+  <text x="70" y="148" fill="#94A3B8" font-size="11">Risk profile: LOW — explainable, reproducible</text>
+  <text x="70" y="172" fill="#E2E8F0" font-size="11" font-weight="600">Controls applied:</text>
+  <text x="70" y="190" fill="#94A3B8" font-size="11">• 100% on-tenant; no foundation-model call</text>
+  <text x="70" y="206" fill="#94A3B8" font-size="11">• Deterministic — same inputs → same RCA</text>
+  <text x="70" y="222" fill="#94A3B8" font-size="11">• Full causal chain visible to operator</text>
+  <text x="70" y="238" fill="#94A3B8" font-size="11">• No customer data leaves the tenant</text>
+
+  <!-- Predictive AI (top-right) -->
+  <rect x="480" y="80" width="400" height="170" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="10"/>
+  <text x="500" y="108" fill="#BFDBFE" font-size="15" font-weight="700">Predictive AI — Analyzers &amp; Forecasts</text>
+  <text x="500" y="130" fill="#94A3B8" font-size="11">Statistical models (forecast, anomaly, baseline)</text>
+  <text x="500" y="148" fill="#94A3B8" font-size="11">Risk profile: LOW–MEDIUM — bounded outputs</text>
+  <text x="500" y="172" fill="#E2E8F0" font-size="11" font-weight="600">Controls applied:</text>
+  <text x="500" y="190" fill="#94A3B8" font-size="11">• Tenant-scoped training data only</text>
+  <text x="500" y="206" fill="#94A3B8" font-size="11">• Confidence bands surfaced with predictions</text>
+  <text x="500" y="222" fill="#94A3B8" font-size="11">• Operator chooses when to act on output</text>
+  <text x="500" y="238" fill="#94A3B8" font-size="11">• Model behavior versioned with platform</text>
+
+  <!-- Generative AI (bottom-left) -->
+  <rect x="50" y="270" width="400" height="180" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="10"/>
+  <text x="70" y="298" fill="#FCD34D" font-size="15" font-weight="700">Generative AI — Dynatrace Assist</text>
+  <text x="70" y="320" fill="#94A3B8" font-size="11">LLM-backed Q&amp;A, DQL gen, workflow assist</text>
+  <text x="70" y="338" fill="#94A3B8" font-size="11">Risk profile: MEDIUM — most concerns live here</text>
+  <text x="70" y="362" fill="#E2E8F0" font-size="11" font-weight="600">Controls applied:</text>
+  <text x="70" y="380" fill="#94A3B8" font-size="11">• RAG-grounded on Dynatrace docs + tenant data</text>
+  <text x="70" y="396" fill="#94A3B8" font-size="11">• Customer data not used for foundation training</text>
+  <text x="70" y="412" fill="#94A3B8" font-size="11">• Writes run only when approved or configured</text>
+  <text x="70" y="428" fill="#94A3B8" font-size="11">• IAM-scoped via davis-copilot:* policy statements</text>
+  <text x="70" y="444" fill="#94A3B8" font-size="11">• Prompt/response auditable as platform events</text>
+
+  <!-- AI Observability (bottom-right) -->
+  <rect x="480" y="270" width="400" height="180" fill="#A855F7" opacity="0.08" stroke="#A855F7" stroke-width="1.5" rx="10"/>
+  <text x="500" y="298" fill="#D8B4FE" font-size="15" font-weight="700">AI Observability — for YOUR GenAI apps</text>
+  <text x="500" y="320" fill="#94A3B8" font-size="11">Monitors customer-owned LLM apps (not Davis)</text>
+  <text x="500" y="338" fill="#94A3B8" font-size="11">Risk profile: REDUCES customer AI risk</text>
+  <text x="500" y="362" fill="#E2E8F0" font-size="11" font-weight="600">What it surfaces:</text>
+  <text x="500" y="380" fill="#94A3B8" font-size="11">• LLM token cost &amp; latency by app/model</text>
+  <text x="500" y="396" fill="#94A3B8" font-size="11">• LLM-judge evals: injection, PII, hallucination</text>
+  <text x="500" y="412" fill="#94A3B8" font-size="11">• Evaluation-score drift detection</text>
+  <text x="500" y="428" fill="#94A3B8" font-size="11">• Vector DB / semantic-cache performance</text>
+  <text x="500" y="444" fill="#94A3B8" font-size="11">• OpenTelemetry GenAI semconv compatible</text>
+
+  <text x="465" y="478" text-anchor="middle" fill="#64748B" font-size="11">All four surfaces operate within tenant boundaries; Generative AI is the only one calling an external foundation model</text>
+</svg>

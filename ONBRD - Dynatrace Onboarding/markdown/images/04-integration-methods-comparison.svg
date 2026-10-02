@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Cloud &amp; SaaS Integration Methods</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Pick the method by data source — 10/2026 status</text>
+
+  <!-- Method 1: Clouds App (Modern, recommended where supported) -->
+  <rect x="40" y="90" width="210" height="200" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="2" rx="8"/>
+  <text x="145" y="115" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Clouds App</text>
+  <text x="145" y="132" text-anchor="middle" fill="#86EFAC" font-size="10">★ Modern · Direct connection</text>
+  <rect x="60" y="148" width="170" height="40" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="145" y="165" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">No ActiveGate</text>
+  <text x="145" y="180" text-anchor="middle" fill="#94A3B8" font-size="10">Agentless polling</text>
+  <text x="145" y="208" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="700">Coverage</text>
+  <text x="145" y="226" text-anchor="middle" fill="#94A3B8" font-size="10">AWS — GA</text>
+  <text x="145" y="242" text-anchor="middle" fill="#94A3B8" font-size="10">Azure — SaaS 1.337+</text>
+  <text x="145" y="258" text-anchor="middle" fill="#FCA5A5" font-size="10">GCP — Preview (1.348)</text>
+  <text x="145" y="280" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="700">→ Use for AWS / Azure</text>
+
+  <!-- Method 2: AG-Polling (Classic) -->
+  <rect x="270" y="90" width="210" height="200" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="375" y="115" text-anchor="middle" fill="#FCD34D" font-size="14" font-weight="700">AG-Polling (Classic)</text>
+  <text x="375" y="132" text-anchor="middle" fill="#FCD34D" font-size="10">Requires ActiveGate</text>
+  <rect x="290" y="148" width="170" height="40" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="375" y="165" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">ActiveGate Polls</text>
+  <text x="375" y="180" text-anchor="middle" fill="#94A3B8" font-size="10">CloudWatch / Monitor / etc.</text>
+  <text x="375" y="208" text-anchor="middle" fill="#FCD34D" font-size="10" font-weight="700">When to Use</text>
+  <text x="375" y="226" text-anchor="middle" fill="#94A3B8" font-size="10">AWS / Azure classic</text>
+  <text x="375" y="242" text-anchor="middle" fill="#94A3B8" font-size="10">(where no Clouds app)</text>
+  <text x="375" y="258" text-anchor="middle" fill="#94A3B8" font-size="10">Restricted networks</text>
+  <text x="375" y="280" text-anchor="middle" fill="#FCD34D" font-size="10" font-weight="700">→ Classic AWS / Azure</text>
+
+  <!-- Method 3: Extensions -->
+  <rect x="500" y="90" width="210" height="200" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="605" y="115" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">Extensions</text>
+  <text x="605" y="132" text-anchor="middle" fill="#BFDBFE" font-size="10">Extensions 2.0 · current framework</text>
+  <rect x="520" y="148" width="170" height="40" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="605" y="165" text-anchor="middle" fill="#BFDBFE" font-size="11" font-weight="700">AG or OneAgent</text>
+  <text x="605" y="180" text-anchor="middle" fill="#94A3B8" font-size="10">Remote → AG · local → OA</text>
+  <text x="605" y="208" text-anchor="middle" fill="#BFDBFE" font-size="10" font-weight="700">When to Use</text>
+  <text x="605" y="226" text-anchor="middle" fill="#94A3B8" font-size="10">Databases / SaaS APIs</text>
+  <text x="605" y="242" text-anchor="middle" fill="#94A3B8" font-size="10">SNMP / VMware / F5</text>
+  <text x="605" y="258" text-anchor="middle" fill="#94A3B8" font-size="10">On-host integrations</text>
+  <text x="605" y="280" text-anchor="middle" fill="#BFDBFE" font-size="10" font-weight="700">→ Custom data sources</text>
+
+  <!-- Method 4: OTel Direct -->
+  <rect x="730" y="90" width="160" height="200" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="810" y="115" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">OTel Direct</text>
+  <text x="810" y="132" text-anchor="middle" fill="#DDD6FE" font-size="10">OTLP ingest</text>
+  <rect x="745" y="148" width="130" height="40" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="810" y="165" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="700">No ActiveGate</text>
+  <text x="810" y="180" text-anchor="middle" fill="#94A3B8" font-size="10">Direct OTLP</text>
+  <text x="810" y="208" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="700">When to Use</text>
+  <text x="810" y="226" text-anchor="middle" fill="#94A3B8" font-size="10">OTel-instrumented</text>
+  <text x="810" y="242" text-anchor="middle" fill="#94A3B8" font-size="10">apps + collectors</text>
+  <text x="810" y="258" text-anchor="middle" fill="#94A3B8" font-size="10">Polyglot / portable</text>
+  <text x="810" y="280" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="700">→ Code-instrumented</text>
+
+  <!-- Decision row at bottom -->
+  <rect x="40" y="320" width="850" height="140" fill="#1E293B" stroke="#475569" stroke-width="1" rx="8"/>
+  <text x="465" y="345" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Quick Decision Reference</text>
+
+  <text x="80" y="378" fill="#86EFAC" font-size="11" font-weight="700">AWS</text>
+  <text x="120" y="378" fill="#94A3B8" font-size="11">→ Clouds app (GA), no AG required</text>
+
+  <text x="80" y="398" fill="#86EFAC" font-size="11" font-weight="700">Azure</text>
+  <text x="120" y="398" fill="#94A3B8" font-size="11">→ Clouds app (SaaS 1.337+), no AG required</text>
+
+  <text x="80" y="418" fill="#FCA5A5" font-size="11" font-weight="700">GCP</text>
+  <text x="120" y="418" fill="#94A3B8" font-size="11">→ GKE/Cloud Function collector, no AG</text>
+
+  <text x="465" y="378" fill="#FCD34D" font-size="11" font-weight="700">AWS Lambda</text>
+  <text x="555" y="378" fill="#94A3B8" font-size="11">→ OneAgent layer + DT_TAGS (OA 1.337)</text>
+
+  <text x="465" y="398" fill="#BFDBFE" font-size="11" font-weight="700">DB / SaaS / SNMP</text>
+  <text x="585" y="398" fill="#94A3B8" font-size="11">→ Extensions (remote: AG)</text>
+
+  <text x="465" y="418" fill="#DDD6FE" font-size="11" font-weight="700">OTel app</text>
+  <text x="540" y="418" fill="#94A3B8" font-size="11">→ Direct OTLP ingest, no AG</text>
+
+  <text x="465" y="445" text-anchor="middle" fill="#64748B" font-size="10">See CLOUD series for per-provider deep dives · AUTOM series for extension automation</text>
+</svg>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Metric or Raw Logs? — Let Query Frequency Decide</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">Recurring queries belong on metrics (Query always included, never billed). One-shot investigation stays on logs.</text>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- LEFT: the question -->
+  <rect x="24" y="118" width="184" height="200" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="116" y="200" text-anchor="middle" fill="#BFDBFE" font-size="13" font-weight="700">The question</text>
+  <text x="116" y="228" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">How often does</text>
+  <text x="116" y="247" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">this query run?</text>
+  <text x="116" y="278" text-anchor="middle" fill="#64748B" font-size="10">Not "log vs metric" —</text>
+  <text x="116" y="292" text-anchor="middle" fill="#64748B" font-size="10">"recurring vs one-shot".</text>
+
+  <!-- branch arrows -->
+  <line x1="208" y1="150" x2="296" y2="118" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="208" y1="286" x2="296" y2="262" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- TOP branch: recurring -->
+  <rect x="300" y="90" width="318" height="92" fill="#73BE28" opacity="0.10" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="316" y="114" fill="#86EFAC" font-size="13" font-weight="700">RECURRING</text>
+  <text x="316" y="135" fill="#94A3B8" font-size="11">Dashboard tiles · alerts · anomaly</text>
+  <text x="316" y="151" fill="#94A3B8" font-size="11">detection · SLOs. Re-runs on a</text>
+  <text x="316" y="167" fill="#94A3B8" font-size="11">schedule, forever.</text>
+  <text x="602" y="110" text-anchor="end" fill="#86EFAC" font-size="10" font-weight="600">MANY TIMES</text>
+
+  <line x1="618" y1="136" x2="660" y2="136" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- TOP outcome -->
+  <rect x="664" y="90" width="242" height="92" fill="#73BE28" opacity="0.16" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="680" y="114" fill="#86EFAC" font-size="13" font-weight="700">→ Query a METRIC</text>
+  <text x="680" y="135" fill="#CBD5E1" font-size="11">OOTB if one exists, else</text>
+  <text x="680" y="151" fill="#CBD5E1" font-size="11">extracted at ingest.</text>
+  <text x="680" y="171" fill="#86EFAC" font-size="11" font-weight="600">Metrics: Query always included</text>
+
+  <!-- BOTTOM branch: one-shot -->
+  <rect x="300" y="226" width="318" height="92" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="316" y="250" fill="#BFDBFE" font-size="13" font-weight="700">ONE-SHOT</text>
+  <text x="316" y="271" fill="#94A3B8" font-size="11">Root-cause analysis · forensics ·</text>
+  <text x="316" y="287" fill="#94A3B8" font-size="11">ad-hoc exploration. Scanned once,</text>
+  <text x="316" y="303" fill="#94A3B8" font-size="11">then done.</text>
+  <text x="602" y="246" text-anchor="end" fill="#BFDBFE" font-size="10" font-weight="600">ONCE</text>
+
+  <line x1="618" y1="272" x2="660" y2="272" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- BOTTOM outcome -->
+  <rect x="664" y="226" width="242" height="92" fill="#1496FF" opacity="0.16" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="680" y="250" fill="#BFDBFE" font-size="13" font-weight="700">→ fetch logs</text>
+  <text x="680" y="271" fill="#CBD5E1" font-size="11">Scan once, tight time</text>
+  <text x="680" y="287" fill="#CBD5E1" font-size="11">range, filter early.</text>
+  <text x="680" y="306" fill="#BFDBFE" font-size="11" font-weight="600">Logs: Query billed (usage-based)</text>
+
+  <!-- AMBER strip: cardinality caution -->
+  <rect x="24" y="342" width="882" height="62" fill="#FCD34D" opacity="0.10" stroke="#FCD34D" stroke-width="1.5" rx="6"/>
+  <text x="40" y="366" fill="#FCD34D" font-size="13" font-weight="700">⚠ Guardrail — cardinality undoes the saving</text>
+  <text x="40" y="388" fill="#94A3B8" font-size="11">An extracted metric costs the product of its dimensions. Use bounded dimensions only (status, service, region). Never put</text>
+  <text x="40" y="402" fill="#94A3B8" font-size="11">request.id / user.id / trace_id on a metric — pivoting by those is a log (one-shot) question. See OPIPE-04.</text>
+
+  <!-- PURPLE strip: forward-only + retention -->
+  <rect x="24" y="414" width="882" height="62" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="40" y="438" fill="#DDD6FE" font-size="13" font-weight="700">Operational notes</text>
+  <text x="40" y="460" fill="#94A3B8" font-size="11">Extraction is forward-only — a rule created today builds history from today, not from logs already ingested. Split retention:</text>
+  <text x="40" y="475" fill="#94A3B8" font-size="11">keep the metric long &amp; cheap for trend tiles; keep raw logs in a shorter bucket sized for investigation and compliance.</text>
+</svg>

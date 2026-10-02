@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="38" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Smartscape Topology Layers</text>
+  <text x="465" y="62" text-anchor="middle" fill="#94A3B8" font-size="13">Auto-discovered entity hierarchy — Application → Service → Process → Host → Container/Cloud</text>
+
+  <defs>
+    <marker id="layer-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Layer 1: Application (top) -->
+  <rect x="280" y="90" width="370" height="55" fill="#A78BFA" opacity="0.15" stroke="#A78BFA" stroke-width="2" rx="6"/>
+  <text x="465" y="113" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">Application / Frontend</text>
+  <text x="465" y="132" text-anchor="middle" fill="#94A3B8" font-size="11">RUM / Mobile App · user-facing entry point · Apdex-scored</text>
+
+  <line x1="465" y1="145" x2="465" y2="167" stroke="#64748B" stroke-width="1.5" marker-end="url(#layer-arrow)"/>
+
+  <!-- Layer 2: Service -->
+  <rect x="240" y="170" width="450" height="55" fill="#1496FF" opacity="0.12" stroke="#1496FF" stroke-width="2" rx="6"/>
+  <text x="465" y="193" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">Service</text>
+  <text x="465" y="212" text-anchor="middle" fill="#94A3B8" font-size="11">Auto-detected by OneAgent code instrumentation · dt.service.name on every span</text>
+
+  <line x1="465" y1="225" x2="465" y2="247" stroke="#64748B" stroke-width="1.5" marker-end="url(#layer-arrow)"/>
+
+  <!-- Layer 3: Process Group / Process -->
+  <rect x="200" y="250" width="530" height="55" fill="#22D3EE" opacity="0.12" stroke="#22D3EE" stroke-width="2" rx="6"/>
+  <text x="465" y="273" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">Process Group / Process</text>
+  <text x="465" y="292" text-anchor="middle" fill="#94A3B8" font-size="11">Detected by OneAgent · grouped by command line + version · multiple instances per group</text>
+
+  <line x1="465" y1="305" x2="465" y2="327" stroke="#64748B" stroke-width="1.5" marker-end="url(#layer-arrow)"/>
+
+  <!-- Layer 4: Host -->
+  <rect x="160" y="330" width="610" height="55" fill="#73BE28" opacity="0.12" stroke="#73BE28" stroke-width="2" rx="6"/>
+  <text x="465" y="353" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">Host</text>
+  <text x="465" y="372" text-anchor="middle" fill="#94A3B8" font-size="11">OneAgent-monitored · grouped by host group · primary tags + properties at source</text>
+
+  <!-- Layer 5: Container & Cloud (parallel context) -->
+  <rect x="120" y="410" width="320" height="55" fill="#FFB800" opacity="0.10" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="280" y="432" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Container / K8s Pod</text>
+  <text x="280" y="451" text-anchor="middle" fill="#94A3B8" font-size="10">k8s.namespace · k8s.deployment · pod labels</text>
+
+  <rect x="490" y="410" width="320" height="55" fill="#DE350B" opacity="0.10" stroke="#DE350B" stroke-width="1.5" rx="6"/>
+  <text x="650" y="432" text-anchor="middle" fill="#FCA5A5" font-size="13" font-weight="700">Cloud Resource</text>
+  <text x="650" y="451" text-anchor="middle" fill="#94A3B8" font-size="10">AWS / Azure / GCP · cloud-tag enriched · via Clouds app or AG polling</text>
+
+  <!-- Lines showing host parent of container/cloud -->
+  <line x1="280" y1="385" x2="280" y2="410" stroke="#475569" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="650" y1="385" x2="650" y2="410" stroke="#475569" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Side annotation: query syntax -->
+  <rect x="40" y="90" width="160" height="155" fill="#1E293B" stroke="#475569" stroke-width="1" rx="6"/>
+  <text x="120" y="112" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Modern Query</text>
+  <text x="120" y="135" text-anchor="middle" fill="#94A3B8" font-size="10">smartscapeNodes</text>
+  <text x="120" y="151" text-anchor="middle" fill="#94A3B8" font-size="10">"HOST" / "SERVICE"</text>
+  <text x="120" y="167" text-anchor="middle" fill="#94A3B8" font-size="10">"PROCESS"</text>
+  <text x="120" y="183" text-anchor="middle" fill="#94A3B8" font-size="10">"FRONTEND"</text>
+  <text x="120" y="208" text-anchor="middle" fill="#94A3B8" font-size="10">smartscapeEdges</text>
+  <text x="120" y="224" text-anchor="middle" fill="#94A3B8" font-size="10">traverse</text>
+
+  <rect x="730" y="90" width="160" height="155" fill="#1E293B" stroke="#475569" stroke-width="1" rx="6"/>
+  <text x="810" y="112" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Legacy Query</text>
+  <text x="810" y="135" text-anchor="middle" fill="#FCD34D" font-size="10">⚠ Deprecated</text>
+  <text x="810" y="155" text-anchor="middle" fill="#94A3B8" font-size="10">fetch dt.entity.host</text>
+  <text x="810" y="171" text-anchor="middle" fill="#94A3B8" font-size="10">fetch dt.entity.service</text>
+  <text x="810" y="187" text-anchor="middle" fill="#94A3B8" font-size="10">fetch dt.entity.process_*</text>
+  <text x="810" y="212" text-anchor="middle" fill="#94A3B8" font-size="10">Still works on hybrid</text>
+  <text x="810" y="226" text-anchor="middle" fill="#94A3B8" font-size="10">tenants — migrate</text>
+
+  <!-- Footer -->
+  <line x1="40" y1="478" x2="890" y2="478" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="494" text-anchor="middle" fill="#64748B" font-size="10">Smartscape relationships are auto-discovered · ORGNZ + IAM use these layers for scoping</text>
+</svg>

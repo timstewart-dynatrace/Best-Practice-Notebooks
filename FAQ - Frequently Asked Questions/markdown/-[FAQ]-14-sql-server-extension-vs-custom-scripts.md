@@ -6,7 +6,7 @@
 
 Most teams arriving at Dynatrace with an established SQL Server estate bring a homegrown monitoring layer with them: a set of custom T-SQL queries polled by Telegraf, cron jobs, or a scheduler — blocked sessions, database status, agent job outcomes, log space, Always On health, instance status, and usually one or two exotic checks like tempdb version-store pressure. The scripts work, so the natural question is *"can't we just keep them?"*
 
-You can — but in a typical estate the **Microsoft SQL Server extension from Dynatrace Hub covers nearly the entire homegrown monitor set out of the box**, and it delivers three things a script can never produce: topology, first-class Smartscape entities, and Davis AI baselining. This entry maps a typical custom monitor set onto the extension's signals, is honest about the gaps, and lays out the decision — including when keeping Telegraf is the right call.
+You can — but in a typical estate the **Microsoft SQL Server extension from Dynatrace Hub covers nearly the entire homegrown monitor set out of the box**, and it delivers three things a script can never produce: topology, first-class Smartscape entities, and Davis analysis that knows which instance, database, or availability group a signal belongs to. This entry maps a typical custom monitor set onto the extension's signals, is honest about the gaps, and lays out the decision — including when keeping Telegraf is the right call.
 
 ---
 
@@ -32,7 +32,7 @@ You can — but in a typical estate the **Microsoft SQL Server extension from Dy
 |-------------|---------|
 | **Dynatrace Environment** | SaaS with Grail |
 | **ActiveGate** | An ActiveGate group with network reach to the SQL Server estate (host-based; a local OneAgent variant of the extension also exists) |
-| **SQL monitoring user** | `VIEW SERVER STATE` (SQL Server 2022+: `VIEW SERVER PERFORMANCE STATE`); `VIEW ANY DEFINITION` for Always On views; read on `msdb` for jobs/backups; `ALTER ANY DATABASE` (or `CREATE DATABASE` in `master`) if OFFLINE databases must be visible — `VIEW ANY DATABASE` shows ONLINE databases only |
+| **SQL monitoring user** | `VIEW SERVER STATE` (SQL Server 2022+: `VIEW SERVER PERFORMANCE STATE`, plus `VIEW SERVER SECURITY STATE` for the Agent feature set's `sys.dm_server_services`); `VIEW ANY DEFINITION` for Always On views; read on `msdb` for jobs/backups; `ALTER ANY DATABASE` (or `CREATE DATABASE` in `master`) if OFFLINE databases must be visible — `VIEW ANY DATABASE` shows ONLINE databases only |
 | **Audience** | DBA teams with existing script/Telegraf-based SQL Server monitoring; platform teams; account teams |
 | **Related series** | DBMON (database monitoring mechanics, dashboards, alerting), FAQ-09 (metric vs log query economics), AUTOM (extension deployment at scale) |
 
@@ -41,19 +41,19 @@ You can — but in a typical estate the **Microsoft SQL Server extension from Dy
 
 **Yes, for almost all of a typical script estate.** Deploy the Microsoft SQL Server extension (Hub, ActiveGate-based). In community practice, the monitor set most homegrown script estates carry is blocked sessions, database status, job outcomes, log space utilization, Always On sync health and failover posture, instance status, and file space — and each of those maps onto a documented `sql-server.*` metric or job-outcome log stream (§ 4). Run that mapping against your own script list before treating the verdict as yours. Keep custom collection only for the checks the extension genuinely doesn't make (in practice: tempdb version-store pressure, and filegroup-level rollups if that exact granularity drives an alert), and implement those as a small Extensions 2.0 SQL extension on the same ActiveGate.
 
-The reason to switch is not just parity. Scripts deliver numbers; the extension delivers numbers **attached to entities** — topology, Smartscape SQL Server instances/databases/availability groups, and Davis AI baselining on every signal. Bypassing the extension and shipping raw script output into Dynatrace forfeits exactly the capabilities most customers bought the platform for.
+The reason to switch is not just parity. Scripts deliver numbers; the extension delivers numbers **attached to entities** — topology, Smartscape SQL Server instances/databases/availability groups, and Davis anomaly detection that can correlate a signal with the rest of the topology. Bypassing the extension and shipping raw script output into Dynatrace keeps the baselines (custom metrics can use them too) but forfeits the entity context most customers bought the platform for.
 
 ![Custom SQL Server Scripts or the Dynatrace Extension?](images/14-extension-vs-custom-scripts-decision_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Path | What happens | What you get / give up |
 |------|--------------|------------------------|
-| Hub extension (recommended) | Typical monitor set covered OOTB via sql-server.* metrics + job log streams | Topology, Smartscape entities, Davis baselining; maintained by Dynatrace |
+| Hub extension (recommended) | Typical monitor set covered OOTB via sql-server.* metrics + job log streams | Topology, Smartscape entities, entity-aware Davis correlation; maintained by Dynatrace |
 | True gaps (tempdb version store, filegroup rollup) | Small custom EF 2.0 SQL extension, single-SELECT, same ActiveGate | You own it — but it shrinks to only what the extension lacks |
-| Keep Telegraf → Dynatrace metrics API | Queries unchanged | No topology, no Smartscape entities, no Davis baselining; second agent to operate |
+| Keep Telegraf → Dynatrace metrics API | Queries unchanged | No topology, no Smartscape entities, no entity-aware Davis correlation (baselines still possible); second agent to operate |
 -->
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [SQL Server Monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/).</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [SQL Server Monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/), [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — baselines for custom metrics, detailed in § 5.</sub>
 
 <a id="two-views"></a>
 ## 2. Two Views of a Database: Caller-Side vs Server-Side
@@ -120,13 +120,13 @@ In community practice, the monitor set below is the one seen most often in scrip
 If the extension only matched your scripts metric-for-metric, the migration would be a wash. The case for switching is what arrives *around* the numbers:
 
 1. **Topology and entity context.** Extension signals attach to SQL Server instance/database entities rather than floating as anonymous custom metrics. Since Semantic Dictionary 1.340, Smartscape models SQL Server natively — availability databases, groups, replicas, instances, and databases as first-class typed entities with relationships. A blocked-session spike is one click away from the services calling that database.
-2. **Davis AI baselining.** Every extension metric is eligible for Davis anomaly detection — seasonal baselines instead of the static thresholds scripts force you into. Your Telegraf metrics can be alerted on too, but only with thresholds you tune by hand, forever.
+2. **Entity-aware Davis analysis.** Every extension metric is eligible for Davis anomaly detection — auto-adaptive and seasonal baselines instead of static thresholds. Your Telegraf metrics can use the same baselines, but they alert as series attached at most to a host — no SQL Server instance, database or availability-group entity — so Davis cannot place them in the database topology when it correlates a problem.
 3. **Zero maintenance.** Dynatrace versions the extension against SQL Server releases, DMV changes, and permission-model changes (e.g., the 2022 `VIEW SERVER PERFORMANCE STATE` split). Every one of those is currently your job.
 4. **Unified alerting surface.** Metric events, Davis problems, and DQL log alerts on `failed_jobs` all flow into the same problem/notification pipeline as the rest of your observability — no parallel alert path to operate.
 
 In community practice, the maintenance point is the one that lands hardest with DBA teams: the scripts are rarely the problem — the person who wrote them leaving is.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database. **Derived:** the four-point value framing combines both sources with the DPS alerting model.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database; [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — *"Auto-adaptive thresholds and seasonal baselining are available only for metric selector events."*; [Extend metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics) — custom metrics are *"assigned to a host either automatically or by adding the dt.entity.host dimension"*, and *"You can also create custom alerts based on the ingested metrics."* **Derived:** the four-point value framing combines the cited sources with the DPS alerting model.</sub>
 
 <a id="gaps-and-constraints"></a>
 ## 6. Honest Gaps and Constraints
@@ -135,12 +135,12 @@ The migration case survives honesty; hiding these helps no one:
 
 - **No tempdb / version-store metrics.** Nothing in any feature set covers `version_store_reserved_page_count` or the longest-running-transaction counter. If you run read-committed snapshot isolation at scale, this check matters and stays custom.
 - **No filegroup dimension.** File metrics are per-database and per-file. A filegroup %-of-maxsize rollup cannot be reconstructed from the documented dimensions.
-- **Jobs bill as log ingest,** not metrics (as do the largest-files and top-queries streams). Factor it into DPS planning — the volumes are small (top-100 records every 5 minutes), but it is a different meter.
+- **Jobs bill as log ingest,** not metrics (as do the largest-files and top-queries streams). Factor it into DPS planning — volumes are usually small (failed jobs and largest files are capped at 100 records per 5 minutes), but current jobs scale with your job count, and the *Locks and waits* `all_requests` stream emits every active request each minute — size it before enabling. It is also a different meter.
 - **Always On needs deliberate config.** Two monitoring configurations: Always On feature set → primary replicas only; everything else → all instances. Connecting primaries *and* secondaries with Always On enabled produces duplicate metrics — documented as discouraged.
 - **Blocked-process semantics** differ from typical scripts (blocked vs blocking counts) — revalidate thresholds during the parallel run.
 - **The extension accepts no user-defined SQL.** Custom checks don't bolt onto it; they live in a separate small extension (next section).
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — feature-set catalog, dimension lists, Always On configuration guidance, and DDU/DPS notes.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2) — feature-set catalog, dimension lists, Always On configuration guidance, and DDU/DPS notes, incl. *"top 100 failed jobs * 12 * avg log size"*, *"Number of currently enabled jobs * 12 * avg log size"* and *"avg Number of active requests * 60 * avg log size"*.</sub>
 
 <a id="custom-extension"></a>
 ## 7. Closing Real Gaps with a Small Custom Extension
@@ -151,13 +151,13 @@ Constraints that will affect scripts as currently written:
 
 - **Single, plain `SELECT` statements only.** `DECLARE`, table variables, `INSERT…EXEC`, `sp_MSforeachdb`, and `IF/ELSE` are rejected — most homegrown checks need a rewrite into one SELECT (usually straightforward: subqueries + `CROSS JOIN` replace the procedural scaffolding).
 - **Comments inside queries are rejected.**
-- Default 10-second query timeout; queries run sequentially on one connection.
+- Default 10-second query timeout, and *"Only one query can be executed at a time"* — another reason a multi-statement script has to collapse into one SELECT.
 
 In community practice, the design rule worth adopting during the rewrite is **emit raw values, not verdicts.** A script that returns `1` when version store exceeds 30% of tempdb bakes the threshold into the collector. Emit the percentage as a gauge and put the `> 30` in a Dynatrace metric event — thresholds become tunable, and Davis can baseline the raw signal.
 
 The DBMON series carries the mechanics of the server-side view; the [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference) documents the YAML shape, scheduling (per-minute to cron), and dimension model.
 
-> <sub>**Sources:** [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference).</sub>
+> <sub>**Sources:** [SQL data source reference (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/sql/sql-reference) — *"Only one query can be executed at a time"*, *"Queries containing comments are rejected"*, *"Timeouts are specified in seconds; the default value is 10."*</sub>
 
 <a id="keep-telegraf"></a>
 ## 8. The Keep-Telegraf Fallback
@@ -170,13 +170,13 @@ Be clear-eyed about what that choice costs:
 |---|---|---|
 | Query rewrite | Gaps only (single-SELECT) | None |
 | Topology / Smartscape entities | ✅ | ❌ plain custom metrics |
-| Davis baselining context | ✅ entity-aware | ⚠️ metric-only |
+| Davis baselines | ✅ entity-aware — correlated into problems | ⚠️ available on the series, but no SQL Server entity context |
 | Maintenance owner | Dynatrace (+ your small gap extension) | You, indefinitely |
 | Agents to operate | ActiveGate (already required) | ActiveGate **+** Telegraf fleet |
 
-If you skip the extension entirely and bring everything in through Telegraf, you are running Dynatrace as a metrics bucket — forfeiting the topology, entity model, and AI baselining that differentiate it, and handicapping the platform's ability to deliver the visibility and predictability you adopted it for. The fallback earns its keep as a **transition state** (parallel-run during migration) or for the rare check that resists a single-SELECT rewrite — not as the destination.
+If you skip the extension entirely and bring everything in through Telegraf, you are running Dynatrace as a metrics bucket — forfeiting the topology, entity model, and entity-aware Davis correlation that differentiate it, and handicapping the platform's ability to deliver the visibility and predictability you adopted it for. The fallback earns its keep as a **transition state** (parallel-run during migration) or for the rare check that resists a single-SELECT rewrite — not as the destination.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2). **Derived:** the trade-off table combines the extension's documented entity model with the plain-custom-metric behavior of API-ingested series.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2). [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — auto-adaptive and seasonal baselines for metric selector events. **Derived:** the trade-off table combines the extension's documented entity model with the plain-custom-metric behavior of API-ingested series.</sub>
 
 <a id="setup-and-cost"></a>
 ## 9. Setup Essentials and Cost
@@ -197,7 +197,7 @@ Verification once data flows — blocked processes from the Default feature set:
 timeseries blocked = avg(`sql-server.general.processesBlocked`), from:-24h
 ```
 
-And the failed-jobs log stream — the failure message text is right there in Grail. Two details matter. Filter on the extension and the `failed_jobs` event group, the way the extension documentation does, rather than on `last_run_outcome`: that field is on the `current_jobs` stream, a snapshot taken every 5 minutes, so counting its records counts snapshots rather than failures. And count distinct `stop_execution_date` values, so a failure that appears in more than one 5-minute fetch is counted once. **This query follows the documented field list but has not been run against live SQL Server data** (the validation tenant has no SQL Server extension deployed; it executes and returns no rows) — confirm the counts on your own estate before alerting on them:
+And the failed-jobs log stream — the failure message text is right there in Grail. Two details matter. Filter on the extension and the `failed_jobs` event group, the way the extension documentation does, rather than on `last_run_outcome`: that field is on the `current_jobs` stream, a snapshot taken every 5 minutes, so counting its records counts snapshots rather than failures. And count distinct `stop_execution_date` values, so a failure that appears in more than one 5-minute fetch is counted once. **This query follows the documented field list but has not been run against live SQL Server data** (the validation tenant has no SQL Server extension deployed; it executes and returns no rows) — confirm the counts on your own estate before alerting on them. Extension 3.1.2 and later route its logs through dedicated OpenPipeline pipelines, and the extension notes that *"OpenPipeline also handles some field names differently, for example, capitalization"* — check `job_name` and `stop_execution_date` on one live record first:
 
 ```dql
 // Failed SQL Server Agent jobs in the last 24h (Jobs feature set, failed_jobs stream).
@@ -228,7 +228,7 @@ fetch logs, from:-24h
 
 | Objection | Response |
 |---|---|
-| "Our scripts already work." | They work at the cost of permanent maintenance and zero context. The extension delivers the same signals with topology, Smartscape entities, and Davis baselining — and Dynatrace maintains it. |
+| "Our scripts already work." | They work at the cost of permanent maintenance and zero context. The extension delivers the same signals with topology, Smartscape entities, and entity-aware Davis correlation — and Dynatrace maintains it. |
 | "We have checks the extension doesn't cover." | Usually one or two (tempdb version store is the classic). Those shrink into a small EF 2.0 extension; they don't justify keeping the whole estate. |
 | "We don't want an agent on the DB hosts." | The extension is remote — it runs on an ActiveGate and queries over the network. Nothing installs on the database host. |
 | "Our thresholds are tuned; we can't lose them." | Keep them as metric events during the parallel run, then let Davis baselines take over where they prove better. Note the blocked-sessions semantic difference before copying values. |

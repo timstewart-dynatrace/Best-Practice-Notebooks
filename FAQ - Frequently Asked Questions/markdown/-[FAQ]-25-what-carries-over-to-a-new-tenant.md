@@ -1,6 +1,6 @@
 # FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -51,7 +51,7 @@ It routes rather than restates. The step-by-step procedures live in the **M2S** 
 | **Related topic series** | **M2S** (Managed → SaaS, nine steps) · **S2S** (SaaS → SaaS) · **AUTOM** (Monaco, Terraform, config-as-code) · **AIOPS** (how Davis detection learns) · **ORGNZ** / **IAM** (what the target tenant needs before anything arrives) |
 | **Related FAQs** | **FAQ-16** (classic entity selectors → Smartscape — the vocabulary behind section 4) · **FAQ-17** (planning a migration cutover — the sequencing this entry feeds) · **FAQ-12** (coverage gaps from partial enablement) |
 
-> **Validation status.** All four DQL queries were executed against a live Dynatrace tenant on 09/21/2026, and every quotation was checked against the page it cites on the same date. Section 4's `id_classic` finding was reproduced on two node types.
+> **Validation status.** All four DQL queries were executed against a live Dynatrace tenant on 09/21/2026, and every quotation was checked against the page it cites on the same date. Section 4's `id_classic` finding was reproduced on two node types. The dictionary and custom-device checks in section 4 were re-run on 10/02/2026, and the pages behind sections 3 and 6 were re-read on that date.
 
 <a id="short-answer"></a>
 ## 1. Short Answer
@@ -101,18 +101,18 @@ Configuration is the easy class, with one caveat: "moves" always means "moves **
 
 | Tool | Available for | Strength | Limit worth knowing |
 |---|---|---|---|
-| **SaaS Upgrade Assistant** | Managed → SaaS only | Purpose-built; rewrites entity IDs and dashboard ownership for you; per-row deploy results you can archive | Cannot resolve **name conflicts** — consolidating tenants with identically-named configurations needs Monaco instead |
-| **Monaco** | Any tenant pair | Handles consolidation and name conflicts; config-as-code | Extensions 2.0 coverage not verified for this FAQ — check the Monaco configuration-types page before relying on it |
+| **SaaS Upgrade Assistant** | Managed → SaaS only | Purpose-built; rewrites entity IDs and dashboard ownership for you; per-row deploy results you can archive | Its pages describe importing one Managed environment's configuration and say nothing about consolidating several, or about name conflicts — check the failed-row list before committing to it for a consolidation |
+| **Monaco** | Any tenant pair | Config-as-code; its project and environment model lets you rename or namespace configuration per source | Extensions 2.0 coverage not verified for this FAQ — check the Monaco configuration-types page before relying on it |
 | **Terraform** | Any tenant pair | Versioned, reviewable, good for the long term | Covers Extensions 2.0 active version (`dynatrace_hub_extension_active_version`) and monitoring configurations (`dynatrace_hub_extension_v2_config`), but IDs of other resources referenced inside a configuration's `value` (credentials, for example) are not remapped for you |
 | **Configuration / Settings API** | Any tenant pair | Total control; the fallback when nothing else covers a type | You own the export/transform/import loop and the error handling |
 
-The Assistant is the default for a Managed → SaaS move. If you are consolidating several Managed tenants into one SaaS tenant, that is the case it cannot handle, and reaching for Monaco *after* the Assistant has produced a pile of name-conflict failures is a worse day than choosing it up front.
+The Assistant is the default for a Managed → SaaS move. In community practice, consolidating several source environments with identically named configurations into one tenant is easier with Monaco, because you can rename or namespace per source. Decide this before the move: discovering name-conflict failures after an Assistant run is a worse day than choosing the tool up front.
 
 ### Migrate once, not twice
 
-A Managed → SaaS move is a host-and-path rewrite of every API call. A later upgrade to the latest Dynatrace is a *second* rewrite, and the two are easy to conflate. Endpoints under `/platform/` and the **ingest** paths (`/api/v2/logs/ingest`, `/metrics/ingest`, `/events/ingest`, `/api/v2/otlp`, `/api/bizevents/ingest`) carry forward; most of `/api/config/v1` does not.
+A Managed → SaaS move is a host-and-path rewrite of every API call. A later upgrade to the latest Dynatrace is a *second* rewrite, and the two are easy to conflate. In community practice, endpoints under `/platform/` and the **ingest** paths (`/api/v2/logs/ingest`, `/metrics/ingest`, `/events/ingest`, `/api/v2/otlp`, `/api/bizevents/ingest`) are treated as carrying forward and most of `/api/config/v1` as not. No single Dynatrace page lists the survivors, so confirm each endpoint on its own API page before you rely on the table below.
 
-The narrow `/api/config/v1` survivors are worth knowing precisely because they sit next to endpoints that do not survive, and the pairs look alike:
+The narrow `/api/config/v1` survivors are worth knowing precisely because they sit next to endpoints that do not survive, and the pairs look alike. This table is the repointing analysis carried in **M2S-06**, not a Dynatrace-published list:
 
 | Endpoint | Survives the Gen3 upgrade? |
 |---|---|
@@ -120,14 +120,14 @@ The narrow `/api/config/v1` survivors are worth knowing precisely because they s
 | `/service/requestAttributes` | Yes |
 | `/service/customServices` | Yes |
 | `/service/conditionalNaming/*` | **No** |
-| `/calculatedMetrics/service` | **No** |
+| `/calculatedMetrics/service` | **Verify** — listed as not surviving, but its API page is tagged *Latest Dynatrace* and documents enabling service metrics on Grail |
 | `/calculatedMetrics/mobile` | Yes |
 
 If you are rewriting a script anyway, point it at its Gen3 equivalent in the same pass. **M2S-06** carries the full repointing table, and **AUTOM-02** catalogs the replacements.
 
 ### A worked example: per-service request naming
 
-Request naming is a common "how do we move this?" question, and it is a clean class-1 case. The [Request naming API](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api) is `/api/config/v1/service/requestNaming`, it survives the Gen3 upgrade, and the export/import loop is:
+Request naming is a common "how do we move this?" question, and it is a clean class-1 case. The [Request naming API](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api) is `/api/config/v1/service/requestNaming`; it is on the survivor list above (the API page itself makes no availability statement either way), and the export/import loop is:
 
 ```bash
 # 1. List rule IDs on the source tenant
@@ -149,7 +149,7 @@ Two things to check before running it at scale. Rules whose conditions reference
 
 For anything beyond a one-off, prefer config-as-code over a bespoke script: the Terraform provider's [`dynatrace_request_naming`](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_naming) resource maps to this same endpoint, with [`dynatrace_request_namings`](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_namings) for ordering. Same effort, and the result is versioned rather than a migration-day artifact nobody can reproduce.
 
-> <sub>**Sources:** [Request naming API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api), [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"imports your Dynatrace Managed environment configuration"*, [dynatrace_request_naming (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_naming), [hub_extension_v2_config (Terraform provider, dynatrace-oss GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_v2_config.md) — *"manages monitoring configurations for Dynatrace Extensions 2.0"*; *"This type of cross-resource reference is **not automatically resolved or tracked** by this provider"*, [hub_extension_active_version (Terraform provider, dynatrace-oss GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_active_version.md) — *"covers activating a specific version of an Extension"*. **Derived:** the survives/does-not-survive table condenses M2S-06's repointing analysis; the rule-ordering caveat follows from naming rules being sequentially evaluated.</sub>
+> <sub>**Sources:** [Request naming API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api), [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"imports your Dynatrace Managed environment configuration"*, [dynatrace_request_naming (Terraform Registry)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/request_naming), [hub_extension_v2_config (Terraform provider, dynatrace-oss GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_v2_config.md) — *"manages monitoring configurations for Dynatrace Extensions 2.0"*; *"This type of cross-resource reference is **not automatically resolved or tracked** by this provider"*, [hub_extension_active_version (Terraform provider, dynatrace-oss GitHub)](https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/hub_extension_active_version.md) — *"covers activating a specific version of an Extension"*. [Service metrics API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/calculated-metrics/service-metrics) — *"Edit a metric on Grail Enable or disable a calculated service metric on Grail."* **Derived:** the rule-ordering caveat follows from naming rules being sequentially evaluated.</sub>
 
 <a id="identity"></a>
 ## 4. Class 2 — Identity: Everything Gets a New ID
@@ -184,19 +184,20 @@ fetch dt.semantic_dictionary.models
 | sort classic_models asc
 ```
 
-On the validation tenant this returned **28 mappings across 23 distinct classic entity types** (09/21/2026). Three rows in that output do not behave like the rest, and each fails silently rather than loudly:
+On the validation tenant this returned **28 mappings across 23 distinct classic entity types** (09/21/2026). Four rows in that output do not behave like the rest, and each fails silently rather than loudly:
 
 - **`dt.entity.application` and `dt.entity.mobile_application` both map to `FRONTEND`.** A translation that assumes one classic type per node type over-counts — migrate `dt.entity.application` without a `frontend.type == "web"` filter and you silently pick up the mobile apps too.
 - **`dt.entity.cloud_application` fans out** to six Kubernetes workload types (`K8S_DEPLOYMENT`, `K8S_STATEFULSET`, `K8S_DAEMONSET`, `K8S_JOB`, `K8S_CRONJOB`, `K8S_REPLICASET`) rather than mapping to one. Check the target type before translating.
 - **`dt.entity.custom_application` has no row at all.** There is no `CUSTOM_APPLICATION` node type; querying one returns nothing rather than erroring.
+- **`dt.entity.custom_device` maps only to `OS_SERVICE`.** On the validation tenant (10/02/2026) there were 15 classic custom devices over 7 days and 0 `OS_SERVICE` nodes, so a query translated along this row returns nothing. No page documents how extension-created custom devices are modelled in Smartscape — count both sides before translating.
 
 **FAQ-16** covers the full translation — constructs, topology navigation and the gotchas — and is the place to go if this is your main task rather than a side-effect of the migration.
 
-> <sub>**Dictionary:** `dt.semantic_dictionary.models` filtered to `data_object == "smartscape.nodes"` with a non-null `classic_models` — 28 expanded rows over 23 distinct classic types, read 09/21/2026. **Sources:** [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"adjusting entity IDs that have changed between environments"*.</sub>
+> <sub>**Dictionary:** `dt.semantic_dictionary.models` filtered to `data_object == "smartscape.nodes"` with a non-null `classic_models` — 28 expanded rows over 23 distinct classic types, read 09/21/2026; the `dt.entity.custom_device` → `OS_SERVICE` row re-read 10/02/2026 (control: `fetch dt.entity.custom_device, from:-7d` → 15 entities; `smartscapeNodes "OS_SERVICE", from:-7d` → 0). **Sources:** [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"adjusting entity IDs that have changed between environments"*.</sub>
 
 ### The bridge field, and the comparison that silently returns false
 
-Every Smartscape node that has a classic counterpart carries **`id_classic`**, holding the classic `HOST-…` / `SERVICE-…` identifier. Smartscape-native types have none: on the validation tenant (09/28/2026) `HOST` 7 of 7, `SERVICE` 35 of 35 and `K8S_POD` 1,667 of 1,667 carried it, while `ACTIVEGATE`, `ONEAGENT`, `K8S_DYNAKUBE` and cloud-resource types such as `AWS_EC2_INSTANCE` carried it on 0 nodes, and `PROCESS` on 210 of 215. On tenants before SaaS 1.348 some Kubernetes nodes were also missing it. Filter reconciliation queries with `isNotNull(id_classic)` so that nodes with no classic twin are not counted as unmatched. It is the natural thing to reconcile a migrated query against an unmigrated one — and the obvious way to use it does not work.
+Smartscape nodes created from classic entities carry **`id_classic`**, holding the classic `HOST-…` / `SERVICE-…` identifier. The semantic dictionary marks the field **`deprecated`**: *"Not all entities have this ID, and it is not generated for new entities. Use the `id` field instead, which is the Smartscape ID."* Treat it as a bridge for translating *queries* within one tenant — not as a key that matches entities across tenants, and not as something a new tenant is guaranteed to generate for the entities it discovers. Smartscape-native types have none: on the validation tenant (09/28/2026) `HOST` 7 of 7, `SERVICE` 35 of 35 and `K8S_POD` 1,667 of 1,667 carried it, while `ACTIVEGATE`, `ONEAGENT`, `K8S_DYNAKUBE` and cloud-resource types such as `AWS_EC2_INSTANCE` carried it on 0 nodes, and `PROCESS` on 210 of 215. On tenants before SaaS 1.348 some Kubernetes nodes were also missing it. Filter reconciliation queries with `isNotNull(id_classic)` so that nodes with no classic twin are not counted as unmatched. Where it is present, it is the natural thing to reconcile a migrated query against an unmigrated one — and the obvious way to use it does not work.
 
 `id` and `id_classic` are **different types**: `id` is a `smartscape_id`, `id_classic` is a `string`. Comparing them with `==` is always `false`, even when the two values print identically side by side. Grail never raises an error — at most it attaches an **INFO-severity notification**, and on a later re-run not even that — so a query runs, returns a full set of rows, and quietly answers the opposite of the question:
 
@@ -226,7 +227,7 @@ Reproduced on a second node type: `smartscapeNodes "SERVICE"` with `toString(id)
 
 The general rule this is an instance of: **in DQL, a comparison between two fields of different types is a false negative, not an error.** It belongs with the corpus's other silent-zero traps — an integer compared against a `duration`, or `==` against an array field.
 
-> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with `==`, 5 of 5 with `toString`; SERVICE 0 of 22 / 22 of 22), with an empty `notifications` array. `id_classic` population by node type (`summarize countIf(isNotNull(id_classic)), by:{type}`) executed 09/28/2026. [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"This field is now correctly written for all K8S_* entity types as part of the ongoing migration to OpenPipeline-based Smartscape ingest."*</sub>
+> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Dictionary:** `id` (`stable`), `id_classic` (`deprecated`; its description is quoted in the text above), read from `dt.semantic_dictionary.fields` 10/02/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with `==`, 5 of 5 with `toString`; SERVICE 0 of 22 / 22 of 22), with an empty `notifications` array. `id_classic` population by node type (`summarize countIf(isNotNull(id_classic)), by:{type}`) executed 09/28/2026. [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"This field is now correctly written for all K8S_* entity types as part of the ongoing migration to OpenPipeline-based Smartscape ingest."*</sub>
 
 ### Can your estate even be reconciled by name?
 
@@ -308,7 +309,7 @@ These have no clock. They are simply absent in the new tenant until a human puts
 
 | Item | Why it cannot move | What to do |
 |---|---|---|
-| **Credential-vault secrets** | Secrets are not exportable from any tenant | Recreate each credential; inventory them *before* cutover |
+| **Credential-vault secrets** | The Upgrade Assistant documents importing *configuration*, not secrets, and the vault returns a secret value only for AppEngine-scoped credentials, to an authorized caller | Recreate each credential; inventory them *before* cutover |
 | **API tokens** | Same | Create new tokens, update every consumer |
 | **OAuth client secrets** | Same | Create new clients |
 | **Cloud integration credentials** | Tenant-scoped keys | New integration credentials per tenant |
@@ -319,7 +320,7 @@ These have no clock. They are simply absent in the new tenant until a human puts
 
 The secrets row is the one that bites hardest on migration day, because it is invisible until something fails to authenticate. **Inventory every credential before the cutover, not during it** — a workflow that silently stops running because its vault entry does not exist in the new tenant looks like a workflow bug, not a migration gap.
 
-> <sub>**Sources:** the history-depth query was executed against a live Dynatrace tenant 09/21/2026 (least-covered hosts: 1, 2 and 4 days within a 31-day window); the `interval:1d` → `24h` rewrite was observed in that query's own response notifications. [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"imports your Dynatrace Managed environment configuration"*.</sub>
+> <sub>**Sources:** the history-depth query was executed against a live Dynatrace tenant 09/21/2026 (least-covered hosts: 1, 2 and 4 days within a 31-day window); the `interval:1d` → `24h` rewrite was observed in that query's own response notifications. [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant) — *"imports your Dynatrace Managed environment configuration"*, [Credential vault client (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/) — `getCredentialsDetails`: *"The credentials set including username/certificate, password or token is included in the response."* (checked in `@dynatrace-sdk/client-classic-environment-v2` 9.1.0 typings, 10/02/2026, which also reject other scopes: *"Only APP_ENGINE scope is supported."*).</sub>
 
 <a id="the-dual-run-question"></a>
 ## 6. The Dual-Run Question
@@ -332,7 +333,7 @@ This section restates rather than routes, because it is the one question where t
 | | What people picture | What actually works |
 |---|---|---|
 | Shape | One host, two OneAgents, reporting to Managed and SaaS simultaneously | Phased waves: migrated hosts report to SaaS, pending hosts report to Managed. Both tenants live, never the same host. |
-| Status | Not supported. A single OneAgent per host is required, and one OneAgent has one destination. Doubled overhead is not the objection. | Supported. Cross-environment tracing and cross-environment dashboard tiles span the boundary during the overlap. |
+| Status | Not supported. A single OneAgent per host is required, and one OneAgent has one destination. Doubled overhead is not the objection. | Supported. Cross-environment tracing and cross-environment dashboard tiles (both Dynatrace Classic features) can span the boundary during the overlap - confirm the target still offers them. |
 | Dual-send | Not available from OneAgent | Available from cloud integrations (AWS/Azure/GCP), OpenTelemetry collectors, and API log/metric ingest - two destinations with separate credentials |
 | Residual gap | - | Each host is dark for its restart window and services stay incomplete until application processes restart. Schedule it; you cannot remove it. |
 For environments where SVG doesn't render
@@ -340,7 +341,7 @@ For environments where SVG doesn't render
 
 ### Why "run both for a while" is not on the menu
 
-Dynatrace documents the constraint directly: *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."* And a single OneAgent addresses one environment — multi-tenant reporting is not a supported configuration.
+Dynatrace documents the constraint directly: *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."* And a OneAgent is pointed at one environment: `oneagentctl --set-tenant` takes one environment ID and one tenant token.
 
 The failure mode here is a reasoning one. Installing a second agent *sounds* like a heavier-but-viable trade-off — you would expect the objection to be CPU and memory, and you would be willing to pay it for a few weeks of certainty. It is not a trade-off. It is an unsupported state, which is a different kind of answer, and treating it as a cost question leads teams to accept a cost they cannot actually buy anything with.
 
@@ -350,13 +351,16 @@ The failure mode here is a reasoning one. Installing a second agent *sounds* lik
 |---|---|
 | **Both tenants carrying real traffic** | Phased waves. Migrated hosts report to the target, pending hosts report to the source. The overlap is real; it is just distributed across the estate rather than stacked on one machine. |
 | **Traces that cross the boundary** | Connect the environments and enable cross-environment tracing, so a call from a migrated service into an unmigrated one still stitches into one trace. |
-| **A single view during the overlap** | Cross-environment dashboard tiles surface remote-environment metrics on a local dashboard. |
+| **A single view during the overlap** | Cross-environment dashboard tiles surface remote-environment metrics on a local dashboard — a Dashboards Classic feature, not available in the new Dashboards app. |
 | **Guaranteed continuity on one signal** | The non-OneAgent sources genuinely can dual-send: cloud integrations, OpenTelemetry collectors and API log/metric ingest all take two destinations with separate credentials. |
 
-Three caveats on cross-environment tracing that determine whether it will actually cover your seam:
+**Both overlap mechanisms are Dynatrace Classic features.** The cross-environment tracing page is tagged *Dynatrace Classic* and is configured with a classic access token, and the multi-environment dashboard page *"refers to classic dashboards created using the Dashboards Classic functionality integrated with Dynatrace Classic."* Classic access tokens do not exist in an environment that has completed the move to Latest Dynatrace. Confirm the target environment still offers both before you design the overlap around them; if it does not, plan seam validation without them (per-side traces and per-tenant dashboards).
+
+Four caveats on cross-environment tracing that determine whether it will actually cover your seam:
 
 - It is *"limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests."* **Asynchronous and messaging boundaries do not stitch.** If your call chain crosses a queue, plan the wave boundary somewhere else.
-- The connecting token needs the *"Look up a single trace"* scope (`traces.lookup`), and the OneAgent feature *Cross-environment tracing - Environment and transaction IDs in HTTP response headers* must be turned on.
+- *"IBM z/OS (CICS, IMS, and Java) and AWS Lambda don't support cross-environment tracing."* A seam into either needs a different validation plan.
+- The connecting token, created in the remote environment, needs two scopes — *"Look up a single trace"* (`traces.lookup`) and *"Fetch data from a remote environment"* (`RestRequestForwarding`) — and the OneAgent feature *Cross-environment tracing - Environment and transaction IDs in HTTP response headers* must be turned on.
 - **For Managed specifically:** connecting a SaaS environment to a Managed deployment on a URI outside the `dynatrace-managed.com` domain requires contacting a Dynatrace product expert. That is a lead-time item, not a settings toggle — raise it during planning, not on cutover weekend.
 
 ### The gap you are left with
@@ -365,7 +369,7 @@ A reconfigured host is dark for its restart window, and its services stay incomp
 
 Sequence waves so tightly-coupled services move together. Cross-environment tracing covers a seam, but every seam is something to validate, and fewer is better.
 
-> <sub>**Sources:** [Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent) — *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."*, [Set up cross-environment tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces/analysis/connect-environments) — *"Cross-environment tracing is limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests."*, plus the `traces.lookup` scope requirement and the Managed-domain escalation, both quoted from the same page.</sub>
+> <sub>**Sources:** [Dynatrace OneAgent (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent) — *"A single OneAgent per host is required to collect all relevant monitoring data—even if your hosts are deployed within Docker containers, microservices architectures, or cloud-based infrastructure."*, [Set up cross-environment tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-traces/analysis/connect-environments) — *"Cross-environment tracing is limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests."*, plus the `traces.lookup` and `RestRequestForwarding` scopes, the z/OS and Lambda limitation and the Managed-domain escalation, all quoted from the same page (tagged *Dynatrace Classic*, re-read 10/02/2026); [Create remote/multi-environment dashboards (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic/dashboards/dashboards-multi-environment) — *"This page refers to classic dashboards created using the Dashboards Classic functionality integrated with Dynatrace Classic."*; [Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*; [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface). **Derived:** one destination per OneAgent follows from `oneagentctl` configuring a single `--set-tenant` environment ID and tenant token.</sub>
 
 <a id="before-you-migrate"></a>
 ## 7. Before You Migrate: The Prep That Pays
@@ -378,9 +382,9 @@ Ordered by leverage. The first item is worth more than the rest combined.
 
 **3 · Inventory every secret.** Credential-vault entries, API tokens, OAuth clients, cloud integration credentials. None of them move, and each one absent on cutover day surfaces as something *else* failing — an integration that stops, a workflow that silently no-ops. A list written calmly beforehand is worth hours on the day.
 
-**4 · Decide the wave boundaries against your call graph, not your org chart.** Tightly-coupled services should move together. Where a boundary must cut a call chain, confirm it is an HTTP or synchronous hop — cross-environment tracing will not stitch an asynchronous one.
+**4 · Decide the wave boundaries against your call graph, not your org chart.** Tightly-coupled services should move together. Where a boundary must cut a call chain, confirm it is an HTTP or synchronous hop — cross-environment tracing will not stitch an asynchronous one, nor a hop into IBM z/OS or AWS Lambda.
 
-**5 · Raise the cross-environment connection early if the source is Managed.** The non-`dynatrace-managed.com` case needs a Dynatrace product expert, which is a lead-time dependency.
+**5 · Raise the cross-environment connection early.** Confirm the target environment still offers cross-environment tracing — it is a Dynatrace Classic feature configured with classic access tokens (section 6). If the source is Managed, the non-`dynatrace-managed.com` case needs a Dynatrace product expert, which is a lead-time dependency.
 
 **6 · Agree what "done" means per wave, in advance.** Entity counts reconciled, no metric gap over 15 minutes, spans flowing (zero spans means application processes were not restarted), logs continuous. **M2S-09** carries these as validation queries.
 
@@ -409,7 +413,7 @@ The last row is the useful one. The three classes need attention at three *diffe
 | If you are… | Go to |
 |---|---|
 | Running a Managed → SaaS migration | **M2S** — nine steps, from discovery to decommission |
-| Running a SaaS → SaaS migration or consolidation | **S2S** — including the name-conflict cases the Upgrade Assistant cannot handle |
+| Running a SaaS → SaaS migration or consolidation | **S2S** — including consolidating several environments into one |
 | Sequencing the cutover itself | **FAQ-17** — the eight cross-journey invariants, Go/No-Go gates and rollback triggers |
 | Translating classic entity selectors to Smartscape | **FAQ-16** — the full construct-by-construct mapping |
 | Choosing detection types for the new tenant | **AIOPS-02** — which detector for which metric |

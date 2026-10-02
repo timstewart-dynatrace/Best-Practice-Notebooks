@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -87,7 +87,7 @@ This is where most integration plans go wrong, and the failure is nearly always 
 | What the vendor sends | Route | You operate |
 |---|---|---|
 | HTTPS push (custom URL + auth header) | Direct to log ingest API | Nothing |
-| Raw TCP / TLS (no headers, no auth) | Collector hop required | OTel Collector or ActiveGate syslog |
+| Raw TCP / TLS (no headers, no auth) | Collector hop required | OTel Collector (ActiveGate syslog only if the stream is syslog-framed) |
 | Syslog (RFC 3164 / 5424) | ActiveGate syslog ingest | ActiveGate (multi-env not supported) |
 | Nothing — pull only (REST API) | Scheduled poller | Workflow, extension, or collector |
 | Already in a pipeline (SIEM feed exists) | Multi-home an output | Nothing new; inherits pipeline availability |
@@ -97,17 +97,17 @@ For environments where SVG doesn't render
 | What the vendor can send | Route into Dynatrace | Notes |
 |---|---|---|
 | **HTTPS POST** to an arbitrary URL with custom headers | **Direct** to the Dynatrace log ingest API | The only genuinely direct route. Requires the vendor to support a custom endpoint *and* a custom `Authorization` header |
-| **Raw TCP / TLS** to a host and port | **Collector hop required** — an OpenTelemetry Collector, an ActiveGate syslog receiver, or an existing pipeline product | The vendor cannot authenticate to a Dynatrace API over raw TCP. Something must terminate the stream and forward it |
+| **Raw TCP / TLS** to a host and port | **Collector hop required** — an OpenTelemetry Collector with a TCP or log receiver, or an existing pipeline product. The ActiveGate syslog receiver applies only if the stream is RFC 3164 / 5424 syslog | The vendor cannot authenticate to a Dynatrace API over raw TCP. Something must terminate the stream and forward it |
 | **Syslog** (RFC 3164 / 5424) | **ActiveGate syslog ingestion** or an OTel Collector `syslog` receiver | Environment ActiveGate on Linux, 1.295+, using its embedded OTel Collector. Multi-environment ActiveGates do not support syslog ingestion |
 | **Nothing — pull only (REST API)** | **Scheduled poller** — a Dynatrace workflow, an extension, or a collector | Common for experience/score APIs. Watch for per-request time-window limits, which set your minimum poll frequency |
 | **Already flowing to a pipeline product** you run | **Multi-home** an additional output to Dynatrace | Usually the cleanest enterprise answer — see below |
 
 > <sub>**Sources:**</sub>
-> - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — *"Environment ActiveGate version 1.295+ on Linux installed to monitor remote technologies"*, which *"uses an embedded Dynatrace OpenTelemetry Collector instance"*; note also *"Multi-environment ActiveGates do not support syslog ingestion."*</sub>
+> - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — *"Environment ActiveGate version 1.295+ on Linux installed to monitor remote technologies"*, which *"uses an embedded Dynatrace OpenTelemetry Collector instance"*; note also *"Multi-environment ActiveGates do not support syslog ingestion."* The receiver is scoped to syslog: *"Use this configuration only for syslog ingestion."*</sub>
 > - <sub>[Ingest syslog data with the OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/use-cases/syslog)</sub>
 > - <sub>[Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/)</sub>
 > - <sub>[Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/)</sub>
-> - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly</sub>
+> - <sub>[Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/) — the listed collector-hop routes for feeds that cannot post directly. The two Cribl listings read *"Provided by Cribl"* and *"Support By the partner"*; the syslog collector listing reads *"Provided by Dynatrace"*</sub>
 
 ### 3.1 The multi-home pattern — usually the right enterprise answer
 
@@ -117,17 +117,17 @@ If the vendor's logs already flow somewhere — a SIEM, a security data lake, an
 - **It gives you a transformation point you control.** Masking, field reduction, and sampling can be applied to the observability copy without touching the security copy, which usually must stay complete.
 - **It solves the transport problem for free.** The pipeline product already terminates whatever exotic transport the vendor uses; its outputs are ordinary HTTP.
 
-Dynatrace lists first-party destinations for this on the Hub for at least one common pipeline product, over both HTTP and OpenTelemetry.
+The Hub lists partner-provided destinations for at least one common pipeline product — Cribl, over both HTTP and OpenTelemetry. Both listings are provided and supported by the partner, not by Dynatrace.
 
 **The trade-off to state plainly:** you have added a dependency. The observability feed now inherits the pipeline's availability, its release cadence, and its owning team's change process. Where the pipeline is already business-critical this costs nothing; where it was a best-effort side system, direct ingestion may be the more honest choice.
 
-> <sub>**Sources:** [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/), [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/), [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/).</sub>
+> <sub>**Sources:** [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/) and [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/) — each reads *"Provided by Cribl"* and *"Support By the partner"*, [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/).</sub>
 
 ### 3.2 Check the Hub before you build anything
 
 Before designing a custom route, check whether the vendor already has a Dynatrace Hub listing. The answer materially changes the project:
 
-- **A listing exists** — you inherit a supported, documented path. Take it.
+- **A listing exists** — you inherit a documented path. Check the listing's *Provided by* and *Support by* lines to see whether Dynatrace or a partner stands behind it, then take it.
 - **No listing exists** — you are building and owning the integration yourself. That is a legitimate and common position, but it should be a *decision*, not a discovery made in week three. It means you own the parsing, the field mapping, the failure modes, and the upgrade path when the vendor changes its schema.
 
 In community practice, the second case is more common than teams expect for security and networking platforms specifically — verify for your own vendor rather than assuming either way.
@@ -186,7 +186,7 @@ For environments where SVG doesn't render
 > - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order and both processor definitions quoted above</sub>
 > - <sub>[Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — *"the record continues through all configured pipeline stages and is not stored only at the end of the pipeline. This means you can extract metrics and generate alerts from records that you won't store."*</sub>
 > - <sub>[Extraction stages in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction)</sub>
-> - <sub>[Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline) — worked extract-then-discard example</sub>
+> - <sub>[Parse log lines and extract a metric (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-log-processing-pipeline) — worked parse-and-extract-a-metric example; it has no discard step, so combine it with the *No storage assignment* step from the bucket-assignment page</sub>
 > - <sub>**Derived:** that `Drop record` in stage 1 pre-empts the extractors follows from its definition and the documented stage order; validate on a narrow route before applying it broadly</sub>
 
 ### 4.2 Decide what is worth keeping, by class
@@ -243,7 +243,9 @@ Before configuring processors, answer these five questions for each candidate ob
 2. **What is its stable identity?** The ID components must be present on every record that references the object, and must not change when the object is renamed or moved. A hostname is often a poor choice; a vendor-assigned ID is usually a good one.
 3. **Which feed defines it, and which merely mentions it?** Exactly one feed should extract the node. Everything else enriches with the ID only.
 4. **What does it connect to?** Structural relationships are static edges; observed ones are dynamic.
-5. **What is its lifetime?** Nodes that stop being extracted go stale rather than vanishing — worth knowing before you alert on their absence.
+5. **What is its lifetime?** Set *Node validity duration* (60–1440 minutes) to match how often the defining feed reports. A node that stops being extracted keeps its last `lifetime[end]` and drops out of any query whose timeframe starts after that — so absence checks need an explicit `from:` (§ 5.3).
+
+> <sub>**Sources:** [Smartscape node and edge extraction in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/smartscape-extraction) — *"Define how long the node should stay valid after the last update, from 60 to 1440 minutes."*, [Smartscape on Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail) — *"Based on the query timeframe, you will see only those nodes that have a lifetime overlapping with the query timeframe."*</sub>
 
 ### 5.3 Verifying the model
 
@@ -253,13 +255,17 @@ Discover which custom types actually landed:
 
 ```dql
 // Which CUSTOM_* node types exist in this environment?
-// Returns zero rows if extraction has not produced any node yet — that is
-// the expected result before the pipeline runs, not an error. Confirm it is
-// really that, though: a zero here is also what a wrong node type looks like.
-smartscapeNodes "CUSTOM_*"
+// The from: matters: without it only nodes seen in the last 2 hours are returned,
+// so a feed polled hourly or daily can look absent between runs. Set it to at
+// least twice your poll interval.
+// Zero rows is expected before the pipeline first runs, not an error. Confirm it
+// is really that, though: a zero here is also what a wrong node type looks like.
+smartscapeNodes "CUSTOM_*", from:-7d
 | dedup type
 | fields type
 ```
+
+> <sub>Executed 10/02/2026: valid, zero rows on a tenant with no custom pipeline; the control `smartscapeNodes "AWS_*", from:-7d | dedup type` returned types, so the wildcard form works. Without `from:` the query's analysis timeframe was 2 hours.</sub>
 
 Then inspect one type, and check for nodes that have stopped being refreshed:
 
@@ -306,18 +312,23 @@ Where § 4 concluded "retain this raw," the record needs somewhere to go that is
 
 Bucket permissions are assigned per bucket through Account Management rather than through general environment roles — which is precisely the property that makes the isolation meaningful.
 
-Once the bucket exists, confirm records are landing where you intended, and keep an eye on the volume you have committed to:
+Once the bucket exists, confirm the vendor's records are landing where you intended — group the vendor's feed by bucket, rather than counting a bucket's contents:
 
 > <sub>**Sources:** [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — per-bucket retention and route-based storage assignment, [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Permissions can be assigned at the bucket, table, record, and field level"*, which is what makes a dedicated bucket a real isolation boundary. **Derived:** the exposure argument for a dedicated bucket combines per-bucket permissioning with the identity content of these feeds; no page frames it as a vendor-feed rule.</sub>
 
 ```dql
-// Confirm retained records are landing in the dedicated bucket, not the default.
-// Substitute your bucket name. Run over a short window first — this is a
-// full log scan and is billed accordingly (see FAQ-09).
-fetch logs, from:-24h
-| filter dt.system.bucket == "default_logs"
-| summarize records = count()
+// Where is the vendor's feed landing? Substitute the vendor's log.source
+// (or whichever field your route matches on).
+// Expect one row: your dedicated bucket. A default_logs row means the route
+// or the bucket assignment is wrong.
+// The log.source filter does not reduce the bytes scanned — every log in the
+// window is read — so keep the window short (see FAQ-09).
+fetch logs, from:-1h
+| filter log.source == "<vendor-source>"
+| summarize records = count(), by:{dt.system.bucket}
 ```
+
+> <sub>Executed 10/02/2026 with a real `log.source` from the validation tenant: one row per bucket, including `default_logs` for a source split across four buckets — the shape this check is meant to surface. One hour scanned 2.36 GB, no notifications.</sub>
 
 Complementary controls worth applying in the Processing stage, before storage:
 
@@ -408,7 +419,7 @@ A defensible sequence. The ordering is deliberate — each step's output is the 
 | 2 | **Assuming every feed can go direct.** A vendor commonly uses HTTPS for one product line and raw TCP for another; only the first can reach the ingest API unaided | Route per feed, from the transport (§ 3) |
 | 3 | **Extraction is forward-only.** A metric added in month four has no history in months one through three | Extract the dimensions you might want from the start (§ 4.2) |
 | 4 | **Dynamic edges silently produce nothing** when both Smartscape IDs are not already on the record | Calculate both IDs with node processors in the node stage first, even where you do not want them to create nodes (§ 5.1) |
-| 5 | **A wrong node or edge type returns zero rows, not an error.** Empty results look identical to "not configured yet" | Verify with `smartscapeNodes "CUSTOM_*"` and `smartscapeEdges` before concluding the pipeline is broken (§ 5.3) |
+| 5 | **A wrong node or edge type returns zero rows, not an error.** Empty results look identical to "not configured yet" | Verify with `smartscapeNodes "CUSTOM_*", from:-7d` (a `from:` wider than your poll interval) and `smartscapeEdges` before concluding the pipeline is broken (§ 5.3) |
 | 6 | **Renaming a custom node type orphans existing nodes.** The type is part of the ID | Settle the `CUSTOM_` / `EXT_` naming scheme before the first extraction (§ 5.1) |
 | 7 | **Normalizing after extraction.** Metric dimensions and ID components are computed from fields as they stand at that stage | Rename in the Processing stage, ahead of everything (§ 7) |
 | 8 | **Retaining raw into the default bucket** because retention was never explicitly decided | Dedicated bucket with its own permissions and retention, or discard (§ 6) |

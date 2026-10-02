@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">The Dynatrace Metric Lifecycle</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="13">Produce &#8594; normalize into data points &#8594; dual-write to two stores &#8594; query</text>
+
+  <!-- Column 1: PRODUCE -->
+  <rect x="30" y="80" width="200" height="330" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="130" y="103" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">1. PRODUCE</text>
+
+  <rect x="45" y="115" width="170" height="48" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="130" y="135" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">OneAgent built-ins</text>
+  <text x="130" y="151" text-anchor="middle" fill="#94A3B8" font-size="10">10 s samples, auto topology</text>
+
+  <rect x="45" y="171" width="170" height="48" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="130" y="191" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">OTLP exporters</text>
+  <text x="130" y="207" text-anchor="middle" fill="#94A3B8" font-size="10">delta only, http/protobuf</text>
+
+  <rect x="45" y="227" width="170" height="48" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="130" y="247" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Ingest APIs</text>
+  <text x="130" y="263" text-anchor="middle" fill="#94A3B8" font-size="10">API v2 &#183; :14499 &#183; StatsD &#183; Telegraf</text>
+
+  <rect x="45" y="283" width="170" height="48" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="130" y="303" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Extensions 2.0</text>
+  <text x="130" y="319" text-anchor="middle" fill="#94A3B8" font-size="10">SNMP &#183; WMI &#183; JMX &#183; Prom &#183; SQL</text>
+
+  <rect x="45" y="339" width="170" height="48" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="130" y="359" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">OpenPipeline extraction</text>
+  <text x="130" y="375" text-anchor="middle" fill="#94A3B8" font-size="10">from logs / spans / events</text>
+
+  <!-- Arrow 1 -->
+  <line x1="230" y1="245" x2="262" y2="245" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Column 2: NORMALIZE -->
+  <rect x="262" y="80" width="186" height="330" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="355" y="103" text-anchor="middle" fill="#A5F3FC" font-size="15" font-weight="700">2. NORMALIZE</text>
+
+  <rect x="276" y="120" width="158" height="120" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="355" y="142" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">Data point</text>
+  <text x="355" y="161" text-anchor="middle" fill="#94A3B8" font-size="10">metric key (3&#8211;255 chars)</text>
+  <text x="355" y="177" text-anchor="middle" fill="#94A3B8" font-size="10">+ up to 50 dimensions</text>
+  <text x="355" y="196" text-anchor="middle" fill="#F8FAFC" font-size="10" font-weight="600">gauge: min / max / sum / count</text>
+  <text x="355" y="212" text-anchor="middle" fill="#F8FAFC" font-size="10" font-weight="600">count: delta only</text>
+  <text x="355" y="228" text-anchor="middle" fill="#94A3B8" font-size="10">timestamp: &#8722;1 h &#8230; +10 min</text>
+
+  <rect x="276" y="252" width="158" height="72" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="355" y="274" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">1-minute time slot</text>
+  <text x="355" y="292" text-anchor="middle" fill="#94A3B8" font-size="10">finest stored granularity;</text>
+  <text x="355" y="308" text-anchor="middle" fill="#94A3B8" font-size="10">pre-aggregates feed rollup:</text>
+
+  <rect x="276" y="336" width="158" height="60" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="355" y="358" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">Series</text>
+  <text x="355" y="376" text-anchor="middle" fill="#94A3B8" font-size="10">key &#215; dimension tuple</text>
+
+  <!-- Arrow 2 -->
+  <line x1="448" y1="245" x2="480" y2="245" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Column 3: STORE -->
+  <rect x="480" y="80" width="200" height="330" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="580" y="103" text-anchor="middle" fill="#FCD34D" font-size="15" font-weight="700">3. STORE (dual-write)</text>
+
+  <rect x="494" y="120" width="172" height="128" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="580" y="142" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">Metrics Classic</text>
+  <text x="580" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">builtin:* keys</text>
+  <text x="580" y="178" text-anchor="middle" fill="#94A3B8" font-size="10">1 min &#8594; 14 d &#183; 5 min &#8594; 28 d</text>
+  <text x="580" y="194" text-anchor="middle" fill="#94A3B8" font-size="10">1 h &#8594; 400 d &#183; 1 d &#8594; 5 y</text>
+  <text x="580" y="214" text-anchor="middle" fill="#FCA5A5" font-size="10" font-weight="600">granularity decays with age</text>
+  <text x="580" y="232" text-anchor="middle" fill="#94A3B8" font-size="10">retention 5 y, fixed</text>
+
+  <rect x="494" y="262" width="172" height="134" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="580" y="284" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">Metrics powered by Grail</text>
+  <text x="580" y="302" text-anchor="middle" fill="#94A3B8" font-size="10">dt.* keys</text>
+  <text x="580" y="322" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="600">1-min over entire history</text>
+  <text x="580" y="340" text-anchor="middle" fill="#94A3B8" font-size="10">15 months included</text>
+  <text x="580" y="356" text-anchor="middle" fill="#94A3B8" font-size="10">extensible to 10 years</text>
+  <text x="580" y="376" text-anchor="middle" fill="#94A3B8" font-size="10">limitless dimensions*</text>
+
+  <!-- Arrow 3 -->
+  <line x1="680" y1="245" x2="712" y2="245" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Column 4: QUERY -->
+  <rect x="712" y="80" width="188" height="330" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="806" y="103" text-anchor="middle" fill="#86EFAC" font-size="15" font-weight="700">4. QUERY</text>
+
+  <rect x="726" y="120" width="160" height="120" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="806" y="142" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">DQL timeseries</text>
+  <text x="806" y="160" text-anchor="middle" fill="#94A3B8" font-size="10">Notebooks &#183; Dashboards</text>
+  <text x="806" y="176" text-anchor="middle" fill="#94A3B8" font-size="10">reads Grail (dt.*)</text>
+  <text x="806" y="196" text-anchor="middle" fill="#86EFAC" font-size="10" font-weight="600">query always included</text>
+  <text x="806" y="212" text-anchor="middle" fill="#94A3B8" font-size="10">auto-binning, rollup:,</text>
+  <text x="806" y="228" text-anchor="middle" fill="#94A3B8" font-size="10">max 1,500 elements/series</text>
+
+  <rect x="726" y="252" width="160" height="96" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="806" y="274" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">Metric selectors</text>
+  <text x="806" y="292" text-anchor="middle" fill="#94A3B8" font-size="10">Data Explorer &#183; API v2</text>
+  <text x="806" y="308" text-anchor="middle" fill="#94A3B8" font-size="10">reads Classic (builtin:*)</text>
+  <text x="806" y="326" text-anchor="middle" fill="#94A3B8" font-size="10">:splitBy :fold :avg</text>
+
+  <rect x="726" y="360" width="160" height="36" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="806" y="382" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="600">makeTimeseries = records</text>
+
+  <!-- Bottom billing strip -->
+  <rect x="30" y="426" width="870" height="52" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="465" y="448" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">DPS: Ingest &amp; Process billed per data point (host/service dt.* mostly non-billable) &#183; Retain in GiB-days above included 462 days</text>
+  <text x="465" y="466" text-anchor="middle" fill="#94A3B8" font-size="11">Querying metrics with timeseries is always included &#8212; reading a metric costs nothing, however often it runs</text>
+</svg>

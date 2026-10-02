@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+
+  <!-- Title -->
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Anatomy of a DPL Matcher Expression</text>
+  <text x="465" y="57" text-anchor="middle" fill="#94A3B8" font-size="13">Every matcher follows one shape. Only the matcher itself is required — the rest refines it.</text>
+
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- Grammar strip -->
+  <rect x="24" y="82" width="882" height="46" fill="#1E293B" stroke="#334155" stroke-width="1.5" rx="6"/>
+  <text x="40" y="111" fill="#64748B" font-size="14" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">[lookaround]</text>
+  <text x="150" y="111" fill="#F8FAFC" font-size="14" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">MATCHER</text>
+  <text x="248" y="111" fill="#64748B" font-size="14" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">['(' config ')']</text>
+  <text x="392" y="111" fill="#64748B" font-size="14" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">[quantifier]</text>
+  <text x="510" y="111" fill="#64748B" font-size="14" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">[?]</text>
+  <text x="548" y="111" fill="#64748B" font-size="14" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">[':export_name']</text>
+  <text x="890" y="111" text-anchor="end" fill="#94A3B8" font-size="10" font-weight="600">GRAMMAR</text>
+
+  <!-- Worked example strip -->
+  <rect x="24" y="164" width="882" height="58" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="46" y="200" fill="#FCD34D" font-size="17" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">'svc='</text>
+  <text x="140" y="200" fill="#86EFAC" font-size="17" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">LD:svc</text>
+  <text x="250" y="200" fill="#FCD34D" font-size="17" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">' dur='</text>
+  <text x="366" y="200" fill="#86EFAC" font-size="17" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">INT(min=0):dur</text>
+  <text x="592" y="200" fill="#A78BFA" font-size="17" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">EOS</text>
+  <text x="890" y="185" text-anchor="end" fill="#BFDBFE" font-size="10" font-weight="600">WORKED EXAMPLE</text>
+
+  <!-- callout lines -->
+  <line x1="74" y1="228" x2="74" y2="262" stroke="#64748B" stroke-width="1.5" marker-end="url(#a1)"/>
+  <line x1="174" y1="228" x2="266" y2="262" stroke="#64748B" stroke-width="1.5" marker-end="url(#a1)"/>
+  <line x1="440" y1="228" x2="500" y2="262" stroke="#64748B" stroke-width="1.5" marker-end="url(#a1)"/>
+  <line x1="606" y1="228" x2="726" y2="262" stroke="#64748B" stroke-width="1.5" marker-end="url(#a1)"/>
+
+  <!-- Callout: literal -->
+  <rect x="24" y="266" width="196" height="106" fill="#FFB800" opacity="0.10" stroke="#FFB800" stroke-width="1.5" rx="6"/>
+  <text x="40" y="290" fill="#FCD34D" font-size="12" font-weight="700">LITERAL</text>
+  <text x="40" y="312" fill="#94A3B8" font-size="11">Exact text, in quotes.</text>
+  <text x="40" y="329" fill="#94A3B8" font-size="11">Consumed but not kept.</text>
+  <text x="40" y="352" fill="#F8FAFC" font-size="11" font-weight="600">Bounds the matcher</text>
+  <text x="40" y="366" fill="#F8FAFC" font-size="11" font-weight="600">beside it.</text>
+
+  <!-- Callout: export name -->
+  <rect x="234" y="266" width="222" height="106" fill="#73BE28" opacity="0.10" stroke="#73BE28" stroke-width="1.5" rx="6"/>
+  <text x="250" y="290" fill="#86EFAC" font-size="12" font-weight="700">MATCHER : EXPORT NAME</text>
+  <text x="250" y="312" fill="#94A3B8" font-size="11">The name is what makes the</text>
+  <text x="250" y="329" fill="#94A3B8" font-size="11">match into a field.</text>
+  <text x="250" y="352" fill="#F8FAFC" font-size="11" font-weight="600">Unnamed matchers still</text>
+  <text x="250" y="366" fill="#F8FAFC" font-size="11" font-weight="600">consume input.</text>
+
+  <!-- Callout: config -->
+  <rect x="470" y="266" width="222" height="106" fill="#1496FF" opacity="0.10" stroke="#1496FF" stroke-width="1.5" rx="6"/>
+  <text x="486" y="290" fill="#BFDBFE" font-size="12" font-weight="700">CONFIGURATION</text>
+  <text x="486" y="312" fill="#94A3B8" font-size="11">min= max= format= timezone=</text>
+  <text x="486" y="335" fill="#F8FAFC" font-size="11" font-weight="600">Bounds validate as well</text>
+  <text x="486" y="349" fill="#F8FAFC" font-size="11" font-weight="600">as extract — out of range</text>
+  <text x="486" y="363" fill="#F8FAFC" font-size="11" font-weight="600">yields null, not a clamp.</text>
+
+  <!-- Callout: positional -->
+  <rect x="706" y="266" width="200" height="106" fill="#A78BFA" opacity="0.10" stroke="#A78BFA" stroke-width="1.5" rx="6"/>
+  <text x="722" y="290" fill="#A78BFA" font-size="12" font-weight="700">POSITIONAL</text>
+  <text x="722" y="312" fill="#94A3B8" font-size="11">BOS · MOS · EOS</text>
+  <text x="722" y="335" fill="#F8FAFC" font-size="11" font-weight="600">Anchors the pattern.</text>
+  <text x="722" y="349" fill="#F8FAFC" font-size="11" font-weight="600">Consumes nothing.</text>
+  <text x="722" y="365" fill="#94A3B8" font-size="11">EOL is not one: it eats \n.</text>
+
+  <!-- Bottom rule bar -->
+  <rect x="24" y="392" width="882" height="94" fill="#DE350B" opacity="0.10" stroke="#DE350B" stroke-width="1.5" rx="6"/>
+  <text x="44" y="416" fill="#DE350B" font-size="13" font-weight="700">THE RULES THAT BREAK PATTERNS</text>
+  <text x="44" y="438" fill="#F8FAFC" font-size="12.5"><tspan font-weight="700">No backtracking.</tspan> A greedy matcher that over-consumes never gives characters back — the pattern fails instead. A quantified</text>
+  <text x="44" y="456" fill="#F8FAFC" font-size="12.5">matcher must never be able to match its own delimiter: <tspan fill="#FCD34D" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">[a-z.]+ '.' [a-z]+</tspan> returns <tspan font-weight="700">null</tspan> on <tspan fill="#FCD34D" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">john.doe</tspan>.</text>
+  <text x="44" y="474" fill="#F8FAFC" font-size="12.5"><tspan fill="#86EFAC" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">LD</tspan> matches as <tspan font-weight="700">little</tspan> as possible; classes like <tspan fill="#86EFAC" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">ALPHA</tspan> as <tspan font-weight="700">much</tspan>. Two adjacent <tspan fill="#86EFAC" font-weight="700" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">LD</tspan>s return wrong values — silently.</text>
+</svg>

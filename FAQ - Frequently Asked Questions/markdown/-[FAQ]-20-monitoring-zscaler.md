@@ -1,6 +1,6 @@
 # FAQ-20: How Do I Monitor Zscaler With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -11,7 +11,7 @@ The starting position in most organizations is worse than it needs to be. The th
 Two things about this integration are worth knowing before you plan it, because both are commonly assumed the other way:
 
 - **ZIA has a Dynatrace extension; ZPA and ZDX do not.** *Corrected 09/28/2026 — earlier revisions of this entry said the Hub listed no Zscaler integration at all.* A Dynatrace **Zscaler Internet Access (ZIA) extension** is on the Hub (minimum Dynatrace version 1.345): it takes the ZIA Cloud NSS feeds, extracts `zia.*` metrics, and discovers ZIA Location, User and Tunnel entities in Smartscape. No ZPA or ZDX listing was found as of 09/2026, so for those two product lines you are still building and owning the integration — a normal position, but one to decide deliberately rather than discover in week three. Re-check the Hub before planning; listings appear over time.
-- **The three product lines do not share a transport.** ZIA can push over HTTPS; ZPA cannot; ZDX is pull-only. A single ingestion design will not serve all three.
+- **The three product lines do not share a transport.** ZIA can push over HTTPS; ZPA cannot; ZDX telemetry is pull-only — only ZDX *alerts* can be pushed, by webhook. A single ingestion design will not serve all three.
 
 This entry is the **worked example of FAQ-19**. Every structural decision — route, retention, topology, isolation — is made there generically; here they are made concretely for Zscaler. Read FAQ-19 first if you want the reasoning; read this if you want the answers.
 
@@ -40,8 +40,8 @@ This entry is the **worked example of FAQ-19**. Every structural decision — ro
 
 | Requirement | Details |
 |-------------|---------|
-| **Zscaler licensing** | ZIA and/or ZPA for the log feeds. **ZDX is a separate SKU** — § 3 explains why its absence changes what the integration can deliver, and it is worth confirming before scoping |
-| **Zscaler admin access** | Rights to configure NSS / Cloud NSS feeds (ZIA), LSS receivers (ZPA), and to mint ZDX API credentials. Usually a network or security team, not the observability team |
+| **Zscaler licensing** | ZIA and/or ZPA for the log feeds. **ZDX is a separate SKU** — § 3 explains why its absence changes what the integration can deliver, and it is worth confirming before scoping. **ZDX API access requires the ZDX Advanced Plan** (§ 4.2) |
+| **Zscaler admin access** | Rights to configure NSS / Cloud NSS feeds (ZIA), LSS receivers (ZPA), and to create ZDX API keys. Usually a network or security team, not the observability team |
 | **Dynatrace environment** | SaaS with **Grail** and **OpenPipeline** |
 | **Network path** | For ZPA LSS, a reachable TCP listener that App Connectors can egress to (§ 4) |
 | **Security sign-off** | These feeds carry user identity, destination, device, and policy context. Decide retention before building — see FAQ-19 § 4 and § 6 |
@@ -58,13 +58,13 @@ This entry is the **worked example of FAQ-19**. Every structural decision — ro
 |---|---|---|
 | **ZIA** (internet / SaaS) | Cloud NSS — HTTPS feed to an API-based collector | **Activate the ZIA extension** (Dynatrace 1.345+): Cloud NSS feeds push direct to the log ingest API, and the extension supplies parsing, `zia.*` metrics, topology and dashboards |
 | **ZPA** (private access) | LSS — **raw TCP, optionally TLS** | **Collector hop required.** Cannot reach a Dynatrace API unaided |
-| **ZDX** (digital experience) | **REST API, pull only** (OAuth 2.0) | **Scheduled poller** — workflow, extension, or collector |
+| **ZDX** (digital experience) | **REST API, pull only** for scores and metrics (API key exchanged for a bearer token); alerts can also be pushed by webhook | **Scheduled poller** — workflow, extension, or collector |
 
 And the single most important scoping point, stated plainly:
 
 > **ZIA and ZPA logs are not a substitute for ZDX.** They are the platform's own record of transactions it handled — excellent for access, policy, throughput, and connection outcomes. They do not contain device health, network-path quality, or page-fetch timing, because Zscaler does not observe those from the proxy. If the question is "why was it slow for this user," logs alone will not answer it, and no amount of ingestion engineering changes that.
 
-> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Activation has three parts: activate the extension from Dynatrace Hub, configure the two OpenPipeline dynamic routes, and configure the Zscaler Internet Access Cloud NSS feeds."*, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems), [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming), [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api).</sub>
+> <sub>**Sources:** [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Activation has three parts: activate the extension from Dynatrace Hub, configure the two OpenPipeline dynamic routes, and configure the Zscaler Internet Access Cloud NSS feeds."*, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems), [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service), [Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api), [About Webhooks (Zscaler)](https://help.zscaler.com/zdx/about-webhooks).</sub>
 
 ---
 
@@ -75,7 +75,7 @@ And the single most important scoping point, stated plainly:
 
 ### 2.1 ZIA — activate the extension
 
-The ZIA extension requires **Dynatrace version 1.345** or later and OpenPipeline Settings 2.0. Activation is three steps — activate it from the Hub, configure its two OpenPipeline dynamic routes (logs and metrics), and point the ZIA **Cloud NSS feeds** at the Dynatrace log ingest API with a `logs.ingest` token. In return you get:
+The ZIA extension requires **Dynatrace version 1.345** or later and OpenPipeline Settings 2.0. Activation is three steps — activate it from the Hub, configure its two OpenPipeline dynamic routes (logs and metrics), and point the ZIA **Cloud NSS feeds** at the Dynatrace log ingest API with a `logs.ingest` token, using the extension's exact JSON feed output format (§ 6). In return you get:
 
 | What the extension supplies | Detail |
 |---|---|
@@ -122,7 +122,7 @@ Map your questions to data planes before configuring a single feed. This is FAQ-
 |---|---|---|---|
 | ZPA — private application access | Who reached which private app; connector health and saturation | LSS — raw TCP/TLS | Endpoint health, path quality, page-fetch timing |
 | ZIA — internet and SaaS access | SaaS usage, URLs, response codes, policy outcomes, throughput | Cloud NSS — HTTPS push | Endpoint health, path quality; timing is proxy-observed only |
-| ZDX — digital experience (separate SKU) | Device health, network path, DNS/PFT/TTFB, ZDX score 0-100 per user | REST API — pull only (OAuth 2.0) | — measures actively from the endpoint, not at the proxy |
+| ZDX — digital experience (separate SKU) | Device health, network path, DNS/PFT/TTFB, ZDX score 0-100 per user | REST API pull for telemetry; alerts also by webhook | — measures actively from the endpoint, not at the proxy |
 ZIA and ZPA logs are not a substitute for ZDX. Without ZDX you can build excellent access, traffic, and infrastructure-health monitoring, and not user-experience monitoring.
 For environments where SVG doesn't render
 -->
@@ -153,7 +153,12 @@ ZDX is the only one of the three that closes the experience gap, because it meas
 
 ZDX covers customer-defined applications alongside predefined ones such as Microsoft 365, Salesforce, ServiceNow, Zoom, and Box.
 
-> <sub>**Sources:** [Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — ZPA log types and the raw TCP/TLS receiver transport, [Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems) — the ZIA HTTPS push feed, [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 pull and the two-hour report window. **Derived:** the *cannot answer* column is this entry's reading of what each plane's vantage point excludes — no Zscaler page states the exclusions as such.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service) — ZPA log types and the raw TCP/TLS receiver transport</sub>
+> - <sub>[Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems) — the ZIA HTTPS push feed</sub>
+> - <sub>[Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api) — the API pull and the two-hour report window; [About Webhooks (Zscaler)](https://help.zscaler.com/zdx/about-webhooks) — the alert push path</sub>
+> - <sub>[Understanding the ZDX Score (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-score) — *"The ZDX Score is based on a scale of 0 (lowest) to 100 (highest)"*, with scores for users, applications, departments, locations and cities</sub>
+> - <sub>**Derived:** the *cannot answer* column is this entry's reading of what each plane's vantage point excludes — no Zscaler page states the exclusions as such.</sub>
 
 ### 3.4 Which plane answers which question
 
@@ -170,8 +175,8 @@ ZDX covers customer-defined applications alongside predefined ones such as Micro
 
 > <sub>**Sources:**</sub>
 > - <sub>[Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields)</sub>
-> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming) — the log-type codes cited in § 3.1</sub>
-> - <sub>[Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — ZDX Score 0–100 aggregated by user, application, location, and department</sub>
+> - <sub>[zpa_lss_config_controller (Zscaler GitHub)](https://github.com/zscaler/terraform-provider-zpa/blob/master/docs/resources/zpa_lss_config_controller.md) — the `zpn_*` log-type codes cited in § 3.1</sub>
+> - <sub>[Understanding the ZDX Score (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-score) — the 0–100 ZDX Score for users, applications, departments, locations and cities</sub>
 > - <sub>[Zscaler Digital Experience reference architecture (Zscaler)](https://help.zscaler.com/downloads/zdx/reference-architecture/zscaler-digital-experience-zdx/zscaler-digital-experience-zdx-reference-architecture.pdf)</sub>
 
 ---
@@ -183,10 +188,10 @@ This is the section that most often invalidates a diagram drawn before the trans
 
 | | **ZIA — Cloud NSS** | **ZPA — LSS** | **ZDX — API** |
 |---|---|---|---|
-| **Direction** | Push | Push | **Pull** |
+| **Direction** | Push | Push | **Pull** for telemetry; alerts can also push by webhook |
 | **Transport** | **HTTPS** to an API-based collector | **Raw TCP**, optional TLS | HTTPS REST |
-| **Auth** | Custom headers on the feed | None at transport level — network reachability is the control | **OAuth 2.0 client credentials** |
-| **Formats** | JSON / custom templated | **CSV** (default), JSON, TSV | JSON |
+| **Auth** | Custom headers on the feed | None at transport level — network reachability is the control; optional mutual TLS | **API key** (key ID + secret) exchanged at `/oauth/token` for a 60-minute bearer token |
+| **Formats** | **JSON** — the exact format the ZIA extension requires; custom templates only for a self-built pipeline | CSV, TSV or **JSON** templates | JSON |
 | **Reaches Dynatrace unaided?** | **Yes** | **No — collector hop required** | No — needs a scheduled caller |
 
 ### 4.1 ZPA LSS — the constraint to design around
@@ -199,27 +204,36 @@ LSS is configured as a **log receiver** defined by a host, a port, and an option
 | **ActiveGate syslog ingestion** | If you template LSS output to syslog format. Environment ActiveGate on Linux, 1.295+; multi-environment ActiveGates are not supported |
 | **An existing pipeline product** | If Zscaler logs already flow to a SIEM through one, multi-home an output (§ 5.2) — usually the least new infrastructure |
 
-Two further LSS properties shape the build, and both cost you receivers:
+Three further LSS properties shape the build:
 
-- **One log type per receiver.** User Activity, App Connector Metrics, and App Connector Status are three separate LSS configurations streaming to three destinations. Plan the receiver count up front.
-- **CSV is the default format.** Choose **JSON** unless you have a reason not to — CSV means positional DPL parsing that breaks silently when Zscaler adds a column, whereas JSON tolerates schema growth.
+- **One log type per receiver configuration.** User Activity, App Connector Metrics, and App Connector Status are three separate LSS configurations. Each names its own host and TCP port, so they can share one collector host — in community practice on one port per log type, so the collector can tell the streams apart. Plan the configuration count up front.
+- **Choose JSON as the log template.** LSS offers CSV, TSV, and JSON templates. CSV means positional DPL parsing that breaks silently when Zscaler adds a column, whereas JSON tolerates schema growth.
+- **A receiver outage is data loss.** Apart from audit logs, LSS does not send what was generated while the connection to the receiver was down. Run the collector highly available if gaps in the feed matter to you.
 
-### 4.2 ZDX — pull, with a rate-shaped ceiling
+### 4.2 ZDX — pull for telemetry, webhooks for alerts
 
-The ZDX API uses **OAuth 2.0 client credentials**, with credentials minted under *Administration → API Management* in the ZDX admin portal. The property that shapes your poller: most report endpoints serve a **two-hour window per request**, so longer ranges require multiple calls.
+The ZDX API authenticates with an **API key** — a key ID and secret created on the ZDX Admin Portal — exchanged at `/oauth/token` for a bearer token that lasts 60 minutes. API access requires the **ZDX Advanced Plan**; confirm it in phase 1. Zscaler files this flow under *Legacy Zscaler APIs*, and its getting-started page sends anyone using Zscaler OneAPI endpoints to API clients in the Authentication Service instead — check which applies to your tenant before you build the poller. The property that shapes your poller: most report endpoints serve a **two-hour window per request**, so longer ranges require multiple calls.
+
+ZDX **alerts** have a second route: ZDX can push them by webhook, with Basic, Token, or OAuth authentication. That is a push path for alert notifications, not for scores or device metrics. Zscaler's webhook page does not say whether a ZDX webhook can call the Dynatrace ingest API directly with the authorization header it requires — test that, or plan a small relay, before relying on it.
 
 Practical consequences:
 
 - **Poll on a schedule near the window**, not aggressively. A poller asking for two hours every two hours is the natural cadence; asking every minute mostly re-fetches.
+- **Lag the window.** Zscaler estimates a 20-minute delay from collection to reporting, so a window fetched the moment it closes is incomplete. Offset each request by that delay, or re-fetch the previous window.
+- **Drop `-1` scores before ingest.** A ZDX Score of `-1` means no data is available, not a terrible score — ingested as a value it drags every average down and fires score-degradation alerts.
 - **Backfill is a loop, not a parameter.** Seeding history means iterating windows — build that in rather than bolting it on.
-- **Credential expiry is a silent failure.** Nothing in Dynatrace knows the ZDX poller stopped. Alert on the *absence* of the ZDX metrics you extract, not just on their values.
+- **Credential expiry is a silent failure.** The bearer token lasts an hour, so the poller re-authenticates on every run; a revoked or expired API key stops it. Nothing in Dynatrace knows the ZDX poller stopped. Alert on the *absence* of the ZDX metrics you extract, not just on their values.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming)</sub>
-> - <sub>[Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api) — OAuth 2.0 client credentials, credentials under Administration → API Management, and the two-hour report window</sub>
+> - <sub>[Log Streaming Service (LSS) (Zscaler)](https://help.zscaler.com/zpa/about-log-streaming-service) — *"With the exception of audit log data, the LSS does not transmit any log data generated during a connection loss between the App Connector and the SIEM."*</sub>
+> - <sub>[Configuring a Log Receiver (Zscaler)](https://help.zscaler.com/zpa/configuring-log-receiver) — one Log Type, one TCP port and one Log Template (CSV, TSV or JSON) per receiver configuration</sub>
+> - <sub>[Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api) — *"Most Report API endpoints require a 2-hour time range to provide 2 hours of data."*; *"This can cause a delay from collection to reporting, which is estimated to be 20 minutes."*; *"If you receive a ZDX Score of -1 on the ZDX API, then there is no data available."*</sub>
+> - <sub>[Getting Started with the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/getting-started-zdx-api) — *"Be a ZDX Advanced Plan User."*; *"Upon successful authentication, a bearer token will last 3,600 seconds or 60 minutes."*</sub>
+> - <sub>[About Webhooks (Zscaler)](https://help.zscaler.com/zdx/about-webhooks) — *"When an event occurs, the webhook sends real-time data to a specific URL or API endpoint as an HTTP callback."*</sub>
 > - <sub>[Integrating Cloud NSS with Cloud-Based SIEMs (Zscaler)](https://help.zscaler.com/zia/integrating-cloud-nss-cloud-based-siems)</sub>
+> - <sub>[Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"Each feed must use the exact JSON Feed Output Format below so that field names match the pipeline parsers."*</sub>
 > - <sub>[Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog)</sub>
-> - <sub>**Derived:** the "collector hop required" conclusion for ZPA follows from LSS offering only raw TCP/TLS against a Dynatrace ingest API that requires HTTPS with an authorization header — neither vendor states the combination</sub>
+> - <sub>**Derived:** the "collector hop required" conclusion for ZPA follows from LSS offering only raw TCP/TLS against a Dynatrace ingest API that requires HTTPS with an authorization header — neither vendor states the combination. The one-port-per-log-type layout is community practice, not a documented requirement</sub>
 
 ---
 
@@ -235,7 +249,7 @@ Two patterns, chosen by whether Zscaler logs already flow through a pipeline pro
 |---|---|---|---|
 | A — direct plus a collector | Cloud NSS HTTPS direct to the log ingest API | LSS raw TCP/TLS into an OTel Collector or ActiveGate syslog, then Dynatrace | Scheduled poller into metric ingest — separate track |
 | B — multi-home from an existing pipeline | Existing pipeline gains a new Dynatrace output; the SIEM output is untouched | Same; the pipeline already terminates TCP, so no new collector | Unchanged — ZDX is pull, so the pipeline is not in this path |
-In both patterns OpenPipeline extracts metrics, events, and CUSTOM_* nodes, then discards raw via No storage assignment; retained raw goes to a dedicated bucket. Pattern B's trade-off is that the feed inherits the pipeline's availability and change process.
+ZIA runs through the ZIA extension's own pipelines, metrics and ZIA Location / User / Tunnel entities. For ZPA (and ZDX), OpenPipeline extracts metrics, events, and CUSTOM_* nodes, then discards raw via No storage assignment; any retained raw goes to a dedicated bucket. ZDX telemetry never joins the log path. Pattern B's trade-off is that the feed inherits the pipeline's availability and change process.
 For environments where SVG doesn't render
 -->
 
@@ -249,7 +263,7 @@ Appropriate when Zscaler logs are not already centralized, or when the existing 
 | **ZPA** | LSS → **OTel Collector / ActiveGate syslog** → Dynatrace → OpenPipeline |
 | **ZDX** | Scheduled poller → Dynatrace metric ingest → OpenPipeline |
 
-You run and monitor one collector. In exchange, the observability feed has no dependency on another team's platform.
+You run and monitor one collector — highly available if gaps matter, because LSS does not resend what it generated while the receiver was unreachable (§ 4.1). In exchange, the observability feed has no dependency on another team's platform.
 
 ### 5.2 Pattern B — multi-home from an existing pipeline
 
@@ -270,7 +284,7 @@ Dynatrace publishes Hub destinations for at least one common pipeline product ov
 
 **The trade-off, stated plainly:** the observability feed inherits the pipeline's availability, release cadence, and change process. Where that pipeline is already business-critical, this costs nothing. Where it is a best-effort side system, Pattern A is more honest.
 
-**Note that ZDX does not participate in either pattern's log path.** It is an API pull producing metrics, and it stays a separate track. Teams routinely under-scope it because the architecture diagram shows one Zscaler box.
+**Note that ZDX telemetry does not participate in either pattern's log path.** It is an API pull producing metrics, and it stays a separate track. Teams routinely under-scope it because the architecture diagram shows one Zscaler box.
 
 > <sub>**Sources:** [Cribl via HTTP (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-http/), [Cribl via OpenTelemetry (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/cribl-via-opentelemetry/), [Syslog via OpenTelemetry Collector (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/syslog-via-opentelemetry-collector/).</sub>
 
@@ -298,12 +312,15 @@ Zscaler logs carry user identity, destination, device, policy, and application c
 
 **Normalize before you extract.** Zscaler's feeds disagree with each other about field names — `appname` in ZIA web logs, `Application` in ZPA User Activity, an application field again in the ZDX API response. Rename all three into a single canonical `app` dimension in the Processing stage. Metric dimensions and Smartscape ID components are computed from fields as they stand at their stage, so renaming afterwards leaves metrics dimensioned on the old names with no way to retrofit them.
 
-Because ZIA web logs are frequently templated rather than JSON, a parsing example is worth having in hand. This runs as-is and scans nothing:
+**ZIA under the extension.** The extension parses only feeds that use its exact JSON output format: a changed `sourcetype`, a non-JSON output type, or renamed fields mean the logs are still ingested but not parsed — no metrics, no topology, empty dashboards. Its page documents parsing, metric extraction and topology, and says nothing about where the raw ZIA records are stored, so check where they land (the bucket query below shows it) rather than assuming they are discarded.
 
-> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` versus `No storage assignment` behaviour this table depends on, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — route-based storage assignment and per-bucket retention. **Derived:** the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub>
+If you run a **self-built** ZIA pipeline on a non-JSON NSS template instead, a parsing example is worth having in hand. This runs as-is and scans nothing:
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — stage order, and the `Drop record` versus `No storage assignment` behaviour this table depends on, [Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — route-based storage assignment and per-bucket retention. [Zscaler Internet Access (ZIA) extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/zscaler-zia) — *"an output type other than JSON, or renamed or missing fields mean the logs are still ingested but are not parsed."* **Derived:** the retention-posture column applies FAQ-19 § 4's extract-then-discard rule to Zscaler's signal mix.</sub>
 
 ```dql
-// DPL parse of a templated ZIA-style web log line.
+// DPL parse of a templated ZIA-style web log line — for a SELF-BUILT ZIA
+// pipeline only; the ZIA extension requires its exact JSON feed format.
 // Runs standalone against a synthetic record — zero bytes scanned.
 // Adapt the matchers to your own NSS feed template.
 // The leading LD skips the timestamp: in OpenPipeline the event timestamp is
@@ -318,21 +335,27 @@ If you selected JSON output on the LSS receiver — recommended in § 4.1 — ZP
 ```dql
 // JSON-format ZPA User Activity record. Also runs standalone at zero scan.
 // Prefer this over CSV: adding a field upstream does not break the parse.
-data record(content = "{\"LogTimestamp\":\"2026-07-31T10:15:02Z\",\"Username\":\"jdoe@example.com\",\"Application\":\"payroll-app\",\"ConnectorName\":\"dc1-connector-01\",\"ClientZEN\":\"iad3-zpa-edge\",\"ConnectionStatus\":\"active\",\"ConnectionSetupTime\":42}")
+// Zscaler documents most ZPA timing fields in microseconds; the unit of
+// ConnectionSetupTime is not stated — confirm it from your own feed before
+// converting or labelling it.
+data record(content = "{\"LogTimestamp\":\"2026-07-31T10:15:02Z\",\"Username\":\"jdoe@example.com\",\"Application\":\"payroll-app\",\"Connector\":\"dc1-connector-01\",\"ClientZEN\":\"iad3-zpa-edge\",\"ConnectionStatus\":\"active\",\"ConnectionSetupTime\":42}")
 | parse content, "JSON:j"
-| fieldsAdd user = j[Username], app = j[Application], connector = j[ConnectorName], edge = j[ClientZEN], setup_ms = j[ConnectionSetupTime]
-| fields user, app, connector, edge, setup_ms
+| fieldsAdd user = j[Username], app = j[Application], connector = j[Connector], edge = j[ClientZEN], setup_time = j[ConnectionSetupTime]
+| fields user, app, connector, edge, setup_time
 ```
 
-While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default:
+While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA extension's records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data.)
 
 ```dql
-// Confirm retained Zscaler records are in their own bucket, not the default.
-// Substitute your bucket name. Keep the window short — this is a full log
-// scan and is billed as one (see FAQ-09).
-fetch logs, from:-24h
-| filter dt.system.bucket == "default_logs"
-| summarize records = count()
+// Where are retained Zscaler records landing? Any row whose bucket is
+// default_logs is a Zscaler record that missed its bucket assignment.
+// ZIA feeds carry sourcetype "zscalernss-*" (the ZIA extension's route key);
+// the log.source match is a placeholder for however your ZPA collector tags
+// its records — adapt it. This is a full log scan and is billed as one
+// (see FAQ-09): keep the window short.
+fetch logs, from:-1h
+| filter matchesPhrase(sourcetype, "zscalernss") or matchesValue(log.source, "*zscaler*")
+| summarize records = count(), by:{dt.system.bucket}
 ```
 
 Once metric extraction is live, confirm the metrics exist before building dashboards on them. This costs nothing to run:
@@ -397,17 +420,21 @@ smartscapeNodes "CUSTOM_*"
 ```
 
 ```dql
-// Live App Connectors. To find connectors that have STOPPED reporting — the
-// disconnect signal worth alerting on — invert the COMPARISON (last_seen <
-// now() - 10m), not a null test.
+// Stale App Connectors — the disconnect signal worth alerting on.
+// lifetime[end] is a rolling "observed until" timestamp. A connector whose
+// lifetime[end] is older than 10 minutes has stopped reporting.
 //
-// lifetime[end] is a rolling "observed until" timestamp — it is ALWAYS populated,
-// even on a stale node, so it is not a tombstone. Verified 08/27/2026: of 12 HOST
-// nodes, isNull(lifetime[end]) matched 0 and isNotNull matched all 12. Null-testing
-// it selects nothing, always; the inverse selects everything. Compare against now().
-smartscapeNodes CUSTOM_APP_CONNECTOR
+// from:-7d is REQUIRED. Without it, smartscapeNodes returns only nodes seen
+// in the default 2 h window, so a connector silent for longer is not returned
+// at all and this check reads "none stale" exactly when connectors are lost.
+// Verified 10/02/2026 on HOST: 6 stale hosts with from:-7d, 0 without it.
+//
+// lifetime[end] is ALWAYS populated, even on a stale node, so it is not a
+// tombstone: null-testing it selects nothing. Compare against now(). Flip the
+// comparison (> now() - 10m) to list live connectors instead.
+smartscapeNodes CUSTOM_APP_CONNECTOR, from:-7d
 | fieldsAdd last_seen = lifetime[end]
-| filter last_seen > now() - 10m
+| filter last_seen < now() - 10m
 | fields id, name, last_seen
 ```
 
@@ -437,7 +464,7 @@ A starting point, **not a specification.** Zscaler field names vary by product l
 |---|---|---|---|---|
 | ZPA User Activity | Identity / app | `Username`, `Application`, `AppGroup` | `user` (hashed), `app`, `app_group` | Access analytics; `app` is the cross-plane join key |
 | ZPA User Activity | Path | `ClientZEN`, `Connector`, `ClientCity` | `service_edge`, `connector`, `location` | Root-cause isolation; feeds the § 7 ID components |
-| ZPA User Activity | Timing | `ConnectionSetupTime`, `CAProcessingTime`, `AppLearnTime` | `setup_ms`, `ca_time_ms`, `app_learn_time_ms` | Latency **proxies** — Zscaler-observed, not endpoint experience |
+| ZPA User Activity | Timing | `ConnectionSetupTime`, `CAProcessingTime`, `AppLearnTime` | `setup_time` (unit not documented — confirm from your feed), `ca_time_us`, `app_learn_time_us` (documented in microseconds) | Latency **proxies** — Zscaler-observed, not endpoint experience |
 | ZPA Connector Metrics | Capacity | `CPUUtilization`, `Memory`, `ActiveConnections` | `connector.cpu`, `connector.memory`, `connector.connections` | Connector saturation alerting |
 | ZIA Web | SaaS / app | `appname`, `url`, `respcode`, `reqsize`, `respsize` | `app`, `url`, `response_code`, `bytes_in`, `bytes_out` | SaaS performance and error rates |
 | ZDX API | Experience | score, DNS time, page-fetch time, TTFB, latency, packet loss | `zscaler.zdx.*` metrics | True user-experience monitoring |
@@ -452,12 +479,12 @@ A starting point, **not a specification.** Zscaler field names vary by product l
 | Server response / TTFB | `zscaler.zdx.server_response_time` | `app` |
 | Device CPU / memory | `zscaler.zdx.device.cpu`, `.memory` | `device`, `location` |
 | Packet loss / latency | `zscaler.zdx.network.packet_loss`, `.latency` | `path`, `isp`, `location` |
-| ZPA connection setup | `zscaler.zpa.setup_time` | `app`, `connector`, `service_edge` |
+| ZPA connection setup | `zscaler.zpa.setup_time` — confirm the unit from your feed before converting | `app`, `connector`, `service_edge` |
 | ZIA requests / errors | `zscaler.zia.request.count`, `.error.count` | `app`, `location`, `response_code` |
 
 **Mind cardinality.** `user` as a metric dimension will produce a metric with as many series as you have employees, which is a cost and a limit problem rather than an analytical one. Keep `user` on events and records; keep metrics dimensioned on `app`, `location`, `connector`, and similar bounded sets. FAQ-11 covers the cardinality mechanics.
 
-> <sub>**Sources:** [Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields), [Understanding the ZDX API (Zscaler)](https://help.zscaler.com/zdx/understanding-zdx-api). **Derived:** the metric naming scheme and canonical dimension names are this entry's convention, not a Zscaler or Dynatrace standard — adopt or replace it wholesale, but do so once.</sub>
+> <sub>**Sources:** [Understanding User Activity Log Fields (Zscaler)](https://help.zscaler.com/zpa/understanding-user-activity-log-fields) — *"The time in microseconds taken for processing in the central authority"* (`CAProcessingTime`); `ConnectionSetupTime` is described without a unit, [Understanding the ZDX API (Zscaler Legacy APIs)](https://help.zscaler.com/legacy-apis/understanding-zdx-api). **Derived:** the metric naming scheme and canonical dimension names are this entry's convention, not a Zscaler or Dynatrace standard — adopt or replace it wholesale, but do so once.</sub>
 
 ---
 
@@ -488,9 +515,9 @@ Raise alerts **against the entities from § 7**, never against raw log matches. 
 |---|---|---|
 | Private-app latency p95 breach | Application + connector + region | ZPA setup time, connector metrics |
 | Connector saturation | App Connector + connector group | CPU, memory, active connections |
-| Connector disconnected | App Connector | Node lifetime ended (§ 7) |
+| Connector disconnected | App Connector | `lifetime[end]` older than 10 minutes — queried with a `from:` wider than the default 2 h window (§ 7) |
 | SaaS error spike | Application | ZIA response codes, request counts |
-| ZDX score degradation | Application + location / user group | ZDX score, DNS / PFT / TTFB, device and network metrics |
+| ZDX score degradation | Application + location / user group | ZDX score (with `-1` no-data values dropped), DNS / PFT / TTFB, device and network metrics |
 | **Feed stopped** | The pipeline itself | Absence of expected metrics |
 
 `ALERT-01` covers the end-to-end architecture, `ALERT-02` the detection-mechanism decision, `ALERT-03` routing and cost, and `ALERT-04` the ServiceNow integration ladder. Where an external event-correlation platform is the destination, the topology work in § 7 is exactly what makes those payloads worth correlating.
@@ -531,9 +558,9 @@ The `SYNTH` series covers configuration; the decision above is the part specific
 
 | Phase | Objective | Key actions | Deliverable |
 |---|---|---|---|
-| **1. Discovery** | Know what feeds exist and who owns them | Inventory ZIA, ZPA, ZDX licensing and log types; identify existing pipeline and SIEM routing; confirm retention constraints and their owner | Data-source matrix with owners; a signed retention position |
+| **1. Discovery** | Know what feeds exist and who owns them | Inventory ZIA, ZPA, ZDX licensing (ZDX API access needs the Advanced Plan) and log types; identify existing pipeline and SIEM routing; confirm retention constraints and their owner | Data-source matrix with owners; a signed retention position |
 | **2. Route decision** | One route per feed, from its transport | Apply § 4; choose Pattern A or B (§ 5); stand up the collector if Pattern A | An architecture that survives contact with ZPA |
-| **3. Ingestion** | Data landing in Grail | Activate the ZIA extension and configure its Cloud NSS feeds; configure LSS receivers (one per log type, JSON format); build the ZDX poller | Validated datasets, one feed at a time |
+| **3. Ingestion** | Data landing in Grail | Activate the ZIA extension and configure its Cloud NSS feeds; configure LSS receivers (one configuration per log type, JSON template); build the ZDX poller | Validated datasets, one feed at a time |
 | **4. Normalize and extract** | Signal, not volume | Rename to canonical dimensions; extract metrics and events; apply masking and hashing; **No storage assignment** for discard | Security-approved OpenPipeline rules |
 | **5. Topology** | Entities, not strings | Build the § 7 node and edge processors; verify with `smartscapeNodes` | A verified topology model |
 | **6. Dashboards** | Visibility | Build the five dashboards in § 9.1 — pipeline health first | Dashboards that filter on entities |
@@ -551,16 +578,17 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 
 **Feeds and licensing**
 
-- Which **ZIA** log types are available — web, DNS, firewall, tunnel, DLP, audit?
+- Which **ZIA** log types are available — web, DNS, firewall, tunnel, DLP, audit? For the types the ZIA extension covers, can each Cloud NSS feed use the extension's exact JSON output format?
 - Which **ZPA** log types are available — user activity, user status, App Connector status, App Connector metrics, browser access, audit, AppProtection?
-- Is **ZDX licensed and enabled**, and is **API access** available? (Decides whether experience monitoring is in scope at all.)
+- Is **ZDX licensed and enabled**, and is **API access** available? The ZDX API requires the **ZDX Advanced Plan**. (Decides whether experience monitoring is in scope at all.)
 
 **Routing and transport**
 
 - Are logs sent directly from Zscaler, or already routed through a pipeline product?
 - If a pipeline exists, can it **multi-home** the selected streams to Dynatrace without changing the existing security output?
 - For ZPA LSS: where can a **TCP listener** be placed that App Connectors can reach, and will TLS be used?
-- Can LSS output be set to **JSON** rather than the CSV default?
+- Can the LSS log template be set to **JSON** rather than CSV or TSV?
+- Can the ZPA collector run **highly available**? LSS does not resend logs (audit logs excepted) generated while the receiver is unreachable.
 
 **Security and data handling**
 
@@ -604,11 +632,11 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 | # | Gotcha | What to do |
 |---|---|---|
 | 1 | **Assuming ZIA and ZPA logs can replace ZDX.** They record transactions at the proxy; they contain no device health, path quality, or page-fetch timing | Scope experience monitoring on ZDX availability (§ 3.4) |
-| 2 | **Drawing one arrow from Zscaler to Dynatrace.** ZIA pushes HTTPS, ZPA pushes raw TCP, ZDX is pull-only | Route per product line (§ 4) |
+| 2 | **Drawing one arrow from Zscaler to Dynatrace.** ZIA pushes HTTPS, ZPA pushes raw TCP, ZDX telemetry is pull-only (its alerts can push by webhook) | Route per product line (§ 4) |
 | 3 | **Expecting ZPA LSS to reach the ingest API.** LSS has no HTTPS output and no header support | Terminate with an OTel Collector, ActiveGate syslog, or an existing pipeline (§ 4.1) |
-| 4 | **One LSS receiver for all ZPA log types.** LSS streams one log type per receiver | Plan a receiver per log type (§ 4.1) |
-| 5 | **Accepting the CSV default on LSS.** Positional parsing breaks silently when Zscaler adds a column | Select JSON (§ 4.1) |
-| 6 | **Polling the ZDX API aggressively.** Most report endpoints serve a two-hour window per request | Match cadence to the window; build backfill as a loop (§ 4.2) |
+| 4 | **One LSS configuration for all ZPA log types.** Each receiver configuration streams one log type | Plan a configuration per log type (§ 4.1) |
+| 5 | **Leaving the LSS template on CSV.** Positional parsing breaks silently when Zscaler adds a column | Select JSON (§ 4.1) |
+| 6 | **Polling the ZDX API aggressively — or too early.** Most report endpoints serve a two-hour window per request, data reaches the API an estimated 20 minutes after collection, and a score of `-1` means no data | Match cadence to the window and lag it; drop `-1` scores; build backfill as a loop (§ 4.2) |
 | 7 | **No alert on feed absence.** An expired ZDX credential or stalled receiver looks exactly like "no problems" | Alert on absence of expected metrics; build the pipeline-health dashboard (§ 9.1) |
 | 8 | **`Drop record` used for extract-then-discard.** It runs before every extractor | Use **No storage assignment** in the Bucket assignment stage (FAQ-19 § 4.1) |
 | 9 | **Presenting ZPA timing as user experience.** Connection-setup time is a Zscaler-observed access-path proxy | Label it as such on dashboards; use ZDX for experience (§ 3.1) |
@@ -618,6 +646,7 @@ Questions for the Zscaler administrator. Most integration delays trace to one of
 | 13 | **Building synthetics before checking ZDX.** Where ZDX is licensed it usually already answers the question, from real endpoints | Apply the § 10 test first |
 | 14 | **Treating the field mapping in § 8 as a specification.** Names vary by feed type, template, and account | Validate against your own feed output before building |
 | 15 | **Hand-building ZIA when the extension covers it.** A parallel `zscaler.zia.*` scheme and custom ZIA nodes duplicate what the extension supplies | Activate the ZIA extension (§ 2.1); keep custom work to ZPA, ZDX and ZIA feed types it does not parse |
+| 16 | **Templating a ZIA feed the extension parses.** A non-JSON output type or renamed fields are ingested but not parsed — no metrics, no topology, empty dashboards | Use the extension's exact JSON feed output format (§ 6) |
 
 ---
 

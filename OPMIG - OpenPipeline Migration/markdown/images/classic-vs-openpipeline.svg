@@ -25,7 +25,7 @@
   <!-- Classic Section -->
   <rect x="30" y="55" width="740" height="95" rx="8" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
   <rect x="30" y="55" width="740" height="28" rx="8" fill="url(#classicGrad)"/>
-  <text x="400" y="75" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">CLASSIC INGESTION (Post-Storage Processing)</text>
+  <text x="400" y="75" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">CLASSIC PIPELINE (Rules at ingest, before storage)</text>
 
   <!-- Classic flow -->
   <rect x="60" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
@@ -33,25 +33,24 @@
 
   <path d="M160,117 L200,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
 
-  <rect x="210" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
-  <text x="260" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Store</text>
+  <rect x="210" y="100" width="150" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
+  <text x="285" y="116" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Processing rules</text>
+  <text x="285" y="129" font-family="Arial, sans-serif" font-size="8" fill="#92400e" text-anchor="middle">PARSE · mask · drop · log metrics</text>
 
-  <path d="M310,117 L350,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+  <path d="M360,117 L400,117" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
 
-  <rect x="360" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
-  <text x="410" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Query</text>
+  <rect x="410" y="100" width="100" height="35" rx="6" fill="#fef3c7" filter="url(#cvsShadow)"/>
+  <text x="460" y="122" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#92400e" text-anchor="middle">Store</text>
 
-  <text x="510" y="122" font-family="Arial, sans-serif" font-size="10" fill="#92400e" text-anchor="start">(Parse at query time)</text>
-
-  <!-- Limitation icons -->
-  <text x="640" y="105" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No pre-processing</text>
-  <text x="640" y="120" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No masking</text>
-  <text x="640" y="135" font-family="Arial, sans-serif" font-size="10" fill="#dc2626">❌ No cost control</text>
+  <!-- Scope notes -->
+  <text x="560" y="105" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• Logs and business events only</text>
+  <text x="560" y="120" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• One ordered rule list, no routing</text>
+  <text x="560" y="135" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• Rule commands + DPL, not DQL</text>
 
   <!-- OpenPipeline Section -->
   <rect x="30" y="165" width="740" height="120" rx="8" fill="#fff" stroke="#22c55e" stroke-width="2"/>
   <rect x="30" y="165" width="740" height="28" rx="8" fill="url(#modernGrad)"/>
-  <text x="400" y="185" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">OPENPIPELINE (Pre-Storage Processing)</text>
+  <text x="400" y="185" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">OPENPIPELINE (Routed pipelines, before storage)</text>
 
   <!-- OpenPipeline flow -->
   <rect x="50" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
@@ -64,26 +63,22 @@
 
   <path d="M240,227 L260,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
 
-  <rect x="270" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
-  <text x="310" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Process</text>
+  <!-- Wider Process box covers mask/drop/transform/extract/cost/security/storage-assignment -->
+  <rect x="270" y="210" width="180" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
+  <text x="360" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Process</text>
 
-  <path d="M350,227 L370,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
-
-  <rect x="380" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
-  <text x="420" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Extract</text>
-
-  <path d="M460,227 L480,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
+  <path d="M450,227 L480,227" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#cvsArrow)"/>
 
   <rect x="490" y="210" width="80" height="35" rx="6" fill="#d1fae5" filter="url(#cvsShadow)"/>
   <text x="530" y="232" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#047857" text-anchor="middle">Store</text>
 
   <!-- Benefit icons -->
-  <text x="590" y="215" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Pre-storage masking</text>
-  <text x="590" y="230" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Drop before storage</text>
-  <text x="590" y="245" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Extract metrics</text>
-  <text x="590" y="260" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Bucket routing</text>
+  <text x="590" y="215" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Logs, spans, events, metrics…</text>
+  <text x="590" y="230" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Routing to many pipelines</text>
+  <text x="590" y="245" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ DQL processors</text>
+  <text x="590" y="260" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">✅ Extraction &amp; bucket stages</text>
 
-  <!-- Sub-labels for Process -->
-  <text x="310" y="255" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Mask, Parse</text>
-  <text x="310" y="265" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">Transform, Drop</text>
+  <!-- Sub-labels for Process (extraction now lives inside Process per docs) -->
+  <text x="360" y="258" font-family="Arial, sans-serif" font-size="9" fill="#047857" text-anchor="middle">Mask · Drop · Transform · Parse</text>
+  <text x="360" y="270" font-family="Arial, sans-serif" font-size="9" fill="#047857" text-anchor="middle">Extract · Smartscape · Cost · Security</text>
 </svg>

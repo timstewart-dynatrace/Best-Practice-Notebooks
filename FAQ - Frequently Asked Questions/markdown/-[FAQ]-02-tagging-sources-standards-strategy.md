@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -43,21 +43,26 @@ If you read only one section, read **§5 (Standards)** and **§6 (Strategy)** �
 
 | Concept | Where it lives | When it shows up in Dynatrace |
 |---------|---------------|-------------------------------|
-| **Cloud-provider tags** | AWS / Azure / GCP resources | Via the Clouds app or legacy CloudWatch / Azure Monitor / GCP integrations; surface as `aws.tag.<key>`, `azure.tag.<key>`, `gcp.label.<key>` plus provider attributes (`aws.account.id`, `azure.resource_group`, `gcp.project_id`) |
-| **Kubernetes labels and annotations** | K8s manifests / Helm / GitOps | Via DynaKube + OneAgent metadata enrichment; surface as `k8s.<resource>.label.<key>` (e.g., `k8s.pod.label.app`, `k8s.namespace.label.team`) |
-| **OneAgent host tags / primary tags** | Set on the host at install or via `oneagentctl --set-host-tag=` | Ride on every signal at source — metrics, spans, logs, business events, Smartscape entities — including the sprint-1.337+ primary fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) |
-| **Auto-tagging rules** *(legacy)* | Settings 2.0 (or legacy Configuration API) — rules that compute a tag at view time from other entity properties | Computed when an entity is viewed/queried; not present at ingest |
+| **Cloud-provider tags** | AWS / Azure / GCP resources | Via the Clouds app or legacy CloudWatch / Azure Monitor / GCP integrations. On the Smartscape cloud node they sit in the node's `tags` record (`tags[CostCenter]`); they reach signals only when an Ingest enrichment rule promotes them, as `aws.tags.<key>`, `azure.tags.<key>`, `gcp.labels.<key>` or `gcp.tags.<key>`. Provider attributes are primary Grail fields (`aws.account.id`, `aws.region`, `azure.subscription`, `azure.resource.group`, `azure.location`, `gcp.project.id`) |
+| **Kubernetes labels and annotations** | K8s manifests / Helm / GitOps | On the Smartscape Kubernetes nodes; they reach signals only when promoted — by a `metadata.dynatrace.com/primary_tags.<key>` annotation or an Ingest enrichment rule, which writes for example `k8s.namespace.label.<key>` or `k8s.pod.label.<key>` |
+| **OneAgent host tags / primary tags** | Set on the host at install or via `oneagentctl --set-host-tag=` | Ride on every signal at source — metrics, spans, logs, business events, Smartscape entities — including the primary fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`); requires OneAgent 1.333+ |
+| **Auto-tagging rules** *(Dynatrace Classic)* | Settings 2.0 (or legacy Configuration API) — rules that apply a tag to classic entities from conditions on entity properties | On classic entities only; no effect on Smartscape on Grail or any Latest Dynatrace app |
 
 These are not interchangeable. They differ in **where** they're set, **when** they're computed, **what** they propagate to, and **how** they're consumed downstream:
 
 - **Where set:** changes to OneAgent host tags happen at the host's edge; cloud tags happen in the provider console; K8s labels happen in your manifests; auto-tagging rules happen in the Dynatrace Settings surface.
-- **When computed:** the first three are set at ingest (the value rides on every signal); auto-tagging rules are computed at view/query time.
-- **What they propagate to:** primary tags propagate to *every* signal type; auto-tagging applies primarily at the entity level (and not uniformly to logs, spans, business events).
+- **When applied:** OneAgent primary fields/tags are on the record at ingest; cloud tags and K8s labels are attached to Smartscape nodes and reach signals only when promoted; auto-tagging rules are evaluated against classic entity properties.
+- **What they propagate to:** primary fields/tags reach *every* signal type; ordinary cloud tags and K8s labels stay on their Smartscape node unless promoted; auto-tags stay on classic entities and are ignored by Latest Dynatrace.
 - **How consumed:** Smartscape, dashboards, alerts/thresholds, IAM policies, OpenPipeline routing, segments — different consumers require different sources to be the source of truth.
 
 The implication: **picking the right source for each dimension you tag on is more important than picking the right tag value**. A consistent value carried in the wrong source is harder to fix than a typo.
 
-> <sub>**Sources:** [Tags and metadata (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata) — seven documented categories of tags and metadata; *"Host groups can also be used in tagging rules and for defining management zones"*.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Tagging strategy (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-strategy) — *"Your existing cloud tags, Kubernetes labels, and tags applied to Smartscape nodes are a natural starting point, but they're only available on Smartscape nodes. They don't follow data into the telemetry pipeline, so you can't use them to route data, assign Grail buckets, allocate cost, or enforce access control on logs, metrics, spans, or events."*</sub>
+> - <sub>[Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Auto-tagging rules in Dynatrace Classic applied key-value tags to entities based on conditions evaluated against entity properties."* and *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app. They remain available only on classic pages for backward compatibility."*</sub>
+> - <sub>[Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the `aws.tags.<key>`, `azure.tags.<key>`, `gcp.labels.<key>`, `gcp.tags.<key>` and `k8s.*.label.<key>` attributes written by enrichment rules</sub>
+> - <sub>[OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+"*</sub>
+> - <sub>**Dictionary:** `aws.account.id`, `aws.region`, `azure.subscription`, `azure.resource.group`, `azure.location`, `gcp.project.id` (all `stable`, `primary-field`); `aws.tags.__tag_key__`, `azure.tags.__tag_key__`, `gcp.labels.__label__`, `gcp.tags.__tag__` (`experimental`); no row for `aws.tag.*`, `azure.tag.*`, `gcp.label.*`, `azure.resource_group`, `azure.subscription_id`, `gcp.project_id`, read 10/02/2026. Live check the same day: `smartscapeNodes "AWS_EC2_VOLUME"` returns the resource tags in the `tags` record.</sub>
 
 <a id="primary-vs-others"></a>
 ## 2. Primary Tags vs Primary Fields vs Custom Tags vs Auto-Tags
@@ -86,54 +91,54 @@ Inside the OneAgent surface, several distinct concepts share "tag"-adjacent voca
 
 | Concept | Field shape | Example | Set how | Notes |
 |---------|------------|---------|---------|-------|
-| **Primary fields** *(sprint-1.337+)* | Reserved Dynatrace key (`dt.*`) | `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` | OneAgent install / `oneagentctl --set-host-tag="dt.security_context=<value>"` (the form documented on the June-2026 tags hub; the oneagentctl reference retains the older `--set-host-property` form); or via OpenPipeline enrichment for non-OneAgent sources | Top-level attributes on every signal at ingest *(reserved keys — must be set explicitly; not auto-populated)*. The recommended Gen3-first surface for boundary, cost, and ownership. Ride into Smartscape, IAM, and OpenPipeline routing without parse processors. |
-| **Primary tags** *(sprint-1.337+)* | Customer-defined namespace (`primary_tags.<key>`) | `primary_tags.team`, `primary_tags.environment`, `primary_tags.app` | OneAgent install / `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly (it is never added automatically); per-process via the `DT_TAGS` environment variable | Top-level on every signal. As of June 2026 the namespace is first-class: a dedicated primary-tags docs hub documents `primary_tags.<key>` end to end, including the limit of up to **20 primary tags per host or process — excess tags are silently dropped without a warning**. Use for dimensions that don't fit a reserved `dt.*` key. |
-| **Custom host tags** *(legacy at-source tag)* | Plain key/value on the host | `Environment:prod`, `Owner:platform-team` | OneAgent install / `oneagentctl --set-host-tag=<value>` (no namespace prefix) | Pre-1.337 surface. Still works but lacks the primary-fields propagation guarantees; for new work prefer primary fields/tags. |
-| **Auto-tagging rules** *(legacy, view-time)* | Tag conditions on entities (`Settings → Tags → Automatically applied tags`) | Rule: "if `host.name` matches `^prod-` then tag `Environment=prod`" | Settings 2.0 schema or legacy Configuration API | Computed when an entity is viewed; not present on ingest. **Avoid for new work** — see §7 for why. |
+| **Primary fields** *(OneAgent 1.333+)* | Reserved Dynatrace key (`dt.*`) | `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` | OneAgent install / `oneagentctl --set-host-tag="dt.security_context=<value>"` (the form both the tags hub and the oneagentctl reference document); or via OpenPipeline enrichment for non-OneAgent sources | Top-level attributes on every signal at ingest *(reserved keys — must be set explicitly; not auto-populated)*. The Latest Dynatrace surface for security context, cost and ownership. Ride into Smartscape, IAM, and OpenPipeline routing without parse processors. |
+| **Primary tags** *(OneAgent 1.333+)* | Customer-defined namespace (`primary_tags.<key>`) | `primary_tags.team`, `primary_tags.environment`, `primary_tags.app` | OneAgent install / `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly (it is never added automatically); per-process via the `DT_TAGS` environment variable | Top-level on every signal. As of June 2026 the namespace is first-class: a dedicated primary-tags docs hub documents `primary_tags.<key>` end to end, including the limit of up to **20 primary tags per host or process — excess tags are silently dropped without a warning**. Use for dimensions that don't fit a reserved `dt.*` key. |
+| **Custom host tags** *(legacy at-source tag)* | Plain key/value on the host | `Environment:prod`, `Owner:platform-team` | OneAgent install / `oneagentctl --set-host-tag=<value>` (no namespace prefix) | Plain host tags predate primary tags. Still works but lacks the primary-fields propagation; for new work prefer primary fields/tags. |
+| **Auto-tagging rules** *(Dynatrace Classic)* | Tag conditions on entities (`Settings → Tags → Automatically applied tags`) | Rule: "if `host.name` matches `^prod-` then tag `Environment=prod`" | Settings 2.0 schema or legacy Configuration API | Evaluated against classic entity properties and attached to classic entities only; no effect on Smartscape on Grail or any Latest Dynatrace app. **Avoid for new work** — see §7 for why. |
 
-> **`oneagentctl` syntax — primary fields vs tags (updated June 2026):** The dedicated [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) page documents a **single form for both**: `--set-host-tag` carries reserved primary fields and customer primary tags alike — e.g., `oneagentctl --set-host-tag="dt.security_context=confidential"` and `oneagentctl --set-host-tag="primary_tags.environment=production"`; per-process values use `DT_TAGS="primary_tags.team=bravo"`. The older [oneagentctl reference](https://docs.dynatrace.com/docs/shortlink/oneagentctl) still documents `--set-host-property=dt.security_context=easytrade_sec` — both pages were live as of 06/10/2026. For new work, lead with the `--set-host-tag` form: it is the convention the latest-Dynatrace tags hub builds on.
+> **`oneagentctl` syntax — primary fields vs tags:** The [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) page documents a **single form for both**: `--set-host-tag` carries reserved primary fields and customer primary tags alike — e.g., `oneagentctl --set-host-tag="dt.security_context=confidential"` and `oneagentctl --set-host-tag="primary_tags.environment=production"`; per-process values use `DT_TAGS="primary_tags.team=bravo"`. The [oneagentctl reference](https://docs.dynatrace.com/docs/shortlink/oneagentctl) now uses the same form: *"To set a security context for your host, use the following command:"* `./oneagentctl --set-host-tag=dt.security_context=easytrade_sec`. Use `--set-host-tag` for every primary field and tag — OneAgent 1.345 stops promoting primary tags from host properties (see § 3).
 
 ### Why primary fields/tags are the recommended Gen3-first default
 
-In recent SaaS sprints, `dt.security_context` and customer-defined `primary_tags.*` became first-class top-level attributes on **every** signal — metrics, spans, logs, business events, Smartscape entities — when set on the OneAgent at install time. AWS Lambda primary-tag propagation followed shortly after via a Lambda-extension environment variable surface (verify the exact variable name and propagation guarantees against current Lambda-extension docs). The `dt.cost.costcenter` and `dt.cost.product` keys are documented as reserved primary Grail fields alongside `dt.security_context` — **reserved keys that require explicit configuration** (`oneagentctl --set-host-tag` or an OpenPipeline enrichment rule); they are not auto-populated. Once set, they are enriched onto every signal at ingest with no further per-signal configuration. `dt.host_group.id` is the exception — it genuinely is auto-enriched from the host-group assignment with no configuration at all.
+From OneAgent 1.333, `dt.security_context` and customer-defined `primary_tags.*` are first-class top-level attributes on **every** signal — metrics, spans, logs, business events, Smartscape entities — when set on the OneAgent. Serverless workloads use `DT_TAGS` instead: *"On serverless platforms, OneAgent can't auto-detect certain primary fields. Provide them via DT_TAGS at deploy time"* — `aws.account.id` and `aws.region` on AWS; `azure.subscription`, `azure.resource.group` and `azure.location` on Azure. The `dt.cost.costcenter` and `dt.cost.product` keys are documented as reserved primary Grail fields alongside `dt.security_context` — **reserved keys that require explicit configuration** (`oneagentctl --set-host-tag` or an OpenPipeline enrichment rule); they are not auto-populated. Once set, they are enriched onto every signal at ingest with no further per-signal configuration. `dt.host_group.id` is the exception — it genuinely is auto-enriched from the host-group assignment with no configuration at all.
 
 Three reasons primary fields/tags are the correct default for new work:
 
-1. **They flow without enrichment.** The value lands as a top-level field at ingest. No OpenPipeline parse processor, no auto-tagging rule, no view-time computation needed. DQL filters work directly: `filter dt.security_context == "team-a"`.
+1. **They flow without enrichment.** The value lands as a top-level field at ingest. No OpenPipeline parse processor and no auto-tagging rule needed. DQL filters work directly: `filter dt.security_context == "team-a"`.
 2. **They feed all downstream surfaces uniformly.** IAM `MATCH(dt.security_context)` boundary clauses, OpenPipeline `route` rules, Smartscape Ownership, and dashboard filters all see the same value.
 3. **They are stable through time.** Set once at OneAgent install, the value rides through every host restart, every process restart, and every signal — no drift between dashboards and alerts.
 
 ### Why auto-tagging rules are *not* the default
 
-Auto-tagging rules compute a tag at view/query time from entity properties (host name, process name, etc.). They are convenient but introduce three problems:
+Auto-tagging rules apply tags to classic entities from conditions over entity properties (host name, process name, etc.). On Latest Dynatrace they are a dead end:
 
-- **Computed at view time, not ingest** — historical signals that predate a rule change get re-tagged retroactively from the *current* rule, not the rule that was in effect when the signal was generated. This breaks point-in-time analysis.
-- **Don't propagate to logs, business events, or spans uniformly** — auto-tags primarily live on entities (hosts, services, process groups). DQL on `fetch logs` won't see the auto-tag without joining through the entity.
+- **Ignored by Latest Dynatrace** — *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app. They remain available only on classic pages for backward compatibility."*
+- **Never on the record** — the tag is attached to the classic entity, not written to logs, spans, metrics or business events, so DQL on `fetch logs` never sees it.
 - **Couple a tag's value to a regex over a property that may change** — e.g., a rule that derives `Environment` from a host-name prefix locks the team into never renaming hosts.
 
-Per Gen3-first guidance: tag at source via primary fields/tags, not at view time via auto-tagging rules. The migration path from a legacy tenant with auto-tagging rules in place is covered in §6 and §7.
+Tag at source via primary fields/tags, not with Classic auto-tagging rules. The migration path from a legacy tenant with auto-tagging rules in place is covered in §6 and §7.
 
-*In community practice the sprint-1.337 / sprint-1.338 dates and the AWS Lambda propagation surface above are the commonly-cited values — verify both against your own tenant's release notes before planning around them.*
-
-> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — the propagation and notification-routing statements quoted above; [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."*, the diagram's layer order; [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — `primary_tags.*` naming convention; primary Grail fields — `dt.host_group.id` (auto-enriched) plus the reserved, explicitly-configured `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`; [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — `--set-host-tag` for both primary fields and tags; "up to 20 primary tags per host or process; excess tags are silently dropped without a warning"; [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — retains the older `--set-host-property=dt.security_context=easytrade_sec` form.</sub>
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — the propagation and notification-routing statements quoted above; [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"At-source enrichment is always preferred over OpenPipeline-based enrichment for the security context."*, the diagram's layer order; [Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — `primary_tags.*` naming convention; primary Grail fields — `dt.host_group.id` (auto-enriched) plus the reserved, explicitly-configured `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`; [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — `--set-host-tag` for both primary fields and tags; *"Primary Grail field and tag enrichment requires OneAgent version 1.333+"*; the serverless `DT_TAGS` sentence quoted above; "up to 20 primary tags per host or process; excess tags are silently dropped without a warning"; [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"To set a security context for your host, use the following command:"* (`--set-host-tag=dt.security_context=easytrade_sec`); [Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — the auto-tagging sentence quoted above.</sub>
 
 <a id="four-sources"></a>
 ## 3. The Four-Source Hierarchy
 
-> **Breaking (OneAgent 1.345): host `primary_tags` are promoted only from host tags.** Verbatim: *"Starting with OneAgent version 1.345, the OS Agent derives `primary_tags` from host tags (`hostautotag.conf`) rather than from host properties (`hostcustomproperties.conf`) at the host level."* (Re-read 09/02/2026: the release note now reads *derives … rather than*, where earlier revisions of this entry quoted *promotes … and no longer from*. The behaviour is unchanged — only Dynatrace's wording moved.) This is a silent failure mode, which is what makes it worth auditing rather than noting: a host that reaches 1.345 simply stops promoting any `primary_tags.*` configured through the properties file, and nothing errors — the dimension just disappears from that host's signals, and every segment, bucket rule, and dashboard keyed on it quietly loses those records. Audit `hostcustomproperties.conf` across the fleet **before** it upgrades and migrate those entries to `hostautotag.conf` (or `oneagentctl --set-host-tag=`). Note the narrow scope: this is about *promotion to primary tags at the host level*, and the `oneagentctl` reference still documents `--set-host-property=` for `dt.*` reserved keys. OneAgent 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — tenant version is not agent version, so check the fleet, not the tenant.
+> **Breaking (OneAgent 1.345): host `primary_tags` are promoted only from host tags.** Verbatim: *"Starting with OneAgent version 1.345, the OS Agent derives `primary_tags` from host tags (`hostautotag.conf`) rather than from host properties (`hostcustomproperties.conf`) at the host level."* (Re-read 09/02/2026: the release note now reads *derives … rather than*, where earlier revisions of this entry quoted *promotes … and no longer from*. The behaviour is unchanged — only Dynatrace's wording moved.) This is a silent failure mode, which is what makes it worth auditing rather than noting: a host that reaches 1.345 simply stops promoting any `primary_tags.*` configured through the properties file, and nothing errors — the dimension just disappears from that host's signals, and every segment, bucket rule, and dashboard keyed on it quietly loses those records. Audit `hostcustomproperties.conf` across the fleet **before** it upgrades and migrate those entries to `hostautotag.conf` (or `oneagentctl --set-host-tag=`). The release note's action item covers both input paths: *"Verify whether primary_tags are defined via custom metadata or hostcustomproperties.conf at the host level, since these will no longer be honored after the upgrade."* It names `primary_tags` only and says nothing about `dt.*` keys set as host properties; set those with `--set-host-tag` too, which is the form the `oneagentctl` reference now documents. OneAgent 1.345 released 08/12/2026 with a **staged rollout from 08/25/2026** — tenant version is not agent version, so check the fleet, not the tenant.
 >
-> <sub>Source: [What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345)</sub>
+> <sub>Source: [What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — the two sentences quoted above</sub>
 
-Dynatrace's `tags-and-metadata` documentation enumerates seven categories of tags and metadata (auto-detected attributes, manually defined tags, automatically generated tags, cloud-imported tags, Kubernetes / OpenShift labels, Cloud Foundry organization names, and environment-variable-based tags). For practical strategy, this FAQ collapses them to **four operational source buckets** that map cleanly onto where the tag is *set* and how it *propagates* — each bucket appropriate for some dimensions and inappropriate for others.
+Dynatrace's primary-tags documentation lists six sources that can set primary tags: OneAgent, Kubernetes, AWS / Azure / Google Cloud, OpenTelemetry, host or process metadata, and OpenPipeline. For practical strategy, this FAQ groups tag sources into **four operational source buckets** that map cleanly onto where the tag is *set* and how it *propagates* — each bucket appropriate for some dimensions and inappropriate for others.
 
 | Source | Where set | Field surface in DQL | Best for |
 |--------|-----------|---------------------|----------|
-| **OneAgent — primary fields/tags** | Host install / `oneagentctl --set-host-tag=` for both `dt.*` reserved keys and explicit `primary_tags.<key>` values (June-2026 tags-hub form; the oneagentctl reference retains `--set-host-property=` for `dt.*` keys) | `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, `primary_tags.<key>` | Stable, host-level dimensions: security boundary, cost center, environment, team, app — anything that should ride on every signal at source |
-| **Kubernetes labels and annotations** | K8s manifests / Helm / GitOps | `k8s.<resource>.label.<key>` (e.g., `k8s.pod.label.app`, `k8s.namespace.label.team`); annotations available as custom metadata at the process level | Dimensions that vary at the pod / workload / namespace level (more granular than the host) — application name, version, environment within a shared cluster |
-| **Cloud-provider tags** | AWS / Azure / GCP console / IaC tooling | `aws.tag.<key>`, `azure.tag.<key>`, `gcp.label.<key>` plus provider attributes | The **source of record** for cost-allocation and compliance data when the cloud provider is the canonical owner of that information; useful as input to OpenPipeline enrichment that normalizes them into `dt.*` primary fields |
-| **Auto-tagging rules** *(legacy)* | Settings 2.0 schema | View-time tag conditions on entities | Avoid for new work; acceptable only as a stop-gap on legacy tenants pending migration to primary fields |
+| **OneAgent — primary fields/tags** | Host install / `oneagentctl --set-host-tag=` for both `dt.*` reserved keys and explicit `primary_tags.<key>` values; `DT_TAGS` per process | `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`, `primary_tags.<key>` | Stable, host-level dimensions: security boundary, cost center, environment, team, app — anything that should ride on every signal at source |
+| **Kubernetes labels and annotations** | K8s manifests / Helm / GitOps | On the Smartscape Kubernetes node; on signals only when promoted — `primary_tags.<key>` from a `metadata.dynatrace.com/primary_tags.<key>` annotation, or `k8s.namespace.label.<key>` / `k8s.pod.label.<key>` from an Ingest enrichment rule | Dimensions that vary at the pod / workload / namespace level (more granular than the host) — application name, version, environment within a shared cluster |
+| **Cloud-provider tags** | AWS / Azure / GCP console / IaC tooling | `tags[<Key>]` on the Smartscape cloud node; `aws.tags.<key>`, `azure.tags.<key>`, `gcp.labels.<key>` on signals only when an Ingest enrichment rule promotes them; provider primary fields (`aws.account.id`, `azure.subscription`, `gcp.project.id`) | The **source of record** for cost-allocation and compliance data when the cloud provider is the canonical owner of that information; useful as input to OpenPipeline enrichment that normalizes them into `dt.*` primary fields |
+| **Auto-tagging rules** *(Dynatrace Classic)* | Settings 2.0 schema | Tags on classic entities only; not visible to Latest Dynatrace | Avoid for new work; acceptable only as a stop-gap on classic pages pending migration to primary fields |
 
-> **June 2026 — the tags hub formalizes which sources can emit primary tags directly.** The new [Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags) documents primary Grail tags as settable from **five sources**: OneAgent (host tags / `DT_TAGS`), Kubernetes (namespace- or pod-level `metadata.dynatrace.com/primary_tags.<key>` annotations — pod-level values win over namespace-level, and Operator 1.10.0 adds cluster-scoped DynaKube resource attributes below annotations in the specificity chain), cloud-provider tags (AWS / Azure / GCP), OpenTelemetry resource attributes (`OTEL_RESOURCE_ATTRIBUTES`), and OpenPipeline (derived from any incoming field at ingest). Central-configuration rules that promote existing Kubernetes labels to primary tags (limited to 20 rules per scope) ship with **SaaS 1.343** as *Centralized telemetry metadata enrichment* — key-value pairs, namespace annotations, and domain tags managed centrally. SaaS 1.343's rollout started 07/14/2026 with a staged tenant rollout from mid-July 2026 — verify the feature has reached your tenant before relying on it; until it arrives, the at-source mechanisms described here remain the working path. The four-bucket model above still holds — what changes is that each bucket increasingly emits `primary_tags.*` natively instead of relying on enrichment workarounds.
+> **The tags hub formalizes which sources can emit primary tags directly.** The [Primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) page documents primary Grail tags as settable from **six sources**: OneAgent (host tags / `DT_TAGS`), Kubernetes (`metadata.dynatrace.com/primary_tags.<key>` annotations on namespaces and pods, plus cluster-scoped DynaKube resource attributes from Operator 1.10.0), cloud-provider tags (AWS / Azure / GCP), OpenTelemetry resource attributes (`OTEL_RESOURCE_ATTRIBUTES`), host or process metadata, and OpenPipeline (derived from any incoming field at ingest). For annotations, pod-level values win over namespace-level ones today; the Kubernetes tag-setup page adds a **workload level** between them for **Dynatrace Operator 1.11.0+ with ActiveGate 1.349+** — *"the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."* Treat the workload level as a staged rollout until both components have reached your cluster; until then the namespace and pod annotations remain the working path.
+>
+> Central rules that promote existing Kubernetes labels, cloud tags and host or process properties to primary tags (**up to 50 rules per scope**) arrived with **SaaS 1.343 / OneAgent 1.343** as *Ingest enrichment configuration* — the release note reads *"OneAgent now enriches telemetry data at the source based on a central enrichment configuration defined in the platform."* Not every rule type is live everywhere yet: *"Kubernetes workload and pod rule types are rolling out"* and *"Cloud rule types (AWS, Azure, GCP) are rolling out and may not yet be visible in your environment."* Verify the rule type you need has reached your tenant before relying on it; until it arrives, the at-source mechanisms described here remain the working path. The four-bucket model above still holds — what changes is that each bucket increasingly emits `primary_tags.*` natively instead of relying on enrichment workarounds.
 
 > **July 2026 — the version floors differ by capability, and your fleet is a separate question again.** This entry previously quoted the Kubernetes tag-setup page as requiring *"OneAgent version 1.343+, ActiveGate version 1.341+, Dynatrace Operator version 1.10+"* for both the at-source and central options. **Corrected 07/31/2026:** that no longer matches the source, and it bundled two capabilities that have different floors.
 
@@ -147,32 +152,36 @@ Dynatrace's `tags-and-metadata` documentation enumerates seven categories of tag
 >
 > OneAgent 1.343 is also where the **host/process metadata source** starts to arrive, rather than a single switch flipping. Two 1.343 changes carry it: **Smartscape identifiers are now included in process metadata files**, and OneAgent **can ingest enrichment configuration containing conditional rules expressed as DQL matchers** — which is what lets a rule decide at source whether a given process should carry a value. Verify the agent version per host before designing around either.
 >
-> **Until fleets reach 1.343, the working mechanisms are unchanged:** Kubernetes `metadata.dynatrace.com/primary_tags.<key>` annotations for pod- and namespace-scoped dimensions, and `DT_TAGS` / `oneagentctl --set-host-tag` (or the older `--set-host-property` form for `dt.*` keys) for host- and process-level dimensions. Neither is superseded by 1.343 — both remain the documented at-source path and continue to work afterwards.
+> **Until fleets reach 1.343, the working mechanisms are unchanged:** Kubernetes `metadata.dynatrace.com/primary_tags.<key>` annotations for pod- and namespace-scoped dimensions, and `DT_TAGS` / `oneagentctl --set-host-tag` for host- and process-level dimensions. Neither is superseded by 1.343 — both remain the documented at-source path and continue to work afterwards.
 
 ### Propagation Depth — Why the Source Matters
 
 Not all sources propagate to all signal types. This table is the load-bearing reason to choose source carefully:
 
-| Source | Metrics | Spans | Logs | Business Events | Smartscape Entities |
+| Source | Metrics | Spans | Logs | Business Events | Smartscape nodes |
 |--------|---------|-------|------|-----------------|---------------------|
-| OneAgent primary fields/tags *(sprint-1.337+)* | ✓ at ingest | ✓ at ingest | ✓ at ingest | ✓ at ingest | ✓ as primary attribute |
-| K8s labels/annotations | ✓ (via DynaKube enrichment) | ✓ (via DynaKube + OneAgent) | ✓ (via OpenPipeline enrichment) | (rare) | ✓ on K8s entity types |
-| Cloud-provider tags | ✓ (via cloud integration) | (limited; spans may not carry cloud tags directly) | (limited; depends on log ingestion path) | (limited) | ✓ on cloud-resource entity types |
-| Auto-tagging rules | (computed at view) | (computed at view) | (rare; not on raw log records) | (rare) | ✓ at view time |
+| Primary fields/tags — OneAgent *(1.333+)*, K8s annotations, Ingest enrichment rules, OpenPipeline | ✓ at ingest | ✓ at ingest | ✓ at ingest | ✓ at ingest | ✓ as primary attribute |
+| Cloud tags / K8s labels, **not** promoted | — | — | — | — | ✓ on the cloud or K8s node only |
+| Classic auto-tagging rules | — | — | — | — | — (classic entities only; no effect on Smartscape on Grail) |
 
-If you tag at the OneAgent layer with primary fields, the value is on every signal type at ingest — DQL filters on `dt.security_context` work uniformly across `fetch logs`, `fetch spans`, `fetch bizevents`, `timeseries` queries, and entity queries. If you tag only via cloud-provider tags, the same query returns inconsistent results because the tag is on the cloud entity but not on every signal.
+Coverage of primary fields and tags is still growing by signal type and source — the primary-tags page says Dynatrace *"is progressively expanding coverage across signal types and data sources"* — so confirm a field is on the signal you plan to filter before you build on it.
+
+If you tag at the OneAgent layer with primary fields, the value is on every signal type at ingest — DQL filters on `dt.security_context` work uniformly across `fetch logs`, `fetch spans`, `fetch bizevents`, `timeseries` queries, and Smartscape queries. If you tag only via cloud-provider tags and never promote them, logs, spans and metrics do not carry the tag at all: the tag is on the cloud node and nowhere else.
 
 ### Propagation rule of thumb
 
 > **For dimensions that need to filter / scope / route across signal types, tag at the OneAgent layer with primary fields/tags. For dimensions that are inherently scoped to a layer (K8s pod, AWS Lambda function), tag at that layer and rely on enrichment to surface them where needed.**
 
 > <sub>**Sources:**</sub>
-> - <sub>[Tags and metadata (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata) — seven documented categories of tags and metadata; basis for the four operational buckets in this FAQ</sub>
+> - <sub>[Tagging strategy (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-strategy) — *"Your existing cloud tags, Kubernetes labels, and tags applied to Smartscape nodes are a natural starting point, but they're only available on Smartscape nodes."*</sub>
+> - <sub>[Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app."*</sub>
 > - <sub>[Tags documentation hub (DT docs)](https://docs.dynatrace.com/docs/manage/tags)</sub>
-> - <sub>[Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — five documented primary-tag sources</sub>
-> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, pod-over-namespace precedence, and the minimum component versions, re-read at source 08/24/2026 as **Dynatrace Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+** (the *"OneAgent 1.343+ / ActiveGate 1.341+"* pairing quoted in earlier revisions of this entry is superseded — see the corrected floors above)</sub>
+> - <sub>[Primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — the six documented primary-tag sources, ending *"Host or process metadata: Properties of hosts and processes"* and OpenPipeline; *"Dynatrace is progressively expanding coverage across signal types and data sources."*</sub>
+> - <sub>[Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` annotations, the workload-level precedence quoted above (*"Workload-level: Dynatrace Operator version 1.11.0+ ActiveGate version 1.349+"*, page updated 09/30/2026), and the minimum component versions, re-read at source 08/24/2026 as **Dynatrace Operator 1.10+, OneAgent 1.333+, ActiveGate 1.343+** (the *"OneAgent 1.343+ / ActiveGate 1.341+"* pairing quoted in earlier revisions of this entry is superseded — see the corrected floors above)</sub>
 > - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; Smartscape identifiers in process metadata files, and enrichment configuration with conditional rules expressed as DQL matchers</sub>
-> - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — `--set-host-property` vs `--set-host-tag` syntax (classic reference)</sub>
+> - <sub>[oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — *"To set a security context for your host, use the following command:"* `--set-host-tag=dt.security_context=easytrade_sec` (page updated 08/20/2026)</sub>
+> - <sub>[Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — *"Rules per scope 50"*, and the two rolling-out sentences quoted above</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"Ingest enrichment configuration support from OneAgent"*</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline) — enrichment processors that surface K8s and cloud tags as `dt.*` primary fields</sub>
 > - <sub>**Derived:** the "verify the agent version per host, treat ≤1.342 as prior-mechanism, expect a mixed fleet" guidance combines the documented version minimums with the fact that agent fleets upgrade independently of tenant version</sub>
 
@@ -223,8 +232,8 @@ touches every host.
 | | **Central enrichment** | **OneAgent domain** |
 |---|---|---|
 | Where configured | Rules in Dynatrace | On the host / in the process |
-| Mechanisms | Kubernetes metadata (namespace / workload / pod labels and annotations); cloud-provider tags (AWS, Google Cloud, Azure); host and process properties from OneAgent-monitored infrastructure; **custom literal values** applied conditionally | Installer flag `--set-host-tag`; `oneagentctl` post-install; `DT_TAGS` per process |
-| Deployment cost | *"No changes on the hosts are required. No agent restart is needed."* | Host access, and a restart for the installer path |
+| Mechanisms | Kubernetes metadata (namespace / workload / pod labels and annotations); cloud-provider tags (AWS, Google Cloud, Azure); host and process properties from OneAgent-monitored infrastructure; **custom literal values** applied conditionally. The Kubernetes workload/pod and cloud rule types are still rolling out | Installer flag `--set-host-tag`; `oneagentctl` post-install; `DT_TAGS` per process |
+| Deployment cost | OneAgent host/process and custom rules: *"No changes on the hosts are required. No agent restart is needed."* Kubernetes rules: *"Changes to rules that apply to Kubernetes workloads may take up to 15 minutes to propagate, and affected pods may need to restart."* | Host access, and a restart for the installer path |
 | Writes to | `dt.cost.product`, `dt.security_context`, `dt.cost.costcenter`, custom `primary_tags.*` | The same fields |
 
 **Custom literal values are the one to notice** — a fixed value applied conditionally, centrally, with no
@@ -261,7 +270,7 @@ describes for the at-source path.
 >
 > This narrows a long-standing split. The `primary_tags.*` values described above could be queried in DQL but could not be used as a condition in those four classic configuration surfaces, which forced a parallel set of process-group tags maintained purely to drive rules. From 1.346 the same enrichment keys can do both jobs — so a `primary_tags.team` established once via the precedence chain above can drive service detection and request naming directly, rather than being mirrored into a second tagging scheme. Worth knowing before you build that mirror; if you already have one, this is the change that lets you retire it.
 
-> <sub>**Sources:** [Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the four enrichment sources, the target fields, the before-the-pipeline timing, and both precedence rules, all quoted above, [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — `--set-host-tag` / `oneagentctl` / `DT_TAGS`, the cross-domain precedence order, and the `primary_tags.<key>` storage rule. Read at source 08/27/2026; [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — trace-based `primary_tags.*` in the Process group tag condition field, quoted above.</sub>
+> <sub>**Sources:** [Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the four rule types, the target fields, the before-the-pipeline timing, both precedence rules, and the Kubernetes propagation sentence, all quoted above, [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — `--set-host-tag` / `oneagentctl` / `DT_TAGS`, the cross-domain precedence order, the `primary_tags.<key>` storage rule, and the host/process no-restart quote. Read at source 08/27/2026; [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — trace-based `primary_tags.*` in the Process group tag condition field, quoted above.</sub>
 
 <a id="ingest-enrichment-howto"></a>
 ### 3.3 Changing tags without touching hosts — Ingest enrichment configuration
@@ -340,7 +349,7 @@ Rules are Settings objects with schema **`builtin:ingest.enrichment.config`**, s
 
 The exact strings `target` expects for a primary tag versus a reserved field are not spelled out on the schema page. The reliable way to template rules as code is to create one in the UI and export it — `dtctl get settings --schema builtin:ingest.enrichment.config -o yaml` — then copy that shape.
 
-> **Scope discrepancy between two Dynatrace pages.** The how-to page says rules are *"supported at the environment scope and host group scope."* The schema page lists more scopes: `HOST`, `KUBERNETES_CLUSTER`, `HOST_GROUP`, `AWS_ACCOUNT`, `AZURE_MICROSOFT_RESOURCES_SUBSCRIPTIONS`, `GCP_PROJECT` and `environment`. Design around environment and host group, which are the documented and UI-supported scopes; treat the others as unverified for OneAgent host tagging until you have tested them in your tenant.
+> **Scopes differ by rule type.** The OneAgent how-to page says host/process rules are *"supported at the environment scope and host group scope."* The central-enrichment page adds **Kubernetes cluster** and **cloud account** scopes for Kubernetes and cloud rules (*"Rules per scope 50 Applies independently at each scope (environment, cluster, host group, cloud account)."*). The schema page lists `HOST`, `KUBERNETES_CLUSTER`, `HOST_GROUP`, `AWS_ACCOUNT`, `AZURE_MICROSOFT_RESOURCES_SUBSCRIPTIONS`, `GCP_PROJECT` and `environment`; `HOST` appears only there. For OneAgent host tagging, design around environment and host group; treat a host-scoped rule as untested until you have tried it in your tenant.
 
 #### Limits worth knowing before you design around it
 
@@ -362,6 +371,7 @@ The exact strings `target` expects for a primary tag versus a reserved field are
 
 > <sub>**Sources:**</sub>
 > - <sub>[OneAgent tag setup — Ingest enrichment configuration (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent#ingest-enrichment-configuration) — *"No changes on the hosts are required."*; UI path, condition fields and operators, DPL support, the five-rule host-name example, scopes, rule ordering and the limits quoted above. Read at source 09/28/2026 (page updated 09/14/2026).</sub>
+> - <sub>[Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the scope list and the 50-rules-per-scope limit quoted above.</sub>
 > - <sub>[Ingest Enrichment Configuration schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config) — `builtin:ingest.enrichment.config` properties and its seven listed scopes. Read 09/28/2026.</sub>
 > - <sub>[OneAgent remote configuration API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"By default OneAgents will be restarted when network zone, host group, host tags or host properties are reconfigured - the restart is required to apply the changes."*</sub>
 > - <sub>[Remote configuration management of OneAgents and ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"Removing host properties and tags may require up to seven hours to take effect."*</sub>
@@ -370,42 +380,41 @@ The exact strings `target` expects for a primary tag versus a reserved field are
 <a id="cloud-specifics"></a>
 ## 4. AWS / Azure / GCP — Per-Cloud Specifics
 
-Cloud-provider tags are the source of record for cost-allocation, compliance, and ownership data when the cloud provider owns the resource lifecycle. They land in Dynatrace via the **Clouds app** — modern, with **AWS new-connections GA**, **Azure new-connections GA**, and **GCP new-connections** documented as *"will follow soon"* (classic GCP integration is GA) — or via legacy integrations (CloudWatch monitor for AWS, Azure Monitor for Azure, GCP integration for GCP).
+Cloud-provider tags are the source of record for cost-allocation, compliance, and ownership data when the cloud provider owns the resource lifecycle. They land in Dynatrace via the **Clouds app** — whose new cloud connections cover AWS and Azure, with *"Support for GCP will follow soon"* — or via the classic integrations (CloudWatch monitor for AWS, Azure Monitor for Azure, GCP integration for GCP). Once there, the raw tags sit in the `tags` record of the Smartscape cloud node (`tags[CostCenter]`); they reach logs, metrics and spans only when an Ingest enrichment rule (`AWS_TAG`, `AZURE_TAG`, `GCP_LABEL`, `GCP_TAG`) promotes them, which writes the `aws.tags.*` / `azure.tags.*` / `gcp.labels.*` / `gcp.tags.*` attributes below or a primary field you choose. Those cloud rule types are still rolling out (§ 3).
 
 ### AWS
 
 | AWS surface | Field in Dynatrace | Notes |
 |-------------|--------------------|-------|
-| EC2 / RDS / Lambda / ECS / EKS resource tags | `aws.tag.<TagKey>` | Tag keys preserved verbatim, including casing — `aws.tag.CostCenter` ≠ `aws.tag.costcenter` |
-| Account ID | `aws.account.id` | Always present on AWS-sourced signals |
-| Account alias | `aws.account.alias` | When set in IAM |
-| Region | `aws.region` | Programmatic region code (e.g., `us-east-1`) |
+| EC2 / RDS / Lambda / ECS / EKS resource tags | `tags[<TagKey>]` on the Smartscape node; `aws.tags.<TagKey>` on signals when promoted | AWS tag keys are case-sensitive, so `CostCenter` and `costcenter` are different keys |
+| Account ID | `aws.account.id` | Primary Grail field and permission field |
+| Region | `aws.region` | Primary Grail field; programmatic region code (e.g., `us-east-1`) |
 | Resource ARN | `aws.arn` | Available on resources with discoverable ARNs |
 
-**AWS Lambda primary-tag propagation:** In community practice, recent Dynatrace Lambda-extension releases surface a `DT_*` environment-variable mechanism that propagates AWS-resource attributes (such as `aws.arn`, `aws.region`, `aws.account.id`) and customer-defined primary tags into the Lambda's logs and spans, not just metrics — closing the gap where serverless functions previously had partial tag propagation. Verify the exact variable name and propagation surface against the [current Dynatrace OpenTelemetry-on-Lambda documentation](https://docs.dynatrace.com/docs/shortlink/opentel-lambda), since the Lambda-extension surface area evolves sprint-to-sprint (the docs prominently surface `DT_OPEN_TELEMETRY_ENABLE_INTEGRATION` rather than a single `DT_TAGS` envelope).
+**AWS Lambda and other serverless code modules:** OneAgent cannot read the account or region there, so you pass them in. The OneAgent tag-setup page: *"On serverless platforms, OneAgent can't auto-detect certain primary fields. Provide them via DT_TAGS at deploy time"* — `aws.account.id` and `aws.region` on AWS. Customer primary tags go in the same `DT_TAGS` variable.
 
-**AWS integration path:** prefer the **Clouds app** for new tenants — direct cloud connection without ActiveGate, GA for AWS. The legacy CloudWatch monitor remains supported but does not benefit from continued enhancement.
+**AWS integration path:** prefer the **Clouds app** new connection for new tenants — a direct cloud connection without ActiveGate. The legacy CloudWatch monitor remains supported but does not benefit from continued enhancement.
 
 ### Azure
 
 | Azure surface | Field in Dynatrace | Notes |
 |---------------|--------------------|-------|
-| Resource tags (VMs, App Services, AKS, etc.) | `azure.tag.<TagKey>` | Tag keys preserved verbatim |
-| Resource group | `azure.resource_group` | Useful as a coarse boundary if not tagged explicitly |
-| Subscription | `azure.subscription_id`, `azure.subscription_name` | Always present on Azure-sourced signals |
-| Region | `azure.region` | **Programmatic naming (in a recent SaaS sprint).** Region strings render as lowercase with no spaces (e.g., `eastus2`, not `East US 2`). Update DQL filters and dashboards comparing `azure.region` against display strings — use `in(azure.region, {"eastus2", "westus2"})`. Verify the exact rollout sprint against your tenant's release notes. |
+| Resource tags (VMs, App Services, AKS, etc.) | `tags[<TagKey>]` on the Smartscape node; `azure.tags.<TagKey>` on signals when promoted | Azure tag names are case-insensitive for operations; values are case-sensitive |
+| Resource group | `azure.resource.group` | Primary Grail field and permission field — usable as a coarse boundary |
+| Subscription | `azure.subscription` | Primary Grail field and permission field |
+| Region | `azure.location` | Primary Grail field |
 
-**Azure integration path:** Clouds app (preview) is the modern path; Azure Monitor integration via ActiveGate remains the production-stable option.
+**Azure integration path:** the Clouds app's new connection covers Azure; the classic Azure Monitor integration via ActiveGate is the other path.
 
 ### GCP
 
 | GCP surface | Field in Dynatrace | Notes |
 |-------------|--------------------|-------|
-| Resource labels (Compute Engine, GKE, Cloud Run) | `gcp.label.<LabelKey>` | GCP enforces lowercase + hyphens on label keys; values still arbitrary |
-| Project | `gcp.project_id` | Always present on GCP-sourced signals |
+| Resource labels (Compute Engine, GKE, Cloud Run) | `gcp.labels.<label_key>` on signals when promoted (GCP resource tags: `gcp.tags.<key>`); the Smartscape-node shape was not checked — the validation tenant has no GCP resources | GCP restricts both keys and values to lowercase letters, digits, underscores and dashes |
+| Project | `gcp.project.id` | Primary Grail field and permission field |
 | Region / zone | `gcp.region`, `gcp.zone` | Programmatic codes |
 
-**GCP integration path:** Clouds app (preview); legacy GCP integration via ActiveGate also supported.
+**GCP integration path:** the classic GCP integration for now — the Clouds app's new connection for GCP *"will follow soon"*.
 
 ### Cross-Cloud Tag Naming Drift — A Concrete Problem
 
@@ -413,22 +422,24 @@ The same conceptual dimension lands with different keys across providers:
 
 | Concept | AWS | Azure | GCP |
 |---------|-----|-------|-----|
-| Cost center | `aws.tag.CostCenter` | `azure.tag.costCenter` | `gcp.label.cost_center` |
-| Environment | `aws.tag.Environment` | `azure.tag.environment` | `gcp.label.environment` |
-| Team / owner | `aws.tag.Owner` | `azure.tag.owner` | `gcp.label.team` |
-| Application | `aws.tag.Application` | `azure.tag.app` | `gcp.label.application` |
+| Cost center | `aws.tags.CostCenter` | `azure.tags.costCenter` | `gcp.labels.cost_center` |
+| Environment | `aws.tags.Environment` | `azure.tags.environment` | `gcp.labels.environment` |
+| Team / owner | `aws.tags.Owner` | `azure.tags.owner` | `gcp.labels.team` |
+| Application | `aws.tags.Application` | `azure.tags.app` | `gcp.labels.application` |
 
 The casing alone (`CostCenter` vs `costCenter` vs `cost_center`) means a naive query has to enumerate every variant. Most teams discover this when they try to build a single "cost by team" dashboard that has to span clouds — and the dashboard is full of `coalesce(...)` that papers over the inconsistency.
 
-**The recommended fix is to normalize at ingest, not at query time.** OpenPipeline enrichment processors can map `aws.tag.CostCenter` / `azure.tag.costCenter` / `gcp.label.cost_center` into a single canonical `dt.cost.costcenter` field, so DQL queries and IAM policies see one consistent surface regardless of cloud provenance. See OPIPE topic series for the worked enrichment-processor examples.
+**The recommended fix is to normalize at ingest, not at query time.** An Ingest enrichment rule per provider (`AWS_TAG` / `AZURE_TAG` / `GCP_LABEL` → Cost center) or an OpenPipeline enrichment processor can map the AWS `CostCenter`, Azure `costCenter` and GCP `cost_center` tags into a single canonical `dt.cost.costcenter` field, so DQL queries and IAM policies see one consistent surface regardless of cloud provenance. See OPIPE topic series for the worked enrichment-processor examples.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Clouds app (DT docs)](https://docs.dynatrace.com/docs/shortlink/clouds-app)</sub>
-> - <sub>[OpenTelemetry on AWS Lambda (DT docs)](https://docs.dynatrace.com/docs/shortlink/opentel-lambda) — Lambda extension and `DT_*` integration env-var surface</sub>
+> - <sub>[Clouds app (DT docs)](https://docs.dynatrace.com/docs/shortlink/clouds-app) — *"New cloud connections (AWS/Azure)"*; *"Support for GCP will follow soon."*</sub>
+> - <sub>[Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the `AWS tag` / `GCP label` / `GCP tag` / `Azure tag` rule types and the `aws.tags.<key>`, `gcp.labels.<key>`, `gcp.tags.<key>`, `azure.tags.<key>` attributes they write</sub>
+> - <sub>[OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — the serverless `DT_TAGS` sentence quoted above</sub>
+> - <sub>**Dictionary:** `aws.account.id`, `azure.resource.group`, `azure.subscription`, `gcp.project.id` (`stable`, `permission`, `primary-field`); `aws.region`, `azure.location`, `gcp.region` (`stable`, `primary-field`); `aws.arn`, `gcp.zone` (`stable`); `aws.tags.__tag_key__`, `azure.tags.__tag_key__`, `gcp.labels.__label__`, `gcp.tags.__tag__` (`experimental`); no row for `aws.account.alias`, `azure.subscription_name`, `azure.region`, `gcp.project_id`, read 10/02/2026. Live check the same day: AWS and Azure Smartscape nodes carry their resource tags in the `tags` record.</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline)</sub>
 > - <sub>[Tagging AWS resources (AWS general reference)](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) — *"Tag values are case sensitive"* and *"tag keys are case sensitive"*; basis for the cross-cloud casing-drift problem</sub>
-> - <sub>[Tag resources (Azure docs)](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) — *"Tag names are case insensitive for operations"*, while *"Tag values are case sensitive"*; 50-tag limit</sub>
-> - <sub>[Best practices for resource labels (Google Cloud docs)](https://docs.cloud.google.com/resource-manager/docs/labels-overview) — GCP label naming rules (lowercase, hyphens) and recommended dimensions</sub>
+> - <sub>[Tag resources (Azure docs)](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) — *"Tag names are case-insensitive for operations."*, while *"Tag values are case-sensitive."*; 50-tag limit</sub>
+> - <sub>[Best practices for resource labels (Google Cloud docs)](https://docs.cloud.google.com/resource-manager/docs/labels-overview) — *"Keys and values can contain only lowercase letters, numeric characters, underscores, and dashes."*</sub>
 
 <a id="standards"></a>
 ## 5. Tagging Standards — Taxonomy and Naming
@@ -437,7 +448,7 @@ A tag *strategy* is the source-of-truth and propagation decisions in §6. A tag 
 
 ### Recommended Dimensions to Tag
 
-Most tenants benefit from tagging on these seven dimensions. Not every dimension needs to be a primary field; some can stay as ordinary tags or labels. The point is to decide *which* dimensions matter and to name them consistently.
+Most tenants benefit from tagging on these seven dimensions, which extend the commonly used tags on Dynatrace's tagging-strategy page. Not every dimension needs to be a primary field; some can stay as ordinary tags or labels. The point is to decide *which* dimensions matter and to name them consistently.
 
 | Dimension | Purpose | Recommended source | Recommended key |
 |-----------|---------|---------------------|------------------|
@@ -446,7 +457,7 @@ Most tenants benefit from tagging on these seven dimensions. Not every dimension
 | **Team / owner** | Who owns this; drives notification routing | OneAgent primary tag at install | `primary_tags.team` |
 | **Cost center** | FinOps attribution; cost-allocation reports | OneAgent primary field (preferred) or normalized from cloud tag via OpenPipeline | `dt.cost.costcenter` |
 | **Product / business line** | Higher-level grouping above cost center | OneAgent primary field | `dt.cost.product` |
-| **Security context** | IAM boundary for record-level / field-level access (the canonical Gen3 boundary) | OneAgent primary field at install | `dt.security_context` |
+| **Security context** | Record-level IAM boundary when deployment-scope fields (`dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name`) are not fine-grained enough | OneAgent primary field at install | `dt.security_context` |
 | **Compliance / criticality** | Regulatory or business-criticality scoping | OneAgent primary tag | `primary_tags.compliance` (values: `pci`, `pii`, `sox`, `none`) or `primary_tags.criticality` (`tier1`, `tier2`, `tier3`) |
 
 Optional further dimensions: deployment region, data residency, lifecycle phase. Add them only when there is a concrete consumer (a dashboard, an alert routing rule, an IAM policy) that would use them.
@@ -466,26 +477,32 @@ Some keys are reserved by Dynatrace. Don't redefine these — use them as-is, or
 
 | Element | Convention | Example | Anti-example |
 |---------|-----------|---------|--------------|
-| Key casing | lowercase, kebab-case if multi-word | `primary_tags.cost-center` (or use `dt.cost.costcenter`) | `primary_tags.CostCenter`, `primary_tags.cost_center` *(pick one and stick to it)* |
-| Value casing | lowercase, kebab-case | `prod`, `nonprod`, `team-payments` | `Prod`, `NonProd`, `Team-Payments` |
+| Key casing | lowercase, snake_case if multi-word | `primary_tags.business_unit` (or use `dt.cost.costcenter` for cost centre) | `primary_tags.BusinessUnit`; `primary_tags.business-unit` — a hyphen in a field name parses as subtraction, so every DQL query would have to back-tick it |
+| Value casing | lowercase, kebab-case (values only — keys use snake_case) | `prod`, `nonprod`, `team-payments` | `Prod`, `NonProd`, `Team-Payments` |
 | Value stability | use values that don't change frequently | `team-payments`, `app-checkout` | `release-2026-q2`, `incident-12345` *(metadata of the day)* |
 | Spaces | never | `team-payments` | `team payments` |
+
+Why underscores in keys: `filter primary_tags.cost-center == "cc-1"` is valid DQL that Grail reads as `primary_tags.cost - center == "cc-1"` — it returns nothing, and the only signal is a notification that the filter is always empty (checked on a live tenant 10/02/2026). Dynatrace's own multi-word example key is `primary_tags.business_unit`.
 | Reserved values | avoid `null`, `none`, `default`, empty string | `none-set` if you must | `null`, `""` |
-| Cross-cloud normalization | one canonical key per dimension, regardless of provider | All cost-center tags resolve to `dt.cost.costcenter` | `aws.tag.CostCenter` and `azure.tag.costCenter` both queried separately forever |
+| Cross-cloud normalization | one canonical key per dimension, regardless of provider | All cost-center tags resolve to `dt.cost.costcenter` | `aws.tags.CostCenter` and `azure.tags.costCenter` both queried separately forever |
 
 ### Industry Frameworks Worth Reading
 
 If your organization doesn't have a tagging standard, these are reasonable starting points to adapt:
 
-- **AWS Well-Architected — Tagging Best Practices** ([docs](https://docs.aws.amazon.com/whitepapers/latest/tagging-best-practices/tagging-best-practices.html)) — practical taxonomy guidance including the 7 dimensions above
+- **AWS Well-Architected — Tagging Best Practices** ([docs](https://docs.aws.amazon.com/whitepapers/latest/tagging-best-practices/tagging-best-practices.html)) — practical taxonomy guidance
 - **Azure — Develop your naming and tagging strategy** ([docs](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming))
 - **GCP — Best practices for resource labels** ([docs](https://docs.cloud.google.com/resource-manager/docs/labels-overview))
 - **FinOps Foundation — Tagging best practices** — for the cost-attribution dimensions specifically
 
-These frameworks broadly agree on the seven dimensions table above. Use them as the starting point and adapt names to your organization's existing conventions where they exist.
+In community practice, these frameworks converge on a similar set of dimensions to the table above. Use them as the starting point and adapt names to your organization's existing conventions where they exist.
 
 > <sub>**Sources:**</sub>
-> - <sub>[AWS Well-Architected — Tagging Best Practices](https://docs.aws.amazon.com/whitepapers/latest/tagging-best-practices/tagging-best-practices.html) — taxonomy guidance and the canonical seven-dimension surface</sub>
+> - <sub>[Tagging strategy (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-strategy) — *"The following table lists the most commonly used tags."* (ownership, application, environment, business unit, geography, cost allocation), with the example `business_unit=ecommerce`</sub>
+> - <sub>[OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — the multi-word example key `primary_tags.business_unit=ecommerce`</sub>
+> - <sub>[AWS Well-Architected — Tagging Best Practices (AWS docs)](https://docs.aws.amazon.com/whitepapers/latest/tagging-best-practices/tagging-best-practices.html)</sub>
+> - <sub>[Advanced permission setup (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup) — *"We recommend setting up permissions along organizational lines and deployment scopes. Suitable concepts include host groups, Kubernetes clusters, and Kubernetes namespaces."*</sub>
+> - <sub>[Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"If your organization can rely on deployment-level primary Grail fields such as k8s.namespace.name or dt.host_group.id for access control, you may not need dt.security_context at all."*</sub>
 > - <sub>[Azure cloud-adoption-framework — naming and tagging](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming)</sub>
 > - <sub>[GCP — Best practices for resource labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview)</sub>
 > - <sub>[Kubernetes — Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) — K8s label key constraints (DNS subdomain, optional prefix, length)</sub>
@@ -506,26 +523,23 @@ In community practice, the most workable arrangement is to designate exactly one
 | Environment | OneAgent primary tag at install | Stable per host, must be on every signal type |
 | Team / owner | OneAgent primary tag at install | Tied to host placement, not pod scheduling |
 | App name | OneAgent primary tag (host-level) **or** K8s label (pod-level) — pick one based on your topology | Mixing the two creates ambiguous joins |
-| Security context | OneAgent primary field at install | Must be tamper-resistant; can't be a view-time computation |
+| Security context | OneAgent primary field at install | Must be tamper-resistant; can't depend on a Classic auto-tag |
 
 **Mixing sources for the same dimension is the most common cause of tagging drift.** If `team` is sometimes on the host and sometimes on the K8s pod label, every dashboard has to decide which to trust per-row.
 
 ### 6.2 Precedence and Conflict Resolution
 
-When two sources both carry the same dimension, document which wins. A simple, stable precedence:
+The platform already resolves conflicts, by **specificity**, and you cannot override that order with a policy. On OneAgent: *"When the same key is set at multiple scopes, the more specific definition wins:"* process (`DT_TAGS`), then host (installer or `oneagentctl`), then an Ingest enrichment configuration rule. On Kubernetes: *"Across sources, the priority from highest to lowest is:"* `metadata.dynatrace.com/<key>` annotations, then DynaKube resource attributes, then central enrichment rules. How a host-level tag and a pod annotation for the same key interact is not documented.
 
-1. **OneAgent primary field/tag** (set explicitly at install) wins — most stable, most propagated
-2. **K8s label** (when scoping inherently to pod/namespace) — next
-3. **Cloud-provider tag** (when the cloud is the source of record for that resource) — next
-4. **Auto-tagging rule** — last resort, only on legacy tenants
+So the strategy is not to rank sources but to **pick one authoritative source per key and set the key in only one place** (§ 6.1). A key set in two places resolves by the platform's order, not yours — and the loser is silently overwritten on some records only.
 
-Document the precedence in your runbook. The runbook is consulted when an auditor asks "why does this report show team-A but the IAM policy targets team-B?"
+Document the source per key in your runbook. The runbook is consulted when an auditor asks "why does this report show team-A but the IAM policy targets team-B?"
 
 ### 6.3 Cardinality Control
 
 Not every cloud tag should become a Dynatrace primary tag. Cloud accounts often accumulate dozens of tags per resource — automation tags, cost-allocation tags, compliance tags, deployment-pipeline tags. Surfacing them all into Dynatrace creates Smartscape clutter, dashboard-filter sprawl, and IAM-policy churn.
 
-**Curate which dimensions propagate as primary.** A reasonable default: only the seven dimensions in §5 land as primary fields/tags. Other cloud tags can remain queryable as `aws.tag.<key>` / `azure.tag.<key>` / `gcp.label.<key>` for the ad-hoc queries that need them, without elevating them to first-class status.
+**Curate which dimensions propagate as primary.** A reasonable default: only the seven dimensions in §5 land as primary fields/tags. Other cloud tags stay on the Smartscape cloud node's `tags` record for the ad-hoc queries that need them, without elevating them to first-class status.
 
 ### 6.4 Bare-Metal and On-Prem Fallback
 
@@ -535,11 +549,11 @@ Strategy implication: if your tenant spans cloud + on-prem, the *primary* taggin
 
 ### 6.5 Source-Side Enrichment Over View-Time Rules
 
-When a dimension's authoritative source isn't already a Dynatrace-shaped key (e.g., `aws.tag.CostCenter` rather than `dt.cost.costcenter`), do the normalization **at ingest** via OpenPipeline enrichment processors, not **at view time** via auto-tagging rules.
+When a dimension's authoritative source isn't already a Dynatrace-shaped key (e.g., an AWS `CostCenter` tag rather than `dt.cost.costcenter`), do the normalization **at ingest** — an Ingest enrichment rule or an OpenPipeline enrichment processor — not with Classic auto-tagging rules, which Latest Dynatrace ignores.
 
 Reasons:
 
-- The normalized value lands on every signal at ingest (rather than being computed per-query)
+- The normalized value lands on every signal at ingest (an auto-tag never reaches the signal at all)
 - The OpenPipeline rule lives in source-controlled config (Terraform / Monaco / GitOps)
 - A change to the rule is point-in-time; historical signals carry the value that was correct at the time they were ingested
 - IAM policies and Smartscape see the normalized value uniformly
@@ -550,7 +564,7 @@ See OPIPE topic series for the worked enrichment patterns. The migration path fr
 
 **When the source of truth is an external CMDB** (rather than a field already on the incoming signal or the host), neither OpenPipeline-at-ingest nor a context-derived rule applies — the CMDB values aren't on the data. The fit there is a scheduled workflow that reconciles the CMDB onto host tags at source: **WFLOW-08 §11 (CMDB-Driven Host Tag Enrichment)** provides an import-ready template that reads CMDB lookup tables and sets `dt.security_context` / `dt.cost.costcenter` / `primary_tags.*` via the OneAgent Remote Configuration Management API, with dry-run guardrails. Tags written that way are host-level, so they outrank any central rule for the same key (§ 3.2) — pick one mechanism per key.
 
-> <sub>**Sources:** [oneagentctl (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagentctl) — primary-field assignment surface that anchors the precedence model in §6.2, [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline) — source-side enrichment as the alternative to view-time auto-tagging rules (§6.5), [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — host-group-level tag rideability as the universal floor (§6.4).</sub>
+> <sub>**Sources:** [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — the OneAgent precedence sentence quoted in § 6.2; [Kubernetes tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — the Kubernetes precedence sentence quoted in § 6.2; [Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app."*; [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline).</sub>
 
 <a id="anti-patterns"></a>
 ## 7. Anti-Patterns
@@ -561,25 +575,25 @@ Patterns that work in the short term and create rework in the long term. Each is
 
 **Symptom:** the Settings → Tags → Automatically applied tags page has dozens of rules, often with overlapping conditions, that compute primary dimensions (environment, team, cost center) from regex over `host.name` or `process.name`.
 
-**Why it's a problem:** rules are computed at view time; they don't propagate to logs / business events / spans uniformly; changing a rule retroactively re-tags historical signals; rules couple a tag's value to a property (host name) that may need to change for unrelated reasons.
+**Why it's a problem:** the tags attach to classic entities only and *"have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app"*; they never reach logs, business events or spans; rules couple a tag's value to a property (host name) that may need to change for unrelated reasons.
 
 **Alternative:** tag at source via OneAgent primary fields/tags. For cloud workloads, normalize cloud-provider tags via OpenPipeline enrichment. Migrate auto-tagging rules incrementally — replace one rule at a time, verify the at-source value matches the computed value, then disable the rule.
 
 ### 7.2 Treating Every Cloud Tag as Primary
 
-**Symptom:** the Clouds app integration is configured to surface all `aws.tag.*` / `azure.tag.*` / `gcp.label.*` keys as Dynatrace primary tags. Smartscape is cluttered. Dashboard filter dropdowns show 80+ tag keys.
+**Symptom:** enrichment rules promote every AWS, Azure and GCP tag onto signals as `aws.tags.*` / `azure.tags.*` / `gcp.labels.*` or as primary tags. Smartscape is cluttered. Dashboard filter dropdowns show 80+ tag keys.
 
 **Why it's a problem:** cloud accounts accumulate operational tags (deployment pipelines, automation jobs, ticket numbers) that aren't observability-meaningful. Surfacing them all elevates noise to first-class status.
 
-**Alternative:** curate the dimensions that propagate as primary (the seven in §5). Other cloud tags remain queryable on `aws.tag.<key>` / `azure.tag.<key>` / `gcp.label.<key>` without first-class status.
+**Alternative:** curate the dimensions that propagate as primary (the seven in §5). Other cloud tags stay on the Smartscape cloud node's `tags` record without first-class status.
 
 ### 7.3 Inconsistent Casing Across Clouds Without Normalization
 
-**Symptom:** dashboards and DQL queries paper over `aws.tag.CostCenter` vs `azure.tag.costCenter` vs `gcp.label.cost_center` with `coalesce(...)`. The same dimension is queried differently in every report.
+**Symptom:** dashboards and DQL queries paper over `aws.tags.CostCenter` vs `azure.tags.costCenter` vs `gcp.labels.cost_center` with `coalesce(...)`. The same dimension is queried differently in every report.
 
 **Why it's a problem:** every new dashboard re-derives the normalization logic. Inconsistencies multiply. New team members don't know which key to query.
 
-**Alternative:** normalize at ingest with OpenPipeline enrichment processors. One canonical `dt.cost.costcenter` field, regardless of cloud provenance.
+**Alternative:** normalize at ingest with Ingest enrichment rules or OpenPipeline enrichment processors. One canonical `dt.cost.costcenter` field, regardless of cloud provenance.
 
 ### 7.4 Cost Center via Host-Name Regex
 
@@ -589,13 +603,13 @@ Patterns that work in the short term and create rework in the long term. Each is
 
 **Alternative:** set `dt.cost.costcenter` explicitly at OneAgent install, sourced from the same authoritative system (CMDB, FinOps spreadsheet, AWS Tag Editor) as the cost-allocation report.
 
-### 7.5 Relying on Cloud Tag for IAM Boundary Without Verifying Propagation
+### 7.5 Expecting a Cloud Tag to Act as an IAM Boundary
 
-**Symptom:** an IAM policy uses `MATCH(aws.tag.SecurityContext)` as the boundary, assuming the AWS tag flows to every signal type the policy needs to scope.
+**Symptom:** the design calls for record-level access on an AWS `SecurityContext` tag, assuming the tag can be used in a Grail permission condition.
 
-**Why it's a problem:** AWS tags don't uniformly propagate to logs, business events, or all entity types. The policy works for some queries and silently fails-open for others. The user sees more data than the policy intended.
+**Why it's a problem:** Grail record-level conditions accept only the fields marked `permission` in the semantic dictionary — *"The following fields can be used in IAM policies that control read permissions of data stored in Grail"* — and cloud tag fields are not on that list. The policy cannot be written as intended.
 
-**Alternative:** use `MATCH(dt.security_context)` set at the OneAgent layer (or normalized via OpenPipeline from the cloud tag). The boundary then propagates to every signal type uniformly. See IAM topic series for the boundary-standardization pattern.
+**Alternative:** promote the tag to `dt.security_context` with an Ingest enrichment rule (`AWS_TAG` → Security context) or OpenPipeline, or scope on a provider field that **is** a permission field — `aws.account.id`, `azure.subscription`, `azure.resource.group`, `gcp.project.id`. See IAM topic series for the policy patterns.
 
 ### 7.6 Tagging Metadata of the Day Into Long-Lived Primary Fields
 
@@ -603,9 +617,9 @@ Patterns that work in the short term and create rework in the long term. Each is
 
 **Why it's a problem:** primary fields are designed for stable values that ride on every signal forever. Short-lived values churn the value-set, break dashboard filter dropdowns, and pollute IAM policy match conditions.
 
-**Alternative:** primary fields/tags carry stable dimensions only (env, team, app, cost center, security context). Short-lived metadata (release version, incident ID, feature flag) belongs on **business events** — `fetch bizevents | filter event.release == "2026-q2"` works without polluting the host's primary tag set.
+**Alternative:** primary fields/tags carry stable dimensions only (env, team, app, cost center, security context). Release identity belongs in the `DT_RELEASE_*` variables (§ 3.1), read from the process node's `tags`. Incident IDs and feature flags belong on the events and spans they describe, not in primary tags.
 
-> <sub>**Sources:** [Tags and metadata (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata) — auto-tagging-rule semantics and view-time computation behavior, [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — naming-constraint anti-patterns (cannot start with `dt.`, 100-character maximum).</sub>
+> <sub>**Sources:** [Classic auto-tagging vs primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — the auto-tagging sentence quoted in § 7.1, [Permission fields — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission) — the permission-field sentence quoted in § 7.5, [Advanced permission setup (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup), [Host groups (DT docs)](https://docs.dynatrace.com/docs/shortlink/host-groups) — naming-constraint anti-patterns (cannot start with `dt.`, 100-character maximum). **Dictionary:** `aws.account.id`, `azure.subscription`, `azure.resource.group`, `gcp.project.id` tagged `permission`; `aws.tags.__tag_key__` has no `permission` tag, read 10/02/2026.</sub>
 
 <a id="final-recommendation"></a>
 ## 8. Final Recommendation
@@ -623,7 +637,7 @@ Four principles, in order of priority:
 
 ## Summary
 
-Tagging in Dynatrace draws from four sources (OneAgent, Kubernetes, cloud-provider integrations, and legacy auto-tagging rules) that propagate differently and serve different purposes. Primary fields and primary tags (sprint-1.337+) are the recommended Gen3-first surface for stable dimensions because they ride on every signal at ingest. Standards (taxonomy + naming) come before strategy (source-of-truth + precedence + cardinality + fallback + source-side enrichment). The canonical pattern: tag at source via OneAgent, normalize cloud tags via OpenPipeline enrichment, and use `dt.*` primary fields as the surface every consumer queries.
+Tagging in Dynatrace draws from four sources (OneAgent, Kubernetes, cloud-provider integrations, and legacy auto-tagging rules) that propagate differently and serve different purposes. Primary fields and primary tags (OneAgent 1.333+) are the recommended Gen3-first surface for stable dimensions because they ride on every signal at ingest. Standards (taxonomy + naming) come before strategy (source-of-truth + precedence + cardinality + fallback + source-side enrichment). The canonical pattern: tag at source via OneAgent, normalize cloud tags via OpenPipeline enrichment, and use `dt.*` primary fields as the surface every consumer queries.
 
 ## Next Steps
 
@@ -649,7 +663,7 @@ This FAQ does not stand alone — tagging strategy is decided alongside host-gro
 
 - **OPIPE series** — OpenPipeline enrichment processors for cross-cloud tag normalization and primary-field assignment at ingest
 - **CLOUD series** — per-provider integration deep dives (AWS, Azure, GCP) and field mapping reference
-- **IAM series** — `MATCH(dt.security_context)` boundary patterns; the canonical Gen3 ABAC surface for record-level access
+- **IAM series** — record-level access policies on the deployment-scope permission fields (`dt.host_group.id`, `k8s.namespace.name`) and on `dt.security_context` where those are not fine-grained enough
 - **AUTOM series** — config-as-code for any remaining tag rules (Terraform / Monaco / GitOps)
 - **K8S series** — Kubernetes label propagation through DynaKube and OneAgent metadata enrichment
 - **ORGNZ series** — segments and bucket strategy that consume tags as scoping inputs

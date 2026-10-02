@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -89,7 +89,7 @@ The **prefix carries meaning** — it tells you who produced the metric and whic
 | `builtin:*` | Dynatrace (Classic built-ins) | The Classic twin of `dt.*` keys; queryable via metric selectors, not DQL |
 | `ext:*` | Extensions (Classic naming) | Extension-framework metrics |
 | `calc:*` | Calculated metrics (Classic) | e.g., calculated service metrics; `calc:apps.*` RUM metrics are not supported on Grail |
-| `log.*` | Log metric extraction | Classic log-metric rules prefix keys with `log.` |
+| `log.*` | Log metric extraction | Metrics based on a log monitoring query carry the `log.` prefix |
 | *(your namespace)* | You | Free-form — in community practice, prefix with an org or app namespace so ownership stays obvious |
 
 For Grail-native keys, Dynatrace's own naming convention is instructive: the docs describe *"replacing the `builtin:` prefix with `dt.` to clearly denote Dynatrace-provided metrics"* and *"preferring snake case (`capacity_units`) to camel case (`capacityUnits`)"*.
@@ -115,7 +115,7 @@ metrics from: now()-24h
 Every data point is one of two payload types:
 
 - **Gauge** — a sampled state ("CPU is at 80.6%"). A single value `gauge,80.6` is expanded at ingest to the summary `min=80.6, max=80.6, sum=80.6, count=1`; producers that pre-aggregate can send the summary form directly (`gauge,min=17.1,max=17.3,sum=34.4,count=2`). Those four stored statistics are exactly what DQL's `rollup:` parameter selects among at query time (§8).
-- **Count** — an occurrence tally ("500 requests since the last report"). The protocol is explicit: *"data points of the `count` type are deltas between the previous and current data points"* — you send `count,delta=500`, never a cumulative running total. Count metrics automatically receive a `.count` suffix on the key.
+- **Count** — an occurrence tally ("500 requests since the last report"). The protocol is explicit: *"data points of the `count` type are deltas between the previous and current data points"* — you send `count,delta=500`, never a cumulative running total. On **Metrics Classic**, a count key is automatically suffixed with `.count` (and a gauge key that already ends in `.count` gets `.gauge`); **Grail does not do this** — *"Grail metrics do not apply the .count and .gauge suffixes."* In DQL, query the key exactly as sent.
 
 Timestamps are UTC milliseconds, and the acceptance window is tight: *"between 1 hour into the past and 10 minutes into the future from now"* — anything outside is rejected. Omit the timestamp and the server clock is used.
 
@@ -129,7 +129,7 @@ Metadata makes a metric render meaningfully (a chart labeled "MilliSecond" inste
 One documented limitation to plan around: *"You cannot provide metadata for built-in or calculated metrics; metadata is supported only for custom ingested metrics"* — built-in metadata is registered by Dynatrace itself.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — key/dimension rules, gauge summary expansion, count deltas, timestamp window</sub>
+> - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — key/dimension rules, gauge summary expansion, count deltas, timestamp window, and the Classic-only `.count` / `.gauge` suffixing (*"Grail metrics do not apply the .count and .gauge suffixes."*)</sub>
 > - <sub>[Metric limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — `dt.` prefix reserved for Dynatrace</sub>
 > - <sub>[Built-in metrics on Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail)</sub>
 > - <sub>[Built-in classic metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/built-in-metrics) — `builtin:` / `ext:` / `calc:` prefix semantics</sub>
@@ -163,7 +163,7 @@ Built-in metrics exist under **two names**: the Classic key (`builtin:host.cpu.u
 - **DQL cannot query `builtin:` keys.** A `timeseries` on a `builtin:` key either fails to parse (the colon reads as parameter syntax) or, backtick-quoted, returns nothing — the Grail store has no such key. Query the `dt.*` twin instead. We confirmed this live: on a current tenant, the DQL `metrics` command lists hundreds of `dt.*` keys and zero `builtin:` keys.
 - **Metric selectors cannot query `dt.*` keys** — they read Classic.
 
-The Grail catalog is also consolidated, not 1:1. The built-in-metrics page states that Dynatrace *"modified the availability of service metrics in Grail, which might affect the direct relation between Metrics Classic and Grail metric keys"*, and frames the change as dimensional rather than additive — endpoint request metrics are *"produced automatically for every detected endpoint"*, with out-of-the-box dimensions replacing calculated metrics for common splits. In practice that is the `dt.service.*` family split by dimensions instead of key proliferation. (Re-verified 08/24/2026: an earlier revision quoted *"over 100 service metrics have been consolidated to just a handful"* as being from the upgrade guide; that sentence is not on the upgrade guide, the FAQ, or the built-in-metrics page today, so the sourced wording above replaces it.) Some Classic families have no Grail twin — *"calculated RUM metrics (metrics with the prefix `calc:apps`) are not supported on Grail"* and security metrics were replaced by security events.
+The Grail catalog is also consolidated, not 1:1. The built-in-metrics page states that Dynatrace *"modified the availability of service metrics in Grail, which might affect the direct relation between Metrics Classic and Grail metric keys"*, and frames the change as dimensional rather than additive — endpoint request metrics are *"produced automatically for every detected endpoint"*, with out-of-the-box dimensions replacing calculated metrics for common splits. In practice that is the `dt.service.*` family split by dimensions instead of key proliferation; the upgrade guide puts it as *"Over 100 Classic service metrics are consolidated into a handful of Grail-based metrics, accessed through dimensions and filters."* Some Classic families have no Grail twin — *"calculated RUM metrics (metrics with the prefix `calc:apps`) are not supported on Grail"* and security metrics were replaced by security events.
 
 ### 3.2 Which tool reads which backend
 
@@ -194,9 +194,9 @@ Every path below converges on the same data-point model from §2 — the differe
 | Path | Runs where | Auth | Distinctive behavior |
 |------|-----------|------|----------------------|
 | OneAgent built-ins | On the host | none (agent) | 10-second sampling → 1-minute aggregates; automatic topology dimensions |
-| Metrics API v2 ingest | Anywhere → cluster/ActiveGate | token, `metrics.ingest` scope | Line protocol, 1 MB payload |
-| OneAgent local API / `dynatrace_ingest` / Telegraf / StatsD | On the host, `localhost` only | none (local trust) | Automatic host dimensions; 1,000-line payload |
-| OTLP (`/api/v2/otlp/v1/metrics`) | Anywhere → cluster/ActiveGate | token, `metrics.ingest` scope | **Delta temporality required**; HTTP + binary protobuf only |
+| Metrics API v2 ingest | Anywhere → cluster/ActiveGate | platform token / OAuth (`openpipeline:metrics:ingest`) or classic token (`metrics.ingest`) | Line protocol, 1 MB payload |
+| OneAgent local API / `dynatrace_ingest` / Telegraf / StatsD | On the host, `localhost` only | none (local trust) — the local API must be enabled first | Automatic host dimensions; 1,000-line payload |
+| OTLP (`/api/v2/otlp/v1/metrics`) | Anywhere → cluster/ActiveGate | platform token (`openpipeline:metrics:ingest`) or classic token (`metrics.ingest`) | **Delta temporality required**; HTTP + binary protobuf only |
 | Extensions 2.0 | OneAgent or ActiveGate (EEC) | framework | Declarative YAML; polls SNMP/WMI/JMX/Prometheus/SQL/Python |
 | OpenPipeline extraction | At record ingest | pipeline config | Metrics derived from logs/spans/events — §5 |
 
@@ -206,7 +206,7 @@ The workhorse. Per the docs: *"infrastructure metrics and other periodic metrics
 
 ### 4.2 Metrics API v2 ingest — the line protocol
 
-`POST /api/v2/metrics/ingest` accepts a plain-text body of protocol lines, one data point each, with a token holding the `metrics.ingest` scope. *"The payload is limited to 1 MB"* and *"there's no limit on the number of metrics"* within it. A `202` means accepted for background processing; a `400` can be a *partial* failure — valid lines are still ingested.
+`POST /api/v2/metrics/ingest` accepts a plain-text body of protocol lines, one data point each. Authenticate with a platform token or OAuth client (`Authorization: Bearer …`, scope `openpipeline:metrics:ingest`) or, where classic access tokens are still available, an `Api-Token` with the `metrics.ingest` scope. *"The payload is limited to 1 MB"* and *"there's no limit on the number of metrics"* within it. A `202` means accepted for background processing; a `400` can be a *partial* failure — valid lines are still ingested.
 
 ```text
 # metadata line (optional, once per key)
@@ -219,19 +219,19 @@ myapp.request.duration,region="us-east-1" gauge,min=12.1,max=340.7,sum=1893.4,co
 
 ### 4.3 The local-host ingest family
 
-When code already runs on a OneAgent-monitored host, you can skip tokens entirely. The **local metric API** — `http://localhost:14499/metrics/ingest` (served by OneAgent's Extensions Execution Controller) — *"is available only to local clients and cannot be reached from remote hosts."* Payload cap: 1,000 lines. Its convenience feature is enrichment: *"the host ID and host name context are automatically added to each metric as dimensions."* The same channel backs three integrations:
+When code already runs on a OneAgent-monitored host, you can skip tokens entirely — once the local API is switched on. It ships with OneAgent but is enabled per environment or host: **Settings → Preferences → Extension Execution Controller**, turn on *Enable Extension Execution Controller* and *Enable local HTTP Metric, Log and Event Ingest API* (a host-level setting overrides the environment one). Until then, requests to port 14499 fail. The **local metric API** — `http://localhost:14499/metrics/ingest` (served by OneAgent's Extensions Execution Controller) — *"is available only to local clients and cannot be reached from remote hosts."* Payload cap: 1,000 lines. Its convenience feature is enrichment: *"the host ID and host name context are automatically added to each metric as dimensions."* The same channel backs three integrations:
 
 - **`dynatrace_ingest`** — a CLI shipped in `<install>/agent/tools`; pipe protocol lines via stdin or pass one per invocation. Ideal for cron jobs and shell scripts.
 - **Telegraf** — the upstream Telegraf distribution includes a Dynatrace output plugin; point it at the local endpoint (or a cluster URL + token for remote).
-- **StatsD** — OneAgent ships a StatsD daemon listening on UDP `18125`; an ActiveGate can act as a remote listener on `18126` (disabled by default there).
+- **StatsD** — OneAgent ships a StatsD daemon listening on UDP `18125`; an ActiveGate can act as a remote listener on `18126` (disabled by default there). The OneAgent daemon is not available when OneAgent is deployed on Kubernetes (for example with Dynatrace Operator) — there, the docs recommend remote StatsD through an environment ActiveGate.
 
 ### 4.4 OTLP — OpenTelemetry metrics
 
-`POST /api/v2/otlp/v1/metrics` (or via ActiveGate) with an `Authorization: Api-Token …` header carrying `metrics.ingest`. Three protocol constraints surprise OTel veterans:
+`POST /api/v2/otlp/v1/metrics` (or via ActiveGate) with `Authorization: Bearer <platform token>` (scope `openpipeline:metrics:ingest`) or, where classic access tokens are still available, `Authorization: Api-Token …` with `metrics.ingest`. Three protocol constraints surprise OTel veterans:
 
 1. **HTTP only** — *"gRPC is not supported"* — and **binary protobuf only** (*"JSON is not supported"*): set `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
 2. **Delta temporality is mandatory**: *"the Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."* Cumulative sums are not ingested. Fix it at the SDK (`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA`) or in a Collector with the `cumulativetodelta` processor (set `max_staleness` above the receive interval so counter state is not evicted between reports).
-3. **Histogram support is partial**: explicit-bucket histograms are supported (Dynatrace 1.300+); for exponential histograms *"Dynatrace ingests the histogram's min/max/sum/count but doesn't ingest the buckets"*; histogram points without a sum (negative recordings) are dropped; OTLP *summary* metrics are not supported at all.
+3. **Histogram support is partial**: explicit-bucket histograms (Dynatrace 1.300+) are stored as histograms **only when Advanced OTLP metric dimensions is enabled** — otherwise they are ingested as counters, with no buckets to take percentiles from; for exponential histograms *"Dynatrace ingests the histogram's min/max/sum/count but doesn't ingest the buckets"*; histogram points without a sum (negative recordings) are dropped; OTLP *summary* metrics are not supported at all.
 
 Attribute mapping: data-point attributes become dimensions by default; resource and scope attributes pass through an allow-list — unless the tenant enables **Advanced OTLP metric dimensions**, in which case *all* resource/scope/data-point attributes become dimensions except a deny list, and `otel.scope.name`/`otel.scope.version` are always added. On conflicts, data-point attributes win over scope, which wins over resource. Limits shift with that mode too: 50 → 100 dimensions, 100 → 350-character dimension keys, 255 → 2,048-character values; requests cap at 4 MB uncompressed and 15,000 data points; instrument units longer than 63 characters are silently dropped.
 
@@ -241,14 +241,14 @@ For technology you cannot instrument directly, an extension is a **declarative Y
 
 > <sub>**Sources:**</sub>
 > - <sub>[Metrics Classic (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic) — 10-second capture, 1-minute aggregates, service-metric derivation</sub>
-> - <sub>[POST ingest data points (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics) — endpoint, scope, 1 MB payload, partial-failure semantics</sub>
+> - <sub>[POST ingest data points (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics) — endpoint, 1 MB payload, partial-failure semantics; auth: *"Platform Token / OAuth: One of the following scopes is required: openpipeline:metrics:ingest"*, or an `Api-Token` with `metrics.ingest`</sub>
 > - <sub>[Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol)</sub>
-> - <sub>[OneAgent metric API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-metric-api) — port 14499, local-only, 1,000 lines, host enrichment</sub>
+> - <sub>[OneAgent metric API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-metric-api) — port 14499, local-only, 1,000 lines, host enrichment; *"You only need to enable the OneAgent metric API at the environment or host level."*</sub>
 > - <sub>[Scripting integration `dynatrace_ingest` (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-pipe)</sub>
 > - <sub>[Telegraf (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf)</sub>
-> - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126</sub>
-> - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only</sub>
-> - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping</sub>
+> - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126; *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported."*</sub>
+> - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only; *"Platform token : Use Bearer in the Authorization header."*</sub>
+> - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026)</sub>
 > - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
 > - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — size/length limits, 63-character unit cap</sub>
 > - <sub>[Collector configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/configuration) — `cumulativetodelta` + `max_staleness` guidance</sub>
@@ -262,15 +262,15 @@ Not every metric starts life as a measurement — many of the most valuable ones
 
 ### 5.1 OpenPipeline metric extraction (current mechanism)
 
-OpenPipeline's processing stage offers two extraction processors — a **counter metric** (*"returns the number of occurrences of a metric, from the records that match the query"*) and a **value metric** (*"returns the aggregated values of a metric from the records that match the query"*, reading a numeric field). Extraction is configurable on logs, generic events, SDLC events, security events (new), business events, system events, user events, and user sessions — and *"extracted metrics are sent to Grail only"* (with narrow exceptions for the security-event and span scopes).
+OpenPipeline's processing stage offers three extraction processors — a **counter metric** (*"Returns the number of occurrences of a metric, from the records that match the query."*), a **value metric** (*"Returns the aggregated values of a metric from the records that match the query."*, reading a numeric field), and a **histogram metric** (SaaS 1.343). Extraction is configurable on logs, generic events, SDLC events, security events (new), business events, system events, user events, and user sessions — and *"extracted metrics are sent to Grail only"* (with narrow exceptions for the security-event and span scopes).
 
 **Spans get special treatment.** Because spans can be sampled, the span scope offers *sampling-aware* counter, value, and histogram metric processors that extrapolate through the sampling ratio — leave the sampling options enabled so a 1-in-100 sampled trace stream still yields approximately correct request counts. Log- and event-derived metrics have no such caveat: those records are not sampled, so extracted metrics are exact. OPIPE-03 covers the span case in depth; OPLOGS-03 covers logs.
 
 Two design rules carry over from FAQ-09 verbatim: **bound your dimensions** (each unique tuple becomes a stored, billed series — §7) and remember that **extraction is forward-only** — a rule created today produces data points from today onward; it does not backfill history from stored records.
 
-### 5.2 Classic log metrics
+### 5.2 Log metrics (`log.*` keys)
 
-The classic mechanism (Settings → Log Monitoring → Metrics extraction) still exists: it prefixes keys with `log.`, and measures either *"occurrence of log records"* (a count) or an *"attribute value"* (min/max/sum/average/median/percentiles of a numeric log attribute), split by configured dimensions. New work should use OpenPipeline extraction instead; existing `log.*` metrics keep working.
+Log metrics are now the OpenPipeline extraction above, applied to logs: they are created in the Logs pipeline's **Metric extraction** tab (Settings → Process and contextualize → OpenPipeline → Logs), and *"Log metrics are stored in Grail and can be accessed and queried with Dynatrace Query Language."* Each is a **counter** (a count of matching records), a **value** metric (a numeric attribute recorded as a gauge — average, count, maximum, minimum, sum), or a **histogram** metric (a numeric attribute recorded as a histogram — median and the 10th/75th/90th percentiles). The key prefix is fixed: *"All metrics based on a log monitoring query have a metric key with the log. prefix."*
 
 ### 5.3 Calculated service metrics (Classic) — direction of travel
 
@@ -279,12 +279,13 @@ Calculated service metrics are the classic way to derive request-scoped metrics 
 **Existing calculated service metrics reach Grail by cardinality** (upgrade guide, rewritten 09/15/2026). One converts automatically when, among other criteria, *"The metric cardinality is less than 500 within any 5-minute window in the past two weeks"*; above that it must be switched on manually; and *"Classic calculated metrics with a cardinality exceeding 2,000 can't be converted to Grail calculated metrics"* — recreate those with OpenPipeline or DQL. Conversion does not double-bill — *"Calculated service metrics continue to consume your license like custom metrics. There are no changes to billing."* — but it can cost more: classic keeps *"at most 100 dimension values"*, while Grail keeps the full cardinality, so *"converting such a metric may increase the number of stored metric data points"*.
 
 
-> **Forthcoming/rolling out (SaaS 1.343, July 2026):** OpenPipeline metric extraction adds support for **histogram metrics** — you can extract a histogram (not just a counter or gauge value) from logs or spans, giving percentile-capable series from record data without shipping raw histograms through OTLP. SaaS 1.343 released July 7, 2026 with a **staged tenant rollout** (from mid-July 2026) — verify the feature has reached your tenant before relying on it. Until it arrives, the OTLP histogram path and counter/value extraction described in this section remain the available surfaces. This narrows the gap noted elsewhere in this entry between OTLP histogram ingestion and record-derived metrics.
+> **Histogram extraction (SaaS 1.343, rollout from 07/14/2026):** *"You can now extract histogram metrics from logs or spans using OpenPipeline."* That gives percentile-capable series from record data without shipping raw histograms through OTLP. A tenant still on an earlier version has the counter and value processors only.
 
 > <sub>**Sources:**</sub>
-> - <sub>[OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — counter/value processors, supported scopes, Grail-only routing</sub>
+> - <sub>[OpenPipeline processing (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — counter/value/histogram processors, supported scopes, Grail-only routing</sub>
 > - <sub>[Extract metrics from spans (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans)</sub>
-> - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics) — classic `log.*` extraction modes</sub>
+> - <sub>[Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics) — counter/value/histogram log metrics, the `log.` prefix, and Grail storage (page updated 08/20/2026, read 10/02/2026)</sub>
+> - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — histogram metric extraction; *"Rollout start on Jul 14, 2026"*</sub>
 > - <sub>[Calculated metrics for services (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric) — replacement by OpenPipeline, existing vs new customers</sub>
 > - <sub>[Upgrade from calculated service metrics to Grail (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/calculated-service-metrics-upgrade) — cardinality-based conversion, billing, top-100 vs full cardinality</sub>
 
@@ -364,16 +365,16 @@ timeseries avg(dt.host.cpu.usage), from:-2h, by:{dt.smartscape.host}
 
 Mechanics worth internalizing:
 
-- **Auto-binning.** *"The timeseries command automatically calculates an appropriate time interval derived from the query timeframe"* — snapped to well-known slots (1, 2, 3, 5, 10, 15, 30 minutes; 1–24 hours; multiples of 24 hours up to 30 days), overridable with `interval:` or `bins:`. A series never exceeds **1,500 elements**, which is why a year-long query returns daily points, not half a million minutes.
-- **`rollup:` selects the stored statistic** (§6.1) — `avg`, `min`, `max`, `sum`, `total` — independently of the across-series aggregation. It is **required** for `percentile`/`median`/`percentRank` on gauge and count metrics; omit it and the query silently returns nothing.
+- **Auto-binning.** *"The timeseries command automatically calculates an appropriate time interval derived from the query timeframe"* — snapped to well-known slots (1, 2, 3, 5, 10, 15, 30 minutes; 1–24 hours; multiples of 24 hours up to 30 days), overridable with `interval:` or `bins:`. A series never exceeds the hard cap of **1,500 elements**, but the default lands well below it: on 10/02/2026 a 2-hour query returned 1-minute slots and a 365-day query returned **3-day** slots, 122 elements each. Use `interval:` or `bins:` when you need finer resolution.
+- **`rollup:` selects the stored statistic** (§6.1) — `avg`, `min`, `max`, `sum`, `total` — independently of the across-series aggregation. It is **required** for `percentile`/`median`/`percentRank` on gauge and count metrics; omit it and the query returns no rows plus a WARNING notification (`SX_WARNING_TIMESERIES_MISSING_ROLL_UP_TYPE`) — easy to miss if you read only the records. The documented exceptions are `dt.service.request.response_time` and `dt.service.request.service_mesh.response_time`.
 - **`scalar: true`** collapses a series to one number over the whole timeframe — cheaper than materializing an array and post-processing it.
 
 ```dql
+// p90 is the percentile across all hosts' series in each time slot
 timeseries {
     p90 = percentile(dt.host.cpu.usage, 90, rollup: avg),
     avg_cpu = avg(dt.host.cpu.usage, scalar: true)
-  }, from:-2h, by:{dt.smartscape.host}
-| limit 3
+  }, from:-2h
 ```
 
 Also available: `filter:` (pre-aggregation dimension filtering), `shift:` (timeframe comparison — day-over-day in one query), `default:` (fill empty slots), and `union:`. Output is normalized: *"all series have identical start and end timestamps, time interval and number of elements."*
@@ -411,7 +412,7 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > *(Executed 09/28/2026: returned rows with `metric.key`, `name`, `description`, `kind`, `unit` and `dimensions`.)*
 
 > <sub>**Sources:**</sub>
-> - <sub>[Metric commands — timeseries, metrics (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands)</sub>
+> - <sub>[Metric commands — timeseries, metrics (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands) — *"The resulting number of time slots does not exceed the maximum number of elements per series (1,500)."*; *"Two metrics support timeseries percentile without a rollup parameter"*. The binning, `rollup:` warning and percentile examples executed 10/02/2026</sub>
 > - <sub>[Aggregation commands — makeTimeseries (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands)</sub>
 > - <sub>[Metric selector (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector) — transformations, 10-metric cap</sub>
 > - <sub>[Metrics API v2 (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2)</sub>
@@ -420,11 +421,11 @@ Query-size ceilings differ by an order of magnitude and change what is *feasible
 > - <sub>[SaaS 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"You can now query metric metadata via DQL with load"* (rollout from Jul 14, 2026)</sub>
 > - <sub>[Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — timeseries queries always included</sub>
 
-> **New in the classic Metrics API (Dynatrace API 1.346, released 08/25/2026): an `asHistogram` transformation.** The API changelog adds an `asHistogram` enum value to the `transformations` property on `GET /metrics` and `GET /metrics/{metricKey}` (Environment API v2), and to `metricsMetadata` on the Early-Access `POST /ua/entity` and `POST /ua/list`.
+> **New in the classic Metrics API (Dynatrace API 1.346, released 08/25/2026): `asHistogram` in the metric descriptor.** The API changelog adds an `asHistogram` enum value to the `transformations` property of the metric descriptor returned by `GET /metrics` and `GET /metrics/{metricKey}` (Environment API v2), and to `metricsMetadata` on the Early-Access `POST /ua/entity` and `POST /ua/list` — so a descriptor can now list `asHistogram` among the transformations a metric supports.
 >
-> Two things to keep straight. This is a **metric-selector transformation on the classic Metrics API surface**, not a DQL command — nothing in the `timeseries` syntax above changes, and DQL still reads Grail only (§3). And it is a *transformation*, so it shapes how an already-ingested metric is returned; it does not turn a gauge into a histogram at ingest. If you maintain selector-based automation or Data Explorer definitions, this is a new option there; if you have already moved that work to DQL, it does not apply to you.
+> Two things to keep straight. The metric-selector reference does not document an `asHistogram` selector syntax (it documents `:histogram`, which *"Exposes the buckets of a histogram metric as dimensions."*), so verify the syntax before building selector automation on it. And it is a classic-surface change — nothing in the `timeseries` syntax above changes, and DQL still reads Grail only (§3).
 
-> <sub>**Sources:** [Dynatrace API changelog version 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-346) — the `asHistogram` transformations enum addition, read 08/28/2026.</sub>
+> <sub>**Sources:** [Dynatrace API changelog version 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-346) — the `asHistogram` transformations enum addition, re-read 10/02/2026; [Metric selector (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector) — documents `:histogram`, no `asHistogram`.</sub>
 
 <a id="cost"></a>
 ## 9. What Metrics Cost Under DPS
@@ -444,10 +445,10 @@ Scale intuition from the docs' own example: one series reporting every minute is
 
 ### 9.2 What's included / non-billable
 
-- *"The following metric keys are non-billable: `dt.*`"* — with documented exceptions (certain `dt.cloud.aws.*` / `dt.cloud.azure.*` and `dt.osservice.*` metrics, and `dt.service.*` when originating from non-Full-Stack sources). In short: the OneAgent/Dynatrace-produced catalog you get with host monitoring is generally free; *"some built-in metrics are not billed — this includes, for example, host monitoring metrics included in Full-Stack Monitoring and Infrastructure Monitoring."*
+- *"The following metric keys are non-billable: `dt.*`"* — but the exceptions are broad, and they run the other way. **All** `dt.cloud.aws.*`, `dt.cloud.azure.*` and `dt.osservice.*` metrics are billable apart from a short named list (for example `dt.cloud.aws.az.running` and the Azure `vms.*` counts); the NAM `dt.synthetic.multi_protocol.*` metrics are billable; and `dt.service.*` consume the included Full-Stack volume when the spans come from Full-Stack OneAgents and are charged as Metrics powered by Grail otherwise. In short: the host-monitoring catalog is generally free, cloud-integration and OS-service metrics are not; *"some built-in metrics are not billed — this includes, for example, host monitoring metrics included in Full-Stack Monitoring and Infrastructure Monitoring."*
 - Three `legacy.*` families — `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*` — and everything in the `dt_system_metrics` bucket are non-billable.
 - Custom metrics draw first on an included allotment: *"the number of included Custom Metric data points is dependent on the total monitored GiB-hours of your deployment and the OneAgent mode."*
-- During a licensing transition there is no double-billing: *"only the consumption related to your active license applies, whether it's DDUs, DPS Custom Metrics Classic, or DPS Metrics powered by Grail."*
+- During a licensing transition there is no double-billing: *"Only the consumption related to your active license applies, whether it's DDUs, DPS Custom Metrics Classic, or DPS Metrics powered by Grail."* ([Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq))
 
 ### 9.3 Retain — billed in GiB-days above the included window
 
@@ -455,7 +456,7 @@ Retain's unit is *"the gibibyte-day (GiB-day)"* — storage volume, not data poi
 
 For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt.system.events` billing-event schema; FINOPS-02/03 cover forecasting and optimization levers.
 
-> <sub>**Sources:** [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — data-point definition, counting rules, non-billable keys (the page lists `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*`, and states *"Metrics stored in the bucket dt_system_metrics are non-billable."*), included allotment, [Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — GiB-day unit, 462 days included, worked example, [Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — capability structure, query always included.</sub>
+> <sub>**Sources:** [Metrics Ingest & Process capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-ingest) — data-point definition, counting rules, non-billable keys and the billable exceptions (*"The following dt.* metric keys are billable unless otherwise noted in the list above"*, read 10/02/2026; the page lists `legacy.containers.*`, `legacy.dotnet.perform.*` and `legacy.tomcat.*`, and states *"Metrics stored in the bucket dt_system_metrics are non-billable."*), included allotment, [Metrics FAQ (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq) — no double-billing during a licensing transition, [Metrics Retain capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-retain) — GiB-day unit, 462 days included, worked example, [Metrics powered by Grail capability (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — capability structure, query always included.</sub>
 
 <a id="recommended-approach"></a>
 ## 10. Recommended Approach
@@ -463,8 +464,8 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 1. **Inventory before you invent.** Run the `metrics` discovery command (§2.2) and check the `dt.*` catalog before creating any custom metric — host, process, service, container, and consumption metrics almost certainly already exist for your question.
 2. **Author everything new in DQL against `dt.*` keys.** Keep metric selectors only as the maintenance language for existing Data Explorer / Dashboards Classic assets, and migrate those with the built-in converter when you touch them.
 3. **Design dimensions before first ingest.** Bounded values only — never request/user/session/trace IDs or timestamps. Do the tuple cross-product math (§7) while it is still a design review, not an incident. Put per-request detail in logs and spans, where it belongs.
-4. **Namespace custom keys** with an org or app prefix (`acme.payments.*`). `dt.` is reserved and rejected; count metrics will gain a `.count` suffix — expect it in queries.
-5. **For OTLP, settle temporality at the source**: `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA` in SDKs, or `cumulativetodelta` (with `max_staleness`) in the Collector — and confirm your histogram shape survives the type mapping (§4.4) before promising percentiles.
+4. **Namespace custom keys** with an org or app prefix (`acme.payments.*`). `dt.` is reserved and rejected. On Metrics Classic, count keys gain a `.count` suffix — expect it in metric selectors; Grail does not add it, so DQL queries use the key as sent.
+5. **For OTLP, settle temporality at the source**: `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA` in SDKs, or `cumulativetodelta` (with `max_staleness`) in the Collector — and confirm your histogram shape survives the type mapping (§4.4) before promising percentiles — explicit-bucket histograms stay histograms only with **Advanced OTLP metric dimensions** enabled.
 6. **Attach metadata at ingest** (unit, display name, description — §2.4) so every downstream chart and Davis analysis renders meaningfully without tribal knowledge.
 7. **Derive recurring aggregates from records early** via OpenPipeline extraction (§5) — it is forward-only, so every week of delay is a week of history the metric will never have. Keep the raw records for forensics per the FAQ-09 rule.
 8. **Decide retention deliberately.** The included 15 months at full 1-minute resolution covers most operational analysis; extend the default metrics bucket (up to 10 years) only for genuine long-horizon needs, and remember Classic comparisons older than 14 days are already downsampled.
@@ -478,20 +479,20 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `timeseries avg(builtin:…)` fails to parse or returns nothing | Classic `builtin:` keys are not in Grail; the colon also reads as DQL parameter syntax | Query the Grail twin (`dt.host.cpu.usage`); backtick-quote any key containing special characters |
-| `percentile` / `median` in `timeseries` silently returns no results | Missing `rollup:` — required for these functions on gauge/count metrics | Add `rollup: avg` (or `min`/`max`/`sum`) |
+| `percentile` / `median` in `timeseries` returns no rows (with a WARNING notification) | Missing `rollup:` — required for these functions on gauge/count metrics, except `dt.service.request.response_time` and `…service_mesh.response_time` | Add `rollup: avg` (or `min`/`max`/`sum`) |
 | OTel counter never arrives | Cumulative temporality — Dynatrace ingests delta only | Set `…TEMPORALITY_PREFERENCE=DELTA` or add the Collector's `cumulativetodelta` processor |
 | OTLP export fails outright | gRPC endpoint or JSON encoding — neither is supported | HTTP + binary protobuf (`http/protobuf`) |
-| Histogram percentiles poorer than expected | Exponential OTLP histograms store only min/max/sum/count — buckets are dropped; OTLP summaries are unsupported | Use explicit-bucket histograms (Dynatrace 1.300+) |
+| Histogram percentiles poorer than expected | Exponential OTLP histograms store only min/max/sum/count — buckets are dropped; OTLP summaries are unsupported | Use explicit-bucket histograms (Dynatrace 1.300+) **and** enable Advanced OTLP metric dimensions — without it, explicit-bucket histograms are ingested as counters |
 | `metrics` command shows nothing older than ~10 days | Discovery command timeframe is limited to the last ten days | Use `timeseries` for historical values; `metrics` is for discovery only |
 | Ingested data points vanish without error | Timestamp outside the acceptance window (−1 h to +10 min), or a new dimension tuple rejected after a cardinality limit | Fix producer clocks/batching; check the "Metric & Dimension Usage + Rejections" dashboard |
-| Custom count metric key "changed" | Count-type metrics automatically get a `.count` suffix | Query the suffixed key |
+| Custom count metric key "changed" in metric selectors | Metrics Classic suffixes count keys with `.count`; Grail does not | In metric selectors, query the suffixed key; in DQL, the key as sent |
 | New hosts/pods missing from an old custom metric, existing ones fine | Cardinality limit reached — new tuples rejected, existing series continue | Reduce dimensions; the limit evaluates a 30-day sliding window, so trimmed cardinality recovers on its own |
 | OTLP metric arrives without a unit | Instrument unit exceeded 63 characters and was dropped | Shorten the unit string |
 | Year-over-year Classic comparison looks "smoothed" | Classic downsampling: data older than 28 days is stored at 1-hour resolution (1-day beyond 400 days) | Use Grail (`dt.*` via DQL) — 1-minute granularity over the entire retention window |
 | Extracted metric has no history before its creation date | Metric extraction is forward-only; records are not backfilled | Create extraction rules early; scan records for the historical portion |
 | Duplicate dimension key on one ingest line | Protocol accepts only one value per key | Deduplicate keys in the producer |
 
-> <sub>**Sources:** each row is grounded in the sections above (§3, §4, §5, §6, §7, §8) and their cited pages; rows marked from live validation were confirmed on a tenant on 07/07/2026.</sub>
+> <sub>**Sources:** each row is grounded in the sections above (§3, §4, §5, §6, §7, §8) and their cited pages; rows marked from live validation were confirmed on a tenant on 07/07/2026; the `rollup:` warning row was re-confirmed 10/02/2026.</sub>
 
 ---
 

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Threshold Scoping Follows the Topology</text>
+  <text x="465" y="60" text-anchor="middle" fill="#94A3B8" font-size="13">Same nginx workload: one merged process group, or one per host group</text>
+
+  <!-- Divider -->
+  <line x1="465" y1="80" x2="465" y2="490" stroke="#334155" stroke-width="1"/>
+
+  <!-- ========== LEFT: Single host group ========== -->
+  <text x="235" y="100" text-anchor="middle" fill="#DE350B" font-size="15" font-weight="700">Single host group</text>
+  <text x="235" y="118" text-anchor="middle" fill="#94A3B8" font-size="11">One nginx PG and service → one setting for all envs</text>
+
+  <!-- One PG -->
+  <rect x="155" y="135" width="160" height="55" fill="#A78BFA" opacity="0.25" stroke="#A78BFA" rx="6"/>
+  <text x="235" y="158" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">PG: nginx</text>
+  <text x="235" y="176" text-anchor="middle" fill="#94A3B8" font-size="10">single PG across the estate</text>
+
+  <!-- Threshold gauge (single, fixed) -->
+  <rect x="135" y="205" width="200" height="65" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="235" y="226" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">Response-time threshold</text>
+  <!-- gauge bar -->
+  <rect x="155" y="240" width="160" height="14" fill="#334155" rx="3"/>
+  <rect x="155" y="240" width="120" height="14" fill="#DE350B" rx="3"/>
+  <text x="235" y="266" text-anchor="middle" fill="#FECACA" font-size="11">500 ms — applied everywhere</text>
+
+  <!-- One arrow fanning to all envs -->
+  <g stroke="#DE350B" stroke-width="1.5" fill="none">
+    <line x1="170" y1="285" x2="100" y2="320"/>
+    <line x1="235" y1="285" x2="235" y2="320"/>
+    <line x1="300" y1="285" x2="370" y2="320"/>
+  </g>
+
+  <!-- 3 envs all flat -->
+  <g font-size="10">
+    <rect x="55" y="320" width="100" height="55" fill="#334155" stroke="#64748B" rx="5"/>
+    <text x="105" y="338" text-anchor="middle" fill="#F8FAFC" font-weight="600">prod hosts</text>
+    <text x="105" y="356" text-anchor="middle" fill="#FCA5A5">500 ms threshold</text>
+
+    <rect x="185" y="320" width="100" height="55" fill="#334155" stroke="#64748B" rx="5"/>
+    <text x="235" y="338" text-anchor="middle" fill="#F8FAFC" font-weight="600">staging hosts</text>
+    <text x="235" y="356" text-anchor="middle" fill="#FCA5A5">500 ms threshold</text>
+
+    <rect x="320" y="320" width="100" height="55" fill="#334155" stroke="#64748B" rx="5"/>
+    <text x="370" y="338" text-anchor="middle" fill="#F8FAFC" font-weight="600">dev hosts</text>
+    <text x="370" y="356" text-anchor="middle" fill="#FCA5A5">500 ms threshold</text>
+  </g>
+
+  <!-- Consequence box -->
+  <rect x="55" y="395" width="365" height="80" fill="#0F172A" stroke="#DE350B" rx="5"/>
+  <text x="237" y="415" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">Consequence:</text>
+  <text x="237" y="433" text-anchor="middle" fill="#FECACA" font-size="10">Dev and prod share one service setting.</text>
+  <text x="237" y="450" text-anchor="middle" fill="#FECACA" font-size="10">Either prod under-alerts (too lax) or dev over-alerts (too strict).</text>
+  <text x="237" y="467" text-anchor="middle" fill="#FECACA" font-size="10">Service baselines blend all environments.</text>
+
+  <!-- ========== RIGHT: Multiple host groups ========== -->
+  <text x="700" y="100" text-anchor="middle" fill="#73BE28" font-size="15" font-weight="700">Multiple host groups</text>
+  <text x="700" y="118" text-anchor="middle" fill="#94A3B8" font-size="11">One nginx PG and service per host group</text>
+
+  <!-- One PG (still the same) -->
+  <rect x="620" y="135" width="160" height="55" fill="#A78BFA" opacity="0.25" stroke="#A78BFA" rx="6"/>
+  <text x="700" y="158" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">PG: nginx</text>
+  <text x="700" y="176" text-anchor="middle" fill="#94A3B8" font-size="10">one PG per host group</text>
+
+  <!-- 3 separate threshold gauges -->
+  <g font-size="10">
+    <!-- prod -->
+    <rect x="495" y="210" width="130" height="50" fill="#1E293B" stroke="#DE350B" rx="5"/>
+    <text x="560" y="227" text-anchor="middle" fill="#FCA5A5" font-weight="700">prod-app · 400 ms</text>
+    <rect x="510" y="234" width="100" height="10" fill="#334155" rx="2"/>
+    <rect x="510" y="234" width="70" height="10" fill="#DE350B" rx="2"/>
+
+    <!-- nonprod -->
+    <rect x="635" y="210" width="130" height="50" fill="#1E293B" stroke="#FFB800" rx="5"/>
+    <text x="700" y="227" text-anchor="middle" fill="#FEF3C7" font-weight="700">nonprod-app · 1 s</text>
+    <rect x="650" y="234" width="100" height="10" fill="#334155" rx="2"/>
+    <rect x="650" y="234" width="85" height="10" fill="#FFB800" rx="2"/>
+
+    <!-- payment -->
+    <rect x="775" y="210" width="130" height="50" fill="#1E293B" stroke="#73BE28" rx="5"/>
+    <text x="840" y="227" text-anchor="middle" fill="#D9F99D" font-weight="700">payment-pci · 300 ms</text>
+    <rect x="790" y="234" width="100" height="10" fill="#334155" rx="2"/>
+    <rect x="790" y="234" width="60" height="10" fill="#73BE28" rx="2"/>
+  </g>
+
+  <!-- Arrows from PG to each threshold -->
+  <g stroke="#73BE28" stroke-width="1.5" fill="none">
+    <line x1="660" y1="190" x2="560" y2="210"/>
+    <line x1="700" y1="190" x2="700" y2="210"/>
+    <line x1="740" y1="190" x2="840" y2="210"/>
+  </g>
+
+  <!-- Host groups -->
+  <g font-size="10">
+    <rect x="495" y="285" width="130" height="55" fill="#334155" stroke="#DE350B" stroke-opacity="0.6" rx="5"/>
+    <text x="560" y="303" text-anchor="middle" fill="#F8FAFC" font-weight="600">Host group:</text>
+    <text x="560" y="321" text-anchor="middle" fill="#FCA5A5">prod-app</text>
+
+    <rect x="635" y="285" width="130" height="55" fill="#334155" stroke="#FFB800" stroke-opacity="0.6" rx="5"/>
+    <text x="700" y="303" text-anchor="middle" fill="#F8FAFC" font-weight="600">Host group:</text>
+    <text x="700" y="321" text-anchor="middle" fill="#FEF3C7">nonprod-app</text>
+
+    <rect x="775" y="285" width="130" height="55" fill="#334155" stroke="#73BE28" stroke-opacity="0.6" rx="5"/>
+    <text x="840" y="303" text-anchor="middle" fill="#F8FAFC" font-weight="600">Host group:</text>
+    <text x="840" y="321" text-anchor="middle" fill="#D9F99D">payment-pci</text>
+  </g>
+
+  <g stroke="#64748B" stroke-width="1" fill="none" stroke-dasharray="2,2">
+    <line x1="560" y1="260" x2="560" y2="285"/>
+    <line x1="700" y1="260" x2="700" y2="285"/>
+    <line x1="840" y1="260" x2="840" y2="285"/>
+  </g>
+
+  <!-- Consequence box -->
+  <rect x="495" y="360" width="410" height="115" fill="#0F172A" stroke="#73BE28" rx="5"/>
+  <text x="700" y="380" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">Consequence:</text>
+  <text x="700" y="398" text-anchor="middle" fill="#D9F99D" font-size="10">Each environment gets a threshold tuned to its actual behavior.</text>
+  <text x="700" y="415" text-anchor="middle" fill="#D9F99D" font-size="10">prod alerts on real slowdowns; dev tolerates noisy CI runs;</text>
+  <text x="700" y="432" text-anchor="middle" fill="#D9F99D" font-size="10">payment-pci alerts early to protect compliance SLOs.</text>
+  <text x="700" y="455" text-anchor="middle" fill="#86EFAC" font-size="10">Services and their baselines are separated per group too.</text>
+</svg>

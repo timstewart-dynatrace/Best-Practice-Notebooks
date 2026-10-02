@@ -1,6 +1,6 @@
 # ONBRD-02: IAM and Authentication
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
 
 ## Setting Up Secure Access
 Before inviting your team, configure authentication and permissions properly. This notebook covers SAML/SSO setup, API tokens, and the modern permission model.
@@ -34,7 +34,7 @@ Setting up IAM before deploying OneAgent or inviting users ensures:
 | **Consistent access** | Users authenticate the same way from day one |
 | **Proper permissions** | No accidental admin access for viewers |
 | **Audit trail** | All access tied to corporate identity |
-| **Offboarding** | Disabling IdP account revokes Dynatrace access |
+| **Offboarding** | With SAML, a disabled IdP account can't sign in; with SAML + SCIM, users are also removed when deprovisioned in the IdP |
 | **Compliance** | Meet security requirements from the start |
 
 ![Recommended Onboarding Order](images/02-onboarding-order.png)
@@ -43,20 +43,21 @@ Setting up IAM before deploying OneAgent or inviting users ensures:
 |------|-------------|
 | 1. First Steps | Account access (ONBRD-01) |
 | 2. IAM Setup | Security configuration (ONBRD-02) |
-| 3. Deploy ActiveGate | Network routing (ONBRD-03) |
-| 4. Deploy OneAgent | Start monitoring (ONBRD-05) |
-| 5. Invite Team | Users join with proper access via IdP |
+| 3. Deploy Agents | ActiveGate if needed (ONBRD-03), then OneAgent (ONBRD-05) |
+| 4. Invite Team | Users join with proper access via IdP |
 -->
+
+> <sub>**Sources:** [Enterprise identity management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam) — *"Users are removed immediately when deprovisioned in the IdP"* (SAML + SCIM).</sub>
 
 <a id="authentication-options"></a>
 ## 2. Authentication Options
-Dynatrace supports multiple authentication methods:
+Dynatrace manages users either in its own user database or through an IdP using the federation protocols **SAML** and **SCIM**:
 
 | Method | Description | Best For |
 |--------|-------------|----------|
-| **Local Users** | Built-in user accounts | Small teams, testing, break-glass accounts |
-| **SAML 2.0** | Enterprise SSO integration | Most organizations |
-| **OIDC** | OpenID Connect integration | Modern identity providers |
+| **Local Users** | Built-in user accounts | Small teams, testing, the non-federated fallback account |
+| **SAML 2.0** | Delegated authentication (SSO) through your IdP | Most organizations |
+| **SCIM** (with SAML) | Automated provisioning and deprovisioning of users and groups from your IdP | Dynatrace's recommended enterprise approach for most organizations |
 
 ### Authentication Flow
 
@@ -67,7 +68,7 @@ Dynatrace supports multiple authentication methods:
 | 1. Login | User requests access to Dynatrace |
 | 2. Redirect | Dynatrace redirects to Identity Provider |
 | 3. Auth + MFA | User authenticates with IdP |
-| 4. SAML Assertion | IdP sends encrypted assertion to Dynatrace |
+| 4. SAML Response | IdP sends a signed SAML response (entire message signed; assertion **not** encrypted) |
 | 5. Access Granted | User is logged in |
 -->
 
@@ -79,84 +80,82 @@ Dynatrace supports multiple authentication methods:
 - **PingFederate** - On-premises/hybrid
 - **Google Workspace** - Google-centric organizations
 
+> <sub>**Sources:** [Identity management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management) — *"an IdP with the supported federation protocols SAML and SCIM"*; [Enterprise identity management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam) — *"This is the recommended enterprise approach for most organizations."*; [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"No assertion encryption."*</sub>
+
 <a id="configuring-saml-sso"></a>
 ## 3. Configuring SAML SSO
-### Step 1: Access Account Management
 
-**Location:** Account Management → Identity & access management → Single sign-on
+Dynatrace documents four steps, in this order: create a fallback user account, verify your domain, configure SAML, test.
 
-You'll need these values for your IdP configuration:
+### Step 1: Create a Fallback User Account
 
-| Field | Description |
-|-------|-------------|
-| **Entity ID** | Unique identifier for Dynatrace |
-| **ACS URL** | Assertion Consumer Service URL |
-| **Relay State** | Where users land after login |
+**Location:** Account Management → Identity & access management → User management → **Invite user**
 
-### Step 2: Configure Your Identity Provider
+Invite a **non-federated** user — an email address on a *different* domain from the one you are federating — and add it to a group with the **View and manage users and groups** permission. This account is how you get back in if the SAML configuration locks you out.
 
-In your IdP, create a new SAML application with:
+### Step 2: Verify Domain Ownership
 
-1. **ACS URL** from Dynatrace
-2. **Entity ID** from Dynatrace
-3. **Name ID Format:** Email address (recommended)
-4. **Required Attributes:**
-   - `email` - User's email address
-   - `firstName` - User's first name
-   - `lastName` - User's last name
+**Location:** Account Management → Identity & access management → **Domain verification**
 
-### Step 3: Configure Dynatrace
+1. Add the domain (for example `mycompanyname.com`); add every domain your users sign in with
+2. Copy the TXT resource record and add it to the domain's DNS
+3. Select **Actions → Verify** (DNS propagation can take minutes, occasionally up to 24 hours)
 
-**Location:** Account Management → Identity & access management → Single sign-on
+### Step 3: Configure SAML
 
-1. Upload or paste the IdP metadata XML
-2. Or manually configure:
-   - **IdP Entity ID** - From your IdP
-   - **SSO URL** - Login endpoint
-   - **Certificate** - IdP signing certificate
-3. Configure attribute mappings
-4. Save and test
+**Location:** Account Management → Identity & access management → **SAML configuration** → **New configuration**
+
+1. Choose the **federation type** (Global, Account, or Environment)
+2. Download the Dynatrace **SP metadata** (Entity ID, Assertion Consumer Service URL, Logout URL) and register it in your IdP
+3. In your IdP, configure the Dynatrace application so that:
+   - The **entire SAML message is signed** — signing only the assertion is rejected with `400 Bad Request`
+   - The assertion is **not encrypted**
+   - The NameID format is `urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress` (the user's email comes from the NameID)
+4. Upload the IdP metadata XML to Dynatrace
+5. *(Optional)* Map attributes: first name, last name, and the federated group/role attribute
+6. Select the domains, activate the configuration (**Enable SSO**), and complete it
 
 ### Step 4: Test SSO
 
-Before enabling SSO for all users:
+1. Open a new browser instance and a new incognito/private window
+2. For Account or Environment federation, go to your tenant URL first (`https://{tenant-id}.apps.dynatrace.com`) — that is how Dynatrace SSO gets the context; sign-in is routed by your email domain
+3. Complete IdP authentication
+4. Verify you land in Dynatrace with the correct permissions, and that you can still see **User management** and **Group management**
 
-1. Open an incognito/private browser window
-2. Navigate to your tenant URL (`https://{tenant-id}.apps.dynatrace.com`)
-3. Select "Sign in with SSO"
-4. Complete IdP authentication
-5. Verify you land in Dynatrace with correct permissions
+> **Warning:** If sign-in breaks, use the fallback account from Step 1 to fix or disable the configuration. SAML sessions time out after 1 hour; that timeout is not configurable.
 
-> **Warning:** Keep at least one local admin account as a break-glass option in case SSO fails.
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response)."*; *"Your fallback account must be a non-federated user account belonging to a group that has View and manage users and groups permission and isn't covered by the federated sign-in."*; *"To test an Account or Environment federation, go to the tenant URL first"*.</sub>
 
 <a id="user-groups-and-permissions"></a>
 ## 4. User Groups and Permissions
 ### Permission Model
 
-Dynatrace uses a policy-based access control model with the following permission levels:
+Dynatrace uses policy-based access control. Its default policies come in two types — **access policies** (built-in user roles) and **data policies** (access to Grail data) — and you assign them to groups at the account level (all environments) or for an individual environment:
 
 ![Permission Hierarchy](images/02-permission-hierarchy.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Level | Access |
-|-------|--------|
-| Admin | Full access including user management |
-| Configurator | Change settings, configure monitoring |
-| Operator | View + acknowledge problems, create dashboards |
-| Viewer | Read-only access to data and dashboards |
+| Default policy | Type | Access |
+|-------|------|--------|
+| Admin User | Access | Administrative access across all Platform Services |
+| Pro User | Access | Build, deploy and run apps and automated workflows |
+| Standard User | Access | Access the environment and run Dynatrace Apps |
+| Data policies (e.g. Read Logs) | Data | Access to Grail data — add per group |
 -->
 
 ### Recommended Groups
 
-| Group | Role | Use Case |
+A suggested starting mapping (adapt it to your organization):
+
+| Group | Default policies | Use Case |
 |-------|------|----------|
-| **Platform Admins** | Admin | Platform team, IAM management |
-| **SRE Team** | Configurator | Workflow setup, monitoring config |
-| **Developers** | Operator | Problem response, dashboards |
-| **Stakeholders** | Viewer | Reports, read-only access |
+| **Platform Admins** | Admin User | Platform team, IAM management |
+| **SRE Team** | Pro User + data policies | Workflow setup, monitoring config |
+| **Developers** | Standard User + scoped data policies | Problem response, dashboards |
+| **Stakeholders** | Standard User + read-only data policy | Reports, read-only access |
 
 ### Creating Groups
 
-**Location:** Account Management → Identity & access management → Groups
+**Location:** Account Management → Identity & access management → Group management
 
 1. Click "Create group"
 2. Name the group (e.g., "SRE-Team")
@@ -170,17 +169,21 @@ The modern platform uses **policies** to control what users can access:
 
 | Policy Type | Purpose |
 |-------------|--------|
-| **Environment policies** | Access to specific environments |
-| **Account policies** | Account-level management |
-| **Data policies** | Access to specific data (via segments + `dt.security_context`) |
+| **Access policies** | Feature-level access (Admin User, Pro User, Standard User, or your own) |
+| **Data policies** | Access to Grail data, scoped by bucket / table / `storage:dt.security_context` conditions. (Segments filter views; they don't grant access.) |
+
+Either type is bound at the **account** level (all environments) or the **environment** level.
 
 ### Parameterized Policies (Strongly Recommended)
 
 Prefer **one parameterized policy bound to multiple groups via binding parameters** over many copies of the same policy with hardcoded scope values:
 
 ```text
+ALLOW storage:buckets:read WHERE storage:table-name = "logs";
 ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
 ```
+
+The first statement is not optional: a table permission alone returns no records. `storage:buckets:read` is *"Required additionally to a table permission."*
 
 Parameters are written as `${bindParam:<name>}` — Dynatrace's policy templating rule is *"Policy parameters should be prefixed with bindParam: and enclosed in ${...}."* ([Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating)). Bind the policy to `team-payments`, `team-checkout`, `team-fraud`, etc., varying only the `team` parameter — one policy, N bindings. The parameter shape is load-bearing: design once, change rarely.
 
@@ -195,7 +198,12 @@ The **`dt.security_context`** field is the standardized boundary for Gen3 IAM sc
 - **FAQ-02** — Tagging sources, standards, and strategy (`dt.security_context` design)
 - **ORGNZ-06 / ORGNZ-07** — Security context for data and configuration scoping
 
-> **Note:** For data filtering, use **Segments + `dt.security_context`** (covered in ONBRD-06) rather than the legacy Management Zones.
+> **Note:** For data filtering, use **Segments + `dt.security_context`** (covered in ONBRD-06) rather than the legacy Management Zones. Segments narrow what a user sees; access itself is enforced by IAM policies.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *"You can assign policies to groups via the user group details either on the account level, which includes all environments in that account, or on the individual environment level."*</sub>
+> - <sub>[IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"Grants permission to read records from Grail buckets. Required additionally to a table permission."*</sub>
+> - <sub>[Segments visibility (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility) — *"All queries, with or without segments, always respect data access permissions enforced by IAM policies."*</sub>
 
 <a id="api-token-and-oauth-management"></a>
 ## 5. API Token and OAuth Management
@@ -206,21 +214,23 @@ The modern platform supports three credential types — pick based on the integr
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Token Type | Prefix | Auth Scheme | When to Use |
 |------------|--------|-------------|-------------|
-| Platform Token (recommended default, sprint-1.337+) | dt0s16 | Authorization: Bearer | New automation, Workflows, MCP, OpenPipeline, Settings v2 |
-| OAuth Client | client ID + secret | Authorization: Bearer | External SaaS integrations, account-admin automation |
-| Classic API Token (legacy phase-out) | dt0c01 | Authorization: Api-Token | Existing scripts; OneAgent installer (PaaS); migrate to Platform Token |
+| Platform Token (recommended default) | dt0s16 | Authorization: Bearer | New automation, MCP + installer download, OpenPipeline, Settings v2; scopes bounded by user permissions |
+| OAuth Client | client ID + secret | Authorization: Bearer | External SaaS integrations, account-admin automation; short-lived bearer tokens, re-request on expiry |
+| Classic API Token (legacy phase-out) | dt0c01 | Authorization: Api-Token | Existing scripts; classic/hybrid tenants only; migrate to Platform Token |
 For environments where SVG doesn't render
 -->
 
 | Credential | Prefix / Form | When to Use |
 |------------|---------------|-------------|
-| **Platform Token** *(recommended default for new automation)* | `dt0s16` | New automation, Workflows, MCP integrations, OpenPipeline configuration, Settings v2 |
+| **Platform Token** *(recommended default for new automation)* | `dt0s16` | New automation, MCP integrations, OpenPipeline configuration, Settings v2, installer downloads |
 | **OAuth 2.0 Client** | client ID + secret | External SaaS integrations, account-admin automation |
-| **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts; migrate to Platform Token where possible |
+| **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts on classic/hybrid environments; migrate to Platform Token where possible |
 
-### Platform Tokens (Recommended Default — Sprint 1.337+)
+> **Workflows don't use a token.** Every workflow task runs as the workflow's **actor** (a user or service user; by default the workflow's creator) — grant permissions to the actor, not a token.
 
-Platform Tokens are the standard for new automation as of sprint-337. They:
+### Platform Tokens (Recommended Default)
+
+Platform Tokens are the standard for new automation — in Latest Dynatrace they replace classic access tokens. They:
 
 - Carry the **scopes you select** at creation, and only work within the permissions of the user (or service user) they are issued for — *"A platform token will only work within the limits of the assigned user's permissions."* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens))
 - Are bound to a single user identity (or service identity) for traceability
@@ -239,23 +249,24 @@ Platform Tokens are the standard for new automation as of sprint-337. They:
 
 Use for **external system integrations** or **account-admin automation** that operates above the tenant level.
 
-**Location:** Account Management → OAuth clients
+**Location:** Account Management → Identity & access management → OAuth clients
 
 1. Create an OAuth client
 2. Use client credentials flow to obtain bearer tokens
-3. Tokens are short-lived and automatically rotated
+3. Bearer tokens are short-lived (the documented example response has `"expires_in": 300`, in seconds) — request a new one with the client credentials when it expires
 
 ### Classic API Tokens (Legacy)
 
-Existing scripts and OneAgent installer downloads still use Classic API tokens. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the `Api-Token` Authorization scheme (not `Bearer`).
+Classic access tokens exist only on classic and hybrid environments — *"Classic access tokens don't exist in latest environments"* — so existing scripts that use them need a migration plan. Migrate to Platform Tokens during routine refresh cycles. Classic tokens use the `Api-Token` Authorization scheme (not `Bearer`).
 
 **Location:** the **Access Tokens** app in your environment → **Generate new token** (not Account Management)
 
-| Common Use | Required Scope |
-|------------|---------------|
-| **OneAgent Installer Download** | `InstallerDownload` |
-| **Metric Ingestion** | `metrics.ingest` |
-| **Log Ingestion** | `logs.ingest` |
+| Common Use | Classic scope | Platform-token scope |
+|------------|---------------|----------------------|
+| **OneAgent Installer Download** | `InstallerDownload` | `fleet-management:oneagents:download` |
+| **ActiveGate Installer Download** | `InstallerDownload` | `fleet-management:activegates:download` |
+| **Metric Ingestion** | `metrics.ingest` | — |
+| **Log Ingestion** | `logs.ingest` | — |
 
 ### Token Best Practices
 
@@ -272,12 +283,21 @@ Existing scripts and OneAgent installer downloads still use Classic API tokens. 
 
 - **IAM series** — Token management, lifecycle, audit patterns
 
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"In Latest Dynatrace , this model is replaced with platform tokens"*</sub>
+> - <sub>[Download latest OneAgent installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:download"*</sub>
+> - <sub>[Download latest ActiveGate installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"Platform Token / OAuth: Required scope: fleet-management:activegates:download"*</sub>
+> - <sub>[Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"By default, the actor is the creator of the workflow."*</sub>
+> - <sub>[OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients), [API authentication — token prefixes (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication)</sub>
+
 <a id="verification-queries"></a>
 ## 6. Verification Queries
-After configuring IAM, verify your setup with these queries.
+After configuring IAM, these queries confirm that people are signing in to this environment. They read environment audit events in `dt.system.events`.
+
+> **What they can't show:** SSO configuration, group and permission changes are recorded in the separate **Account Management audit log** (Account Management UI, or the Account Audits API with the `account-audit-logs-read` scope) — *"Neither v2/auditlogs nor dt.system.events captures it."* ([Upgrade from audit logs classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic)). Use the manual checklist below to confirm SSO itself.
 
 ```dql
-// Recent sign-ins to this environment (audit events)
+// Environment sign-ins (platform gateway audit events)
 // Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
 // `fetch logs | filter matchesPhrase(log.source, "audit")` matched nothing, or matched an
 // unrelated file-based audit log (a database .aud file on the validation tenant). Environment
@@ -294,8 +314,8 @@ fetch dt.system.events, from:-24h
 // Sign-in outcomes over the last 7 days (audit events, not application logs)
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter in(event.type, {"LOGIN", "LOGOUT"})
-| summarize events = count(), users = countDistinct(user.id), by:{event.type, event.outcome}
+| filter event.type == "LOGIN"
+| summarize {events = count(), users = countDistinct(user.id)}, by:{event.type, event.outcome}
 | sort events desc
 ```
 
@@ -304,10 +324,10 @@ fetch dt.system.events, from:-7d
 | Item | How to Verify |
 |------|---------------|
 | **SSO working** | Login via IdP in incognito window |
-| **Groups created** | Check Account Management → Groups |
+| **Groups created** | Check Account Management → Identity & access management → Group management |
 | **Permissions assigned** | Test with a viewer account |
-| **Break-glass account** | Local admin login still works |
-| **API tokens** | OneAgent deployment token ready |
+| **Fallback account** | The non-federated fallback user can still sign in |
+| **API tokens** | Installer-download token ready (platform token with `fleet-management:oneagents:download`, or classic `InstallerDownload` on classic/hybrid tenants) |
 
 <a id="next-steps"></a>
 ## 7. Next Steps
@@ -324,12 +344,12 @@ With IAM configured, you're ready to:
 ### IAM Tasks Before Moving On
 
 - [ ] SAML/SSO configured and tested
-- [ ] Break-glass local admin account documented
+- [ ] Non-federated fallback account created and documented
 - [ ] User groups created for major roles
 - [ ] Parameterized policy shape decided; group → policy bindings drafted
 - [ ] `dt.security_context` value space planned (deeper in ONBRD-06 / FAQ-02)
 - [ ] Platform Token issued for migration / automation tooling
-- [ ] OneAgent installer (PaaS) token generated
+- [ ] Installer-download token issued (platform token with `fleet-management:oneagents:download`, or classic `InstallerDownload` on classic/hybrid tenants)
 - [ ] Token naming conventions established
 
 ### Where to Go Deeper
@@ -345,9 +365,9 @@ With IAM configured, you're ready to:
 In this notebook, you learned:
 
 - Why IAM should be configured before deploying agents
-- Authentication options (Local, SAML, OIDC)
+- Authentication options (Local, SAML, SCIM)
 - How to configure SAML SSO
-- Permission levels, group structure, and parameterized policies
+- Default policies (Admin User, Pro User, Standard User, data policies), group structure, and parameterized policies
 - The three credential types (Platform Token, OAuth, Classic API Token) and when to use each
 - `dt.security_context` as the standardized boundary field for Gen3 IAM
 - How to verify IAM configuration
@@ -356,13 +376,16 @@ In this notebook, you learned:
 
 ## References
 
-- [Identity and Access Management](https://docs.dynatrace.com/docs/manage/identity-access-management)
-- [Platform Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)
+- [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
+- [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)
 - [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — the `${bindParam:...}` syntax quoted in section 4
-- [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations)
+- [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — fallback account, domain verification, IdP requirements
+- [SAML configurations (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations)
+- [Enterprise identity management — SAML and SCIM (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam)
+- [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies)
 - [Identity management — SSO and federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management)
-- [Access Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
-- [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
+- [Access tokens classic (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 
 ---
 

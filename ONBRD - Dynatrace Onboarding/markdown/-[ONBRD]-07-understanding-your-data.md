@@ -93,9 +93,9 @@ The topology view shows the visual representation of your environment.
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Layer | What It Is | Modern Query |
 |-------|------------|--------------|
-| Application | RUM / Mobile App; user-facing entry point | smartscapeNodes "APPLICATION" |
+| Application / Frontend | RUM web and mobile frontends; user-facing entry point | smartscapeNodes "FRONTEND" (frontend.type == "web" / "mobile") |
 | Service | Auto-detected by OneAgent code instrumentation; service.name | smartscapeNodes "SERVICE" |
-| Process Group / Process | Detected processes, grouped by command line + version | smartscapeNodes "PROCESS_GROUP" |
+| Process Group / Process | Detected processes, grouped by command line + version | smartscapeNodes "PROCESS" (process instances — there is no process-group node) |
 | Host | OneAgent-monitored; grouped by host group | smartscapeNodes "HOST" |
 | Container / K8s Pod | k8s.namespace · k8s.deployment · pod labels | smartscapeNodes for K8s entity types |
 | Cloud Resource | AWS/Azure/GCP; cloud-tag enriched | smartscapeNodes for cloud entity types |
@@ -126,7 +126,7 @@ For environments where SVG doesn't render
 
 <a id="data-types-in-grail"></a>
 ## 4. Data Types in Grail
-Grail stores different data types — each queried via a specific DQL command. Retention is **per-bucket and customer-configurable**, not a fixed default.
+Grail stores different data types — each queried via a specific DQL command. Each built-in bucket has a documented default retention; custom buckets are configurable.
 
 | Data Type | DQL Fetch / Command | Typical Use |
 |-----------|---------------------|-------------|
@@ -137,15 +137,15 @@ Grail stores different data types — each queried via a specific DQL command. R
 | **Bizevents** | `fetch bizevents` | Business transactions, conversion funnels |
 | **Davis problems** | `fetch dt.davis.problems` | Detected incidents (uses `event.status` / `event.end` fields) |
 | **Davis events** | `fetch dt.davis.events` | Raw signals that feed problem detection (kind = `DAVIS_EVENT`) |
-| **Security events** | `fetch securityEvents` | Vulnerabilities, security signals |
-| **RUM sessions** | `fetch usersessions` | Session-level RUM aggregates |
+| **Security events** | `fetch security.events` | Vulnerabilities, security signals |
+| **RUM sessions** | `fetch user.sessions` | RUM sessions (New RUM) |
 | **RUM individual events** | `fetch user.events` | Page views, clicks, requests, errors |
 | **RUM session replays** | `fetch user.replays` | Recorded session replays |
 | **Entities (topology)** | `smartscapeNodes "<TYPE>"` *(modern)* / `fetch dt.entity.<type>` *(legacy)* | Topology queries; `dt.entity.*` is deprecated, prefer `smartscapeNodes` for new queries |
 
 ### Data Retention
 
-Retention is **bucket-scoped and customer-configurable** — there is no universal default. Out-of-the-box retention varies by license tier and Grail bucket configuration. Inspect your tenant's bucket retention with:
+Retention is **bucket-scoped**. Each built-in bucket ships with a documented default retention, and custom buckets can be set from 1 day to 10 years. Inspect your tenant's bucket retention with:
 
 ```dql
 // List configured Grail buckets and their retention (use Bucket Management UI for full detail)
@@ -154,16 +154,19 @@ fetch dt.system.buckets
 | sort name asc
 ```
 
-Typical starting points (subject to customer configuration):
+Documented defaults for the built-in buckets (confirm against the query above):
 
-| Data Type | Common Out-of-the-Box Retention |
-|-----------|---------------------------------|
-| Metrics (raw) | 14 days |
-| Metrics (aggregated) | up to 5 years |
-| Logs | 35 days (default bucket; can be 14d / 90d / 365d per tier) |
-| Spans | 14 days |
-| Events / Bizevents | 35 days |
-| Davis problems | 35 days |
+| Data Type | Built-in Bucket | Default Retention |
+|-----------|-----------------|-------------------|
+| Logs | `default_logs` | 35 days |
+| Spans | `default_spans` | 10 days (distributed tracing on Grail is configurable from 10 days to 10 years) |
+| Metrics | `default_metrics` | 15 months at 1-minute granularity (Metrics Classic: 5 years) |
+| Events / Bizevents | `default_events` / `default_bizevents` | 35 days |
+| Davis problems and events | `default_davis_events` | 14 months per the data-retention page; the bucket's own display name reads "Davis events and problems (15 months)" — check yours with the query |
+| Security events | `default_securityevents_builtin` / `default_securityevents` | 3 years (Dynatrace-generated) / 1 year (third-party) |
+| Self-monitoring and billing events | `dt_system_events` | 1 year |
+
+> <sub>**Sources:** [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"default_logs logs 35 days default_metrics metrics 15 months default_spans spans 10 days"*, [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods) — *"Davis problems and events 14 months"*.</sub>
 
 > **Where to go deeper:**
 > - **ORGNZ-02 / ORGNZ-99** — Grail bucket strategy and retention design
@@ -179,17 +182,17 @@ Use these queries to understand what Dynatrace has discovered in your environmen
 ### Infrastructure Discovery
 
 ```dql
-// Count all entity types in your environment
-fetch dt.entity.host | summarize hosts = count()
+// Count all entity types in your environment. from:-7d also counts entities that
+// have not reported in the last 2 h; without it only the default timeframe counts.
+fetch dt.entity.host, from:-7d | summarize hosts = count()
 // Run separately for other types:
-// fetch dt.entity.service | summarize services = count()
-// fetch dt.entity.process_group | summarize process_groups = count()
+// fetch dt.entity.service, from:-7d | summarize services = count()
+// fetch dt.entity.process_group, from:-7d | summarize process_groups = count()
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "HOST" | summarize hosts = count()
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+//   smartscapeNodes "HOST", from:-7d | summarize hosts = count()
+// Caveat: Smartscape can report fewer entities than the classic entity store; both
+// return only entities seen in the query timeframe, so keep the from:-7d.
 ```
 
 ```dql
@@ -221,9 +224,9 @@ fetch dt.entity.host
 //   smartscapeNodes "HOST"
 //   | summarize count = count(), by: {os.type}
 //   | sort count desc
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: osType -> os.type (LINUX -> OS_TYPE_LINUX).
 ```
 
@@ -241,10 +244,12 @@ fetch dt.entity.service
 //   | fields name, dt.service.sdv1_type
 //   | sort name
 //   | limit 100
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
-// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -> dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies); entity.name -> name.
 ```
 
 ```dql
@@ -257,10 +262,12 @@ fetch dt.entity.service
 //   smartscapeNodes "SERVICE"
 //   | summarize count = count(), by: {dt.service.sdv1_type}
 //   | sort count desc
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
-// Field maps: serviceType -> dt.service.sdv1_type.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -> dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies).
 ```
 
 ```dql
@@ -303,9 +310,11 @@ fetch dt.entity.process_group
 
 #### Coverage: what was discovered vs. ingested
 
-> **Coverage vs. volume — the log-module self-monitoring events.** During onboarding, confirm not just *what volume* is arriving but *what OneAgent discovered and whether each source is actually being ingested*. The log module emits a `log_source.status` event per discovered source into `dt.system.events`, carrying `log.source.file_status` and `log.source.ingest_status` — so it reveals sources OneAgent **detected but is not ingesting**, which a `fetch logs` count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.
+> **Coverage vs. volume — the log-module self-monitoring events.** During onboarding, confirm not just *what volume* is arriving but *what OneAgent discovered and whether each source is actually being ingested*. The log module emits a `log_source.status` event per discovered source into `dt.system.events`, carrying `log.source.file_status` and `log.source.ingest_status` — so it reveals sources OneAgent **detected but is not ingesting**, which a `fetch logs` count cannot show (no stored records means nothing to count). It scans events, not raw logs; reading them requires `storage:system:read` on `dt.system.events`.
 >
-> This event stream is **Early Access** and requires **opt-in** (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in *Log ingest Overview* dashboard for Dynatrace **1.339+** — verify it is flowing in your tenant before relying on it). See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants without the opt-in.
+> The log module emits these self-monitoring (SFM) events **by default** — the feature is generally available from **OneAgent 1.339+ and SaaS 1.340+**, and is adjusted through the `builtin:logmonitoring.log-sfm-settings` settings schema. The same events feed the ready-made *Log ingest overview* dashboard. Hosts on older agents send none, so confirm the stream is flowing before relying on it. See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback.
+>
+> <sub>**Sources:** [Monitor log source health with SFM events (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm) — *"generally available and turned on by default in OneAgent version 1.339+ and SaaS version 1.340+"*, [Assign permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail).</sub>
 
 ```dql
 // Log-source coverage from the OneAgent log-module self-monitoring events.
@@ -359,9 +368,9 @@ fetch dt.entity.kubernetes_cluster
 //   smartscapeNodes "K8S_CLUSTER"
 //   | fields name
 //   | sort name
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: entity.name -> name.
 ```
 
@@ -377,9 +386,9 @@ fetch dt.entity.cloud_application_namespace
 //   | fields name
 //   | sort name
 //   | limit 50
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: entity.name -> name.
 ```
 
@@ -391,13 +400,14 @@ fetch dt.entity.cloud_application
 | limit 50
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "K8S_DEPLOYMENT"
-//   | fields name
+//   smartscapeNodes {"K8S_DEPLOYMENT", "K8S_DAEMONSET", "K8S_STATEFULSET", "K8S_CRONJOB"}
+//   | fields name, type
 //   | sort name
 //   | limit 50
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
-// than the classic entity store; for a pre-migration discovery inventory keep the
-// classic query above.
+// (classic cloud_application spans all of these kinds; add "K8S_JOB" to include Jobs)
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
 // Field maps: entity.name -> name.
 ```
 
@@ -458,7 +468,7 @@ In this notebook, you learned:
 - Different data types stored in Grail and their DQL fetch commands
 - That `dt.davis.problems` uses `event.status` / `event.end` fields (not `status` / `end_time`)
 - Discovery queries for infrastructure, services, and logs
-- That retention is bucket-scoped and customer-configurable
+- That each built-in bucket has a documented default retention, and how to check yours
 
 ---
 
@@ -469,6 +479,9 @@ In this notebook, you learned:
 - [Grail Data Model](https://docs.dynatrace.com/docs/platform/grail)
 - [Smartscape core entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape/core)
 - [Davis Problems App](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
+- [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
+- [Monitor log source health with SFM events (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm)
 
 ---
 

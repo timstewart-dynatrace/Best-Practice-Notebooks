@@ -35,7 +35,7 @@ ActiveGate is a proxy and routing component that connects your environment to Dy
 
 | Component | Purpose |
 |-----------|--------|
-| **Environment ActiveGate** | Routes OneAgent traffic, runs extensions, executes synthetics |
+| **Environment ActiveGate** | Routes OneAgent traffic and runs extensions; private synthetic monitors run on a *separate* Synthetic-enabled ActiveGate |
 | **Cluster ActiveGate** | Dynatrace Managed only - cluster communication |
 
 > **Note:** This notebook covers Environment ActiveGate for Dynatrace SaaS.
@@ -56,12 +56,14 @@ ActiveGate is a proxy and routing component that connects your environment to Dy
 |------------|-------------|
 | **Traffic Routing** | Proxies OneAgent data to Dynatrace |
 | **Extensions 2.0** | Runs Python-based extensions locally |
-| **Synthetic Monitoring** | Private synthetic locations |
-| **Cloud Integrations** | AWS, Azure, GCP metric collection (or use Clouds app for direct connections) |
+| **Synthetic Monitoring** | Private synthetic locations — on a dedicated Synthetic-enabled ActiveGate only (see the note below) |
+| **Cloud Integrations** | Classic AWS / Azure metric polling (or use the Clouds app for direct connections); the GCP integration needs no ActiveGate on SaaS |
 | **Kubernetes API** | Cluster monitoring via API |
 | **Log Ingest** | Generic log ingest endpoint |
 
-> **OneAgent Attribute Enrichment (OneAgent 1.333+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via `oneagentctl --set-host-tag` or `--set-host-tag` at install time. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+> **Synthetic ActiveGates do nothing else.** *"A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents."* Plan private synthetic locations on their own ActiveGates, installed from the **Install ActiveGate** wizard in **Discovery & Coverage** with **Purpose → Synthetic**, and never count them toward routing capacity. ([Install a Synthetic-enabled ActiveGate (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/active-gate-for-private-locations-install))
+
+> **OneAgent Attribute Enrichment (OneAgent 1.333+):** OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (`dt.security_context`, `dt.cost.costcenter`) and primary tags (`primary_tags.environment`, `primary_tags.team`) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via the installer's `--set-host-tag` at install time, or `oneagentctl --set-host-tag … --restart-service` afterwards (set parameters apply only after a OneAgent restart). See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
 
 ### Dynatrace Version Support Policy
 
@@ -71,21 +73,22 @@ ActiveGate is a proxy and routing component that connects your environment to Dy
 | **ActiveGate** | 9 months | 12 months |
 | **Dynatrace Operator** | Independent release cycle — check [release notes](https://docs.dynatrace.com/docs/whats-new) |
 
-> **Version floor (1.347 release notes).** The OneAgent 1.347 and ActiveGate 1.347 release notes (pre-release; fleet rollout planned from 09/22/2026) list the oldest supported version as **1.329** (Standard Support) and **1.323** (Enterprise Success and Support) — the floor moves with every release, so re-read it from the current release notes rather than from this table. Separately, **SaaS 1.347** (staged tenant rollout) *rejects* connections from **OneAgent 1.241 and earlier** once it reaches your tenant — those hosts stop reporting rather than merely falling out of support. See **FAQ-04: Managing OneAgent updates on Dynatrace SaaS**. Sources: [OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347), [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
+> **Version floor (1.347 release notes).** The OneAgent 1.347 and ActiveGate 1.347 release notes (published 10/01/2026; staged rollout from 09/30/2026) list the oldest supported version as **1.329** (Standard Support) and **1.323** (Enterprise Success and Support) — the floor moves with every release, so re-read it from the current release notes rather than from this table. Separately, **SaaS 1.347** (staged tenant rollout) *rejects* connections from **OneAgent 1.241 and earlier** once it reaches your tenant — those hosts stop reporting rather than merely falling out of support. See **FAQ-04: Managing OneAgent updates on Dynatrace SaaS**. Sources: [OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347), [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
 
-### Technology Support Tiers
+### Technology Support Levels
 
-| Tier | Meaning |
-|------|---------|
-| **Full Support** | All monitoring features maintained, bugs fixed, enhancements delivered |
-| **Early Adopter** | Newly introduced — functional but may lack full feature parity; feedback welcome |
-| **End of Life (EOL)** | No updates, fixes, or enhancements; monitoring may still work but issues won't be addressed |
+Dynatrace defines two support levels for third-party technologies:
+
+| Level | Meaning (quoted) |
+|-------|------------------|
+| **Supported** | *"We provide support for any problems directly caused by Dynatrace."* |
+| **Limited support** | *"Dynatrace provides support for a limited set of functionality for a particular technology."* |
 
 ### Third-Party Technology EOL Policy
 
-Dynatrace continues to support monitoring a third-party technology for **6 months beyond the vendor's end-of-life date**. End-of-support announcements are published 6 months in advance.
+*"Dynatrace typically supports technologies and their versions six months longer than the vendor to give you enough time to upgrade your environment."* *"End of support announcements are provided six months in advance."* Treat the six months as the usual pattern, not a guarantee — read the announcement for the technology you run.
 
-> **Reference:** [Technology Support Model](https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues) | [End-of-Support Announcements](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) | [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/)
+> **Reference:** [Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) | [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) | [Support Policy](https://www.dynatrace.com/company/trust-center/support-policy/)
 
 <a id="when-do-you-need-activegate"></a>
 ## 2. When Do You Need ActiveGate?
@@ -95,20 +98,22 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 |----------|---------------------------|
 | **Network-restricted hosts** | OneAgents can't reach internet directly |
 | **Private synthetic monitors** | Test internal applications |
-| **Extensions 2.0** | Custom data sources (SNMP, databases, etc.) |
-| **AWS / Azure / GCP monitoring** | See Clouds app status below — AG still required for the classic GCP integration and for environments without Clouds app |
+| **Remote extensions** | Extensions that poll remote sources (SNMP, databases, APIs) run from an ActiveGate group; local extensions run on OneAgent |
+| **AWS / Azure classic integration** | See Clouds app status below — classic polling runs through an ActiveGate (on SaaS hosted on AWS, Dynatrace provides one for the built-in AWS services); GCP needs none on SaaS |
 | **VMware monitoring** | vCenter integration |
 | **Kubernetes full-stack** | Cluster API access for events, metrics |
 
-> **Update — Clouds App (status as of 09/2026):** The **Clouds app** supports direct cloud connections **without ActiveGate** — but coverage varies per cloud:
+> **Update — Clouds App (status as of 10/2026):** The **Clouds app** supports direct cloud connections **without ActiveGate** — but coverage varies per cloud:
 >
 > | Cloud | Clouds-app Status | AG Required? |
 > |-------|-------------------|--------------|
 > | **AWS** | GA — direct connection supported | No (when using Clouds app) |
 > | **Azure** | Direct connection (SaaS 1.337+) — *"no need to deploy ActiveGate compute resources for metric polling"* | No (when using Clouds app) |
-> | **GCP** | Clouds-app connection in **Preview** — verify it has reached your tenant | **Yes for the classic integration**, which remains the working path until the Preview reaches you; whether the Preview needs an AG is not documented here — check the GCP setup page |
+> | **GCP** | Clouds connection listed as **Preview** on the setup page; SaaS 1.348 (pre-release, rollout planned from 09/22/2026) announces it with *"no need to deploy ActiveGate compute resources for metric polling within your Google Cloud environment"* — verify it has reached your tenant | **No.** The classic integration (`dynatrace-gcp-monitor`, deployed on GKE or as a Cloud Function) sends straight to your environment URL on SaaS and remains the working path until the Clouds connection reaches you |
 >
-> ActiveGate is still required for **Extensions 2.0**, **private synthetic locations**, **the classic GCP integration**, and any environment without Clouds app access. See [Clouds app documentation](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring), [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding), [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) and the **CLOUD series** for per-provider deep dives.
+> ActiveGate is still required for **remote extensions**, **private synthetic locations**, and classic AWS / Azure polling where the Clouds app is not used. On SaaS, the GCP collector's *"dynatraceUrl"* is *"your environment URL"*; an ActiveGate appears there only as a Managed log-ingest option. See [Clouds app documentation](https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring), [Azure Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-onboarding), [Set up Dynatrace on Google Cloud (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform) and the **CLOUD series** for per-provider deep dives.
+>
+> <sub>**Sources:** [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8) — *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*, [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS)."*, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller."*</sub>
 
 ### Optional but Recommended
 
@@ -127,10 +132,10 @@ Dynatrace continues to support monitoring a third-party technology for **6 month
 |----------|-------|------|
 | Can all hosts reach Dynatrace directly? | AG optional | AG required |
 | Need private synthetic monitoring? | AG required | Continue |
-| Using Extensions 2.0? | AG required | Continue |
+| Using remote extensions (DB / SNMP / API)? | AG required (local extensions run on OneAgent) | Continue |
 | Monitoring AWS (Clouds app GA)? | AG optional | AG required |
 | Monitoring Azure (Clouds app, SaaS 1.337+)? | AG optional | AG required |
-| Monitoring GCP? | AG required for the classic integration; Clouds app (Preview) does not use the classic AG polling path | Continue |
+| Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE or Cloud Functions; the Clouds connection (Preview) needs none | Continue |
 | More than 500 hosts? | AG recommended | AG optional |
 -->
 
@@ -155,15 +160,15 @@ The reference points are AWS instance shapes — for on-premises VMs, map by vCP
 
 ### Detailed Hardware Requirements
 
-#### Minimum System Requirements
+#### Minimum System Requirements (Linux)
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| **CPU** | 2 cores (x64) | 4+ cores |
-| **RAM** | 2 GB | 4+ GB |
-| **Disk Space** | 2 GB | 10+ GB (for logs/cache) |
-| **Disk Type** | HDD | SSD (for extensions) |
-| **Network** | 100 Mbps | 1 Gbps |
+| Component | Documented requirement |
+|-----------|------------------------|
+| **CPU** | 1 dual core processor (more for large environments) |
+| **RAM** | 2 GB (4 GB recommended) |
+| **Disk** | 4 GB for installation, configuration and logs, plus 4 GB for cached OneAgent / ActiveGate installers and container images |
+
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"2 GB RAM (4 GB recommended). 1 dual core processor."*</sub>
 
 #### Operating System Support
 
@@ -200,33 +205,27 @@ Dynatrace de-supports an OS version *"at least 6 months after its end of life (E
 
 **Existing ActiveGates on these versions keep working right up to the date** — nothing stops the moment the announcement lands. What ends is Dynatrace's commitment to fix issues and ship new ActiveGate versions for that OS. Two practical consequences for an onboarding plan:
 
-- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead.
+- **Do not provision new ActiveGates on any version in this table.** Amazon Linux 2 and RHEL 9.4 were the obvious defaults a year ago and are now the wrong starting point — pick Amazon Linux 2023, RHEL 9.8/10.2, Oracle Linux 9.8/10.2, or Rocky Linux 9.8/10.2 instead. Oracle Linux and Rocky Linux 9.8 and 10.2 are themselves already announced for de-support from **06/01/2027** (ActiveGate 1.347 release notes: *"The following operating systems will no longer be supported starting 01 June 2027"*), so on those distributions plan the move to the next listed minor version.
 - **Fold the OS upgrade into the next ActiveGate update window** rather than scheduling it as separate work. The update mechanics, auto-update behavior, and how to schedule those windows are covered in *FAQ-05: Managing ActiveGate updates on Dynatrace SaaS*.
 
-> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026.
+> **Reference:** [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — the dates and the 6-month policy statement above are quoted from this page, verified 07/30/2026; the dates also match [ActiveGate 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347), read 10/02/2026.
 
-#### Memory Sizing by Workload
+#### Disk Space per Directory (Linux defaults)
 
-| Workload Type | Base Memory | Additional per Feature |
-|---------------|-------------|----------------------|
-| **Routing Only** | 2 GB | - |
-| **+ Extensions 2.0** | 2 GB | +1-2 GB per active extension |
-| **+ Synthetic** | 2 GB | +1 GB per 10 monitors |
-| **+ Cloud Integration** | 2 GB | +512 MB per cloud account |
-| **+ Log Ingest** | 2 GB | +2 GB for high volume |
+Most of the space an ActiveGate needs sits under `/var`, not under `/opt/dynatrace`:
 
-#### Disk Space Sizing
+| Directory (default) | Contents | Space |
+|---------------------|----------|-------|
+| `/opt/dynatrace` | ActiveGate and autoupdater executables and libraries | 600 MB |
+| `/opt/dynatrace/remotepluginmodule` | Extensions executables (Environment ActiveGate) | 2 GB |
+| `/var/lib/dynatrace` | Configuration | 2 MB |
+| `/var/lib/dynatrace/packages` | Auto-update installer downloads | 600 MB |
+| `/var/log/dynatrace` | ActiveGate and autoupdater logs | 1.2 GB |
+| `/var/tmp/dynatrace/gateway` | Temporary files | 4 GB (including 3 GB for cached OneAgent installers and container images) |
 
-| Purpose | Space Required |
-|---------|---------------|
-| **Base Installation** | 1.5 GB |
-| **Log Files (default)** | 1-5 GB (rotated) |
-| **Extension Cache** | 500 MB - 2 GB |
-| **Synthetic Cache** | 500 MB - 1 GB |
-| **Temporary Files** | 1 GB |
-| **Recommended Total** | 10-20 GB |
-
-> **Best Practice:** Mount `/opt/dynatrace` on a dedicated partition with at least 20 GB for production deployments.
+> **Partitioning:** if you give ActiveGate dedicated volumes, size `/var/tmp/dynatrace`, `/var/log/dynatrace` and `/var/lib/dynatrace` per the requirements page — those are the directories that hold logs, caches and update packages. A large `/opt/dynatrace` partition alone leaves them on the root volume.
+>
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — *"ActiveGate temporary files default: /var/tmp/dynatrace/gateway"*. Memory and CPU sizing beyond the minimums: FAQ-10.</sub>
 
 ### High Availability
 
@@ -287,26 +286,14 @@ Deploy ActiveGates based on network segmentation:
 
 <a id="generating-tokens"></a>
 ## 5. Generating Tokens
-ActiveGate requires a PaaS token for installation.
+Downloading the ActiveGate installer needs one of two token types, depending on your environment. *"Classic access tokens don't exist in latest environments"*; environments migrating to Latest Dynatrace have both, and SaaS 1.343 says *"We recommend platform tokens over classic API tokens for new integrations."*
 
-**Location:** Settings → Integration → Platform as a Service
+| Environment | Token | Required scope | Request header |
+|-------------|-------|----------------|----------------|
+| **Latest Dynatrace** (platform tokens only) | Platform token (**My platform tokens**) or OAuth client | `fleet-management:activegates:download` | `Authorization: Bearer <token>` |
+| **Classic or hybrid** (classic access tokens still exist) | Access token (**Access Tokens** app → **Generate new token**) | `InstallerDownload` (*PaaS integration - Installer download*) | `Authorization: Api-Token <token>` |
 
-Or use the API token approach:
-
-### Required Token Scopes
-
-| Scope | API Name | Purpose |
-|-------|----------|--------|
-| **PaaS integration - Installer download** | `InstallerDownload` | Download ActiveGate installer |
-
-### Additional Scopes by Use Case
-
-| Use Case | Additional Scopes |
-|----------|------------------|
-| **AWS Monitoring** | `aws.supportedServicesRead` |
-| **Azure Monitoring** | `azure.supportedServicesRead` |
-| **Extensions 2.0** | `extensions.read`, `extensions.write` |
-| **Synthetic Private Location** | `syntheticLocations.write` |
+No further scopes are needed to install an ActiveGate. Scopes for the APIs you call later (extensions, synthetic locations) belong on the tokens that call them. The **Install ActiveGate** wizard in **Discovery & Coverage** can also generate an installer token for you.
 
 ### Token Naming Convention
 
@@ -315,14 +302,18 @@ Use descriptive names:
 - `aws-activegate-useast1`
 - `k8s-activegate-cluster1`
 
+> <sub>**Sources:** [Deployment API - Download latest ActiveGate (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"Platform Token / OAuth: Required scope: fleet-management:activegates:download"*, [Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic), [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343).</sub>
+
 <a id="installation-methods"></a>
 ## 6. Installation Methods
 ### Linux Installation
 
 ```bash
-# Download the installer
+# Download the installer (platform token; for a classic access token use
+# --header="Authorization: Api-Token {token}" instead)
 wget -O Dynatrace-ActiveGate.sh \
-  "https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/unix/latest?Api-Token={paas-token}"
+  --header="Authorization: Bearer {platform-token}" \
+  "https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/unix/latest"
 
 # Make executable and run
 chmod +x Dynatrace-ActiveGate.sh
@@ -332,14 +323,15 @@ sudo ./Dynatrace-ActiveGate.sh
 ### Windows Installation
 
 ```powershell
-# Download the installer
-Invoke-WebRequest -Uri "https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/windows/latest?Api-Token={paas-token}" -OutFile Dynatrace-ActiveGate.exe
+# Download the installer (classic access token: "Api-Token {token}" instead of "Bearer ...")
+Invoke-WebRequest -Uri "https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/windows/latest" `
+  -Headers @{ Authorization = "Bearer {platform-token}" } -OutFile Dynatrace-ActiveGate.exe
 
 # Run the installer
 .\Dynatrace-ActiveGate.exe
 ```
 
-> **Deprecation note (SaaS 1.343, July 2026):** the classic ActiveGate deployment API used above (`/api/v1/deployment/installer/gateway/...` with a PaaS/`Api-Token`) is **deprecated** in favor of the Latest Dynatrace deployment REST API, which supports **platform tokens** with fine-grained OAuth scopes and adds a REST endpoint for public component-image URIs. Its GA/enabled-by-default status arrives with the staged SaaS 1.343 tenant rollout (from mid-July 2026) — verify availability in your tenant. The classic endpoints continue to work during the deprecation period — plan new automation against the platform API and migrate existing scripts on your next maintenance touch.
+> **Deprecation note (SaaS 1.343, July 2026):** the classic ActiveGate deployment API used above (`/api/v1/deployment/installer/gateway/...`) is **deprecated** in favor of the Latest Dynatrace deployment REST API, which supports **platform tokens** with fine-grained OAuth scopes and adds a REST endpoint for public component-image URIs. Its GA/enabled-by-default status arrives with the staged SaaS 1.343 tenant rollout (from mid-July 2026) — verify availability in your tenant. The classic endpoints continue to work during the deprecation period — plan new automation against the platform API and migrate existing scripts on your next maintenance touch.
 
 ### Container Deployment
 
@@ -351,7 +343,10 @@ Dynatrace documents a containerized ActiveGate only *"using a StatefulSet on Kub
 |-----------|---------|--------|
 | `--set-network-zone` | Assign to network zone | `--set-network-zone=dmz` |
 | `--set-group` | Group for management | `--set-group=production` |
-| `--enable-synthetic` | Enable synthetic capability | `--enable-synthetic` |
+
+Synthetic is not an installer flag on a routing ActiveGate: install a separate Synthetic-enabled ActiveGate from the **Install ActiveGate** wizard (**Purpose → Synthetic**) — see the note in section 1.
+
+> <sub>**Sources:** [Deployment API - Download latest ActiveGate (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest) — *"GET SaaS https://{your-environment-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/{osType}/latest"*, [Customize ActiveGate installation on Linux (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-customize-installation-for-activegate).</sub>
 
 <a id="kubernetes-deployment-detailed"></a>
 ## 7. Kubernetes Deployment (Detailed)
@@ -392,74 +387,107 @@ Deploying ActiveGate in Kubernetes requires careful consideration of where, how,
 | Secret | dynatrace namespace | API tokens |
 -->
 
-### Kubernetes Hardware Requirements
+### Kubernetes ActiveGate Sizing
 
-| Deployment Size | CPU Request | CPU Limit | Memory Request | Memory Limit |
-|-----------------|-------------|-----------|----------------|--------------|
-| **Small** (≤500 agents) | 500m | 2000m | 1Gi | 2Gi |
-| **Medium** (500-1500) | 1000m | 4000m | 2Gi | 4Gi |
-| **Large** (1500-3000) | 2000m | 8000m | 4Gi | 8Gi |
-| **Extra Large** (3000+) | 4000m | 16000m | 8Gi | 16Gi |
+Dynatrace recommends *"two sets of ActiveGates for production deployments"*: one for Kubernetes platform monitoring (including Prometheus and KSPM), one for OneAgent traffic routing and telemetry ingest. Both are sized by cluster size — pods first, nodes second:
+
+| Cluster size | Pods | Nodes |
+|--------------|------|-------|
+| **Small** | <1,000 | Up to 25 |
+| **Medium** | 1,000–5,000 | Up to 100 |
+| **Large** | 5,000–20,000 | Up to 500 |
+
+**Kubernetes platform monitoring ActiveGate**
+
+| Cluster size | CPU request | CPU limit | Memory request | Memory limit |
+|--------------|-------------|-----------|----------------|--------------|
+| **Small** | 200m | 1000m | 6 GiB | 6 GiB |
+| **Medium** | 1000m | 2000m | 10 GiB | 10 GiB |
+| **Large** | 2000m | 4000m | 12 GiB | 12 GiB |
+
+**OneAgent traffic routing ActiveGate**
+
+| Cluster size | CPU request | CPU limit | Memory request | Memory limit | Replicas |
+|--------------|-------------|-----------|----------------|--------------|----------|
+| **Small** | 250m | 1000m | 2 GiB | 2 GiB | 3 |
+| **Medium** | 500m | 2000m | 4 GiB | 4 GiB | 3 |
+| **Large** | 1000m | 4000m | 6 GiB | 6 GiB | 6 |
+
+Platform monitoring needs far more memory than routing — budget for it before you put both jobs on one ActiveGate. The guide's advice on limits: *"Use CPU limits only if required by policy."* Log ingest through the ActiveGate adds replicas; the guide covers that case.
+
+> <sub>**Sources:** [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — *"One set should cover Kubernetes platform monitoring, including any Prometheus integration and Kubernetes Security Posture Management (KSPM) functionalities."*</sub>
 
 ### Method 1: Dynatrace Operator (Recommended)
 
 The Dynatrace Operator manages ActiveGate lifecycle automatically.
 
-> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` is still served, but flagged deprecated from Operator 1.10.0). Operator **1.9.0** removed `v1beta3` from the CRD (*"Applying DynaKube resources using this version will fail"*) and deprecated `v1beta4`; Operator **1.10.0** (July 15, 2026) stopped serving `v1beta4`; and Operator **1.11.0** (released 10/01/2026) removes it from the CRD — *"Applying DynaKube resources that still use v1beta4 will fail."* Check `kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'` before upgrading the Operator, and move any `v1beta4` DynaKube to `v1beta6` first. The example below still uses `v1beta5`, which 1.11.0 continues to serve. v1beta6 adds OTLP exporter configuration.
+> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` is still served by Operator 1.11.0 but marked deprecated in its CRD; Operator 1.10.0 deprecated `v1beta4`). Operator **1.9.0** removed `v1beta3` from the CRD (*"Applying DynaKube resources using this version will fail"*) and deprecated `v1beta4`; Operator **1.10.0** (July 15, 2026) stopped serving `v1beta4`; and Operator **1.11.0** (released 10/01/2026) removes it from the CRD — *"Applying DynaKube resources that still use v1beta4 will fail."* Check `kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'` before upgrading the Operator, and move any `v1beta4` DynaKube to `v1beta6` first. The example below uses `v1beta6` (validated against the Operator 1.11.0 CRD). v1beta6 adds OTLP exporter configuration.
 >
 > <sub>**Sources:** [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."* `served` / `deprecated` per version read from the DynaKube CRD in each release's `kubernetes.yaml` ([Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)), 10/02/2026.</sub>
 
+The example follows the sizing guide's two-set layout for Operator versions earlier than 1.11.0 (the version pinned below): one DynaKube for platform monitoring, one for routing, both sized for a small cluster.
+
 ```yaml
-# dynakube.yaml - ActiveGate via Operator
-apiVersion: dynatrace.com/v1beta5
+# dynakube-activegates.yaml - two ActiveGate sets via the Operator (small cluster)
+apiVersion: dynatrace.com/v1beta6
 kind: DynaKube
 metadata:
-  name: dynakube
+  name: k8s-monitoring
   namespace: dynatrace
 spec:
   apiUrl: https://{tenant-id}.live.dynatrace.com/api
-  
-  # ActiveGate configuration
+  tokens: dynakube              # secret created below
+  networkZone: kubernetes       # network zone for the ActiveGate (and OneAgent) pods
+
   activeGate:
-    # Capabilities to enable
     capabilities:
-      - routing           # Route OneAgent traffic
-      - kubernetes-monitoring  # K8s API monitoring
-      - dynatrace-api     # Proxy Dynatrace API calls
-    
-    # Resource sizing
+      - kubernetes-monitoring   # K8s API monitoring
     resources:
       requests:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "200m"
+        memory: "6Gi"
       limits:
-        cpu: "2000m"
-        memory: "2Gi"
-    
-    # Number of replicas (HA)
-    replicas: 2
-    
-    # Tolerations for dedicated nodes
+        memory: "6Gi"           # add a CPU limit (1000m) only if policy requires one
+
+    # Tolerations and node selector for dedicated monitoring nodes (optional)
     tolerations:
       - key: "dedicated"
         operator: "Equal"
         value: "dynatrace"
         effect: "NoSchedule"
-    
-    # Node selector (optional)
     nodeSelector:
       node-type: monitoring
-    
-    # Custom properties
-    customProperties:
-      value: |
-        [connectivity]
-        networkZone=kubernetes
-    
+---
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: agents
+  namespace: dynatrace
+spec:
+  apiUrl: https://{tenant-id}.live.dynatrace.com/api
+  tokens: dynakube
+  networkZone: kubernetes
+  # add your oneAgent: section here (see ONBRD-05)
+
+  activeGate:
+    capabilities:
+      - routing                 # route OneAgent traffic
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "2Gi"
+      limits:
+        memory: "2Gi"
+    replicas: 3
+
     # Labels
     labels:
       app.kubernetes.io/component: activegate
 ```
+
+> **Operator 1.11.0+:** the sizing guide shows a single DynaKube instead, with platform monitoring under `spec.kubernetesMonitoring` — *".spec.kubernetesMonitoring is mutually exclusive with the kubernetes-monitoring capability in .spec.activeGate"*. The `dynatrace-api` capability is left out here: the DynaKube reference marks it *"A custom certificate is required for this capability"* (`tlsSecretName`). `spec.networkZone` *"Sets a network zone for the OneAgent and ActiveGate Pods."*
+>
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters), [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits).</sub>
 
 **Install with Operator:**
 
@@ -470,7 +498,9 @@ kubectl create namespace dynatrace
 # Create secret with tokens. On Latest Dynatrace, the Operator docs ("Tokens and permissions")
 # direct you to two PLATFORM tokens (Operator token + Data Ingest token) on a dedicated service user;
 # existing classic access tokens continue to be accepted. Classic path shown here:
-# apiToken (with PaaS scopes) is sufficient for the Operator;
+# apiToken = the Operator token. Create it in Access Tokens from the "Kubernetes: Dynatrace
+# Operator" template: an ActiveGate DynaKube needs activeGateTokenManagement.create on top of
+# InstallerDownload (see ONBRD-05 section 5) - an installer-only token is not enough.
 # the separate paasToken secret field is deprecated as of Operator 1.10.0 (still accepted).
 # From Operator 1.10.0 a Platform Token is also accepted in place of the classic access token.
 kubectl -n dynatrace create secret generic dynakube \
@@ -484,7 +514,7 @@ helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
   --set installCRD=true
 
 # Apply DynaKube configuration
-kubectl apply -f dynakube.yaml
+kubectl apply -f dynakube-activegates.yaml
 ```
 
 > **Install from the OCI registry.** The Operator 1.11.0 release notes direct Helm installs to `oci://public.ecr.aws/dynatrace/dynatrace-operator`: the legacy `dynatrace/helm-charts` repository is archived, and *"If you can't use OCI, point your Helm repository to dynatrace/dynatrace-operator instead"* (`helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable`). `1.10.2` is the version validated across these notebooks; Operator **1.11.0** (released 10/01/2026) is the newest — validate it on a non-production cluster before moving the pin.
@@ -602,7 +632,7 @@ spec:
 
 | Configuration | Setting |
 |---------------|---------|
-| **Replicas** | 2-3 for production |
+| **Replicas** | Routing ActiveGate: 3 (small/medium cluster), 6 (large), per the sizing guide |
 | **Pod Anti-Affinity** | Spread across nodes |
 | **PodDisruptionBudget** | minAvailable: 1 |
 | **Resource Requests** | Guarantee scheduling |
@@ -652,8 +682,10 @@ smartscapeNodes "ACTIVEGATE"
 // More than one row means the fleet is not uniform; sort ascending puts the
 // oldest version first. Cross-check the OS end-of-support table in section 3
 // against the os.version values from the inventory query above.
+// ids is listed because names can repeat: two ActiveGate pods in different
+// clusters can share a pod name (e.g. dynakube-activegate-0).
 smartscapeNodes "ACTIVEGATE"
-| summarize {activegates = count(), names = collectDistinct(name)},
+| summarize {activegates = count(), names = collectDistinct(name), ids = collectDistinct(dt.active_gate.id)},
     by:{dt.active_gate.version}
 | sort dt.active_gate.version asc
 ```
@@ -669,7 +701,7 @@ smartscapeNodes "ACTIVEGATE"
 
 ### Verification via UI
 
-**Location:** Deployment status → ActiveGates
+**Location:** **Fleet Management** → ActiveGates (SaaS 1.343+: *"You can now monitor and manage your ActiveGates in the new Fleet Management."*); on older tenants, **Deployment status → ActiveGates**
 
 Check for:
 - ✅ Status: Connected
@@ -693,11 +725,13 @@ sudo tail -100 /var/log/dynatrace/gateway/gateway.log
 **Windows:**
 ```powershell
 # Check service status
-Get-Service -Name "Dynatrace ActiveGate"
+Get-Service -Name "Dynatrace Gateway"
 
 # Check connectivity
 Invoke-WebRequest -Uri "https://localhost:9999/rest/health" -SkipCertificateCheck
 ```
+
+> <sub>**Sources:** [ActiveGate default installation settings for Windows (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/windows/windows-default-settings) — *"ActiveGate Dynatrace Gateway The main ActiveGate service."*, [SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343).</sub>
 
 <a id="troubleshooting"></a>
 ## 9. Troubleshooting
@@ -736,7 +770,7 @@ curl -k https://{activegate-ip}:9999/rest/health
 
 With ActiveGate deployed:
 
-1. **ONBRD-04: Cloud & SaaS Integrations** — Connect AWS / Azure / GCP through your AG (or skip AG via the Clouds app where supported)
+1. **ONBRD-04: Cloud & SaaS Integrations** — Connect AWS / Azure (Clouds app, or classic polling through your AG) and GCP (no AG on SaaS), and assign remote extensions to an AG group
 2. **ONBRD-05: Deploying OneAgent** — Now deploy agents that route through ActiveGate
 3. Configure network zones if using multiple ActiveGates
 4. Enable additional modules (synthetic, extensions) as needed
@@ -761,8 +795,8 @@ With ActiveGate deployed:
 #### Kubernetes
 - [ ] Dynatrace Operator installed (recommended)
 - [ ] DynaKube CR applied with activeGate configuration
-- [ ] Replicas set to 2+ for production HA
-- [ ] Resource requests/limits configured
+- [ ] Separate platform-monitoring and routing ActiveGates for production
+- [ ] Replicas and resource requests/limits set per the K8s ActiveGate sizing guide
 - [ ] PodDisruptionBudget created
 - [ ] Pod anti-affinity configured for spread across nodes
 - [ ] Service type appropriate (ClusterIP vs LoadBalancer)
@@ -804,6 +838,7 @@ In this notebook, you learned:
 - [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters)
 - [ActiveGate container image (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container)
 - [Tokens and permissions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions)
+- [Size Dynatrace ActiveGates in Kubernetes (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits)
 - [Helm Chart Repository](https://github.com/Dynatrace/dynatrace-operator/tree/main/config/helm)
 
 ---

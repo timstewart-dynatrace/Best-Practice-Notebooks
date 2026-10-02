@@ -104,8 +104,8 @@
   <rect x="40" y="258" width="450" height="44" rx="8" fill="url(#mStepGrad)" filter="url(#mShadow)"/>
   <circle cx="70" cy="280" r="13" fill="rgba(255,255,255,0.2)"/>
   <text x="70" y="285" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">3</text>
-  <text x="285" y="275" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">Does the regex pattern match?</text>
-  <text x="285" y="293" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">Test: replaceAll(content, "\\b\\d{4}...\\d{4}\\b", "[REDACTED]")</text>
+  <text x="285" y="275" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">Does the DPL pattern match?</text>
+  <text x="285" y="293" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">Test: replacePattern(content, "CREDITCARD", replacement: "[REDACTED]")</text>
 
   <!-- Step 3 Branch - Yes (left-down) -->
   <line x1="155" y1="302" x2="155" y2="316" stroke="#10b981" stroke-width="2"/>
@@ -121,8 +121,8 @@
   <!-- No - Pattern Issue -->
   <rect x="535" y="302" width="185" height="58" rx="6" fill="url(#mFixGrad)" filter="url(#mShadow)"/>
   <text x="627" y="320" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle">Pattern Issue</text>
-  <text x="545" y="337" font-family="system-ui, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)">• Escaping correct? (\\d)</text>
-  <text x="545" y="352" font-family="system-ui, sans-serif" font-size="10" fill="#fcd34d">→ Update regex pattern</text>
+  <text x="545" y="337" font-family="system-ui, sans-serif" font-size="10" fill="rgba(255,255,255,0.9)">• DPL, not regex (no \\d)</text>
+  <text x="545" y="352" font-family="system-ui, sans-serif" font-size="10" fill="#fcd34d">→ Update DPL pattern</text>
 
   <!-- Step 4 - Final -->
   <rect x="40" y="336" width="400" height="36" rx="8" fill="url(#mStepGrad)" filter="url(#mShadow)"/>
@@ -147,5 +147,5 @@
 
   <!-- Summary bar -->
   <rect x="40" y="440" width="820" height="22" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="450" y="455" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Path: Masking Running? → Processor Order? → Regex Pattern? → All Fields Covered? Fix first failure, re-test from Step 1.</text>
+  <text x="450" y="455" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Path: Masking Running? → Processor Order? → DPL Pattern? → All Fields Covered? Fix first failure, re-test from Step 1.</text>
 </svg>

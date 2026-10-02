@@ -66,9 +66,9 @@
 
   <!-- ============ Bottom callout: Path C unavailable for some runtimes ============ -->
   <rect x="140" y="410" width="680" height="58" fill="#FFFFFF" stroke="#C73734" stroke-width="1.5" stroke-dasharray="4,3" rx="6"/>
-  <text x="480" y="430" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Path C is technically impossible for Python, Go, PHP, and Ruby</text>
-  <text x="480" y="446" text-anchor="middle" font-size="10" fill="#454646">No OneAgent SDK exists for these runtimes — there is no replacement target for OTel application code.</text>
-  <text x="480" y="460" text-anchor="middle" font-size="10" fill="#454646">For these runtimes the choice is Path A (OTel only) or Path B (layer OneAgent alongside OTel).</text>
+  <text x="480" y="430" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1A1A">Path C is technically impossible for Go, PHP, and Ruby</text>
+  <text x="480" y="446" text-anchor="middle" font-size="10" fill="#454646">No OneAgent SDK for custom tracing exists there — no replacement target for OTel code.</text>
+  <text x="480" y="460" text-anchor="middle" font-size="10" fill="#454646">Python has an SDK, but Path C is still not recommended. The choice is Path A or Path B.</text>
 
   <text x="465" y="490" text-anchor="middle" font-size="10" font-style="italic" fill="#6F7274">Position on the chart shows each path's location on the effort × gain trade-off — Path B is the only option that wins on both axes.</text>
 </svg>

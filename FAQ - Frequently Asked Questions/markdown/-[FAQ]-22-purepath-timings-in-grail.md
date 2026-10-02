@@ -1,6 +1,6 @@
 # FAQ-22: What Happened to My PurePath Timings in Grail?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 09/28/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 10/02/2026
 
 ## Overview
 
@@ -15,7 +15,7 @@ This entry answers the three field-model questions directly, and then shows how 
 | Adjacent question | Read |
 |---|---|
 | How to detect failures on client spans in practice | **SPANS-03** (troubleshooting) — `span.kind == "client" and span.status_code == "error"` |
-| DPS trace Ingest / Retain / Query and who consumes query budget | **FINOPS-01** §5 and §9 |
+| DPS trace Ingest / Retain / Query and who consumes query budget | **FINOPS-01** §6 and §9 |
 
 ---
 
@@ -39,7 +39,7 @@ This entry answers the three field-model questions directly, and then shows how 
 |-------------|---------|
 | **Applies to** | Any Grail tenant querying `fetch spans` — especially estates migrating from classic Dynatrace or from another APM tool |
 | **Audience** | Anyone porting classic PurePath analysis, dashboards, or alerting onto span DQL |
-| **Permissions** | `storage:spans:read` for the span queries; the `dt.semantic_dictionary.*` tables need no storage scope and scan **zero bytes** |
+| **Permissions** | `storage:buckets:read` plus `storage:spans:read` for the span queries — table permissions alone do not grant reads. The `dt.semantic_dictionary.*` queries scanned **zero bytes** on the validation tenant |
 | **Related topic series** | SPANS (span DQL, troubleshooting, topology) · OTEL (OTLP ingest and attribute mapping) · FINOPS (trace Ingest / Retain / Query billing) · OPIPE (span processing at ingest) |
 | **Related FAQs** | **FAQ-11** (how metrics work — the Classic/Grail dual-write that explains the metric half of this question) · **FAQ-16** (migrating classic entity selectors to Smartscape) · **FAQ-12** (coverage gaps from partial enablement) |
 
@@ -108,7 +108,7 @@ Two of those rows deserve care.
 
 **`span.timing.cpu` vs `span.timing.cpu_self`.** The dictionary defines the first as *"the overall CPU time spent executing the span, including the CPU times of child spans that are running on the same thread on the same call stack,"* and the second as *"the CPU time spent exclusively on executing this span, not including the CPU times of any children."* The `_self` form is what you want for "which span actually burned the CPU" — the inclusive form double-counts up the same-thread stack.
 
-**`db.result.fetch_size` is not fetch count.** It is defined as *"the number of items **requested** in fetching query results"* — a fetch-size hint, not a count of rows returned. It is also `experimental`, which rules it out for alerting. If a classic dashboard tracked fetch count as an N+1-query signal, the durable replacement is span *count* per trace against the database service, not this field. **SPANS-03** and **DBMON-01** both cover the N+1 pattern.
+**`db.result.fetch_size` is not fetch count.** It is defined as *"the number of items **requested** in fetching query results"* — a fetch-size hint, not a count of rows returned. It is also `experimental`, which rules it out for alerting. If a classic dashboard tracked fetch count as an N+1-query signal, the durable replacement is span *count* per trace against the database service, not this field. **DBMON-05** (query analysis) covers N+1 detection.
 
 **What to do about the gap.** There is no reconstruction of IO or lock time from the fields that do exist — `duration` minus `span.timing.cpu` is elapsed-minus-CPU, which lumps IO, lock, queueing, and downstream wait into one undifferentiated number. It can be a useful *triage* signal ("this span is not CPU-bound"), but do not present it as IO time. Where the distinction genuinely drives a decision, the durable path is the child spans themselves: a database call, an outbound HTTP call, and a queue wait each appear as their own span with their own `duration`.
 
@@ -153,7 +153,7 @@ That last row is the one with real consequences. The `dt.service.request.*` fami
 1. **Characterize dependencies from the client spans.** Group on `server.address` (`stable`). `peer.service` is not in the semantic dictionary; it appears only when OTel instrumentation sets it — treat it as optional, never as the key. **SPANS-04** §3–4 is the full treatment — service dependency mapping, inbound/outbound ratios, slowest-dependency queries.
 2. **`request.is_failed` is not your failure signal here — and is deprecated anyway.** The dictionary marks it `deprecated`, describing it as *"considered failed according to the failure detection rules. Only present on the request root span."* The successor namespace `dt.failure_detection.verdict` / `.results` is `experimental`. For client spans the `stable` answer is `span.status_code` plus the protocol status field (`http.response.status_code`; for gRPC `rpc.grpc.status_code`, which is `experimental`) — which is exactly what **SPANS-03** already teaches. Do not build alerting on the failure-detection namespace while it is experimental.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the endpoint-naming change for volatile segments quoted above, [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — Enhanced Endpoints explicitly does not create endpoints for external services. [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `dt.failure_detection.verdict` (`experimental`), `span.status_code` (`stable`), `server.address` (`stable`), `rpc.grpc.status_code` (`experimental`); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged; no row for `peer.service`, read 09/28/2026 (0 of 507,133 spans in a 2 h window carried it, against 438,899 with `server.address`). The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the endpoint-naming change for volatile segments quoted above, [Enhanced endpoints for SDv1 (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/enhanced-endpoints-sdv1) — *"No endpoints are created for external services, background activity services, queue listener services, or key value store services."* [Service failure detection (DT docs)](https://docs.dynatrace.com/docs/shortlink/service-failure-detection). **Dictionary:** `endpoint.name` (`stable`), `request.is_failed` (`deprecated`), `dt.failure_detection.verdict` (`experimental`), `span.status_code` (`stable`), `server.address` (`stable`), `rpc.grpc.status_code` (`experimental`); quoted definitions read 08/04/2026, re-read 08/27/2026 unchanged; no row for `peer.service`, read 09/28/2026 (0 of 507,133 spans in a 2 h window carried it, against 438,899 with `server.address`). The null-on-client / populated-on-server contrast was observed on live spans on the same tenant and date.</sub>
 
 **Reproduce the contrast in your own tenant.** Two queries, run back to back — the first returns nulls in the endpoint and failure columns, the second does not:
 
@@ -257,7 +257,7 @@ fetch dt.semantic_dictionary.models
 5. **Filter request attributes as arrays.** `matchesValue()`, not `==`. Decide deliberately between the request-scoped reconciled value and the span-scoped raw one.
 6. **Check `stability` before anything reaches an alert.** `experimental` fields are legitimate for investigation and wrong for paging.
 
-**On the DPS question that usually arrives with these** — trace Ingest & Process, Retain, and Query are documented in **FINOPS-01** §5, including the footgun that Traces-Ingest meters `ingested_bytes` while Retain and Query meter `billed_bytes`. To find out whether a given platform app consumes trace Query budget in *your* tenant, FINOPS-01 §9 has the pattern: filter `dt.system.events` to `event.type == "Traces - Query"` and group by `client.application_context`. On the validation tenant used for this entry no `Traces - Query` records existed in a 30-day window, so this entry makes no claim about which apps appear — run it yourself rather than assuming either answer.
+**On the DPS question that usually arrives with these** — trace Ingest & Process, Retain, and Query are documented in **FINOPS-01** §6, including the footgun that Traces-Ingest meters `ingested_bytes` while Retain and Query meter `billed_bytes`. To find out whether a given platform app consumes trace Query budget in *your* tenant, FINOPS-01 §9 has the pattern: filter `dt.system.events` to `event.type == "Traces - Query"` and group by `client.application_context`. On the validation tenant used for this entry no `Traces - Query` records existed in a 30-day window, so this entry makes no claim about which apps appear — run it yourself rather than assuming either answer.
 
 > <sub>**Sources:** [Semantic Dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary), [Request attributes (DT docs)](https://docs.dynatrace.com/docs/shortlink/request-attributes). The zero-`Traces - Query`-records observation is from the validation tenant on 08/04/2026 and is reported as a limit on this entry's evidence, not as a property of the platform.</sub>
 

@@ -71,7 +71,7 @@
 
   <path d="M 694 198 L 694 238" stroke="#1496FF" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
   <text x="762" y="212" fill="#BFDBFE" font-size="10.5">cross-environment</text>
-  <text x="762" y="228" fill="#BFDBFE" font-size="10.5">tracing + dashboard tiles</text>
+  <text x="762" y="228" fill="#BFDBFE" font-size="10.5">tracing + tiles (Classic)</text>
   <text x="762" y="244" fill="#64748B" font-size="10">span the boundary</text>
 
   <!-- dual-send lane -->

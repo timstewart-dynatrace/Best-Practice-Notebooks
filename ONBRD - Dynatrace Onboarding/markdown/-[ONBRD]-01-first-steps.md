@@ -23,15 +23,21 @@ Welcome to Dynatrace. This notebook helps you get oriented in your new environme
 - Access credentials for your Dynatrace tenant
 - A modern web browser (Chrome, Firefox, Edge, Safari)
 
-### Sprint 1.337 (April 2026): Defaults for New Customers
+### 2026 Defaults for New Customers
 
-Three sprint-1.337 changes establish what "new customer onboarding" should default to in 2026:
+Three platform changes establish what "new customer onboarding" should default to in 2026:
 
-1. **Platform tokens (`dt0s16`) with `Authorization: Bearer …`** — recommended default for all new automation. Classic `dt0c01` (`Authorization: Api-Token …`) still works for legacy paths but should not be the default for new pipelines. Wrong scheme returns `401 Unsupported authorization scheme` even when scopes are correct (covered in ONBRD-02 IAM and Authentication).
-2. **Settings v2 (Environment API v2)** — new automation should target Settings v2 paths. Sprint 1.337 SaaS announced that many remaining Configuration API endpoints now have Settings v2 equivalents. Plan onboarding tooling around Settings v2 (Terraform `dynatrace_settings`, Monaco v2). See ONBRD-06 (Organizing Your Environment) and ONBRD-09 (Setting Up Alerts) for the schema-id patterns to use.
-3. **Extensions 2.0** (managed via the Dynatrace API Application → Extensions surface) — **the current framework for customers adopting custom Extensions.** Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated but supported past that date on request — advocate migrating any remaining EF1.0 extensions in onboarding conversations.
+1. **Platform tokens (`dt0s16`) with `Authorization: Bearer …`** — recommended default for all new automation. Dynatrace's upgrade guide states that for classic access tokens, *"In Latest Dynatrace, this model is replaced with platform tokens"*. Classic `dt0c01` (`Authorization: Api-Token …`) still works on classic and hybrid environments for legacy paths but should not be the default for new pipelines. Wrong scheme returns `401 Unsupported authorization scheme` even when scopes are correct (covered in ONBRD-02 IAM and Authentication).
+2. **Settings v2 (Environment API v2)** — new automation should target Settings v2 paths. SaaS 1.337 (April 2026) put deprecation notices on many Configuration API endpoints that Settings now covers. Plan onboarding tooling around Settings v2 (Terraform's per-schema `dynatrace_*` settings resources, Monaco v2 `settings` configs). See ONBRD-06 (Organizing Your Environment) and ONBRD-09 (Setting Up Alerts) for the schema-id patterns to use.
+3. **Extensions 2.0** (managed in the **Extensions** app) — **the current framework for customers adopting custom Extensions.** Extensions Framework 1.0 reached end of support on 2025-03-31 (Python EF1.0: 2024-10-31); JMX and PMI EF1.0 are deprecated, supported past March 2025 on contacting Dynatrace, and reach end of support on **July 1, 2027** — advocate migrating any remaining EF1.0 extensions in onboarding conversations.
 
-Also: **OneAgent primary fields/tags at the source** (Latest Dynatrace) means new customers should be told to design their tag taxonomy with primary tags first-class — set during OneAgent install via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly. Covered in ONBRD-05 (Deploying OneAgent) and ONBRD-06 (Organizing Your Environment).
+Also: **OneAgent primary fields/tags at the source** (OneAgent 1.333+, Latest Dynatrace) means new customers should be told to design their tag taxonomy with primary tags first-class — set during OneAgent install via `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` — the `primary_tags.` prefix must be written explicitly. Covered in ONBRD-05 (Deploying OneAgent) and ONBRD-06 (Organizing Your Environment).
+
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2."*</sub>
+> - <sub>[End-of-support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"JMX and PMI EF1.0 will reach End of Support on July 1, 2027."*</sub>
+> - <sub>[Manage extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/manage-extensions), [Terraform provider resources (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/tree/main/docs/resources), [Primary Grail fields and tags enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment)</sub>
 
 ---
 
@@ -59,6 +65,8 @@ Your tenant ID is the first part of your Dynatrace URL. For example:
 4. You'll land on the default home screen
 
 > **Note:** If your organization is setting up SAML/SSO, see **ONBRD-02: IAM and Authentication** before inviting additional users.
+
+> **New tenant or trial?** QuickStart → **Add data** opens Auto Discovery — *"We recommend Auto Discovery, the default when you select Add data"* — where a CLI (`dtwiz`) *"Recommends the optimal ingestion method for your environment (ranked suggestions)"* and deploys it ([QuickStart guide (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/quickstart-guide)). For production rollouts, follow ONBRD-03 to ONBRD-05.
 
 <a id="understanding-the-navigation"></a>
 ## 2. Understanding the Navigation
@@ -91,24 +99,24 @@ Click the grid icon to see all available apps. You can:
 
 <a id="key-areas-to-know"></a>
 ## 3. Key Areas to Know
-### Hosts App
+### Infrastructure & Operations App
 
-The Hosts app shows all monitored infrastructure:
+The Infrastructure & Operations app has an Explorer for hosts, containers, processes, network devices and technologies:
 - Host health and resource utilization
 - Running processes and services
 - Host properties and metadata
 
 ### Problems App
 
-DAVIS AI automatically detects problems and correlates related events. This is where you'll see:
+Dynatrace Intelligence (Davis) automatically detects problems and correlates related events. This is where you'll see:
 - Active issues requiring attention
 - Root cause analysis
 - Affected entities
 - Problem timeline and resolution
 
-### Logs & Events App
+### Logs App
 
-Explore all log data ingested into Dynatrace:
+Explore all log data ingested into Dynatrace (the Logs app replaces the classic Logs and Events screen):
 - Full-text search across logs
 - Filter by source, severity, content
 - Correlate logs with traces and metrics
@@ -127,6 +135,8 @@ Automation and alerting for the modern platform:
 - Configure notifications (Slack, email, PagerDuty, etc.)
 - Build custom automation logic
 
+> <sub>**Sources:** [Infrastructure & Operations (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/infrastructure-and-operations), [Logs app (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-logs-app) — *"The application replaces the Logs and Events screen"*.</sub>
+
 <a id="your-environment-id-and-urls"></a>
 ## 4. Your Environment ID and URLs
 Several URLs are important to bookmark:
@@ -135,7 +145,7 @@ Several URLs are important to bookmark:
 |---------|-------------|
 | **Main UI** | `https://{tenant-id}.apps.dynatrace.com` |
 | **Platform API** | `https://{tenant-id}.apps.dynatrace.com/platform/` |
-| **Account Management** | `https://account.dynatrace.com` |
+| **Account Management** | `https://myaccount.dynatrace.com` |
 
 ### API Access
 
@@ -143,11 +153,15 @@ Modern Dynatrace platform access uses three credential types — choose based on
 
 | Token Type | Prefix | When to Use |
 |------------|--------|-------------|
-| **Platform Token** *(recommended default)* | `dt0s16` | New automation, Workflows, MCP integrations, OpenPipeline configuration |
+| **Platform Token** *(recommended default)* | `dt0s16` | New automation, MCP integrations, OpenPipeline configuration, installer downloads |
 | **OAuth Client** | (client ID + secret) | External SaaS integrations, account-admin automation |
 | **Classic API Token** *(legacy phase-out)* | `dt0c01` | Existing scripts; migrate to Platform Token where possible |
 
-For OneAgent and ActiveGate deployment, installer downloads use a **PaaS / installer token** (classic access token with the `InstallerDownload` scope) generated in your environment's **Access Tokens** app → **Generate new token**. Token management depth lives in **ONBRD-02**.
+Workflows don't use a token: each workflow runs as its **actor** (a user or service user), so grant permissions to the actor.
+
+For OneAgent and ActiveGate deployment, installer downloads work with a **platform token** carrying `fleet-management:oneagents:download` (OneAgent) or `fleet-management:activegates:download` (ActiveGate). On classic and hybrid environments, a classic access token with the `InstallerDownload` scope (from the **Access Tokens** app) also works; latest environments have no classic access tokens. Token management depth lives in **ONBRD-02**.
+
+> <sub>**Sources:** [Download latest OneAgent installer (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:download"*; [Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"Every execution of a workflow task is performed in the context of a user."*; [Account Management (DT docs)](https://docs.dynatrace.com/docs/manage/account-management).</sub>
 
 <a id="checking-whats-already-there"></a>
 ## 5. Checking What's Already There
@@ -190,13 +204,14 @@ fetch dt.entity.service
 
 // Smartscape equivalent (dt.entity.* is deprecated but still functional):
 //   smartscapeNodes "SERVICE"
-//   | fields name, dt.service.sdv1_type
+//   | fields name, dt.service_detection.version, dt.service.sdv1_type
 //   | sort name
 //   | limit 50
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
 // than the classic entity store; for a pre-migration discovery inventory keep the
 // classic query above.
-// Field maps: serviceType -> dt.service.sdv1_type; entity.name -> name.
+// Field maps: serviceType -> dt.service.sdv1_type (SDv1 services only; null on SDv2
+// services); entity.name -> name.
 ```
 
 ```dql
@@ -217,11 +232,11 @@ fetch dt.davis.problems, from: now() - 7d
 
 | Result | What It Means | Next Step |
 |--------|--------------|----------|
-| **Hosts found** | OneAgent or cloud integration active | Explore the Hosts app |
+| **Hosts found** | OneAgent or cloud integration active | Explore the Infrastructure & Operations app |
 | **No hosts** | No monitoring deployed yet | Deploy OneAgent (ONBRD-05) |
 | **Services found** | Application-level monitoring working | Review service mapping |
-| **Logs found** | Log ingestion configured | Explore Logs & Events app |
-| **Problems found** | DAVIS is detecting issues | Review problem details |
+| **Logs found** | Log ingestion configured | Explore the Logs app |
+| **Problems found** | Dynatrace Intelligence is detecting issues | Review problem details |
 
 <a id="next-steps"></a>
 ## 6. Next Steps
@@ -252,7 +267,7 @@ Pair the migration series with this **ONBRD** series for the platform-fundamenta
 - [ ] Bookmark your tenant URL
 - [ ] Note your tenant ID
 - [ ] Explore the App Launcher
-- [ ] Open the Hosts app (even if empty)
+- [ ] Open the Infrastructure & Operations app (even if empty)
 - [ ] Find Account Management for tokens and users
 
 ---
@@ -263,7 +278,7 @@ In this notebook, you learned:
 
 - How to access your Dynatrace environment
 - The app-based navigation structure
-- Key apps: Hosts, Problems, Logs & Events, Notebooks, Workflows
+- Key apps: Infrastructure & Operations, Problems, Logs, Notebooks, Workflows
 - Important URLs for your tenant
 - How to check what data already exists
 
@@ -271,8 +286,9 @@ In this notebook, you learned:
 
 ## References
 
-- [Get Started with Dynatrace](https://docs.dynatrace.com/docs/discover-dynatrace/get-started)
-- [Navigate the Dynatrace Platform](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui)
+- [Get Started with Dynatrace (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started)
+- [QuickStart guide (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/quickstart-guide)
+- [Navigate the Dynatrace Platform (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui)
 - [Dynatrace Community - Start with Dynatrace](https://community.dynatrace.com/t5/Start-with-Dynatrace/bd-p/GetStarted)
 
 ---
