@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -136,11 +136,20 @@ Before sending the post-migration announcement, confirm that users can actually 
 // It also conflated two questions. User sessions are RUM data; they cannot tell you
 // whether IAM groups are configured. Group membership is an Account Management concern
 // — see IAM-04 and IAM-05 for that check.
+//
+// Corrected 10/05/2026. Synthetic monitors create user sessions too, so a bare count()
+// can report "real users arriving" on a tenant with no real-user RUM at all — on the
+// validation tenant all 4,702 sessions in 24 h were synthetic. Split on dt.rum.user_type
+// (values real_user / robot / synthetic in the semantic dictionary).
 fetch user.sessions, from:-24h
-| summarize sessionCount = count()
-| fieldsAdd status = if(sessionCount > 0,
+| summarize {realUserSessions = countIf(dt.rum.user_type == "real_user"),
+             syntheticSessions = countIf(dt.rum.user_type == "synthetic"),
+             robotSessions = countIf(dt.rum.user_type == "robot")}
+| fieldsAdd status = if(realUserSessions > 0,
                         then: "Real user sessions arriving on SaaS",
-                        else: "No user sessions — check RUM enablement and OneAgent/RUM JS injection")
+                        else: if(syntheticSessions > 0,
+                                 then: "Only synthetic sessions — real-user RUM not arriving yet",
+                                 else: "No user sessions — check RUM enablement and OneAgent/RUM JS injection"))
 
 ```
 
@@ -291,7 +300,7 @@ Common queries that replace everyday Managed workflows:
 
 | Task | DQL Query |
 |------|-----------|
-| Find error logs | `fetch logs, from:-1h \| filter loglevel == "ERROR" \| limit 50` |
+| Find error logs | `fetch logs, from:-1h \| filter status == "ERROR" \| limit 50` |
 | List active problems | `fetch dt.davis.problems, from:-24h \| filter event.status == "ACTIVE"` |
 | Check host CPU | `timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}` |
 | View service requests | `fetch spans, from:-1h \| filter span.kind == "server" \| summarize count(), by:{dt.entity.service}` |

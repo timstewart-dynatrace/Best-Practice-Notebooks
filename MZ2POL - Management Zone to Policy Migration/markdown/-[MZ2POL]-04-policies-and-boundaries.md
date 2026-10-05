@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -672,6 +672,8 @@ ALLOW storage:spans:read
 
 // Reads are condition-scoped; storage writes cannot take WHERE conditions
 // (live-verified) — grant them unscoped only where justified.
+// Caution: event records hold dt.security_context as an ARRAY, and startsWith never
+// matches an array — test that this grants storage:events:read before relying on it.
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read,
       storage:entities:read, storage:system:read, storage:buckets:read

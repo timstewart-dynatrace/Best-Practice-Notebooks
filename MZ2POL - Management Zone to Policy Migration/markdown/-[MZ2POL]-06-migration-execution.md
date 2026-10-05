@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -461,12 +461,14 @@ fetch dt.entity.service
 ```
 
 ```dql
-// Verify: Entities accessible via segment match MZ
-// Adjust filters to match your environment
+// Verify: entities reached by the replacement tag match the MZ they replace
+// Replace "Frontend-Team" and "team:frontend" with your MZ name and its replacement tag.
+// (Counting isNotNull(tags) is not a check: classic tags are never null, so it counts everything.)
 fetch dt.entity.service
-| summarize 
-    viaMZ = countIf(arraySize(managementZones) > 0),
-    viaTag = countIf(isNotNull(tags))
+| summarize {
+    viaMZ  = countIf(in(managementZones, {"Frontend-Team"})),
+    viaTag = countIf(matchesValue(tags, "team:frontend"))
+  }
 | fields viaMZ, viaTag
 
 // Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects

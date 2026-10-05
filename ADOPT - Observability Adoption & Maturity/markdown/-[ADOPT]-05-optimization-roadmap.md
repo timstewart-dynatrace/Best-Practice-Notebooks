@@ -1,6 +1,6 @@
 # ADOPT-05: Optimization Roadmap
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -290,11 +290,16 @@ fetch logs, from:-24h
 
 Not every host requires Full-Stack monitoring. Infrastructure Monitoring is billed per host-hour rather than per GiB-hour of host memory, and may be appropriate for hosts that run no application you need to trace. Read each host's mode from the billing events — the classic `monitoringMode` host property is empty for many hosts (ADOPT-02 § 1.2).
 
+> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
+
 ```dql
 // Hosts by the capability they were billed under (DPS), last 24 hours
 fetch dt.system.events, from:-24h
-| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
-| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| filter event.kind == "BILLING_USAGE_EVENT"
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
 | sort hosts desc
 ```
 

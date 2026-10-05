@@ -1,6 +1,6 @@
 # NR2DT-01: Step 1 — Discover
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 1 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -77,26 +77,29 @@ For environments where SVG doesn't render
 <a id="access"></a>
 ## 2. Prerequisites & Access
 
-### NR API token
+### NR API key
 
-User-level API key with **read** scope on:
-- Dashboards, Alerts, NRQL, Synthetics, SLO, Workloads, Logs
+A New Relic **User key** (`NRAK-…`) belonging to a user who has read access to the account's dashboards, alerts, NRQL data, synthetics, SLOs, workloads and logs. User keys carry no per-capability scopes — the key acts with its user's access: *"The user key allows you to make queries for any accounts you've been granted access to"*.
 
 ```bash
-export NR_API_KEY="NRAK-..."
-export NR_ACCOUNT_ID="<numeric>"
-export NR_REGION="US"  # or EU
+export NEW_RELIC_API_KEY="NRAK-..."
+export NEW_RELIC_ACCOUNT_ID="<numeric>"
+export NEW_RELIC_REGION="US"  # or EU
 ```
+
+The tool reads exactly these names. `NR_API_KEY`, `NR_ACCOUNT_ID` and `NR_REGION` are not read, and every run then stops with `Configuration error`.
 
 
 ### DT platform token
 
-Step 5 (effort report) and Step 8 (validation) connect to the target Dynatrace tenant, so you also need DT credentials configured before you run them:
+The tool validates **all four** variables at startup — the two `NEW_RELIC_*` values above and the two Dynatrace values below — on every `migrate` run, including the `--export-only` inventory in §3, and on `preflight` and `audit`. Set the Dynatrace values before the first run even though only §5 and Steps 5–8 actually connect to the tenant:
 
 ```bash
-export DYNATRACE_API_TOKEN="dt0c01.XXXXX..."  # platform token recommended
+export DYNATRACE_API_TOKEN="dt0s16.XXXXX..."  # Platform Token
 export DYNATRACE_ENVIRONMENT_URL="https://<env-id>.live.dynatrace.com"
 ```
+
+`dt0s16` is the Platform Token prefix (*"Platform token enabling programmatic access to Dynatrace platform services"*); `dt0c01` is a classic access token.
 
 Store these in `.env` rather than the shell for long-running work. Verify with:
 
@@ -112,10 +115,12 @@ Clone the migration framework:
 
 ```bash
 git clone https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities
-cd Dynatrace-NewRelic
+cd NewRelic-to-Dynatrace-Migration-Utilities
 pip install -r requirements.txt
-cp .env.example .env  # populate NR_* vars
+cp .env.example .env  # populate NEW_RELIC_* and DYNATRACE_* vars
 ```
+
+> <sub>**Sources:** [New Relic API keys (New Relic docs)](https://docs.newrelic.com/docs/apis/intro-apis/new-relic-api-keys/), [Tokens and authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication), [config/settings.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py), read 10/05/2026.</sub>
 
 <a id="inventory"></a>
 ## 3. Run the Inventory
@@ -166,7 +171,7 @@ The subcommand walks dashboards, alert conditions, and SLO indicators; dedupes; 
 
 <details><summary><b>Fallback for older tool versions</b> (without <code>extract-nrql</code>)</summary>
 
-If your `Dynatrace-NewRelic` checkout predates 2026-04-20, the `extract-nrql` subcommand isn't available. Run this `jq` one-liner instead (same logic, manual):
+If your `NewRelic-to-Dynatrace-Migration-Utilities` checkout predates 2026-04-20, the `extract-nrql` subcommand isn't available. Run this `jq` one-liner instead (same logic, manual):
 
 ```bash
 jq -r '
@@ -178,7 +183,7 @@ jq -r '
   | sort -u > inventory/all-nrql.txt
 ```
 
-Upgrade to a current tool version (`git pull origin main` in your `Dynatrace-NewRelic` clone) when convenient; then switch to the subcommand.
+Upgrade to a current tool version (`git pull origin main` in your `NewRelic-to-Dynatrace-Migration-Utilities` clone) when convenient; then switch to the subcommand.
 </details>
 
 <a id="translate"></a>
@@ -199,12 +204,12 @@ python3 migrate.py batch --file inventory/all-nrql.csv --output nrql-conversion-
 
 (If you extracted to `.txt` in §3 instead of `.csv`, convert with: `awk 'BEGIN{print "nrql"} {print "\"" $0 "\""}' inventory/all-nrql.txt > inventory/all-nrql.csv`)
 
-**Which artifact matters for the G1 gate?** The CSV from `batch` — it has the confidence distribution you need to compare against the table below.
+**Which artifact matters for the S1 gate?** The CSV from `batch` — it has the confidence distribution you need to compare against the table below.
 
 **Output:**
 
 - `compile --output <file>` writes a plain DQL file (one translated query per input).
-- `batch --output <file.csv>` writes a CSV with one row per query: source NRQL, translated DQL, confidence (HIGH/MEDIUM/LOW), confidence score (0–100), notes, warnings. **This is the artifact to review for the Step 1 gate.**
+- `batch --output <file.csv>` writes a CSV with one row per query and exactly four columns: `nrql`, `dql`, `confidence` (HIGH/MEDIUM/LOW, or `FAILED` when the query did not compile), `warnings`. **This is the artifact to review for the Step 1 gate.**
 
 **Expected confidence distribution** for a typical NR account:
 
@@ -221,13 +226,19 @@ If LOW is > 15%, surface this to stakeholders early — it's the dominant cost d
 <a id="estimate"></a>
 ## 5. Generate the Effort Estimate
 
-### 5a. Run the report generator (connects to DT)
+### 5a. Run the report generator (connects to DT, imports nothing)
 
 ```bash
-python3 migrate.py migrate --report --input inventory --output effort-estimate.md
+python3 migrate.py migrate --dry-run --report --output ./discovery-run
 ```
 
-> **Requires DT credentials** — `DYNATRACE_API_TOKEN` and `DYNATRACE_ENVIRONMENT_URL` from §2. If they aren't configured yet, the command exits with "Failed to connect to Dynatrace" and doesn't write the file.
+> **`--dry-run` is what keeps this a preview.** Without it, `migrate` exports, transforms **and imports** the default components (dashboards, alerts, synthetics, SLOs, workloads) into the tenant during Discovery — `--report` runs after the import, it does not replace it.
+
+`--output` is a **directory**, and `--input` is not read on this path. The report lands in `./discovery-run/reports/conversion-report.json` and `.html`: an NRQL→DQL conversion report (confidence summary plus per-query detail) built from the run's transform warnings. It is an input to `effort-estimate.md`, not the estimate itself.
+
+> **Requires DT credentials** — `DYNATRACE_API_TOKEN` and `DYNATRACE_ENVIRONMENT_URL` from §2. Unset, the command stops with `Configuration error`; set but wrong, it stops with "Failed to connect to Dynatrace".
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 ### 5b. Offline fallback (no DT connection required)
 
@@ -257,7 +268,7 @@ PY
 cat effort-estimate.md
 ```
 
-Both paths (5a and 5b) produce an `effort-estimate.md` that satisfies the G1 exit criterion. Use 5a when DT access is ready; use 5b during early discovery.
+5b writes `effort-estimate.md` directly; with 5a, summarize the report into `effort-estimate.md`. Either satisfies the S1 exit criterion. Use 5a when DT access is ready; use 5b during early discovery.
 
 Estimating heuristic per component class:
 
@@ -272,11 +283,11 @@ Estimating heuristic per component class:
 <a id="gate"></a>
 ## 6. Step Exit Criteria
 
-**G1 — Discovery Complete**
+**S1 — Discovery Complete**
 
 Pass criteria — all five must be true:
 
-- [ ] `inventory/exports/newrelic_export.json` complete; every entity class has a non-empty array; no enumeration errors in log
+- [ ] `inventory/exports/newrelic_export.json` complete; every entity class enumerated without error (an empty array is acceptable when the NR account has none of that class); no enumeration errors in log
 - [ ] Per-component counts captured and documented
 - [ ] `nrql-conversion-report.csv` generated; LOW count <= 15% of total
 - [ ] `effort-estimate.md` reviewed by lead

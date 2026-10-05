@@ -1,6 +1,6 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 > **Purpose:** Query Management Zone configurations via the Dynatrace SDK, analyze entity assignments, and assess security context coverage to support migration planning.
 
@@ -342,7 +342,7 @@ fetch dt.entity.host
 | filter isNotNull(tag)
 | filter contains(tag, ":")
 | parse tag, "LD:tagKey ':' LD:tagValue"
-| summarize count = count(), uniqueValues = countDistinct(tagValue), by: {tagKey}
+| summarize {count = count(), uniqueValues = countDistinct(tagValue)}, by: {tagKey}
 | sort count desc
 | limit 30
 

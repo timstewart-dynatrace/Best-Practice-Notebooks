@@ -1,6 +1,6 @@
 # SL2DT-10: Migrating Telegraf-Collected Metrics
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 11 | **Created:** July 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 10 of 11 | **Created:** July 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -188,6 +188,8 @@ Whatever name your Sumo dashboards referenced, compare it against this form and 
 
 If you choose path 4, do not assume its keys match path 3. OTLP ingest applies its own transformations: "a metric key may be suffixed automatically depending on the payload (for example, `.count` for counters and `.gauge` for gauges)," and invalid characters "will be replaced with underscores."
 
+Those suffixes apply to **Metrics Classic only** — *"Grail metrics do not apply the `.count` and `.gauge` suffixes"* — so DQL and new dashboards use the key as sent. Record the suffixed form in `metric-key-map.md` only for classic consumers.
+
 > **Verify, don't assume.** The exact key a given Telegraf input produces *through an OpenTelemetry Collector* depends on the receiver in that collector, which sits outside Dynatrace's documentation. Send one representative metric through your chosen route into a non-production tenant and read the actual key back (§ 6) before committing a naming convention to `metric-key-map.md`.
 
 <a id="parity"></a>
@@ -201,8 +203,10 @@ Metric parity is a different test from log parity. You are not diffing record co
 // List the metric keys that actually landed under your Telegraf prefix.
 // Compare against metric-key-map.md: anything missing never arrived, and
 // anything unexpected is a naming surprise worth catching before cutover.
+// `metrics` returns several rows per key — dedup to one.
 metrics
 | filter startsWith(metric.key, "telegraf.")
+| dedup metric.key
 | fields metric.key
 | sort metric.key asc
 | limit 200
@@ -214,11 +218,14 @@ Existence is not continuity. For every key a monitor or dashboard depends on, co
 
 ```dql
 // Replace the metric key with one from metric-key-map.md.
-// A flat or gappy result means the Telegraf output is not running everywhere
-// you assume it is — check per host before declaring parity.
-timeseries datapoints = count(telegraf.apache.BusyWorkers), from:-24h, interval:1h
-| fieldsAdd total = arraySum(datapoints)
-| fields total
+// count() on a metric counts REPORTING SERIES per interval (rollup: availability), not data points.
+// Per host, this shows how many of the hourly buckets received data — a host below the bucket
+// count was not sending for part of the window. Check per host before declaring parity.
+// dt.entity.host is present on the local-OneAgent route; on a remote route split by your own host tag.
+timeseries reporting = count(telegraf.apache.BusyWorkers), from:-24h, interval:1h, by:{dt.entity.host}
+| fieldsAdd hours_reporting = arraySize(arrayRemoveNulls(reporting)), buckets = arraySize(reporting)
+| fields dt.entity.host, hours_reporting, buckets
+| sort hours_reporting asc
 ```
 
 ### What "Parity" Means for Metrics
@@ -258,7 +265,7 @@ Do not include metrics in the SL2DT-09 cutover until every box is checked:
 ### Dynatrace — metric ingestion
 - [Send Telegraf metrics to Dynatrace (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf) — requires OneAgent 1.201+; default ingestion port 14499
 - [OneAgent metric API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-metric-api) — host ID and host name added automatically on the local endpoint
-- [Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — metric key character, section, and length rules
+- [Metric ingestion protocol (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol) — metric key character, section, and length rules; *"Grail metrics do not apply the `.count` and `.gauge` suffixes"*
 - [POST ingest metrics (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics) — `metrics.ingest` scope; 1 MB payload limit
 - [Metrics limits (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits) — reserved `dt.` prefix; data ingested with it is dropped
 - [About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality requirement; automatic key suffixing

@@ -1,6 +1,6 @@
 # NRLC-03: Dashboard Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 3 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -44,12 +44,13 @@ SELECT count(*), average(duration) FROM Transaction
 WHERE appName = 'checkout' SINCE 1 hour ago FACET host
 ```
 
-```
--- DQL
+```dql
 fetch spans, from:-1h
-| filter service.name == "checkout"
-| summarize count = count(), avg_dur = avg(duration), by:{host.name}
+| filter dt.service.name == "checkout" and isNotNull(endpoint.name)
+| summarize {count = count(), avg_dur = avg(duration)}, by:{host.name}
 ```
+
+Every `FROM Transaction` translation needs both filters: `isNotNull(endpoint.name)` keeps request root spans only (one per NR transaction — without it `fetch spans` also counts database, outbound and internal spans), and `dt.service.name` is the Dynatrace service name (`service.name` is the OpenTelemetry attribute and misses spans that do not carry it). See NRLC-02 §6.
 
 ### Time series widget
 ```sql
@@ -57,9 +58,9 @@ fetch spans, from:-1h
 SELECT count(*) FROM Transaction TIMESERIES 5 minutes
 ```
 
-```
--- DQL
-fetch spans
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
 | makeTimeseries count = count(), interval:5m
 ```
 
@@ -69,11 +70,13 @@ fetch spans
 SELECT percentage(count(*), WHERE httpResponseCode = 200) FROM Transaction
 ```
 
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name) and isNotNull(http.response.status_code)
+| summarize success_pct = 100.0 * countIf(http.response.status_code == 200) / count()
 ```
--- DQL
-fetch spans
-| summarize success_pct = 100.0 * countIf(http.status_code == 200) / count()
-```
+
+Map NR `httpResponseCode` to `http.response.status_code`. `http.status_code` is not a Dynatrace span field; a widget built on it runs and shows a near-zero percentage.
 
 ### COMPARE WITH (week-over-week)
 ```sql
@@ -81,12 +84,13 @@ fetch spans
 SELECT count(*) FROM Transaction COMPARE WITH 1 week ago SINCE 1 day ago
 ```
 
-```
--- DQL
+```dql
 fetch spans, from:-1d
+| filter isNotNull(endpoint.name)
 | summarize current = count()
 | append [
     fetch spans, from:-192h, to:-168h
+    | filter isNotNull(endpoint.name)
     | summarize previous = count()
   ]
 ```
@@ -204,7 +208,7 @@ NR Dashboard JSON
 | `viz.json` | `code` (DQL block) | direct |
 | `viz.event-feed` | **`table` with canonical timestamp sort + `eventFeedMode`** | Phase 19 — upgraded from table fallback |
 | `viz.funnel` | **`barChart` composite with `countIf` per stage + `funnelEmulation: true`** | Phase 19 — upgraded from markdown placeholder |
-| Custom Nerdpack widget | not portable | document in gap analysis / see OUT-OF-SCOPE.md |
+| Custom Nerdpack widget | not portable | document in gap analysis / see the tool's [out-of-scope list (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/out-of-scope.md) |
 
 Each translation preserves the title; data thresholds (red/yellow/green) map to DT `visualizationSettings.thresholds`.
 
@@ -315,24 +319,24 @@ Continue to **NRLC-04 Alert & Notification Migration** for the higher-stakes wor
 End-to-end commands for migrating only dashboards — no other components touched.
 
 ```bash
-# 1. Inventory NR dashboards
-python3 migrate.py migrate --export-only --components dashboards --output ./dashboards-export
+# 1. Inventory NR dashboards (export only — nothing is written to Dynatrace)
+python3 migrate.py migrate --export-only --components dashboards --output ./dashboards-run
 
-# 2. Translate widget queries with confidence report
-python3 migrate.py migrate --transform-only --components dashboards --report
+# 2. Translate widget queries, diff against existing DT dashboards (by name),
+#    and write a conversion report — nothing is imported
+python3 migrate.py migrate --dry-run --diff --report --components dashboards --output ./dashboards-run
 
-# 3. Diff against existing DT documents (avoid duplicate creation)
-python3 migrate.py migrate --diff --components dashboards
+# 3a. Direct API import (export → transform → import); writes ./dashboards-run/rollback-manifest.json
+python3 migrate.py migrate --components dashboards --output ./dashboards-run
 
-# 4a. Direct API import
-python3 migrate.py migrate --import-only --components dashboards
+# 3b. Or export the transformed config from step 2 as Terraform for GitOps management
+python3 migrate.py export-terraform --input ./dashboards-run --output ./tf-dashboards
 
-# 4b. Or export as Terraform for GitOps management
-python3 migrate.py export-terraform --components dashboards --output ./tf-dashboards
-
-# 5. Rollback if needed (within the rollback retention window)
-python3 migrate.py migrate --rollback --manifest ./output/run-<timestamp>.json
+# 4. Rollback if needed — --rollback takes the manifest file itself
+python3 migrate.py migrate --rollback ./dashboards-run/rollback-manifest.json
 ```
+
+> **Flags checked against `migrate.py` on the tool's `main` branch (10/05/2026).** There is no `--transform-only`: `--dry-run` runs export and transform, writes `<output>/transformed/dynatrace_config.json`, and skips the import. `--diff` takes effect only on a full or dry run — with `--import-only` it is ignored, and without `--dry-run` it is computed *after* the import. `--import-only` needs `--input <dir>` and does not write a rollback manifest; a full run writes `<output>/rollback-manifest.json`. Run `python3 migrate.py migrate --help` against your checkout before relying on a flag.
 
 **Single-query translation** for an ad-hoc widget:
 

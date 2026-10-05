@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -312,14 +312,14 @@ Querying specific buckets **reduces scan costs** and **improves performance**.
 **✅ Efficient - targets specific bucket:**
 ```
 fetch logs, bucket: "error_logs", from: now() - 7d
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | limit 100
 ```
 
 **❌ Inefficient - scans all buckets:**
 ```
 fetch logs, from: now() - 7d
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | limit 100
 ```
 
@@ -328,7 +328,7 @@ fetch logs, from: now() - 7d
 ```
 // Query multiple specific buckets
 fetch logs, bucket: {"prod_logs", "error_logs"}, from: now() - 24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 ```
 
 ```dql

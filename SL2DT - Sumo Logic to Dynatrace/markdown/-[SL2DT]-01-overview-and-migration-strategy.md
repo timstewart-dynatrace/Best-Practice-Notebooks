@@ -1,6 +1,6 @@
 # SL2DT-01: Overview & Migration Strategy
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 08/04/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -16,7 +16,7 @@ Three sprint-1.337 changes simplify the Sumo Logic → Dynatrace migration:
 
 1. **OneAgent primary fields/tags at the source.** Hosts now emit standardized fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and customer-defined primary tags as top-level attributes on every signal — eliminating a class of OpenPipeline parse processors needed during the Sumo→DT cut. See SL2DT-03 (Log Ingest Architecture) for the ingest-time configuration.
 2. **OpenPipeline extraction processor recommended-field suggestions.** When converting Sumo Field Extraction Rules (FERs) to OpenPipeline DPL processors (SL2DT-03), the UI now flags permission-relevant fields and Smartscape identifiers — preventing the most common misconfiguration: promoting sensitive content into a permission-relevant position.
-3. **Configuration API → Settings v2 acceleration + Platform tokens.** New automation (SL2DT-08) should target Settings v2 paths and use Platform tokens (`dt0s16`/`dt0s01`, `Authorization: Bearer`). Classic `dt0c01` still works for legacy paths but is not the default for new pipelines.
+3. **Configuration API → Settings v2 acceleration + Platform tokens.** New automation (SL2DT-08) should target Settings v2 paths and use Platform tokens (`dt0s16`, `Authorization: Bearer`). Classic `dt0c01` still works for legacy paths but is not the default for new pipelines.
 
 These changes reinforce — they don't change — the Gen3-first migration baseline documented in this series.
 
@@ -34,6 +34,7 @@ These changes reinforce — they don't change — the Gen3-first migration basel
 6. [Anti-Patterns to Avoid](#anti-patterns)
 7. [Success Criteria](#success)
 8. [What to Read Next](#next)
+9. [References](#references)
 
 ---
 
@@ -92,7 +93,7 @@ The platforms solve the same problem differently. Mapping the concepts is the fi
 | Installed Collector | OneAgent on host | Auto-instrumented |
 | Source (file/stream config) | OneAgent log source config or OTel receiver | Ingest-side |
 | Partition | Bucket (Grail) | Retention + IAM boundary |
-| Index (field index) | — (Grail indexes all fields) | No manual index management |
+| Index (field index) | — (Grail is index-free) | No index management (§6.3) |
 | Field Extraction Rule | OpenPipeline processor | DPL pattern |
 | Saved Search | Notebook section or Workflow DQL task | |
 | Scheduled Search | Workflow with cron trigger + DQL + action | |
@@ -203,8 +204,12 @@ Tempting: "just put `_sourceCategory` as a custom attribute, queries work the sa
 
 Sumo's FERs parse at ingest. Teams sometimes skip this step in DT and use `parse content, ...` in every dashboard query.
 
-- Ingest-time parsing = parsed fields indexed and queryable
-- Query-time parsing = re-parsed on every execution, slower, no structured index
+- Ingest-time parsing = fields stored once and queried directly
+- Query-time parsing = re-parsed on every execution and billed on the scanned content
+
+Neither path builds an index — *"Grail doesn't need any index, removing the costly overhead and inflexibility of predefined schemas."* The difference is where the parsing work is paid for.
+
+> <sub>**Sources:** [Dynatrace Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-grail).</sub>
 
 **Fix:** SL2DT-03 + SL2DT-04 — FER equivalents go into OpenPipeline.
 
@@ -257,14 +262,13 @@ If you're just here for a specific question:
 ### Companion assets
 
 - `sumoql-to-dql` skill — translation tables (internal authoring aid, not a published asset)
-- [SL2DT AGENT-TASKS.md](../docs/AGENT-TASKS.md) — brief for building the `Dynatrace-SumoLogic` migration tool
-- [NR2DT series](../../nr2dt/) — parallel pattern for New Relic migrations
-- [S2D series](../../s2d/) — parallel pattern for Splunk migrations
+- **NR2DT** series — parallel pattern for New Relic migrations
+- **S2D** series — parallel pattern for Splunk migrations
 
 ---
 
 <a id="references"></a>
-## 11. References
+## 9. References
 
 ### Dynatrace platform overview
 - [Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail)

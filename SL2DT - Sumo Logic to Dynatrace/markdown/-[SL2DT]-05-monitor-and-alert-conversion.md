@@ -1,6 +1,6 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -21,6 +21,7 @@ The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces nois
 7. [Handling Rare Alert Classes](#rare)
 8. [Tuning & Noise Reduction](#tuning)
 9. [Step Exit Criteria](#gate)
+10. [References](#references)
 
 ---
 
@@ -84,7 +85,7 @@ Dynatrace Intelligence learns the baseline of a metric and alerts when values de
 
 ### Configuration
 
-anomaly detection is configured via the Settings API (`builtin:anomaly-detection.metric-events`) or via the UI. For programmatic setup:
+anomaly detection is configured via the Settings API (`builtin:anomaly-detection.metric-events`) or via the UI. This is the **metric-event** schema, which evaluates Metrics Classic keys. An adaptive or seasonal model needs a `METRIC_SELECTOR` query definition — *"Metric key based query definitions only support static thresholds"* — and every model needs its full set of sample counts plus an event template. For programmatic setup:
 
 ```json
 {
@@ -94,23 +95,31 @@ anomaly detection is configured via the Settings API (`builtin:anomaly-detection
     "enabled": true,
     "summary": "API error rate anomaly",
     "queryDefinition": {
-      "type": "METRIC_KEY",
-      "metricKey": "custom.metric.api_error_rate",
-      "aggregation": "AVG",
-      "entityFilter": {
-        "conditions": [
-          {"type": "NAME", "operator": "CONTAINS", "value": "payments"}
-        ]
-      }
+      "type": "METRIC_SELECTOR",
+      "metricSelector": "custom.metric.api_error_rate:splitBy(\"dt.entity.host\"):avg"
     },
     "modelProperties": {
       "type": "AUTO_ADAPTIVE_THRESHOLD",
+      "signalFluctuation": 1.0,
+      "tolerance": 4.0,
       "alertCondition": "ABOVE",
-      "alertingOnMissingData": false
+      "alertOnNoData": false,
+      "samples": 5,
+      "violatingSamples": 3,
+      "dealertingSamples": 5
+    },
+    "eventTemplate": {
+      "title": "API error rate anomaly",
+      "description": "The API error rate is above its learned baseline.",
+      "eventType": "ERROR",
+      "davisMerge": true,
+      "metadata": []
     }
   }
 }
 ```
+
+> <sub>**Sources:** [builtin:anomaly-detection.metric-events schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events).</sub>
 
 ### Sumo outlier → anomaly detection example
 
@@ -135,7 +144,7 @@ If the Sumo monitor was log-count-based, extract a metric first:
   "value": {
     "key": "custom.metric.api_error_count",
     "enabled": true,
-    "query": "dt.source_entity = \"prod/api\" AND loglevel = \"ERROR\"",
+    "query": "sumo.source_category = \"prod/api\" AND status = \"ERROR\"",
     "measure": {"type": "OCCURRENCE"},
     "dimensions": ["dt.entity.host"]
   }
@@ -169,25 +178,42 @@ Use Metric Events via `builtin:anomaly-detection.metric-events`:
 ```json
 {
   "schemaId": "builtin:anomaly-detection.metric-events",
-  "scope": "HOST-12345",
+  "scope": "environment",
   "value": {
     "enabled": true,
     "summary": "Host CPU > 90%",
     "queryDefinition": {
       "type": "METRIC_KEY",
-      "metricKey": "dt.host.cpu.usage",
-      "aggregation": "AVG"
+      "metricKey": "builtin:host.cpu.usage",
+      "aggregation": "AVG",
+      "entityFilter": {
+        "dimensionKey": "dt.entity.host",
+        "conditions": [
+          {"type": "HOST_GROUP_NAME", "operator": "EQUALS", "value": "prod-web"}
+        ]
+      }
     },
     "modelProperties": {
       "type": "STATIC_THRESHOLD",
       "threshold": 90.0,
       "alertCondition": "ABOVE",
+      "alertOnNoData": false,
+      "samples": 5,
       "violatingSamples": 3,
-      "samples": 5
+      "dealertingSamples": 5
+    },
+    "eventTemplate": {
+      "title": "Host CPU > 90%",
+      "description": "CPU usage has been above 90% for 3 of the last 5 minutes.",
+      "eventType": "RESOURCE",
+      "davisMerge": true,
+      "metadata": []
     }
   }
 }
 ```
+
+The schema's only scope is `environment`; narrow the alert to particular hosts with the `entityFilter` (here a host group), not with an entity ID as the scope. Metric events read Metrics Classic, so the key is `builtin:host.cpu.usage` — the Grail key `dt.host.cpu.usage` is for DQL.
 
 ### When NOT to use Metric Events
 
@@ -216,8 +242,8 @@ tasks:
     type: dql_execution
     query: |
       fetch logs, from:-5m
-      | filter dt.source_entity == "prod/api"
-      | summarize total = count(), errors = countIf(contains(content, "ERROR"))
+      | filter sumo.source_category == "prod/api"
+      | summarize {total = count(), errors = countIf(contains(content, "error", caseSensitive:false))}
       | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
   - name: check_threshold
     condition: "{{ tasks.check_error_rate.records[0].error_pct }} > 5"
@@ -251,8 +277,8 @@ tasks:
     type: dql_execution
     query: |
       fetch logs, from:-5m
-      | filter dt.source_entity == "prod/api"
-      | parse content, "LD 'latency=' INT:latency"
+      | filter sumo.source_category == "prod/api"
+      | parse content, "LD? 'latency=' INT:latency"
       | filter latency > 2000
       | summarize c = count(), by:{http.path}
       | sort c desc
@@ -324,7 +350,7 @@ tasks:
     type: dql_execution
     query: |
       fetch logs, from:-10m
-      | filter dt.source_entity == "prod/heartbeat"
+      | filter sumo.source_category == "prod/heartbeat"
       | summarize c = count()
   - name: alert_if_missing
     condition: "{{ tasks.check_heartbeat.records[0].c }} == 0"
@@ -364,9 +390,10 @@ Dynatrace Intelligence needs ~2 weeks of data to build a stable baseline. During
 
 ```dql
 // Alert volume over time — compare Sumo baseline
-fetch events, from:-7d
-| filter event.kind == "DAVIS_PROBLEM"
-| makeTimeseries problem_count = count(), interval:1d
+// dt.davis.problems holds one record per problem; `fetch events | filter event.kind == "DAVIS_PROBLEM"`
+// returns every update of every problem and over-counts many times over.
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problems = count(), interval:24h, time:event.start
 
 ```
 
@@ -400,7 +427,7 @@ Workflow-based monitors should respect maintenance windows. Settings 2.0 schema 
 ---
 
 <a id="references"></a>
-## 11. References
+## 10. References
 
 ### Dynatrace alerting and intelligence
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)

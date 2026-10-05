@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -107,7 +107,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 |---|---------------|-----------------|----------|--------|
 | 1 | Route by severity | `event.severity` 1: PagerDuty + Slack + Email; 2: Slack + Email; 3: Slack; 4: Slack business hours only. Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (pre-release, staged rollout) | Critical | WFLOW-04 |
 | 2 | Route by team ownership via entity tags | Condition: `"team:checkout" in event().get("tags", [])` maps to `#checkout-alerts` | Critical | WFLOW-04 |
-| 3 | Do **not** route by management zone | `"Production" in event()["management_zones"]` is legacy. It fails silently once MZs are retired — the array empties, conditions go false, notifications stop with no error. Route on entity tags (`env:prod`) or Smartscape ownership instead | Critical | WFLOW-04 |
+| 3 | Do **not** route by management zone | `"Production" in event()["management_zones"]` is legacy, and the field is not present on problem records (0 of 15,878 over 30 days on a live tenant, 10/05/2026, with management zones still in use), so the condition has nothing to match. Route on entity tags (`env:prod`) or Smartscape ownership instead | Critical | WFLOW-04 |
 | 4 | Implement time-based routing | Business hours (Mon-Fri 9-17): Slack channel; Off-hours Critical: PagerDuty; Off-hours non-critical: queue for morning | Critical | WFLOW-04 |
 | 5 | Auto-escalate unacknowledged alerts | Wait 15 min, re-query the problem and check it is still ACTIVE, escalate to PagerDuty if unacknowledged | Recommended | WFLOW-04 |
 | 6 | Multi-tier escalation | 0 min: Slack; 15 min: Email team lead; 30 min: PagerDuty on-call; 60 min: PagerDuty manager | Recommended | WFLOW-04 |

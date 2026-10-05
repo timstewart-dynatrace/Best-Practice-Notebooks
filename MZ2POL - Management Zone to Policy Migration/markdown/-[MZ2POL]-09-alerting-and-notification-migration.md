@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -54,11 +54,13 @@ Routing and visibility are related but distinct, and §7 explains why conflating
 
 ### Why the alerting job is the hard one
 
-Filtering and access both migrate to constructs that can evaluate a **condition**. A segment can filter on `contains(entity.name, "payment")`; a boundary can test a `dt.security_context` prefix.
+Filtering and access both migrate to constructs that can evaluate a **condition**. A segment can filter on a field condition such as `entity.name = "payment*"` or `dt.host_group.id = "PROD-*"`; a boundary can test a `dt.security_context` prefix.
 
 A workflow trigger cannot. It matches **tags carried by the affected entity**, plus an optional DQL matcher on the problem record. That is a narrower surface, and it means a Management Zone whose rules are *computed* — name patterns, entity selectors — has nothing for a trigger to filter on until equivalent tags exist.
 
 That asymmetry is the single biggest source of surprise in this part of the migration, and §4 is devoted to it.
+
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"Only operators `=`, and `in()` are supported."*; *"You can use wildcards `*` for `starts-with`, `contains`, and `ends-with` matches."*</sub>
 
 <a id="what-replaces-a-profile"></a>
 ## 2. What Actually Replaces an Alerting Profile
@@ -85,7 +87,8 @@ An alerting profile scoped to MZ *X*, routing to team *X*'s channel, becomes:
 Workflow  "Route — Team X"
   Trigger:  Problem trigger
             ├─ Problem state ......... Active
-            ├─ Severity .............. (as per the old profile's severity rules)
+            ├─ Severity .............. (as per the old profile's severity rules;
+            │                           see the SaaS 1.348 note in §5)
             ├─ Affected entities ..... include entities with tag  team:X
             └─ Custom filter query ... optional DQL matcher, e.g.
                                        maintenance.is_under_maintenance == false
@@ -178,7 +181,7 @@ smartscapeNodes "HOST"
             env_pct = round(with_env * 100.0 / hosts, decimals: 1)
 ```
 
-> ⚠️ **`tags` behaves differently on Smartscape nodes than on classic entities.** On a Smartscape node it is a **record** — access it with unquoted bracket syntax, `tags[team]`. On a classic entity it is an **array of `"key:value"` strings**, where OneAgent host tags additionally carry an `[Environment]` prefix. Using `matchesValue(tags, "team:checkout")` against `smartscapeNodes` does not merely underperform — `verify_dql` reports that the query `will always return an empty result as the condition can't be true` MZ2POL-05 §4.5 documents this trap in full.
+> ⚠️ **`tags` behaves differently on Smartscape nodes than on classic entities.** On a Smartscape node it is a **record** — access it with unquoted bracket syntax, `tags[team]`. On a classic entity it is an **array of `"key:value"` strings**, where OneAgent host tags additionally carry an `[Environment]` prefix. Using `matchesValue(tags, "team:checkout")` against `smartscapeNodes` does not merely underperform — Grail returns a `SEVERE` notification that the query `will always return an empty result as the condition can't be true`. MZ2POL-05 §4.5 documents this trap in full.
 
 ### Propagation is not instant
 
@@ -193,7 +196,7 @@ These are all the controls a problem trigger offers:
 
 | Setting | What it does |
 |---------|-------------|
-| **Problem state** | Active only, or active + closed |
+| **Problem state** | *Active*, *Active or closed*, or *Closed* |
 | **Categories** | Davis problem categories |
 | **Severity** | Minimum severity threshold |
 | **Affected entities — tags** | Three modes: include all / all defined tags / any defined tag. Evaluated over the union of `affected_entity_ids` and `smartscape.affected_entities` |
@@ -201,6 +204,10 @@ These are all the controls a problem trigger offers:
 | **Updates** | Re-trigger when selected fields change |
 
 No management-zone filter. No segment filter. No entity-selector filter.
+
+> **SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026):** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter carried over from a profile that never set severity explicitly may stop matching once 1.348 reaches your tenant. The release note's action plan: *"If it was relying on the default, change the filter to Any severity so the workflow continues to fire after the upgrade."* For each converted trigger, decide whether its severity filter is intentional. Until 1.348 arrives, the current defaulting still applies — verify your tenant's version.
+
+> <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the problem-state options. [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Davis events and problems no longer default `event.severity` to `3`."*</sub>
 
 ### Granularity: one simple workflow per destination
 
@@ -214,9 +221,9 @@ A **simple** workflow — one trigger, one notification action — avoids the wo
 
 ### Do not route on the management-zone payload field
 
-`event()["management_zones"]` still appears in the problem payload, so an expression reading it *looks* like it works.
+`event()["management_zones"]` looks like a natural routing key, but on a Gen3 problem record it is not there to read. On the validation tenant, **0 of 15,875** problems over 30 days carried a `management_zones` field (10/05/2026) while management zones still existed, and the semantic dictionary has no such field. An expression built on it has nothing to match today — before any zone is deleted — so a workflow that depends on it either never notifies or fails at evaluation. Route on entity tags and the DQL matcher instead (§4–§5).
 
-After the zones are deleted it resolves to an **empty array**. Every condition built on it goes false, and the workflow stops notifying **without raising an error**.
+> <sub>**Dictionary:** no row for `management_zone` / `managementzone` under `filter contains(name, …)`, read 10/05/2026 (control: `dt.security_context` (`stable`) returned by the same query). Field-presence counts from `fetch dt.davis.problems, from:-30d` with `affected_entity_ids` as the positive control (15,875 of 15,875).</sub>
 
 Silent alert loss is the worst failure mode available in this migration, and this is the easiest way to cause it. WFLOW-04 §4 documents the pattern as legacy for exactly this reason.
 
@@ -277,13 +284,13 @@ Each of the three becomes an HTTP-action rebuild: reconstruct the payload agains
 
 Rebuild the payload against the destination's current API contract — do not port the old webhook body verbatim.
 
-### A path that removes work rather than adding it
+### Awareness-only recipients and personal notifications
 
-The **Problems app personal email subscription** lets an individual subscribe to a filter in the Problems app with no workflow and no configuration permission. It is triggered within OpenPipeline, so only simple filters apply.
+Some people were added to an MZ-scoped email profile purely for awareness, not as responders. The Problems app has offered them a personal email subscription to a filter, with no workflow and no configuration permission — *"The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied."*
 
-It is not team routing — but it does cover a real category: people who were added to an MZ-scoped email profile purely for awareness. Moving them to a personal subscription removes them from the workflow fleet entirely.
+> **Problems app personal notifications — deprecated from SaaS 1.347.** SaaS 1.347 (pre-release; staged tenant rollout planned from 09/08/2026) deprecates them: *"Personal problem notifications in Problems, are deprecated. You can no longer create new ones, and existing notifications continue to work but prompt you to turn them off. The recommended alternative is Workflows."* Verify your tenant's version. Before 1.347 reaches your tenant, a personal subscription still works for an awareness-only recipient; after it, that recipient needs a simple email workflow of their own. Either way, do not plan an MZ migration around **new** personal subscriptions. (The Problems app page still describes the feature without a deprecation note — the release note is the newer source.)
 
-> **Unverified:** whether the personal email subscription honors an active *segment* as its filter. The docs say only "simple filters." Confirm in your tenant before relying on it.
+> <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — *"The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied."* [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"For each personal problem notification you rely on, build a simple workflow in Workflows that sends you email alerts for problems, then turn off the corresponding personal problem notification in Problems."*</sub>
 
 <a id="visibility"></a>
 ## 7. Problem Visibility Is a Separate Axis
@@ -304,9 +311,11 @@ When multiple events aggregate into a problem, the values of a given field are c
 
 Dynatrace propagates `dt.security_context` from an event's `dt.source_entity` onto alerting events specifically so IAM policy rules can control alert and problem visibility at the record level (SaaS 1.333).
 
+Problem records hold `dt.security_context` as an array (every problem record that carried it on the validation tenant, 10/05/2026), so the operator matters as much as the field: Grail's permission docs state *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`. If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* A visibility policy written as `storage:dt.security_context = "team-a"` hides the team's own problems.
+
 This is the same field the access-control half of the migration uses, which is convenient: MZ2POL-02 and MZ2POL-04 already establish it. If those notebooks' work is done, visibility is largely already handled — verify rather than rebuild.
 
-> <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — the array-filtering constraint and the personal email subscription. [SaaS 1.333 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-333) — `dt.security_context` propagation onto alerting events.</sub>
+> <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — the array-filtering constraint. [SaaS 1.333 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-333) — `dt.security_context` propagation onto alerting events. [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*</sub>
 
 <a id="cutover"></a>
 ## 8. Cutover Sequencing and the Deletion Test
@@ -465,7 +474,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 - [ ] One simple workflow per team/channel — not per Management Zone
 - [ ] Trigger filters on affected-entity tags, refined by DQL matcher if needed
 - [ ] Carry severity rules across from the old profile
-- [ ] Rebuild the four unsupported destinations as HTTP actions
+- [ ] Rebuild the three destinations with no dedicated connector (Trello, VictorOps, xMatters) as HTTP Request actions; move Opsgenie to the Jira Service Management connector
 - [ ] Template and manage as code (AUTOM-03 / AUTOM-04)
 - [ ] Verify no workflow reads `event()["management_zones"]`
 
@@ -473,7 +482,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 - [ ] Every non-zero `delayInMinutes` has a recorded disposition
 - [ ] On-call teams told about any delay that was rounded *before* cutover
-- [ ] Move awareness-only recipients to Problems-app personal subscriptions
+- [ ] Awareness-only recipients: a simple email workflow each (SaaS 1.347 deprecates Problems-app personal notifications — §6)
 
 **Visibility**
 
@@ -511,7 +520,9 @@ A coverage figure this low is also worth a second look before you treat it as pu
 - [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications) — the current Gen3 hub
 - [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic status
 - [Problem notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications) — classic notification status
-- [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — array-filtering constraint; personal email subscription
+- [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — array-filtering constraint; personal email subscription (deprecated from SaaS 1.347)
+- [SaaS 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — Problems-app personal notifications deprecated; migrate to Workflows
+- [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — `event.severity` no longer defaulted to `3`
 - [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the one documented segment/alerting intersection
 - [SaaS 1.333 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-333) — `dt.security_context` propagation onto alerting events
 

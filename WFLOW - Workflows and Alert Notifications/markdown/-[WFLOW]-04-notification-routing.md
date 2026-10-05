@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -255,11 +255,11 @@ tasks:
 
 ### Management Zone Routing (legacy — do not build new workflows on this)
 
-> ⚠️ **This pattern breaks silently when Management Zones are retired.** `event()["management_zones"]` still resolves after the zones are deleted — to an **empty array** — so every condition below evaluates false and the workflow stops notifying without raising an error. There is no Management Zone filter on the problem trigger itself (WFLOW-02 §2).
+> ⚠️ **This pattern has nothing to match.** `management_zones` is **not present on problem records**: on a live tenant (10/05/2026) 0 of 15,878 problems in `dt.davis.problems` over 30 days carried it, while 14 of 15 hosts belonged to a management zone. Every condition below therefore has nothing to evaluate against, whether or not your zones still exist. There is no Management Zone filter on the problem trigger itself (WFLOW-02 §2).
 >
 > Use the tag-based pattern above instead. If a region is the routing dimension, tag the entities (`region:us-east`) or use Smartscape ownership rather than reading the MZ array. Teams actively migrating off MZs should read MZ2POL-01 §5.
 
-Retained for reference, and only valid while your Management Zones still exist:
+Retained for reference only. Before relying on it, confirm the field exists on your tenant with `fetch dt.davis.problems, from:-30d | summarize n = countIf(isNotNull(management_zones))`:
 
 ```yaml
 conditions:

@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -177,7 +177,7 @@ For metrics. Lengthening a metric's collection interval lowers `data_points` con
 
 ### Query-side tuning
 
-The three tuning categories above are all ingest- or storage-side. **Logs, Events, and Traces also bill on query execution** — a Query capability separate from Ingest and Retain (FINOPS-01 §9 documents the schema; `client.application_context == "Dashboards"` attributes the scan to a dashboard rather than a person). That makes query volume a fourth Tune surface — Dynatrace's own guidance is that with log queries *you are charged per execution* of every auto-refresh. In community practice, on a tenant with a wall-mounted dashboard estate it is often the largest one nobody is looking at. Note the asymmetry: the **Metrics** query dimension is always included and never billed, so this lever is about dashboards and notebooks reading **logs, events, and traces**, not metric tiles.
+The three tuning categories above are all ingest- or storage-side. **Logs, Events, and Traces also bill on query execution** — a Query capability separate from Ingest and Retain (FINOPS-01 §9 documents the schema; `client.source` — a dashboard URL for dashboard tiles — attributes the scan to a dashboard rather than a person). That makes query volume a fourth Tune surface — Dynatrace's own guidance is that with log queries *you are charged per execution* of every auto-refresh. In community practice, on a tenant with a wall-mounted dashboard estate it is often the largest one nobody is looking at. Note the asymmetry: metric queries through the `timeseries` command are always included and never billed, so this lever is about dashboards and notebooks reading **logs, events, and traces**, not metric tiles. A `makeTimeseries` over logs is a log query, not a metric query, and bills like one.
 
 Three dials, in the order worth pulling them:
 
@@ -201,6 +201,7 @@ Query-side tuning has one property that makes it unusually easy to sell: unlike 
 > <sub>**Sources:**</sub>
 > - <sub>[Best practices for Log Management and Analytics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices) — per-bucket retention periods</sub>
 > - <sub>[Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"For metrics collected at intervals shorter than one minute, Dynatrace aggregates the incoming measurements into fixed one‑minute buckets for efficient storage and querying. Therefore, each timeseries is billed for no more than one data point per minute."*; *"Longer ingest intervals can introduce gaps when you view data at one‑minute resolution. This can impact existing alerting setups."*</sub>
+> - <sub>[Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."*; *"Queries involving other data types generally incur usage at each query, even when they output timeseries format."*</sub>
 > - <sub>[Optimize dashboards running log queries (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/lma-log-query-dashboard) — *"If you are using log queries, you are charged per execution."*</sub>
 
 <a id="when-to-filter"></a>
@@ -293,7 +294,7 @@ RUM bills **per session** (`billed_sessions` — FINOPS-01 §7), so the unit of 
 
 ### Dashboards and other query volume
 
-Cross-cutting rather than a data type — this is the consumption caused by *reading* logs, events, and traces (see the query-side tuning subsection in §4). Metric queries are always included and never billed, so metric-only dashboards are out of scope here.
+Cross-cutting rather than a data type — this is the consumption caused by *reading* logs, events, and traces (see the query-side tuning subsection in §4). Metric queries through `timeseries` are always included and never billed, so metric-only dashboards are out of scope here.
 
 1. **Cut first?** Duplicate and abandoned dashboards. Five team-specific clones of one dashboard run five times the queries; consolidate them behind a `$team` variable. A dashboard nobody has opened in 90 days that is still auto-refreshing on a wall screen is the pure-waste case.
 2. **Tune next?** Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table.
@@ -307,11 +308,13 @@ Cross-cutting rather than a data type — this is the consumption caused by *rea
 
 ### Automation Workflows
 
-1. **Cut first?** Is anyone using this workflow? Workflows that haven't run in 90 days are candidates.
-2. **Tune next?** Reduce scheduled-trigger frequency. Workflows scheduled hourly that could be daily are often a quick win.
-3. **Filter** — workflow filtering is at the trigger condition (only fire if X), which is an action-level filter.
+Automation Workflow bills **workflow-hours**: every deployed standard workflow is billed for each hour it exists, run or not (FINOPS-01 §7).
 
-> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."*</sub>
+1. **Cut first?** Delete standard workflows nobody uses — they bill every hour they exist, whether they ran in the last 90 days or not.
+2. **Tune next?** Where a workflow qualifies, make it a simple workflow, and leave unfinished work as a draft — neither consumes workflow-hours. **Reducing schedule frequency does not reduce Automation Workflow consumption**; it only reduces the AppEngine Functions invocations and query usage of the tasks each run executes.
+3. **Filter** — workflow filtering is at the trigger condition (only fire if X), which is an action-level filter. Like schedule frequency, it trims the AppEngine and query usage of the runs, not the workflow-hours.
+
+> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Standard workflows consume workflow hours."*; *"Simple workflows do not directly consume workflow hours"*; *"Draft-only workflows do not directly consume workflow hours"*; *"Each workflow execution triggers AppEngine functions that execute tasks."* [Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."* [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."*</sub>
 
 <a id="tradeoffs"></a>
 ## 7. Trade-offs and Hidden Costs
@@ -398,7 +401,7 @@ The diagnose → frame → coordinate → implement → verify loop is this entr
 <a id="wx-metrics"></a>
 ## 9. Worked Example — High-Cardinality Metric
 
-**Scenario:** Metrics-Ingest billable usage is climbing. The FINOPS-01 §6 per-bucket query identifies `default_metrics` as the dominant bucket, and a deeper drill shows `monitoring_source == "other"` (custom metrics) dominating. One specific custom metric, `app.request.processed`, is contributing 70% of the volume.
+**Scenario:** Metrics-Ingest billable usage is climbing. The FINOPS-01 §8 query shows `monitoring_source == "other"` (custom metrics, with no included quota) dominating. One specific custom metric, `app.request.processed`, is contributing 70% of the volume.
 
 ### Step 1 — Diagnose the cardinality
 
@@ -411,7 +414,10 @@ Query the metric's dimensions to find the high-cardinality one:
 // (`describe metric.series`), not a pipeline stage — appending `| describe` failed with
 // "1 mandatory parameter is missing: dataObject". It also reports the SCHEMA, not per-dimension
 // cardinality, so it cannot answer this question. Count distinct dimension values directly.
-fetch metric.series, from:-1d
+//
+// For the scenario: filter metric.key == "app.request.processed" and count distinct app.name, endpoint, request.id.
+// Runnable demo of the same pattern on an ActiveGate self-monitoring metric:
+fetch metric.series, from:-24h
 | filter metric.key == "dt.sfm.active_gate.thread_pool.queue_size"
 | summarize {
     series          = count(),
@@ -428,7 +434,7 @@ Suppose the result shows: `app.name` (12 values), `endpoint` (47 values), `reque
 ### Step 2 — Frame the levers
 
 - **Cut?** The metric itself (`app.request.processed`) is useful — it's the count of processed requests. Cut would lose load-bearing data.
-- **Tune?** Lowering ingest interval helps proportionally but doesn't address the cardinality root cause.
+- **Tune?** Lengthening the ingest interval helps proportionally but doesn't address the cardinality root cause.
 - **Filter?** Drop the `request.id` dimension at the SDK or at ingest. The metric remains; the cardinality explosion stops.
 
 **Filter is the right lever.** Specifically, remove the `request.id` label from the metric emission.
@@ -454,7 +460,7 @@ After the app team deploys the change, the metric's cardinality should drop to t
 
 High-cardinality metrics are a documented cost driver — Dynatrace's guidance names user IDs and request IDs, and advises avoiding volatile dimensions when creating custom metrics. In community practice the root cause is usually a label that belongs on a span or log record rather than a metric dimension. The fix is structural — emit it as a span attribute (where high cardinality is fine) and remove it from the metric.
 
-> <sub>**Sources:** [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics). [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost."*; *"avoid using volatile dimensions"*.</sub>
+> <sub>**Sources:** [DPS Metrics (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-metrics). [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost."*; *"avoid using volatile dimensions"*. The demo cardinality query executed on a SaaS tenant 10/05/2026 (136 series, 5 ActiveGates, 17 thread pools; no notifications).</sub>
 
 <a id="cross-refs"></a>
 ## 10. Cross-References to Implementation Depth

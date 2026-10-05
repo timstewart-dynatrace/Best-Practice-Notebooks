@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -57,20 +57,21 @@ Executive dashboards should be simple, business-focused, and actionable. Key met
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Executive KPI summary — single-query dashboard tile
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | summarize
-    total_sessions = count(),
+    {total_sessions = count(),
     error_sessions = countIf(error.count > 0),
     bounce_sessions = countIf(user_action_count == 1),
     avg_actions = avg(user_action_count),
-    avg_duration_min = avg(duration / 1m),
+    avg_duration_min = avg(duration / 1m)},
     by:{primary_tags.application}
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
     bounce_rate_pct = round(toDouble(bounce_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
@@ -82,7 +83,7 @@ fetch user.sessions, from:-24h
 // Session volume trend — 7-day daily session counts
 fetch user.sessions, from:-7d
 | filter dt.rum.user_type == "real_user"
-| makeTimeseries session_count = count(), interval:1d, by:{primary_tags.application}
+| makeTimeseries session_count = count(), interval:24h, by:{primary_tags.application}
 ```
 
 <a id="apdex"></a>
@@ -111,57 +112,53 @@ The threshold T is configurable per application. Common defaults:
 | XHR action | 2.5 seconds |
 | Route change | 2.5 seconds |
 
+**Classify page loads on navigation events.** The Apdex, SLA and page-load alert queries below read `performance.load_event_end` on events with `characteristics.has_w3c_navigation_timings == true` — the field and filter Dynatrace's own page-load query uses. A page summary's `duration` is how long the page was open, not how long it took to load: a page summary covers the page instance until *"the next document request starts or when the tab is closed"*. Apdex built on it scores reading time. On the synthetic-only validation tenant (24 h, 10/05/2026) the same T = 3 s Apdex read 0.99 on load time and 0.32 on page-summary duration.
+
+> <sub>**Sources:** [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance) — *"Load event end measures the time from navigation start to the completion of the browser's load event."*; [Navigation-related events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related) — *"A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed."*</sub>
+
 ```dql
-// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
-// against names that are null on New RUM data, so these cells returned nothing while erroring
-// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
-//   action.type == "Load"              -> characteristics.has_page_summary == true
-//                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
-//   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
 // Apdex calculation with T = 3 seconds for page loads
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_sec = duration / 1s
-| summarize total = count(),
-    satisfied = countIf(duration_sec <= 3),
-    tolerating = countIf(duration_sec > 3 and duration_sec <= 12),
-    frustrated = countIf(duration_sec > 12),
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    satisfied = countIf(load_sec <= 3),
+    tolerating = countIf(load_sec > 3 and load_sec <= 12),
+    frustrated = countIf(load_sec > 12)},
     by:{primary_tags.application}
 | fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
 | sort apdex asc
 ```
 
 ```dql
-// Apdex trend over 7 days — daily Apdex score
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Apdex trend over 7 days — daily Apdex score (tolerating is pre-halved in is_tolerating)
 fetch user.events, from:-7d
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_sec = duration / 1s
-| fieldsAdd is_satisfied = if(duration_sec <= 3, 1.0, else: 0.0),
-    is_tolerating = if(duration_sec > 3 and duration_sec <= 12, 0.5, else: 0.0)
-| makeTimeseries
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| fieldsAdd is_satisfied = if(load_sec <= 3, 1.0, else: 0.0),
+    is_tolerating = if(load_sec > 3 and load_sec <= 12, 0.5, else: 0.0)
+| makeTimeseries {
     total_actions = count(),
     satisfied_score = sum(is_satisfied),
-    tolerating_score = sum(is_tolerating),
-    interval:1d
+    tolerating_score = sum(is_tolerating)},
+    interval:24h
+| fieldsAdd apdex = (satisfied_score[] + tolerating_score[]) / total_actions[]
 ```
 
 ```dql
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
 // Apdex by page — which pages have the worst user satisfaction?
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_sec = duration / 1s
-| summarize total = count(),
-    satisfied = countIf(duration_sec <= 3),
-    tolerating = countIf(duration_sec > 3 and duration_sec <= 12),
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    satisfied = countIf(load_sec <= 3),
+    tolerating = countIf(load_sec > 3 and load_sec <= 12)},
     by:{page.detected_name}
 | filter total > 20
 | fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
@@ -190,9 +187,10 @@ Operations teams need real-time visibility into errors, performance anomalies, a
 //   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
 //                              population to isNotNull(error.type), whose values are request/csp/exception)
 //   error.message           -> error.reason
-//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
-//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
-//   connection.type         -> network.protocol.name
+//   user_action.type: "Load" -> "hard_navigation", "RouteChange" -> "soft_navigation",
+//                     "Xhr" -> "same_view", "Custom" -> "api" (documented values, corrected 10/05/2026)
+//   connection.type         -> no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. "http")
 // THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
 // (performance.dom_interactive, performance.load_event_end) live on navigation events
 // (characteristics.has_navigation) and are unpopulated on page summaries
@@ -210,20 +208,22 @@ fetch user.events, from:-6h
 // Active error summary — current top errors in the last hour
 fetch user.events, from:-1h
 | filter characteristics.has_error == true
-| summarize error_count = count(),
-    affected_sessions = countDistinct(dt.rum.session.id),
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
     by:{error.reason, error.type, primary_tags.application}
 | sort affected_sessions desc
 | limit 10
 ```
 
 ```dql
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
 // Performance SLA — percentage of page loads under 3 seconds
 fetch user.events, from:-1h
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_sec = duration / 1s
-| summarize total = count(),
-    under_3s = countIf(duration_sec <= 3),
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    under_3s = countIf(load_sec <= 3)},
     by:{primary_tags.application}
 | fieldsAdd sla_pct = round(toDouble(under_3s) / toDouble(total) * 100.0, decimals: 1)
 | sort sla_pct asc
@@ -247,7 +247,7 @@ Effective RUM alerting requires the right balance — too sensitive triggers ale
 
 ### Alert Configuration
 
-**Modern path (recommended for new alerting):** build these conditions as **Davis anomaly detectors** (`builtin:davis.anomaly-detectors`), configured in the Anomaly Detection app and driven by DQL. Detectors read Grail, so they work against the New RUM field vocabulary the rest of this series uses, and they carry forward past the upgrade.
+**Modern path (recommended for new alerting):** build these conditions as **Davis anomaly detectors** (`builtin:davis.anomaly-detectors`), driven by DQL — configured in Settings from SaaS 1.344, or in the Anomaly Detection app on earlier versions (see the callout below). Detectors read Grail, so they work against the New RUM field vocabulary the rest of this series uses, and they carry forward past the upgrade.
 
 > **Where detectors are created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the modern path above is built there.
 
@@ -278,20 +278,23 @@ fetch user.sessions, from:-6h
 | filter dt.rum.user_type == "real_user"
 | fieldsAdd has_error = if(error.count > 0, 1.0, else: 0.0)
 | makeTimeseries
-    total_sessions = count(),
-    error_sessions = sum(has_error),
+    {total_sessions = count(),
+    error_sessions = sum(has_error)},
     interval:15m,
     by:{primary_tags.application}
 ```
 
 ```dql
-// New errors — errors first seen in the last getHour(potential deployment issue)
-fetch user.events, from:-1h
+// New errors — error groups first seen in the last hour (potential deployment issue).
+// Corrected 10/05/2026: user.events has no populated timestamp (use start_time), and "first seen"
+// must be measured over a longer lookback than the window it is compared against — with
+// from:-1h every recurring error looked new.
+fetch user.events, from:-7d
 | filter characteristics.has_error == true
-| summarize first_seen = min(timestamp),
-    error_count = count(),
-    affected_sessions = countDistinct(dt.rum.session.id),
-    by:{error.reason, primary_tags.application}
+| summarize {first_seen = min(start_time), error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason, error.type}
+| filter first_seen > now() - 1h
 | sort first_seen desc
 | limit 10
 ```
@@ -303,20 +306,24 @@ fetch user.events, from:-1h
 Detect when page load performance degrades beyond acceptable thresholds.
 
 ```dql
-// p75 page load duration per 15-minute window — performance alert data
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// p75 page load time per 15-minute window — performance alert data
 fetch user.events, from:-6h
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_ms = duration / 1ms
-| makeTimeseries p75_duration = percentile(duration_ms, 75), interval:15m, by:{primary_tags.application}
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_ms = performance.load_event_end / 1ms
+| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:15m, by:{primary_tags.application}
 ```
 
 ```dql
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
 // Apdex per 15-minute window — satisfaction alert data
 fetch user.events, from:-6h
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_sec = duration / 1s
-| fieldsAdd apdex_score = if(duration_sec <= 3, 1.0,
-    else: if(duration_sec <= 12, 0.5,
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| fieldsAdd apdex_score = if(load_sec <= 3, 1.0,
+    else: if(load_sec <= 12, 0.5,
     else: 0.0))
 | makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{primary_tags.application}
 ```
@@ -345,22 +352,23 @@ Use `append` to compare RUM and synthetic performance for the same application:
 // RUM session summary — real user experience
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize rum_sessions = count(),
+| summarize {rum_sessions = count(),
     rum_error_sessions = countIf(error.count > 0),
-    rum_avg_actions = avg(user_action_count),
+    rum_avg_actions = avg(user_action_count)},
     by:{primary_tags.application}
 | fieldsAdd monitoring_type = "RUM",
     error_rate_pct = round(toDouble(rum_error_sessions) / toDouble(rum_sessions) * 100.0, decimals: 1)
 ```
 
 ```dql
-// Synthetic vs RUM — compare session types for the same app
+// Synthetic vs RUM — compare session types for the same app (user-type values are lowercase:
+// "real_user", "robot", "synthetic"; "SYNTHETIC" matched nothing — corrected 10/05/2026)
 fetch user.sessions, from:-24h
-| summarize session_count = count(),
+| summarize {session_count = count(),
     avg_duration_sec = avg(duration / 1s),
-    error_sessions = countIf(error.count > 0),
+    error_sessions = countIf(error.count > 0)},
     by:{primary_tags.application, dt.rum.user_type}
-| filter dt.rum.user_type == "real_user" or dt.rum.user_type == "SYNTHETIC"
+| filter dt.rum.user_type == "real_user" or dt.rum.user_type == "synthetic"
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(session_count) * 100.0, decimals: 1)
 | sort primary_tags.application asc, dt.rum.user_type asc
 ```
@@ -385,7 +393,7 @@ In this notebook, we covered:
 | **02** | SPA Instrumentation | Route changes, framework tips, XHR monitoring |
 | **03** | Core Web Vitals | LCP, INP, CLS measurement and scoring |
 | **04** | Session Analysis | Segmentation, journeys, conversions, bounce rates |
-| **05** | Error Analysis | Error impact, rage clicks, error-session correlation |
+| **05** | Error Analysis | Error impact, XHR errors, error-session correlation |
 | **06** | Performance Analysis | Waterfall, TTFB, slow pages, geographic performance |
 | **07** | Session Replay | Privacy, masking, finding and correlating replays |
 | **08** | Dashboards & Alerting | Apdex, KPI dashboards, alerting strategies |

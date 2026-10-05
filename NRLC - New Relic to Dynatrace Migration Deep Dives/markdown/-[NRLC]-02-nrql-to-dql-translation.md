@@ -1,6 +1,6 @@
 # NRLC-02: NRQL → DQL Translation
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -47,7 +47,7 @@ The compiler is exposed through three projects (all pinned to the same 292-patte
 | Shorthand pre-expand (`Distributed*`, `Mobile*`, `Lambda*`, etc.) | `compiler/shorthands.py` (9 patterns; Phase 19b) |
 | DQL auto-fix rules | `validators/dql_fixer.py` (24 methods; Phase 19b one-to-one with TS `dql-fixer.ts`) |
 
-See [COVERAGE-MATRIX.md §1 APM](../docs/COVERAGE-MATRIX.md) for the full NRQL event-class → DT data-object mapping (Transaction, Span, Log, Metric, SystemSample, PageView, MobileSession, SyntheticCheck, and custom event types).
+See §1 APM of the [coverage matrix (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md) for the full NRQL event-class → DT data-object mapping (Transaction, Span, Log, Metric, SystemSample, PageView, MobileSession, SyntheticCheck, and custom event types).
 
 <a id="why-compiler"></a>
 ## 1. Why a Compiler, Not Regex
@@ -180,13 +180,13 @@ WHERE appName = 'checkout' SINCE 1 hour ago FACET host
 ```
 
 **DQL:**
-```
+```dql
 fetch spans, from:-1h
-| filter service.name == "checkout"
-| summarize count = count(), average_duration = avg(duration), by:{host.name}
+| filter dt.service.name == "checkout" and isNotNull(endpoint.name)
+| summarize {count = count(), average_duration = avg(duration)}, by:{host.name}
 ```
 
-Confidence: **HIGH (100)**
+Confidence: **HIGH (100)** — provided the translation keeps both filters. `isNotNull(endpoint.name)` restricts `fetch spans` to request root spans (one per NR `Transaction`); `dt.service.name` is the Dynatrace service name, whereas `service.name` is the OpenTelemetry resource attribute and misses spans that do not carry it. See §6.
 
 ### Percentage with conditional
 
@@ -196,12 +196,13 @@ SELECT percentage(count(*), WHERE status = 200) FROM Transaction
 ```
 
 **DQL:**
-```
+```dql
 fetch spans, from:-1h
-| summarize success_pct = 100.0 * countIf(status == 200) / count()
+| filter isNotNull(endpoint.name) and isNotNull(http.response.status_code)
+| summarize success_pct = 100.0 * countIf(http.response.status_code == 200) / count()
 ```
 
-Confidence: **HIGH (95)** — produces the same numeric result; column name differs.
+Confidence: **HIGH (95)** only when the status field is mapped. Dynatrace spans carry the HTTP status as `http.response.status_code` (`stable`, type `long`) — map NR `httpResponseCode` / `http.statusCode` / `status` to it. A literal translation to `status == 200` or `http.status_code == 200` runs without error and returns 0% or close to it: neither field is in the semantic dictionary, and on the validation tenant, over request spans, they gave 0% and 13.5% where `http.response.status_code` gave 89.6% (10/05/2026).
 
 ### Rate (decomposed)
 
@@ -211,11 +212,13 @@ SELECT rate(count(*), 1 minute) FROM Transaction
 ```
 
 **DQL:**
-```
-timeseries count = count(), interval:1m, from:-1h
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| makeTimeseries requests = count(), interval:1m
 ```
 
-Confidence: **HIGH (90)** — NRQL `rate(count, N)` is structurally a per-interval count, which DQL expresses as a `timeseries`.
+Confidence: **HIGH (90)** — NRQL `rate(count, N)` is structurally a per-interval count. Over event data DQL expresses it with `makeTimeseries`; `timeseries` reads stored metrics and needs a metric key (`timeseries count = count()` fails with *missing: metricKey*). For request counts, `timeseries requests = sum(dt.service.request.count, rollup: sum), interval:1m, from:-1h` reads the same rate from the service metric.
 
 ### COMPARE WITH (time-shifted append)
 
@@ -225,11 +228,13 @@ SELECT count(*) FROM Transaction COMPARE WITH 1 week ago SINCE 1 day ago
 ```
 
 **DQL:**
-```
+```dql
 fetch spans, from:-1d
+| filter isNotNull(endpoint.name)
 | summarize current_count = count()
 | append [
     fetch spans, from:-192h, to:-168h
+    | filter isNotNull(endpoint.name)
     | summarize previous_count = count()
   ]
 ```
@@ -244,16 +249,16 @@ SELECT count(*) FROM PageView WHERE userAgent IN (SELECT name FROM BotList)
 ```
 
 **DQL:**
-```
-fetch logs, from:-1h
-| filter dt.entity.application_method == "PageView"
-| lookup [fetch logs, from:-1h | filter dt.entity.application_method == "BotList" | fields name],
-    sourceField: userAgent, lookupField: name
-| filter isNotNull(name)
-| summarize count()
+```dql
+fetch user.events, from:-1h
+| filter characteristics.has_page_summary == true
+| lookup [data record(name = "HeadlessChrome"), record(name = "Googlebot")],
+    sourceField:browser.user_agent, lookupField:name, prefix:"bot."
+| filter isNotNull(bot.name)
+| summarize bot_page_views = count()
 ```
 
-Confidence: **MEDIUM (70)** — correctness depends on whether the bot list exists as a lookupable Grail data source.
+Confidence: **MEDIUM (70)** — correctness depends on where the bot list lives. NR page views are New RUM page summaries in `user.events`, not logs. The `data` subquery stands in for the bot list; replace it with your own table (for example a tabular file read with `load "/lookups/<file>"`). Confirm that `browser.user_agent` is populated on your real-user data first — on the validation tenant every page summary came from synthetic traffic and carried no user agent, so this query returned 0 (10/05/2026).
 
 <a id="source-mapping"></a>
 ## 6. Source-Class Mapping (FROM clause)
@@ -262,21 +267,21 @@ NRQL's `FROM` references NR event classes; DQL's `fetch` references Grail data o
 
 | NRQL FROM | DQL fetch | Notes |
 |-----------|-----------|-------|
-| `Transaction` | `fetch spans` (filter `span.kind == "server"`) | APM transactions become server spans |
-| `TransactionError` | `fetch spans` + `filter isNotNull(error)` | Error spans |
+| `Transaction` | `fetch spans` + `filter isNotNull(endpoint.name)` | One record per request: `endpoint.name` is set only on request root spans. `span.kind == "server"` over-counts (it also matches server spans that are not request roots). Map `appName` to `dt.service.name`, not the OpenTelemetry `service.name` |
+| `TransactionError` | `fetch spans` + `filter isNotNull(endpoint.name) and span.status_code == "error"`, or the `dt.service.request.failure_count` metric | `error` is not a Dynatrace field — `isNotNull(error)` matches only spans where some instrumentation set a custom `error` attribute, and read 0 failures on a service with 235 of 749 requests failing in five minutes (10/05/2026) |
 | `Span` | `fetch spans` | Direct |
 | `Log` | `fetch logs` | Direct |
 | `Metric` | `timeseries <agg>(<metric.key>)` | NRQL metrics → DT metrics |
 | `SystemSample` | `timeseries avg(dt.host.cpu.usage)` (etc.) | Infrastructure host metrics |
 | `ProcessSample` | `timeseries ... by:{dt.entity.process_group_instance}` | Process metrics |
 | `K8sContainerSample` | `timeseries ... by:{k8s.container.name}` | K8s container metrics |
-| `PageView` | `fetch logs` (RUM page views) or `fetch events` | Depends on RUM ingest path |
-| `BrowserInteraction` | `fetch events` (filter rum events) | RUM-specific |
-| `MobileSession` | `fetch events` (filter mobile rum) | Mobile RUM |
-| `SyntheticCheck` | `fetch events` (filter synthetic.* events) | Synthetic results |
+| `PageView` | `fetch user.events` + `filter characteristics.has_page_summary == true` | New RUM page summaries; RUM data is not in `logs` or `events` |
+| `BrowserInteraction` | `fetch user.events` + the matching `characteristics.has_*` flag (for example `has_user_action`) | New RUM; see WEBRUM-09 for the event characteristics |
+| `MobileSession` | `fetch user.sessions` | New RUM sessions |
+| `SyntheticCheck` | `fetch dt.synthetic.events` + `filter in(event.type, {"http_monitor_execution", "browser_monitor_execution"})` | For availability, also `filter not(coalesce(execution.retry_on_error, false) and result.state == "FAIL")` — a retried browser failure is otherwise counted twice |
 | Custom event type | `fetch bizevents` or `fetch events` | Depends on ingest mapping |
 
-The compiler picks the right `fetch` source based on a built-in lookup; you can override via the `--source-hint` CLI flag if your NR custom event has a non-default DT mapping.
+The compiler picks the `fetch` source from a built-in lookup. There is no CLI flag to override it — if your NR custom event lands in a different DT data object, edit the translated DQL.
 
 <a id="function-mapping"></a>
 ## 7. Function Mapping (Aggregations)
@@ -291,14 +296,14 @@ The compiler picks the right `fetch` source based on a built-in lookup; you can 
 | `min(field)` / `max(field)` | `min(field)` / `max(field)` | |
 | `percentile(field, 95)` | `percentile(field, 95)` | DQL uses positional; NRQL uses positional |
 | `median(field)` | `median(field)` | |
-| `stddev(field)` | `stddev(field)` | |
+| `stddev(field)` | `stddev(field)` | on a duration field use `stddev(duration / 1ms)` — `stddev(duration)` returns 0 with no warning |
 | `latest(field)` | `takeLast(field)` | with `sort timestamp desc` if needed |
 | `earliest(field)` | `takeFirst(field)` | |
 | `uniques(field)` | `collectDistinct(field)` | |
-| `rate(count(*), 1 minute)` | `timeseries count(), interval:1m` | structural rewrite |
+| `rate(count(*), 1 minute)` | `makeTimeseries count(), interval:1m` | structural rewrite; `timeseries` needs a metric key |
 | `percentage(count(*), WHERE x)` | `100.0 * countIf(x) / count()` | |
 | `filter(count(*), WHERE x)` | `countIf(x)` | |
-| `histogram(field, ...)` | `summarize ..., by:{bin(field, width:N)}` | bucket-based |
+| `histogram(field, ...)` | `summarize ..., by:{bin(field, N)}` | bucket-based; on a duration use a duration width, e.g. `bin(duration, 100ms)` (`bin` has no `width:` parameter) |
 | `apdex(field, t:N)` | flagged TODO; manual config | DT uses Apdex via Dynatrace Intelligence or custom DQL |
 | `funnel(...)` | flagged; nested append/join skeleton | manual review |
 | `cohort(...)` | unsupported | use Dynatrace Intelligence or custom DQL |
@@ -312,7 +317,7 @@ The compiler picks the right `fetch` source based on a built-in lookup; you can 
 | `SINCE 1 day ago UNTIL 1 hour ago` | `from:-1d, to:-1h` |
 | `SINCE '2026-04-14 00:00:00'` | `from:"2026-04-14T00:00:00Z"` |
 | `TIMESERIES 5 minutes` | `interval:5m` |
-| `TIMESERIES MAX` | `interval: auto` |
+| `TIMESERIES MAX` | omit `interval:` — `makeTimeseries` / `timeseries` choose the interval automatically (`interval: auto` does not parse) |
 | `SLIDE BY 1 minute` | not directly supported — use `bin(timestamp, 1m)` for similar shape |
 | `COMPARE WITH 1 week ago` | second `fetch` with `from:-2w, to:-1w` plus shift |
 

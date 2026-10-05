@@ -1,6 +1,6 @@
 # DASH-01: Dashboard Fundamentals
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -250,7 +250,8 @@ A line chart showing error frequency — ideal for spotting spikes and correlati
 ```dql
 // Error log trend over the last 6 hours
 fetch logs, from:-6h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | makeTimeseries error_count = count(), interval:10m
 ```
 

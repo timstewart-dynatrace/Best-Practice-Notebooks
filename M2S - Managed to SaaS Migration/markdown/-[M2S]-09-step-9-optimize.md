@@ -1,6 +1,6 @@
 # M2S-09: Step 9 — Optimize: Validate, Optimize, and Decommission
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 9 of 9 | **Phase:** Run | **Step:** Optimize | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 The migration is functionally complete. Agents are reporting, configurations are applied, integrations are reconnected, SaaS-exclusive features are adopted, and users are trained. This final step closes the loop: validate that every success criterion is met, optimize the SaaS environment for long-term performance, obtain stakeholder sign-off, and decommission the Managed cluster.
 
@@ -347,7 +347,7 @@ Use the `bucket:` parameter in queries to target specific Grail buckets and avoi
 ```dql
 // Target specific log buckets instead of scanning all logs
 fetch logs, bucket:{"app_logs_*"}, from:-1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize count = count(), by:{log.source}
 ```
 

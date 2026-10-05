@@ -1,6 +1,6 @@
 # S2D-08: Dashboard Migration Best Practices
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 08/12/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -71,17 +71,19 @@ By the end of this notebook, you will be able to:
 | Pie Chart | Pie Chart | Distribution |
 | Table | Table | Tabular data |
 | Area Chart | Area Chart | Stacked timeseries |
-| Column Chart | Column Chart | Vertical bars |
+| Column Chart | Bar chart or Categorical chart | Vertical bars |
 
 ### Splunk-Specific Visualizations
 
 | Splunk | Dynatrace Alternative |
 |--------|----------------------|
-| Choropleth Map | Honeycomb (for entity groups) |
-| Radial Gauge | Single Value with thresholds |
-| Filler Gauge | Single Value with thresholds |
-| Marker Gauge | Single Value with thresholds |
-| Scatter Chart | Not directly available |
+| Choropleth Map | Choropleth map |
+| Radial Gauge | Gauge |
+| Filler Gauge | Meter bar or Gauge |
+| Marker Gauge | Meter bar or Gauge |
+| Scatter Chart | Scatterplot |
+
+The Dynatrace visualization list for dashboards and notebooks includes Gauge, Meter bar, Choropleth map, Dot map and Scatterplot.
 
 <a id="query-translation-examples"></a>
 ## Query Translation Examples
@@ -91,7 +93,7 @@ By the end of this notebook, you will be able to:
 // Single value: Total error count
 // Splunk: index=app level=ERROR | stats count
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize total_errors = count()
 ```
 
@@ -101,7 +103,7 @@ fetch logs, from:-1h
 // Line chart: Error trend over time
 // Splunk: index=app level=ERROR | timechart count
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | makeTimeseries error_count = count(), interval:5m
 ```
 
@@ -111,7 +113,7 @@ fetch logs, from:-24h
 // Bar chart: Errors by service
 // Splunk: index=app level=ERROR | stats count by service
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize error_count = count(), by:{k8s.deployment.name}
 | sort error_count desc
 | limit 10
@@ -123,11 +125,11 @@ fetch logs, from:-1h
 // Table: Service health summary
 // Splunk: index=app | stats count, count(eval(level="ERROR")) as errors by service
 fetch logs, from:-1h
-| summarize 
+| summarize {
     total = count(),
-    errors = countIf(loglevel == "ERROR"),
-    warnings = countIf(loglevel == "WARN"),
-    by:{k8s.deployment.name}
+    errors = countIf(status == "ERROR"),
+    warnings = countIf(loglevel == "WARN")
+  }, by:{k8s.deployment.name}
 | fieldsAdd error_rate = round((toDouble(errors) / toDouble(total)) * 100, decimals: 2)
 | sort errors desc
 ```
@@ -286,7 +288,7 @@ fetch logs, from:-1h
 
 - [Dynatrace Dashboards](https://docs.dynatrace.com/docs/shortlink/dashboards)
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
-- [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
+- [Edit visualizations (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations)
 
 ---
 

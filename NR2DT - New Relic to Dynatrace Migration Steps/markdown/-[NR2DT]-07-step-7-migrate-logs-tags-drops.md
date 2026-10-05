@@ -1,6 +1,6 @@
 # NR2DT-07: Step 7 — Migrate Logs, Tags & Drop Rules
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -33,11 +33,17 @@ Procedural — see **NRLC-07** (Logs, Tags & Drop Rules) for component depth.
 ## 1. Apply OpenPipeline Configuration
 
 ```bash
-python3 migrate.py migrate --diff --components logs,drops,parsing,tags
-python3 migrate.py migrate --import-only --components logs,drops,parsing,tags
+# The component names this tool version accepts
+python3 migrate.py migrate --list-components
 ```
 
-This applies:
+The log components are named `log_parsing`, `drop_rules` and `tags`. `logs`, `drops` and `parsing` are not component names, and the tool skips an unknown name without an error — so the command this step used to show applied nothing.
+
+**At tool v3.0.0 (commit `78cbfce`) the `migrate` command does not migrate the log components either.** Its export and transform phases have branches only for dashboards, alerts, synthetics, SLOs, workloads and notification channels, so `--components log_parsing,drop_rules,tags` completes without exporting, transforming or importing a single log rule. (The tool's README lists log rules as fully supported; the CLI path at this commit does not reach those transformers.) Re-check `--list-components` and the changelog in your checkout. Until it changes, build the OpenPipeline configuration from the NR2DT-03 §5 design yourself, with Terraform or the OpenPipeline UI.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), [config/settings.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py), read 10/05/2026.</sub>
+
+This step applies:
 - Drop rules (NRQL filters → OpenPipeline `filterOut` processors)
 - Parsing rules (Grok → DPL parsers)
 - Tag rules (NR entity tags → OpenPipeline enrichment rules emitting attributes on ingested data)
@@ -52,8 +58,12 @@ Reconfigure each log shipper to point at DT instead of (or in addition to) NR:
 | Filebeat / Fluent Bit | DT log ingest endpoint or OneAgent |
 | Lambda log forwarder | DT Lambda extension or CloudWatch → Firehose → OpenPipeline |
 | K8s log integration | DynaKube + log monitoring |
-| Syslog | OpenPipeline syslog endpoint |
+| Syslog | Environment ActiveGate syslog receiver (UDP 514 / TCP 601 by default) → OpenPipeline processing |
 | HTTP/JSON | DT Generic Log Ingest API |
+
+Syslog is not received by OpenPipeline directly: *"Syslog ingestion is performed by an ActiveGate"*, and *"Multi-environment ActiveGates do not support syslog ingestion"* — plan an Environment ActiveGate with syslog enabled for each receiving environment.
+
+> <sub>**Sources:** [Syslog ingestion with ActiveGate (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog), read 10/05/2026.</sub>
 
 **Run dual-shipping** (both NR and DT receive) for 1–2 weeks. NR is silenced after volume validation.
 
@@ -72,15 +82,16 @@ Compare against NR's `SELECT count(*) FROM Log SINCE 1 day ago`. Volumes should 
 
 ### Drop rule effectiveness
 
-Confirm dropped patterns are being filtered:
+Confirm dropped patterns are being filtered. Use the **same matcher as the drop rule** (NR2DT-03 §5 drops `contains(content, "GET /health")`):
 
-```
+```dql
+// Same matcher as the drop rule: n should be 0 once the rule is active
 fetch logs, from:-1h
-| filter contains(content, "health")
-| summarize count()
+| filter contains(content, "GET /health")
+| summarize n = count()
 ```
 
-Should return 0 (or near-zero) if the drop rule is working.
+`n` should be 0 once the drop rule is working. A broader `contains(content, "health")` also counts lines the rule never drops — on the validation tenant (10/05/2026) it matched 1,891 lines in an hour while `"GET /health"` matched none — so it reads as a failure even where the rule has nothing left to drop.
 
 ### Cost-optimization spot-check
 
@@ -117,11 +128,11 @@ fetch logs, from:-1h
 <a id="gate"></a>
 ## 5. Step Exit Criteria
 
-**G7 — Logs / Tags / Drops Migrated**
+**S7 — Logs / Tags / Drops Migrated**
 
 - [ ] All log forwarders reconfigured to DT
 - [ ] OpenPipeline parsing, drop, and enrichment rules applied
-- [ ] G5 volume parity validated (±5% vs NR)
+- [ ] W5 volume parity validated (±5% vs NR)
 - [ ] Drop rules confirmed working (target patterns absent)
 - [ ] Tag enrichment producing expected attributes on ingested data
 

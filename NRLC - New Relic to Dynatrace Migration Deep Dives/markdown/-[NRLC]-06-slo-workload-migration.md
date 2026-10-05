@@ -1,10 +1,10 @@
 # NRLC-06: SLO & Workload Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 6 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
-SLOs are the service contracts that survive migration only if their math survives. Workloads are the groupings that determine what an SLO targets. This deep dive covers SLO metric expression migration, the SLO auditor that validates math equivalence, and the conversion of NR workloads to Gen3 OpenPipeline enrichments + IAM-scoped buckets.
+SLOs are the service contracts that survive migration only if their math survives. Workloads are the groupings that determine what an SLO targets. This deep dive covers SLO metric expression migration, what the `audit-slos` command does and does not check (it validates the Dynatrace side only; the NR-vs-DT math comparison is manual), and the conversion of NR workloads to Gen3 OpenPipeline enrichments + IAM-scoped buckets.
 
 **Phase 23 key transactions:** `key_transaction_transformer` auto-emits a bundle for each NR Key Transaction — `builtin:monitoring.slo` definition + OpenPipeline enrichment attribute (`keyTransaction.name`) + Workflow with `migratedFrom` tag. Phase 11 `slo_transformer` handles SLO v1 / v2; Phase 11 `workload_transformer` emits an OpenPipeline enrichment rule + Grail Filter Segment (`dynatrace_segment`; not a `builtin:*` Settings schema) + bucket-scoped IAM policy (Gen3 default) with `LegacyWorkloadTransformer` preserving Management Zone under `--legacy`.
 
@@ -42,11 +42,16 @@ SELECT percentage(count(*), WHERE error IS FALSE) FROM Transaction
 -- target: > 99.9
 ```
 
+```dql
+// DQL (SLI): share of requests that did not fail, per service
+timeseries {total = sum(dt.service.request.count), failed = sum(dt.service.request.failure_count)}, from:-1h, by:{dt.smartscape.service}
+| fieldsAdd sli = 100 * (1 - arraySum(failed) / arraySum(total))
+| fieldsAdd service = getNodeName(dt.smartscape.service)
+| fields service, sli
+// target: 99.9
 ```
--- DQL (SLO metric expression)
-100.0 * countIf(isNull(error)) / count()
--- target: 99.9
-```
+
+Base availability on the service request metrics (or on `span.status_code == "error"` for span-level SLIs), not on `error`. `error` is not a Dynatrace field: `isNull(error)` treats every request without a custom `error` attribute as good, and on the validation tenant it read 97.8% where `span.status_code` gave 96.2% over the same request spans (10/05/2026) — an SLO that reads healthier than reality.
 
 ### Latency SLO
 ```sql
@@ -55,10 +60,11 @@ SELECT percentage(count(*), WHERE duration < 0.5) FROM Transaction
 -- target: > 99
 ```
 
-```
--- DQL
-100.0 * countIf(duration < duration("500ms")) / count()
--- target: 99
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| summarize sli = 100.0 * countIf(duration < 500ms) / count()
+// target: 99
 ```
 
 ### Error budget burn rate
@@ -68,10 +74,11 @@ SELECT count(*) FROM TransactionError SINCE 1 hour ago
 -- threshold: above (1 - SLO_target) * total
 ```
 
-```
--- DQL (in SLO definition)
-100.0 * countIf(isNotNull(error)) / count()
--- target inverted: error budget = 100 - SLO target
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| summarize error_rate = 100.0 * countIf(span.status_code == "error") / count()
+// target inverted: error budget = 100 - SLO target
 ```
 
 ### Translation Confidence for SLOs
@@ -79,7 +86,7 @@ SELECT count(*) FROM TransactionError SINCE 1 hour ago
 | Indicator pattern | Confidence | Notes |
 |------------------|-----------|-------|
 | Percentage-based SLI | HIGH | Direct |
-| Threshold-based with `duration` | HIGH | Mind the unit (`duration("500ms")` vs ms numeric) |
+| Threshold-based with `duration` | HIGH | Use a duration literal (`duration < 500ms`); `duration("500ms")` does not parse |
 | Error budget burn | MEDIUM | Verify alignment of denominator |
 | Multi-source SLI (joined data) | LOW | Manual review |
 
@@ -127,9 +134,14 @@ SELECT count(*) FROM Transaction WHERE error IS FALSE
 
 **NR threshold:** result / total > 0.999
 
-**DT SLO metric expression (DQL):**
-```
-100.0 * countIf(isNull(error)) / count()
+**DT SLI (DQL):**
+```dql
+// DQL (SLI): share of requests that did not fail, per service
+timeseries {total = sum(dt.service.request.count), failed = sum(dt.service.request.failure_count)}, from:-1h, by:{dt.smartscape.service}
+| fieldsAdd sli = 100 * (1 - arraySum(failed) / arraySum(total))
+| fieldsAdd service = getNodeName(dt.smartscape.service)
+| fields service, sli
+// target: 99.9
 ```
 
 **DT target:** 99.9
@@ -141,48 +153,34 @@ SELECT count(*) FROM Transaction WHERE error IS FALSE
 SELECT percentage(count(*), WHERE duration < 0.5) FROM Transaction
 ```
 
-**DT SLO metric expression:**
-```
-100.0 * countIf(duration < duration("500ms")) / count()
+**DT SLI (DQL):**
+```dql
+fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| summarize sli = 100.0 * countIf(duration < 500ms) / count()
+// target: 99
 ```
 
 **Conversion considerations:**
 
-- NR units in NRQL are often seconds; DT durations require explicit units (`duration("500ms")` or numeric ns)
-- NR's `error IS FALSE` (boolean) maps to DT's `isNull(error)` or `not isNotNull(error)` depending on schema
+- NR units in NRQL are often seconds; DT durations take a duration literal (`500ms`). To turn a duration into a number, divide by a unit (`duration / 1ms`)
+- NR's `error IS FALSE` maps to "request not failed": the `dt.service.request.failure_count` metric, or `span.status_code != "error"` on request spans. `isNull(error)` is not a translation — `error` is not a Dynatrace field
 - Time windows: NR `SINCE 7 days ago` becomes DT `evaluationWindowMinutes: 10080`
 - Entity scope: NR's workload becomes a DT bucket + enriched-attribute filter (Gen3 pattern)
 
 <a id="auditor"></a>
 ## 3. SLO Auditor
 
-The `Dynatrace-NewRelic` project includes an **SLO auditor** (`registry/SLOAuditor`) that validates SLO math equivalence:
-
-1. For each migrated SLO, run the original NRQL against NR — capture SLI value.
-2. Run the converted DQL against DT for the same window — capture SLI value.
-3. Compute delta. Pass if within configured tolerance (defaults set inside the auditor).
-4. Fail if delta exceeds tolerance — emit a diff report showing per-window values.
+The `Dynatrace-NewRelic` project includes an **SLO auditor** (`registry/slo_auditor.py`, run as `migrate.py audit-slos`). It checks the **Dynatrace side only**. The command's docstring describes it as an audit of the SLOs in the Dynatrace environment for metric validity: it reads the tenant's SLOs, checks whether each is evaluating, and validates every metric its DQL references against the tenant's metrics — missing metrics, invalid aggregations, and NRQL syntax that was not converted. It does not query New Relic, so it cannot tell you whether a DT SLI matches the NR one.
 
 ```bash
+# Requires DYNATRACE_ENVIRONMENT_URL and DYNATRACE_OAUTH_TOKEN; exits if either is missing
 python3 migrate.py audit-slos
 ```
 
-> Note: the window and tolerance are set inside the auditor configuration, not via CLI flags. Tune those in the project's audit config rather than on the command line.
+It prints an *SLO Audit Results* table — one row per SLO with an OK / FAIL status and the issues found — followed by the number of valid SLOs.
 
-Output:
-
-```
-SLO: Checkout Availability
-  NR SLI:  99.94%
-  DT SLI:  99.92%
-  Delta:    0.02%  ✅ PASS
-
-SLO: Search Latency p95
-  NR SLI:  98.10%
-  DT SLI:  97.20%
-  Delta:    0.90%  ❌ FAIL (exceeds configured tolerance)
-  → see slo-diff-report.json for per-window analysis
-```
+**Math equivalence is a manual step.** For each migrated SLO, run the original NRQL indicator in New Relic and the DQL SLI in Dynatrace over the same window, and compare the two values (§6).
 
 <a id="workloads"></a>
 ## 4. Workload → OpenPipeline Enrichment + IAM Policy
@@ -218,7 +216,7 @@ DT entity selectors are the language for entity rules. Common patterns:
 <a id="validation"></a>
 ## 6. Validation — 7-Day SLI Delta
 
-Run the SLO auditor over a 7-day window. Acceptance criteria:
+Over a 7-day window, run each SLO's NRQL indicator in New Relic and its DQL SLI in Dynatrace, and compare. This is manual — `audit-slos` checks only that the DT SLOs evaluate and reference real metrics. Acceptance criteria:
 
 - Per-SLO delta ≤ 0.5% (tunable per service-criticality)
 - All SLOs report a value (no MISSING_DATA results)
@@ -226,14 +224,14 @@ Run the SLO auditor over a 7-day window. Acceptance criteria:
 
 When delta exceeds tolerance:
 
-1. Inspect the per-window diff report — is the delta consistent (suggests a math bug) or sporadic (suggests data-availability issues)?
+1. Compare the values day by day — is the delta consistent (suggests a math bug) or sporadic (suggests data-availability issues)?
 2. Check unit conversion (ms vs. s vs. ns)
 3. Check entity scope — is the bucket / OpenPipeline enrichment filter capturing the same set as NR's workload?
 4. Check time alignment — NR's `SINCE 7 days ago` may bin differently than DT's `from:-7d`
 
 ## Summary
 
-SLO migration succeeds when the math is equivalent within tolerance. The auditor automates this validation; workload → OpenPipeline enrichment conversion is mechanical for tag-based workloads and manual for GUID-based ones. Always run the 7-day delta check before declaring SLO migration complete.
+SLO migration succeeds when the math is equivalent within tolerance. `audit-slos` confirms the Dynatrace SLOs evaluate and reference real metrics; the NR-vs-DT comparison itself is a manual check. workload → OpenPipeline enrichment conversion is mechanical for tag-based workloads and manual for GUID-based ones. Always run the 7-day delta check before declaring SLO migration complete.
 
 Continue to **NRLC-07 Logs, Tags & Drop Rules**.
 
@@ -242,28 +240,23 @@ Continue to **NRLC-07 Logs, Tags & Drop Rules**.
 
 ```bash
 # 1. Inventory NR SLOs and Workloads
-python3 migrate.py migrate --export-only --components slos,workloads --output ./slo-export
+python3 migrate.py migrate --export-only --components slos,workloads --output ./slo-run
 
-# 2. Translate metric expressions; emit SLO + OpenPipeline enrichment definitions
-python3 migrate.py migrate --transform-only --components slos,workloads --report
+# 2. Translate metric expressions; emit SLO + OpenPipeline enrichment definitions and a report — nothing is imported
+python3 migrate.py migrate --dry-run --report --components slos,workloads --output ./slo-run
 
-# 3. Diff
-python3 migrate.py migrate --diff --components slos,workloads
+# 3. Import (export → transform → import); writes ./slo-run/rollback-manifest.json
+python3 migrate.py migrate --components slos,workloads --output ./slo-run
 
-# 4. Import
-python3 migrate.py migrate --import-only --components slos,workloads
-
-# 5. Run SLO math-equivalence audit (window + tolerance configured in auditor config)
+# 4. Validate the Dynatrace SLOs: evaluating, metrics exist (DT side only — needs DYNATRACE_OAUTH_TOKEN)
 python3 migrate.py audit-slos
+
+# 5. Compare NR and DT SLI values over the same 7-day window by hand (§6)
 ```
 
-**SLO auditor output:**
-```
-SLO: Checkout Availability
-  NR SLI:  99.94%
-  DT SLI:  99.92%
-  Delta:    0.02%  PASS
-```
+> **Flags checked against `migrate.py` on the tool's `main` branch (10/05/2026).** There is no `--transform-only`: `--dry-run` runs export and transform, writes `<output>/transformed/dynatrace_config.json`, and skips the import. `--diff` takes effect only on a full or dry run — with `--import-only` it is ignored, and without `--dry-run` it is computed *after* the import. `--import-only` needs `--input <dir>` and does not write a rollback manifest; a full run writes `<output>/rollback-manifest.json`. Run `python3 migrate.py migrate --help` against your checkout before relying on a flag.
+
+Note that `slos` is declared as depending on `alerts` (which depends on `notification_channels`), and the tool adds dependencies automatically — so `--components slos,...` also exports, transforms and imports alerts and notification channels. Check the step 2 report before step 3.
 
 ---
 

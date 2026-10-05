@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -86,9 +86,10 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 |----------|----------------|----------|
 | Use segments for data filtering; use policies+boundaries for access control | Segments replace MZ filtering; policies+boundaries replace MZ permissions. Never conflate the two. | Critical |
 | Align segments with business structure | Create segments per team, product, region, or environment — not per technical component | Critical |
-| Use `matchesValue(tags, "key:value")` for tag-based segment filters | Replaces MZ rule `host tag equals value` | Critical |
-| Use `contains(entity.name, "text")` for service name filters | Replaces MZ rule `service name contains` (the entity name field is `entity.name`, not `dt.entity.service.name`) | Recommended |
-| Use variables for dynamic segments | Entity variable: `filter dt.entity.kubernetes_cluster == $cluster`; List variable: `filter matchesValue(tags, concat("env:", $environment))` | Recommended |
+| Write segment conditions with `=` and `in()` only — not DQL functions | Segment conditions accept only `=` and `in()`; substring matching is a `*` wildcard inside the value. `matchesValue()` and `contains()` are DQL, not segment syntax | Critical |
+| Use `tags = "[Environment]<key>:<value>"` for tag-based entity includes | Replaces MZ rule `host tag equals value` (mind the `[Environment]` prefix — MZ2POL-05 §4.5) | Critical |
+| Use `entity.name = "<prefix>*"` for service-name rules on classic-entity includes | Classic entities support only *starts-with* on `entity.name` (the field is `entity.name`, not `dt.entity.service.name`). A *service name contains* rule needs a signal include, a Smartscape include, or the `Segment:` fallback tag — MZ2POL-05 §5.3 | Recommended |
+| Use variables for dynamic segments | Condition `k8s.cluster.name = $cluster`; a wildcard may only follow the variable (`$stage*`), never sit inside its value | Recommended |
 | Test segment filter logic with DQL before creating the segment | Run the filter as a standalone DQL query and verify results match expected entity set | Critical |
 | Use consistent segment naming | `"Production Environment"`, `"Frontend Team Services"`, `"North America Region"` — not `"Segment 1"` | Recommended |
 | Share segments appropriately | Private for personal use, shared for team use, public for org-wide use | Recommended |
@@ -127,10 +128,10 @@ This notebook consolidates every actionable best practice from the MZ2POL series
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|----------------|----------|
-| Use `${bindParam:...}` templated policies instead of one policy per MZ | 3-5 templates replace 92+ individual policies. Template: `ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read WHERE storage:dt.security_context = "${bindParam:team}"` (enumerated — wildcards are rejected) | Critical |
+| Use `${bindParam:...}` templated policies instead of one policy per MZ | 3-5 templates replace 92+ individual policies. Template: `ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read WHERE storage:dt.security_context = "${bindParam:team}"` (enumerated — wildcards are rejected). **Test events access before rollout:** event records hold `dt.security_context` as an array, and *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`"* ([Permissions in Grail](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)) — MZ2POL-08 §2 | Critical |
 | Create templates by MZ type, not by MZ instance | `tpl-team-data-reader`, `tpl-team-data-editor`, `tpl-region-reader` — one template per access pattern | Critical |
 | Use Pattern A (read-only) for viewer MZ replacements | Template grants `storage:logs:read`, `storage:spans:read`, `storage:metrics:read` scoped by `${bindParam:team}` | Recommended |
-| Use Pattern B (full access) for editor MZ replacements | Template grants `storage:*:read`, `storage:*:write`, `settings:objects:*` scoped by `${bindParam:team}` | Recommended |
+| Use Pattern B (full access) for editor MZ replacements | Template grants `storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read` and `settings:objects:read, settings:objects:write`, scoped by `${bindParam:team}` (enumerated — see the events caution in the first row). Storage writes cannot take a `WHERE` condition — grant them separately, only where justified (MZ2POL-08 §2) | Recommended |
 | Use multiple bindings of the same template for multi-MZ users | Bind template twice to same group with different parameter values (e.g., `team: checkout` and `team: shared-services`); bindings are additive | Recommended |
 | Use `startsWith` in templates for region/environment patterns | `WHERE storage:dt.security_context startsWith "${bindParam:region-prefix}"` | Optional |
 | Automate bulk binding via IAM API | `POST /iam/v1/repo/account/{ACCOUNT}/bindings/{POLICY_UUID}/{GROUP_UUID}` with `{"parameters": {"team": "value"}}` | Recommended |

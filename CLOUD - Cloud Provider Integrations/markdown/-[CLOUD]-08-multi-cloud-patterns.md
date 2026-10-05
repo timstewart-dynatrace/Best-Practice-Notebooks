@@ -1,6 +1,6 @@
 # CLOUD-08: Multi-Cloud Observability Patterns
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 8 of 8 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -155,7 +155,8 @@ fetch dt.davis.problems, from:-7d
 ```dql
 // Error log count by source across all providers in the last 6 hours
 fetch logs, from:-6h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | summarize error_count = count(), by:{log.source}
 | sort error_count desc
 | limit 15
@@ -206,7 +207,7 @@ Build dashboards that show health across all providers in a single view.
 | **Infrastructure health** | `timeseries avg(dt.host.cpu.usage)` | CPU/memory across all hosts |
 | **Active problems** | `fetch dt.davis.problems` | Open problems across all infrastructure |
 | **Service health** | `fetch spans` with error rate | Service-level error rates |
-| **Log errors** | `fetch logs` with loglevel filter | Error log trends |
+| **Log errors** | `fetch logs` with `status == "ERROR"` | Error log trends |
 | **Kubernetes health** | `timeseries dt.kubernetes.*` | Container metrics across K8s clusters |
 
 ### Active Problems Across All Infrastructure

@@ -1,6 +1,6 @@
 # WFLOW-06: Custom Notification Templates
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Rich Message Formatting
 Create professional, informative notifications with dynamic content, formatting, and data enrichment. This notebook covers Jinja templating, Slack Block Kit, Teams Adaptive Cards, and data enrichment patterns.
@@ -287,7 +287,7 @@ export default async function () {
   const recentErrors = await runQuery(`
     fetch logs, from: now() - 30m
     | filter dt.entity.service == "${rootCause}"
-    | filter loglevel == "ERROR"
+    | filter status == "ERROR"
     | fields timestamp, content
     | sort timestamp desc
     | limit 5

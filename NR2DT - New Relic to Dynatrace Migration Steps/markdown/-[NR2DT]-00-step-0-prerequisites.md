@@ -1,6 +1,6 @@
 # NR2DT-00: Tenant Prerequisites — Minimum Setup Before Migration
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -39,7 +39,7 @@ These five items shape the target Dynatrace tenant. They do not all have to be *
 
 ### 1.1 Bucket Strategy
 
-**Recommended Approach:** decide bucket naming, retention, and pricing model before any logs flow. Use a single `<org>_` prefix so IAM policies can scope with one `STARTSWITH "<org>_"` condition.
+**Recommended Approach:** decide bucket naming, retention, and pricing model before any logs flow. Use a single `<org>_` prefix so IAM policies can scope with one `storage:bucket-name startsWith "<org>_"` condition.
 
 **Consideration:** buckets are immutable once created — names cannot be changed and retention can only be adjusted within limits. There is also a tenant-wide cap of 80 buckets; design with that ceiling in mind. Buckets are a scenario-driven mechanism (compliance retention, hard cost partitioning, hostile multi-tenancy) — not the general data-access mechanism. For general access scoping, prefer `dt.security_context` (§1.3).
 
@@ -135,6 +135,22 @@ python3 migrate.py preflight
 
 **Where covered:** NR2DT-01 § Prerequisites & Access
 
+---
+
+### 2.3 Service User for Migrated Anomaly Detectors
+
+**Recommended Approach:** create a service user for the migrated Davis anomaly detectors and set `DYNATRACE_DETECTOR_ACTOR` to its UUID in the tool's `.env` before NR2DT-05 Wave 3. Every custom alert executes as an actor, and Dynatrace recommends a service user rather than a person for alerts a team owns: *"We recommend using service users as actors for custom alerts created for a department or organization use case."*
+
+```bash
+export DYNATRACE_DETECTOR_ACTOR="<service-user-uuid>"
+```
+
+**Consideration:** `migrate.py` imports NR alert conditions as Davis anomaly detectors, whose `executionSettings.actor` must be a service-user UUID. When the variable is unset, the `migrate` command (not `preflight`) prints a warning and the detectors fail to import, so Wave 3 fails on its first run.
+
+**Where covered:** NR2DT-05 § Wave 3
+
+> <sub>**Sources:** [Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app), [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), [config/settings.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py), [.env.example @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/.env.example), read 10/05/2026.</sub>
+
 <a id="telemetry"></a>
 ## 3. Telemetry Infrastructure (Mandatory)
 
@@ -211,6 +227,7 @@ NR2DT-01 cannot start until every Mandatory item is ticked. Strongly Recommended
 - [ ] OpenPipeline routing + enrichment + drop rules drafted (§1.5)
 - [ ] Platform Token issued with required scopes (§2.1)
 - [ ] `migrate.py preflight` returns clean (§2.2)
+- [ ] Service user created for anomaly detectors; `DYNATRACE_DETECTOR_ACTOR` set (§2.3)
 - [ ] OneAgent / ActiveGate rollout plan in place; OneAgent-vs-OTel split decided per workload (§3.1)
 - [ ] Log forwarder destination endpoints known (§3.2)
 - [ ] OTel collector endpoints confirmed if applicable (§3.3)
@@ -222,7 +239,7 @@ NR2DT-01 cannot start until every Mandatory item is ticked. Strongly Recommended
 
 ### Verification Queries (after Wave 0)
 
-Once Wave 0 is applied (NR2DT-05), use these DQL queries to confirm the foundation is in place. Run them before declaring G0 complete.
+Once Wave 0 is applied (NR2DT-05), use these DQL queries to confirm the foundation is in place. Run them before declaring W0 (Wave 0 gate, NR2DT-02 §4) complete.
 
 **Verify hosts are reporting (smoke test for OneAgent rollout):**
 
@@ -242,7 +259,7 @@ fetch logs, from:-1h
 | limit 20
 ```
 
-A row of `dt.security_context = null` above a small percentage of total log volume means OpenPipeline enrichment is missing a case — fix before declaring G0 complete.
+A row of `dt.security_context = null` above a small percentage of total log volume means OpenPipeline enrichment is missing a case — fix before declaring W0 complete.
 
 **Verify the expected bucket is receiving logs (run once per expected bucket):**
 
@@ -253,7 +270,7 @@ fetch logs, from:-15m, scanLimitGBytes:1
 | summarize log_count = count()
 ```
 
-Swap the bucket name and re-run for each expected bucket. Zero rows means the routing rule for that bucket is not matching — review the OpenPipeline configuration.
+Swap the bucket name and re-run for each expected bucket. A `log_count` of 0 means the routing rule for that bucket is not matching — review the OpenPipeline configuration. (The query always returns one row, so check the value, not the row count.)
 
 <a id="references"></a>
 ## 6. Where Each Topic Is Covered

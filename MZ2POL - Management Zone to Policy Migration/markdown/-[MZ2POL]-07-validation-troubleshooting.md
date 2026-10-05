@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 07/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -395,11 +395,11 @@ fetch dt.entity.service
 // Verify MZ membership aligns with tags used in segments
 fetch dt.entity.service
 | expand mz = managementZones
-| summarize 
+| summarize {
     entityCount = count(),
     withTeamTag = countIf(matchesValue(tags, "team:*")),
-    withEnvTag = countIf(matchesValue(tags, "env:*")),
-    by:{mz}
+    withEnvTag = countIf(matchesValue(tags, "env:*"))
+  }, by:{mz}
 | sort entityCount desc
 
 // Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects

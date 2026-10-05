@@ -1,6 +1,6 @@
 # NR2DT-02: Step 2 — Strategize
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 2 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -50,12 +50,16 @@ Use this as a starting template; adjust for your inventory.
 | **0 — Foundations** | Bucket strategy, host groups, IAM groups, OpenPipeline enrichments | Low | 1–2 weeks | Platform team |
 | **1 — Dashboards (read-only)** | All migrated dashboards | Low | 1 week + dual-run | Each team owns its dashboards |
 | **2 — Synthetics** | HTTP first, then Browser, then API | Medium | 1–2 weeks | SRE |
-| **3 — Alerts (HIGH RISK)** | Metric Events + Workflows; dual-alert window | **High** | 2–3 weeks (with dual-alert) | On-call leads |
+| **3 — Alerts (HIGH RISK)** | Custom alerts (Davis anomaly detectors, managed in **Settings** from SaaS 1.344) + Workflows; dual-alert window | **High** | 2–3 weeks (with dual-alert) | On-call leads |
 | **4 — SLOs** | All SLOs after the underlying metrics are stable | Medium | 1 week + 7-day delta | SRE + service owners |
 | **5 — Logs / Drops / Tags** | OpenPipeline filter and enrichment rules | Low | 1–2 weeks | Platform + FinOps |
 | **6 — Decommission NR** | Disable routes, archive dashboards, halt ingest | Low (after sign-off) | 1 week | Platform + leadership |
 
-Each wave has an exit gate (defined in §4). Don't run waves in parallel until you have explicit approval — the gates are sequenced for a reason.
+Each wave has an exit gate (W0–W7, defined in §4). Don't run waves in parallel until you have explicit approval — the gates are sequenced for a reason.
+
+Wave 3 targets custom alerts, not classic metric events: *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."* On a tenant that has not yet reached 1.344, the Anomaly Detection app remains the place to manage them.
+
+> <sub>**Sources:** [Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app), read 10/05/2026.</sub>
 
 
 ![Wave Plan Timeline (illustrative)](images/02-wave-plan-timeline_930x500.png)
@@ -94,18 +98,18 @@ Document each decision in `scope-decisions.md` with the rationale and the impact
 <a id="gates"></a>
 ## 4. Define the Validation Gates
 
-Each wave has a go/no-go gate. Document the pass criteria up front.
+Each wave has a go/no-go gate, named **W0–W7**. Each *step* notebook (NR2DT-01 to NR2DT-09) ends with its own exit gate, named **S1–S9**. The two schemes are kept apart so that "has W3 passed?" (dual-alert volume) and "has S3 passed?" (architecture locked) can never be confused. Document the pass criteria up front.
 
 | Gate | Question | Pass Criteria |
 |------|----------|--------------|
-| **G0 — Foundations** | Can DT receive and route data per the bucket strategy? | Test ingestion lands in the correct bucket; IAM scopes work |
-| **G1 — Dashboards** | Migrated dashboards display the same data shape? | Visual diff sample (10–20%) acceptable |
-| **G2 — Synthetics** | Migrated synthetics meet SLA continuity? | Availability ±0.5% during dual-run |
-| **G3 — Alerts** | Dual-alert volume aligned? | DT vs NR alert count within ±10% over 1–2 weeks |
-| **G4 — SLOs** | SLI math equivalent? | 7-day SLI delta ≤ 0.5% |
-| **G5 — Logs** | Log volumes, parsing, drops in line? | Volume ±5%; parsed fields present; drops working |
-| **G6 — Cutover Ready** | Parallel-run period long enough? | ≥ 2 weeks of clean dual operation |
-| **G7 — Decommission** | All stakeholders confirm? | Sign-offs documented; rollback plan still valid |
+| **W0 — Foundations** | Can DT receive and route data per the bucket strategy? | Test ingestion lands in the correct bucket; IAM scopes work |
+| **W1 — Dashboards** | Migrated dashboards display the same data shape? | Visual diff sample (10–20%) acceptable |
+| **W2 — Synthetics** | Migrated synthetics meet SLA continuity? | Availability ±0.5% during dual-run |
+| **W3 — Alerts** | Dual-alert volume aligned? | DT vs NR alert count within ±10% over 1–2 weeks |
+| **W4 — SLOs** | SLI math equivalent? | 7-day SLI delta ≤ 0.5% (NR vs DT, computed by hand — see NR2DT-06) |
+| **W5 — Logs** | Log volumes, parsing, drops in line? | Volume ±5%; parsed fields present; drops working |
+| **W6 — Cutover Ready** | Parallel-run period long enough? | ≥ 2 weeks of clean dual operation |
+| **W7 — Decommission** | All stakeholders confirm? | Sign-offs documented; rollback plan still valid |
 
 <a id="signoff"></a>
 ## 5. Stakeholder Sign-off
@@ -124,7 +128,7 @@ Sign-off is per-wave, not at the start. But the **plan** must be approved before
 <a id="gate"></a>
 ## 6. Step Exit Criteria
 
-**G2 — Strategy Approved**
+**S2 — Strategy Approved**
 
 - [ ] `wave-plan.md` complete with owners and timing
 - [ ] `scope-decisions.md` covers every gap from Step 1

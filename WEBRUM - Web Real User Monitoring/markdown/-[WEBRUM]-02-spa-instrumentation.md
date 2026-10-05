@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -101,14 +101,16 @@ Dynatrace detects SPA route changes by monitoring:
 - **`hashchange` events** — Used by hash-based routing (e.g., `/#/page`)
 - **Framework-specific routing** — Angular Router, React Router, Vue Router
 
-Each detected route change generates a **Route change** user action in Dynatrace, capturing:
+In New RUM, each detected route change is a soft navigation: a navigation event, and a user action with `user_action.type == "soft_navigation"`. The fields to query:
 
 | Field | Description |
 |-------|-------------|
-| `action.name` | The route change action name (e.g., "Route change to /dashboard") |
-| `action.type` | `RouteChange` |
-| `duration` | Time from route trigger to visual completeness |
-| `xhr.count` | Number of XHR/fetch calls during the route change |
+| `user_action.type` | `soft_navigation` — *"triggered by a soft navigation that led to a view change"* (Classic: `RouteChange`) |
+| `page.detected_name` | The page the route change happened on |
+| `characteristics.has_navigation` | `true` on the navigation event the route change emits |
+| `duration` | Duration of the user action |
+
+> <sub>**Sources:** [User actions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions) — *"The user action was triggered by a soft navigation that led to a view change."*</sub>
 
 Let's query route change actions to validate detection:
 
@@ -117,9 +119,10 @@ Let's query route change actions to validate detection:
 //   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
 //                              population to isNotNull(error.type), whose values are request/csp/exception)
 //   error.message           -> error.reason
-//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
-//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
-//   connection.type         -> network.protocol.name
+//   user_action.type: "Load" -> "hard_navigation", "RouteChange" -> "soft_navigation",
+//                     "Xhr" -> "same_view", "Custom" -> "api" (documented values, corrected 10/05/2026)
+//   connection.type         -> no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. "http")
 // THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
 // (performance.dom_interactive, performance.load_event_end) live on navigation events
 // (characteristics.has_navigation) and are unpopulated on page summaries
@@ -132,7 +135,7 @@ Let's query route change actions to validate detection:
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
 //   action.type == "Load"              -> characteristics.has_page_summary == true
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
 //   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
 //   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
@@ -142,10 +145,13 @@ Let's query route change actions to validate detection:
 // null. Compare it against the 2500/4000 ms thresholds directly.
 // `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
 // lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
-// Route change actions in the last hour — verify SPA detection is working
+// Route change actions in the last hour — verify SPA detection is working.
+// Route changes are "soft_navigation" (corrected 10/05/2026); "same_view" is an interaction
+// followed by an XHR or fetch request, the New RUM form of a classic Xhr action.
 fetch user.events, from:-1h
-| filter user_action.type == "same_view"
-| summarize route_count = count(), avg_duration = avg(duration), by:{page.detected_name, dt.rum.application.id}
+| filter characteristics.has_user_action == true
+| filter user_action.type == "soft_navigation"
+| summarize {route_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, dt.rum.application.id}
 | sort route_count desc
 | limit 20
 ```
@@ -196,11 +202,12 @@ Vue applications use Vue Router with `history.pushState` or hash mode:
 ```dql
 // Compare action types across applications — identify SPA vs traditional apps
 fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
 | summarize action_count = count(), by:{dt.rum.application.id, user_action.type}
 | sort dt.rum.application.id asc, action_count desc
 ```
 
-If an application shows only `Load` actions and no `RouteChange` or `Xhr` actions, SPA instrumentation may not be configured correctly.
+If an SPA shows only `hard_navigation` actions and no `soft_navigation` or `same_view` actions, SPA instrumentation may not be configured correctly. A traditional multi-page application legitimately shows mostly `hard_navigation`. The classic values `Load`, `RouteChange` and `Xhr` never appear on New RUM data, so a check that looks for them reports a working setup as broken.
 
 <a id="custom-action-naming"></a>
 
@@ -233,16 +240,9 @@ const actionId = dtrum.enterAction('Checkout - Payment Step');
 dtrum.leaveAction(actionId);
 ```
 
-Let's check for custom actions in our environment:
+The `dtrum` calls above are the RUM Classic JavaScript API. In the New RUM model, a user action reported through the Dynatrace API carries `user_action.type == "api"` — *"The user action was reported via the Dynatrace API"* — and `characteristics.is_api_reported == true`. Filter on those rather than on the classic `Custom` action type, which never matches New RUM data.
 
-```dql
-// Find custom user actions — these indicate manual RUM API usage
-fetch user.events, from:-24h
-| filter user_action.type == "Custom"
-| summarize custom_count = count(), by:{page.detected_name, dt.rum.application.id}
-| sort custom_count desc
-| limit 15
-```
+> <sub>**Sources:** [User actions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions) — *"The user action was reported via the Dynatrace API."*</sub>
 
 <a id="xhr-fetch-monitoring"></a>
 
@@ -252,7 +252,7 @@ SPAs rely heavily on asynchronous API calls. Dynatrace monitors both `XMLHttpReq
 
 - **Correlate API calls with user actions** — Which button click triggered which API call?
 - **Measure API response times** — How long did the backend take?
-- **Detect failed requests** — HTTP 4xx/5xx responses and network errors
+- **Detect failed requests** — HTTP 4xx/5xx responses and network errors (`characteristics.has_failed_request`)
 - **Track third-party calls** — Calls to external APIs, CDNs, analytics services
 
 ### Enabling Fetch API Monitoring
@@ -264,26 +264,30 @@ Application settings → **Capturing > Async web requests and SPAs** → **Gener
 > <sub>**Sources:** [Configure Real User Monitoring Classic to capture XHR actions (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/configure-dynatrace-real-user-monitoring-to-capture-xhr-actions) — *"When you activate XHR-action support, you add visibility into each kind of user interaction, not just the regular page loads that are captured by default."*</sub>
 
 ```dql
-// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.waiting_duration
+// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.value
 // are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
 // silently, so a chart of nulls looks like "no data". Compare and aggregate them directly.
-// XHR action performance — identify slow API calls impacting user experience
+// XHR action performance — identify slow API calls impacting user experience.
+// has_request also matches the document request of every page navigation and every
+// failed-request error event; excluding navigations leaves the XHR/fetch calls.
 fetch user.events, from:-1h
 | filter characteristics.has_request == true
-| summarize xhr_count = count(),
+| filter not(coalesce(characteristics.has_navigation, false))   // null, not false, on non-navigations
+| summarize {xhr_count = count(),
     avg_duration = avg(duration),
-    p95_duration = percentile(duration, 95),
+    p95_duration = percentile(duration, 95)},
     by:{page.detected_name}
 | sort p95_duration desc
 | limit 15
 ```
 
 ```dql
-// XHR error rate by action — find failing API calls
+// XHR error rate by action — find failing API calls. error.count is a SESSION field and is
+// null on every user event, so it cannot count failed requests (corrected 10/05/2026).
 fetch user.events, from:-24h
 | filter characteristics.has_request == true
-| summarize total = count(),
-    errors = countIf(isNotNull(error.count) and error.count > 0),
+| summarize {total = count(),
+    errors = countIf(characteristics.has_failed_request == true)},
     by:{page.detected_name}
 | fieldsAdd error_rate_pct = round(toDouble(errors) / toDouble(total) * 100.0, decimals: 2)
 | filter total > 10
@@ -299,15 +303,16 @@ After configuring SPA monitoring, validate that instrumentation is working corre
 
 | Check | DQL Validation | Expected Result |
 |-------|---------------|------------------|
-| Route changes detected | Query for `RouteChange` actions | Actions appear for each route |
-| XHR/fetch captured | Query for `Xhr` actions | API calls visible per action |
-| Action names meaningful | Review action name distribution | No generic/unclear names |
+| Route changes detected | Query for `user_action.type == "soft_navigation"` | Actions appear for each route |
+| XHR/fetch captured | Query for `user_action.type == "same_view"` and `characteristics.has_request` events | API calls visible per action |
+| Action names meaningful | Review the `page.detected_name` distribution | No generic/unclear names |
 | No duplicate actions | Check for overlapping actions | One action per interaction |
-| Custom actions working | Query for `Custom` type | Developer-defined actions appear |
+| API-reported actions working | Query for `user_action.type == "api"` | Developer-reported actions appear |
 
 ```dql
 // Instrumentation health check — action type distribution per app
 fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
 | summarize total_actions = count(), by:{dt.rum.application.id, user_action.type}
 | sort dt.rum.application.id asc, total_actions desc
 ```
@@ -469,18 +474,19 @@ After deploying both applications, verify that:
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Compare user action metrics between mobile WebView and desktop browser apps
 fetch user.events, from:-24h
 | filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
 | summarize
-    actions = count(),
+    {actions = count(),
     avg_duration = avg(duration),
-    error_rate = toDouble(countIf(error.count > 0)) / toDouble(count()) * 100,
+    error_rate = toDouble(countIf(characteristics.has_error == true)) / toDouble(count()) * 100},
     by:{dt.rum.application.id, user_action.type}
 | sort dt.rum.application.id asc, actions desc
 ```
@@ -490,15 +496,18 @@ fetch user.events, from:-24h
 Identify sessions in the mobile app that include WebView activity — these are your hybrid users.
 
 ```dql
-// Identify WebView sessions in the mobile app — these have both native and web actions
+// Identify WebView sessions in the mobile app — sessions with both native and web events.
+// Classified by dt.rum.agent.type ("android" / "ios" = OneAgent for Mobile, "javascript" = RUM
+// JavaScript) — the classic "UserAction" / "Load" / "RouteChange" / "Xhr" values never appear on
+// New RUM data. Not execution-verified: the validation tenant has no hybrid app.
 fetch user.events, from:-24h
 | filter dt.rum.application.id == "MyApp Mobile"
 | summarize
-    native_actions = countIf(user_action.type == "Custom" or user_action.type == "UserAction"),
-    web_actions = countIf(in(user_action.type, {"Load", "RouteChange", "Xhr"})),
+    {native_events = countIf(in(dt.rum.agent.type, {"android", "ios"})),
+    web_events = countIf(dt.rum.agent.type == "javascript")},
     by:{dt.rum.session.id}
-| filter web_actions > 0
-| sort web_actions desc
+| filter web_events > 0
+| sort web_events desc
 | limit 20
 ```
 
@@ -512,10 +521,10 @@ fetch user.events, from:-24h
 | filter characteristics.has_navigation == true
 | filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
 | summarize
-    p50_duration = percentile(duration, 50),
+    {p50_duration = percentile(duration, 50),
     p95_duration = percentile(duration, 95),
     avg_dom_interactive = avg(performance.dom_interactive),
-    actions = count(),
+    actions = count()},
     by:{dt.rum.application.id}
 ```
 

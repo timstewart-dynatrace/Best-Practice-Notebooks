@@ -1,6 +1,6 @@
 # NRLC-08: Validation, Diff & Rollback
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 8 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -92,15 +92,15 @@ The `DTEnvironmentRegistry` lazy-loads tenant inventory:
 
 | Lookup | Source API | Validates |
 |--------|------------|-----------|
-| Metric keys (`dt.host.cpu.usage`, etc.) | `GET /api/v2/metrics` — **blocked at upgrade**; on a latest-Dynatrace tenant use the DQL `metrics` command instead | Metric exists; displayName, unit |
-| Entity types and IDs | `GET /api/v2/entities` — **blocked at upgrade**; on a latest-Dynatrace tenant use `smartscapeNodes` (FAQ entry 16) | Entity present; resolves names ↔ IDs |
+| Metric keys (`dt.host.cpu.usage`, etc.) | `GET /api/v2/metrics` — on a latest-Dynatrace tenant, prefer the DQL `metrics` command | Metric exists; displayName, unit |
+| Entity types and IDs | `GET /api/v2/entities` — on a latest-Dynatrace tenant, prefer `smartscapeNodes` (FAQ entry 16) | Entity present; resolves names ↔ IDs |
 | Existing dashboards | `GET /platform/document/v1/documents` | Avoids duplicate creation |
 | OpenPipeline enrichment rules | `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `.routing`, `.ingest-sources` per scope) | Enrichment rule exists; produces expected attribute values on ingested data |
 | Buckets | `GET /platform/storage/management/v1/bucket-definitions` | Bucket exists with expected retention; routing rule targets it correctly |
 | Synthetic locations | `GET /api/v2/synthetic/locations` | NR location → DT location lookup |
 | Notifications | `GET /api/v2/settings/objects?schemaIds=builtin:problem.notifications` — the **schema** is blocked at upgrade (the `objects` endpoint is not); workflow-based notifications replace it | No duplicate notification objects |
 
-> **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints are deprecated (SaaS 1.327, EoL **June 29, 2026**). Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
+> **Note — OpenPipeline API deprecation:** The direct `GET/PUT /platform/openpipeline/v1/configurations` endpoints were deprecated in SaaS 1.327 and reached end of life on **June 29, 2026**. Read and manage OpenPipeline configuration through Settings 2.0 with the `builtin:openpipeline.<scope>.routing`, `builtin:openpipeline.<scope>.pipelines`, and `builtin:openpipeline.<scope>.ingest-sources` schemas. See the official [API deprecation guide](https://docs.dynatrace.com/docs/dynatrace-api/basics/deprecation-migration-guides).
 
 Common failures caught here:
 
@@ -123,21 +123,14 @@ Both platforms produce numbers from the same underlying world. Validate they agr
 
 ### Comparison Tooling
 
-The `Dynatrace-NewRelic` CLI includes `migrate.py audit`, which drives the drift-audit comparison against a captured baseline:
+The `Dynatrace-NewRelic` CLI has **no** NR-vs-DT result comparison. Its `migrate.py audit` command is a *configuration* drift check: it compares the transformed baseline a migration run wrote against the live Dynatrace tenant and reports `RENAMED`, `DELETED`, `MODIFIED` and `EXTRA` entities. It is read-only, exits 1 when it finds drift, and never queries New Relic.
 
 ```bash
-python3 migrate.py audit --baseline baseline-counts.json
+# Config drift: live tenant vs the transformed baseline from a migration run
+python3 migrate.py audit --baseline ./output/transformed/dynatrace_config.json --output drift.json
 ```
 
-Output:
-
-```
-NR result:  count = 4823
-DT result:  count = 4798
-Delta:      0.52%  ✅ within tolerance
-```
-
-> The baseline file is produced by a prior export + capture step; the audit command compares current DT output against the baseline values.
+The dual-run comparison above is therefore manual: run each NRQL query in New Relic and its DQL translation in Dynatrace over the same window, record both values, and compare them against the tolerances below.
 
 ### Tolerance by Artifact Type
 
@@ -159,39 +152,39 @@ Before importing migrated artifacts, diff them against what already exists in th
 - Recreating notifications when an existing one matches
 
 ```bash
-python3 migrate.py migrate --diff --components dashboards,alerts
+# --dry-run is what keeps this read-only: without it, --diff runs after a full import
+python3 migrate.py migrate --dry-run --diff --components dashboards,alerts --output ./output
 ```
 
-Output classifies each migrated entity:
+Output classifies each migrated entity (actions as defined in the tool's `migration/diff.py`, read 10/05/2026):
 
-| Status | Action |
-|--------|--------|
-| `NEW` | Will be created |
-| `EXISTING_MATCH` | No-op (identical to existing) |
-| `EXISTING_DRIFT` | Existing entity differs — manual review (do not auto-overwrite) |
-| `DUPLICATE_NAME` | Different entity with same name — rename or skip |
-| `MIGRATION_TAG_MATCH` | Already migrated by a previous run — update or skip |
+| Action | Meaning |
+|--------|---------|
+| `CREATE` | No match found in DT — will be created. Also the result for every entity type the diff cannot look up |
+| `UPDATE` | An existing DT entity has the same name |
+| `CONFLICT` | Counted in the summary, but the current diff logic never assigns it |
+| `ORPHAN` | Exists in DT but not in the NR export |
 
-Always run `migrate --diff` in dry-run before any full import.
+The diff matches by name and only for **dashboards and management zones**; alerts (metric events, alerting profiles), SLOs and synthetic monitors are always reported as `CREATE`. It cannot detect drift inside a matching dashboard or an alert that a previous run already migrated — check those by hand.
+
+Always run `migrate --diff` with `--dry-run` before any full import. `--diff` is ignored with `--import-only`.
 
 <a id="rollback"></a>
 ## 6. Rollback Manifests
 
 Every migration run generates a **rollback manifest** — a JSON record of every entity created, with enough metadata to reverse the operation.
 
+A full `migrate` run (not `--import-only`) writes it to `<output>/rollback-manifest.json`. Its shape, from the tool's `migration/state.py` (read 10/05/2026):
+
 ```json
 {
-  "runId": "2026-04-14_18-22-05_uuid",
-  "createdAt": "2026-04-14T18:22:05Z",
-  "entities": [
+  "entries": [
     {
-      "type": "dashboard",
-      "dtId": "<document-id>",
-      "sourceGuid": "<nr-guid>",
-      "createdBy": "migration-token-abc",
-      "name": "Checkout — Overview"
-    },
-    ...
+      "entity_type": "<type>",
+      "dynatrace_id": "<id>",
+      "name": "<entity name>",
+      "timestamp": "<ISO-8601 UTC>"
+    }
   ]
 }
 ```
@@ -199,15 +192,15 @@ Every migration run generates a **rollback manifest** — a JSON record of every
 ### Rollback Command
 
 ```bash
-python3 migrate.py migrate --rollback run-2026-04-14.json
+python3 migrate.py migrate --rollback ./output/rollback-manifest.json
 ```
 
 The rollback:
 
-1. Reads the manifest
-2. For each entity, calls the appropriate DELETE endpoint
-3. Logs each deletion with timestamp + result
-4. Produces a rollback report (succeeded / failed / skipped)
+1. Reads the manifest and lists the target entities (with `--dry-run` it stops here)
+2. Asks for confirmation
+3. For each entity, calls the Dynatrace client's delete for that entity type, printing any failure
+4. Prints a total of entities deleted and failed
 
 **Always retain manifests for at least the dual-run window + 30 days.** Rollback at hour 71 of dual-run is rare but not theoretical.
 

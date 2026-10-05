@@ -1,6 +1,6 @@
 # DASH-04: Operations Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -116,7 +116,8 @@ fetch logs, from:-2h
 ```dql
 // Top 10 log sources generating errors — operations table
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | summarize error_count = count(), by:{log.source}
 | sort error_count desc
 | limit 10

@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -96,8 +96,8 @@ Dynatrace RUM data is organized into a hierarchical model:
 |-------|-------------|-------------|
 | 1 | Application | Web app monitored by RUM JS agent |
 | 2 | User Session (user.sessions) | One complete visit |
-| 3 | User Action (user.events) | Page load, XHR, or custom action |
-| 4 | Action Properties | Timing, errors, and resources |
+| 3 | User Event (user.events) | Navigation, page summary, user action, request, or error |
+| 4 | Event Fields | Timing (performance.*, lcp.*), errors (error.type, error.reason), requests |
 For environments where SVG doesn't render
 -->
 
@@ -105,9 +105,9 @@ For environments where SVG doesn't render
 
 | DQL Data Object | Description | Key Fields |
 |----------------|-------------|------------|
-| `user.sessions` | A complete user visit from first page to last | `sessionId`, `userType`, `duration`, `userActionCount`, `totalErrorCount` |
-| `user.events` | A single user interaction (page load, click, XHR) | `action.name`, `action.type`, `duration`, `dom.interactive.time` |
-| `user.events` | JavaScript or XHR error | `error.message`, `error.type`, `error.source` |
+| `user.sessions` | A complete user visit from first page to last | `dt.rum.session.id`, `dt.rum.user_type`, `duration`, `user_action_count`, `error.count` |
+| `user.events` | A single event — navigation, page summary, user action, request, interaction — told apart by `characteristics.has_*` flags | `page.detected_name`, `user_action.type`, `performance.load_event_end` (navigations), `lcp.start_time` (page summaries) |
+| `user.events` (`characteristics.has_error == true`) | JavaScript exception, failed request or CSP violation | `error.reason`, `error.type` (`exception` / `request` / `csp`), `error.source` |
 | `smartscapeNodes "FRONTEND"` | The monitored application **entity** — one node per configured web or mobile app | `name`, `frontend.name`, `frontend.type`, `id_classic` |
 
 
@@ -149,13 +149,17 @@ The Semantic Dictionary exposes the linkage itself as **`frontend.link`** — *"
 
 ### Session Types
 
-| User Type | Description |
-|-----------|-------------|
-| `REAL_USER` | Identified or anonymous real visitor |
-| `ROBOT` | Bot or crawler detected by Dynatrace |
-| `SYNTHETIC` | Synthetic monitor execution |
+Every session and user event carries `dt.rum.user_type`. Its documented values are lowercase:
 
-> **Note:** Always filter for `userType == "REAL_USER"` when analyzing genuine user experience to exclude bots and synthetic executions.
+| `dt.rum.user_type` | Description |
+|-----------|-------------|
+| `real_user` | *"The user event was produced by a real user."* |
+| `robot` | *"The user event was produced by a bot user."* |
+| `synthetic` | *"The user event was produced by a synthetic test."* |
+
+> **Note:** Always filter for `dt.rum.user_type == "real_user"` when analyzing genuine user experience to exclude bots and synthetic executions. The classic `userType == "REAL_USER"` form reads null on New RUM data and filters out every session without an error.
+
+> <sub>**Sources:** [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"The user event was produced by a real user."* **Dictionary:** `dt.rum.user_type` (`experimental`, example `real_user`), read 10/05/2026.</sub>
 
 <a id="exploring-user-sessions"></a>
 
@@ -175,10 +179,11 @@ Let's start by examining what a user session looks like in Grail. A session repr
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Explore recent user sessions — sample 10 sessions to see available fields
 fetch user.sessions, from:-1h
@@ -212,13 +217,16 @@ fetch user.sessions, from:-24h
 
 ## 5. Exploring User Actions
 
-User actions represent individual interactions within a session. Dynatrace automatically detects three types of actions:
+User actions represent individual interactions within a session. In New RUM each one is a `user.events` record with `characteristics.has_user_action == true`, and `user_action.type` says what triggered it. The web values are:
 
-| Action Type | Description | Example |
+| `user_action.type` | Classic RUM equivalent | Documented meaning |
 |-------------|-------------|----------|
-| **Load** | Full page load or navigation | User navigates to `/checkout` |
-| **XHR** | Background XHR/fetch request triggered by interaction | Click triggers API call |
-| **Custom** | Developer-defined action via RUM API | Custom business event |
+| `hard_navigation` | Load | *"The user action was triggered by a hard navigation (full page load)."* |
+| `soft_navigation` | Route change | *"The user action was triggered by a soft navigation that led to a view change."* |
+| `same_view` | XHR | *"The user action was triggered by a user interaction, followed by an XHR or fetch request."* |
+| `api` | Custom | *"The user action was reported via the Dynatrace API."* |
+
+> <sub>**Sources:** [User actions — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions) — *"The user action was triggered by a soft navigation that led to a view change."*</sub>
 
 Let's explore the most common user actions:
 
@@ -235,7 +243,7 @@ Let's explore the most common user actions:
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
 //   action.type == "Load"              -> characteristics.has_page_summary == true
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
 //   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
 //   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
@@ -245,9 +253,11 @@ Let's explore the most common user actions:
 // null. Compare it against the 2500/4000 ms thresholds directly.
 // `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
 // lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
-// Top 20 user actions by count in the last hour
+// Top 20 user actions by count in the last hour (user-action events only — most user.events
+// records are requests, which carry no user_action.type)
 fetch user.events, from:-1h
-| summarize action_count = count(), avg_duration = avg(duration), by:{page.detected_name, user_action.type}
+| filter characteristics.has_user_action == true
+| summarize {action_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, user_action.type}
 | sort action_count desc
 | limit 20
 ```
@@ -265,9 +275,10 @@ For load-type actions, Dynatrace captures detailed timing milestones:
 //   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
 //                              population to isNotNull(error.type), whose values are request/csp/exception)
 //   error.message           -> error.reason
-//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
-//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
-//   connection.type         -> network.protocol.name
+//   user_action.type: "Load" -> "hard_navigation", "RouteChange" -> "soft_navigation",
+//                     "Xhr" -> "same_view", "Custom" -> "api" (documented values, corrected 10/05/2026)
+//   connection.type         -> no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. "http")
 // THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
 // (performance.dom_interactive, performance.load_event_end) live on navigation events
 // (characteristics.has_navigation) and are unpopulated on page summaries
@@ -278,10 +289,10 @@ For load-type actions, Dynatrace captures detailed timing milestones:
 // Page load timing breakdown — average timings for the top 10 pages
 fetch user.events, from:-1h
 | filter characteristics.has_navigation == true
-| summarize action_count = count(),
+| summarize {action_count = count(),
     avg_duration = avg(duration),
     avg_dom_interactive = avg(performance.dom_interactive),
-    avg_load_event = avg(performance.load_event_end),
+    avg_load_event = avg(performance.load_event_end)},
     by:{page.detected_name}
 | sort action_count desc
 | limit 10
@@ -301,8 +312,10 @@ fetch user.sessions, from:-24h
 ```
 
 ```dql
-// Action volume by type over the last 24 hours
+// Action volume by type over the last 24 hours — user actions only; without the filter,
+// requests and other events dominate as a null user_action.type series
 fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
 | makeTimeseries action_count = count(), interval:1h, by:{user_action.type}
 ```
 
@@ -310,10 +323,10 @@ fetch user.events, from:-24h
 // Sessions and actions per application — high-level overview
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize session_count = count(),
+| summarize {session_count = count(),
     total_actions = sum(user_action_count),
     total_errors = sum(error.count),
-    avg_duration = avg(duration),
+    avg_duration = avg(duration)},
     by:{primary_tags.application}
 | sort session_count desc
 ```

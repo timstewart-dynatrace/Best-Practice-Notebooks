@@ -1,6 +1,6 @@
 # NR2DT-04: Step 4 — Translate
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 4 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -44,12 +44,13 @@ Procedural — see **NRLC-02** for the compiler architecture, the 292 patterns, 
 ## 2. Run the Translator
 
 ```bash
-# Re-run translation against the latest inventory (Step 1 produced it)
-python3 migrate.py compile --file inventory/all-nrql.txt \
-    --output translated-queries.csv --report
+# Re-run translation against the latest inventory (Step 1 produced inventory/all-nrql.csv)
+python3 migrate.py batch --file inventory/all-nrql.csv --output translated-queries.csv
 ```
 
-Output columns: `source_nrql, translated_dql, confidence, score, notes, warnings, fixes`.
+Output columns — exactly four: `nrql`, `dql`, `confidence` (HIGH / MEDIUM / LOW, or `FAILED` when the query did not compile, in which case the `dql` cell holds the error), `warnings`. Use `batch` for the CSV: `compile` has no `--report` option (it accepts only `--interactive`, `--file`, `--output` and `--validate`) and writes DQL text, not a CSV.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 **Sort by confidence ascending** — attack LOW first, then MEDIUM, save HIGH for sample-validate.
 
@@ -87,20 +88,30 @@ If a query can't be translated and the requirement can't be reformulated, docume
 <a id="validate"></a>
 ## 5. Validate Translated DQL
 
-Tier 1 syntax validation — confirm every DQL parses against the target tenant:
+Tier 1 syntax validation — confirm every final DQL query parses against the target tenant.
+
+The tool helps only partly. `compile --file` takes the **NRQL** list (one query per line), not the CSV of translated DQL — fed the CSV, it compiles the header and every DQL row as if they were NRQL:
 
 ```bash
-python3 migrate.py compile --validate --file translated-queries.csv
+python3 migrate.py compile --file inventory/all-nrql.txt --output translated.dql
 ```
 
-The `--validate` flag on `compile` runs parser-level validation; failures attempt auto-fix (`DQLFixer`) and re-validate. Final report shows pass / fail / fixed-then-passed counts.
+It prints a succeeded / failed count and writes each query as `-- Original: <nrql>` followed by its DQL (or `-- Error:`). It does **not** live-validate in file mode — `--validate` is honoured only for a single query — and there is no auto-fixer on this path. Check one query against the live tenant with:
+
+```bash
+python3 migrate.py compile --validate "SELECT count(*) FROM Transaction"
+```
+
+For the full set, run each final DQL query (including reviewed-MEDIUM and hand-translated ones from the CSV) in the target tenant — in a notebook, or with `dtctl verify query` — and record pass / fail in `dql-validation-report.md`.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 **Tier 2 tenant validation** (referenced metrics/entities/buckets exist) runs in Step 8 before each component imports.
 
 <a id="gate"></a>
 ## 6. Step Exit Criteria
 
-**G4 — Translation Complete**
+**S4 — Translation Complete**
 
 - [ ] Every query has a final DQL (auto, reviewed-MEDIUM, or hand-translated)
 - [ ] All translations pass Tier 1 syntax validation

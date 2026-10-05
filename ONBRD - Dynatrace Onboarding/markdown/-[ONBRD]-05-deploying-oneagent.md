@@ -1,6 +1,6 @@
 # ONBRD-05: Deploying OneAgent
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Getting Data Into Dynatrace
 OneAgent is the foundation of Dynatrace monitoring. This notebook covers deployment strategies, installation methods, and verification steps to ensure your infrastructure is reporting data.
@@ -497,8 +497,11 @@ fetch dt.entity.host
 // they are billed Full-Stack. A host billed for more than one capability (for example
 // Full-Stack and Code Monitoring) is counted in each row, so do not add the rows up.
 fetch dt.system.events, from:-24h
-| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
-| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| filter event.kind == "BILLING_USAGE_EVENT"
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
 | sort hosts desc
 ```
 

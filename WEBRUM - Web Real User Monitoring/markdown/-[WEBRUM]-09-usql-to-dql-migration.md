@@ -1,6 +1,6 @@
 # WEBRUM-09: Migrating USQL to DQL
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -64,7 +64,7 @@ USQL ran against a purpose-built session store. Gen3 moved RUM into Grail, and i
 - **Classic RUM on Grail** lifted the existing session model into Grail largely intact. In practice the USQL column names came along — `duration`, `userActionCount`, `totalErrorCount`, `userType` read as the same identifiers in both, which is how the classic queries in this series use them — so what changes is mainly the query grammar. That mapping is inferred rather than documented; confirm it with section 2's query before relying on it.
 - **New RUM** is a redesign around the Dynatrace Semantic Dictionary. Fields are renamed to the platform's snake_case dotted conventions, and `user.events` is no longer one flat table of typed actions — it is a set of event-type models distinguished by `characteristics.has_*` flags.
 
-The rest of the WEBRUM series is written against the classic vocabulary. If section 2 tells you your tenant serves New RUM, use the third column of the field tables below and expect the other notebooks to need the same translation.
+The rest of the WEBRUM series is written against the New RUM vocabulary. On a classic-RUM-on-Grail tenant, use the second column of the tables below to translate it back.
 
 > <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure), [Custom queries, segmentation, and aggregation of session data (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data).</sub>
 
@@ -186,13 +186,15 @@ Under New RUM the event-type models each expose their own fields — `rum_except
 | `hasSessionReplay` | `hasSessionReplay` | `characteristics.has_replay` |
 | `rootedOrJailbroken` | `rootedOrJailbroken` | `device.is_rooted` |
 | `stringProperties.<key>` | `stringProperties.<key>` | `session_properties.<key>` |
-| `bounce` | `userActionCount <= 1` | `user_action_count <= 1` |
+| `bounce` | `userActionCount == 1` | `user_action_count == 1` — see note below |
 
 **Fields with no direct New RUM equivalent in the session model:** `city`, `continent`, `region` (only `geo.country.iso_code` is present), `userExperienceScore`, `matchingConversionGoals`, `newUser`, `numberOfRageClicks`. See [section 8](#what-does-not-translate).
 
+**Bounce.** Dynatrace defines a bounced session as *"A session with only one user action or navigation"*. The rest of this series counts it as `user_action_count == 1`, which keeps sessions with zero user actions out of the bounce count; compare the result with the **Bounced Sessions** filter in Users & Sessions before treating the two as identical.
+
 **New RUM adds** counters USQL had no equivalent for: `navigation_count`, `page_summary_count`, `request_count`, `user_interaction_count`, `view_summary_count`, and a broken-out error family (`error.exception_count`, `error.http_4xx_count`, `error.http_5xx_count`, `error.csp_violation_count`, `error.anr_count`).
 
-> <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure) for the USQL column; live query of `dt.semantic_dictionary.models` (model `rum.user_session`, Dynatrace tenant, 07/23/2026) for the New RUM column.</sub>
+> <sub>**Sources:** [User session structure (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure) for the USQL column; live query of `dt.semantic_dictionary.models` (model `rum.user_session`, Dynatrace tenant, 07/23/2026) for the New RUM column; [User sessions in web frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web) — *"A session with only one user action or navigation is tagged as bounced."*</sub>
 
 > **`device.type` is being removed from the user-session model (Semantic Dictionary 1.348, released 08/25/2026).** A migrated USQL `device` query that lands on `device.type` stops resolving once 1.348 reaches your tenant.
 >
@@ -247,7 +249,7 @@ fetch user.sessions, from:-24h
 
 // --- New RUM ---
 // fetch user.sessions, from:-24h
-// | filter dt.rum.user_type == "REAL_USER"   // confirm the enum values in your tenant
+// | filter dt.rum.user_type == "real_user"   // documented values: real_user / robot / synthetic
 // | summarize session_count = count(), by:{browser.name}
 // | sort session_count desc
 // | limit 10
@@ -265,10 +267,11 @@ fetch user.sessions, from:-24h
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // USQL: SELECT AVG(duration) FROM usersession WHERE browserFamily = 'Chrome'
 // Note the two changes: = becomes ==, and the aggregation gets an alias.
@@ -291,8 +294,8 @@ fetch user.sessions, from:-24h
 // --- Classic RUM on Grail ---
 fetch user.sessions, from:-24h
 | filter userType == "REAL_USER"
-| summarize total = count(),
-    with_errors = countIf(totalErrorCount > 0),
+| summarize {total = count(),
+    with_errors = countIf(totalErrorCount > 0)},
     by:{country}
 | fieldsAdd error_pct = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
 | sort error_pct desc
@@ -335,8 +338,8 @@ fetch user.events, from:-24h
 fetch user.events, from:-24h
 | filter action.type == "Load"
 | filter isNotNull(largestContentfulPaint)
-| summarize avg_lcp = avg(largestContentfulPaint),
-    p90_lcp = percentile(largestContentfulPaint, 90),
+| summarize {avg_lcp = avg(largestContentfulPaint),
+    p90_lcp = percentile(largestContentfulPaint, 90)},
     by:{application}
 | sort p90_lcp desc
 

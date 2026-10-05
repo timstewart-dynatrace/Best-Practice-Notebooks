@@ -1,6 +1,6 @@
 # S2D-06: ArrayMovingSum for Extended Timeframes
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -83,7 +83,7 @@ Create a 60-minute rolling sum of error logs:
 ```dql
 // 60-minute rolling sum of error logs
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | makeTimeseries error_count = count(), interval:1m
 | fieldsAdd error_count_last_1h = arrayMovingSum(error_count, 60)
 | fieldsRemove error_count
@@ -118,16 +118,33 @@ You could increase the interval to extend the timeframe:
 | 5m | 60 | 300 minutes (5 hours) |
 | 10m | 60 | 600 minutes (10 hours) |
 
+**Intervals snap to supported values.** `makeTimeseries` silently coarsens an interval it does not support: `interval:4m` returns 5-minute points, and `interval:1m` over 7 days returns 10-minute points, with no warning. Read the returned `interval` field before you multiply it by the window.
+
 **However:** Anomaly Detectors require a **1-minute interval**, so this workaround only applies to dashboards and reports, not continuous alerting.
 
 <a id="using-with-davis-anomaly-detectors"></a>
 ## Using with Anomaly Detectors
-For Anomaly Detectors, you must use `interval:1m` and `window:60`:
+For Anomaly Detectors, you must use `interval:1m` and `window:60`.
+
+**Custom-alert query** (no `from:`/`to:`, per S2D-04 Step 1):
 
 ```dql
-// Query for Anomaly Detector with 60-minute rolling sum
+// Paste into the custom alert WITHOUT from:/to:
+fetch logs
+| filter status == "ERROR"
+| filter matchesPhrase(k8s.deployment.name, "checkout-service")
+| makeTimeseries error_count = count(), by:{dt.entity.cloud_application}, interval:1m
+| fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)
+| fieldsRemove error_count
+```
+
+Notebook preview of the same query:
+
+```dql
+// Notebook PREVIEW of the custom-alert query above (60-minute rolling sum)
+// Remove from:-24h when you paste it into the custom alert
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "checkout-service")
 | makeTimeseries error_count = count(), by:{dt.entity.cloud_application}, interval:1m
 | fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)
@@ -152,11 +169,12 @@ For dashboards and reports (not Anomaly Detectors), you can use longer intervals
 
 ```dql
 // 4-hour rolling sum for dashboard visualization
-// Uses 4-minute interval × 60 window = 240 minutes (4 hours)
+// 5-minute interval x 48 points = 240 minutes (4 hours)
+// Intervals snap to supported values - check the returned `interval` field
 fetch logs, from:now()-24h
-| filter loglevel == "ERROR"
-| makeTimeseries error_count = count(), interval:4m
-| fieldsAdd error_count_4h = arrayMovingSum(error_count, 60)
+| filter status == "ERROR"
+| makeTimeseries error_count = count(), interval:5m
+| fieldsAdd error_count_4h = arrayMovingSum(error_count, 48)
 | fieldsRemove error_count
 ```
 
@@ -170,11 +188,12 @@ Related functions for rolling calculations:
 | `arrayMovingAvg` | Rolling average |
 | `arrayMovingMin` | Rolling minimum |
 | `arrayMovingMax` | Rolling maximum |
-| `arrayMovingMedian` | Rolling median |
 
 ```dql
 // Rolling average response time over 30 minutes
+// response_time is not a built-in field: parse it from the content first
 fetch logs, from:-24h
+| parse content, "DATA? 'response_time=' DOUBLE:response_time"
 | filter isNotNull(response_time)
 | makeTimeseries avg_response = avg(response_time), interval:1m
 | fieldsAdd avg_response_30m = arrayMovingAvg(avg_response, 30)

@@ -458,7 +458,7 @@ Series covering Dynatrace Synthetic Monitoring.
 Client-side monitoring and observability for web applications with session replay and performance metrics.
 - [WEBRUM-01: Web RUM Fundamentals](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-01-rum-fundamentals.md) — RUM architecture and data collection
 - [WEBRUM-02: SPA Instrumentation](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-02-spa-instrumentation.md) — Monitoring single-page applications
-- [WEBRUM-03: Core Web Vitals](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-03-core-web-vitals.md) — LCP, FID, CLS metrics and optimization
+- [WEBRUM-03: Core Web Vitals](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-03-core-web-vitals.md) — LCP, INP, CLS metrics and optimization
 - [WEBRUM-04: Session Analysis](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-04-session-analysis.md) — User session insights and funnels
 - [WEBRUM-05: Error Analysis](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-05-error-analysis.md) — JavaScript errors and crash detection
 - [WEBRUM-06: Performance Analysis](WEBRUM%20-%20Web%20Real%20User%20Monitoring/markdown/-%5BWEBRUM%5D-06-performance-analysis.md) — Page load and runtime performance

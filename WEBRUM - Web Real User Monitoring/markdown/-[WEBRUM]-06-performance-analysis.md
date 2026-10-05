@@ -1,6 +1,6 @@
 # WEBRUM-06: Performance Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 6 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -39,16 +39,16 @@ Every page load follows a sequence of phases captured by the browser's Navigatio
 ![Page Load Waterfall](images/06-page-load-waterfall.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Phase | DQL Field | Category |
+| Phase | DQL Field (navigation events) | Category |
 |-------|-----------|----------|
-| DNS Lookup | dns.time | Network |
-| TCP Connect | tcp.connect.time | Network |
-| SSL Handshake | ssl.time | Network |
-| Time to First Byte | server.time | Server |
-| Response Download | response.time | Server |
-| DOM Interactive | dom.interactive.time | Browser |
-| DOM Complete | dom.complete.time | Browser |
-| Load Event | load.event.time | Browser |
+| DNS Lookup | performance.domain_lookup_end − performance.domain_lookup_start | Network |
+| TCP Connect | performance.connect_end − performance.connect_start | Network |
+| SSL Handshake | performance.connect_end − performance.secure_connection_start | Network |
+| Time to First Byte | performance.response_start | Server |
+| Response Download | performance.response_end − performance.response_start | Server |
+| DOM Interactive | performance.dom_interactive | Browser |
+| DOM Complete | performance.dom_complete | Browser |
+| Load Event | performance.load_event_end | Browser |
 For environments where SVG doesn't render
 -->
 
@@ -65,60 +65,27 @@ For environments where SVG doesn't render
 | **DOM complete** | All sub-resources loaded | Lazy load images, async load scripts |
 | **Load event** | `window.onload` fires | Final milestone; all resources ready |
 
+### Where the Timings Live
+
+All of these milestones are fields on **navigation events** — select them with `characteristics.has_w3c_navigation_timings == true`. Each `performance.*` value is a duration measured from the start of the navigation, so `performance.load_event_end` is the page-load time. Dynatrace's own page-load query uses exactly this field and filter.
+
+Do **not** measure page load with `duration` on a page summary. A page summary covers the page's whole life — *"A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed"* — so its `duration` is how long the page stayed open, not how long it took to load. On the synthetic-only validation tenant (24 h, 10/05/2026) the median page-summary `duration` was 4.7 s against a median load time of 0.36 s; on real-user traffic, where tabs stay open for minutes, the gap is far larger.
+
+> <sub>**Sources:** [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance) — *"RUM captures page load timings from the W3C Navigation Timing API as built-in metrics and as fields on navigation events."*; [Navigation-related events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related) — *"A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed."*; [Requests — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/requests) — *"The end time of the load event handler phase."* **Dictionary:** model `rum_page_summary` — *"A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed."*, read 10/05/2026.</sub>
+
 ```dql
-// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
-//   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
-//                              population to isNotNull(error.type), whose values are request/csp/exception)
-//   error.message           -> error.reason
-//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
-//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
-//   connection.type         -> network.protocol.name
-// THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
-// (performance.dom_interactive, performance.load_event_end) live on navigation events
-// (characteristics.has_navigation) and are unpopulated on page summaries
-// (characteristics.has_page_summary), so a page-summary filter silently empties them.
-// ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
-// characteristics.classifier (corrected 09/28/2026): the docs call classifier "not intended for
-// query usage" and Semantic Dictionary 1.349 removes it from the user-event models.
-// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
-// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
-//   userType -> dt.rum.user_type      userActionCount -> user_action_count
-//   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
-//   hasSessionReplay -> characteristics.has_replay
-//   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
-//   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
-//   screen.width|height -> browser.window.width|height
-//   dom.interactive.time -> performance.dom_interactive
-//   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
-// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
-//   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
-//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
-// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
-// against names that are null on New RUM data, so these cells returned nothing while erroring
-// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
-//   action.type == "Load"              -> characteristics.has_navigation == true
-//                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
-//   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
-// Page load waterfall — average timing breakdown for top 10 pages
+// Page load waterfall — average phase timings for the top 10 pages, all from navigation events.
+// The server phase is performance.response_start (TTFB); the previous `avg(ttfb.waiting_duration)`
+// column read the pre-request wait/redirect phase, and is empty on navigation events anyway.
 fetch user.events, from:-24h
-| filter characteristics.has_navigation == true
-| summarize page_views = count(),
-    avg_duration = avg(duration),
-    avg_dom_interactive = avg(performance.dom_interactive),
-    avg_load_event = avg(performance.load_event_end),
-    avg_server_time = avg(ttfb.waiting_duration),
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_dns_ms = avg(performance.domain_lookup_end - performance.domain_lookup_start) / 1ms,
+    avg_connect_ms = avg(performance.connect_end - performance.connect_start) / 1ms,
+    avg_ttfb_ms = avg(performance.response_start) / 1ms,
+    avg_download_ms = avg(performance.response_end - performance.response_start) / 1ms,
+    avg_dom_interactive_ms = avg(performance.dom_interactive) / 1ms,
+    avg_load_event_ms = avg(performance.load_event_end) / 1ms},
     by:{page.detected_name}
 | sort page_views desc
 | limit 10
@@ -136,15 +103,21 @@ TTFB measures the time from the browser sending the request to receiving the fir
 
 Google recommends a TTFB of **≤ 800ms** for a good user experience.
 
+In New RUM the TTFB value is `web_vitals.time_to_first_byte` (stable, a duration). Where it is not populated, `ttfb.value` (experimental, in milliseconds) carries *"The responseStart value of the navigation timing"* — the same measurement. The queries below read the stable field and fall back to the experimental one. They do **not** use `ttfb.waiting_duration`: that field is *"The total time from when the user initiates loading to when the navigation request is handled"* — the wait before the request, usually redirects — and reading it as TTFB under-reports by an order of magnitude.
+
+> <sub>**Sources:** [Navigation-related events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related) — *"The responseStart value of the navigation timing."*, *"Long waiting durations are usually caused by HTTP redirects."*; [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance) (computes TTFB from `web_vitals.time_to_first_byte`).</sub>
+
 ```dql
+// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
 // TTFB analysis by page — identify pages with slow server response
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(ttfb.waiting_duration)
-| summarize page_views = count(),
-    avg_ttfb = avg(ttfb.waiting_duration),
-    p75_ttfb = percentile(ttfb.waiting_duration, 75),
-    p95_ttfb = percentile(ttfb.waiting_duration, 95),
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
+| summarize {page_views = count(), avg_ttfb = avg(ttfb_ms),
+    p75_ttfb = percentile(ttfb_ms, 75), p95_ttfb = percentile(ttfb_ms, 95)},
     by:{page.detected_name}
 | filter page_views > 10
 | sort p75_ttfb desc
@@ -152,14 +125,14 @@ fetch user.events, from:-24h
 ```
 
 ```dql
-// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.waiting_duration
-// are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
-// silently, so a chart of nulls looks like "no data". Compare and aggregate them directly.
+// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
 // TTFB distribution — classify into Good / Needs Improvement / Poor
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(ttfb.waiting_duration)
-| fieldsAdd ttfb_ms = ttfb.waiting_duration
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
 | fieldsAdd ttfb_category = if(ttfb_ms <= 800, "Good",
     else: if(ttfb_ms <= 1800, "Needs Improvement",
     else: "Poor"))
@@ -178,11 +151,11 @@ fetch user.events, from:-24h
 ```dql
 // DOM Interactive vs Load Event — identify resource-heavy pages
 fetch user.events, from:-24h
-| filter characteristics.has_navigation == true
+| filter characteristics.has_w3c_navigation_timings == true
 | filter isNotNull(performance.dom_interactive) and isNotNull(performance.load_event_end)
-| summarize page_views = count(),
+| summarize {page_views = count(),
     avg_dom_interactive = avg(performance.dom_interactive),
-    avg_load_event = avg(performance.load_event_end),
+    avg_load_event = avg(performance.load_event_end)},
     by:{page.detected_name}
 | fieldsAdd resource_load_gap = avg_load_event - avg_dom_interactive
 | filter page_views > 10
@@ -199,28 +172,33 @@ A large gap between DOM Interactive and Load Event suggests the page has many su
 Performance varies significantly by user location due to network latency, CDN coverage, and server proximity.
 
 ```dql
-// Page load performance by country — identify slow regions
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Page load performance by country — identify slow regions (TTFB by region: next query)
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
+| filter characteristics.has_w3c_navigation_timings == true
 | filter isNotNull(geo.country.name)
-| summarize page_views = count(),
-    avg_duration_ms = avg(duration / 1ms),
-    p75_duration_ms = percentile(duration / 1ms, 75),
-    avg_ttfb_ms = avg(ttfb.waiting_duration),
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
     by:{geo.country.name}
 | filter page_views > 20
-| sort p75_duration_ms desc
+| sort p75_load_ms desc
 | limit 15
 ```
 
 ```dql
+// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
 // Compare TTFB across regions — CDN effectiveness indicator
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
 | filter isNotNull(geo.continent.name)
-| summarize page_views = count(),
-    avg_ttfb_ms = avg(ttfb.waiting_duration),
-    p75_ttfb_ms = percentile(ttfb.waiting_duration, 75),
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| summarize {page_views = count(),
+    avg_ttfb_ms = avg(ttfb_ms),
+    p75_ttfb_ms = percentile(ttfb_ms, 75)},
     by:{geo.continent.name}
 | sort p75_ttfb_ms desc
 ```
@@ -233,78 +211,78 @@ fetch user.events, from:-24h
 
 Network connection type and device capability significantly impact perceived performance.
 
-```dql
-// Performance by connection type — wifi vs cellular vs wired
-fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| filter isNotNull(network.protocol.name)
-| summarize page_views = count(),
-    avg_duration_ms = avg(duration / 1ms),
-    p75_duration_ms = percentile(duration / 1ms, 75),
-    by:{network.protocol.name}
-| sort p75_duration_ms desc
-```
+Web RUM has no connection-type field to split by: `network.connection.type` is documented as *"Only supported by OneAgent for Mobile"*, and `network.protocol.name` is the OSI application protocol (`http`), not wifi versus cellular. The queries below break page-load time down by browser and operating system instead.
+
+> <sub>**Sources:** [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"The internet connection type. Only supported by OneAgent for Mobile."* **Dictionary:** `network.protocol.name` (`stable`) — *"OSI Application Layer or non-OSI equivalent."*, read 10/05/2026.</sub>
 
 ```dql
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
 // Performance by browser — which browsers are slowest?
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
+| filter characteristics.has_w3c_navigation_timings == true
 | filter isNotNull(browser.name)
-| summarize page_views = count(),
-    avg_duration_ms = avg(duration / 1ms),
-    p75_duration_ms = percentile(duration / 1ms, 75),
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
     by:{browser.name}
 | filter page_views > 20
-| sort p75_duration_ms desc
+| sort p75_load_ms desc
 | limit 10
 ```
 
 ```dql
-// Performance by OS — desktop vs mobile operating systems
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Performance by OS — desktop vs mobile operating systems (os.name; there is no os.family field)
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| filter isNotNull(os.family)
-| summarize page_views = count(),
-    avg_duration_ms = avg(duration / 1ms),
-    p75_duration_ms = percentile(duration / 1ms, 75),
-    by:{os.family}
+| filter characteristics.has_w3c_navigation_timings == true
+| filter isNotNull(os.name)
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms},
+    by:{os.name}
 | filter page_views > 20
-| sort p75_duration_ms desc
+| sort p75_load_ms desc
 ```
 
 <a id="slow-pages"></a>
 
 ## 6. Identifying Slow Pages
 
-Find the pages that need optimization attention — ranked by the impact of their slowness (volume x duration).
+Find the pages that need optimization attention — ranked by the impact of their slowness (volume x load time).
 
 ```dql
-// Slowest pages by p95 duration — worst-case performance
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Slowest pages by p95 load time — worst-case performance
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| summarize page_views = count(),
-    avg_ms = avg(duration / 1ms),
-    p75_ms = percentile(duration / 1ms, 75),
-    p95_ms = percentile(duration / 1ms, 95),
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms,
+    p75_load_ms = percentile(performance.load_event_end, 75) / 1ms,
+    p95_load_ms = percentile(performance.load_event_end, 95) / 1ms},
     by:{page.detected_name}
 | filter page_views > 20
-| sort p95_ms desc
+| sort p95_load_ms desc
 | limit 10
 ```
 
 ```dql
-// Weighted impact score — pages with high traffic AND high duration
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Weighted impact score — pages with high traffic AND slow loads
 fetch user.events, from:-24h
-| filter characteristics.has_page_summary == true
-| summarize page_views = count(),
-    avg_ms = avg(duration / 1ms),
+| filter characteristics.has_w3c_navigation_timings == true
+| summarize {page_views = count(),
+    avg_load_ms = avg(performance.load_event_end) / 1ms},
     by:{page.detected_name}
-| fieldsAdd impact_score = page_views * avg_ms
+| fieldsAdd impact_score = page_views * avg_load_ms
 | sort impact_score desc
 | limit 10
 ```
 
-> **Tip:** The impact score (page views x average duration) helps prioritize optimization efforts. A moderately slow page with high traffic may be more impactful than a very slow page with few visitors.
+> **Tip:** The impact score (page views x average load time) helps prioritize optimization efforts. A moderately slow page with high traffic may be more impactful than a very slow page with few visitors.
 
 <a id="performance-trends"></a>
 
@@ -313,19 +291,24 @@ fetch user.events, from:-24h
 Track performance over time to detect regressions and measure the impact of optimizations.
 
 ```dql
-// Page load duration trend — daily p75 over the last 7 days
+// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Page load time trend — daily p75 over the last 7 days
 fetch user.events, from:-7d
-| filter characteristics.has_page_summary == true
-| fieldsAdd duration_ms = duration / 1ms
-| makeTimeseries p75_duration = percentile(duration_ms, 75), interval:1d
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_ms = performance.load_event_end / 1ms
+| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:24h
 ```
 
 ```dql
+// TTFB corrected 10/05/2026: coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value) — the
+// stable duration field where populated, else the experimental responseStart value (already ms).
+// ttfb.waiting_duration is the pre-request wait/redirect phase, not TTFB.
 // TTFB trend — hourly p75 over the last 24 hours
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(ttfb.waiting_duration)
-| fieldsAdd ttfb_ms = ttfb.waiting_duration
+| fieldsAdd ttfb_ms = coalesce(web_vitals.time_to_first_byte / 1ms, ttfb.value)
+| filter isNotNull(ttfb_ms)
 | makeTimeseries p75_ttfb = percentile(ttfb_ms, 75), interval:1h
 ```
 
@@ -335,12 +318,12 @@ fetch user.events, from:-24h
 
 In this notebook, we covered:
 
-- **Page load waterfall** — Full timing breakdown from DNS to load complete
+- **Page load waterfall** — Full timing breakdown from DNS to load complete, all on navigation events
 - **TTFB analysis** — Server response time measurement and classification
 - **DOM timing** — Interactive vs complete timing for resource load gap analysis
 - **Geographic performance** — Regional and continental performance differences
-- **Network/device performance** — Impact of connection type, browser, and OS
-- **Slow page identification** — Ranking pages by p95 duration and impact score
+- **Device performance** — Impact of browser and OS (web RUM has no connection-type field)
+- **Slow page identification** — Ranking pages by p95 load time and impact score
 - **Performance trends** — Time-series tracking for regression detection
 
 ### Next Steps

@@ -1,12 +1,12 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 09/28/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
 Alerts are the highest-stakes migration artifact — they wake people up. This deep dive covers the structural mismatch between NR alert policies and Gen3 Dynatrace, where alert routing lives in **Workflows** (not the Gen2 Alerting Profile object). It covers how NRQL conditions become anomaly detectors, why APM conditions still merit review even though Phase 17 now auto-converts them, the notification mapping (Workflow tasks instead of standalone Notification Channels), and the dual-alert window pattern that protects on-call during cutover.
 
-**Phase 17 alert coverage (post-2026-04-15):** the engine now auto-converts **NRQL conditions**, **NRQL baseline / outlier conditions** (`baseline_alert_transformer`), **Infrastructure / Synthetic / Browser / Mobile / External-service / Multi-location-synthetic conditions** (`non_nrql_alert_transformer`), **mute rules + scheduled + recurring maintenance windows** (`maintenance_window_transformer`), **lookup-table WHERE-IN subqueries** (`lookup_table_transformer` → Resource Store JSONL + DQL `lookup` subquery), and **deployment markers / change events** (`change_tracking_transformer` → DT events API `CUSTOM_DEPLOYMENT` / `CUSTOM_CONFIGURATION`). **Phase 18** adds `aiops_transformer` for NR AI Workflows / destinations / enrichments (with the NR↔DT "Workflow" name-collision callout). See [COVERAGE-MATRIX.md §7](../docs/COVERAGE-MATRIX.md) for the full alert-family row-set.
+**Phase 17 alert coverage (post-2026-04-15):** the engine now auto-converts **NRQL conditions**, **NRQL baseline / outlier conditions** (`baseline_alert_transformer`), **Infrastructure / Synthetic / Browser / Mobile / External-service / Multi-location-synthetic conditions** (`non_nrql_alert_transformer`), **mute rules + scheduled + recurring maintenance windows** (`maintenance_window_transformer`), **lookup-table WHERE-IN subqueries** (`lookup_table_transformer` → Resource Store JSONL + DQL `lookup` subquery), and **deployment markers / change events** (`change_tracking_transformer` → DT events API `CUSTOM_DEPLOYMENT` / `CUSTOM_CONFIGURATION`). **Phase 18** adds `aiops_transformer` for NR AI Workflows / destinations / enrichments (with the NR↔DT "Workflow" name-collision callout). See §7 of the [coverage matrix (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md) for the full alert-family row-set.
 
 ---
 
@@ -44,13 +44,16 @@ SELECT count(*) FROM TransactionError WHERE appName = 'checkout'
 -- threshold: above 10 for at least 5 minutes
 ```
 
-```
--- DQL (Metric Event query)
+```dql
+// DQL (Metric Event query)
 fetch spans, from:-5m
-| filter service.name == "checkout" AND isNotNull(error)
+| filter dt.service.name == "checkout" and isNotNull(endpoint.name)
+| filter span.status_code == "error"
 | summarize count = count()
--- threshold: count > 10
+// threshold: count > 10
 ```
+
+NR `TransactionError` becomes request spans (`isNotNull(endpoint.name)`) whose `span.status_code` is `"error"`. Do not translate it as `isNotNull(error)`: `error` is not a Dynatrace field, so that filter matches only spans where some instrumentation set a custom `error` attribute. On the validation tenant it counted 0 failures on a service with 235 of 749 requests failing in five minutes (10/05/2026) — an alert built on it never fires. For service-level failure counts the `dt.service.request.failure_count` metric is the alternative.
 
 ### Percentile threshold
 ```sql
@@ -59,13 +62,14 @@ SELECT percentile(duration, 95) FROM Transaction WHERE appName = 'api'
 -- threshold: above 1.0 for at least 5 minutes
 ```
 
-```
--- DQL
+```dql
 fetch spans, from:-5m
-| filter service.name == "api"
+| filter dt.service.name == "api" and isNotNull(endpoint.name)
 | summarize p95 = percentile(duration, 95)
--- threshold: p95 > duration("1s")
+// threshold: p95 > 1s
 ```
+
+Compare durations with a duration literal (`1s`). `duration("1s")` does not parse — `duration()` takes a number, not a string.
 
 ### Error rate threshold
 ```sql
@@ -74,11 +78,11 @@ SELECT percentage(count(*), WHERE error) FROM Transaction
 -- threshold: above 5 (= 5%) for 5 minutes
 ```
 
-```
--- DQL
+```dql
 fetch spans, from:-5m
-| summarize error_pct = 100.0 * countIf(isNotNull(error)) / count()
--- threshold: error_pct > 5
+| filter isNotNull(endpoint.name)
+| summarize error_pct = 100.0 * countIf(span.status_code == "error") / count()
+// threshold: error_pct > 5
 ```
 
 ### Translation Confidence for Alerts
@@ -271,13 +275,13 @@ In Gen3, notifications are not standalone objects — they are **tasks inside a 
 
 ### Volume Comparison Query (DQL)
 
-```
-fetch events, from:-7d
-| filter event.kind == "DAVIS_PROBLEM"
-| summarize problems = count(), by:{event.name, event.category}
+```dql
+fetch dt.davis.problems, from:-7d
+| summarize problems = countDistinct(display_id), by:{event.name, event.category}
+| sort problems desc
 ```
 
-Compare against NR's `Issues` count for the same period. Investigate any condition with > 25% delta.
+Count distinct problems, not records. `fetch events | filter event.kind == "DAVIS_PROBLEM"` returns one record per problem *update*: over 24 hours on the validation tenant it returned 15,735 records for 465 distinct problems (10/05/2026), so `count()` there inflates every condition by a factor that depends on how often its problems update. Compare against NR's `Issues` count for the same period. Investigate any condition with > 25% delta.
 
 <a id="muting"></a>
 ## 8. Mute Rules & Maintenance Windows
@@ -312,29 +316,29 @@ End-to-end commands for migrating only alerts (Metric Events + Workflows). Notif
 
 ```bash
 # 1. Inventory NR alert policies + conditions + notification channels
-python3 migrate.py migrate --export-only --components alerts,notifications --output ./alerts-export
+python3 migrate.py migrate --export-only --components alerts,notification_channels --output ./alerts-run
 
-# 2. Translate condition queries; emit Metric Events + Workflows
-python3 migrate.py migrate --transform-only --components alerts,notifications --report
+# 2. Translate condition queries and write a conversion report — nothing is imported
+python3 migrate.py migrate --dry-run --diff --report --components alerts,notification_channels --output ./alerts-run
 
-# 3. Diff (avoid recreating alerts that were partially migrated previously)
-python3 migrate.py migrate --diff --components alerts,notifications
+# 3. Import, routed to a silent test channel first (staging Workflow target);
+#    writes ./alerts-run/rollback-manifest.json
+python3 migrate.py migrate --components alerts,notification_channels --output ./alerts-run
 
-# 4. Import to silent test channel first (route to staging Workflow target)
-python3 migrate.py migrate --import-only --components alerts,notifications
+# 4. Config-drift audit: live tenant vs the transformed baseline
+#    (RENAMED / DELETED / MODIFIED / EXTRA; exits 1 on drift). Read-only; does not query New Relic.
+python3 migrate.py audit --baseline ./alerts-run/transformed/dynatrace_config.json
 
-# 5. Run dual-alert drift audit for 1–2 weeks
-python3 migrate.py audit
-
+# 5. Run the dual-alert window for 1–2 weeks and compare NR vs DT alert volume by hand (§7)
 # 6. Promote to production channels (re-enter secrets in Workflow tasks)
 # 7. Silence NR alerts for the migrated policies
 ```
 
-**Workflow validation:**
-```bash
-# Confirm each migrated Workflow triggers correctly
-python3 migrate.py migrate --diff --components alerts,notifications
-```
+> **Flags checked against `migrate.py` on the tool's `main` branch (10/05/2026).** There is no `--transform-only`: `--dry-run` runs export and transform, writes `<output>/transformed/dynatrace_config.json`, and skips the import. `--diff` takes effect only on a full or dry run — with `--import-only` it is ignored, and without `--dry-run` it is computed *after* the import. `--import-only` needs `--input <dir>` and does not write a rollback manifest; a full run writes `<output>/rollback-manifest.json`. Run `python3 migrate.py migrate --help` against your checkout before relying on a flag.
+
+Two more limits, from the same code. `--diff` matches only dashboards and management zones by name; alerts, SLOs and monitors are always reported as `CREATE`, so it cannot tell you an alert was already migrated. And the import warns that Davis anomaly detectors will fail to import unless `DYNATRACE_DETECTOR_ACTOR` (a service-user UUID) is set.
+
+**Workflow validation:** the tool has no command that fires or checks a workflow. Confirm each migrated workflow from its executions during the dual-alert window (§7), and compare NR and DT alert volume there — that comparison is manual.
 
 ---
 

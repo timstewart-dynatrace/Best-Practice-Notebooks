@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -252,6 +252,8 @@ The variable definition is a DQL query. The columns in the result set determine 
 | No wildcard in names | Variable names and values cannot contain `*` |
 | Permissions | Users must have read access to entities queried by the variable DQL |
 | Empty dropdown | Usually means the user lacks permission for the variable query |
+
+> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** segment variable queries move from the consuming app's context to the Segments app's. Once the change reaches your tenant, *"variable queries succeed even when the consuming app lacks the required data scopes"*, provided users hold `ALLOW app-engine:apps:run WHERE shared:app-id = 'dynatrace.segments.management'` — without it, *"variable queries will fall back to the old behavior."* Until then, the two permission rows above describe the working behaviour. Source: [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
 
 ### Variable DQL Examples
 
@@ -697,13 +699,14 @@ Davis problems live in the `events` data object with `event.kind = "DAVIS_PROBLE
 
 ### Validating the include
 
-Before saving the segment, run the equivalent DQL to make sure the filter produces the problem set you expect:
+Before saving the segment, run the equivalent DQL to make sure the filter produces the problem set you expect. Count problems on `dt.davis.problems`, which holds one record per problem. The `events` data object holds one record per problem *update*, so `count()` there over-reports — 15,735 records for 465 problems over 24 hours on a live tenant (10/05/2026).
 
 ```dql
-fetch events, from:-24h
+// One record per problem (dt.davis.problems), so count() counts problems
+fetch dt.davis.problems, from:-24h
 | filter event.kind == "DAVIS_PROBLEM"
 | filter startsWith(dt.host_group.id, "prod-")
-| summarize count = count(), by:{event.status}
+| summarize problems = count(), by:{event.status}
 ```
 
 If the count is zero, the underlying scoping field probably isn't enriched on problem events in your tenant — fall back to a Primary Grail Field that is (§3 audit query).

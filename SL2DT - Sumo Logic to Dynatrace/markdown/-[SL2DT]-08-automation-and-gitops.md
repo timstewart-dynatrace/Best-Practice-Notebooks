@@ -1,6 +1,6 @@
 # SL2DT-08: Automation & GitOps
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 07/30/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -21,6 +21,7 @@ Automation applies both to the migration itself (programmatically import 8,000 d
 7. [Ansible / CloudFormation / Cloud-Specific Handoffs](#cloud-integration)
 8. [Post-Migration: Change Management](#change-mgmt)
 9. [Step Exit Criteria](#gate)
+10. [References](#references)
 
 ---
 
@@ -30,7 +31,7 @@ Automation applies both to the migration itself (programmatically import 8,000 d
 |-------------|---------|
 | **Audience** | Platform engineering, DevOps, SRE |
 | **Tools** | Git, Terraform ≥1.6, Monaco ≥2.x, Python 3, cloud CLIs (AWS/GCP/Azure) |
-| **Dynatrace access** | Platform Token with broad write scopes; separate service account for CI |
+| **Dynatrace access** | Platform token for platform resources; OAuth client for IAM and Grail bucket definitions (SL2DT-03 §2, SL2DT-07 prerequisites); separate service identities for CI |
 | **Prior reading** | AUTOM-01 (Configuration automation overview), K8S-07 (GitOps for Dynatrace), `Dynatrace-NewRelic` for migration-tool patterns |
 
 <a id="outputs"></a>
@@ -51,7 +52,7 @@ Automation applies both to the migration itself (programmatically import 8,000 d
 |------|---------|-----------|
 | **Terraform** (Dynatrace provider) | Buckets, IAM groups/policies, Settings 2.0 schemas, some Workflows | Bulk dashboards (slow), complex dashboard JSON |
 | **Monaco** | Dashboards, monitors, settings in bulk; promotion across environments | IAM (use Terraform) |
-| **`Dynatrace-SumoLogic` migration tool** (future — see AGENT-TASKS.md) | Sumo extract + translate + import | Ongoing change management |
+| **Purpose-built migration tool** (not yet published) | Sumo extract + translate + import | Ongoing change management |
 | **Direct API (scripts)** | One-offs, custom orchestration, Document API for notebooks | Anything that needs state tracking |
 | **Dynatrace UI** | Investigation, exploration — never for config changes post-cutover | Migration execution |
 
@@ -77,10 +78,19 @@ terraform {
 }
 
 provider "dynatrace" {
-  dt_env_url     = var.dt_env_url
-  dt_platform_token = var.dt_platform_token  # Bearer token
+  dt_env_url     = var.dt_env_url         # https://<env-id>.apps.dynatrace.com
+  platform_token = var.dt_platform_token  # platform resources (dt0s16)
+
+  # IAM (Account Management) resources need an OAuth client
+  client_id     = var.dt_client_id        # dt0s02.…
+  client_secret = var.dt_client_secret
+  account_id    = var.dt_account_id
 }
 ```
+
+The argument is `platform_token`. A platform token does not cover everything this notebook manages: *"Platform tokens can't be used for IAM (Account Management) or classic resources."* IAM groups, policies and bindings run on the OAuth client, and the `dynatrace_platform_bucket` resource's own documentation asks for an OAuth client as well (SL2DT-03 §2).
+
+> <sub>**Sources:** [Dynatrace Terraform provider — argument reference (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md), [dynatrace_platform_bucket (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md).</sub>
 
 ### Organizing Modules
 
@@ -114,6 +124,7 @@ module "iam_prod_readers" {
   group_name  = "g_prod_readers"
   description = "Read-only prod logs"
   policy_statements = [
+    "ALLOW storage:buckets:read WHERE storage:bucket-name = \"custom_logs_prod\";",
     "ALLOW storage:logs:read WHERE storage:bucket-name = \"custom_logs_prod\";"
   ]
 }
@@ -143,58 +154,75 @@ Monaco is the right tool for dashboards/monitors in bulk. It excels at multi-ten
 
 ### Project Structure
 
-```
+```text
 monaco/
-├── environments.yaml       # Tenant list + auth
+├── manifest.yaml           # Projects + environment groups + auth
 ├── projects/
 │   ├── dashboards/
 │   │   ├── config.yaml
-│   │   └── definitions/    # One JSON/YAML per dashboard
+│   │   └── payments-api.json   # One JSON template per dashboard
 │   ├── monitors/
 │   └── openpipeline/
 ```
 
-### environments.yaml (non-secret)
+### manifest.yaml (non-secret)
 
 ```yaml
+manifestVersion: "1.0"
+
+projects:
+  - name: dashboards
+    path: projects/dashboards
+
 environmentGroups:
   - name: production
     environments:
       - name: prod
         url:
-          type: value
-          value: https://<env-id>.apps.dynatrace.com
+          type: environment
+          value: DT_PROD_URL            # https://<env-id>.apps.dynatrace.com
         auth:
           token:
-            type: environment
-            name: DT_PROD_TOKEN
+            name: DT_PROD_API_TOKEN     # access token — Settings 2.0 and classic configs
+          platformToken:
+            name: DT_PROD_PLATFORM_TOKEN  # documents, workflows, buckets, segments
   - name: preprod
     environments:
       - name: preprod
         ...
 ```
 
+Every `auth` entry names an environment variable; Monaco reads the secret from it at run time. Dashboards are platform documents, so the environment needs `platformToken` (or an `oAuth` client) as well as the access token — *"Access tokens and platform tokens are not interchangeable."*
+
 ### Deploying Dashboards
 
 ```bash
-monaco deploy -e environments.yaml projects/dashboards --environment-group production --dry-run
-monaco deploy -e environments.yaml projects/dashboards --environment-group production
+monaco deploy monaco/manifest.yaml --group production --dry-run
+monaco deploy monaco/manifest.yaml --group production
 ```
 
-### Template Variables
+`--group` (`-g`) selects an environment group and `--environment` (`-e`) a single environment, both by **name** from the manifest. The dry-run is a structural check only: *"A dry-run doesn't connect to Dynatrace and can't validate the content of the JSON sent to Dynatrace."*
 
-Monaco supports per-environment templating:
+### Template Parameters
+
+Each config names its template and passes parameters into it:
 
 ```yaml
 configs:
   - id: dashboard_payments_api
-    type: dashboard
-    template: templates/payments-api.json
-    parameters:
-      tenant_name: "{{ .name }}"
-      prod_bucket: "custom_logs_prod"
-      env_label: "{{ .environmentName }}"
+    config:
+      name: Payments API
+      template: payments-api.json
+      parameters:
+        prod_bucket: "custom_logs_prod"
+    type:
+      document:
+        kind: dashboard
 ```
+
+The template references `{{ .name }}` and `{{ .prod_bucket }}`. Values that differ per environment are set with overrides — see **AUTOM-03** for the full configuration format.
+
+> <sub>**Sources:** [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [Manage resources with Monaco (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources).</sub>
 
 ### Migration Use Case — Bulk Dashboard Import
 
@@ -234,7 +262,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/validate-dql.py terraform/
-      - run: monaco lint monaco/
+      - run: monaco deploy monaco/manifest.yaml --dry-run   # structural check; no tenant contact
       - uses: hashicorp/setup-terraform@v3
       - run: |
           cd terraform/envs/prod
@@ -275,7 +303,7 @@ jobs:
           cd terraform/envs/prod
           terraform init
           terraform apply -auto-approve
-      - run: monaco deploy -e environments.yaml monaco/projects --environment-group production
+      - run: monaco deploy monaco/manifest.yaml --group production
 ```
 
 ### Secrets Management
@@ -292,7 +320,7 @@ Never commit tokens. Every `*.env` file goes in `.gitignore`.
 <a id="import-pipeline"></a>
 ## 6. Automating the Sumo Extract → DT Import Flow
 
-For bulk migration work (Waves 3 and 4), scripts automate the extract + translate + import loop. The eventual `Dynatrace-SumoLogic` migration tool (see `docs/AGENT-TASKS.md`) is the destination; until built, scripts.
+For bulk migration work (Waves 3 and 4), scripts automate the extract + translate + import loop. A purpose-built migration tool (not yet published) would be the destination; until one exists, scripts.
 
 ### Minimal Python Pipeline
 
@@ -307,7 +335,9 @@ SUMO_AUTH = base64.b64encode(
 ).decode()
 DT_TOKEN = os.environ['DT_TOKEN']   # dt0s16.XXX
 DT_URL   = os.environ['DT_TENANT']
-SUMO_URL = f"https://api.{os.environ['SUMO_REGION']}.sumologic.com"
+SUMO_REGION = os.environ.get('SUMO_REGION', 'us1')
+SUMO_URL = ("https://api.sumologic.com" if SUMO_REGION == "us1"   # us1 has no region label
+            else f"https://api.{SUMO_REGION}.sumologic.com")
 
 def sumo_get(path):
     r = requests.get(f"{SUMO_URL}{path}",
@@ -320,6 +350,16 @@ def dt_post(path, body):
                       headers={"Authorization": f"Bearer {DT_TOKEN}"})
     r.raise_for_status()
     return r.json()
+
+def sumo_list(path, key):
+    """Follow Sumo's `token` / `next` pagination until the list is exhausted."""
+    items, token = [], None
+    while True:
+        page = sumo_get(f"{path}?limit=100" + (f"&token={token}" if token else ""))
+        items.extend(page[key])
+        token = page.get("next")
+        if not token:
+            return items
 
 def translate_dashboard(sumo_dashboard):
     # Uses sumoql-to-dql skill mapping tables
@@ -364,7 +404,7 @@ def main():
     out = Path("./translated")
     out.mkdir(exist_ok=True)
     skipped = []
-    for dash in sumo_get("/api/v2/dashboards")["dashboards"]:
+    for dash in sumo_list("/api/v2/dashboards", "dashboards"):
         dt_config = translate_dashboard(sumo_get(f"/api/v2/dashboards/{dash['id']}"))
         (out / f"{dash['id']}.json").write_text(json.dumps(dt_config, indent=2))
 
@@ -389,7 +429,7 @@ Hook `validate_dashboard` into the **PreflightCheck** structure below as a per-d
 
 ### Preflight Check (before bulk import)
 
-Adopt the **PreflightCheck** pattern from the future migration tool (see `docs/AGENT-TASKS.md` §3) for script-level migrations:
+Use a **PreflightCheck** structure for script-level migrations:
 
 ```python
 @dataclass
@@ -426,9 +466,13 @@ Critical pattern — every HTTP call must pick the right header:
 
 | Token Prefix | Scheme |
 |--------------|--------|
-| `dt0s16.` | `Authorization: Bearer <token>` |
-| `dt0s01.` | `Authorization: Bearer <token>` (OAuth) |
-| `dt0c01.` | `Authorization: Api-Token <token>` |
+| `dt0s16.` (platform token) | `Authorization: Bearer <token>` |
+| `dt0s02.` (OAuth client) | Not sent directly — exchange the client ID and secret for an access token, then `Authorization: Bearer <access-token>` |
+| `dt0c01.` (access token) | `Authorization: Api-Token <token>` |
+
+`dt0s01.` is not an OAuth token: it is the account SCIM token — *"This is an API token. It's used as an authorization method: a valid token allows the user to make changes within the Dynatrace account through SCIM."* The OAuth prefix is `dt0s02`: *"OAuth2 Clients created by users through Account Management to be used with Dynatrace Apps and Account Management API."*
+
+> <sub>**Sources:** [Dynatrace API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication).</sub>
 
 Wrong scheme → `401 Unsupported authorization scheme`, even with every scope.
 
@@ -539,8 +583,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: terraform plan -detailed-exitcode
-      - run: monaco deploy --dry-run --report drift-report.md
+      - run: terraform plan -detailed-exitcode   # exit code 2 = drift in Terraform-managed resources
       - if: failure()
         uses: actions/github-script@v7
         with:
@@ -551,6 +594,8 @@ jobs:
               body: 'See attached diff'
             });
 ```
+
+`terraform plan -detailed-exitcode` is the drift signal here: it compares state with the tenant and exits `2` when they differ. Monaco has no equivalent — it has no `--report` flag, and a dry-run never contacts the tenant. For Monaco-managed configs, schedule a `monaco download` of production into a scratch folder and review it against git; the downloaded folder layout differs from a hand-built project, so compare per config rather than with a blind recursive diff.
 
 <a id="gate"></a>
 ## 9. Step Exit Criteria
@@ -571,7 +616,7 @@ jobs:
 ---
 
 <a id="references"></a>
-## 11. References
+## 10. References
 
 ### Dynatrace automation and configuration-as-code
 - [Configuration as code (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code)

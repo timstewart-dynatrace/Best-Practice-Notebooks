@@ -1,6 +1,6 @@
 # NR2DT-03: Step 3 — Design
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -55,7 +55,7 @@ Use the recommended pattern from **ORGNZ-02 — Understanding Grail Buckets** (w
 | `<org>_events` | 90 days | Retain w/ Included Queries | Platform events |
 | `<org>_bizevents` | 90 days | Retain w/ Included Queries | Business events |
 
-Use `<org>_` as the prefix — it lets IAM policies scope with one `STARTSWITH "<org>_"` condition.
+Use `<org>_` as the prefix — it lets IAM policies scope with one `storage:bucket-name startsWith "<org>_"` condition.
 
 Document any deviations from this template (e.g., per-app buckets) and why.
 
@@ -75,14 +75,38 @@ Plan a host group per (environment × ownership) combination. Avoid a single all
 
 Recommended starting groups:
 
-| Group | Bucket Access | Policy Condition |
-|-------|---------------|------------------|
-| `<org>-admins` | All | `STARTSWITH "<org>_"` |
-| `<org>-sre` | All operational | `bucket-name IN ('<org>_app_logs', '<org>_infra_logs', '<org>_events', '<org>_spans')` |
-| `<org>-app-eng` | App logs only | `bucket-name == '<org>_app_logs'` |
-| `<org>-readonly` | All except security | `STARTSWITH "<org>_" AND bucket-name != '<org>_security_logs'` |
+| Group | Bucket Access |
+|-------|---------------|
+| `<org>-admins` | All `<org>_` buckets |
+| `<org>-sre` | All operational: app + infra logs, spans, events |
+| `<org>-app-eng` | App logs only |
+| `<org>-readonly` | All `<org>_` buckets except security |
 
-Always include an explicit DENY on `<org>_security_logs` for non-admin / non-audit groups.
+Each statement grants a Grail table permission (`storage:logs:read` and so on) together with `storage:buckets:read`, scoped by the `storage:bucket-name` condition. The bucket permission is needed as well as the table permission — the IAM reference describes `storage:buckets:read` as *"Required additionally to a table permission."*
+
+```text
+// <org>-admins
+ALLOW storage:buckets:read, storage:logs:read, storage:spans:read, storage:events:read, storage:bizevents:read
+  WHERE storage:bucket-name startsWith "<org>_";
+
+// <org>-sre
+ALLOW storage:buckets:read, storage:logs:read WHERE storage:bucket-name IN ("<org>_app_logs", "<org>_infra_logs");
+ALLOW storage:buckets:read, storage:spans:read WHERE storage:bucket-name = "<org>_spans";
+ALLOW storage:buckets:read, storage:events:read WHERE storage:bucket-name = "<org>_events";
+
+// <org>-app-eng
+ALLOW storage:buckets:read, storage:logs:read WHERE storage:bucket-name = "<org>_app_logs";
+
+// <org>-readonly — security bucket excluded from the ALLOW scope
+ALLOW storage:buckets:read, storage:logs:read, storage:spans:read, storage:events:read, storage:bizevents:read
+  WHERE storage:bucket-name startsWith "<org>_" AND storage:bucket-name != "<org>_security_logs";
+```
+
+**Do not exclude the security bucket with a conditional DENY on a table permission.** It does not do what it reads as: *"Conditional DENY statements involving Grail table permissions are not supported and are executed as unconditional DENY."* A `DENY storage:logs:read WHERE storage:bucket-name = "<org>_security_logs";` bound to the SRE, app-eng or readonly group would remove **all** log access for that group. Exclude the bucket from the ALLOW scope instead, as `<org>-readonly` does above. If you do need a DENY, the only storage permission that accepts a conditional one is the bucket permission: *"Conditional DENY statements are supported only for the buckets:read permission."*
+
+For policy design in depth (parameterized policies, boundaries), see **IAM-04** and **ORGNZ**.
+
+> <sub>**Sources:** [IAM policy statement syntax (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements), read 10/05/2026.</sub>
 
 <a id="openpipeline"></a>
 ## 5. OpenPipeline Layout
@@ -113,7 +137,7 @@ value: prod
 <a id="gate"></a>
 ## 6. Step Exit Criteria
 
-**G3 — Architecture Locked**
+**S3 — Architecture Locked**
 
 - [ ] `bucket-design.md` final; bucket names + retention + pricing model documented
 - [ ] `host-group-design.md` final; taxonomy understood by SRE + service owners
