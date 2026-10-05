@@ -1,6 +1,6 @@
 # K8S-05: Workload Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 5 of 14 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Application-Level Observability in Kubernetes
 Workload monitoring focuses on the application layer: deployments, pods, containers, and the services they provide. This notebook covers monitoring Kubernetes workloads from deployment health to service performance.
@@ -345,7 +345,8 @@ fetch logs, from:-1h
 // Recent application logs with context
 fetch logs, from:-1h
 | filter isNotNull(k8s.namespace.name)
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | fields timestamp, k8s.namespace.name, k8s.pod.name, content
 | sort timestamp desc
 | limit 30
@@ -373,7 +374,8 @@ Dynatrace Intelligence automatically detects:
 ```dql
 // Error count by namespace (detecting increases)
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | filter isNotNull(k8s.namespace.name)
 | summarize errorCount = count(), by:{k8s.namespace.name}
 | sort errorCount desc

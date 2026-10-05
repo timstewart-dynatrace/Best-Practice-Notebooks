@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -46,23 +46,30 @@ Dynatrace captures several categories of browser-side errors:
 
 ### Error Data Model
 
+Error events are `user.events` records with `characteristics.has_error == true`:
+
 | Field | Description |
 |-------|-------------|
-| `error.message` | Error message text |
-| `error.type` | Error classification |
-| `error.source` | Source file and line number |
-| `action.name` | User action during which the error occurred |
-| `sessionId` | Session containing the error |
-| `application` | Application name |
+| `error.reason` | The error reason — RUM JavaScript reports a pre-defined set of values |
+| `error.type` | Error classification: `exception`, `request` (failed request), `csp`, `reported` (custom reported error) |
+| `error.source` | The error source, e.g. `fetch`, `console` |
+| `page.detected_name` | Page on which the error occurred |
+| `dt.rum.session.id` | Session containing the error |
+| `start_time` | When the error occurred — `user.events` has no populated `timestamp` |
+
+The classic names `error.message`, `action.name` and `sessionId` read null on New RUM data.
+
+> <sub>**Sources:** [Errors — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/errors) — *"The error reason. RUM JavaScript reports a pre-defined set of values."*</sub>
 
 ```dql
 // Error / navigation vocabulary corrected 08/12/2026 (New RUM):
 //   filter type == "Error"  -> filter characteristics.has_error == true  (11,909 events; identical
 //                              population to isNotNull(error.type), whose values are request/csp/exception)
 //   error.message           -> error.reason
-//   user_action.type == "RouteChange" -> "same_view"  (the New RUM SPA route-change value; the
-//                              only other value is "hard_navigation". "Custom" has NO equivalent.)
-//   connection.type         -> network.protocol.name
+//   user_action.type: "Load" -> "hard_navigation", "RouteChange" -> "soft_navigation",
+//                     "Xhr" -> "same_view", "Custom" -> "api" (documented values, corrected 10/05/2026)
+//   connection.type         -> no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. "http")
 // THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
 // (performance.dom_interactive, performance.load_event_end) live on navigation events
 // (characteristics.has_navigation) and are unpopulated on page summaries
@@ -81,17 +88,18 @@ Dynatrace captures several categories of browser-side errors:
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
 // against names that are null on New RUM data, so these cells returned nothing while erroring
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
 //   action.type == "Load"              -> characteristics.has_navigation == true
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
 //   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
 //   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
@@ -104,8 +112,8 @@ Dynatrace captures several categories of browser-side errors:
 // Recent RUM errors — explore the data structure
 fetch user.events, from:-1h
 | filter characteristics.has_error == true
-| fieldsKeep timestamp, error.reason, error.type, error.source, page.detected_name, primary_tags.application, dt.rum.session.id
-| sort timestamp desc
+| fieldsKeep start_time, error.reason, error.type, error.source, page.detected_name, primary_tags.application, dt.rum.session.id
+| sort start_time desc   // user.events has no populated timestamp; sorting on it does not order rows
 | limit 20
 ```
 
@@ -134,9 +142,9 @@ fetch user.events, from:-24h
 // Error volume by application — which apps have the most errors?
 fetch user.events, from:-24h
 | filter characteristics.has_error == true
-| summarize error_count = count(),
+| summarize {error_count = count(),
     unique_errors = countDistinct(error.reason),
-    affected_sessions = countDistinct(dt.rum.session.id),
+    affected_sessions = countDistinct(dt.rum.session.id)},
     by:{primary_tags.application}
 | sort error_count desc
 ```
@@ -151,8 +159,8 @@ Error messages often contain variable data (stack traces, URLs, IDs). Grouping b
 // Top 15 errors by frequency — the most common error messages
 fetch user.events, from:-24h
 | filter characteristics.has_error == true
-| summarize error_count = count(),
-    affected_sessions = countDistinct(dt.rum.session.id),
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
     by:{error.reason, error.type}
 | sort error_count desc
 | limit 15
@@ -163,8 +171,8 @@ fetch user.events, from:-24h
 fetch user.events, from:-24h
 | filter characteristics.has_error == true
 | filter isNotNull(page.detected_name)
-| summarize error_count = count(),
-    unique_errors = countDistinct(error.reason),
+| summarize {error_count = count(),
+    unique_errors = countDistinct(error.reason)},
     by:{page.detected_name}
 | sort error_count desc
 | limit 10
@@ -180,8 +188,8 @@ Not all errors are equal. An error affecting 1 session is different from one aff
 // Error impact — errors ranked by number of affected sessions
 fetch user.events, from:-24h
 | filter characteristics.has_error == true
-| summarize total_occurrences = count(),
-    affected_sessions = countDistinct(dt.rum.session.id),
+| summarize {total_occurrences = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
     by:{error.reason}
 | sort affected_sessions desc
 | limit 10
@@ -191,8 +199,8 @@ fetch user.events, from:-24h
 // Error rate per application — percentage of sessions with errors
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize total_sessions = count(),
-    error_sessions = countIf(error.count > 0),
+| summarize {total_sessions = count(),
+    error_sessions = countIf(error.count > 0)},
     by:{primary_tags.application}
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 2)
 | sort error_rate_pct desc
@@ -207,15 +215,15 @@ fetch user.sessions, from:-24h
 XHR/fetch errors indicate backend API failures impacting the frontend. These are particularly critical in SPAs where the UI depends entirely on API responses.
 
 ```dql
-// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.waiting_duration
+// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.value
 // are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
 // silently, so a chart of nulls looks like "no data". Compare and aggregate them directly.
 // XHR errors by action — identify failing API calls
 fetch user.events, from:-24h
 | filter characteristics.has_error == true
 | filter error.type == "request"
-| summarize error_count = count(),
-    affected_sessions = countDistinct(dt.rum.session.id),
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
     by:{error.reason, page.detected_name}
 | sort error_count desc
 | limit 15
@@ -240,24 +248,9 @@ A **rage click** occurs when a user rapidly clicks the same element multiple tim
 - A UI element that is loading too slowly
 - A dead link or broken navigation element
 
-Dynatrace captures rage clicks as user action properties. They can also be detected through rapid action sequences:
+RUM Classic records rage clicks on the user session (USQL `numberOfRageClicks`). **New RUM documents no rage-click field.** The Semantic Dictionary has no field named for rage clicks or frustration, and `type` — which older versions of this notebook filtered as `type == "RageClick"` — is the *entity* type, empty on user events, so that filter returned nothing on every tenant. Until Dynatrace documents a New RUM rage-click signal, use Session Replay (WEBRUM-07) and the error-session correlation below to find frustrated users.
 
-```dql
-// Sessions with rage clicks — identify frustrated users
-fetch user.events, from:-24h
-| filter type == "RageClick"
-| summarize rage_count = count(),
-    by:{page.detected_name, primary_tags.application}
-| sort rage_count desc
-| limit 10
-```
-
-```dql
-// Rage click trend over 7 days — is frustration increasing?
-fetch user.events, from:-7d
-| filter type == "RageClick"
-| makeTimeseries rage_count = count(), interval:1d
-```
+> <sub>**Dictionary:** no field matching `contains(name, "rage_click")`, `"rageclick"`, `"rage.click"` or `"frustrat"` in `dt.semantic_dictionary.fields`, read 10/05/2026 (control: the same query returned `network.connection.type` and `network.connection.subtype`); `type` (`stable`) — *"The entity type."*</sub>
 
 <a id="error-session"></a>
 
@@ -270,10 +263,10 @@ Understanding how errors correlate with session outcomes (bounce, low engagement
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | fieldsAdd has_errors = if(error.count > 0, "With Errors", else: "No Errors")
-| summarize session_count = count(),
+| summarize {session_count = count(),
     avg_actions = avg(user_action_count),
     avg_duration_sec = avg(duration / 1s),
-    bounce_rate = countIf(user_action_count == 1),
+    bounce_rate = countIf(user_action_count == 1)},
     by:{has_errors}
 | fieldsAdd bounce_pct = round(toDouble(bounce_rate) / toDouble(session_count) * 100.0, decimals: 1)
 ```
@@ -283,8 +276,8 @@ fetch user.sessions, from:-24h
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(browser.name)
-| summarize total = count(),
-    with_errors = countIf(error.count > 0),
+| summarize {total = count(),
+    with_errors = countIf(error.count > 0)},
     by:{browser.name}
 | fieldsAdd error_rate = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
 | filter total > 10
@@ -303,7 +296,7 @@ In this notebook, we covered:
 - **Error grouping** — Identifying the most frequent error messages
 - **Impact analysis** — Measuring how many sessions each error affects
 - **XHR/fetch errors** — Backend API failures visible from the frontend
-- **Rage clicks** — Detecting user frustration through rapid repeated clicks
+- **Rage clicks** — a RUM Classic signal with no documented New RUM field; use Session Replay instead
 - **Error-session correlation** — How errors impact engagement and bounce rates
 
 ### Next Steps

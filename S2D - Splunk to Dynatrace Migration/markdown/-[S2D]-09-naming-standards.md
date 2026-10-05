@@ -1,6 +1,6 @@
 # S2D-09: Naming Standards & Organization
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 9 of 9 | **Created:** January 2026 | **Last Updated:** 06/23/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 9 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -83,17 +83,18 @@ The name shown when the alert fires. Can include placeholders for dynamic conten
 [app_name] [optional dimensions] - alert name from splunk
 ```
 
-**Available Placeholders:**
-- `{host.name}` - Affected host
-- `{dt.entity.service}` - Service entity
-- `{k8s.deployment.name}` - Kubernetes deployment
+**Available Placeholders** (form: `{dims:<dimension>}`; type `{` in the Event name field to list the placeholders available for your query):
+- `{dims:host.name}` - Affected host
+- `{dims:dt.entity.service}` - Service entity
+- `{dims:k8s.deployment.name}` - Kubernetes deployment
+- `{dims}` - All dimensions of the violating series
 
 **Examples:**
 
 | Event Name Template | Result When Triggered |
 |--------------------|-----------------------|
-| `[EasyTravel] P2 - {host.name} - High Error Count` | `[EasyTravel] P2 - app-server-01 - High Error Count` |
-| `[Payment] {k8s.deployment.name} - Slow Response` | `[Payment] checkout-service - Slow Response` |
+| `[EasyTravel] P2 - {dims:host.name} - High Error Count` | `[EasyTravel] P2 - app-server-01 - High Error Count` |
+| `[Payment] {dims:k8s.deployment.name} - Slow Response` | `[Payment] checkout-service - Slow Response` |
 
 <a id="report-naming"></a>
 ## Report Naming
@@ -205,7 +206,7 @@ log.[app_name].[metric_description]
 |------------|--------|----------|
 | Dashboard | `[app_name] Title` | `[EasyTravel] Business Overview` |
 | Alert Config | `[app_name] alert_name` | `[EasyTravel] High Error Count` |
-| Event Name | `[app_name] [dims] - alert` | `[EasyTravel] P2 - {host} - Errors` |
+| Event Name | `[app_name] [dims] - alert` | `[EasyTravel] P2 - {dims:host.name} - Errors` |
 | Report | `[Report] [app_name] title` | `[Report] [EasyTravel] Daily Stats` |
 | Lookup | `/lookups/[app]/[table]` | `/lookups/easytravel/users` |
 | Metric | `log.[app].[metric]` | `log.easytravel.error_count` |
@@ -252,6 +253,7 @@ This completes the S2D (Splunk to Dynatrace) migration series. You should now be
 - [Dynatrace Documentation](https://docs.dynatrace.com/docs)
 - [DQL Reference](https://docs.dynatrace.com/docs/shortlink/dql-reference)
 - [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
+- [Anomaly detection configuration — event template (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)
 - [Workflows](https://docs.dynatrace.com/docs/shortlink/workflows)
 
 ---

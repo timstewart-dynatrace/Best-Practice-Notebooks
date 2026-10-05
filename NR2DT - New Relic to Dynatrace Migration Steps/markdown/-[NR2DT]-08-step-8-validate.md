@@ -1,6 +1,6 @@
 # NR2DT-08: Step 8 — Validate
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 8 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 8 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -31,23 +31,25 @@ Procedural — see **NRLC-08** (Validation, Diff & Rollback) for the validation 
 <a id="tiers"></a>
 ## 1. Three-Tier Validation Pass
 
-The three validation tiers map onto three real `migrate.py` subcommands (there is no single `validate` subcommand — each tier uses the purpose-built command).
+There is no single `validate` subcommand, and only part of this pass is automated by `migrate.py`. Each tier below says what the tool does and what you check yourself.
 
 ### Tier 1 — Syntax
 
-Re-run for any changed translated queries (the `compile --validate` path runs parser-level validation with auto-fix):
+Every final DQL query parses against the target tenant. `compile --file` does not live-validate and has no auto-fixer (NR2DT-04 §5), so run the final DQL from `translated-queries.csv` in the tenant — in a notebook, or with `dtctl verify query` — and check single queries with:
 
 ```bash
-python3 migrate.py compile --validate --file translated-queries.csv
+python3 migrate.py compile --validate "<NRQL>"
 ```
 
 ### Tier 2 — Tenant
 
-Confirm referenced metrics, entities, buckets, and OpenPipeline enrichment attributes exist in the target tenant:
+Confirm referenced metrics, entities, buckets, and OpenPipeline enrichment attributes exist in the target tenant. **No `migrate.py` subcommand checks this.** `preflight` checks something narrower — that the Settings 2.0, Document API and Automation API are reachable with the token's scopes:
 
 ```bash
 python3 migrate.py preflight
 ```
+
+Check references by running the migrated queries in the tenant — a reference that does not exist usually returns zero rows rather than an error, so prove each data object with a known-good query first — and look fields and entity types up in the semantic dictionary (`fetch dt.semantic_dictionary.fields`, `fetch dt.semantic_dictionary.models`). NR2DT-00 §5 has the bucket, host and `dt.security_context` checks.
 
 Common Tier 2 failures:
 
@@ -57,13 +59,9 @@ Common Tier 2 failures:
 
 ### Tier 3 — Output Parity (Behavioral)
 
-Compare NR vs. DT outputs across the dual-run window using the drift-audit command against a captured baseline:
+Compare NR vs. DT outputs across the dual-run window. **The tool provides no NR-vs-DT output comparison.** For each artifact, capture the NR value with NRQL and the DT value with DQL over the same window, and compare them against the tolerances below. (`migrate.py audit --baseline` is a different check — post-import configuration drift — and belongs in §2.)
 
-```bash
-python3 migrate.py audit --baseline baseline-counts.json
-```
-
-> The baseline file is produced by exporting NR + DT counts across the dual-run window; the audit command compares live DT output against those values. See NRLC-08 §4 for the capture pattern.
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 Tolerance per artifact:
 
@@ -90,35 +88,39 @@ For environments where SVG doesn't render
 <a id="diff"></a>
 ## 2. Diff Against Live Config
 
-Confirm no drift since import:
+Confirm no drift since import — once per run directory:
 
 ```bash
-python3 migrate.py migrate --diff --components all
+python3 migrate.py audit --baseline ./run-dashboards/transformed/dynatrace_config.json --output ./drift-dashboards.json
 ```
 
-Investigate any `EXISTING_DRIFT` entries — someone manually changed a migrated artifact in DT. Decide whether the change should be incorporated into the migration source-of-truth (Terraform), reverted, or accepted.
+`audit` is read-only. It compares the transformed baseline with the live tenant, reports `RENAMED` / `DELETED` / `MODIFIED` / `EXTRA` drift, and exits 1 when it finds any. Do not use `migrate --diff --components all` for this: `all` is not a component name, and `migrate` without `--dry-run` imports before it diffs.
+
+Investigate each drift entry — someone manually changed a migrated artifact in DT. Decide whether the change should be incorporated into the migration source-of-truth (Terraform), reverted, or accepted.
 
 <a id="report"></a>
 ## 3. Generate the Quality Report
 
 ```bash
-python3 migrate.py migrate --report --output validation-report.html
+python3 migrate.py migrate --dry-run --report --output ./validation-run
 ```
 
-Report sections:
+`--dry-run` keeps this from importing everything a second time. `--output` is a directory; the report is written to `./validation-run/reports/conversion-report.json` and `.html`. It is an NRQL→DQL conversion report — a confidence summary and per-query detail — not a migration quality report. Assemble the rest of the cutover pack yourself:
 
-- Per-component pass/fail counts
-- Failed translations (with reasons)
+- Per-component pass/fail from the three tiers in §1
+- Failed translations (with reasons) from NR2DT-04
 - Manual-review queue (APM conditions, scripted browsers, deferred queries)
-- Rollback-eligible entities (within retention window)
+- The `rollback-manifest.json` from each run directory (NR2DT-09)
 - Recommended next actions
 
-Attach this report to the cutover change-management ticket.
+Attach the pack to the cutover change-management ticket.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 <a id="gate"></a>
 ## 4. Step Exit Criteria
 
-**G8 — Cutover Ready**
+**S8 — Cutover Ready**
 
 - [ ] Tier 1 (syntax) — all components pass
 - [ ] Tier 2 (tenant) — all references resolve

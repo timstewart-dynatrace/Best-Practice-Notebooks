@@ -1,6 +1,6 @@
 # SL2DT-09: Cutover, Validation & Decommission
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 9 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -21,6 +21,7 @@ The work here is mostly procedural: follow the runbook, execute gates, document 
 7. [Sumo Decommission](#decommission)
 8. [Post-Cutover First 30 Days](#post-cutover)
 9. [Final Step Exit Criteria](#gate)
+10. [References](#references)
 
 ---
 
@@ -116,17 +117,17 @@ For each source, choose a dual-ingest mechanism:
 ```dql
 // Parallel-run parity check: DT log volume per scope
 fetch logs, from:-24h
-| summarize c = count(), by:{dt.source_entity}
+| summarize c = count(), by:{sumo.source_category}
 | sort c desc
 | limit 100
 
 ```
 
 ```dql
-// Parallel-run alert volume (DT detected problems)
-fetch events, from:-24h
-| filter event.kind == "DAVIS_PROBLEM"
-| summarize c = count(), by:{dt.davis.problem.severity}
+// Parallel-run alert volume (DT detected problems, one record per problem)
+fetch dt.davis.problems, from:-24h
+| summarize problems = count(), by:{event.category}
+| sort problems desc
 
 ```
 
@@ -267,26 +268,28 @@ Only after T+30 days of stable DT operation.
 - [ ] All teams signed off (Tier 3)
 - [ ] No rollbacks in last 30 days
 - [ ] DT operating at full volume
-- [ ] All required compliance retention met in DT audit bucket
+- [ ] Compliance retention confirmed for both Dynatrace audit records — environment audit events (`dt.system.events`, one year) and the Account Management audit log — with an export planned where longer retention is required (SL2DT-07 §6)
 - [ ] Sumo data archival complete (per retention policy — regulated industries may require long-term archive)
 
 ### Decommission Sequence
 
-1. **Revoke Sumo API keys** — confirm no downstream automation still reading Sumo
-2. **Disable SSO integration** — Sumo stops accepting new logins
-3. **Archive critical data** — if required: export to S3/GCS with compliance retention
-4. **Cancel Sumo ingest sources** — disable Collectors; stop dual-writing
-5. **Export inventory** (final backup) — dashboards, monitors, FERs, settings
+1. **Export inventory** (final backup) — dashboards, monitors, FERs, settings, using the archival script below
+2. **Archive critical data** — if required: export to S3/GCS with compliance retention; verify the archive opens
+3. **Cancel Sumo ingest sources** — disable Collectors; stop dual-writing
+4. **Disable SSO integration** — Sumo stops accepting new logins
+5. **Revoke Sumo API keys** — last, because steps 1–2 use them; confirm no downstream automation still reads Sumo
 6. **Wait for confirmation** — 14-day window with no access requests
 7. **Terminate Sumo contract** — per contractual notice period
 
 ### Data Archival
 
 ```bash
-# Export all dashboards (final snapshot)
+# Export all dashboards (final snapshot) — run before the API keys are revoked
+# SUMO_API as set in SL2DT-02 §2 (us1 has no region label in its host)
+mkdir -p archive/dashboards
 for id in $(jq -r '.dashboards[].id' final-inventory/dashboards.json); do
   curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-    "$SUMO_URL/api/v2/dashboards/$id" > archive/dashboards/$id.json
+    "$SUMO_API/api/v2/dashboards/$id" > archive/dashboards/$id.json
 done
 tar czf sumo-final-archive.tar.gz archive/
 # Upload to long-term storage
@@ -352,7 +355,7 @@ aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
 ---
 
 <a id="references"></a>
-## 11. References
+## 10. References
 
 ### Dynatrace migration validation surfaces
 - [OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline)

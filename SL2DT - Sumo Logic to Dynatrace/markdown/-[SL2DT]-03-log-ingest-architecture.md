@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/02/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -24,6 +24,7 @@ This step is gating. Downstream monitors (SL2DT-05), dashboards (SL2DT-06), and 
 8. [Convert FERs to OpenPipeline Processors](#fers)
 9. [Validate Ingest Parity](#validate)
 10. [Step Exit Criteria](#gate)
+11. [References](#references)
 
 ---
 
@@ -122,8 +123,8 @@ From the taxonomy map (SL2DT-02 output), define buckets.
 
 ### Bucket Naming Convention
 
-```
-{env}_{purpose}[_{scope}]
+```text
+custom_logs_{env}[_{scope}]
 ```
 
 Examples:
@@ -131,24 +132,13 @@ Examples:
 - `custom_logs_prod_db` — production database logs (separate retention)
 - `custom_logs_preprod` — pre-production
 - `custom_logs_dev` — development
-- `audit_logs` — audit trail (compliance retention)
+- `audit_logs` — audit-trail **log sources** carried over from Sumo (compliance retention). Dynatrace's own audit events are not stored here — see SL2DT-07 §6.
 
-### Settings 2.0 Schema
+### How buckets are managed
 
-Buckets are managed via the Dynatrace Settings API using schema `builtin:bucket-configuration`:
+Bucket definitions are not managed through a Settings 2.0 schema — no `builtin:bucket-configuration` schema is documented. Manage them with the Terraform `dynatrace_platform_bucket` resource (OAuth client — see §2) or the Monaco `bucket` type (*"Since Dynatrace Monaco CLI version 2.9.0+, the `bucket` type is supported"*). Both need the `storage:bucket-definitions:*` permissions listed in §2.
 
-```json
-{
-  "schemaId": "builtin:bucket-configuration",
-  "scope": "environment",
-  "value": {
-    "name": "custom_logs_prod",
-    "displayName": "Production Logs",
-    "retention": 90,
-    "table": "logs"
-  }
-}
-```
+> <sub>**Sources:** [dynatrace_platform_bucket (Terraform provider, Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md), [Monaco configuration type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields).</sub>
 
 ### Terraform Example
 
@@ -194,30 +184,25 @@ Two decisions come out of the taxonomy map (SL2DT-02): bucket routing and attrib
 
 ### Pattern A — Bucket routing at ingest
 
-Route based on the source identifier (hostname pattern, tag, container label, etc.):
+Route on a source identifier (namespace, host group, tag, container label) with a **bucket assignment** in the pipeline's Storage stage. The matcher is a DQL condition — for example:
 
-```json
-{
-  "pipelineId": "pipeline_prod_routing",
-  "matchers": [
-    { "matcher": "k8s.namespace.name == 'prod'" },
-    { "matcher": "log.source startsWith 'prod/'" }
-  ],
-  "targetBucket": "custom_logs_prod"
-}
+```dql
+k8s.namespace.name == "prod" or startsWith(log.source, "/var/log/prod/")
 ```
+
+with target bucket `custom_logs_prod`. §7 shows where this sits in the current Settings shape.
 
 ### Pattern B — Attribute preservation
 
-Add a `dt.source_entity` field that mirrors the Sumo `_sourceCategory` value so queries can still group by it:
+Carry the Sumo `_sourceCategory` value in a **customer-owned attribute outside the `dt.*` namespace** — this series uses `sumo.source_category` — so translated queries can still group by it. Set it with a **DQL processor** (§7):
 
-```json
-{
-  "processor": "add-field",
-  "field": "dt.source_entity",
-  "expression": "extract(log.source, 'regex_for_sourcecategory_equivalent')"
-}
+```dql
+fieldsAdd sumo.source_category = concat("prod/api/", k8s.deployment.name)
 ```
+
+Do **not** reuse `dt.source_entity`. It is a Dynatrace-owned field holding the **entity ID** of the log's source (the semantic dictionary describes it as *"The ID of the entity considered the source of the signal"*), it is already populated on most OneAgent logs, and OpenPipeline adds it only after processing: *"The following fields are added after the Processing stage when Dynatrace runs its entity detection. You can use them only in stages after the Processing stage"* — `dt.source_entity` is on that list. A processor that writes a category into it does not produce the field the queries expect.
+
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits). **Dictionary:** `dt.source_entity` (`deprecated`), read 10/05/2026.</sub>
 
 Most customers do both: bucket for isolation, attribute for query-time grouping.
 
@@ -227,8 +212,8 @@ After OpenPipeline is live, this should return your taxonomy:
 
 ```dql
 // Inspect the preserved _sourceCategory equivalent
-fetch logs, from:-1h, bucket:"custom_logs_prod"
-| summarize c = count(), by:{dt.source_entity}
+fetch logs, from:-1h, bucket:{"custom_logs_prod"}
+| summarize c = count(), by:{sumo.source_category}
 | sort c desc
 | limit 50
 
@@ -254,7 +239,7 @@ oneagentctl --get-logmonitoring-enabled
 
 ### AWS / Azure / GCP Hosts
 
-Use Dynatrace Clouds app (AWS) or cloud-native integrations. No manual OneAgent install.
+VMs that ran a Sumo Installed Collector still need OneAgent — deploy it with your provisioning tooling (SL2DT-08 §7). The Clouds app (AWS) and the Azure / GCP integrations add the managed-service metrics and logs; they do not collect host log files or processes, so they complement OneAgent rather than replace it.
 
 ### Kubernetes
 
@@ -267,7 +252,7 @@ metadata:
   name: dynakube
   namespace: dynatrace
 spec:
-  apiUrl: https://<env-id>.apps.dynatrace.com/api
+  apiUrl: https://<env-id>.live.dynatrace.com/api
   tokens: tokens-secret
   oneAgent:
     cloudNativeFullStack:
@@ -280,9 +265,12 @@ spec:
   logMonitoring:
     ingestRuleMatchers:
       - attribute: k8s.namespace.name
-        operator: matches
-        values: ["prod-*", "preprod-*"]
+        values: ["prod-payments", "prod-web", "preprod-payments"]
 ```
+
+`apiUrl` is the environment URL *"including the `/api` path at the end"* — on SaaS the `live.dynatrace.com` host, not the `apps.dynatrace.com` platform host. An `ingestRuleMatchers` entry has only `attribute` and `values` (there is no `operator`), and the documentation's examples list exact names — list each namespace rather than relying on wildcards. Plan the list up front: *"This field is immutable once set."*
+
+> <sub>**Sources:** [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters).</sub>
 
 ### Capture host groupings
 
@@ -389,19 +377,17 @@ For each bucket, define a pipeline that:
           "description": "Parse method/path/status from content",
           "matcher": "true",
           "dql": {
-            "script": "parse content, \"LD 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
+            "script": "parse content, \"LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
           },
           "enabled": true
         },
         {
-          "type": "fieldsAdd",
-          "id": "processor_add_source_entity",
-          "description": "Derive dt.source_entity from k8s.deployment.name",
+          "type": "dql",
+          "id": "processor_add_source_category",
+          "description": "Derive sumo.source_category from k8s.deployment.name",
           "matcher": "true",
-          "fieldsAdd": {
-            "fields": [
-              { "name": "dt.source_entity", "value": "concat('prod/api/', k8s.deployment.name)" }
-            ]
+          "dql": {
+            "script": "fieldsAdd sumo.source_category = concat(\"prod/api/\", k8s.deployment.name)"
           },
           "enabled": true
         }
@@ -425,22 +411,17 @@ resource "dynatrace_openpipeline_v2_logs_pipelines" "pipeline_prod_api" {
         description = "Parse method/path/status from content"
         matcher     = "true"
         dql {
-          script = "parse content, \"LD 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
+          script = "parse content, \"LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
         }
         enabled = true
       }
       processor {
-        type        = "fieldsAdd"
-        id          = "processor_add_source_entity"
-        description = "Derive dt.source_entity from k8s.deployment.name"
+        type        = "dql"
+        id          = "processor_add_source_category"
+        description = "Derive sumo.source_category from k8s.deployment.name"
         matcher     = "true"
-        fields_add {
-          fields {
-            field {
-              name  = "dt.source_entity"
-              value = "concat('prod/api/', k8s.deployment.name)"
-            }
-          }
+        dql {
+          script = "fieldsAdd sumo.source_category = concat(\"prod/api/\", k8s.deployment.name)"
         }
         enabled = true
       }
@@ -448,6 +429,10 @@ resource "dynatrace_openpipeline_v2_logs_pipelines" "pipeline_prod_api" {
   }
 }
 ```
+
+**Why a DQL processor for the category.** The **Add fields** processor writes static values only — *"This processor doesn't leverage DQL processing statements and doesn't support dynamic values."* … *"To add fields with dynamic values, use the DQL processor instead."* Given `concat(...)`, it would store that text literally. The parse pattern starts with `LD?` rather than `LD` because `LD` needs at least one character before `method=`, so it returns nothing for a line that *starts* with `method=` — a line Sumo's `"method=*"` does match.
+
+> <sub>**Sources:** [OpenPipeline processing stage (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing-stage).</sub>
 
 Redaction (masking the 16-digit card-number pattern from the earlier illustrative example) belongs in a dedicated masking/DQL processor stage — see OPLOGS-03 and OPIPE for the current redaction processor shape rather than a standalone `"type": "redact"` block, which does not exist in the current API.
 
@@ -457,8 +442,8 @@ Route-to-bucket is a separate concern from the pipeline's processors — it's ha
 
 ```dql
 // Check that parsing produces the expected fields
-fetch logs, from:-15m, bucket:"custom_logs_prod"
-| filter dt.source_entity == "prod/api/payments"
+fetch logs, from:-15m, bucket:{"custom_logs_prod"}
+| filter sumo.source_category == "prod/api/payments"
 | filter isNotNull(http.status)
 | summarize c = count(), by:{http.method, http.status}
 | sort c desc
@@ -483,11 +468,18 @@ Fields extracted: `method`, `path`, `status`.
 
 ### Dynatrace OpenPipeline Equivalent
 
+A DQL processor, in the same Settings shape as §7, on the pipeline whose route covers the FER's scope (`prod/api/*`) — the route does the scoping, so the processor matches everything that reaches it:
+
 ```json
 {
-  "type": "parse",
-  "matchers": [{ "attribute": "dt.source_entity", "operator": "startsWith", "value": "prod/api/" }],
-  "pattern": "LD 'method=' DATA:http.method ' path=' DATA:http.path ' status=' INT:http.status"
+  "type": "dql",
+  "id": "processor_fer_api_parse_req",
+  "description": "FER api-parse-req",
+  "matcher": "true",
+  "dql": {
+    "script": "parse content, \"LD? 'method=' WORD:http.method ' path=' DATA:http.path ' status=' INT:http.status\""
+  },
+  "enabled": true
 }
 ```
 
@@ -499,11 +491,13 @@ Fields extracted: `method`, `path`, `status`.
 | `\w+` (word chars) | `WORD` |
 | `\d+` (digits) | `INT` |
 | `\d+\.\d+` (float) | `DOUBLE` |
-| `\S+` (non-space) | `LD` |
+| `\S+` (non-space) | `NSPACE` (`LD` matches any characters, spaces included) |
 | `\d+\.\d+\.\d+\.\d+` (IPv4) | `IPADDR` |
-| ISO 8601 timestamp | `TIMESTAMP` |
-| Quoted string | `QUOTED_STRING` |
+| ISO 8601 timestamp | `ISO8601` (or `TIMESTAMP('<format>')` with an explicit format) |
+| Quoted string | `DQS` (double-quoted) / `SQS` (single-quoted) |
 | `\{.*\}` (JSON blob) | `JSON` |
+
+Every row was checked with `data record(content="…") | parse content, "…"` on 10/05/2026. **FAQ-15** is the corpus's full DPL reference, including the matchers that do not exist.
 
 ### FER Conversion Workflow
 
@@ -516,8 +510,8 @@ Fields extracted: `method`, `path`, `status`.
 
 ```dql
 // After FER conversion, confirm extraction is working
-fetch logs, from:-15m, bucket:"custom_logs_prod"
-| filter startsWith(dt.source_entity, "prod/api/")
+fetch logs, from:-15m, bucket:{"custom_logs_prod"}
+| filter startsWith(sumo.source_category, "prod/api/")
 | filter isNotNull(http.method)
 | limit 10
 | fields content, http.method, http.path, http.status
@@ -541,7 +535,7 @@ Parity = volume per scope per hour in DT is within 5% of Sumo volume for the sam
 ```dql
 // Count per scope in DT — compare to Sumo baseline
 fetch logs, from:-1h
-| summarize c = count(), by:{dt.source_entity}
+| summarize c = count(), by:{sumo.source_category}
 | sort c desc
 | limit 50
 
@@ -577,7 +571,7 @@ fetch logs, from:-1h
 - [ ] OTel Collector deployed for non-OneAgent sources
 - [ ] OpenPipeline pipelines configured per bucket
 - [ ] Every FER has a corresponding OpenPipeline processor
-- [ ] `dt.source_entity` attribute populated on all logs
+- [ ] `sumo.source_category` populated on all logs routed from Sumo-equivalent sources
 - [ ] Parity report: ≥95% of scopes within 5% of Sumo volume
 - [ ] No scope with >10% volume gap uninvestigated
 

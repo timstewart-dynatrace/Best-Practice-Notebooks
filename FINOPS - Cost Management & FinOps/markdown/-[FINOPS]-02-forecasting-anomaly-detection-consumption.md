@@ -1,6 +1,6 @@
 # FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 09/28/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -157,7 +157,7 @@ fetch dt.system.events, from:-30d
 | filter event.type == "Log Management & Analytics - Ingest & Process"
 | dedup event.id
 | fieldsAdd gib = toDouble(billed_bytes) / 1073741824
-| makeTimeseries daily_gib = sum(gib), by:{ usage.bucket }, interval:1d
+| makeTimeseries daily_gib = sum(gib), by:{ usage.bucket }, interval:24h
 ```
 
 **Worked example — week-over-week comparison via two parallel time ranges:**
@@ -184,7 +184,7 @@ fetch dt.system.events, from:-14d, to:-7d
 
 Buckets with high positive `delta_pct` are growing fast and merit a closer look. The pattern generalizes to month-over-month (`from:-60d, to:-30d` and `from:-30d`), day-over-day (1d), or any other comparison window.
 
-> <sub>**Sources:** [DQL `makeTimeseries` (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). The week-over-week `lookup` pattern is canonical in [`dynatrace-dql-examples`](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language) (parameter-level optimization recipes). Both queries are syntactically valid; execution-dependent on having ≥14 days of tenant history.</sub>
+> <sub>**Sources:** [DQL `makeTimeseries` (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). The week-over-week `lookup` pattern is canonical in [`dynatrace-dql-examples`](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language) (parameter-level optimization recipes). Both queries are syntactically valid; execution-dependent on having ≥14 days of tenant history. The daily trend query re-executed 10/05/2026 with `interval:24h` (no notifications; `1d` raised a deprecated-calendar-duration notice).</sub>
 
 <a id="davis-forecast"></a>
 ## 6. DIY — Davis Predictive AI on `dt.billing.*`
@@ -208,7 +208,7 @@ timeseries hourlyUsage = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
   from:-28d, interval:1h
 ```
 
-Feed this query into the forecast analyzer. The horizon is counted in data points and capped at 600, so at hourly granularity the longest horizon is 25 days — for a full 30 days, rebuild the input at `interval:1d` and forecast 30 points. Output: forecasted usage per step with a prediction interval (default coverage probability 0.9).
+Feed this query into the forecast analyzer. The horizon is counted in data points and capped at 600, so at hourly granularity the longest horizon is 25 days — for a full 30 days, rebuild the input at `interval:24h` and forecast 30 points. Output: forecasted usage per step with a prediction interval (default coverage probability 0.9).
 
 ### What to do with the output
 
@@ -323,12 +323,13 @@ Two-step diagnosis: anomaly says WHAT is up; attribution says WHO is driving it.
 
 ```dql
 // Daily host-hours per host capability — 28-day baseline input
-timeseries
-  full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:1d),
-  infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:1d),
-  code = sum(dt.billing.code_monitoring.usage, rate:1d),
-  k8s = sum(dt.billing.kubernetes_monitoring.usage, rate:1d),
-  from:-28d, interval:1d
+timeseries {
+  full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:24h),
+  infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:24h),
+  code = sum(dt.billing.code_monitoring.usage, rate:24h),
+  k8s = sum(dt.billing.kubernetes_monitoring.usage, rate:24h)
+  },
+  from:-28d, interval:24h
 ```
 
 **Step 2 — Feed into the seasonal baseline anomaly detection analyzer**, checking the latest day against the confidence band learned from the preceding days.
@@ -346,7 +347,7 @@ Start with the analyzer's default tolerance. After the first 2-4 alerts, judge w
 
 Capability-level anomaly tells you something is up; FINOPS-01 §10 (per-cost-center attribution) tells you *which* bucket or team is driving it. Dynatrace's own cost-spike tutorial runs the same two steps: identify the capability, then attribute the spike to the entity, dashboard, workflow, or detector behind it — followed by the conversation with the owning team.
 
-> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Identify which DPS capability is driving a cost spike"*, then *"Attribute the spike to the responsible entity, dashboard, workflow, or detector."* [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows).</sub>
+> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Identify which DPS capability is driving a cost spike"*, then *"Attribute the spike to the responsible entity, dashboard, workflow, or detector."* [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). The Step 1 input query re-executed 10/05/2026 with grouped aggregations and `24h` (29 daily points, no notifications).</sub>
 
 <a id="native-vs-diy"></a>
 ## 10. When to Use Native vs DIY

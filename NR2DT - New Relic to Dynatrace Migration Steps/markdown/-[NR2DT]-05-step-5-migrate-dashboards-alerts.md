@@ -1,6 +1,6 @@
 # NR2DT-05: Step 5 — Migrate Dashboards & Alerts
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 5 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ terraform apply -target=module.buckets -target=module.host_groups \
 
 **Wait ~45 minutes** for OpenPipeline enrichment propagation on EKS clusters before Wave 2 Terraform applies any routing rules.
 
-**Validate G0:**
+**Validate W0:**
 
 ```
 fetch logs, from:-15m
@@ -56,14 +56,20 @@ Every active bucket should show ingest. If anything lands in `default_logs` for 
 Dashboards are low-risk because they're read-only — users can compare visualizations side-by-side during the parallel run.
 
 ```bash
-# Diff first to avoid duplicates
-python3 migrate.py migrate --diff --components dashboards
+# Preview: export + transform + diff against the live tenant — imports NOTHING
+python3 migrate.py migrate --dry-run --diff --components dashboards --output ./run-dashboards
 
-# Import
-python3 migrate.py migrate --import-only --components dashboards
+# Import: the same command without --dry-run (and without --diff)
+python3 migrate.py migrate --components dashboards --output ./run-dashboards
 ```
 
-**G1 — Dashboard parity:**
+> **Never run `migrate` without `--dry-run`, `--export-only` or `--import-only` unless you intend to import.** `--diff` and `--report` do not make a run read-only: both run *after* the import phase, so `migrate --diff` without `--dry-run` imports first and then diffs the objects it has just created.
+
+Review the preview's diff table (`CREATE` / `UPDATE` / `CONFLICT` / `ORPHAN`) before importing. The import run writes `./run-dashboards/rollback-manifest.json` — keep it; NR2DT-09 rolls back from it. Use a separate `--output` directory per run, because each full run overwrites the manifest in its directory. (`--import-only --input ./run-dashboards --components dashboards` imports exactly the previewed `transformed/dynatrace_config.json` instead, but writes **no** rollback manifest. `--import-only` without `--input` stops with an error.)
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
+
+**W1 — Dashboard parity:**
 
 Sample 10–20% of dashboards. Open each NR dashboard and the corresponding DT document side-by-side. Acceptable diff:
 
@@ -80,9 +86,16 @@ Document any dashboard with > 5% delta in `wave1-issues.md` for follow-up.
 
 ### Step 1: Import to silent test channels
 
+Set `DYNATRACE_DETECTOR_ACTOR` first (NR2DT-00 §2.3) — without it the anomaly detectors fail to import.
+
+Preview, then import (see Wave 1 for why `--dry-run` comes first):
+
 ```bash
-python3 migrate.py migrate --import-only --components alerts,notifications
+python3 migrate.py migrate --dry-run --diff --components alerts,notification_channels --output ./run-alerts
+python3 migrate.py migrate --components alerts,notification_channels --output ./run-alerts
 ```
+
+Component names are the ones `python3 migrate.py migrate --list-components` prints. `notifications` is not one, and the tool skips an unknown name without an error. (`alerts` also pulls in `notification_channels` as a dependency.)
 
 Routing in this step goes to a **silent test Slack channel** (or equivalent). Update Workflow tasks to point at the test channel before enabling.
 
@@ -90,11 +103,14 @@ Routing in this step goes to a **silent test Slack channel** (or equivalent). Up
 
 Both NR and DT raise alerts. Compare volume daily:
 
+```dql
+// One record per problem: count distinct problems, not problem updates
+fetch dt.davis.problems, from:-1d
+| summarize problems = countDistinct(display_id), by:{event.name, event.category}
+| sort problems desc
 ```
-fetch events, from:-1d
-| filter event.kind == "DAVIS_PROBLEM"
-| summarize problems = count(), by:{event.name, event.category}
-```
+
+Count problems from `dt.davis.problems`, not from `fetch events | filter event.kind == "DAVIS_PROBLEM"`. The `events` form returns one record per problem *update*: over the same 24 h on the validation tenant (10/05/2026) it returned 15,738 records for 465 distinct problems — about 34× the real number, which would make the ±10% comparison meaningless.
 
 DT problem count should match NR alert count within ±10% per condition. Investigate any condition with > 25% delta.
 
@@ -103,10 +119,12 @@ DT problem count should match NR alert count within ±10% per condition. Investi
 **One policy at a time.** When a policy's dual-alert volume aligns:
 
 1. Update its Workflow tasks to point at the production channel (re-enter secrets in DT credentials vault)
-2. Silence that policy in NR (set policy state to inactive)
+2. Disable all of that policy's conditions in NR — a New Relic policy has no on/off state of its own: *"You can't disable a policy directly. However, you can disable all of the policy's conditions."*
 3. Move to the next policy
 
 Don't batch — sequential cutover lets you reverse one policy without affecting others.
+
+> <sub>**Sources:** [Create, edit, or find an alert policy (New Relic docs)](https://docs.newrelic.com/docs/alerts/organize-alerts/create-edit-or-find-alert-policy/), read 10/05/2026.</sub>
 
 
 ![Dual-Alert Window Pattern](images/05-dual-alert-window_930x500.png)
@@ -116,7 +134,9 @@ Don't batch — sequential cutover lets you reverse one policy without affecting
 |-------|--------|
 | 1 | Import to silent test channel (Day 0) |
 | 2 | Dual-alert for 1–2 weeks; compare volume daily |
-| 3 | Promote per policy (one at a time); silence NR per policy |
+| 3 | Promote per policy (one at a time); disable the NR policy's conditions |
+
+Volume query: `fetch dt.davis.problems, from:-1d` — `countDistinct(display_id)` by `event.name`, `event.category`.
 
 Pass criteria: DT vs NR alert count within ±10% per condition.
 For environments where SVG doesn't render
@@ -125,14 +145,14 @@ For environments where SVG doesn't render
 <a id="gate"></a>
 ## 4. Step Exit Criteria
 
-**G5 — Dashboards + Alerts Migrated**
+**S5 — Dashboards + Alerts Migrated**
 
-- [ ] All Wave 0 Foundations applied; G0 validated
-- [ ] All dashboards migrated; G1 visual-diff sample passed
+- [ ] All Wave 0 Foundations applied; W0 validated
+- [ ] All dashboards migrated; W1 visual-diff sample passed
 - [ ] All alert policies migrated; dual-alert window completed (≥ 1 week)
-- [ ] G3 dual-alert volume aligned within ±10%
+- [ ] W3 dual-alert volume aligned within ±10%
 - [ ] All notification secrets re-entered in DT credentials vault
-- [ ] NR alert policies silenced for migrated-policies-only (NR ingest still on)
+- [ ] NR conditions disabled for migrated policies only (NR ingest still on)
 
 **Next step:** **NR2DT-06 — Migrate Synthetics, SLOs, Workloads**.
 

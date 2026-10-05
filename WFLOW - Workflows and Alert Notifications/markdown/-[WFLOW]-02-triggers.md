@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -77,7 +77,7 @@ The most common trigger for alert notifications. Fires when Dynatrace Intelligen
 
 > ⚠️ **There is no Management Zone filter on the problem trigger.** An earlier revision of this notebook listed one; that was wrong. Dynatrace's upgrade guide describes the replacement directly: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem. There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* The trigger's configuration (problem state, event category, severity, affected-entity tags, custom filter) has no Management Zone option ([Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)). Scope the trigger with **affected-entity tags** plus the custom DQL matcher instead.
 >
-> This matters most if you are migrating off Management Zones: a workflow whose condition reads `event()["management_zones"]` keeps evaluating after the zones are deleted, but against an **empty array** — so every condition silently goes false and the workflow stops routing without erroring. See MZ2POL-01 §5 for the full MZ-job-to-successor mapping.
+> This matters most if you are migrating off Management Zones: do not route on `event()["management_zones"]`. The field is **not present on problem records** — on a live tenant (10/05/2026) 0 of 15,878 problems in `dt.davis.problems` over 30 days carried it, while 14 of 15 hosts belonged to a management zone — so a condition that reads it has nothing to match, whether or not your zones still exist. Check your own tenant with `fetch dt.davis.problems, from:-30d | summarize n = countIf(isNotNull(management_zones))`. See MZ2POL-01 §5 for the full MZ-job-to-successor mapping.
 
 > **Validate the filter before you save it.** The trigger configuration offers **Query past events**, which estimates how many matching events occurred in your environment over recent windows. Use it on every non-trivial trigger.
 >
@@ -333,7 +333,7 @@ There is no `trigger()` expression. Field names contain dots, so use bracket acc
 {{ event()["event.start"] }}          # When the problem opened
 {{ event()["affected_entity_ids"] }}  # Array of entity IDs
 {{ event()["root_cause_entity_id"] }} # Root cause entity (when determined)
-{{ event()["management_zones"] }}     # Array of MZ names (legacy — empty once MZs are retired; do not route on this)
+{{ event()["management_zones"] }}     # Legacy — not present on problem records (0 of 15,878 over 30 days); do not route on this
 {{ problem_link() }}                  # Link to problem
 ```
 

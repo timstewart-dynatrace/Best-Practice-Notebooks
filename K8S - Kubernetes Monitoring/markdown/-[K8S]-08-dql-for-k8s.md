@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -259,7 +259,8 @@ Getting this wrong is expensive in both directions:
 ```dql
 // Error logs by namespace
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | filter isNotNull(k8s.namespace.name)
 | summarize errorCount = count(), by:{k8s.namespace.name}
 | sort errorCount desc
@@ -421,7 +422,8 @@ smartscapeNodes "K8S_NODE"
 ```dql
 // Error rate trend (chart)
 fetch logs, from: now() - 24h
-| filter loglevel == "ERROR" and isNotNull(k8s.namespace.name)
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR" and isNotNull(k8s.namespace.name)
 | summarize errors = count(), by:{time_bucket = bin(timestamp, 1h)}
 | sort time_bucket asc
 ```
@@ -473,7 +475,8 @@ fetch events, from:-1h
 ```dql
 // Error rate spike detection
 fetch logs, from: now() - 1h
-| filter loglevel == "ERROR" and isNotNull(k8s.namespace.name)
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR" and isNotNull(k8s.namespace.name)
 | summarize errors = count(), by:{k8s.namespace.name}
 | filter errors > 100
 | sort errors desc

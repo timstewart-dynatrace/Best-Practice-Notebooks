@@ -1,6 +1,6 @@
 # NRLC-09: Toolchain Reference & End-to-End Runbook
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -38,7 +38,7 @@ The master reference for the open-source toolchain that powers every preceding n
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │        Dynatrace-NewRelic (Python orchestrator)        │
-│  - migrate.py CLI (13 subcommands)                      │
+│  - migrate.py CLI (14 subcommands)                      │
 │  - 40+ entity transformers (Phases 11 + 16–24)          │
 │  - migration/state, canary, audit, diff, retry, rollback│
 │  - exporters/monaco (v2), exporters/terraform           │
@@ -76,7 +76,7 @@ The master reference for the open-source toolchain that powers every preceding n
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Tool | Form | Use Case |
 |------|------|----------|
-| Dynatrace-NewRelic | Python orchestrator | End-to-end migration via migrate.py (40+ transformers, 13 subcommands) |
+| Dynatrace-NewRelic | Python orchestrator | End-to-end migration via migrate.py (40+ transformers, 14 subcommands) |
 | nrql-engine | TS library | Embed translation (292 patterns; TS↔Python parity pinned via Phase 19b CI) |
 | nrql-translator | TS CLI | Single query, batch Excel, notebook gen |
 
@@ -92,7 +92,7 @@ The official Dynatrace migration tooling lives under the [`dynatrace-dma`](https
 |------|-----------------|--------|
 | [`splunk-to-dynatrace`](https://github.com/dynatrace-dma/splunk-to-dynatrace) | Splunk | Active |
 | [`datadog-to-dynatrace`](https://github.com/dynatrace-dma/datadog-to-dynatrace) | Datadog | Active |
-| `newrelic-to-dynatrace` *(planned)* | New Relic | `nrql-engine` planned to relocate here; pre-staged sweep command in [ENGINE-LINKS.md](../docs/ENGINE-LINKS.md) |
+| `newrelic-to-dynatrace` *(planned)* | New Relic | `nrql-engine` planned to relocate here |
 
 When the New Relic engine relocates, the recommended install path will become the `dynatrace-dma` repo. Until then, `timstewart-dynatrace/nrql-engine` is canonical.
 
@@ -103,7 +103,7 @@ When the New Relic engine relocates, the recommended install path will become th
 
 ```bash
 git clone https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities
-cd Dynatrace-NewRelic
+cd NewRelic-to-Dynatrace-Migration-Utilities
 pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with NR + DT credentials
@@ -130,19 +130,24 @@ cp .env.example .env
 
 ### Configuration File (`.env`)
 
-```bash
-NR_API_KEY=NRAK-...
-NR_ACCOUNT_ID=1234567
-NR_REGION=US           # or EU
+Key names as in the repository's `.env.example` (`main` branch, read 10/05/2026):
 
-DT_TENANT_URL=https://abc12345.live.dynatrace.com
-DT_API_TOKEN=dt0c01.XXXX...
+```bash
+NEW_RELIC_API_KEY=NRAK-...
+NEW_RELIC_ACCOUNT_ID=1234567
+NEW_RELIC_REGION=US           # or EU
+
+DYNATRACE_API_TOKEN=dt0c01.XXXX...
+DYNATRACE_ENVIRONMENT_URL=https://abc12345.live.dynatrace.com
+DYNATRACE_DETECTOR_ACTOR=     # service-user UUID; anomaly detectors fail to import without it
 
 # Optional
+MIGRATION_DRY_RUN=false
 MIGRATION_OUTPUT_DIR=./output
-DRY_RUN=false
 LOG_LEVEL=INFO
 ```
+
+`audit-slos` additionally reads `DYNATRACE_OAUTH_TOKEN` from the environment and exits without it.
 
 Settings are loaded via Pydantic; missing required values fail fast with descriptive errors.
 
@@ -151,9 +156,9 @@ Settings are loaded via Pydantic; missing required values fail fast with descrip
 
 ### Subcommand inventory (post-Phase-24)
 
-The `migrate.py` entry point registers **13 subcommands**:
+The `migrate.py` entry point registers **14 subcommands** (`main` branch, read 10/05/2026):
 
-`agents, archive, audit, audit-slos, batch, compile, convert, export-monaco, export-terraform, migrate, preflight, reference, scan-instrumentation`
+`agents, archive, audit, audit-slos, batch, compile, convert, export-monaco, export-terraform, extract-nrql, migrate, preflight, reference, scan-instrumentation`
 
 | Subcommand | Purpose |
 |---|---|
@@ -164,32 +169,36 @@ The `migrate.py` entry point registers **13 subcommands**:
 | `reference` | Print NRQL → DQL reference table; `--mappings` for full mapping tables (230 metrics + 72 attributes + 90+ aggregations + 34 event types) |
 | **`preflight`** | **Phase 14.** Probe target DT tenant for Gen3 API availability (Settings 2.0 / Document / Automation). Suggests `--legacy` if any surface is missing. |
 | **`agents`** | **Phase 16.** Per-language APM agent migration action plans (Java / .NET / Node.js / Python / Ruby / PHP / Go). Flags: `--language <lang>`, `--phase`, `--dry-run`. |
-| **`scan-instrumentation`** | **Phase 16.** Scan source tree for `newrelic.*()` SDK calls; emit DT/OTel replacement suggestions (side-effect-free; manual apply). |
-| **`archive`** | **Phase 17.** Pre-decommission NRDB snapshot (resumable JSONL per event type). |
-| **`audit`** | **Phase 20.** Drift detection vs live tenant (also the drift-audit command for baseline-vs-current comparison). Reports RENAMED / DELETED / MODIFIED / EXTRA. Exits 1 on drift. |
-| `audit-slos` | Validate DT SLOs against live metrics for missing/invalid keys (Phase 11 + Phase 20 enrichment). |
+| **`scan-instrumentation`** | **Phase 16.** Scan **one source file** (`--file`) for `newrelic.*()` SDK calls; print DT/OTel replacement suggestions as a diff (`--output` writes it to a file). Side-effect-free; manual apply. |
+| **`archive`** | **Phase 17.** Pre-decommission NRDB snapshot (resumable JSONL per event type). Requires `--account` and `--since`. |
+| **`audit`** | **Phase 20.** Config drift: compares a transformed baseline (`--baseline <dynatrace_config.json>`) with the live tenant. Reports RENAMED / DELETED / MODIFIED / EXTRA. Read-only; exits 1 on drift. Does not query New Relic. |
+| `audit-slos` | Validate DT SLOs against live metrics for missing/invalid keys (Phase 11 + Phase 20 enrichment). DT side only; needs `DYNATRACE_OAUTH_TOKEN`. |
+| `extract-nrql` | Extract every NRQL query from the export JSON into a flat `.txt` or `.csv` list. |
 | `export-monaco` | Emit Monaco v2 project YAML (Gen3 default; `--legacy` for Gen2 shapes). |
 | `export-terraform` | Emit Terraform HCL with `dynatrace-oss/dynatrace` provider (Gen3 default; `--legacy` for Gen2 shapes). |
 
-> **Note:** Behavioral validation (running NRQL on NR and DQL on DT and diffing results) is handled via the `audit` subcommand using a captured baseline, not a separate `compare` subcommand.
+> **Note:** No subcommand runs NRQL against New Relic and DQL against Dynatrace to compare results. Behavioral validation (NRLC-08 §4) is a manual step; `audit` compares *configuration*, not query results.
 
-### Common flags
+### `migrate` flags
+
+These are options of the `migrate` subcommand, not global flags. There is no `--transform-only`, `--filter`, `--log-level` or `--no-color`.
 
 | Flag | Purpose |
 |------|---------|
-| `--components <list>` | Restrict to specific entity types |
-| `--filter <pattern>` | Filter entities by name regex |
+| `--components <list>` | Restrict to specific components (see §4 for the accepted names) |
+| `--export-only` / `--import-only` | Run one phase only; `--import-only` needs `--input <dir>` and writes no rollback manifest |
+| `--dry-run` | Export and transform, skip the import ("Validate without applying changes") |
+| `--diff` | Compare the transformed entities with the live tenant — use with `--dry-run`, otherwise it runs after the import |
 | `--output <dir>` | Override output directory |
-| `--log-level <level>` | DEBUG / INFO / WARN / ERROR |
-| `--no-color` | Disable colored output (CI-friendly) |
-| `--legacy` | Gen2 output path — emits Alerting Profiles / Management Zones / Auto-Tags / Config v1 dashboards instead of Gen3 equivalents. **Always warns at startup.** |
+| `--rollback <file>` | Delete the entities listed in a rollback manifest |
+| `--legacy` | Gen2 output path — emits Alerting Profiles / Management Zones / Auto-Tags / Config v1 dashboards instead of Gen3 equivalents. |
 | `--canary <pct>` | Phase 20. Two-wave import — import N% first, await approval, then import remainder |
-| `--canary-auto-proceed` | Promote canary to full import automatically if drift audit passes |
+| `--canary-auto-proceed` | In canary mode, skip the interactive prompt and proceed automatically (CI / scripted use) |
 | `--report` | Emit enriched conversion report (confidence_score, warning_codes, runbook_url per entry) |
 
 ### Transformer coverage
 
-`migrate.py` orchestrates 40+ entity transformers across 9 phase batches. See [COVERAGE-MATRIX.md](../docs/COVERAGE-MATRIX.md) for the complete NR-surface → transformer mapping. High-level summary:
+`migrate.py` orchestrates 40+ entity transformers across 9 phase batches. See the [coverage matrix (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md) for the complete NR-surface → transformer mapping. High-level summary:
 
 | Phase | Transformers added |
 |---|---|
@@ -206,7 +215,9 @@ The `migrate.py` entry point registers **13 subcommands**:
 <a id="components"></a>
 ## 4. Component Selection
 
-Migrating one entity type at a time is the safe pattern. The `--components` flag accepts a comma-separated list:
+Migrating one entity type at a time is the safe pattern. The `--components` flag accepts a comma-separated list.
+
+> **What `migrate --components` actually accepts (`main` branch, read 10/05/2026).** `--list-components` prints ten names: `dashboards`, `alerts`, `synthetics`, `slos`, `workloads`, `notification_channels`, `infrastructure`, `log_parsing`, `tags`, `drop_rules`. Of those, `migrate` exports and transforms only `dashboards`, `alerts`, `notification_channels`, `synthetics`, `slos` and `workloads`; any other name is reported as exported and produces nothing. Dependencies are added automatically — `alerts` pulls in `notification_channels`, and `slos` pulls in `alerts`. The table below maps NR surfaces to the engine's **transformers**; most of its first-column names are not `--components` values.
 
 | Component | Migrates | Transformer |
 |-----------|----------|-------------|
@@ -249,7 +260,7 @@ Migrating one entity type at a time is the safe pattern. The `--components` flag
 | `metric_normalization` | NR rename / aggregate / drop rules → OpenPipeline metric processors | `metric_normalization_transformer` (Phase 24) |
 | `saved_filter_notebook` | NR Data Apps → Document API `type=='notebook'` with markdown + DQL cells | `saved_filter_notebook_transformer` (Phase 24) |
 
-**Recommended order:** `workloads,tags` first (foundations), then `dashboards,synthetics`, then `alerts,notifications,baseline_alerts,non_nrql_alerts,maintenance_windows`, then `slos,key_transactions`, then `logs,drops,parsing,log_obfuscation,log_archive`, then specialized (`cloud_integrations`, `kubernetes`, `prometheus`, `database_monitoring`, `on_host_integrations`, `vulnerability`, `security_signals`, `ai_monitoring`, `otel_metrics`, `otel_collector`, `statsd`, `cloudwatch_metric_streams`, `npm`, `custom_entity`, `metric_normalization`, `saved_filter_notebook`).
+**Recommended order:** `workloads` first (foundations), then `dashboards`, then `synthetics`, then `alerts` (with `notification_channels`), then `slos`. Tag rules, log parsing, drop rules and the specialized surfaces in the table (cloud integrations, Kubernetes, Prometheus, database and on-host integrations, vulnerabilities, security signals, AI monitoring, OpenTelemetry, StatsD, CloudWatch metric streams, NPM, custom entities, metric normalization, saved-filter notebooks) are migrated by hand from the transformer guidance until `migrate` exports them.
 
 <a id="exports"></a>
 ## 5. Export Formats — Monaco & Terraform
@@ -303,16 +314,19 @@ Probes the target tenant for Settings 2.0 / Document API / Automation API availa
 ### Phase 1 — Discover (pair with NR2DT-01)
 
 ```bash
+# Export from New Relic (nothing is written to Dynatrace)
 python3 migrate.py migrate --export-only --output ./inventory
-python3 migrate.py migrate --report --input ./inventory
+# Transform and write the conversion report without importing
+python3 migrate.py migrate --dry-run --report --output ./inventory
 ```
 
-Review `inventory/exports/newrelic_export.json`, enriched conversion-quality report (`confidence_score`, `warning_codes`, `runbook_url` per entry), and gap analysis. Stakeholder sign-off on wave plan.
+Do not run `migrate --report` without `--dry-run`: with neither `--export-only` nor `--import-only`, `migrate` runs export, transform **and import**. Review `inventory/exports/newrelic_export.json`, enriched conversion-quality report (`confidence_score`, `warning_codes`, `runbook_url` per entry), and gap analysis. Stakeholder sign-off on wave plan.
 
 **Pre-decommission archive (Phase 17):**
 
 ```bash
-python3 migrate.py archive --event-types Transaction,Log,SyntheticCheck --output ./nrdb-archive
+python3 migrate.py archive --account <nr-account-id> --since '30 days ago' \
+  --event-types Transaction,Log,SyntheticCheck --output ./nrdb-archive
 ```
 
 Historical NRDB data is **not migratable to Grail** — archive as JSONL before decommissioning NR. Resumable per-event-type cursors let you interrupt and restart safely.
@@ -329,48 +343,43 @@ python3 migrate.py extract-nrql --input ./inventory --output ./inventory/all-nrq
 python3 migrate.py compile --file inventory/all-nrql.txt --output translated.dql
 python3 migrate.py batch   --file inventory/all-nrql.csv --output translated.csv
 
-# Instrumentation scan for newrelic.*() SDK calls (Phase 16)
-python3 migrate.py scan-instrumentation --src-root ./app-source --output ./instrumentation-todos.json
+# Instrumentation scan for newrelic.*() SDK calls (Phase 16) — one file per run
+python3 migrate.py scan-instrumentation --file ./app-source/checkout/Handler.java --output ./instrumentation-todos.diff
 
 # APM agent plan per language (Phase 16)
 python3 migrate.py agents --language java --dry-run
 python3 migrate.py agents --language nodejs --dry-run
 
-# Transform each component (dry-run)
-python3 migrate.py migrate --transform-only --components workloads,tags --dry-run
+# Transform each component and diff against the live tenant (nothing is imported)
+python3 migrate.py migrate --dry-run --diff --report --components workloads --output ./wave0
 ```
 
 ### Phase 3 — Wave-by-Wave Import (Gen3 default)
 
-**Use `migrate --diff` dry-run and `--canary` for production tenants.**
+**Use `migrate --dry-run --diff` before each wave and `--canary` for production tenants.** Each wave below is a full run (export → transform → import), which is what writes `<output>/rollback-manifest.json`; `--diff` is ignored with `--import-only`.
 
 ```bash
 # Wave 0 (foundations)
-python3 migrate.py migrate --import-only --components workloads,tags --diff
-python3 migrate.py migrate --import-only --components workloads,tags --canary 10 --canary-auto-proceed
+python3 migrate.py migrate --dry-run --diff --components workloads --output ./wave0
+python3 migrate.py migrate --components workloads --canary 10 --canary-auto-proceed --output ./wave0
 
 # Wave 1 (dashboards — read-only impact)
-python3 migrate.py migrate --import-only --components dashboards --diff
-python3 migrate.py migrate --import-only --components dashboards
+python3 migrate.py migrate --dry-run --diff --components dashboards --output ./wave1
+python3 migrate.py migrate --components dashboards --output ./wave1
 
-# Wave 2 (synthetics, including cert-check + broken-links — Phase 24)
-python3 migrate.py migrate --import-only --components synthetics
+# Wave 2 (synthetics)
+python3 migrate.py migrate --components synthetics --output ./wave2
 
-# Wave 3 (alerts — dual-alert window!)
-python3 migrate.py migrate --import-only --components alerts,notifications
+# Wave 3 (alerts + notification channels — dual-alert window!)
+python3 migrate.py migrate --components alerts,notification_channels --output ./wave3
 # ... wait 1–2 weeks dual-alert ...
 
-# Wave 4 (SLOs + key transactions — Phase 23)
-python3 migrate.py migrate --import-only --components slos,key_transactions
+# Wave 4 (SLOs — also pulls in alerts and notification channels as dependencies)
+python3 migrate.py migrate --components slos --output ./wave4
 python3 migrate.py audit-slos
 
-# Wave 5 (logs/drops/obfuscation/archive — Phase 17 + 24)
-python3 migrate.py migrate --import-only --components logs,drops,parsing,log_obfuscation,log_archive
-
-# Wave 6 (specialized — Phase 18 + 24)
-python3 migrate.py migrate --import-only --components cloud_integrations,kubernetes,prometheus
-python3 migrate.py migrate --import-only --components database_monitoring,on_host_integrations
-python3 migrate.py migrate --import-only --components vulnerability,security_signals,ai_monitoring
+# Waves 5–6 (tags, logs, drop and parsing rules, specialized surfaces):
+# not exported by `migrate` on the current main branch — migrate by hand (NRLC-07, §4)
 ```
 
 ### Phase 4 — Validate & Cutover (NRLC-08)
@@ -378,17 +387,14 @@ python3 migrate.py migrate --import-only --components vulnerability,security_sig
 Per-wave validation gates:
 
 ```bash
-# Drift audit against captured baseline (Phase 20)
-python3 migrate.py audit --baseline ./output
+# Config-drift audit: live tenant vs the wave's transformed baseline (Phase 20)
+python3 migrate.py audit --baseline ./wave1/transformed/dynatrace_config.json
 
-# SLO math-equivalence audit
+# SLO validity audit (DT side only: SLOs evaluate, metrics exist)
 python3 migrate.py audit-slos
-
-# Behavioral sample validation (drift audit drives the NR-vs-DT comparison via baseline)
-python3 migrate.py audit --baseline ./output
 ```
 
-Sign-off per wave.
+Behavioral validation — the same query run in New Relic and in Dynatrace over the same window, results compared — has no CLI command; do it by hand per NRLC-08 §4. Sign-off per wave.
 
 ### Phase 5 — Decommission NR
 
@@ -436,8 +442,8 @@ Run the compiler in CI to validate any committed DQL:
 Schedule a daily drift audit to detect manual DT changes that drifted from the GitOps source of truth — Phase 20 `migrate.py audit`:
 
 ```bash
-python3 migrate.py audit --baseline ./output --output drift.json
-if [[ $(jq '.driftCount' drift.json) -gt 0 ]]; then
+# audit exits 1 when it finds drift; the JSON report carries drift_count and by_kind
+if ! python3 migrate.py audit --baseline ./output/transformed/dynatrace_config.json --output drift.json; then
   alert_team "DT config drift detected"
 fi
 ```

@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 09/24/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -20,6 +20,7 @@ This notebook is intentionally terse. Each section points to the authoritative d
 6. [Quick Reference — Common DQL Patterns](#quick-dql)
 7. [Engagement Timeline Template](#timeline)
 8. [Companion Assets](#companions)
+9. [References](#references)
 
 ---
 
@@ -136,7 +137,7 @@ When things go wrong, consult this table first:
 ```dql
 // 6. Quick Reference — Common DQL Patterns
 fetch logs, from:-1h
-| summarize c = count(), by:{dt.source_entity}
+| summarize c = count(), by:{sumo.source_category}
 | sort c desc
 
 ```
@@ -145,9 +146,10 @@ fetch logs, from:-1h
 
 ```dql
 // Top errors by host
+// status == "ERROR" covers ERROR, SEVERE, CRITICAL, ALERT, FATAL and EMERGENCY; loglevel == "ERROR" misses SEVERE.
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| filter loglevel == "ERROR"
+| filter sumo.source_category == "prod/api"
+| filter status == "ERROR"
 | summarize c = count(), by:{host.name}
 | sort c desc
 | limit 10
@@ -159,9 +161,10 @@ fetch logs, from:-1h
 ```dql
 // Error rate timeseries
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| fieldsAdd is_error = if(loglevel == "ERROR", 1, else:0)
-| makeTimeseries total = count(), errors = sum(is_error), interval:1m
+| filter sumo.source_category == "prod/api"
+| fieldsAdd is_error = if(status == "ERROR", 1, else:0)
+| makeTimeseries {total = count(), errors = sum(is_error)}, interval:1m
+| fieldsAdd error_pct = 100.0 * errors[] / total[]
 
 ```
 
@@ -170,24 +173,24 @@ fetch logs, from:-1h
 ```dql
 // Latency percentiles
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| parse content, "LD 'latency=' INT:latency"
-| summarize p50 = percentile(latency, 50),
-            p95 = percentile(latency, 95),
-            p99 = percentile(latency, 99),
-            by:{http.path}
+| filter sumo.source_category == "prod/api"
+| parse content, "LD? 'latency=' INT:latency"
+| summarize {
+    p50 = percentile(latency, 50),
+    p95 = percentile(latency, 95),
+    p99 = percentile(latency, 99)
+  }, by:{http.path}
 
 ```
 
 ### Recent detected problems
 
 ```dql
-// Recent detected problems
-fetch events, from:-24h
-| filter event.kind == "DAVIS_PROBLEM"
-| sort timestamp desc
+// Recent detected problems (dt.davis.problems: one record per problem)
+fetch dt.davis.problems, from:-24h
+| fields event.start, display_id, event.name, event.category, event.status
+| sort event.start desc
 | limit 20
-| fields timestamp, event.name, dt.davis.problem.severity, dt.davis.problem.status
 
 ```
 
@@ -212,7 +215,7 @@ timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
 // iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
 // FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
+| filter sumo.source_category == "prod/api"
 | summarize c = count(), by:{host.name}
 | lookup [fetch dt.entity.host, from:-7d
          | fieldsAdd hostname = entity.name
@@ -258,11 +261,11 @@ For environments where SVG doesn't render
 
 ### Parallel series
 
-- [NR2DT](../../nr2dt/) — New Relic → Dynatrace procedural
-- [NRLC](../../nrlc/) — New Relic component deep dives
-- [S2D](../../s2d/) — Splunk → Dynatrace
-- [M2S](../../m2s/) — Managed → SaaS
-- [S2S](../../s2s/) — SaaS → SaaS
+- **NR2DT** — New Relic → Dynatrace procedural
+- **NRLC** — New Relic component deep dives
+- **S2D** — Splunk → Dynatrace
+- **M2S** — Managed → SaaS
+- **S2S** — SaaS → SaaS
 
 ### Official documentation
 

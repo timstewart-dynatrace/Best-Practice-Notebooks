@@ -1,12 +1,12 @@
 # S2D-05: Alert Migration - Workflow-Based Alerts
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
 While Davis Anomaly Detectors are preferred for continuous monitoring, some Splunk alerts are better suited for workflow-based alerting. This notebook explains when and how to use Dynatrace Workflows for alert migration.
 
-![Workflow vs Anomaly Detector](images/workflow-vs-anomaly-detector.png)
+![Workflow vs Anomaly Detector](images/05-workflow-vs-anomaly-detector.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Feature | Anomaly Detector | Workflow |
@@ -14,7 +14,7 @@ While Davis Anomaly Detectors are preferred for continuous monitoring, some Splu
 | Execution | Continuous | Scheduled |
 | Max Window | 60 minutes | Unlimited |
 | AI Integration | Davis AI | Manual logic |
-| License | Included | Workflow hours |
+| Cost | DQL query cost per execution | Workflow hours + DQL query cost |
 For environments where SVG doesn't render
 -->
 
@@ -87,7 +87,7 @@ Before choosing workflows, consider these limitations:
 
 | Aspect | Impact |
 |--------|--------|
-| **License consumption** | Workflows consume workflow hours |
+| **License consumption** | Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it runs is billed separately as query consumption |
 | **Setup effort** | More complex than anomaly detectors |
 | **Event handling** | Manual event creation required |
 | **No auto-update** | Events won't update or auto-close |
@@ -129,7 +129,7 @@ Unlike Anomaly Detectors, workflow queries often return a single aggregated valu
 // Workflow alert query - returns single count
 // Timeframe explicitly specified (last 7 days)
 fetch logs, from:now()-7d
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "payment-service")
 | summarize error_count = count()
 ```
@@ -141,10 +141,8 @@ Add dimensions to provide context in the event:
 ```dql
 // Query with dimensions for event context
 fetch logs, from:now()-24h
-| filter loglevel == "ERROR"
-| summarize 
-    error_count = count(),
-    by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
+| filter status == "ERROR"
+| summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
 | filter error_count > 100
 | sort error_count desc
 ```
@@ -155,11 +153,12 @@ The final workflow step uses JavaScript to create events. Here's a template:
 
 ```javascript
 // Event Creation Template
+import { result } from '@dynatrace-sdk/automation-utils';
 import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
-export default async function ({ execution_id }) {
+export default async function () {
   // Get query results from previous step
-  const queryResult = await getResult('query_step_name');
+  const queryResult = await result('query_step_name');
   const records = queryResult.records;
 
   // Configuration
@@ -192,6 +191,8 @@ export default async function ({ execution_id }) {
 }
 ```
 
+The Run JavaScript action docs describe this retrieval pattern: *"Use the automation-utils SDK for a concise way to retrieve a predecessor task's result"*. If you need the execution ID, the runtime passes it as `executionId` (*"The runtime injects workflow and task identifiers into the function parameters"*).
+
 ### Why `entitySelector` is the load-bearing line
 
 Davis groups alerts by the entity they are *about*. Most Davis events carry `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal concerns; 84.9% did on a validation tenant over 7 days, 08/11/2026 — and the documented rule is that the same-Smartscape-entity rule groups all events sharing the same `dt.smartscape_source.id` value. Events naming the same entity inside the correlation window collapse into **one** problem that updates as the condition persists.
@@ -214,7 +215,7 @@ The dimensioned query in the previous section groups by `dt.entity.cloud_applica
 // Do the entity IDs in your alert query resolve to real workloads?
 // A null smartscape_id means that row cannot be attributed - skip it, don't send it.
 fetch logs, from:now()-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
 | filter error_count > 100
 | lookup [smartscapeNodes "K8S_DEPLOYMENT" | fields id, id_classic],
@@ -223,17 +224,17 @@ fetch logs, from:now()-24h
 | limit 5
 ```
 
-Executed against the validation tenant over 24 hours on 07/31/2026, the top five breaching rows resolved like this:
+Executed against the validation tenant over 24 hours on 10/05/2026, the top five breaching rows resolved like this:
 
-| `k8s.deployment.name` | `error_count` | resolved `smartscape_id` |
-|---|---:|---|
-| `fluent-bit` | 1,155,207 | *null* |
-| `recommendationservice-*` | 197,539 | `K8S_DEPLOYMENT-184217F70116D1CD` |
-| *(null)* | 145,032 | *null* |
-| `emailservice-*` | 42,587 | `K8S_DEPLOYMENT-2AE53064B9E3699D` |
-| `headlessloadgen-*` | 29,039 | `K8S_DEPLOYMENT-141CE4BF3FD85A16` |
+| `k8s.deployment.name` | `k8s.namespace.name` | `error_count` | resolved `smartscape_id` |
+|---|---|---:|---|
+| `fluent-bit` | `dynatrace-fluent-bit` | 1,109,094 | *null* |
+| *(null)* | `online-boutique` | 1,087,312 | *null* |
+| *(null)* | `kube-system` | 247,191 | *null* |
+| `recommendationservice-*` | `hipstershop` | 197,551 | `K8S_DEPLOYMENT-184217F70116D1CD` |
+| *(null)* | *(null)* | 144,243 | *null* |
 
-**Two of the top five do not resolve — including the largest, by two orders of magnitude.** The `fluent-bit` logs carry a `dt.entity.cloud_application` value with no matching Smartscape deployment node, and the 145,032-error row carries no deployment context at all.
+**Four of the top five do not resolve, including the two largest.** The `fluent-bit` logs carry a `dt.entity.cloud_application` value with no matching Smartscape deployment node. The other three unresolved rows carry no deployment context at all.
 
 Skip those rows rather than sending an unattributed event for them. An event you cannot attribute is worse than no event: it lands on the environment entity, and on the validation tenant above such events merged with every other unattributable alert into a problem that names nothing actionable — no tuning will stop it. If a workload you care about lands in that group, the fix is upstream — get the workload properly monitored — not in the alerting template.
 
@@ -243,6 +244,8 @@ To find detectors already failing this way in your tenant, AIOPS-02 §8 ranks th
 
 <a id="schedule-configuration"></a>
 ## Schedule Configuration
+> **Illustrative only.** Dynatrace has no `schedule:` YAML format. Set these values in the workflow's schedule trigger, which offers Fixed time, Time interval and Cron schedule. The trigger's time zone defaults to UTC: *"IANA time zone for the configured time. Default: UTC."*
+
 ### Fixed Time Schedule
 
 Run at specific times:
@@ -284,13 +287,27 @@ For business hours-only alerting, consider these alternatives before using workf
 
 ### Option A: Filter by Hour in Query
 
-Add hour-of-day filtering to exclude off-hours:
+Add hour-of-day filtering to exclude off-hours. Queries run in UTC, so set the time zone explicitly. Without `timezone:`, "8 AM–6 PM" means 8 AM–6 PM UTC.
+
+**Custom-alert query** (no `from:`/`to:`, per S2D-04 Step 1):
 
 ```dql
-// Filter logs to business hours only (8 AM - 6 PM)
+// Paste into the custom alert WITHOUT from:/to:
+fetch logs
+| filter status == "ERROR"
+| fieldsAdd hour = getHour(timestamp, timezone:"America/New_York")
+| filter hour >= 8 and hour < 18
+| makeTimeseries count = count(), interval:1m
+```
+
+Notebook preview of the same query:
+
+```dql
+// Filter logs to business hours only (8 AM - 6 PM in YOUR time zone - set it explicitly)
+// Notebook PREVIEW: remove from:-24h when you paste it into the custom alert
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
-| fieldsAdd hour = toLong(formatTimestamp(timestamp, format:"HH"))
+| filter status == "ERROR"
+| fieldsAdd hour = getHour(timestamp, timezone:"America/New_York")
 | filter hour >= 8 and hour < 18
 | makeTimeseries count = count(), interval:1m
 ```
@@ -306,16 +323,17 @@ This preserves the benefits of Dynatrace Intelligence while limiting alert times
 
 <a id="important-disclaimers"></a>
 ## Important Disclaimers
-1. **Workflows do NOT send notifications directly**
-   - The workflow generates a problem/event
-   - Notifications are handled by alerting profiles and problem notification workflows
+1. **This pattern raises an event rather than notifying directly**
+   - The alert then flows through Davis problem correlation and your problem-triggered notification workflows (see WFLOW and ALERT-03)
+   - A workflow *can* send email or Slack directly (*"Automate sending out-of-the-box emails based on the events and schedules defined for your workflows."*), but that bypasses correlation
 
 2. **Event lifecycle is manual**
    - Events won't auto-update or auto-close
    - Consider event timeout settings
 
 3. **License considerations**
-   - Workflow hours are consumed
+   - Every standard workflow is billed per hour it exists, regardless of how often it runs: *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."*
+   - The DQL the workflow runs is billed separately as query consumption
    - See [Workflow consumption documentation](https://docs.dynatrace.com/docs/shortlink/dps-automation-consumption)
 
 <a id="migration-checklist"></a>
@@ -340,6 +358,8 @@ This preserves the benefits of Dynatrace Intelligence while limiting alert times
 - [Dynatrace Workflows](https://docs.dynatrace.com/docs/shortlink/workflows)
 - [Workflow Schedules](https://docs.dynatrace.com/docs/shortlink/workflows-schedules)
 - [Workflow Consumption](https://docs.dynatrace.com/docs/shortlink/dps-automation-consumption)
+- [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)
+- [Workflow actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 - [Event Ingest API](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/#eventingest)
 
 ---

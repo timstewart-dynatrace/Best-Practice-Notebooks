@@ -1,6 +1,6 @@
 # FAQ-09: When Should I Query a Metric Instead of Raw Logs?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 09 — When to Query a Metric Instead of Raw Logs | **Created:** June 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -118,7 +118,7 @@ timeseries sum(log.request.count), from:-24h, by:{status}
 // Billed on bytes scanned, so keep the window tight and filter early.
 // Replace "prod" with your namespace.
 fetch logs, from:-1h
-| filter k8s.namespace.name == "prod" and loglevel == "ERROR"
+| filter k8s.namespace.name == "prod" and status == "ERROR"
 | summarize errors = count(), by:{dt.entity.host}
 ```
 

@@ -1,6 +1,6 @@
 # NR2DT-99: Best Practice Summary
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 10 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -55,7 +55,7 @@
 | 5 | Dashboards first (low risk) builds trust in the translation pipeline | Catches systemic issues before alerts |
 | 5 | Dual-alert for 1–2 weeks before silencing NR | Catches volume / detection delta |
 | 5 | Promote alerts policy-by-policy, not in batch | Reversible per-policy |
-| 6 | Run SLO auditor over 7 days before declaring SLO migration done | Catches math drift |
+| 6 | Measure the 7-day NR-vs-DT SLI delta (by hand) and run `audit-slos` before declaring SLO migration done | The delta catches math drift; `audit-slos` catches invalid SLO metrics |
 | 7 | Dual-ship logs during cutover; volume parity validates the switch | Ensures no log gap |
 | 8 | All three validation tiers must pass; skipping Tier 3 is the most common error | Syntactically valid ≠ semantically correct |
 | 9 | Retain rollback manifests ≥ 30 days post-cutover | Late-discovered regressions still recoverable |
@@ -73,7 +73,9 @@
 | Trying to make DT behave like NR | Endless customization debt | Adopt DT patterns (Workflows, OpenPipeline, Dynatrace Intelligence) |
 | Single host group everywhere | Can't set per-environment thresholds | See FAQ-01 — plan host grouping in Step 3 |
 | Default bucket as permanent destination | Compliance + cost + IAM all suffer | See ORGNZ-02 / ORGNZ-99 — plan buckets in Step 3 |
-| Skipping SLO 7-day delta check | Compliance reporting drifts post-cutover | Run `audit-slos` before declaring Wave 4 done |
+| Skipping SLO 7-day delta check | Compliance reporting drifts post-cutover | Compute the 7-day NR-vs-DT SLI delta by hand before declaring Wave 4 done; `audit-slos` checks metric validity only |
+| Treating `migrate --diff` as a preview | Artifacts imported during what was meant to be a dry look | Preview with `migrate --dry-run --diff`; `--diff` alone imports first |
+| Partial rollback with `--rollback … --components` | Every entity in the manifest deleted | `--components` is ignored by rollback; roll back from a filtered copy of the manifest, `--dry-run` first |
 
 <a id="nrlc-map"></a>
 ## 4. Where the Deep Dives Live

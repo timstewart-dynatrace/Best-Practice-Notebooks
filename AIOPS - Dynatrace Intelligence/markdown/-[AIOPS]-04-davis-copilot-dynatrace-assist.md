@@ -1,6 +1,6 @@
 # AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 09/24/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -113,7 +113,8 @@ Try it below — open this notebook in the Dynatrace UI, select the query, and u
 ```dql
 // A non-trivial query worth explaining
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | parse content,
     "LD 'user_id=' DATA:user_id LD 'request_id=' DATA:request_id"
 | filter isNotNull(user_id) and isNotNull(request_id)

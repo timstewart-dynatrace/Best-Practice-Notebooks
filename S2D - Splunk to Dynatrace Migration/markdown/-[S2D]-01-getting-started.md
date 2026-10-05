@@ -1,12 +1,12 @@
 # S2D-01: Splunk to Dynatrace Migration - Getting Started
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 1 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
 This notebook series provides comprehensive guidance for migrating monitoring capabilities from Splunk to Dynatrace. Whether you're moving dashboards, alerts, reports, or log queries, these notebooks will help you understand the key differences between platforms and make informed translation decisions.
 
-![Migration Overview](images/migration-overview.png)
+![Migration Overview](images/01-migration-overview.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Source | Target | Coverage |
@@ -32,13 +32,15 @@ For environments where SVG doesn't render
 
 ### Sprint 1.337 (April 2026) Updates Affecting S2D
 
-Three sprint-1.337 changes simplify the Splunk → Dynatrace migration:
+Three 1.337 release items touch the Splunk → Dynatrace migration:
 
-1. **OneAgent primary fields/tags at the source** — hosts emit standardized fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and customer-defined primary tags as top-level attributes. When converting Splunk indexer-level metadata routing to Grail, this lets you skip a class of OpenPipeline parse processors that would otherwise be needed for OneAgent-instrumented sources.
-2. **OpenPipeline extraction processor recommended-field suggestions** — when converting Splunk field extractions to OpenPipeline DPL processors, the UI flags permission-relevant fields (`dt.security_context`, `loglevel`) and Smartscape identifiers — preventing accidental promotion of sensitive content.
-3. **Configuration API → Settings v2 + Platform tokens** — new automation should target Settings v2 paths and use Platform tokens (`dt0s16`/`dt0s01`, `Authorization: Bearer`).
+1. **Primary fields on AWS Lambda logs (OneAgent 1.337)** — *"Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent."* The item covers Lambda deployments only, not hosts in general. Where it applies, you do not need an OpenPipeline processor to add those fields to Lambda logs.
+2. **OpenPipeline field recommendations (SaaS 1.337)** — *"Recommendations automatically cover all permission- and cost-relevant fields or dimensions, with support for all Smartscape identifiers and Grail primary tags."* This helps when you convert Splunk field extractions into OpenPipeline processors.
+3. **Configuration API deprecations (SaaS 1.337)** — *"Certain Configuration API endpoints are now deprecated"*, and *"No immediate action is required on your part."* The release note adds *"We recommend migrating to the Environment API v2 endpoints for a more robust integration"*, so point new migration automation there. If that automation uses platform tokens, they carry the `dt0s16` prefix: *"dt0s16 Platform Token enabling programmatic access to Dynatrace platform services."*
 
 These changes reinforce the Gen3-first migration baseline.
+
+> <sub>**Sources:** [OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337), [SaaS 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337), [Tokens and authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication).</sub>
 
 ---
 
@@ -81,7 +83,7 @@ Understanding the fundamental differences between Splunk and Dynatrace is critic
 | Aspect | Splunk | Dynatrace |
 |--------|--------|------------|
 | **Execution** | Scheduled queries | Continuous monitoring |
-| **Frequency** | User-defined schedule | Every minute |
+| **Frequency** | User-defined schedule | Every minute by default (configurable Delay, max 60 min) |
 | **Evaluation** | Single point-in-time | Sliding window |
 | **Threshold** | Total over period | Per-minute samples |
 | **Intelligence** | Rule-based | Dynatrace Intelligence powered |
@@ -112,7 +114,7 @@ A successful migration follows this general sequence:
 
 1. **Choose alert type** - Anomaly Detector or Workflow
 2. **Translate thresholds** - Apply conversion formula
-3. **Configure notifications** - Set up alerting profiles
+3. **Configure notifications** - Route problems through problem-triggered workflows
 
 ### Phase 5: Dashboard Migration
 

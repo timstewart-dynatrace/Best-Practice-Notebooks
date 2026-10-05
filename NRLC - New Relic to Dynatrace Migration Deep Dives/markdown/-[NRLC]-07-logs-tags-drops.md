@@ -1,6 +1,6 @@
 # NRLC-07: Logs, Tags & Drop Rules
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 7 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 7 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -28,7 +28,7 @@ The cost-optimization layer of the migration. NR's flat retention and ingest-tim
 | NPM (SNMP + NetFlow, secrets redacted) | `npm_transformer` | 18 |
 | Vulnerabilities + per-CVE muting | `vulnerability_transformer` | 18 |
 
-See [COVERAGE-MATRIX.md §4, §6, §15, §16](../docs/COVERAGE-MATRIX.md) for the complete row-by-row mapping.
+See §4, §6, §15 and §16 of the [coverage matrix (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md) for the complete row-by-row mapping.
 
 ---
 
@@ -56,18 +56,20 @@ See [COVERAGE-MATRIX.md §4, §6, §15, §16](../docs/COVERAGE-MATRIX.md) for th
 <a id="translation-ctx"></a>
 ## Embedded Translation Context — Log Filter & Parsing Patterns
 
-Drop rules and parsing patterns translate predictably between NRQL/Grok and DPL.
+Drop rules translate from NRQL to an OpenPipeline matching condition written in DQL; parsing rules translate from Grok to DPL.
 
-### Drop rule (NRQL filter → DPL filterOut)
+### Drop rule (NRQL filter → OpenPipeline drop processor)
 ```sql
 -- NRQL
 DELETE FROM Log WHERE message LIKE '%health%' AND service = 'frontend'
 ```
 
+```text
+# OpenPipeline "Drop record" processor — matching condition (DQL)
+matchesValue(content, "*health*") and k8s.workload.name == "frontend"
 ```
--- DPL (OpenPipeline filterOut)
-filterOut: contains(content, "health") AND service.name == "frontend"
-```
+
+The NR `service` attribute has no fixed Dynatrace counterpart on logs — map it to whatever attribute your logs actually carry (check with the coverage query in §6). On the validation tenant `service.name` was set on about 2% of logs and `k8s.workload.name` on about 22% (10/05/2026); a rule written against an attribute your logs lack matches nothing and drops nothing. Write substring tests as `matchesValue(field, "*text*")` — OPLOGS-03 records that matching conditions reject `contains()`.
 
 ### Parsing rule (Grok → DPL)
 ```
@@ -76,9 +78,10 @@ filterOut: contains(content, "health") AND service.name == "frontend"
 ```
 
 ```
--- DPL
-IPADDR:client_ip ' - ' INT:response_ms ' ' TIMESTAMP('yyyy-MM-dd''T''HH:mm:ss.SSS'):ts
+NSPACE:client_ip ' - ' DOUBLE:response_ms ' ' TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSZ'):ts
 ```
+
+Tested with `data record(content = "…") | parse content, "…"` on `10.0.0.1 - 123 2026-10-05T12:00:00.123Z`, `10.0.0.1 - 123.5 2026-10-05T12:00:00.004Z` and `api.example.com - 123 2026-10-05T12:00:00.123Z` — all three parse (10/05/2026). The literal translation `IPADDR:client_ip ' - ' INT:response_ms ' ' TIMESTAMP('yyyy-MM-dd''T''HH:mm:ss.SSS'):ts` returns null on all three: `IPADDR` rejects host names (Grok `IPORHOST` accepts them), `INT` rejects decimals (Grok `NUMBER` accepts them), and the timestamp format does not cover the trailing `Z`.
 
 ### Tag rule (NR entity tag → OpenPipeline enrichment)
 ```yaml
@@ -92,10 +95,10 @@ value: prod
 
 | Pattern | Confidence | Notes |
 |---------|-----------|-------|
-| Simple `WHERE` drop rule | HIGH | Direct DPL filterOut |
+| Simple `WHERE` drop rule | HIGH | DQL matching condition on a Drop record processor — once the NR attribute is mapped to a field your logs carry |
 | Drop rule with OR/AND/NOT | HIGH | Boolean operators map directly |
 | Drop rule with regex | MEDIUM | Verify DPL regex equivalent |
-| Standard Grok primitives | HIGH | %{IPORHOST}, %{NUMBER}, %{TIMESTAMP_ISO8601} all supported |
+| Standard Grok primitives | HIGH | Only with the right DPL matcher: `IPORHOST` → `NSPACE`, `NUMBER` → `DOUBLE`, `WORD` → `WORD` (see §3) |
 | Custom Grok library | MEDIUM | May need DPL pattern reformulation |
 | Tag rule on entity attribute | HIGH | Becomes OpenPipeline enrichment |
 
@@ -117,20 +120,23 @@ NR's primary log ingest paths:
 <a id="drops"></a>
 ## 2. Drop Rules → OpenPipeline Filters
 
-NR drop rules filter at ingest. DT's equivalent is OpenPipeline's `filterOut` processor.
+NR drop rules filter at ingest. DT's equivalent is an OpenPipeline **Drop record** processor, whose matching condition is written in DQL (not DPL — DPL is the parsing language).
 
 **NR drop rule (NRQL filter):**
 ```sql
 DELETE FROM Log WHERE message LIKE '%health%' AND service = 'frontend'
 ```
 
-**Equivalent OpenPipeline rule (DPL):**
-```
-filterOut: contains(content, "health") AND service.name == "frontend"
+**Equivalent OpenPipeline rule (Drop record processor, DQL matching condition):**
+```text
+# OpenPipeline "Drop record" processor — matching condition (DQL)
+matchesValue(content, "*health*") and k8s.workload.name == "frontend"
 ```
 
+Map NR `service` to an attribute your Dynatrace logs actually carry — `service.name` is often absent on OneAgent-collected logs (check with the coverage query in §6).
+
 The `DropRuleTransformer` translates each NR drop rule to an OpenPipeline filter rule, preserving:
-- the filter expression (NRQL → DPL)
+- the filter expression (NRQL → DQL matching condition)
 - the source identification (NR data type → DT data table)
 - the rule's enabled/disabled state
 
@@ -145,10 +151,10 @@ Both are pattern languages but with different syntax. The `LogParsingTransformer
 
 | Grok | DPL |
 |------|-----|
-| `%{IPORHOST:client_ip}` | `IPADDR:client_ip` |
-| `%{NUMBER:duration_ms}` | `INT:duration_ms` or `DOUBLE:duration_ms` |
-| `%{TIMESTAMP_ISO8601:timestamp}` | `TIMESTAMP('yyyy-MM-dd''T''HH:mm:ss.SSS'):timestamp` |
-| `%{WORD:method}` | `LD:method` (with constraint) |
+| `%{IPORHOST:client_ip}` | `NSPACE:client_ip` (or `IPADDR:client_ip` when only IP addresses occur — `IPADDR` rejects host names) |
+| `%{NUMBER:duration_ms}` | `DOUBLE:duration_ms` (`INT` rejects decimals) |
+| `%{TIMESTAMP_ISO8601:timestamp}` | `TIMESTAMP('yyyy-MM-ddTHH:mm:ss.SSSZ'):timestamp` for fractional seconds; `ISO8601:timestamp` matches `2026-10-05T12:00:00Z` but returned null on `2026-10-05T12:00:00.123Z` |
+| `%{WORD:method}` | `WORD:method` |
 | `%{DATA:rest}` | `LD:rest` |
 | `%{GREEDYDATA:everything}` | `LD:everything` |
 
@@ -159,6 +165,8 @@ Both are pattern languages but with different syntax. The `LogParsingTransformer
 - LOW for patterns relying on Grok's regex-anywhere capability (DPL is more positional)
 
 DPL parses are part of OpenPipeline; once converted, they apply at ingest before data lands in the bucket.
+
+DPL does not backtrack the way Grok's regex engine does, so a literal Grok-to-DPL substitution can parse nothing: `LD:m LD:p ' ' INT:s` returns null on `GET /api/cart 200`, while `WORD:m ' ' LD:p ' ' INT:s` parses it (10/05/2026). Test every converted pattern against a sample line with `data record(content = "<sample>") | parse content, "<pattern>"` before it goes into a pipeline. FAQ-15 covers DPL matching semantics in full.
 
 <a id="tags"></a>
 ## 4. Tag Taxonomy Migration
@@ -206,7 +214,7 @@ Combined, these typically yield **30–60% lower DPS spend** than a default-buck
 After log migration, run these DQL queries to confirm:
 
 ### Volume parity (DT vs. NR)
-```
+```dql
 fetch logs, from:-1d
 | summarize records = count(), by:{dt.system.bucket}
 | sort records desc
@@ -214,34 +222,50 @@ fetch logs, from:-1d
 
 Compare against NR's `SELECT count(*) FROM Log SINCE 1 day ago` for the same window. Volumes should match within ±5%.
 
-### Drop rule effectiveness
-```
+### Attribute coverage (before writing a drop rule)
+```dql
 fetch logs, from:-1h
-| filter contains(content, "health")
-| summarize count()
+| summarize {total = count(), service_name = countIf(isNotNull(service.name)), k8s_workload = countIf(isNotNull(k8s.workload.name)), process_group = countIf(isNotNull(dt.entity.process_group))}
 ```
 
-If the drop rule is working, this should return 0 (or near-zero).
+Shows which attribute can stand in for NR `service`. A drop rule on an attribute that is mostly null matches nothing.
+
+### Drop rule effectiveness
+```dql
+fetch logs, from:-1h
+| filter matchesValue(content, "*health*") and k8s.workload.name == "frontend"
+| summarize records = count()
+```
+
+Use the **same condition as the rule**. If the drop rule is working, this returns 0. An unscoped check (`contains(content, "health")` alone) also counts health-check lines from sources the rule was never meant to drop, so it cannot reach 0.
 
 ### Parsing extraction
-```
+```dql
 fetch logs, from:-1h
 | filter isNotNull(client_ip)
-| summarize count(), by:{client_ip}
-| sort count() desc
+| summarize n = count(), by:{client_ip}
+| sort n desc
 | limit 10
 ```
 
 If parsing is working, parsed fields should be non-null.
 
 ### Tag application (Gen3 — DQL on enriched data)
-```
+```dql
 fetch logs, from:-1h
 | filter environment == "prod"
-| summarize count(), by:{environment}
+| summarize records = count(), by:{environment}
 ```
 
-Should return enriched data tagged with the expected environment value. (For Gen2 entity-tag verification, `fetch dt.entity.host | filter tag("env") == "prod"` still works on hybrid tenants but does not query Grail data directly.)
+Should return enriched data tagged with the expected environment value. For Gen2 entity-tag verification on hybrid tenants, filter the entity's `tags` array:
+
+```dql
+fetch dt.entity.host
+| filter in("env:prod", tags)
+| fields id, entity.name, tags
+```
+
+The string must match the tag exactly as stored, including any `[Context]` prefix (for example `[Environment]dt.cost.product:Product1`). There is no `tag()` function in DQL.
 
 ## Summary
 
@@ -252,21 +276,16 @@ Continue to **NRLC-08 Validation, Diff & Rollback** for the verification layer.
 <a id="tooling-logs"></a>
 ## Tooling for Logs-Only Migration
 
+> **Check before you rely on the CLI for this layer.** On the tool's `main` branch (read 10/05/2026), `migrate.py migrate` exports and transforms only `dashboards`, `alerts`, `notification_channels`, `synthetics`, `slos` and `workloads`. `log_parsing`, `tags` and `drop_rules` appear in `--list-components`, but `migrate` does not export them — a run with `--components log_parsing,drop_rules,tags` reports each as exported and produces nothing. There is also no `--transform-only` flag, and `logs`, `drops` and `parsing` are not component names. Until the CLI covers this layer, migrate it by hand with the patterns in this notebook.
+
 ```bash
-# 1. Inventory NR log forwarding configs, drop rules, parsing rules, tags
-python3 migrate.py migrate --export-only --components logs,drops,parsing,tags --output ./logs-export
+# 1. List the component names your checkout accepts
+python3 migrate.py migrate --list-components
 
-# 2. Translate (Grok → DPL; tag rules → OpenPipeline enrichments; drops → OpenPipeline filters)
-python3 migrate.py migrate --transform-only --components logs,drops,parsing,tags --report
-
-# 3. Diff
-python3 migrate.py migrate --diff --components logs,drops,parsing,tags
-
-# 4. Apply OpenPipeline configurations to DT tenant
-python3 migrate.py migrate --import-only --components logs,drops,parsing,tags
-
-# 5. Reconfigure log forwarders (Filebeat / Fluent Bit / Lambda extension) to point at DT
-# 6. Dual-ship for 1–2 weeks; compare volume and confirm drops working
+# 2. Build each drop rule, parsing rule and enrichment in OpenPipeline from §1–§4,
+#    testing every DPL pattern and matching condition against sample data first (§3, §6)
+# 3. Reconfigure log forwarders (Filebeat / Fluent Bit / Lambda extension) to point at DT
+# 4. Dual-ship for 1–2 weeks; compare volume and confirm drops working (§6)
 ```
 
 ---

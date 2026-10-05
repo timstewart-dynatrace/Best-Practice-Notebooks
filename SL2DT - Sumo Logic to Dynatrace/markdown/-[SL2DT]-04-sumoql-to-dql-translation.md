@@ -1,6 +1,6 @@
 # SL2DT-04: SumoQL → DQL Translation
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 4 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -21,6 +21,7 @@ This is the largest engineering effort in the migration — a typical customer h
 7. [Validating DQL Against Live Tenant](#validate)
 8. [Worked Examples — 5 Common Patterns](#examples)
 9. [Step Exit Criteria](#gate)
+10. [References](#references)
 
 ---
 
@@ -32,7 +33,7 @@ This is the largest engineering effort in the migration — a typical customer h
 | **Skill reference** | `sumoql-to-dql` SKILL.md + mapping-tables.md + examples.md |
 | **Inputs** | Inventory from SL2DT-02 (dashboards.json, monitors.json, searches.json, fers.json) |
 | **Dynatrace access** | Platform Token with `storage:logs:read` + `storage:events:read` + `storage:metrics:read` for validation |
-| **Tools** | Python 3 for batch translation scripts; optionally the `Dynatrace-SumoLogic` migration tool when built (see `docs/AGENT-TASKS.md`) |
+| **Tools** | Python 3 for batch translation scripts; optionally a purpose-built migration tool (not yet published) |
 
 <a id="outputs"></a>
 ## 1. What You'll Produce
@@ -54,24 +55,24 @@ The `sumoql-to-dql` skill is the engine's specification. It defines:
 
 - **Pipeline mapping** — `| parse` / `| where` / `| count by` → DQL equivalents
 - **Function mapping** — `pct` → `percentile`, `count_distinct` → `countDistinctExact`, `case` → nested `if`
-- **Metadata mapping** — `_sourceCategory` → `dt.source_entity` (per your SL2DT-03 mapping)
+- **Metadata mapping** — `_sourceCategory` → a bucket and/or a custom attribute such as `sumo.source_category`, per your SL2DT-03 mapping — never a `dt.*` field (SL2DT-03 §4 explains why `dt.source_entity` cannot carry it)
 - **Confidence scoring** — deductions for parse syntax conversion, transpose, outlier, etc.
 
 The engine is consumed either:
 
 1. **Manually** — human reads the skill, translates one query at a time. Use for LOW-confidence + complex queries.
-2. **Programmatically** — via the `Dynatrace-SumoLogic` migration tool (see `docs/AGENT-TASKS.md`) when available. This tool batches the translation using the skill as its data source.
+2. **Programmatically** — via a purpose-built migration tool (not yet published) when available. This tool batches the translation using the skill as its data source.
 
 Until the tool exists, manual translation with skill reference is the path. The `translate` subcommand equivalent can also be implemented as a short Python script using the mapping tables — see SL2DT-08 for an automation sketch.
 
 <a id="rules"></a>
 ## 3. Critical Translation Rules
 
-Four rules must be applied to every translation — the validator and Dynatrace execution engine will reject queries that violate them.
+Five rules must be applied to every translation. The repository validator rejects queries that break rules 1–3; Grail itself runs them, often with a wrong or empty result — which is why they need applying by hand.
 
 ### Rule 1 — Explicit Time Range on Every `fetch` / `timeseries`
 
-Sumo inherits the time range from the dashboard or panel. DQL does not. Every `fetch logs`, `fetch spans`, `fetch events`, `fetch bizevents`, or `timeseries` must carry a `from:` value.
+Sumo inherits the time range from the dashboard or panel. A DQL query without `from:` does not fail — it silently uses the notebook or dashboard timeframe — so the window stops being part of the query and numbers drift from the Sumo panel. Every `fetch logs`, `fetch spans`, `fetch events`, `fetch bizevents`, or `timeseries` should carry a `from:` value.
 
 ### Rule 2 — Alias Every Aggregation Referenced Downstream
 
@@ -83,9 +84,15 @@ Sumo gives you `_count` automatically. DQL requires explicit aliasing before sor
 
 ### Rule 4 — Parse Uses DPL Matchers, Not Sumo Wildcards
 
-Sumo's `parse "user=* status=*"` uses `*` wildcards. DPL uses named matchers: `LD 'user=' DATA:user ' status=' DATA:status`.
+Sumo's `parse "user=* status=*"` uses `*` wildcards. DPL uses named matchers: `LD? 'user=' DATA:user ' status=' DATA:status`. Start with `LD?`, not `LD` — `LD` needs at least one character, so it misses lines that begin with `user=`.
 
-### Example — All Four Rules Applied
+### Rule 5 — Keyword Search Is Case-Insensitive in Sumo, Not in DQL
+
+A bare Sumo keyword (`_sourceCategory=prod/api ERROR`) matches `error`, `Error` and `ERROR`: *"Keyword expressions are case-insensitive."* `contains(content, "ERROR")` matches only the uppercase form — on a test tenant on 10/05/2026 it found 12,383 of the 76,251 lines that `contains(content, "error", caseSensitive:false)` found in the same hour. Translate a bare keyword as `contains(content, "<keyword>", caseSensitive:false)`. The Sumo `matches` operator is different: *"The string expression is case sensitive"*, so a `matches(_raw, "*ERROR*")` translates to a case-sensitive `contains`. Where the intent is "error logs" rather than the word, use `status == "ERROR"`, which also covers `SEVERE`, `CRITICAL` and the other error levels.
+
+> <sub>**Sources:** [Keyword search expressions (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/get-started-with-search/build-search/keyword-search-expressions/), [matches operator (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/matches/).</sub>
+
+### Example — Rules 1–4 Applied
 
 ```dql
 // Translation of Sumo:
@@ -93,8 +100,8 @@ Sumo's `parse "user=* status=*"` uses `*` wildcards. DPL uses named matchers: `L
 //   | timeslice 1m | count by status, _timeslice
 //   | where status >= 500 | sort by _count desc
 fetch logs, from:-1h                                               // Rule 1: explicit from
-| filter dt.source_entity == "prod/api"
-| parse content, "LD 'status=' INT:status"                         // Rule 4: DPL matcher
+| filter sumo.source_category == "prod/api"
+| parse content, "LD? 'status=' INT:status"                        // Rule 4: DPL matcher
 | makeTimeseries c = count(), interval:1m, by:{status}             // Rule 2: aliased to c
 | fieldsAdd c_max = arrayMax(c)                                    // Rule 3: reduce array
 | filter status >= 500
@@ -118,13 +125,13 @@ jq -r '[.panels[]? | {
   query: .query
 }]' inventory/dashboards/*.json > queries-dashboards.json
 
-# Monitors
-jq -r '[.monitors[]? | {
+# Monitors — the full per-monitor definitions saved in SL2DT-02 §3.2
+jq -s '[.. | objects | select(.contentType? == "Monitor") | {
   asset_id: .id,
   asset_type: "monitor",
-  query: .queries[].query,
-  threshold: .triggers[0].threshold
-}]' inventory/monitors.json > queries-monitors.json
+  query: .queries[]?.query,
+  threshold: .triggers[0]?.threshold
+}]' inventory/monitors/*.json > queries-monitors.json
 
 # Searches + scheduled searches
 jq -r '...' inventory/searches.json > queries-searches.json
@@ -226,13 +233,13 @@ No direct DQL. Use:
 ```dql
 // Alternative: pivot via summarize + per-status aliases
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| parse content, "LD 'status=' INT:status"
-| summarize
+| filter sumo.source_category == "prod/api"
+| parse content, "LD? 'status=' INT:status"
+| summarize {
     count_200 = countIf(status == 200),
     count_400 = countIf(status == 400),
-    count_500 = countIf(status >= 500),
-    by:{host.name}
+    count_500 = countIf(status >= 500)
+  }, by:{host.name}
 | sort count_500 desc
 
 ```
@@ -248,11 +255,11 @@ Goal: minimize the hand-rewrite load. For a 500-query batch, after Dynatrace Int
 
 Every translated query must execute successfully against a live Dynatrace tenant before being added to a notebook, monitor, or dashboard.
 
-### Validation via MCP
+### Validation tools
 
-```
-mcp__dynatrace__verify-dql  — syntax check
-mcp__dynatrace__execute-dql — runs query; confirms results
+```text
+dtctl verify query --context <ctx> -f -   — syntax and identifier check (read its WARNING notifications)
+mcp__dynatrace__execute-dql               — runs the query; confirms results and returns notifications
 ```
 
 ### Validation via API
@@ -276,18 +283,18 @@ For a 500-query batch:
 
 | Failure | Fix |
 |---------|-----|
-| `No such bucket` | Bucket typo or not yet created (SL2DT-03) |
-| `Unknown field` | Field name wasn't renamed correctly (check `dt.source_entity` mapping) |
+| `Unknown field` | Field name wasn't renamed correctly (check the `sumo.source_category` mapping from SL2DT-03) |
 | `Invalid syntax` | Translator bug — report to skill maintainer, fix by hand |
 | `Query timeout` | Query scans too much data — add `from:` narrower range or `samplingRatio:` |
 | `Empty results` | Data isn't yet flowing for that scope (SL2DT-03 parity issue) |
+| `Empty results` from a bucket typo | Grail does **not** error on an unknown bucket name — `bucket:{"no_such_bucket"}` returns zero rows with no notification. Confirm the bucket exists with `fetch dt.system.buckets \| filter name == "…"` (SL2DT-03 §3) before trusting a zero |
 
 <a id="examples"></a>
 ## 8. Worked Examples — 5 Common Patterns
 
 Each example shows the source Sumo, target DQL, and confidence. These are representative; the skill's `references/examples.md` has 15 more.
 
-### Example 1 — Top errors by host (HIGH 100%)
+### Example 1 — Top errors by host (HIGH 90%)
 
 Sumo:
 ```
@@ -300,10 +307,10 @@ _sourceCategory=prod/api ERROR
 DQL:
 
 ```dql
-// 8. Worked Examples — 5 Common Patterns
+// Example 1 — Top errors by host (HIGH 90%)
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| filter contains(content, "ERROR")
+| filter sumo.source_category == "prod/api"
+| filter contains(content, "error", caseSensitive:false)   // Sumo keywords are case-insensitive (Rule 5)
 | summarize c = count(), by:{host.name}
 | sort c desc
 | limit 10
@@ -323,12 +330,13 @@ DQL:
 ```dql
 // Example 2 — Latency percentiles by endpoint (HIGH 95%)
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
-| parse content, "LD 'latency=' INT:latency"
-| summarize p50 = percentile(latency, 50),
-            p95 = percentile(latency, 95),
-            p99 = percentile(latency, 99),
-            by:{http.path}
+| filter sumo.source_category == "prod/api"
+| parse content, "LD? 'latency=' INT:latency"
+| summarize {
+    p50 = percentile(latency, 50),
+    p95 = percentile(latency, 95),
+    p99 = percentile(latency, 99)
+  }, by:{http.path}
 
 ```
 
@@ -346,11 +354,12 @@ DQL:
 
 ```dql
 // Example 3 — Error rate timeseries (MEDIUM 80%)
+// Sumo's matches() is case-sensitive, so a case-sensitive contains() is the faithful translation here.
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
+| filter sumo.source_category == "prod/api"
 | fieldsAdd is_error = if(contains(content, "ERROR"), 1, else:0)
-| makeTimeseries errors = sum(is_error), total = count(), interval:1m
-| fieldsAdd error_pct = (100.0 * toDouble(arraySum(errors)) / toDouble(arraySum(total)))
+| makeTimeseries {errors = sum(is_error), total = count()}, interval:1m
+| fieldsAdd error_pct = 100.0 * errors[] / total[]                 // one value per minute, like _timeslice
 
 ```
 
@@ -372,7 +381,7 @@ DQL (requires entity attributes or a Grail lookup table):
 // iAny(startsWith(tags[], "team:")) — not addressed as a nested field. The old cell failed with
 // FIELD_DOES_NOT_EXIST. Pass the whole `tags` array through the lookup and read it downstream.
 fetch logs, from:-1h
-| filter startsWith(dt.source_entity, "prod/")
+| filter startsWith(sumo.source_category, "prod/")
 | summarize c = count(), by:{host.name}
 | lookup [fetch dt.entity.host, from:-7d
          | fieldsAdd hostname = entity.name
@@ -397,7 +406,7 @@ _sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 thres
 // Corrected 08/12/2026: there is no `arrayStdDev` function (UNKNOWN_FUNCTION). Standard deviation is
 // an AGGREGATION, `stdDev()`, so bin the counts and aggregate rather than building an array first.
 fetch logs, from:-1h
-| filter dt.source_entity == "prod/api"
+| filter sumo.source_category == "prod/api"
 | summarize c = count(), by:{minute = bin(timestamp, 1m)}
 | summarize mean = avg(c), sd = stdDev(c)
 | fieldsAdd upper = mean + 3 * sd
@@ -421,7 +430,7 @@ fetch logs, from:-1h
 ---
 
 <a id="references"></a>
-## 11. References
+## 10. References
 
 ### Dynatrace query and pattern languages
 - [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)

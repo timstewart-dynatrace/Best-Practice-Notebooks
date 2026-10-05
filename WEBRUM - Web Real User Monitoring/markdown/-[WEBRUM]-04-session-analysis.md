@@ -1,6 +1,6 @@
 # WEBRUM-04: Session Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 4 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -41,19 +41,22 @@ Dynatrace automatically captures standard session properties and allows you to d
 
 | Property | Description | Example Values |
 |----------|-------------|----------------|
-| `sessionId` | Unique session identifier | `abc123def456` |
-| `userType` | Session classification | `REAL_USER`, `ROBOT`, `SYNTHETIC` |
-| `application` | Application name | `MyWebApp` |
+| `dt.rum.session.id` | Unique session identifier | `23626166142035610_1-0` |
+| `dt.rum.user_type` | Session classification | `real_user`, `robot`, `synthetic` |
+| `start_time` / `end_time` | Session start and end — `user.sessions` has no populated `timestamp` | `2026-10-05T15:18:09Z` |
 | `duration` | Total session duration | `300000000000` (nanoseconds) |
-| `userActionCount` | Number of user actions | `15` |
-| `totalErrorCount` | Number of errors in session | `2` |
-| `country` | User's country | `United States` |
-| `city` | User's city | `Chicago` |
-| `osFamily` | Operating system | `Windows`, `macOS`, `iOS` |
-| `browserFamily` | Browser | `Chrome`, `Firefox`, `Safari` |
-| `screen.width` | Screen width in pixels | `1920` |
-| `screen.height` | Screen height in pixels | `1080` |
-| `connection.type` | Network connection type | `4g`, `wifi`, `ethernet` |
+| `user_action_count` | Number of user actions | `15` |
+| `navigation_count` | Number of navigations | `4` |
+| `error.count` | Number of errors in session | `2` |
+| `geo.country.iso_code` | User's country | `US` |
+| `os.name` | Operating system | `Windows`, `macOS`, `iOS` |
+| `browser.name` | Browser | `Chrome`, `Firefox`, `Safari` |
+| `browser.window.width` | Browser window width in pixels | `1920` |
+| `browser.window.height` | Browser window height in pixels | `1080` |
+
+These are the New RUM names the queries below use. The classic names (`sessionId`, `userType`, `userActionCount`, `totalErrorCount`, `osFamily`, `browserFamily`) read null on New RUM data, so a query copied with them returns nothing and raises no error. Web RUM has no connection-type field: `network.connection.type` is documented as *"Only supported by OneAgent for Mobile."*
+
+> <sub>**Sources:** [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"The internet connection type. Only supported by OneAgent for Mobile."* **Dictionary:** model `rum.user_session` lists `start_time`, `end_time`, `duration`, `user_action_count`, `navigation_count`, `error.count`, `dt.rum.session.id`, `dt.rum.user_type`, `geo.country.iso_code`, `os.name`, `browser.name`, `browser.window.width` / `.height` and no `timestamp`, read 10/05/2026.</sub>
 
 ### Custom Session Properties
 
@@ -76,10 +79,11 @@ Define custom properties via **Settings > Web and mobile monitoring > Session an
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Explore session data — view available fields
 fetch user.sessions, from:-1h
@@ -94,16 +98,18 @@ fetch user.sessions, from:-1h
 Segmenting sessions helps identify patterns across different user groups. Common segmentation dimensions include engagement level, error impact, and return frequency.
 
 ```dql
-// Engagement segmentation — bucket sessions by number of actions
+// Engagement segmentation — bucket sessions by number of actions. Sessions with zero user actions
+// get their own bucket; they used to fall into "Low (2-3 actions)" (corrected 10/05/2026).
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| fieldsAdd engagement = if(user_action_count == 1, "Bounce",
+| fieldsAdd engagement = if(user_action_count == 0, "No actions",
+    else: if(user_action_count == 1, "Bounce",
     else: if(user_action_count <= 3, "Low (2-3 actions)",
     else: if(user_action_count <= 10, "Medium (4-10 actions)",
-    else: "High (10+ actions)")))
-| summarize session_count = count(),
+    else: "High (10+ actions)"))))
+| summarize {session_count = count(),
     avg_duration = avg(duration),
-    avg_errors = avg(error.count),
+    avg_errors = avg(error.count)},
     by:{engagement}
 | sort session_count desc
 ```
@@ -112,8 +118,8 @@ fetch user.sessions, from:-24h
 // Error-impacted sessions — how many sessions had errors?
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize total_sessions = count(),
-    error_sessions = countIf(error.count > 0),
+| summarize {total_sessions = count(),
+    error_sessions = countIf(error.count > 0)},
     by:{primary_tags.application}
 | fieldsAdd error_session_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort error_session_pct desc
@@ -131,7 +137,7 @@ Understanding the sequence of actions within sessions reveals common navigation 
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
 //   action.type == "Load"              -> characteristics.has_page_summary == true
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
 //   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
 //   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
@@ -164,9 +170,9 @@ fetch user.events, from:-24h
 // Session duration distribution by hour of day — when are users most active?
 fetch user.sessions, from:-7d
 | filter dt.rum.user_type == "real_user"
-| fieldsAdd hour = getHour(timestamp)
-| summarize session_count = count(),
-    avg_duration_sec = avg(duration / 1s),
+| fieldsAdd hour = getHour(start_time)   // user.sessions has no populated timestamp
+| summarize {session_count = count(),
+    avg_duration_sec = avg(duration / 1s)},
     by:{hour}
 | sort hour asc
 ```
@@ -185,18 +191,17 @@ Conversion tracking identifies which sessions completed a desired business actio
 If your conversion page has a recognizable URL pattern, you can detect conversions from user actions:
 
 ```dql
-// Conversion rate — sessions that reached a checkout/confirmation page
-// Adapt the filter to match your conversion page URL pattern
-fetch user.sessions, from:-24h
+// Conversion rate — share of real-user sessions that reached a checkout/confirmation page.
+// Adapt the page-name tests to match your conversion page URL pattern.
+// Computed from the events side alone (corrected 10/05/2026): the previous version appended two
+// unrelated row sets and never produced a rate.
+fetch user.events, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize total_sessions = count(),
-    by:{primary_tags.application}
-| append [
-    fetch user.events, from:-24h
-    | filter characteristics.has_page_summary == true
-    | filter contains(page.detected_name, "confirmation") or contains(page.detected_name, "thank-you") or contains(page.detected_name, "checkout-success")
-    | summarize converted_sessions = countDistinct(dt.rum.session.id), by:{primary_tags.application}
-  ]
+| filter characteristics.has_page_summary == true
+| fieldsAdd is_conversion_page = contains(page.detected_name, "confirmation") or contains(page.detected_name, "thank-you") or contains(page.detected_name, "checkout-success")
+| summarize {conversion_views = countIf(is_conversion_page)}, by:{dt.rum.session.id}
+| summarize {sessions = count(), converted_sessions = countIf(conversion_views > 0)}
+| fieldsAdd conversion_rate_pct = round(toDouble(converted_sessions) / toDouble(sessions) * 100.0, decimals: 2)
 ```
 
 > **Tip:** For accurate conversion tracking, use Dynatrace session properties to flag conversion events. This avoids reliance on URL pattern matching, which can be fragile.
@@ -207,12 +212,16 @@ fetch user.sessions, from:-24h
 
 A "bounce" is a session with only one user action — the user loaded one page and left. High bounce rates may indicate poor landing page relevance, slow performance, or broken functionality.
 
+Dynatrace's own definition: *"A session with only one user action or navigation is tagged as bounced."* The queries in this series count a bounce as `user_action_count == 1`, the same rule in WEBRUM-04, -05, -08 and -09. Sessions with zero user actions are kept out of the bounce count and shown separately in the engagement query above. Dynatrace's definition also counts a session whose only activity is a single navigation, so compare the result with the **Bounced Sessions** filter in Users & Sessions on your tenant before treating the two as identical.
+
+> <sub>**Sources:** [User sessions in web frontends (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web) — *"A session with only one user action or navigation is tagged as bounced."*</sub>
+
 ```dql
 // Bounce rate by application
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize total_sessions = count(),
-    bounced_sessions = countIf(user_action_count == 1),
+| summarize {total_sessions = count(),
+    bounced_sessions = countIf(user_action_count == 1)},
     by:{primary_tags.application}
 | fieldsAdd bounce_rate_pct = round(toDouble(bounced_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort bounce_rate_pct desc
@@ -223,8 +232,8 @@ fetch user.sessions, from:-24h
 fetch user.sessions, from:-7d
 | filter dt.rum.user_type == "real_user"
 | fieldsAdd is_bounce = if(user_action_count == 1, 1, else: 0)
-| makeTimeseries total = count(), bounces = sum(is_bounce), interval:1d
-| fieldsAdd bounce_rate = arrayAvg(bounces) / arrayAvg(total) * 100.0
+| makeTimeseries {total = count(), bounces = sum(is_bounce)}, interval:24h
+| fieldsAdd bounce_rate = bounces[] * 100.0 / total[]   // per-day rate, not one collapsed number
 ```
 
 <a id="geographic-analysis"></a>
@@ -238,10 +247,10 @@ RUM data includes geographic information derived from the user's IP address. Thi
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(geo.country.name)
-| summarize session_count = count(),
+| summarize {session_count = count(),
     avg_actions = avg(user_action_count),
     avg_errors = avg(error.count),
-    avg_duration_sec = avg(duration / 1s),
+    avg_duration_sec = avg(duration / 1s)},
     by:{geo.country.name}
 | sort session_count desc
 | limit 15
@@ -268,8 +277,8 @@ Understanding the device and browser mix helps prioritize testing and optimizati
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(browser.name)
-| summarize session_count = count(),
-    avg_errors = avg(error.count),
+| summarize {session_count = count(),
+    avg_errors = avg(error.count)},
     by:{browser.name}
 | sort session_count desc
 | limit 10
@@ -280,8 +289,8 @@ fetch user.sessions, from:-24h
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(os.name)
-| summarize session_count = count(),
-    avg_duration_sec = avg(duration / 1s),
+| summarize {session_count = count(),
+    avg_duration_sec = avg(duration / 1s)},
     by:{os.name}
 | sort session_count desc
 ```

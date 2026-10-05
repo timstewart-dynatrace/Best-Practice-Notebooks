@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 08/12/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -16,10 +16,11 @@ The translation work leans on SL2DT-04 for the queries and on train-the-trainer 
 2. [Notebooks vs Dashboards — Choosing the Target](#targets)
 3. [Panel-to-Section Mapping](#panels)
 4. [Visualization Type Translation](#visualizations)
-5. [Dashboard Variables → Parameters](#variables)
+5. [Sumo Variables → Dashboard Variables](#variables)
 6. [Rebuilding the Core Team's 5 Demo Dashboards](#demos)
 7. [App-Team Playbook (train-the-trainer)](#playbook)
 8. [Step Exit Criteria](#gate)
+9. [References](#references)
 
 ---
 
@@ -39,7 +40,7 @@ The translation work leans on SL2DT-04 for the queries and on train-the-trainer 
 |----------|---------|
 | `dashboards/notebook-configs/` | Dynatrace Notebook JSON per migrated asset |
 | `dashboards/dashboard-configs/` | Dynatrace Dashboard JSON (for op views) |
-| `dashboards/variable-map.md` | Sumo dashboard variable → DT parameter mapping |
+| `dashboards/variable-map.md` | Sumo dashboard variable → Dynatrace dashboard variable mapping |
 | `dashboards/rebuild-tracker.csv` | Per-dashboard status: owner, target, done/in-progress/blocked |
 | `dashboard-rebuild-report.md` | Weekly progress to PM |
 
@@ -54,7 +55,7 @@ Dynatrace has two dashboard-like products. Pick deliberately.
 | Navigation | Top-to-bottom reading | Panels in grid |
 | DQL editing | Inline | Inline |
 | Markdown sections | Yes, freely interleaved | Text tiles only |
-| Parameters/variables | Yes | Yes |
+| Variables | No — a `$name` reference fails to parse in a notebook section | Yes |
 | Sharing | Document API | Document API |
 | Suited for | Investigation, tutorials, reports | Monitoring displays, SRE pages |
 
@@ -62,6 +63,7 @@ Dynatrace has two dashboard-like products. Pick deliberately.
 
 | Sumo Dashboard Type | Dynatrace Target |
 |---------------------|------------------|
+| Any dashboard that relies on variables | **Dashboard** |
 | Investigation / analytical | **Notebook** |
 | On-call operator view | **Dashboard** |
 | Team home page | **Dashboard** (with embedded notebook links) |
@@ -95,7 +97,7 @@ Each Sumo panel becomes one DQL section (with `visualization` field) in the note
   "title": "Error Rate by Service",
   "state": {
     "input": {
-      "value": "fetch logs, from:-1h | filter dt.source_entity == \"prod/api\" | makeTimeseries c = count(), interval:1m, by:{service.name}",
+      "value": "fetch logs, from:-1h | filter sumo.source_category == \"prod/api\" | makeTimeseries c = count(), interval:1m, by:{service.name}",
       "timeframe": { "from": "now()-1h", "to": "now()" }
     },
     "visualizationSettings": {
@@ -119,7 +121,7 @@ For each panel:
 ### Common Mistakes
 
 - **Copying the time range wrong.** Sumo dashboards have a global time picker that overrides panel-level ranges. Check both.
-- **Missing `from:` clause.** The #1 translation error.
+- **Missing `from:` clause.** The query still runs — it silently uses the tile or notebook timeframe — so it is the #1 cause of numbers that don't match the Sumo panel.
 - **Stale DQL from SL2DT-04.** If you re-translated after schema changes, re-pull from the CSV.
 
 <a id="visualizations"></a>
@@ -127,18 +129,20 @@ For each panel:
 
 | Sumo Viz | Dynatrace Viz | Notes |
 |----------|----------------|-------|
-| Line chart | `lineChart` | Most common — direct |
-| Area chart | `lineChart` with stacked fill | Same DQL, different chart setting |
-| Bar chart | `barChart` | |
-| Column chart | `barChart` (vertical) | |
-| Pie chart | `pieChart` | Note: Dynatrace prefers donut/pie for proportions; tables for many categories |
-| Single value | `singleValue` | With threshold colors |
-| Table | `table` | |
-| Honeycomb | `honeycomb` | Status grids |
-| Heat map | `honeycomb` (approximation) | No direct equivalent for 2D heatmaps |
-| Map (geo) | — | Not natively supported; use table with coordinates |
-| Gauge | `singleValue` with min/max thresholds | |
-| Text panel | Markdown section | |
+| Line chart | Line chart | Most common — direct |
+| Area chart | Area chart | |
+| Bar chart | Bar chart (categorical) | |
+| Column chart | Bar chart (categorical, vertical) | |
+| Pie chart | Pie / donut | Tables read better for many categories |
+| Single value | Single value | With threshold colors |
+| Table | Table | |
+| Honeycomb | Honeycomb | Status grids |
+| Heat map | Heatmap | |
+| Map (geo) | Choropleth map, dot map or bubble map | Pick by data shape: regions, points, or sized points |
+| Gauge | Gauge (or meter bar) | |
+| Text panel | Markdown section / text tile | |
+
+> <sub>**Sources:** [Edit visualizations (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations).</sub>
 
 ### Example — Single Value with Threshold
 
@@ -147,10 +151,10 @@ Sumo: percentage panel showing `error_pct` with red if >5%, yellow if >1%, green
 Dynatrace Notebook:
 
 ```dql
-// 4. Visualization Type Translation
+// 4. Visualization Type Translation — single value with thresholds
 fetch logs, from:-5m
-| filter dt.source_entity == "prod/api"
-| summarize total = count(), errors = countIf(contains(content, "ERROR"))
+| filter sumo.source_category == "prod/api"
+| summarize {total = count(), errors = countIf(contains(content, "error", caseSensitive:false))}
 | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
 | fields error_pct
 
@@ -169,45 +173,30 @@ fetch logs, from:-5m
 ```
 
 <a id="variables"></a>
-## 5. Dashboard Variables → Parameters
+## 5. Sumo Variables → Dashboard Variables
 
-Sumo dashboards use variables (e.g., `{{environment}}`, `{{host}}`). Dynatrace equivalents:
-
-- **Notebook** — parameters (declared at notebook top, injected via `$param_name` in queries)
-- **Dashboard** — variables (declared in dashboard config, injected via `$var_name`)
+Sumo dashboards use variables (e.g., `{{environment}}`, `{{host}}`). In Dynatrace, **only Dashboards have variables** — declared in the dashboard and referenced as `$var_name` in tile queries. Notebooks have none: a `$name` reference in a notebook section fails to parse (*"`$` isn't allowed here"*). A Sumo dashboard that depends on variables therefore becomes a Dynatrace Dashboard.
 
 ### Mapping Example
 
 **Sumo variable:**
-```
+```text
 {{environment}} → dropdown with values [prod, preprod, dev]
 ```
 
-**Dynatrace parameter:**
-```json
-{
-  "parameters": [
-    {
-      "name": "environment",
-      "type": "dropdown",
-      "values": ["prod", "preprod", "dev"],
-      "default": "prod"
-    }
-  ]
-}
-```
+**Dynatrace dashboard variable:** a variable named `environment` whose values are `prod`, `preprod` and `dev` — either a fixed list or a DQL query that returns them — with `prod` as the default.
 
 **Usage in DQL:**
 
 ```dql
-// 5. Dashboard Variables → Parameters
+// 5. Sumo Variables → Dashboard Variables
 //
 // Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
 // notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
 // cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
 fetch logs, from:-1h
-// dashboard tile: | filter startsWith(dt.source_entity, concat($environment, "/"))
-| filter isNotNull(dt.source_entity)
+// dashboard tile: | filter startsWith(sumo.source_category, concat($environment, "/"))
+| filter isNotNull(sumo.source_category)
 | summarize c = count(), by:{service.name}
 | sort c desc
 | limit 20
@@ -215,11 +204,11 @@ fetch logs, from:-1h
 
 ### Dependent Variables
 
-Sumo supports variable dependencies (`{{host}}` filtered by `{{environment}}`). Dynatrace supports this via parameter chaining — declare the dependent parameter's query to reference the parent.
+Sumo supports variable dependencies (`{{host}}` filtered by `{{environment}}`). In a Dynatrace dashboard, build the dependent variable from a DQL query that references the parent variable.
 
 ### Multi-Value Variables
 
-Sumo `{{host}}` with multi-select becomes DQL `in(f, $host)` where `$host` is a list-type parameter.
+Sumo `{{host}}` with multi-select becomes DQL `in(f, $host)` where `$host` is a multi-select dashboard variable.
 
 <a id="demos"></a>
 ## 6. Rebuilding the Core Team's 5 Demo Dashboards
@@ -267,14 +256,14 @@ Give each app team this playbook:
 3. **Pick target** — Notebook (analytical) or Dashboard (operational)
 4. **Start from a demo template** — pick the closest of the 5 core-team demos
 5. **Rebuild panel-by-panel** — for each panel, paste the DQL from translations, set visualization, title, position
-6. **Add variables/parameters** if the original had them
+6. **Add dashboard variables** if the original had them
 7. **Submit PR to core team** for review — include screenshot + link + owner signoff
 
 ### PR Checklist for App Teams
 
 - [ ] All in-scope panels recreated
 - [ ] Each panel's DQL validated (runs successfully against tenant)
-- [ ] Variables mapped to parameters
+- [ ] Variables mapped to dashboard variables
 - [ ] Title, description, metadata preserved
 - [ ] Screenshot attached showing working state
 - [ ] Link to live notebook/dashboard in tenant
@@ -282,7 +271,7 @@ Give each app team this playbook:
 ### Common App-Team Mistakes
 
 - Using `parse` at query time when a FER (SL2DT-03) already extracted the field
-- Forgetting `from:` on fetch/timeseries (Sumo has no equivalent; it's the #1 cause of query failures)
+- Forgetting `from:` on fetch/timeseries — the query silently uses the tile or notebook timeframe instead, the #1 cause of numbers that don't match the Sumo panel
 - Copying Sumo panel time ranges that made sense in Sumo but not in Dynatrace (e.g., Sumo's "all time" → DT needs a concrete `from:`)
 - Skipping the cut-scope review ("I want to rebuild everything") — slows them down and burns budget
 
@@ -295,7 +284,7 @@ Give each app team this playbook:
 - [ ] All Wave 3 (top-usage) dashboards rebuilt and validated for **fidelity** (tiles show the numbers the Sumo original showed)
 - [ ] All rebuilt dashboards pass **schema/render validation** — opened in the Dashboards app with zero validation warnings, not just accepted by the API (see **DASH-07 §5**; under SaaS 1.344 a dashboard that fails validation no longer loads at all)
 - [ ] App-team Wave 4 dashboards: ≥75% complete, others tracked in `rebuild-tracker.csv`
-- [ ] Variable/parameter mapping documented for every multi-parameter dashboard
+- [ ] Variable mapping documented for every dashboard that uses variables
 - [ ] Every rebuilt dashboard: owner signoff recorded
 - [ ] Aggregate metric: dashboard-conversion fidelity ≥90%
 
@@ -304,7 +293,7 @@ Give each app team this playbook:
 ---
 
 <a id="references"></a>
-## 11. References
+## 9. References
 
 ### Dynatrace visualization surfaces
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)

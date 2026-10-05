@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -151,18 +151,19 @@ Use DQL to identify sessions that have replay data available, then navigate to t
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
 //   load.event.time -> performance.load_event_end
-//   server.time -> ttfb.waiting_duration
+//   server.time -> ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
 // TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
 //   * every session is dt.rum.user_type == "synthetic", so a real-user filter matches nothing —
-//     the "real_user" literal itself could NOT be confirmed here and is the documented value form;
+//     the documented values are "real_user" / "robot" / "synthetic" (lowercase);
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Sessions with replay data available in the last 24 hours
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
-| summarize replay_sessions = count(),
+| summarize {replay_sessions = count(),
     avg_actions = avg(user_action_count),
-    avg_errors = avg(error.count),
+    avg_errors = avg(error.count)},
     by:{primary_tags.application}
 | sort replay_sessions desc
 ```
@@ -182,8 +183,8 @@ fetch user.sessions, from:-24h
 // Replay coverage — what percentage of sessions have replay?
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
-| summarize total_sessions = count(),
-    replay_sessions = countIf(isNotNull(characteristics.has_replay) and characteristics.has_replay == true),
+| summarize {total_sessions = count(),
+    replay_sessions = countIf(isNotNull(characteristics.has_replay) and characteristics.has_replay == true)},
     by:{primary_tags.application}
 | fieldsAdd replay_coverage_pct = round(toDouble(replay_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort total_sessions desc
@@ -193,13 +194,13 @@ fetch user.sessions, from:-24h
 
 ### When a Session Has No Replay
 
-The queries above filter for `hasSessionReplay == true`. A `false` — or a null — is neither an error nor necessarily a misconfiguration. Replay is *conditional* by design, and several independent gates can each suppress it.
+The queries above filter for `characteristics.has_replay == true`. A `false` — or a null — is neither an error nor necessarily a misconfiguration. Replay is *conditional* by design, and several independent gates can each suppress it.
 
 | Cause | What actually happened | Where to check |
 |-------|------------------------|----------------|
 | **Outside the sampling rate** | In community practice, the most frequent cause. The effective recording rate is the RUM cost and traffic control **multiplied by** the Session Replay one — at 50% × 20%, 90% of sessions correctly have no replay | Both cost and traffic control settings for the application (§3) |
 | **Replay disabled for the application** | Session Replay is configured per application, not globally — a tenant with replay enabled can still have applications without it | Settings → Session Replay, per application |
-| **Unsupported browser** | Session Replay publishes its own list of browser versions supported for recording, separate from RUM's; sessions from browsers outside it are not recorded | `browserFamily` / `browserMajorVersion` on the session |
+| **Unsupported browser** | Session Replay publishes its own list of browser versions supported for recording, separate from RUM's; sessions from browsers outside it are not recorded | `browser.name` / `browser.version` on the session |
 | **A page blocked capture** | URL exclusion rules stop recording on matching pages, and page- or element-level privacy rules (`data-dtrum-block`, CSS selector block rules) suppress capture — sometimes on exactly the pages you care about (§2) | Session Replay URL exclusion and data-privacy configuration |
 | **Quota exhausted** | In community practice, where a consumption limit caps replay volume, eligible sessions stop being recorded once it is reached — confirm how your licensing applies before assuming this | Session Replay consumption |
 
@@ -208,8 +209,8 @@ The queries above filter for `hasSessionReplay == true`. A `false` — or a null
 **Eliminate in this order.** In community practice the sequence that pays off is cheapest and most likely first, so you rarely reach the bottom.
 
 1. **Sampling rate.** Compute actual replay coverage (the third query in this section) and compare it against the effective rate — RUM cost and traffic control × Session Replay cost and traffic control. If coverage ≈ that effective rate, **nothing is broken** — you are looking at sampling, and the fix is to raise the rate, not to debug.
-2. **Application enablement.** If coverage is ~0% for one application while others are healthy, replay is off for that application. The coverage query already groups `by:{application}`, so this shows up without extra work.
-3. **Browser.** Compare `browserFamily` and `browserMajorVersion` between sessions that do and do not have replay. A cause concentrated in one browser family is a support gap, not a configuration error — and not something you can configure away.
+2. **Application enablement.** If coverage is ~0% for one application while others are healthy, replay is off for that application. The coverage query already groups by application, so this shows up without extra work.
+3. **Browser.** Compare `browser.name` and `browser.version` between sessions that do and do not have replay. A cause concentrated in one browser family is a support gap, not a configuration error — and not something you can configure away.
 4. **Quota.** Check replay consumption last, and only after confirming a limit applies to you. A quota that ran out mid-period has a distinctive signature: replay present in earlier sessions, absent in later ones, configuration unchanged throughout.
 
 That order also sorts by what you can act on — 1 and 2 are configuration you control, 3 is a platform constraint, 4 is a budget decision.
@@ -237,16 +238,7 @@ fetch user.sessions, from:-24h
 | limit 10
 ```
 
-```dql
-// Sessions with rage clicks that have replay — top candidates for UX review
-fetch user.events, from:-24h
-| filter type == "RageClick"
-| summarize rage_clicks = count(), by:{dt.rum.session.id, primary_tags.application}
-| sort rage_clicks desc
-| limit 10
-```
-
-> **Tip:** Copy the `session.id` value from query results and paste it into the Dynatrace Session Replay search to jump directly to the replay.
+> **Tip:** Copy the `dt.rum.session.id` value from query results and paste it into the Dynatrace Session Replay search to jump directly to the replay.
 
 <a id="ux-issues"></a>
 
@@ -265,7 +257,7 @@ Session Replay helps identify qualitative UX issues that metrics alone cannot re
 
 ### Replay Investigation Workflow
 
-1. **Identify problematic sessions** via DQL (errors, rage clicks, abandonment)
+1. **Identify problematic sessions** via DQL (errors, slow sessions, abandonment)
 2. **Watch the replay** in Dynatrace UI
 3. **Correlate with waterfall** — Performance tab shows timing alongside replay
 4. **Note the pattern** — Is this a one-off or a systematic issue?

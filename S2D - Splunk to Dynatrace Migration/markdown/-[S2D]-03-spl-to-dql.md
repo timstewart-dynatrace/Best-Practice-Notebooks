@@ -1,12 +1,12 @@
 # S2D-03: SPL to DQL Translation
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
 This notebook provides a comprehensive guide for translating Splunk SPL (Search Processing Language) queries to Dynatrace DQL (Dynatrace Query Language). While both languages share similar concepts, their syntax and capabilities differ significantly.
 
-![Query Translation Flow](images/query-translation-flow.png)
+![Query Translation Flow](images/03-query-translation-flow.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | SPL Step | DQL Equivalent | Notes |
@@ -65,13 +65,14 @@ By the end of this notebook, you will be able to:
 | `head 10` | `limit 10` | Limit results |
 | `eval new=field1+field2` | `fieldsAdd new = field1 + field2` | Calculate fields |
 | `rename old AS new` | `fieldsRename old, alias:new` | Rename fields |
-| `dedup field` | Not directly available | Use `summarize ... by:{field}` |
+| `dedup field` | `dedup field` | Keeps the first record per value; add `sort:{…}` to choose which |
 
 ### String Matching
 
 | SPL Pattern | DQL Pattern | Description |
 |-------------|-------------|-------------|
-| `field="*error*"` | `matchesPhrase(field, "error")` | Contains text |
+| `field="*error*"` | `contains(field, "error", caseSensitive:false)` | Substring |
+| `"error"` (bare term) | `matchesPhrase(content, "error")` | Whole word or phrase |
 | `field=error` | `field == "error"` | Exact match |
 | `field IN ("a","b")` | `in(field, {"a", "b"})` | Multiple values |
 | `rex field=f "(?<name>...)"` | `parse f, "DATA:name"` | Extract patterns |
@@ -101,12 +102,14 @@ fetch logs, from:-1h
 index=application level=ERROR | stats count by host | sort -count
 ```
 
+Splunk `level=ERROR` usually means "anything at error severity or worse". In Dynatrace that is `status == "ERROR"`, which groups SEVERE, ERROR, CRITICAL, ALERT and EMERGENCY. Use `loglevel == "ERROR"` only when you need the literal level; on a validation tenant (10/05/2026) it matched about half of the records that `status == "ERROR"` matched, because Java `SEVERE` logs fall outside it.
+
 **DQL:**
 
 ```dql
 // Error log count by host
 fetch logs, from:-1h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | summarize count = count(), by:{host.name}
 | sort count desc
 ```
@@ -151,12 +154,15 @@ fetch logs, from:-1h
 index=application level IN ("ERROR", "WARN", "FATAL")
 ```
 
+Dynatrace has no `FATAL` level. The log ingest rules page lists the level values: *"It supports the following values: alert, critical, debug, emergency, error, info, none, notice, severe, warn."* Translate `FATAL` to the error-or-worse levels instead.
+
 **DQL:**
 
 ```dql
 // Filter for multiple log levels
+// Dynatrace has no FATAL level; SEVERE, CRITICAL, ALERT and EMERGENCY are error-or-worse
 fetch logs, from:-1h
-| filter in(loglevel, {"ERROR", "WARN", "FATAL"})
+| filter in(loglevel, {"ERROR", "SEVERE", "CRITICAL", "ALERT", "EMERGENCY", "WARN"})
 | summarize count = count(), by:{loglevel}
 ```
 
@@ -189,7 +195,7 @@ index=application (host="app-01" OR host="app-02") AND level="ERROR"
 // Combined AND/OR conditions
 fetch logs, from:-1h
 | filter (matchesPhrase(host.name, "app-01") or matchesPhrase(host.name, "app-02"))
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | limit 100
 ```
 
@@ -202,17 +208,21 @@ fetch logs, from:-1h
 index=application | stats count, avg(response_time), max(response_time) by host
 ```
 
+Splunk extracts `key=value` fields at search time, so `response_time` exists on raw events. Grail does not. Parse the field at query time, as below, or at ingest with OpenPipeline (S2D-07).
+
 **DQL:**
 
 ```dql
 // Multiple aggregations by host
+// response_time is not a built-in field: parse it from the content first
 fetch logs, from:-1h
+| parse content, "DATA? 'response_time=' DOUBLE:response_time"
 | filter isNotNull(response_time)
-| summarize 
+| summarize {
     count = count(),
     avg_response = avg(response_time),
-    max_response = max(response_time),
-    by:{host.name}
+    max_response = max(response_time)
+  }, by:{host.name}
 ```
 
 ### Conditional Count
@@ -227,10 +237,10 @@ index=application | stats count(eval(level="ERROR")) as errors, count as total b
 ```dql
 // Conditional count - errors vs total
 fetch logs, from:-1h
-| summarize 
-    errors = countIf(loglevel == "ERROR"),
-    total = count(),
-    by:{host.name}
+| summarize {
+    errors = countIf(status == "ERROR"),
+    total = count()
+  }, by:{host.name}
 | fieldsAdd error_rate = (toDouble(errors) / toDouble(total)) * 100
 ```
 
@@ -243,13 +253,15 @@ fetch logs, from:-1h
 index=application | rex field=_raw "user=(?<username>\w+)"
 ```
 
+`parse` matches from the start of the field, and `LD` stops at a line break. Lead the pattern with `DATA?` to get `rex`'s search-anywhere behaviour. FAQ-15 is the full DPL reference.
+
 **DQL:**
 
 ```dql
 // Extract username from log content
 fetch logs, from:-1h
 | filter matchesPhrase(content, "user=")
-| parse content, "LD 'user=' WORD:username"
+| parse content, "DATA? 'user=' WORD:username"
 | summarize count = count(), by:{username}
 | sort count desc
 ```
@@ -265,8 +277,10 @@ index=application | rex field=_raw "status=(?<status>\d+)" | rex field=_raw "dur
 
 ```dql
 // Extract multiple fields from structured log
+// One parse per field, like two independent rex calls: field order does not matter
 fetch logs, from:-1h
-| parse content, "LD 'status=' INT:status LD 'duration=' INT:duration"
+| parse content, "DATA? 'status=' INT:status"
+| parse content, "DATA? 'duration=' INT:duration"
 | filter isNotNull(status) and isNotNull(duration)
 | summarize avg_duration = avg(duration), by:{status}
 ```
@@ -285,7 +299,7 @@ index=application level=ERROR | timechart span=1m count by host
 ```dql
 // Time-series error count by host
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | makeTimeseries count = count(), by:{host.name}, interval:1m
 ```
 
@@ -324,6 +338,7 @@ With your queries translated, proceed to **S2D-04: Alert Migration - Anomaly Det
 
 - [DQL Reference](https://docs.dynatrace.com/docs/shortlink/dql-reference)
 - [DQL Functions](https://docs.dynatrace.com/docs/shortlink/dql-functions)
+- [Log ingest rules (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-log-ingest-rules)
 - [DQL extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands)
 
 ---

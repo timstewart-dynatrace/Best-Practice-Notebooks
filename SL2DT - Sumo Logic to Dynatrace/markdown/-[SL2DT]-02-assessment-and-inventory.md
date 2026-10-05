@@ -1,6 +1,6 @@
 # SL2DT-02: Assessment & Inventory
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 11 | **Created:** April 2026 | **Last Updated:** 07/20/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 2 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -22,6 +22,7 @@ Everything downstream (SL2DT-03 ingest design, SL2DT-04 translation pass, SL2DT-
 8. [Inventory Roles & Users](#rbac)
 9. [Cut-Scope Decision Workshop](#cut)
 10. [Step Exit Criteria](#gate)
+11. [References](#references)
 
 ---
 
@@ -78,6 +79,16 @@ Region maps to the API base URL:
 | au | `https://api.au.sumologic.com` |
 | ... | see Sumo docs for full list |
 
+Set `SUMO_API` once from the region — us1 has no region label in its host — and use it in every call below:
+
+```bash
+if [ "$SUMO_REGION" = "us1" ]; then
+  export SUMO_API="https://api.sumologic.com"
+else
+  export SUMO_API="https://api.$SUMO_REGION.sumologic.com"
+fi
+```
+
 Auth: `Authorization: Basic <base64(access_id:access_key)>`
 
 ### Migration Repo
@@ -96,38 +107,58 @@ echo ".env" > .gitignore
 <a id="inventory"></a>
 ## 3. Pull the Sumo Inventory
 
-Pull each asset class via the Content API. Save each to `inventory/<type>.json`.
+Pull each asset class via the Sumo API. Save each to `inventory/<type>.json`.
+
+**List endpoints are paginated.** Dashboards, FERs, roles and users return one page at a time with a `next` token; pass it back as `token=<next>` until it comes back empty. The single-call examples below fetch the first page only — loop them for a real account.
 
 ### 3.1 Dashboards
 
 ```bash
 # List dashboards (paginated)
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v2/dashboards?limit=200" \
+  "$SUMO_API/api/v2/dashboards?limit=200" \
   > inventory/dashboards-list.json
 
 # For each, fetch full definition (requires dashboard ID)
+mkdir -p inventory/dashboards
 jq -r '.dashboards[].id' inventory/dashboards-list.json | while read id; do
   curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-    "https://api.$SUMO_REGION.sumologic.com/api/v2/dashboards/$id" \
+    "$SUMO_API/api/v2/dashboards/$id" \
     > "inventory/dashboards/$id.json"
 done
 ```
 
 ### 3.2 Monitors
 
+`GET /api/v1/monitors` is a *bulk read by ID* (`ids` is required), not a list. Start from the root of the monitor library and walk its `children`:
+
 ```bash
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/monitors" \
+  "$SUMO_API/api/v1/monitors/root" \
   > inventory/monitors.json
 ```
+
+`children` lists summaries only. Fetch each monitor's full definition (queries, triggers) by ID — and nested folders the same way, until no folders remain — into `inventory/monitors/`, which SL2DT-04 reads:
+
+```bash
+mkdir -p inventory/monitors
+jq -r '.children[] | select(.contentType == "Monitor") | .id' inventory/monitors.json | while read id; do
+  curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
+    "$SUMO_API/api/v1/monitors?ids=$id" \
+    > "inventory/monitors/$id.json"
+done
+```
+
+`/api/v1/monitors/search?query=…` finds monitors anywhere in the tree when walking folders is impractical.
+
+> <sub>**Sources:** [Sumo Logic API — OpenAPI spec (Sumo Logic)](https://api.sumologic.com/docs/sumologic-api.yaml).</sub>
 
 ### 3.3 Saved & Scheduled Searches
 
 ```bash
 # Saved searches live in user/folder content hierarchy
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v2/content/folders/personal" \
+  "$SUMO_API/api/v2/content/folders/personal" \
   > inventory/content-personal.json
 
 # Walk folder tree, save each search. Scheduled searches have a `searchSchedule` field.
@@ -137,23 +168,23 @@ curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
 
 ```bash
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/extractionRules" \
+  "$SUMO_API/api/v1/extractionRules" \
   > inventory/fers.json
 
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/collectors" \
+  "$SUMO_API/api/v1/collectors" \
   > inventory/collectors.json
 
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/partitions" \
+  "$SUMO_API/api/v1/partitions" \
   > inventory/partitions.json
 
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/roles" \
+  "$SUMO_API/api/v1/roles" \
   > inventory/roles.json
 
 curl -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/users" \
+  "$SUMO_API/api/v1/users" \
   > inventory/users.json
 ```
 
@@ -163,7 +194,7 @@ Record these numbers — they drive the wave plan in SL2DT-01:
 
 ```bash
 echo "Dashboards:  $(jq '.dashboards | length' inventory/dashboards-list.json)"
-echo "Monitors:    $(jq '.monitors | length' inventory/monitors.json)"
+echo "Monitors:    $(jq '[.. | objects | select(.contentType? == "Monitor")] | length' inventory/monitors.json)"
 echo "FERs:        $(jq '.data | length' inventory/fers.json)"
 echo "Collectors:  $(jq '.collectors | length' inventory/collectors.json)"
 echo "Partitions:  $(jq '.data | length' inventory/partitions.json)"
@@ -176,15 +207,15 @@ echo "Users:       $(jq '.data | length' inventory/users.json)"
 
 **The cut-scope decision depends on this data.** Pull the last 90 days of audit events that show dashboard/monitor access.
 
-Sumo stores audit events in a special index. Query via the Search Job API:
+Sumo stores audit events in the **Audit Event Index**, searched as `_index=sumologic_audit_events` — *"Make sure to enter the query exactly as shown. Changing any part of the query renders it ineffective."* Narrow to a feature with `_sourceCategory` after that scope. Query via the Search Job API:
 
 ```bash
 # Create search job
 curl -X POST -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
   -H "Content-Type: application/json" \
-  "https://api.$SUMO_REGION.sumologic.com/api/v1/search/jobs" \
+  "$SUMO_API/api/v1/search/jobs" \
   -d '{
-    "query": "_sourceCategory=\"audit\" (eventName=DashboardViewed OR eventName=MonitorRead)",
+    "query": "_index=sumologic_audit_events",
     "from": "2026-01-21T00:00:00Z",
     "to":   "2026-04-21T00:00:00Z",
     "timeZone": "UTC"
@@ -192,6 +223,10 @@ curl -X POST -u "$SUMO_ACCESS_ID:$SUMO_ACCESS_KEY" \
 
 # Poll, then download messages. See Sumo API docs for job polling protocol.
 ```
+
+**Check what your account records before relying on view counts.** The event index documents changes to content; it is not a page-view log. Confirm which event names, if any, record dashboard and monitor *views* in your account. Where views are not recorded, fall back on the Search Audit Index (who ran which queries) and owner interviews for the cut-scope decision.
+
+> <sub>**Sources:** [Audit Event Index (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/manage/security/audit-indexes/audit-event-index/).</sub>
 
 Export to CSV:
 
@@ -263,7 +298,7 @@ Every Sumo Collector needs a Dynatrace ingest equivalent. Classify each:
 |----------------|------------------|
 | Installed (Linux/Windows host) | OneAgent (auto-instruments logs + metrics + processes) |
 | Hosted (log upload endpoint) | OpenPipeline HTTP endpoint |
-| Hosted (syslog listener) | Dynatrace Syslog ingest (OneAgent or OTel Collector) |
+| Hosted (syslog listener) | ActiveGate syslog ingestion, or an OTel Collector `syslog` receiver (SL2DT-03 §6) |
 | Hosted (AWS CloudWatch) | Dynatrace AWS Clouds app (native integration) |
 | Hosted (Azure EventHub) | Dynatrace Azure cloud integration |
 | Hosted (GCP Pub/Sub) | Dynatrace GCP cloud integration |
@@ -285,13 +320,15 @@ For each collector, document:
 
 > **Metrics run on a parallel track.** The rows marked *metric path* are covered by **SL2DT-10: Migrating Telegraf-Collected Metrics** — inventory them here, but choose their ingest path and map their metric keys there. Metric keys change shape at the boundary on every available path, so that mapping cannot be deferred to cutover.
 
+> <sub>**Sources:** [Syslog ingestion (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog) — *"ActiveGate uses an embedded Dynatrace OpenTelemetry Collector instance"*.</sub>
+
 ![Sumo Collector → Dynatrace Ingest Mapping](images/02-collector-mapping_930x500.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Sumo Collector | DT Ingest Path | Notes |
 |----------------|----------------|-------|
 | Installed — Host | OneAgent | Auto-instruments |
-| Hosted — Syslog | OneAgent / OTel | Syslog receiver |
+| Hosted — Syslog | ActiveGate / OTel Collector | Syslog receiver |
 | Hosted — HTTP | OpenPipeline HTTP | Direct ingest |
 | Hosted — AWS | AWS Clouds app | Native |
 | Hosted — Azure | Azure integration | Native |

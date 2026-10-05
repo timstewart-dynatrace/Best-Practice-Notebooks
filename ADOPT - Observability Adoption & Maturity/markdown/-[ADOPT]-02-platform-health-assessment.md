@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -58,14 +58,19 @@ Dynatrace supports multiple monitoring modes. Full-Stack provides the deepest vi
 
 **Read the mode from billing, not from the host entity.** The classic `monitoringMode` property on `dt.entity.host` is not populated for every host. On the validation tenant (10/01/2026), 29 of the 36 hosts billed as Full-Stack in the last 24 hours had `monitoringMode` empty, so a `by:{monitoringMode}` breakdown put four in five Full-Stack hosts in a null bucket. On DPS, each monitored host emits billing usage events that name the capability it was charged under — that is the mode that counts.
 
+> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
+
 ```dql
 // Hosts by the capability they were billed under (DPS), last 24 hours.
 // A host can appear in more than one row — on the validation tenant 19 of 39 hosts did,
-// typically Full-Stack plus Code Monitoring. Non-host capabilities have no dt.entity.host
+// typically Full-Stack plus Code Monitoring. Non-host capabilities have no host ID
 // and are filtered out.
 fetch dt.system.events, from:-24h
-| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
-| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| filter event.kind == "BILLING_USAGE_EVENT"
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
 | sort hosts desc
 
 ```
@@ -243,7 +248,9 @@ A host count is not a consumption estimate. On DPS, Full-Stack Monitoring is mea
 // Full-Stack consumption per host over the last 7 days, in GiB-hours
 fetch dt.system.events, from:-7d
 | filter event.kind == "BILLING_USAGE_EVENT" and event.type == "Full-Stack Monitoring"
-| summarize {gib_hours = sum(billed_gibibyte_hours)}, by:{dt.entity.host}
+// Host ID read as in § 1.2 — SaaS 1.347 moves it from dt.entity.host to dt.smartscape.host.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| summarize {gib_hours = sum(billed_gibibyte_hours)}, by:{host}
 | sort gib_hours desc
 | limit 20
 

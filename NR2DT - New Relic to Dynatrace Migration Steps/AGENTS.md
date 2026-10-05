@@ -19,7 +19,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Inventorying the New Relic account, translation-confidence report, effort estimation | `-[NR2DT]-01-step-1-discover.md` |
 | Wave planning, in/out/deferred scope decisions, validation-gate definitions, stakeholder sign-off | `-[NR2DT]-02-step-2-strategize.md` |
 | Designing the target architecture: bucket design, host-group taxonomy, IAM model, OpenPipeline layout, Terraform skeleton | `-[NR2DT]-03-step-3-design.md` |
-| Running the NRQL→DQL translator (`migrate.py compile`), reviewing MEDIUM confidence, hand-translating LOW confidence | `-[NR2DT]-04-step-4-translate.md` |
+| Running the NRQL→DQL translator (`migrate.py batch` / `compile`), reviewing MEDIUM confidence, hand-translating LOW confidence, validating final DQL in the tenant | `-[NR2DT]-04-step-4-translate.md` |
 | Applying Wave 0 foundations, importing dashboards (Wave 1), migrating alerts with the 1–2 week dual-alert window (Wave 3) | `-[NR2DT]-05-step-5-migrate-dashboards-alerts.md` |
 | Migrating synthetic monitors incl. scripted-browser rebuilds (Wave 2), SLOs with 7-day delta validation, and workloads (Wave 4) | `-[NR2DT]-06-step-6-migrate-synthetics-slos-workloads.md` |
 | Reconfiguring log forwarders, applying OpenPipeline drop/parse/tag rules, verifying tag enrichment (Wave 5) | `-[NR2DT]-07-step-7-migrate-logs-tags-drops.md` |

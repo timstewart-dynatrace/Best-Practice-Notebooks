@@ -1,6 +1,6 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
@@ -71,7 +71,8 @@ The **Inline lookup** processor (SaaS 1.345+, staged rollout from 08/11/2026) ma
 ```dql
 // Cross-scope: Correlate error logs with error spans by service entity
 fetch logs, from:-1h
-| filter loglevel == "ERROR" and isNotNull(dt.smartscape.service)
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR" and isNotNull(dt.smartscape.service)
 | summarize error_logs = count(), by:{dt.smartscape.service}
 | lookup [
     fetch spans, from:-1h
@@ -91,7 +92,7 @@ A powerful validation pattern: extract the **same metric** from two different da
 
 | Source | Metric Key | Extraction Rule |
 |--------|-----------|----------------|
-| Logs | `log.error_count` | Count of `loglevel == "ERROR"`, by `dt.smartscape.service` |
+| Logs | `log.error_count` | Count of `status == "ERROR"`, by `dt.smartscape.service` |
 | Spans | `span.error_count` | Count of `http.response.status_code >= 500`, by `dt.smartscape.service` |
 
 These metrics should track each other. If logs show 10x more errors than spans, it could mean:
@@ -104,7 +105,8 @@ The comparison itself is diagnostic — the divergence tells you something about
 ```dql
 // Compare: Error counts from logs vs. spans by service
 fetch logs, from:-1h
-| filter loglevel == "ERROR" and isNotNull(dt.smartscape.service)
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR" and isNotNull(dt.smartscape.service)
 | summarize log_errors = count(), by:{dt.smartscape.service}
 | lookup [
     fetch spans, from:-1h

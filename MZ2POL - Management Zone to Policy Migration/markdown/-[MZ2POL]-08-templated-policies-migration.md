@@ -1,6 +1,6 @@
 # MZ2POL-08: Templated Policies for MZ Migration
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 10 | **Created:** February 2026 | **Last Updated:** 09/28/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 10 | **Created:** February 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -105,6 +105,10 @@ ALLOW settings:objects:read, settings:objects:write
 
 > **Storage writes cannot be condition-scoped (live-verified 07/2026):** wildcards are rejected and `storage:logs:write WHERE ...` fails with `Invalid condition name`. Where a LOB genuinely needs ingest/write access, grant `storage:logs:write, storage:metrics:write, storage:events:write` unscoped in a separate policy.
 
+> ⚠️ **`storage:events:read` with `=` or `startsWith` may match none of a team's events — test before rollout.** Grail's permission docs: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`. If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* On the validation tenant (10/05/2026, 24 h), **every** `events` record that carried `dt.security_context` carried it as an array — `DAVIS_EVENT` 72,235, `SYNTHETIC_EVENT` 27,032, `FLEET_EVENT` 4,576, `DAVIS_PROBLEM` 460, no string-typed record — while logs carried it as a string. A template that bundles `storage:events:read` into a `= "${bindParam:…}"` or `startsWith` statement can therefore give the bound group none of its own Davis events, problems or synthetic events, and nothing errors. The policy reference lists `match` as an operator for `storage:dt.security_context` on `storage:events:read`, but the templating docs show bound parameters only with `=` and `IN`, so whether `MATCH ("${bindParam:team}")` is accepted is not documented. Before rolling these templates out, bind one to a test group and confirm a member can `fetch events` for the team's context; if not, grant events in a separate, non-templated statement that uses `MATCH`.
+
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*, [IAM policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
+
 Combined with **two parallel boundaries** using the same scope (Gen2 boundary attaches to Gen2 policy, Gen3 boundary attaches to Gen3 policy):
 
 ```
@@ -197,6 +201,8 @@ ALLOW settings:objects:read WHERE settings:dt.security_context startsWith "${bin
 ```
 
 **Binding:** `{"parameters": {"region-prefix": "us-east"}}`
+
+> **Patterns B and D grant `storage:events:read` with `=` / `startsWith`.** Event records hold `dt.security_context` as an array, which those operators never match — read the warning in §2 and test a binding before rollout.
 
 ### Pattern Summary
 
@@ -330,9 +336,11 @@ fetch dt.entity.service
 ```dql
 // Find entities in MZ but without matching security context
 // These need security context before template binding will work
+// dt.security_context is an ARRAY here too: `!= "team-frontend"` is always true (Grail INFO
+// EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES) and would list every MZ member. Use not in(...).
 fetch dt.entity.service
 | filter in(managementZones, {"Frontend-Team"})
-| filter dt.security_context != "team-frontend" or isNull(dt.security_context)
+| filter not in("team-frontend", dt.security_context) or isNull(dt.security_context)
 | fields entity.name, dt.security_context, managementZones, tags
 | sort entity.name asc
 | limit 50
@@ -341,8 +349,9 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//   - dt.security_context is an ARRAY on classic entities as well, but null when unset;
+//     on Smartscape nodes it is an empty [] when unset, not null, so
+//     isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
 //     would miscount coverage.
 //   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
@@ -361,7 +370,7 @@ fetch dt.entity.service
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter contains(resource, "iam") and not startsWith(resource, "/lookups/")
-| summarize requests = count(), last_seen = takeMax(timestamp), by:{event.type, user.id}
+| summarize {requests = count(), last_seen = takeMax(timestamp)}, by:{event.type, user.id}
 | sort requests desc
 | limit 100
 ```

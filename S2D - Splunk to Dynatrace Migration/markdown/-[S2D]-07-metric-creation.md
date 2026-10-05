@@ -1,6 +1,6 @@
 # S2D-07: Metric Creation from Logs
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 08/04/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -83,7 +83,7 @@ Count the number of log records matching certain criteria.
 ```dql
 // Counter metric candidate: Error log count
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "checkout-service")
 | makeTimeseries count = count(), by:{k8s.deployment.name}, interval:1m
 ```
@@ -96,7 +96,9 @@ Track a numeric value extracted from log records.
 
 ```dql
 // Value metric candidate: Response time from logs
+// response_time is parsed here at query time; for a metric it must exist at ingest (see Consider Custom Fields)
 fetch logs, from:-24h
+| parse content, "DATA? 'response_time=' DOUBLE:response_time"
 | filter isNotNull(response_time)
 | filter matchesPhrase(k8s.deployment.name, "api-service")
 | makeTimeseries avg_response = avg(response_time), by:{k8s.deployment.name}, interval:1m
@@ -140,7 +142,7 @@ This defines how the metric will be segmented.
 ```dql
 // Query to convert to metric
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+| filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "production")
 | filter matchesPhrase(k8s.namespace.name, "ecommerce")
 | makeTimeseries error_count = count(), by:{k8s.deployment.name, k8s.namespace.name}, interval:1m
@@ -151,9 +153,11 @@ fetch logs, from:-24h
 | Field | Value |
 |-------|-------|
 | **Metric Type** | Counter |
-| **Filter** | `loglevel == "ERROR" AND matchesPhrase(k8s.cluster.name, "production") AND matchesPhrase(k8s.namespace.name, "ecommerce")` |
+| **Filter** | `status == "ERROR" AND matchesPhrase(k8s.cluster.name, "production") AND matchesPhrase(k8s.namespace.name, "ecommerce")` |
 | **Dimensions** | `k8s.deployment.name`, `k8s.namespace.name` |
 | **Metric Name** | `log.ecommerce.error_count` |
+
+`status == "ERROR"` covers every error-or-worse level (SEVERE, ERROR, CRITICAL, ALERT, EMERGENCY). Confirm with your platform team that `status` is populated before the metric-extraction stage of your pipeline; if it is not, list the levels explicitly instead.
 
 <a id="best-practices"></a>
 ## Best Practices
@@ -187,12 +191,13 @@ If your metric requires custom fields not available at ingest time:
 
 <a id="using-log-based-metrics"></a>
 ## Using Log-Based Metrics
-Once created, metrics are queried using `fetch metrics` instead of `fetch logs`:
+Once created, metrics are queried with `timeseries` instead of `fetch logs`. A counter metric is read with `sum()`: `avg()` returns the average per-data-point value, not the count.
 
 ```dql
 // Query the extracted metric (after it's created)
 // Note: This is an example - metric name will depend on your configuration
-timeseries avg(log.ecommerce.error_count), from:-1h, by:{k8s.deployment.name}
+// Counter metric - use sum(); avg() returns the per-data-point value
+timeseries sum(log.ecommerce.error_count), from:-1h, by:{k8s.deployment.name}
 ```
 
 <a id="request-process"></a>

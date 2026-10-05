@@ -20,8 +20,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Rebuilding NR dashboards: widget-level translation, `DashboardTransformer`, multi-page dashboards, variables/dynamic content, layout preservation | `-[NRLC]-03-dashboard-migration.md` |
 | Migrating NR alert policies: NRQL conditions → metric events, APM conditions → adaptive baselines, notification channels → Workflow tasks, mute rules/maintenance windows, the dual-alert window, and auditing migrated detectors for entity attribution before the dual-alert window closes — an unattributed detector passes New Relic parity testing cleanly and only fails once it is the sole alerting path | `-[NRLC]-04-alert-workflow-migration.md` |
 | Synthetic monitor type mapping (Ping / Simple Browser / API / Scripted Browser / Certificate Check / Broken Links), public/private location mapping, credential re-entry | `-[NRLC]-05-synthetic-monitor-migration.md` |
-| SLO metric-expression migration, SLI math equivalence auditing, NR workloads → OpenPipeline enrichment + segments + bucket-scoped IAM, entity-selector translation | `-[NRLC]-06-slo-workload-migration.md` |
-| Log forwarding patterns, NR drop rules → OpenPipeline filters, Grok → DPL parsing, tag taxonomy migration, cost optimization | `-[NRLC]-07-logs-tags-drops.md` |
+| SLO metric-expression migration, checking SLI equivalence (a manual NR-vs-DT comparison — `audit-slos` checks the Dynatrace side only), NR workloads → OpenPipeline enrichment + segments + bucket-scoped IAM, entity-selector translation | `-[NRLC]-06-slo-workload-migration.md` |
+| Log forwarding patterns, NR drop rules → OpenPipeline Drop record processors (DQL matching conditions), Grok → DPL parsing, tag taxonomy migration, cost optimization | `-[NRLC]-07-logs-tags-drops.md` |
 | Three-tier validation (syntax / tenant / behavioral), diff against live config, rollback manifests, conversion-quality reports | `-[NRLC]-08-validation-diff-rollback.md` |
 | Operating the toolchain: `migrate.py` CLI, component selection, Monaco/Terraform export formats, the end-to-end runbook, CI/CD integration | `-[NRLC]-09-toolchain-reference.md` |
 

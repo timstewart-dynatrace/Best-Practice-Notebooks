@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -382,7 +382,8 @@ fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 // Filter by bucket within query — useful when bucket list is dynamic
 fetch logs, from:-1h
 | filter dt.system.bucket == "default_logs"
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | limit 50
 ```
 

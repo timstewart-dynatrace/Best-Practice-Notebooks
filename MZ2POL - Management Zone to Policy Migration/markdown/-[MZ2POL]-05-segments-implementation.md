@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 09/28/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -343,13 +343,16 @@ The restriction that bites during migration is *where* wildcards are allowed on 
 
 | Entity property | Matching available |
 |---|---|
-| `entity.name` | Wildcards work — `"*payment*"`, `"payment*"`, `"*-prod"` |
+| `entity.name` | **Starts-with only** — `"payment*"`. No contains (`"*payment*"`) or ends-with (`"*-prod"`) |
 | Every other property | **Exact equals only** — no wildcards |
+| Any property not suggested in the filter field | **Not allowed** |
+
+These restrictions are specific to classic-entity includes. The *Segment limits* page states they do not apply to Smartscape on Grail, where the general `*` wildcard rules hold — verify the Smartscape include in your own tenant before relying on it.
 
 Tag conditions are a separate case: a tag filter tests **membership in the tag set** rather than a substring of a string field, so verify tag-based entity includes against your own tenant before assuming wildcard behavior.
 
 
-So *"service name contains payment"* converts cleanly (`entity.name = "*payment*"`), but `host property X contains Y` does not. For the equals-only properties the options are, in order of preference: rely on an exact value or an `in()` set, move the condition onto a signal include, or fall back to the `Segment` tag (§4.6).
+So a *service name starts with payment* rule converts (`entity.name = "payment*"`), but a *service name contains payment* rule does **not**, on a classic-entity include — nor does `host property X contains Y`. For a contains rule, or for the equals-only properties, the options are, in order of preference: rely on an exact value or an `in()` set, use a Smartscape include, move the condition onto a signal include on a field that carries the same value, or fall back to the `Segment` tag (§4.6).
 
 Wildcards may also follow a variable name in a starts-with condition — `foo = $bar*` — which is what makes the variable-driven consolidation in §2 practical. Variable *values* themselves may never contain `*`.
 
@@ -361,7 +364,7 @@ Entity includes alone do **not** filter the problem feed. To scope problems, the
 
 If the Management Zone was used to give a team a filtered problem view — a very common use — this is the include that does the work. ORGNZ-10 §12 has the full include shape and a worked example.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*, *"Only selected properties (suggested in the filter field) are allowed"*, *"these limits don't apply to Smartscape on Grail"*, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
 
 ---
 
@@ -378,7 +381,8 @@ Rule-level mapping, once you have chosen a scenario from §4. The **Include type
 | Kubernetes namespace | `k8s.namespace.name = "<namespace>"` | Signal | Auto-enriched (§4.4) |
 | Kubernetes cluster | `k8s.cluster.name = "<cluster>"` | Signal | Auto-enriched |
 | Service name equals | `entity.name = "<name>"` | Entity | Use `in()` for a set |
-| Service name contains | `entity.name = "*<text>*"` | Entity | Works — `entity.name` accepts wildcards (§5.3) |
+| Service name starts with | `entity.name = "<text>*"` | Entity | Works — `entity.name` supports starts-with (§5.3) |
+| Service name contains | — | — | **Not expressible on classic entities** — starts-with only (§5.3); use a Smartscape or signal include, or the fallback tag |
 | Other entity property contains | — | — | **Not expressible** — equals-only (§5.3) |
 | Cloud provider / arbitrary tag | `tags = "<key>:<value>"` | Entity | Requires the tag to be set at source (§4.1) |
 | Anything else | `tags = "Segment:<MZ name>"` | Entity | The fallback (§4.6) |
@@ -464,13 +468,16 @@ fetch logs, from:-1h
 ```dql
 // Validate the Davis problem include shape (blocker 5.4).
 // Entity includes alone do NOT filter the problem feed -- this is the condition that does.
+// On problem records k8s.namespace.name is an ARRAY: use in("<value>", field), never ==.
 fetch events, from:-24h
 | filter event.kind == "DAVIS_PROBLEM"
-    and k8s.namespace.name == "production"
+    and in("production", k8s.namespace.name)
 | fields timestamp, event.name, event.status
 | sort timestamp desc
 | limit 20
 ```
+
+> **On problem records, entity-derived fields are arrays.** A problem aggregates several events, so `k8s.namespace.name` on a `DAVIS_PROBLEM` record holds a list. `k8s.namespace.name == "production"` against it is always false, and Grail attaches no warning — on the validation tenant (10/05/2026) the `==` form returned 0 of 15,738 problem records for a namespace where `in("<namespace>", k8s.namespace.name)` returned 6. Use `in("<value>", field)` in DQL. The segment include itself (`k8s.namespace.name = "production"` in §6) is segment syntax, which accepts array fields, and does not need this change.
 
 > **Validate the signal surface, not just the entity surface.** A filter that selects the right hosts proves nothing about whether logs, spans, and metrics carry the same field. Derived metrics in particular may not (§5.2). Run at least one signal-level check per data type the segment is meant to scope.
 

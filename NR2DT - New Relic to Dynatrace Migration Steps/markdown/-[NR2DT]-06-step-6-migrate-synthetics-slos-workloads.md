@@ -1,6 +1,6 @@
 # NR2DT-06: Step 6 — Migrate Synthetics, SLOs & Workloads
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 6 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -33,12 +33,16 @@ Procedural — see **NRLC-05** (Synthetic Migration) and **NRLC-06** (SLO & Work
 Order: HTTP first (lowest risk), then Browser, then API multi-step. Scripted browsers are out of band — they get rebuilt manually.
 
 ```bash
-# Inventory + transform
-python3 migrate.py migrate --diff --components synthetics
+# Preview: export + transform + diff — imports NOTHING (see NR2DT-05 Wave 1)
+python3 migrate.py migrate --dry-run --diff --components synthetics --output ./run-synthetics
 
-# Import (auto-converts HTTP, Browser, API; stubs scripted)
-python3 migrate.py migrate --import-only --components synthetics
+# Import: the same command without --dry-run
+python3 migrate.py migrate --components synthetics --output ./run-synthetics
 ```
+
+> **Check what the import actually created.** At tool v3.0.0 (commit `78cbfce`) the default (Gen3) import phase marks synthetic tests **SKIPPED** with the reason *Gen3 synthetic emission requires per-facet settings objects*; the transformed monitors are still written to `./run-synthetics/transformed/dynatrace_config.json`. Read the run's summary table and skip reasons, and create any skipped monitors from that file until your tool version imports them.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), read 10/05/2026.</sub>
 
 **Re-enter secrets** in the DT credentials vault for any monitor that uses bearer tokens, basic auth, or OAuth.
 
@@ -49,7 +53,7 @@ python3 migrate.py migrate --import-only --components synthetics
 3. An engineer rebuilds the user journey using DT's clickpath recorder or DSL
 4. Validation: confirm the new clickpath catches the same regressions during a 1-week dual-run
 
-**G2 — Synthetics SLA:** dual-run for ≥ 1 week. DT availability % matches NR within ±0.5%. If delta exceeds, investigate location coverage and credential validity first.
+**W2 — Synthetics SLA:** dual-run for ≥ 1 week. DT availability % matches NR within ±0.5%. If delta exceeds, investigate location coverage and credential validity first.
 
 <a id="wave4"></a>
 ## 2. Wave 4 — SLOs & Workloads
@@ -57,44 +61,41 @@ python3 migrate.py migrate --import-only --components synthetics
 SLOs depend on metric expressions being mathematically equivalent. Workloads become OpenPipeline enrichments + IAM bucket conditions (Gen3 pattern).
 
 ```bash
-python3 migrate.py migrate --diff --components slos,workloads
-python3 migrate.py migrate --import-only --components slos,workloads
+# Preview (imports nothing), then import only SLOs + workloads from the previewed file
+python3 migrate.py migrate --dry-run --diff --components slos,workloads --output ./run-slos-workloads
+python3 migrate.py migrate --import-only --input ./run-slos-workloads --components slos,workloads
 ```
 
-**Run the SLO auditor** (the most important validation in this wave):
+`slos` depends on `alerts`, and a full `migrate` run adds dependencies automatically — `--components slos,workloads` without `--dry-run` would export, transform and import alerts and notification channels again. `--import-only` imports only the components named, but writes **no** rollback manifest; record what it created from its summary. At tool v3.0.0 the default (Gen3) import marks workload segments and IAM policies **SKIPPED** (the Platform segment API and the Account Management IAM API are not wired into the tool), so plan to create workload scoping yourself per NR2DT-03.
+
+**Run the SLO auditor** — a metric-validity check, not an SLI comparison:
 
 ```bash
+export DYNATRACE_OAUTH_TOKEN="<OAuth bearer token>"   # audit-slos exits without it
 python3 migrate.py audit-slos
 ```
 
-> The audit window and tolerance are set inside the auditor configuration, not via CLI flags. Target your 7-day / 0.5%-tolerance policy in the project's audit config.
+`audit-slos` reads every SLO in the tenant through the Platform SLO API and reports `OK` / `FAIL` with issues per SLO (missing metrics, invalid aggregations, NRQL that was not converted), then a `valid / total` count. It needs `DYNATRACE_ENVIRONMENT_URL` and `DYNATRACE_OAUTH_TOKEN`. It computes no NR or DT SLI and takes no window or tolerance.
 
-Output per SLO:
-
-```
-SLO: Checkout Availability
-  NR SLI:  99.94%
-  DT SLI:  99.92%
-  Delta:    0.02%  PASS (within configured tolerance)
-```
-
-Any SLO with delta > 0.5% needs investigation:
+**The 7-day SLI delta is computed by hand.** For each SLO, take NR's SLI for `SINCE 7 days ago` and the DT SLO's evaluated value over the same 7 days, and record the delta. Any SLO with delta > 0.5% needs investigation:
 
 1. Check unit conversion (ms vs. s vs. ns)
 2. Check entity scope — does the bucket / OpenPipeline enrichment filter capture the same entities as NR's workload?
 3. Check time alignment — NR's `SINCE 7 days ago` may bin differently than DT's `from:-7d`
 
-**G4 — SLO delta:** all SLOs report value within tolerance for ≥ 7 days.
+**W4 — SLO delta:** all SLOs within tolerance for ≥ 7 days (measured as above), and `audit-slos` reports every SLO valid.
+
+> <sub>**Sources:** [migrate.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py), [config/settings.py @ 78cbfce (tool repo, GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py), read 10/05/2026.</sub>
 
 <a id="gate"></a>
 ## 3. Step Exit Criteria
 
-**G6 — Synthetics + SLOs Migrated**
+**S6 — Synthetics + SLOs Migrated**
 
-- [ ] All synthetics migrated; G2 dual-run availability ±0.5%
+- [ ] All synthetics migrated; W2 dual-run availability ±0.5%
 - [ ] Scripted browsers rebuilt and validated
 - [ ] All synthetic credentials re-entered in DT vault
-- [ ] All SLOs migrated; G4 7-day delta ≤ 0.5%
+- [ ] All SLOs migrated; W4 7-day delta ≤ 0.5%; `audit-slos` clean
 - [ ] Workload identifiers visible as OpenPipeline-enriched attributes in DQL queries
 
 **Next step:** **NR2DT-07 — Migrate Logs, Tags & Drop Rules**.

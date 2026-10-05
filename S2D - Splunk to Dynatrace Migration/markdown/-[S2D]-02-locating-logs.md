@@ -1,6 +1,6 @@
 # S2D-02: Locating Logs in Dynatrace
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 07/08/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 2 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -8,7 +8,7 @@ Before migrating Splunk objects such as dashboards, alerts, or reports, it is es
 
 This notebook describes the process of determining where the required logs can be found, then validating whether they are present in Dynatrace.
 
-![Log Discovery Process](images/log-discovery-process.png)
+![Log Discovery Process](images/02-log-discovery-process.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Action | Output |
@@ -140,10 +140,12 @@ fetch logs, from:-1h
 
 ### Compare Counts with Splunk
 
-Run equivalent time-bounded queries in both platforms to compare log volumes:
+Run equivalent time-bounded queries in both platforms to compare log volumes.
+
+> **Exact names for exact counts.** `matchesPhrase(host.name, "app-server-01")` also matches `my-app-server-01`, which Splunk `host=app-server-01` does not. It is fine for discovery; for a like-for-like count, switch to `host.name == "your-exact-host-name"` once you know the name.
 
 ```dql
-// Total log count for the last getHour(compare with Splunk)
+// Total log count for the last hour (compare with Splunk)
 fetch logs, from:now()-1h
 | filter matchesPhrase(host.name, "your-host-name")
 | summarize total_count = count()
@@ -159,19 +161,23 @@ If the required logs are not available in Dynatrace, you need to configure log i
 |-------|-------|----------|
 | Environment | All hosts | Organization-wide policies |
 | Host Group | Specific host groups | Application-specific rules |
+| Kubernetes cluster | One cluster | K8s-wide policies |
 | Host | Single host | Special cases |
 
 > **Recommendation:** Use host group-level rules for application granularity without per-host overhead.
 
 ### Log Ingest Rule Properties
 
+The log ingest rules page states: *"Four hierarchy scopes are supported: host, Kubernetes cluster, host group, and environment."* (An earlier sentence on the same page still says three.)
+
 Rules can filter logs based on:
-- Host name patterns
-- Log file name or path
-- Kubernetes attributes
-- Log level
-- Process name
-- Content patterns
+- Host tag (key=value, set via `oneagentctl` or remote configuration). There is no host-name matcher.
+- Log source (file name or path) and log source origin
+- Kubernetes attributes (container, namespace, deployment, pod, workload)
+- Log record level
+- Process group
+- Journald unit
+- Log content (wildcards)
 
 ### Documentation Reference
 
@@ -190,8 +196,10 @@ If your application writes to non-standard log locations, you may need to config
 Verify that log content access is enabled on the OneAgent. The `oneagentctl` command can check this:
 
 ```bash
-oneagentctl --get-log-content-access
+oneagentctl --get-app-log-content-access
 ```
+
+To enable it, run `oneagentctl --set-app-log-content-access=true`. The OneAgent CLI page says: *"Use the --get-app-log-content-access parameter to check whether Log Monitoring is enabled"* and *"Set the --set-app-log-content-access parameter to true or false"*.
 
 > **Note:** Host-level settings supersede environment configuration. If log monitoring is disabled on the OneAgent, environment-level rules will not apply.
 
@@ -203,7 +211,9 @@ If logs appear but counts differ or content seems incorrect, you may need [Times
 
 > **Coverage vs. volume — the log-module self-monitoring events.** Before assuming a missing Splunk log needs a custom source or a new ingest rule, check what OneAgent already discovered — the gap is often a source detected but not yet configured for ingest, not a discovery miss. The log module emits a `log_source.status` event per discovered source into `dt.system.events`, carrying `log.source.file_status` and `log.source.ingest_status` — so it reveals sources OneAgent **detected but is not ingesting**, which a `fetch logs` count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.
 >
-> This event stream is **Early Access** and requires **opt-in** (the OneAgent log module must be enabled to send self-monitoring events; its content folds into the built-in *Log ingest Overview* dashboard for Dynatrace **1.339+** — verify it is flowing in your tenant before relying on it). See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants without the opt-in.
+> Log-module self-monitoring is enabled by default for Grail environments since SaaS 1.340 (*"Log module self-monitoring enabled by default for Grail"*), and it remains opt-in for Log Monitoring Classic. The built-in *Log ingest Overview* dashboard visualizes it. Verify the events are flowing in your tenant before relying on them. See **FAQ-08** (Recommended Approach) for the full file-status × ingest-status coverage matrix and the `fetch logs` fallback for tenants where the events are not available.
+>
+> <sub>**Sources:** [SaaS 1.340 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340).</sub>
 
 ```dql
 // Log-source coverage from the OneAgent log-module self-monitoring events.
@@ -241,11 +251,11 @@ Use this template to create a comprehensive validation query for your applicatio
 // Modify filters to match your application
 fetch logs, from:now()-24h
 | filter matchesPhrase(host.name, "app-server") or matchesPhrase(k8s.namespace.name, "app-namespace")
-| summarize 
+| summarize {
     total_count = count(),
-    error_count = countIf(loglevel == "ERROR"),
-    warn_count = countIf(loglevel == "WARN"),
-    by:{log.source}
+    error_count = countIf(status == "ERROR"),
+    warn_count = countIf(loglevel == "WARN")
+  }, by:{log.source}
 | sort total_count desc
 ```
 
@@ -257,7 +267,8 @@ Once you've validated that required logs are available in Dynatrace, proceed to 
 
 - [Log Ingest Rules](https://docs.dynatrace.com/docs/shortlink/lma-log-ingest-rules)
 - [Custom Log Sources](https://docs.dynatrace.com/docs/shortlink/lma-custom-log-source)
-- [Log Content Access](https://docs.dynatrace.com/docs/shortlink/oneagentctl#check-if-log-monitoring-is-enabled)
+- [OneAgent CLI — log content access (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface#check-if-log-monitoring-is-enabled)
+- [SaaS 1.340 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-340)
 - [Timestamp Configuration](https://docs.dynatrace.com/docs/shortlink/lma-timestamp-configuration)
 
 ---

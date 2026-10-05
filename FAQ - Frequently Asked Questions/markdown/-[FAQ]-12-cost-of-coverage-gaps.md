@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -161,13 +161,18 @@ Before arguing about what to enable, measure what you have. Three queries:
 
 **Query 1 — hosts by monitoring mode, read from billing.** Do not break hosts down by the `monitoringMode` attribute on `fetch dt.entity.host`. On the validation tenant it was empty on 26 of 33 hosts — every Kubernetes and AWS Fargate host — although all 26 were billed as Full-Stack, so a breakdown on it files most of a containerized estate under no mode at all. (`smartscapeNodes "HOST"` does not expose the attribute either.) The billing events record the capability each host is actually charged for. A host billed under more than one capability appears in each row — 18 of 39 hosts on the validation tenant were billed for both Full-Stack and Code Monitoring — so do not add the rows up.
 
+> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026).
+
 ```dql
 // Coverage audit — hosts by the monitoring capability they are billed for.
 // Not monitoringMode: that attribute is empty on Kubernetes and Fargate hosts, even Full-Stack ones.
 // A host billed under two capabilities is counted in both rows.
 fetch dt.system.events, from:-24h
-| filter event.kind == "BILLING_USAGE_EVENT" and isNotNull(dt.entity.host)
-| summarize {hosts = countDistinctExact(dt.entity.host)}, by:{billed_as = event.type}
+| filter event.kind == "BILLING_USAGE_EVENT"
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
 | sort hosts desc
 ```
 
@@ -194,7 +199,7 @@ For the **cost-side view of the same split**, the pre-aggregated billing series 
 
 Deep-monitoring exceptions themselves are configuration, not telemetry: review them under **Settings → Processes and containers → Process group monitoring** rather than DQL.
 
-> <sub>**Sources:** Query 1 executed live 10/02/2026: 39 hosts billed — 36 Full-Stack Monitoring, 21 Code Monitoring, 18 under both. On the same tenant `monitoringMode` was empty on 26 of 33 `dt.entity.host` records, all with `paasVendorType` `KUBERNETES` (24) or `AWS_ECS_FARGATE` (2) and all billed Full-Stack, and set on 0 of 7 `smartscapeNodes "HOST"` records. Query 2 executed live 10/02/2026 over a 2 h window to limit scanned bytes (13 hosts by `dt.entity.host`, 2.04 M records; the same window counted only 9 distinct `host.name` values — the undercount the comment warns about). Query 3 executed live 09/28/2026: 0 real-user sessions over 24 h on the validation tenant, whose 32,926 sessions over 7 days were all `synthetic` — the case the filter exists for. An earlier version counted `app.short_name`, which is not a user-session field. The `monitoringMode` observations are live findings on one tenant — re-check as Smartscape on Grail evolves. Billing series validated in FINOPS-01 (05/19/2026).</sub>
+> <sub>**Sources:** Query 1 executed live 10/02/2026: 39 hosts billed — 36 Full-Stack Monitoring, 21 Code Monitoring, 18 under both. On the same tenant `monitoringMode` was empty on 26 of 33 `dt.entity.host` records, all with `paasVendorType` `KUBERNETES` (24) or `AWS_ECS_FARGATE` (2) and all billed Full-Stack, and set on 0 of 7 `smartscapeNodes "HOST"` records. Query 2 executed live 10/02/2026 over a 2 h window to limit scanned bytes (13 hosts by `dt.entity.host`, 2.04 M records; the same window counted only 9 distinct `host.name` values — the undercount the comment warns about). Query 3 executed live 09/28/2026: 0 real-user sessions over 24 h on the validation tenant, whose 32,926 sessions over 7 days were all `synthetic` — the case the filter exists for. An earlier version counted `app.short_name`, which is not a user-session field. The `monitoringMode` observations are live findings on one tenant — re-check as Smartscape on Grail evolves. Billing series validated in FINOPS-01 (05/19/2026). Query 1 re-executed 10/05/2026 in its `coalesce` form: 15 Full-Stack and 10 Code Monitoring hosts over 24 h, identical to the `dt.entity.host` form. [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."*</sub>
 
 <a id="reduced-modes"></a>
 ## 6. When Reduced Modes Are the Right Call

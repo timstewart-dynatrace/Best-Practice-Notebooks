@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 09/28/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -83,7 +83,7 @@ LCP measures the time from when the user initiates navigation to when the larges
 // nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
 //   action.type == "Load"              -> characteristics.has_page_summary == true
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
-//   action.type                        -> user_action.type      (hard_navigation | same_view)
+//   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
 //   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
 //   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
@@ -97,10 +97,10 @@ LCP measures the time from when the user initiates navigation to when the larges
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
 | filter isNotNull(lcp.start_time)
-| summarize avg_lcp = avg(lcp.start_time),
+| summarize {avg_lcp = avg(lcp.start_time),
     p75_lcp = percentile(lcp.start_time, 75),
     p95_lcp = percentile(lcp.start_time, 95),
-    sample_size = count(),
+    sample_size = count()},
     by:{dt.rum.application.id}
 | sort avg_lcp desc
 ```
@@ -120,7 +120,7 @@ fetch user.events, from:-24h
     else: if(lcp_ms <= 4000, "Needs Improvement",
     else: "Poor"))
 | summarize action_count = count(), by:{lcp_category}
-| summarize rows = collectArray(record(lcp_category, action_count)), total = sum(action_count)
+| summarize {rows = collectArray(record(lcp_category, action_count)), total = sum(action_count)}
 | expand rows
 | fieldsAdd lcp_category = rows[lcp_category], action_count = rows[action_count]
 | fieldsAdd percentage = round(action_count * 100.0 / total, decimals: 1)
@@ -148,40 +148,62 @@ INP measures the time from when a user interacts (click, tap, keypress) to when 
 | Expensive event handlers | High processing time | Debounce, use web workers |
 | Forced layout/reflow | High presentation delay | Batch DOM reads/writes |
 
+### How INP Appears in New RUM
+
+INP lives on page summary events as two fields:
+
+- **`web_vitals.interaction_to_next_paint`** — the INP value itself, a duration (*"The Interaction to Next Paint (INP) value"*). Compare its p75 against Google's 200 ms / 500 ms thresholds.
+- **`inp.status`** — why a value is or is not present. `below_threshold` means *"INP is not reported because the value is below the threshold of 40 milliseconds"*; `not_reported` means *"INP is not reported because no relevant user interaction happened"*; `reported` means a value was captured.
+
+`reported` therefore does **not** mean "slow": a 60 ms interaction is reported and is Good against Google's 200 ms threshold. Score INP on the numeric value, and count `inp.status` on page summaries only — the field also appears on view summaries and user actions, so counting it across all events counts each page several times.
+
+> <sub>**Sources:** [Navigation-related events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related) — *"INP is not reported because the value is below the threshold of 40 milliseconds."*; [Monitor web performance with DQL (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance) (takes the p75 of `web_vitals.interaction_to_next_paint` on page summaries).</sub>
+
 ```dql
-// INP reshaped 08/12/2026 — New RUM publishes NO numeric INP on this schema. The only INP field
-// is `inp.status`, a category: `below_threshold` (the interaction was fast enough that no INP value
-// is reported — the healthy case, 369,268 events), `reported` (an INP value was actually recorded,
-// i.e. a slow interaction), `not_reported`. There is nothing to average or take a percentile of, so
-// an INP query is a RATE over statuses, not a latency distribution. Confirm on your own tenant with:
-//   fetch user.events, from:-24h | filter isNotNull(inp.status) | summarize n = count(), by:{inp.status}
+// INP corrected 10/05/2026. `web_vitals.interaction_to_next_paint` is the numeric INP (a
+// duration) on page summaries; `inp.status` only says why it is or is not present:
+// `below_threshold` = INP under Dynatrace's 40 ms reporting floor, `not_reported` = no relevant
+// interaction, `reported` = a value was captured — NOT "slow". Score INP against Google's
+// 200 / 500 ms on the value, and count page summaries only (inp.status also sits on view summaries
+// and user actions, which counted each page about three times).
+// Schema-verified, not execution-verified: the validation tenant holds only synthetic-monitor
+// data, which never records an interaction, so the INP columns read null there.
+// INP by application — measured coverage, p75 and poor share
 fetch user.events, from:-24h
-| filter isNotNull(inp.status)
+| filter characteristics.has_page_summary == true
 | summarize {
-    interactions          = count(),
-    slow_interactions     = countIf(inp.status == "reported"),
-    below_threshold       = countIf(inp.status == "below_threshold")
+    page_views     = count(),
+    inp_measured   = countIf(isNotNull(web_vitals.interaction_to_next_paint)),
+    p75_inp_ms     = percentile(web_vitals.interaction_to_next_paint, 75) / 1ms,
+    inp_poor       = countIf(web_vitals.interaction_to_next_paint > 500ms),
+    below_40ms     = countIf(inp.status == "below_threshold"),
+    no_interaction = countIf(inp.status == "not_reported")
   }, by:{dt.rum.application.id}
-| fieldsAdd slow_pct = round(slow_interactions * 100.0 / interactions, decimals: 3)
-| sort slow_pct desc
+| sort page_views desc
 ```
 
 ```dql
-// INP reshaped 08/12/2026 — New RUM publishes NO numeric INP on this schema. The only INP field
-// is `inp.status`, a category: `below_threshold` (the interaction was fast enough that no INP value
-// is reported — the healthy case, 369,268 events), `reported` (an INP value was actually recorded,
-// i.e. a slow interaction), `not_reported`. There is nothing to average or take a percentile of, so
-// an INP query is a RATE over statuses, not a latency distribution. Confirm on your own tenant with:
-//   fetch user.events, from:-24h | filter isNotNull(inp.status) | summarize n = count(), by:{inp.status}
+// INP corrected 10/05/2026. `web_vitals.interaction_to_next_paint` is the numeric INP (a
+// duration) on page summaries; `inp.status` only says why it is or is not present:
+// `below_threshold` = INP under Dynatrace's 40 ms reporting floor, `not_reported` = no relevant
+// interaction, `reported` = a value was captured — NOT "slow". Score INP against Google's
+// 200 / 500 ms on the value, and count page summaries only (inp.status also sits on view summaries
+// and user actions, which counted each page about three times).
+// Schema-verified, not execution-verified: the validation tenant holds only synthetic-monitor
+// data, which never records an interaction, so the INP columns read null there.
+// INP by page — worst p75 first
 fetch user.events, from:-24h
-| filter isNotNull(inp.status)
+| filter characteristics.has_page_summary == true
 | summarize {
-    interactions      = count(),
-    slow_interactions = countIf(inp.status == "reported")
+    page_views     = count(),
+    inp_measured   = countIf(isNotNull(web_vitals.interaction_to_next_paint)),
+    p75_inp_ms     = percentile(web_vitals.interaction_to_next_paint, 75) / 1ms,
+    inp_poor       = countIf(web_vitals.interaction_to_next_paint > 500ms),
+    below_40ms     = countIf(inp.status == "below_threshold"),
+    no_interaction = countIf(inp.status == "not_reported")
   }, by:{page.detected_name}
-| filter interactions > 10
-| fieldsAdd slow_pct = round(slow_interactions * 100.0 / interactions, decimals: 3)
-| sort slow_pct desc
+| filter page_views > 10
+| sort p75_inp_ms desc
 | limit 10
 ```
 
@@ -216,9 +238,9 @@ fetch user.events, from:-24h
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
 | filter isNotNull(cls.value)
-| summarize avg_cls = avg(cls.value),
+| summarize {avg_cls = avg(cls.value),
     p75_cls = percentile(cls.value, 75),
-    action_count = count(),
+    action_count = count()},
     by:{page.detected_name}
 | filter action_count > 10
 | sort p75_cls desc
@@ -232,21 +254,22 @@ fetch user.events, from:-24h
 Aggregate Core Web Vitals by page to identify which pages need optimization:
 
 ```dql
-// INP note (08/12/2026): New RUM publishes no numeric INP on this schema — only `inp.status`
-// (`below_threshold` = fast enough that no value is reported, the healthy case; `reported` = a slow
-// interaction was actually measured). So INP enters a scorecard as a RATE, not a percentile.
+// INP corrected 10/05/2026: scored on the numeric `web_vitals.interaction_to_next_paint` p75
+// against 200 / 500 ms — `inp.status == "reported"` only means the value cleared a 40 ms floor.
+// A page with no measured value is "No data", not "Poor": a null p75 used to fall through the
+// if-chain into the worst bucket (corrected 10/05/2026).
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
 | summarize {
     p75_lcp_ms   = percentile(lcp.start_time, 75),
     p75_cls      = percentile(cls.value, 75),
-    slow_inp_pct = round(countIf(inp.status == "reported") * 100.0 / count(), decimals: 3),
+    p75_inp_ms   = percentile(web_vitals.interaction_to_next_paint, 75) / 1ms,
     page_views   = count()
   }, by:{page.detected_name}
 | filter page_views > 20
-| fieldsAdd lcp_status = if(p75_lcp_ms <= 2500, "Good", else: if(p75_lcp_ms <= 4000, "NI", else: "Poor")),
-    cls_status = if(p75_cls <= 0.1, "Good", else: if(p75_cls <= 0.25, "NI", else: "Poor")),
-    inp_status = if(slow_inp_pct <= 1.0, "Good", else: if(slow_inp_pct <= 5.0, "NI", else: "Poor"))
+| fieldsAdd lcp_status = if(isNull(p75_lcp_ms), "No data", else: if(p75_lcp_ms <= 2500, "Good", else: if(p75_lcp_ms <= 4000, "NI", else: "Poor"))),
+    cls_status = if(isNull(p75_cls), "No data", else: if(p75_cls <= 0.1, "Good", else: if(p75_cls <= 0.25, "NI", else: "Poor"))),
+    inp_status = if(isNull(p75_inp_ms), "No data", else: if(p75_inp_ms <= 200, "Good", else: if(p75_inp_ms <= 500, "NI", else: "Poor")))
 | sort page_views desc
 | limit 15
 ```
@@ -271,36 +294,40 @@ fetch user.events, from:-7d
 fetch user.events, from:-7d
 | filter characteristics.has_page_summary == true
 | filter isNotNull(cls.value)
-| makeTimeseries p75_cls = percentile(cls.value, 75), interval:1d
+| makeTimeseries p75_cls = percentile(cls.value, 75), interval:24h
 ```
 
 <a id="cwv-scoring"></a>
 
 ## 7. CWV Scoring Dashboard
 
-Create a single-query CWV scorecard showing the percentage of page loads in each category:
+Create a single-query CWV scorecard showing, for each metric, the percentage of page loads in each category. Each percentage is taken over the page loads that measured that metric, so a page that never reported INP does not count as passing it:
 
 ```dql
-// INP note (08/12/2026): New RUM publishes no numeric INP on this schema — only `inp.status`
-// (`below_threshold` = fast enough that no value is reported, the healthy case; `reported` = a slow
-// interaction was actually measured). So INP enters a scorecard as a RATE, not a percentile.
+// Corrected 10/05/2026: each "good %" / "poor %" divides by the page summaries that actually
+// MEASURED that metric (lcp_n, cls_n, inp_n) — dividing by every page summary diluted the pass
+// rates with pages that never reported the value. INP is scored on the numeric
+// `web_vitals.interaction_to_next_paint` (≤ 200 ms good, > 500 ms poor), not on inp.status.
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
 | summarize {
     total     = count(),
+    lcp_n     = countIf(isNotNull(lcp.start_time)),
     lcp_good  = countIf(lcp.start_time <= 2500),
     lcp_poor  = countIf(lcp.start_time > 4000),
+    cls_n     = countIf(isNotNull(cls.value)),
     cls_good  = countIf(cls.value <= 0.1),
     cls_poor  = countIf(cls.value > 0.25),
-    inp_fast  = countIf(inp.status == "below_threshold"),
-    inp_slow  = countIf(inp.status == "reported")
+    inp_n     = countIf(isNotNull(web_vitals.interaction_to_next_paint)),
+    inp_good  = countIf(web_vitals.interaction_to_next_paint <= 200ms),
+    inp_poor  = countIf(web_vitals.interaction_to_next_paint > 500ms)
   }
-| fieldsAdd lcp_good_pct = round(lcp_good * 100.0 / total, decimals: 1),
-    lcp_poor_pct = round(lcp_poor * 100.0 / total, decimals: 1),
-    cls_good_pct = round(cls_good * 100.0 / total, decimals: 1),
-    cls_poor_pct = round(cls_poor * 100.0 / total, decimals: 1),
-    inp_fast_pct = round(inp_fast * 100.0 / total, decimals: 1),
-    inp_slow_pct = round(inp_slow * 100.0 / total, decimals: 3)
+| fieldsAdd lcp_good_pct = round(lcp_good * 100.0 / lcp_n, decimals: 1),
+    lcp_poor_pct = round(lcp_poor * 100.0 / lcp_n, decimals: 1),
+    cls_good_pct = round(cls_good * 100.0 / cls_n, decimals: 1),
+    cls_poor_pct = round(cls_poor * 100.0 / cls_n, decimals: 1),
+    inp_good_pct = round(inp_good * 100.0 / inp_n, decimals: 1),
+    inp_poor_pct = round(inp_poor * 100.0 / inp_n, decimals: 1)
 ```
 
 <a id="summary"></a>

@@ -1,6 +1,6 @@
 # NRLC-01: New Relic vs. Dynatrace — Platform Comparison
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 1 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 1 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -14,7 +14,7 @@ Three sprint-1.337 changes affect the NR→DT component conversion patterns:
 
 1. **OTel `service.name` enrichment** — Dynatrace now uses the OpenTelemetry `service.name` resource attribute to enrich the existing service entity (Smartscape displays `service.name (detected name)`; new `dt.service.name` field). NR services that emit OTel via the New Relic Collector → Dynatrace path map cleanly without two-services-per-process duplication.
 2. **OneAgent primary fields/tags at the source** (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` + customer-defined primary tags) — top-level on all signals. Reduces parse-processor work for migrated NR data.
-3. **Entity API: `attributes` removed** + **Event API: `metadata` removed from `GET /events`** (sprint-337 Dynatrace API). Update any conversion-engine code (Dynatrace-NewRelic / nrql-engine / nrql-translator) that parses these properties — see [reference_nr_migration_tools memory entry] for the engine repos.
+3. **Entity API: `attributes` removed** + **Event API: `metadata` removed from `GET /events`** (sprint-337 Dynatrace API). Update any conversion-engine code (Dynatrace-NewRelic / nrql-engine / nrql-translator) that parses these properties — the engine repositories are listed in **NRLC-09 §1**.
 
 The Authorization scheme by token prefix rule documented in NRLC-05 remains correct and is reinforced by sprint-337's broader Platform-token push.
 
@@ -57,7 +57,7 @@ The open-source `Dynatrace-NewRelic` engine covers the cross-platform concepts t
 | Kubernetes → DynaKube | `kubernetes_transformer` | 18 |
 | Tenant Gen3 API probe | `migrate.py preflight` | 14 |
 
-See **NRLC-09** for the full 42-transformer + 14-subcommand inventory and [COVERAGE-MATRIX.md](../docs/COVERAGE-MATRIX.md) for the end-to-end NR-surface → DT-equivalent map.
+See **NRLC-09** for the full 42-transformer + 14-subcommand inventory and the [coverage matrix (migration utilities GitHub)](https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md) for the end-to-end NR-surface → DT-equivalent map.
 
 <a id="architecture"></a>
 ## 1. Architectural Models
@@ -126,14 +126,16 @@ FACET host.hostname TIMESERIES 5 minutes
 ```
 
 **Equivalent DQL:**
-```
+```dql
 fetch spans, from:-1h
-| filter service.name == "checkout-service"
-| makeTimeseries count = count(), avg_dur = avg(duration), interval:5m, by:{host.name}
+| filter dt.service.name == "checkout-service" and isNotNull(endpoint.name)
+| makeTimeseries {count = count(), avg_dur = avg(duration)}, interval:5m, by:{host.name}
 ```
 
 Key conceptual differences:
-- **Source resolution:** NRQL's `FROM Transaction` is a NRDB event class; DQL's `fetch spans` is a Grail data object. The translation maps NR event classes to DT data objects.
+- **Source resolution:** NRQL's `FROM Transaction` is a NRDB event class — one record per request into a service. DQL's `fetch spans` is a Grail data object holding *every* span, including database calls, outbound calls and internal spans, so the translation needs `filter isNotNull(endpoint.name)`: the semantic dictionary describes `endpoint.name` (`stable`) as *"exclusively detected on request root spans"*, so the filter leaves one record per request. Without it, the count read about 2.8× the request count on the validation tenant (10/05/2026).
+- **Service name:** map NR `appName` to `dt.service.name`, the Dynatrace service name. `service.name` is the OpenTelemetry resource attribute and is set only on spans that carry it, so filtering on it silently drops traffic that does not: on the validation tenant fewer than one span in five carried `service.name`, while every span carried `dt.service.name` (10/05/2026). Use `service.name` only for OpenTelemetry-only services.
+- **Units:** NR `duration` is a number of seconds; DT `duration` is a duration value. Compare it with a duration literal (`duration > 500ms`) and divide by a unit to get a number (`avg(duration) / 1ms`).
 - **Time:** NRQL uses `SINCE` / `UNTIL`; DQL uses `from:` / `to:` parameters on `fetch` / `timeseries`.
 - **Facets:** NRQL `FACET x` becomes DQL `by:{x}` inside `summarize` or `makeTimeseries`.
 - **Timeseries:** NRQL `TIMESERIES N minutes` becomes DQL `makeTimeseries ..., interval:Nm`.

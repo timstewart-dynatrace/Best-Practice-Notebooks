@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -122,7 +122,7 @@ async function runQuery(query) {
 export default async function () {
   const records = await runQuery(`
     fetch logs, from: now() - 1h
-    | filter loglevel == "ERROR"
+    | filter status == "ERROR"
     | summarize error_count = count()
   `);
 
@@ -479,7 +479,7 @@ import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 export default async function () {
   const records = await runQuery(`
     fetch logs, from: now() - 1h
-    | filter loglevel == "ERROR"
+    | filter status == "ERROR"
     | fields timestamp, content, dt.entity.service
     | limit 100
   `);
@@ -559,7 +559,7 @@ export default async function () {
     query = `
       fetch logs, from: now() - 1h
       | filter dt.entity.host == "${entityId}"
-      | filter loglevel == "ERROR"
+      | filter status == "ERROR"
       | summarize errors = count()
     `;
   } else {
@@ -615,7 +615,7 @@ action: dynatrace.automations:execute-dql-query
 input:
   query: |
     fetch logs, from: now() - 15m
-    | filter loglevel == "ERROR"
+    | filter status == "ERROR"
     | summarize error_count = count(), by: { dt.entity.service }
     | sort error_count desc
     | limit 5
@@ -861,12 +861,12 @@ export default async function () {
 // runQuery() as defined in §2
 
 // Bad: seven days of every ERROR log, every field
-const everything = await runQuery(`fetch logs, from: now() - 7d | filter loglevel == "ERROR"`);
+const everything = await runQuery(`fetch logs, from: now() - 7d | filter status == "ERROR"`);
 
 // Good: limited time range and fields
 const recent = await runQuery(`
   fetch logs, from: now() - 1h
-  | filter loglevel == "ERROR"
+  | filter status == "ERROR"
   | fields timestamp, content
   | limit 100
 `);
@@ -911,7 +911,7 @@ tasks:
     input:
       query: |
         fetch logs, from: now() - 1h
-        | filter loglevel == "ERROR"
+        | filter status == "ERROR"
         | summarize errors = count()
       # Note: the DQL engine's own 120s runtime budget still applies
       # to the query execution itself. Raising `timeout` above 120s
@@ -931,7 +931,7 @@ tasks:
         export default async function() {
           const started = await queryExecutionClient.queryExecute({
             body: {
-              query: `fetch logs, from: now() - 1h | filter loglevel == "ERROR" | summarize errors = count()`,
+              query: `fetch logs, from: now() - 1h | filter status == "ERROR" | summarize errors = count()`,
               // How long queryExecute waits for the result before returning a
               // requestToken instead, in milliseconds. Distinct from both the
               // task timeout above and the 120s runtime budget.

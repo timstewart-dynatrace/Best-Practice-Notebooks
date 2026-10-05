@@ -1,12 +1,12 @@
 # NRLC-05: Synthetic Monitor Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 08/27/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
 New Relic offers four synthetic monitor types plus two specialized types: Ping, Simple Browser, API (multi-step), Step (Scripted Browser), Certificate Check, and Broken Links. Dynatrace offers HTTP, Browser, and Multi-step HTTP monitors. This deep dive maps the NR types to their DT equivalents, covers the location mapping (NR public/private → DT public/private), and flags the scripted-browser caveat that drives most of the manual migration effort.
 
-**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with `certificateExpiryDate` validation rule, and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser + API continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted Browser remains manual (R-01 in ENGINE-ENHANCEMENTS).
+**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with `certificateExpiryDate` validation rule, and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser + API continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted Browser remains manual.
 
 ---
 
@@ -74,7 +74,7 @@ The transformer captures the *shape* of the auth (which header, which step) but 
 | API (Multi-step) | Multi-step HTTP Monitor | `synthetic_transformer` (Phase 11) | Low — verify chained variable extraction |
 | **Certificate Check** | HTTP Monitor w/ `certificateExpiryDate` rule | `synthetic_specialized_transformer` (Phase 24) | None |
 | **Broken Links** | Multi-step HTTP Monitor (50-link cap) | `synthetic_specialized_transformer` (Phase 24) | Low — verify link list discovery |
-| Step (Scripted Browser) | Browser Monitor (clickpath) | Stub + manual | **High — 30–60 min per script** (R-01 backlog) |
+| Step (Scripted Browser) | Browser Monitor (clickpath) | Stub + manual | **High — 30–60 min per script** |
 
 The first five auto-convert. For Scripted Browser monitors, the engine emits a stub with a TODO and the original NR script attached as a tag for reference.
 
@@ -208,20 +208,21 @@ Continue to **NRLC-06 SLO & Workload Migration** for service-level migration.
 
 ```bash
 # 1. Inventory NR synthetic monitors (Ping, Browser, API, Step)
-python3 migrate.py migrate --export-only --components synthetics --output ./synthetics-export
+python3 migrate.py migrate --export-only --components synthetics --output ./synthetics-run
 
-# 2. Transform (auto-converts Ping/Browser/API; stubs Step monitors)
-python3 migrate.py migrate --transform-only --components synthetics --report
+# 2. Transform (auto-converts Ping/Browser/API; stubs Step monitors) and write a report — nothing is imported
+python3 migrate.py migrate --dry-run --report --components synthetics --output ./synthetics-run
 
-# 3. Diff against existing DT synthetics
-python3 migrate.py migrate --diff --components synthetics
+# 3. Import (export → transform → import); writes ./synthetics-run/rollback-manifest.json
+python3 migrate.py migrate --components synthetics --output ./synthetics-run
 
-# 4. Import
-python3 migrate.py migrate --import-only --components synthetics
-
-# 5. Re-enter credentials in the DT credentials vault
-# 6. Validate via DT UI: confirm first scheduled run executes successfully
+# 4. Re-enter credentials in the DT credentials vault
+# 5. Validate via DT UI: confirm first scheduled run executes successfully
 ```
+
+> **Flags checked against `migrate.py` on the tool's `main` branch (10/05/2026).** There is no `--transform-only`: `--dry-run` runs export and transform, writes `<output>/transformed/dynatrace_config.json`, and skips the import. `--diff` takes effect only on a full or dry run — with `--import-only` it is ignored, and without `--dry-run` it is computed *after* the import. `--import-only` needs `--input <dir>` and does not write a rollback manifest; a full run writes `<output>/rollback-manifest.json`. Run `python3 migrate.py migrate --help` against your checkout before relying on a flag.
+
+`--diff` is left out here because it matches only dashboards and management zones by name — every monitor is reported as `CREATE`, so it cannot find synthetics that already exist. Check for them in the Synthetic app before step 3.
 
 **Scripted browser monitors** require manual rebuild as DT clickpaths — budget 30–60 min per script.
 

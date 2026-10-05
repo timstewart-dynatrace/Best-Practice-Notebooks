@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -273,7 +273,8 @@ fetch logs, from:-24h
 ```dql
 // Error logs per hour over the last 24 hours
 fetch logs, from:-24h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | makeTimeseries error_count = count(), interval:1h
 ```
 
@@ -282,7 +283,8 @@ fetch logs, from:-24h
 ```dql
 // Most frequent error log messages in the last 6 hours
 fetch logs, from:-6h
-| filter loglevel == "ERROR"
+// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
+| filter status == "ERROR"
 | summarize error_count = count(), by:{content}
 | sort error_count desc
 | limit 10

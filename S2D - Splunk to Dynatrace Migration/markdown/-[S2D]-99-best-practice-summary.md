@@ -1,6 +1,6 @@
 # S2D-99: Best Practice Summary
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 04/03/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
 
 ## Overview
 
@@ -50,7 +50,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|----------------|----------|----------|
 | 7 | Set log ingest rules at the host-group level | Use host-group scope, not per-host | Recommended | Configuration |
-| 8 | Enable OneAgent log content access | `oneagentctl --set-log-content-access=true` on every monitored host | Critical | Configuration |
+| 8 | Enable OneAgent log content access | `oneagentctl --set-app-log-content-access=true` on every monitored host | Critical | Configuration |
 | 9 | Configure custom log sources for non-standard paths | Settings > Log Monitoring > Custom log sources; specify the exact file path pattern | Recommended | Configuration |
 | 10 | Configure timestamp and splitting rules for multi-line logs | Settings > Log Monitoring > Timestamp and splitting; set the timestamp pattern and line separator | Recommended | Configuration |
 | 11 | Validate by host name first, then by log source path | Use `matchesPhrase(host.name, "...")` then `matchesPhrase(log.source, "...")` | Recommended | Validation |
@@ -74,8 +74,8 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 23 | Translate `head N` to `limit N` | `limit 100` | Recommended | Syntax |
 | 24 | Translate `rename old AS new` to `fieldsRename` | `fieldsRename old, alias:new` | Recommended | Syntax |
 | 25 | Translate `timechart span=5m count by level` to `makeTimeseries` | `makeTimeseries count = count(), by:{loglevel}, interval:5m` | Critical | Syntax |
-| 26 | Translate `rex` field extraction to `parse` with DPL | `parse content, "LD 'user=' WORD:username"` | Recommended | Syntax |
-| 27 | Translate `*value*` wildcard to `matchesPhrase()` | `matchesPhrase(field, "value")` for token-based matching | Critical | Syntax |
+| 26 | Translate `rex` field extraction to `parse` with DPL | `parse content, "DATA? 'user=' WORD:username"` (lead with `DATA?`: `parse` anchors at the field start) | Recommended | Syntax |
+| 27 | Translate `*value*` wildcard to `contains()` | `contains(field, "value", caseSensitive:false)`; `matchesPhrase()` matches whole words only | Critical | Syntax |
 | 28 | Translate `field IN ("a","b")` to `in()` function | `in(field, {"a", "b"})` | Critical | Syntax |
 | 29 | Translate `NOT field="value"` to `!=` or `filterOut` | `filter field != "value"` or `filterOut field == "value"` | Recommended | Syntax |
 | 30 | Always alias aggregation results | `summarize count = count()` not `summarize count()` | Critical | Syntax |
@@ -86,14 +86,14 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|----------------|----------|----------|
 | 31 | Apply the threshold translation formula | `Splunk Threshold = DT Threshold x DT Violating Samples` | Critical | Alerting |
-| 32 | Use the "Alert Reimagined" strategy as default | Threshold: calculated, Sliding Window: match Splunk timeframe, Violating Samples: 2-3, Dealerting Samples: match Splunk suppress duration | Recommended | Alerting |
+| 32 | Use the "Alert Reimagined" strategy as default | Threshold: calculated, Sliding Window: match Splunk timeframe, Violating Samples: 2-3, Dealerting Samples: how many back-to-normal samples close the event | Recommended | Alerting |
 | 33 | Set Anomaly Detector query interval to 1 minute | `interval:1m` in `makeTimeseries` | Critical | Alerting |
 | 34 | Set the sliding window to match Splunk query timeframe | Max: 60 minutes. If Splunk timeframe is 15m, set sliding window to 15 | Critical | Alerting |
-| 35 | Set dealerting samples to match Splunk suppression | If Splunk suppress = 15 min, set dealerting samples = 15 | Recommended | Alerting |
+| 35 | Do not map Splunk suppression onto dealerting samples | Dealerting controls when an open event closes; Splunk suppress controls re-notification. Handle re-notification in the routing workflow | Recommended | Alerting |
 | 36 | Use `by:{dt.entity.cloud_application}` for entity association | Ensures alerts are tied to the correct monitored entity | Critical | Alerting |
-| 37 | Prefer Anomaly Detectors over Workflows when timeframe is 60 min or less | Dynatrace Intelligence provides continuous monitoring, AI correlation, and no license overhead | Critical | Alerting |
+| 37 | Prefer Anomaly Detectors over Workflows when timeframe is 60 min or less | Per-minute evaluation and Davis correlation; queries are billed, so use Delay to reduce executions | Critical | Alerting |
 | 38 | If alert timeframe exceeds 60 minutes, use Workflows or ArrayMovingSum | Anomaly Detectors max sliding window = 60 minutes | Critical | Alerting |
-| 39 | Use the data-driven strategy when historical data is available | Analyze 7 days of data to set thresholds based on actual patterns | Recommended | Alerting |
+| 39 | Use the data-driven strategy when historical data is available | Analyze per-minute samples (24 h or less per query at 1-minute resolution; repeat for several days) | Recommended | Alerting |
 | 40 | Validate the alert query returns timeseries data before configuring | Run the query in a notebook first; confirm `makeTimeseries` output | Critical | Validation |
 
 <a id="alert-migration-workflows"></a>
@@ -107,8 +107,8 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 44 | Set event timeout in the JavaScript event creation step | `timeout: 15` (minutes) to auto-expire events | Recommended | Alerting |
 | 45 | Workflow events do NOT auto-close or auto-update | Design event lifecycle accordingly; events expire by timeout only | Critical | Alerting |
 | 46 | Workflow events are NOT correlated by Dynatrace Intelligence | No root-cause analysis or problem grouping | Recommended | Alerting |
-| 47 | Account for workflow license consumption | Workflows consume workflow hours; frequent schedules cost more | Recommended | Licensing |
-| 48 | For business-hours-only alerting, filter by hour in the Dynatrace Intelligence query instead of using a Workflow | `fieldsAdd hour = toLong(formatTimestamp(timestamp, format:"HH"))` then `filter hour >= 8 AND hour < 18` | Recommended | Alerting |
+| 47 | Account for workflow license consumption | Every standard workflow is billed per hour it exists, regardless of how often it runs; the DQL it executes is billed separately as query consumption | Recommended | Licensing |
+| 48 | For business-hours-only alerting, filter by hour in the Dynatrace Intelligence query instead of using a Workflow | `fieldsAdd hour = getHour(timestamp, timezone:"America/New_York")` then `filter hour >= 8 and hour < 18` (queries run in UTC; set your time zone) | Recommended | Alerting |
 
 <a id="extended-timeframes-arraymovingsum"></a>
 ## 6. Extended Timeframes (ArrayMovingSum)
@@ -120,7 +120,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 51 | With Anomaly Detectors + ArrayMovingSum, set sliding window = 1 and violating samples = 1 | Each data point already contains the full rolling aggregation | Critical | Alerting |
 | 52 | Set threshold to total count expected in the rolling window | If Splunk threshold = 500 errors in 60 min, set DT threshold = 500 | Critical | Alerting |
 | 53 | Remove the original timeseries field after adding the rolling sum | `fieldsRemove error_count` after `fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)` | Recommended | DQL |
-| 54 | For dashboard visualizations > 60 min, increase the interval | `interval:4m` with `window:60` = 4-hour rolling sum | Recommended | DQL |
+| 54 | For dashboard visualizations > 60 min, increase the interval | `interval:5m` with `window:48` = 4-hour rolling sum (intervals snap to supported values; check the returned `interval`) | Recommended | DQL |
 | 55 | For alerts > 60 minutes that cannot use proportional reduction, use Workflows | If error distribution is uneven, proportional threshold reduction will produce false positives | Recommended | Alerting |
 
 <a id="metric-creation-from-logs"></a>
@@ -134,7 +134,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 59 | Consolidate similar metrics using dimensions instead of separate metrics | One `service_errors` metric with `k8s.deployment.name` dimension, not per-service metrics | Recommended | Design |
 | 60 | Name metrics as `log.[app_name].[metric_description]` | Example: `log.easytravel.error_count` | Recommended | Naming |
 | 61 | Complete all SPL-to-DQL translation before requesting metric extraction | Metric filters must match the final DQL query filters | Critical | Process |
-| 62 | Query extracted metrics with `timeseries` not `fetch logs` | `timeseries avg(log.easytravel.error_count), from:-1h` | Critical | Syntax |
+| 62 | Query extracted metrics with `timeseries` not `fetch logs` | `timeseries sum(log.easytravel.error_count), from:-1h` (counter: use `sum()`, not `avg()`) | Critical | Syntax |
 
 <a id="dashboard-migration"></a>
 ## 8. Dashboard Migration
@@ -145,7 +145,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 64 | Use dashboard variables for interactive filtering | Define `$cluster`, `$namespace`, `$deployment` variables with query-backed dropdowns | Recommended | Design |
 | 65 | Populate dropdown variables with DQL | `fetch logs, from:-1h \| summarize count(), by:{field} \| fields field \| sort field asc` | Recommended | Design |
 | 66 | Use consistent time intervals across related charts on the same dashboard | All trend charts should use the same `interval:` value | Recommended | Design |
-| 67 | Replace Splunk gauges with single-value tiles + color thresholds | Dynatrace has no gauge visualization; use conditional formatting | Recommended | Design |
+| 67 | Map Splunk gauges to the Gauge or Meter bar visualization | Radial gauge → Gauge; filler/marker gauge → Meter bar or Gauge | Recommended | Design |
 | 68 | Create Log Searcher dashboards for investigation | VM version: variables for `host_name` and `log_source`. K8s version: variables for `cluster`, `namespace`, `deployment` | Recommended | Design |
 | 69 | Validate migrated dashboard data against Splunk | Compare identical time ranges side-by-side before decommissioning Splunk dashboards | Critical | Validation |
 
@@ -156,7 +156,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 |---|---------------|----------------|----------|----------|
 | 70 | Dashboard names | `[app_name] Dashboard Title` | Critical | Naming |
 | 71 | Alert configuration names | `[app_name] alert name from splunk` | Critical | Naming |
-| 72 | Alert event names (triggered title) | `[app_name] [priority] - {dimension} - alert name` e.g. `[EasyTravel] P2 - {host.name} - High Error Count` | Critical | Naming |
+| 72 | Alert event names (triggered title) | `[app_name] [priority] - {dimension} - alert name` e.g. `[EasyTravel] P2 - {dims:host.name} - High Error Count` | Critical | Naming |
 | 73 | Report names | `[Report] [app_name] Report Title` | Recommended | Naming |
 | 74 | Lookup table paths | `/lookups/[app_name]/[table_name]` | Recommended | Naming |
 | 75 | Log-based metric names | `log.[app_name].[metric_description]` (lowercase, underscores) | Recommended | Naming |
@@ -176,7 +176,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 83 | Use `==` for exact matches, `matchesPhrase` for token search | `==` is faster than `~` or `matchesPhrase` when the full value is known | Recommended | Performance |
 | 84 | Target specific Grail buckets | `fetch logs, bucket:{"app_logs_*"}` to avoid scanning all buckets | Recommended | Performance |
 | 85 | Use named parameters for DQL functions | `round(value, decimals: 2)` not `round(value, 2)` | Critical | Syntax |
-| 86 | Use `countIf()` instead of nested filter + count | `summarize errors = countIf(loglevel == "ERROR")` in a single pass | Recommended | Performance |
+| 86 | Use `countIf()` instead of nested filter + count | `summarize errors = countIf(status == "ERROR")` in a single pass | Recommended | Performance |
 | 87 | Check `isNotNull()` before aggregating optional fields | `filter isNotNull(db.system)` before `summarize avg(duration), by:{db.system}` | Recommended | Correctness |
 | 88 | Sort and limit must come last in the pipeline | `sort field desc \| limit 10` as final commands | Critical | Performance |
 | 89 | Use `fieldsKeep` or `fieldsRemove` early to drop unneeded columns | Reduces data volume through the pipeline | Recommended | Performance |
