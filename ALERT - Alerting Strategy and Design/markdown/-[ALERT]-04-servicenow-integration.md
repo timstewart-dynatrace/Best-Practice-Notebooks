@@ -1,10 +1,10 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 09/24/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
-For many enterprises, an alert is not "done" until it is an incident in ServiceNow. This notebook covers the integration as a **maturity ladder** — from dependable one-way incident creation you can stand up today, to bi-directional state sync — and shows the worked Table API path so you are never blocked waiting on a connector's availability.
+For many enterprises, an alert is not "done" until it is an incident in ServiceNow. This notebook covers the integration as a **maturity ladder** — from dependable one-way incident creation you can stand up today, to ServiceNow-side event management, where incidents resolve when the problem closes — and shows the worked Table API path so you are never blocked waiting on a connector's availability.
 
 ---
 
@@ -13,7 +13,7 @@ For many enterprises, an alert is not "done" until it is an incident in ServiceN
 1. [The Integration Ladder](#ladder)
 2. [Rung 1 — HTTP to the Table API](#http)
 3. [Rung 2 — Native ServiceNow Connector](#connector)
-4. [Rung 3 — Bi-Directional Sync](#bidirectional)
+4. [Rung 3 — ServiceNow-Side Event Management](#bidirectional)
 5. [What ServiceNow Needs From the Problem](#fields)
 
 ---
@@ -38,7 +38,7 @@ There are several current ways to integrate, and they form a maturity ladder. St
 |------|-----------|-----------|------|
 | 1 | Workflow HTTP → Table API (POST /api/now/table/incident) | one-way | now — the dependable baseline |
 | 2 | Native ServiceNow workflow connector (create/update/comment/resolve) | one-way+ | now — GA (Hub app 1.0.0+) |
-| 3 | ServiceNow-side Dynatrace app / ITOM Event Management (em_event) | bi-directional | ITOM-centric shops |
+| 3 | ServiceNow store apps (Dynatrace Incident Integration, Event Management Connector) / ITOM Event Management (em_event) | one-way; the incident resolves when the problem closes | ITOM-centric shops |
 | Legacy | Classic problem-notifications (alerting-profile based) | one-way | works, less flexible — prefer workflows |
 For environments where SVG doesn't render
 -->
@@ -80,7 +80,9 @@ The workflow's HTTP action then creates the incident. Map Dynatrace fields to Se
 ```json
 // Workflow HTTP action → ServiceNow Table API
 // POST https://<instance>.service-now.com/api/now/table/incident
-// Auth: service account (basic) or OAuth; store the secret in the workflow connection, never inline.
+// Auth: Basic (service account) set in the action's Authentication field from a Credential Vault
+// entry, never a static Authorization header. OAuth client credentials need a Run JavaScript task,
+// which makes the workflow a standard one.
 // Problem-record fields have dotted names — use bracket access: event()['event.name'].
 {
   "short_description": "{{ event()['event.name'] }} ({{ event()['display_id'] }})",
@@ -97,7 +99,7 @@ Carry the Dynatrace problem id into a ServiceNow field (`u_dynatrace_problem_id`
 <a id="connector"></a>
 ## 3. Rung 2 — Native ServiceNow Connector
 
-Dynatrace provides a native ServiceNow action for workflows that handles **Create Incident / Resolve incident / Comment on an incident / Update record** (plus Search incidents, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring, and resolve/comment give you de-duplication and auto-close when the Dynatrace problem closes.
+Dynatrace provides a native ServiceNow action for workflows that handles **Create Incident / Resolve incident / Comment on an incident / Update record** (plus Search incidents, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring. De-duplication comes from *Search incidents*: look for an existing incident before *Create Incident* opens a new one. Closing comes from *Resolve incident*, which needs *"The number of the incident to resolve."*, so run it in a workflow whose trigger also fires on close (Problem state *active or closed*) and look the incident up first.
 
 The connection authenticates with **Basic Authentication** or **OAuth Client Credentials** (there is no API-key option). On Create Incident, `Category`, `Subcategory`, `Impact`, `Urgency`, and `Assignment Group` are required, and `Correlation ID` is optional (the docs describe it as a *"Unique identifier (in most cases, this is the Dynatrace event ID)."*), but set it anyway. It is what a ServiceNow-side rule, or a *Search incidents* step before *Create Incident*, can match on to avoid a duplicate. **WFLOW-05** walks the worked workflow setup — connection, each operation, the severity→Impact/Urgency mapping, and production hardening.
 
@@ -106,11 +108,15 @@ The connection authenticates with **Basic Authentication** or **OAuth Client Cre
 > <sub>**Sources:** [ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now), [ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — version history, release 1.0.0: *"Improve wording and remove preview label"*.</sub>
 
 <a id="bidirectional"></a>
-## 4. Rung 3 — Bi-Directional Sync
+## 4. Rung 3 — ServiceNow-Side Event Management
 
-For ITOM-centric organisations, the **ServiceNow-side Dynatrace app** (and ITOM Event Management) is the richest option. It ingests Dynatrace events into ServiceNow's event table (`em_event`), transforms them into incidents, and **synchronises state both ways** — when the incident is worked or closed in ServiceNow, that flows back, closing the loop shown as the feedback arrow in ALERT-01.
+For ITOM-centric organisations, the apps installed on the ServiceNow side are the richest option. Dynatrace names two that do the incident work: the **Dynatrace Incident Integration** application, which creates incidents from Dynatrace problems, and the **Event Management Connector**, which takes Dynatrace problem events into ITOM Event Management as alerts and incidents. Dynatrace's ServiceNow integration page describes what the integration fills: problems go to the `incident` table, the events correlated with a problem go to the ITOM event table (`em_event`), affected CIs go to `task_ci`, and, if enabled, discovered services go to the CMDB. When the problem closes in Dynatrace, the incident is marked *Resolved* in ServiceNow.
 
-This is configured largely on the ServiceNow side and suits shops already running ITOM Event Management. It is the destination of the maturity ladder, not the starting point — reach for it when one-way creation is no longer enough and you want incident lifecycle unified across both platforms.
+Everything those pages describe flows from Dynatrace to ServiceNow. Neither describes incident state or work notes flowing back onto the Dynatrace problem. If you need that direction, check the documentation of the ServiceNow app version you install, or build it as a workflow that polls ServiceNow and comments on the problem (WFLOW-05 §6).
+
+This is configured largely on the ServiceNow side and suits shops already running ITOM Event Management. It is the destination of the maturity ladder, not the starting point — reach for it when one-way incident creation is no longer enough and you want ITOM event correlation and CMDB context on every incident.
+
+> <sub>**Sources:** [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration) — *"When a problem is closed in Dynatrace, the incident is marked as Resolved in ServiceNow."*, [Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/) — *"The Incident App will create incidents based on Dynatrace-identified problems"*; *"The Event Management integration accepts Dynatrace problem events and transforms infrastructure events into actionable alerts and incidents"*.</sub>
 
 <a id="fields"></a>
 ## 5. What ServiceNow Needs From the Problem
@@ -132,8 +138,10 @@ If the problem fires without these, the incident lands in a default queue with n
 
 > <sub>**Sources:**</sub>
 > - <sub>[Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration)</sub>
-> - <sub>[ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026</sub>
-> - <sub>[ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview)</sub>
+> - <sub>[ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026; *Resolve incident* requires *"The number of the incident to resolve."* (re-read 10/06/2026)</sub>
+> - <sub>[ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — *"Search for available incidents to prevent duplicates from being created."*</sub>
+> - <sub>[HTTP request action for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action) — *"Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication."*</sub>
+> - <sub>[Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — a simple workflow allows *"Any action (except Run JavaScript, Run Workflow, Approval Request)"*</sub>
 > - <sub>[Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/)</sub>
 > - <sub>[Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"In a workflow, you reference Grail problem record fields through Jinja instead"* (its example is `{{ event()["event.name"] }}`); `{{ problem_link() }}` *"Evaluates only in workflows with a Davis problem trigger"*; on multi-entity problems, *"The problem carries the deduplicated union."*</sub>
 > - <sub>[Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"To browse past occurrences, explore available fields, and test filter conditions before configuring the trigger, run this query in a notebook"* (the query is `fetch dt.davis.problems`). Problem-trigger preview query validated on a live tenant 09/24/2026</sub>

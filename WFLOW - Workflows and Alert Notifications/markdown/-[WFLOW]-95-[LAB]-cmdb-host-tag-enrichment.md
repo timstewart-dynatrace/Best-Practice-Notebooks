@@ -1,12 +1,12 @@
 # WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 95 — CMDB-Driven Host Tag Enrichment LAB | **Created:** June 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
 A frequent ask: read host→application mappings from a CMDB and apply them as host tags in bulk. This hands-on LAB builds that end to end as a Dynatrace **Workflow** — two *Run JavaScript* tasks that enrich hosts from CMDB lookup tables and apply the tags via the OneAgent Remote Configuration Management API, safely (dry-run first) and idempotently (skip tags that already exist).
 
-It is the capstone for **WFLOW-08 (JavaScript & HTTP Actions)** — it combines an SDK DQL query (WFLOW-08 §2), `fetch()` to a Dynatrace API with auth (§3), retry logic (§4), `result()` / `withItems` data passing between tasks (§7), and the Credential Vault into one deployable workflow. Build it in the editor by following the [steps](#build-steps), or import the [YAML skeleton](#import-skeleton) at the end.
+It is the capstone for **WFLOW-08 (JavaScript & HTTP Actions)** — it combines an SDK DQL query (WFLOW-08 §2), `fetch()` to a Dynatrace API with auth (§3), retry logic (§4) and `result()` / `withItems` data passing between tasks (§7) into one deployable workflow. Build it in the editor by following the [steps](#build-steps), or import the [YAML skeleton](#import-skeleton) at the end.
 
 > **Is this the right tool?** This LAB writes tags onto hosts through the classic remote configuration API. If the value can be derived from context the host already reports — host group, host name, an existing host tag — Latest Dynatrace has a simpler path: **Ingest enrichment configuration** (FAQ-02 § 3.3), a central rule with no host changes and no agent restart (OneAgent 1.343+). Use this LAB when the value exists **only in an external CMDB**, one value per host.
 
@@ -30,7 +30,8 @@ It is the capstone for **WFLOW-08 (JavaScript & HTTP Actions)** — it combines 
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Workflows (AutomationEngine) and Grail |
-| **Permissions** | `automation:workflows:write`; a Gen2 (classic) API token with `oneAgents.write` stored in the Credential Vault; and `environment-api:credentials:read` on the workflow's run-as identity (to read that token at runtime) |
+| **Permissions** | To build and run the workflow: `automation:workflows:write`, `automation:workflows:run`, `app-engine:functions:run`. **Workflow actor:** `storage:entities:read` (`dt.entity.host`), `storage:files:read` (the lookup tables) and `fleet-management:oneagents:write` (the remote configuration API, platform authentication — SaaS 1.343+), each also enabled in **Workflows > Settings > Authorization settings**. *Classic/hybrid alternative only:* a classic API token with `oneAgents.write` in the Credential Vault, and `environment-api:credentials:read` on the actor |
+| **Hosts** | OneAgents in Full-Stack or Infrastructure Monitoring mode, connected to the environment. Remote configuration does not work with Operator-deployed or application-only OneAgents, or on Solaris |
 | **Data** | Your CMDB exports uploaded as Grail lookup tables |
 | **Prior Knowledge** | **WFLOW-08** (JavaScript & HTTP actions); DQL `lookup` / `load` |
 
@@ -42,7 +43,7 @@ The workflow is two `run-javascript` tasks chained by a loop:
 | Task | Type | Role |
 |------|------|------|
 | `query_hosts_and_enrich` | `run-javascript` | Runs the DQL enrichment (host → three-table CMDB lookup chain), dedups by host id, fetches each host's current tags, and returns a `hosts[]` array containing **only the tags that are missing**. |
-| `apply_tags_to_hosts` | `run-javascript` with a loop | For each host in `hosts[]`, reads the API token from the Credential Vault and POSTs a `set hostTag` operation to the **OneAgent Remote Configuration Management API** — respecting dry-run and retrying on HTTP 409. |
+| `apply_tags_to_hosts` | `run-javascript` with a loop | For each host in `hosts[]`, POSTs a `set hostTag` operation to the **OneAgent Remote Configuration Management API** as the workflow actor (relative URL, no stored token) — respecting dry-run, retrying on HTTP 409 and checking `failedEntities`. |
 
 The write mechanism is `POST /api/v2/oneagents/remoteConfigurationManagement` with a `set hostTag` operation — the same `--set-host-tag` form you would run locally with `oneagentctl`, applied remotely across many hosts in one workflow.
 
@@ -53,9 +54,9 @@ The write mechanism is `POST /api/v2/oneagents/remoteConfigurationManagement` wi
 |-------|--------------|
 | CMDB lookup tables (Grail) | cmdb_server -> cmdb_mapped_app_service -> cmdb_businessapp uploaded as lookup tables |
 | 1. query_hosts_and_enrich (run-javascript) | fetch dt.entity.host, lookup x3 (CMDB chain), dedup by host id, diff vs existing tags -> returns hosts[] |
-| 2. apply_tags_to_hosts (run-javascript, withItems loop) | per host: read token from Credential Vault, POST set hostTag to the Remote Configuration Management API |
+| 2. apply_tags_to_hosts (run-javascript, withItems loop) | per host: POST set hostTag to the Remote Configuration Management API as the workflow actor (relative URL; classic token from the Credential Vault only as the classic/hybrid alternative) |
 | Hosts tagged | primary_tags.application, primary_tags.environment, dt.security_context, dt.cost.costcenter |
-| Safety gates | DRY_RUN=true default, MAX_HOSTS cap, skip existing tags, retry on 409 (x3), config validated before any write |
+| Safety gates | DRY_RUN=true default, MAX_HOSTS cap, skip existing tags, retry on 409 (x3), failedEntities checked on 201 |
 -->
 
 The two tasks are chained: task 2 loops over `result('query_hosts_and_enrich').hosts` (one run per host) and only runs when task 1 found at least one host. The diagram below opens each task into its internal function flow.
@@ -67,11 +68,11 @@ The two tasks are chained: task 2 loops over `result('query_hosts_and_enrich').h
 |----------------------------------------------|-----------------------------------------------|
 | 1. Run enrichment DQL (fetch host + lookup x3 + parse hostname) | 1. loopItem.host (one host from hosts[]) |
 | 2. Deduplicate by host id -> uniqueHosts | 2. DRY_RUN? yes -> log and return, no -> continue |
-| 3. Apply MAX_HOSTS cap | 3. Validate config (URL / CREDENTIAL_ID) |
-| 4. Fetch existing tags (batched) | 4. Read API token <- Credential Vault |
+| 3. Apply MAX_HOSTS cap | 3. Relative URL (platform auth, as the actor) |
+| 4. Fetch existing tags (batched) | 4. Classic alternative only: token <- Credential Vault |
 | 5. Diff: drop tags already present | 5. Build operations[] (set hostTag per tag) |
 | 6. Keep hosts with >=1 missing tag | 6. POST to API (retry x3 on HTTP 409) |
-| -> return hosts[] | -> return applied / dry-run / failed |
+| -> return hosts[] | -> check failedEntities; return applied / dry-run / failed |
 | Task 1 output feeds Task 2 via the loop (one iteration per host) | |
 -->
 
@@ -95,27 +96,37 @@ The workflow defaults to **safe**: a first run changes nothing. Read the dry-run
 | `DRY_RUN = true` *(default)* | Task 2 only logs the `--set-host-tag` it *would* run — no write. Set to `false` to apply. |
 | `MAX_HOSTS` | Caps hosts processed per run (default `50`; `0` = unlimited). |
 | Skip-existing | Task 1 reads current tags and drops any key already present — re-runs are idempotent. |
-| 409 retry | Remote Config Management allows one job per host at a time; task 2 retries up to `MAX_RETRIES` (3) with a 15s backoff on HTTP 409. |
-| Credential Vault | Task 2 reads a Gen2 (classic) `oneAgents.write` API token from the vault at runtime via `credentialVaultClient` — never hardcoded. (The API reference now also lists a platform-token / OAuth scope, `fleet-management:oneagents:write`; this LAB keeps the live-validated classic token until that path is re-tested.) |
-| Config validation | Task 2 throws *before any live write* if `ENVIRONMENT_URL` / `CREDENTIAL_ID` still hold placeholders. |
+| 409 retry | HTTP 409 means *another* remote configuration job is running in the environment — any bulk action, by a person or another workflow, not only this one. Task 2 retries up to `MAX_RETRIES` (3) with a 15s backoff. |
+| `failedEntities` check | A 201 response returns only after every OneAgent in the job is processed, and lists agents that failed (`CONNECTION_FAILURE`, `TIMEOUT`) in `failedEntities`. Task 2 reports those hosts as `failed`, not `applied`. |
+| No stored secret | Task 2 calls the API with a **relative URL**, so the runtime authenticates it as the workflow actor — no token in the vault or the workflow. |
+| Config validation | In the classic-token alternative, task 2 throws *before any live write* if `ENVIRONMENT_URL` / `CREDENTIAL_ID` still hold placeholders. |
 | Loop concurrency `1` | Hosts are tagged one at a time (serialized loop) to avoid colliding jobs and API pressure. |
 
 > **`RESTART_ONEAGENT = false` means "accepted", not "applied".** The API reference states that *"By default OneAgents will be restarted when network zone, host group, host tags or host properties are reconfigured - the restart is required to apply the changes."* The LAB defaults to no restart so that a first live run cannot bounce agents unexpectedly — but with it off, a successful job (HTTP 2xx, a `jobId`) does not mean the tags are on the data yet; they apply when each host's OneAgent next restarts. Either schedule a restart window and set `RESTART_ONEAGENT = true`, or verify on data ingested after the hosts' next restart. Removals are slower still: *"Removing host properties and tags may require up to seven hours to take effect."*
+
+> <sub>**Sources:** [POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"409 - Other remote configuration management job is currently being executed"* and *"The response is not sent to the client until all OneAgents defined in the payload are processed."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"You can't start another bulk action until the current one is finished."*</sub>
 
 <a id="build-steps"></a>
 ## 4. Build It in the Workflows Editor (Step by Step)
 
 Two *Run JavaScript* tasks wired with a loop. **All configuration lives in workflow inputs** (runtime variables) — task 1 reads them with `ex.input` and passes the values task 2 needs onto each host object, so the loop task needs no input wiring of its own.
 
-> **UI labels vary between Workflows app versions.** Where you define workflow inputs and the loop differs by version; the authoritative shape is the exported YAML (see the [import skeleton](#import-skeleton), which includes the `input:` block verbatim). The workflow is adapted from a working deployment, with its tenant URL and names genericized, rather than from a Dynatrace-published example — keep `DRY_RUN = true` for the first run in your tenant.
+> **UI labels vary between Workflows app versions.** Where you define workflow inputs and the loop differs by version; the authoritative shape is the exported YAML (see the [import skeleton](#import-skeleton), which includes the `input:` block verbatim). The workflow is adapted from a working deployment that used a classic token, with its tenant URL and names genericized, rather than from a Dynatrace-published example — keep `DRY_RUN = true` for the first run in your tenant.
 
 **Step 0 — Prerequisites (once):**
 
 - **Upload your CMDB exports as Grail lookup tables** at the paths the query references (`/lookups/cmdb_server`, `/lookups/cmdb_mapped_app_service`, `/lookups/cmdb_businessapp`); adjust names/`fields` to your schema. *(If they're missing, task 1's preflight stops the run cleanly with a "Missing CMDB lookup tables" message — no raw `UNKNOWN_TABULAR_FILE` error.)*
-- **Create a Gen2 (classic) API token** with the **`oneAgents.write`** scope (`dt0c01.…`), store it in the **Credential Vault**, and copy its credential ID (`CREDENTIALS_VAULT-…`).
-- **Grant the workflow's run-as identity `environment-api:credentials:read`** so the workflow can read that token from the vault at runtime.
+- **Give the workflow's actor the permissions** in the Prerequisites — above all `fleet-management:oneagents:write` — and enable them in **Workflows > Settings > Authorization settings**. A permission missing from either place makes the task fail with 403 Forbidden. A service user is the recommended actor for a production workflow (WFLOW-09 §4).
+- **Classic or hybrid environments that keep a classic token instead:** create a classic API token with **`oneAgents.write`**, store it in the **Credential Vault** with **AppEngine** scope and **Allow access without app context** turned on, give the workflow actor access to the credential and `environment-api:credentials:read`, and set the `ENVIRONMENT_URL` and `CREDENTIAL_ID` inputs. Latest environments have no classic tokens, so this path does not exist there.
 
-> **Why a classic token, not a platform token?** The remote-config endpoint was live-validated as rejecting platform Bearer tokens at the scheme level (June 2026); the classic `Api-Token` path below is the proven approach. **Update (09/28/2026):** the API reference now documents platform-token support for this endpoint — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:write"* (announced with SaaS 1.343, July 2026). This LAB keeps the validated classic-token flow until the platform-token path is re-tested live; verify in your tenant before switching.
+> **Platform authentication (SaaS 1.343+).** Since SaaS 1.343, the OneAgent fleet-management endpoints accept platform authentication, and the API reference lists *"Platform Token / OAuth: Required scope: fleet-management:oneagents:write"*. Task 2 therefore calls the endpoint with a **relative URL**: the Run JavaScript runtime attaches the authentication for the actor, so no token is stored anywhere. This path follows the documentation but has **not been tested live** for this endpoint — keep `DRY_RUN = true`, then try one host with `MAX_HOSTS = 1` before a full run. If your tenant is not yet on 1.343, use the classic-token alternative.
+>
+> <sub>**Sources:**</sub>
+> - <sub>[Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action) — *"Use relative paths, for example /api/v2/entities , to call Dynatrace APIs. The runtime automatically attaches the required authentication headers. Don't set a custom Authorization header on relative URL requests."* and *"The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential."*</sub>
+> - <sub>[POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — *"Platform Token / OAuth: Required scope: fleet-management:oneagents:write"*</sub>
+> - <sub>[Sprint 343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"We recommend platform tokens over classic API tokens for new integrations."*</sub>
+> - <sub>[Upgrade from classic access tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
+> - <sub>[Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error."*</sub>
 
 **Step 1 — Create the workflow and define its inputs.** New workflow (leave the on-demand trigger). Define these **workflow inputs** — they become the parameters you can override in the Run dialog (easiest to set via the YAML editor — see the [import skeleton](#import-skeleton)):
 
@@ -126,8 +137,8 @@ Two *Run JavaScript* tasks wired with a loop. **All configuration lives in workf
 | `APP_SCOPE` | `''` | limit to one business app; `''` = all |
 | `EXCLUDE_PRODUCTION` | `false` | skip `environment == production` |
 | `RESTART_ONEAGENT` | `false` | restart OneAgent after tagging |
-| `ENVIRONMENT_URL` | `https://<your-environment>.live.dynatrace.com` | tenant API base (no trailing slash) |
-| `CREDENTIAL_ID` | `CREDENTIALS_VAULT-…` | vault entry holding the `oneAgents.write` token |
+| `ENVIRONMENT_URL` | `''` | classic-token alternative only: tenant API base (no trailing slash) |
+| `CREDENTIAL_ID` | `''` | classic-token alternative only: vault entry holding the `oneAgents.write` token. Empty = platform auth |
 
 **Step 2 — Add the first JavaScript block.** Click **+** under the trigger → **Run JavaScript**. Rename it `query_hosts_and_enrich`.
 
@@ -144,8 +155,11 @@ export default async function ({ execution_id }) {
   const MAX_HOSTS = Number(inp.MAX_HOSTS ?? 50);
   const DRY_RUN = (inp.DRY_RUN === false || inp.DRY_RUN === 'false') ? false : true; // default true
   const RESTART_ONEAGENT = (inp.RESTART_ONEAGENT === true || inp.RESTART_ONEAGENT === 'true');
-  const APP_SCOPE = (inp.APP_SCOPE ?? '').toString();
+  // APP_SCOPE is interpolated into DQL below — allow only a plain identifier (no quotes, no pipes).
+  const APP_SCOPE = (inp.APP_SCOPE ?? '').toString().trim().toLowerCase();
+  if (APP_SCOPE && !/^[a-z0-9._-]+$/.test(APP_SCOPE)) throw new Error(`APP_SCOPE '${APP_SCOPE}' must match [a-z0-9._-]+`);
   const EXCLUDE_PRODUCTION = (inp.EXCLUDE_PRODUCTION === true || inp.EXCLUDE_PRODUCTION === 'true');
+  // Optional — only for the classic-token alternative (task 2). Leave both empty for platform auth.
   const ENVIRONMENT_URL = (inp.ENVIRONMENT_URL ?? '').toString().replace(/\/+$/, '');
   const CREDENTIAL_ID = (inp.CREDENTIAL_ID ?? '').toString();
 
@@ -172,9 +186,12 @@ export default async function ({ execution_id }) {
   let enrichmentQuery = `fetch dt.entity.host
 | fields id, entity.name, monitoringMode, paasVendorType, isMonitoringCandidate, awsNameTag
 | filter isMonitoringCandidate == false
-| fieldsAdd monitoringMode = if(isNotNull(paasVendorType), "APP_ONLY", else:if(isMonitoringCandidate == true, "CANDIDATE", else:monitoringMode)),
+// Remote configuration management does not work with Operator-deployed or application-only
+// OneAgents. PaaS hosts (paasVendorType set, e.g. Kubernetes) are excluded as not eligible —
+// the label says nothing about how they are billed or monitored.
+| fieldsAdd rcm_eligibility = if(isNotNull(paasVendorType), "NOT_RCM_ELIGIBLE", else: "ELIGIBLE"),
             provider = if(isNotNull(awsNameTag), "aws", else: "datacenter")
-| filterOut monitoringMode == "APP_ONLY"
+| filterOut rcm_eligibility == "NOT_RCM_ELIGIBLE"
 | fieldsRemove paasVendorType, awsNameTag, isMonitoringCandidate
 | parse entity.name, """LD:hostname ('.' LD:domain)? EOS"""
 | lookup [load "/lookups/cmdb_server"
@@ -186,7 +203,7 @@ export default async function ({ execution_id }) {
 | fields id, entity.name, application = lower(bus_app.short_name), environment = lower(mapped_app.environment), dt.cost.costcenter = lower(bus_app.short_name), dt.security_context = lower(bus_app.short_name)
 | filter isNotNull(application) OR isNotNull(environment)`;
 
-  if (APP_SCOPE && APP_SCOPE.trim().length > 0) enrichmentQuery += `\n| filter application == "${APP_SCOPE.trim().toLowerCase()}"`;
+  if (APP_SCOPE) enrichmentQuery += `\n| filter application == "${APP_SCOPE}"`; // validated above
   if (EXCLUDE_PRODUCTION) enrichmentQuery += `\n| filterOut environment == "production"`;
 
   const enriched = await executeDqlQuery(enrichmentQuery);
@@ -233,7 +250,8 @@ export default async function ({ execution_id }) {
       const value = host[f];
       if (!value || String(value).trim().length === 0) return;
       if (have.has(tagKey)) { skipped++; return; }
-      tagsToApply.push({ key: tagKey, value: sanitizeTagValue(value) });
+      const clean = sanitizeTagValue(tagKey, value);
+      if (clean) tagsToApply.push({ key: tagKey, value: clean });
     });
     if (tagsToApply.length > 0) {
       hostsWithTags.push({ id: host.id, name: host.name, application: host.application, tagsToApply,
@@ -266,7 +284,8 @@ function getNestedField(record, fieldName) {
   if (record[fieldName] !== undefined) return record[fieldName];
   return fieldName.split('.').reduce((v, p) => (v == null ? undefined : v[p]), record);
 }
-function sanitizeTagValue(value) { return String(value).replace(/\s/g, '').trim().slice(0, 270); }
+// A host tag may not contain whitespace or '=' in its value, and `key=value` may be at most 256 characters.
+function sanitizeTagValue(key, value) { return String(value).replace(/[\s=]/g, '').slice(0, Math.max(0, 256 - key.length - 1)); }
 async function executeDqlQuery(query) {
   // Keep the token from queryExecute: poll responses do not carry one of their own.
   const started = await queryExecutionClient.queryExecute({ body: { query, requestTimeoutMilliseconds: 60000, maxResultRecords: 10000 } });
@@ -291,12 +310,13 @@ import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 15000; // 15s between retries on 409
+const API_PATH = '/api/v2/oneagents/remoteConfigurationManagement';
 
 export default async function ({ action_execution_id }) {
   const actionExe = await actionExecution(action_execution_id);
   const host = actionExe.loopItem.host;
-  const ENVIRONMENT_URL = host.environmentUrl;   // from task 1 (workflow input)
-  const CREDENTIAL_ID = host.credentialId;       // from task 1 (workflow input)
+  const ENVIRONMENT_URL = host.environmentUrl;   // from task 1 (workflow input) — classic alternative only
+  const CREDENTIAL_ID = host.credentialId;       // from task 1 (workflow input) — classic alternative only
 
   console.log(`--- ${host.name} (${host.id}) - ${host.tagsToApply.length} tag(s) ---`);
 
@@ -305,28 +325,42 @@ export default async function ({ action_execution_id }) {
     return { host: host.name, hostId: host.id, status: 'dry-run', tagCount: host.tagsToApply.length };
   }
 
-  if (!ENVIRONMENT_URL || ENVIRONMENT_URL.includes('<')) throw new Error('ENVIRONMENT_URL input is not set.');
-  if (!CREDENTIAL_ID || CREDENTIAL_ID.includes('X')) throw new Error('CREDENTIAL_ID input is not set.');
+  // Default: platform authentication. A relative URL is called as the workflow actor — the runtime
+  // attaches the authentication header; never set Authorization yourself. The actor needs
+  // fleet-management:oneagents:write.
+  let url = `${API_PATH}?restart=${host.restartOneAgent}`;
+  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
 
-  // Gen2 (classic) API token with oneAgents.write, read from the Credential Vault.
-  // Reading the vault needs environment-api:credentials:read on the run-as identity.
-  const cred = await credentialVaultClient.getCredentialsDetails({ id: CREDENTIAL_ID });
-  const API_TOKEN = cred.token;
-  if (!API_TOKEN) throw new Error('Credential has no token value.');
+  // Classic/hybrid alternative: a classic API token (oneAgents.write) read from the Credential Vault.
+  if (CREDENTIAL_ID) {
+    if (!ENVIRONMENT_URL || ENVIRONMENT_URL.includes('<')) throw new Error('ENVIRONMENT_URL input is not set.');
+    if (CREDENTIAL_ID.includes('X')) throw new Error('CREDENTIAL_ID input still holds the placeholder.');
+    const cred = await credentialVaultClient.getCredentialsDetails({ id: CREDENTIAL_ID });
+    if (!cred.token) throw new Error('Credential has no token value.');
+    url = `${ENVIRONMENT_URL}${url}`;
+    headers['Authorization'] = `Api-Token ${cred.token}`;
+  }
 
   const operations = host.tagsToApply.map(tag => ({ attribute: 'hostTag', operation: 'set', value: `${tag.key}=${tag.value}` }));
-  const url = `${ENVIRONMENT_URL}/api/v2/oneagents/remoteConfigurationManagement?restart=${host.restartOneAgent}`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Authorization': `Api-Token ${API_TOKEN}`, 'Content-Type': 'application/json; charset=utf-8' },
+        headers,
         body: JSON.stringify({ entities: [host.id], operations })
       });
+      // 409: another remote configuration job is running in the environment — wait and retry.
       if (response.status === 409 && attempt < MAX_RETRIES) { await new Promise(s => setTimeout(s, RETRY_DELAY_MS)); continue; }
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       const data = await response.json();
+      // 201 means the job ran — not that every agent accepted it. Check failedEntities.
+      const failed = data.failedEntities || [];
+      if (failed.length > 0) {
+        const reason = `${failed[0].failureReason}: ${failed[0].failureMessage || ''}`;
+        console.error(`  FAILED on agent (job ${data.id}): ${reason}`);
+        return { host: host.name, hostId: host.id, status: 'failed', error: reason, jobId: data.id, attempt };
+      }
       console.log(`  SUCCESS (attempt ${attempt}) jobId=${data.id || 'N/A'}`);
       return { host: host.name, hostId: host.id, status: 'applied', tagsApplied: host.tagsToApply.length, jobId: data.id || 'N/A', attempt };
     } catch (error) {
@@ -339,7 +373,7 @@ export default async function ({ action_execution_id }) {
 }
 ```
 
-**Step 7 — Customize task 2.** Normally nothing: `ENVIRONMENT_URL` and `CREDENTIAL_ID` arrive from task 1 (sourced from the workflow inputs) on each host object, and the token is read from the vault at runtime. Just confirm Step 0's token and the `environment-api:credentials:read` grant.
+**Step 7 — Customize task 2.** Normally nothing. With `CREDENTIAL_ID` empty, task 2 uses platform authentication as the actor. Only in the classic-token alternative do `ENVIRONMENT_URL` and `CREDENTIAL_ID` matter; they arrive from task 1 on each host object.
 
 **Step 8 — Make task 2 loop over the hosts.** Enable the loop (Options → Loop / "Run task for each item"):
 
@@ -349,7 +383,7 @@ export default async function ({ action_execution_id }) {
 
 Run condition (Conditions → Custom): `{{ result('query_hosts_and_enrich').hosts | length > 0 }}`
 
-**Step 9 — Run with inputs.** Save → Run. In the Run dialog set `ENVIRONMENT_URL` and `CREDENTIAL_ID` (leave `DRY_RUN = true`). Review the task-2 log's `--set-host-tag` lines, then re-run with `DRY_RUN = false` to apply. Add a schedule trigger (WFLOW-02) to keep newly onboarded hosts tagged; skip-existing keeps repeat runs cheap and idempotent.
+**Step 9 — Run with inputs.** Save → Run. Leave `DRY_RUN = true` (and set `ENVIRONMENT_URL` / `CREDENTIAL_ID` only for the classic-token alternative). Review the task-2 log's `--set-host-tag` lines, then re-run with `DRY_RUN = false` to apply. Add a schedule trigger (WFLOW-02) to keep newly onboarded hosts tagged; skip-existing keeps repeat runs cheap and idempotent.
 
 <a id="import-skeleton"></a>
 ## 5. Prefer to Import? (YAML Skeleton)
@@ -372,8 +406,8 @@ workflow:
     DRY_RUN: true
     APP_SCOPE: ''
     MAX_HOSTS: 50
-    ENVIRONMENT_URL: 'https://<your-environment>.live.dynatrace.com'
-    CREDENTIAL_ID: CREDENTIALS_VAULT-XXXXXXXXXXXXXXXX
+    ENVIRONMENT_URL: ''   # classic-token alternative only
+    CREDENTIAL_ID: ''     # classic-token alternative only; empty = platform auth
     RESTART_ONEAGENT: false
     EXCLUDE_PRODUCTION: false
   tasks:
@@ -403,11 +437,14 @@ workflow:
 <a id="adapting"></a>
 ## 6. Adapting It
 
-- **Runtime inputs** — every knob (`DRY_RUN`, `MAX_HOSTS`, `APP_SCOPE`, `EXCLUDE_PRODUCTION`, `RESTART_ONEAGENT`, `ENVIRONMENT_URL`, `CREDENTIAL_ID`) is a workflow input, overridable per run in the Run dialog. No code edits to change scope or target.
-- **Scope filters** — `APP_SCOPE` limits the run to one business app; `EXCLUDE_PRODUCTION` skips hosts whose enriched `environment` is `production`. Both are appended to the DQL at runtime.
-- **`sanitizeTagValue`** strips whitespace and caps values at 270 characters (Dynatrace tag-value constraint).
+- **Runtime inputs** — every knob (`DRY_RUN`, `MAX_HOSTS`, `APP_SCOPE`, `EXCLUDE_PRODUCTION`, `RESTART_ONEAGENT`, and the classic-only `ENVIRONMENT_URL` / `CREDENTIAL_ID`) is a workflow input, overridable per run in the Run dialog. No code edits to change scope or target.
+- **Scope filters** — `APP_SCOPE` limits the run to one business app; `EXCLUDE_PRODUCTION` skips hosts whose enriched `environment` is `production`. Both are appended to the DQL at runtime, so task 1 accepts `APP_SCOPE` only as a plain identifier (`[a-z0-9._-]`) — a quote in the input cannot reach the query.
+- **`sanitizeTagValue`** strips whitespace and `=` from the value and caps the whole `key=value` at 256 characters, the documented host-tag limit.
+- **Batching** — the job API takes a list of `entities`. Sending several hosts that need the same tags in one job means fewer jobs and fewer 409 collisions.
 - **Schedule it** with a cron trigger (WFLOW-02) so newly onboarded hosts get tagged automatically; skip-existing keeps repeat runs cheap.
-- **Token type** — this uses a **Gen2 (classic) `Api-Token`**, the live-validated path. The API reference now lists `fleet-management:oneagents:write` as the platform-token / OAuth scope for this endpoint (read 09/28/2026) — once verified in your tenant, the call can move to platform-token auth, potentially with no stored token at all if the workflow's run-as identity carries the scope.
+- **Authentication** — platform authentication as the workflow actor (relative URL, `fleet-management:oneagents:write`) is the default; the classic `Api-Token` from the Credential Vault is kept only for classic or hybrid environments.
+
+> <sub>**Sources:** [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface) — *"A property value must not contain = (unless used as a key-value delimiter) or whitespace characters. The maximum length is 256 characters, including the key-value delimiter."*; [Remote configuration management (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bulk-configuration) — *"Remote configuration management does NOT work with: OneAgent deployed with Dynatrace Operator Application-only OneAgents OneAgents on Solaris"*.</sub>
 
 <a id="next-steps"></a>
 ## 7. Next Steps
@@ -415,6 +452,7 @@ workflow:
 - **WFLOW-02: Triggers** — add a schedule trigger to run this enrichment on a cadence.
 - **WFLOW-07: Auto-Remediation** — the DRY_RUN / max-attempts / serialized-write guardrails here are the same safety patterns used for remediation tasks.
 - **WFLOW-08: JavaScript & HTTP Actions** — the building blocks this LAB composes (SDK DQL, `fetch()`, retry, `result()` / `withItems`, Credential Vault).
+- **WFLOW-09: Security, Governance & Monitoring** — service-user actors and the permissions a production workflow needs.
 - **FAQ-02: Tagging — Sources, Standards & Strategy** — the tagging-source model and the `primary_tags.` prefix rule that this workflow writes against.
 
 ## References
@@ -426,7 +464,7 @@ workflow:
 - [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action)
 - [OneAgent tag setup — primary tags / fields (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent)
 
-> <sub>**Sources:** [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — documents the `hostTag` `set` operation, the `dt.cost.costcenter=<value>` form, and the `oneAgents.write` scope, [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build), [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data), [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent).</sub>
+> <sub>**Sources:** [OneAgent remote configuration management API — POST a configuration job (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job) — documents the `hostTag` `set` operation, the `dt.cost.costcenter=<value>` form, and the `oneAgents.write` / `fleet-management:oneagents:write` scopes, [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build), [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data), [OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent).</sub>
 
 <a id="bonus-seed-lookups"></a>
 ## Appendix — Bonus: Seed Sample Lookup Tables (Testing Only)
@@ -435,7 +473,7 @@ workflow:
 
 It uses the Grail **Resource Store API** (`/platform/storage/resource-store/v1/files/tabular/lookup:upload`) — the reverse direction of this LAB (writing *to* a lookup table instead of reading *from* one). The same API is how you'd build a real "sync CMDB → lookup table" job if your CMDB is reachable from a workflow.
 
-**Prerequisite:** the workflow's run-as identity needs **`storage:files:write`** (reading the tables back in DQL needs nothing extra).
+**Prerequisite:** the workflow's actor needs **`storage:files:write`** to upload. Reading the tables back needs `storage:files:read` (the main LAB's actor has it); deleting a table needs `storage:files:delete`.
 
 **How to use:** create a **separate** one-task workflow (don't add this to the tagging workflow), paste the code, **replace `myhost-01`** with the short hostname of a real host in your tenant (the part before the first dot), and run it once. Then verify with `load "/lookups/cmdb_server" | limit 10` and run the main workflow with `DRY_RUN = true`. The sample chain resolves to `application = sampleapp`, `environment = dev`.
 
@@ -467,12 +505,6 @@ export default async function () {
   for (const t of TABLES) {
     const jsonl = t.rows.map(r => JSON.stringify(r)).join('\n');
 
-    // delete first (ignore "does not exist") so re-runs are clean
-    try {
-      const del = await fetch(`${BASE}/lookup:delete`, { method: 'POST', body: JSON.stringify({ filePath: t.filePath }) });
-      console.log(`[delete] ${t.filePath} -> HTTP ${del.status}`);
-    } catch (e) { console.log(`[delete] ${t.filePath} skipped: ${e.message}`); }
-
     // upload (multipart: request as a JSON string + content blob; NO headers)
     const form = new FormData();
     form.append('request', JSON.stringify({
@@ -501,10 +533,12 @@ export default async function () {
 
 **Upload mechanics (reusable for any lookup-table upload):**
 
-- `parsePattern: 'JSON{STRING:field, INT:field, …}(flat=true)'` produces **flat top-level columns** from JSONL — bare `JSON` would nest them under one field.
+- `parsePattern: 'JSON{STRING:field, INT:field, …}(flat=true)'` produces **flat top-level columns** from JSONL. `(flat=true)` makes that explicit; when the pattern yields a single record-type field, the upload flattens it to the root by default anyway (`autoFlatten`).
 - The `request` part is a plain **JSON string**; `content` is a `Blob`; **set no headers** — `fetch` builds the multipart boundary.
-- The **relative URL** is authenticated by the platform as the workflow's run-as identity — **no token needed**. (This is a platform-native endpoint, unlike the classic remote-config API the main LAB uses, which requires a Gen2 Api-Token.)
-- **Re-runnable:** it deletes then re-uploads. To remove a table, POST `{"filePath": "/lookups/<name>"}` to `…/lookup:delete`.
+- The **relative URL** is authenticated by the platform as the workflow's actor — **no token needed**, the same mechanism task 2 of the main LAB uses.
+- **Re-runnable:** `overwrite: true` replaces an existing table. To remove a table, POST `{"filePath": "/lookups/<name>"}` to `/platform/storage/resource-store/v1/files:delete` (needs `storage:files:delete`; deletion is irreversible).
+
+> <sub>**Sources:** [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data) — *"Delete the file from the Resource Store. POST/platform/storage/resource-store/v1/files:delete"*, *"To upload lookup data to Grail via REST API or to delete it, the policy bound to your user group must contain the following permissions: storage:files:write storage:files:delete"* and *"nested fields are extracted to the root level by default"*.</sub>
 
 ---
 

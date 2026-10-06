@@ -1,9 +1,9 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Production Best Practices
-This final notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
+This last core notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
 
 ---
 
@@ -27,7 +27,7 @@ This final notebook covers workflow security, governance, observability, and ope
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:admin` for governance setup |
+| **Permissions** | `automation:workflows:admin` for governance setup (Workflow admin mode). To run the §5 queries — and for the actor of the §6 monitoring workflow — `storage:system:read` (WHERE `storage:event.provider = "AUTOMATION_ENGINE"`) and `storage:buckets:read` (WHERE `storage:table-name = "dt.system.events"`) |
 | **Prior Knowledge** | **WFLOW-01** through **WFLOW-08** |
 
 <a id="security-best-practices"></a>
@@ -159,16 +159,21 @@ WFLOW-03 introduces the Dynatrace **Connection** abstraction; WFLOW-05 walks thr
 
 The Dynatrace Slack action authenticates as a Slack app (bot token), not as a user. Steps:
 
+0. **Prepare Dynatrace** — add the Slack domain as a host pattern under **Settings > General > External requests**, and in **Workflows > Settings > Authorization settings** grant the permissions the Slack Connector setup page lists (`app-settings:objects:read`, `app-settings:objects:write` and the `state:*` permissions).
 1. **Create the app** at `https://api.slack.com/apps` → **From scratch** → name it (e.g. *Dynatrace Alerts*) and pick the target workspace.
-2. **Add OAuth scopes** under **OAuth & Permissions** → **Bot Token Scopes**:
-   - `chat:write` — *"Send messages as your Slack app"* (works with both Bot and User token types; replaces legacy `chat:write:user` / `chat:write:bot`).
-   - `chat:write.public` — required to post to public channels the app isn't a member of. **Must be requested alongside `chat:write`** — the public variant doesn't grant message-send on its own.
+2. **Add OAuth scopes** under **OAuth & Permissions** → **Bot Token Scopes**. Dynatrace marks two scopes as required for *Send message*, and publishes a minimal manifest with exactly `channels:read`, `groups:read` and `chat:write`:
+   - `chat:write` (required) — *"Send messages as your Slack app"* (replaces legacy `chat:write:user` / `chat:write:bot`).
+   - `channels:read` (required) — the action needs it to look public channels up by name for the channel selection.
+   - `groups:read` (optional) — the same lookup for private channels.
+   - `chat:write.public` / `channels:join` (optional) — post to, or join, a public channel the bot is not a member of. `chat:write.public` must be requested alongside `chat:write`.
 3. **Install to workspace** — the same page. Slack issues a **Bot User OAuth Token** (the workspace-scoped token a workflow uses). Bot tokens conventionally begin with `xoxb-`; verify the prefix on issue and store the literal value, not the prefix family.
-4. **Create the Dynatrace Connection** — *Settings → Integrations → Connections → + Connection → Slack*, paste the bot token, save under a descriptive name (e.g. `slack-prod-alerts`).
+4. **Create the Dynatrace Connection** — **Settings → Connections → Slack → Connection**, give it a descriptive name (e.g. `slack-prod-alerts`) and paste the token into **Bot token**.
+
+> <sub>**Sources:** [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"channels:read Looking up public channels by name for the channel selection. Required"*; [Set up Slack Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup) — *"Return to Dynatrace, go to Settings , and select Connections > Slack ."*</sub>
 
 > <sub>**Slack docs:** [chat.write scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write/) — *"Send messages as your Slack app"*; [chat.write.public scope (docs.slack.dev)](https://docs.slack.dev/reference/scopes/chat.write.public/) — allows posting to channels the app isn't a member of, requires `chat:write` too.</sub>
 
-**Token type choice:** prefer the Bot Token (OAuth app, the path above) over an Incoming Webhook URL. Webhooks are pinned to one channel and lose the ability to update / delete / thread messages, react with emoji, or use Block Kit interactivity. WFLOW-03 documents the webhook variant for the minimal case; production Slack integrations should use the OAuth app.
+**Token type:** the Slack connection takes a bot token (OAuth app, the path above); it has no webhook option. An incoming webhook can only be called from an HTTP Request task, and it is pinned to one channel and loses the ability to update / delete / thread messages, react with emoji, or use Block Kit interactivity. WFLOW-03 documents the webhook variant for the minimal case; production Slack integrations should use the OAuth app.
 
 ### 3.2 PagerDuty — Events API v2 Integration Key vs REST API Key
 
@@ -185,42 +190,33 @@ PagerDuty's own integration guidance draws the same boundary — Events API v2 i
 
 > <sub>**PagerDuty docs:** [Services and integrations (PagerDuty Support)](https://support.pagerduty.com/main/docs/services-and-integrations) — *"Events API v2 is designed to handle machine-generated monitoring and event data"* and *"For human-generated events, tickets, or incidents, such as those from ServiceNow or JIRA, use the REST API to enable direct, streamlined creation of PagerDuty incidents."*; [Events API v2 overview (PagerDuty Developer)](https://docs.pagerduty.com/developer/events-api-v2-overview).</sub>
 
-### 3.3 ServiceNow — OAuth Client vs Basic Auth
+### 3.3 ServiceNow — OAuth Client Credentials vs Basic Auth
 
-ServiceNow's inbound REST API accepts both **Basic Authentication** (integration-user username/password) and **OAuth 2.0** (client credentials, password, JWT bearer, or authorization-code grants). Both methods are currently supported on the platform — there is no platform-wide deprecation date for Basic Auth on inbound REST as of this writing.
+The Dynatrace ServiceNow connection offers exactly two authentication types: **Basic Authentication** (username and password of an integration user) and **OAuth Client Credentials** (client ID and client secret). Other OAuth grants — resource-owner password, authorization code, JWT bearer — cannot be configured on the connection, whatever the ServiceNow instance itself accepts.
 
-The push toward OAuth is **policy-driven, not platform-driven**:
+| Type | When to use for Dynatrace Workflows |
+|------|-------------------------------------|
+| **OAuth Client Credentials** | Preferred where your instance supports it: no integration-user password is stored in Dynatrace, and the secret can be rotated on the ServiceNow side. One client ID / secret pair per environment (prod/staging). |
+| **Basic Authentication** | The path Dynatrace's own setup steps walk through. Use a dedicated integration user, never a person's account. |
 
-- Many enterprise security teams forbid storing plaintext integration-user passwords in third-party systems, which rules out Basic Auth even though the platform still accepts it.
-- OAuth client credentials with short access-token lifetimes constrain the blast radius if a token leaks — a 30-minute access token is recoverable; an integration-user password rotated quarterly is not.
+In community practice, security teams push toward OAuth by policy — many forbid storing integration-user passwords in third-party systems — rather than because the platform requires it. Mint the OAuth client in your instance's OAuth application registry; the exact menu path and token lifetime defaults depend on your ServiceNow release, so follow your instance's documentation.
 
-**Picking the right OAuth grant:**
+**Permissions for the integration user.** Dynatrace documents the permissions as table access rather than a role name. The user needs to:
 
-| Grant type | When to use for Dynatrace Workflows |
-|------------|-------------------------------------|
-| **Client Credentials** | Default for workflow-to-ServiceNow. The workflow acts as itself — one client ID / secret pair per environment (prod/staging), no end-user context. |
-| **Password (Resource Owner Password Credentials)** | Only when the ServiceNow integration user *must* be tracked as the actor on every record (caller_id / sys_created_by). Still stores user credentials — pick this only over Client Credentials when there's a clear audit requirement. |
-| **Authorization Code** | Not applicable — workflows run unattended; there is no interactive user. |
+- search, create and update incidents (table `incident`);
+- read categories and subcategories (table `sys_choice`, elements `category` / `subcategory`);
+- read assignment groups (table `sys_user_group`);
+- read resolution codes (table `sys_choice`, element `close_code`).
 
-**Minting an OAuth client (ServiceNow side):**
+Grant these through a narrow custom role and *avoid `admin`* — WFLOW-05 §4 already calls out least privilege.
 
-1. Navigate to *System OAuth → Application Registry*.
-2. **New → Create an OAuth API endpoint for external clients**.
-3. Set *Name*, leave *Client ID* auto-generated, set *Client Secret* (or let SN generate). Default *Access Token Lifespan* is 30 minutes — keep short.
-4. Save. Note the *Client ID* and *Client Secret* — both go into Dynatrace as connection secrets.
-5. The instance URL is your own subdomain: `https://<instance>.service-now.com`. The token endpoint is `https://<instance>.service-now.com/oauth_token.do`.
+**Dynatrace side.** Create the connection under **Settings → Connections → Connectors → ServiceNow** (one per ServiceNow environment), and grant `app-settings:objects:read` in **Workflows → Settings → Authorization settings**.
 
-**Scopes** in ServiceNow are *role-based on the OAuth client's linked user*, not OAuth-scope strings. Bind the OAuth client to an integration user that holds:
-
-- `itil` and `incident_manager` (or a narrower custom role) — to read/write the `incident` table.
-- `personalize_choices` if the workflow sets choice-list values that aren't in the default options.
-- *Avoid `admin`.* WFLOW-05 §4 already calls out least-privilege; ServiceNow tightens it further: the integration user should only see the tables the workflow updates.
-
-> <sub>**ServiceNow docs:** [REST API authentication (ServiceNow Docs)](https://www.servicenow.com/docs/r/yokohama/api-reference/rest-api-explorer/c_RESTAPI.html) — both OAuth 2.0 inbound and Basic Authentication remain documented; no platform-wide deprecation notice as of May 2026. Verify against your instance's release notes before assuming Basic Auth is permanent.</sub>
+> <sub>**Sources:** [ServiceNow Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — *"Either use basic authentication or OAuth client credentials. For Basic Authentication , provide your username and password. For OAuth Client Credentials , provide your client id and client secret."* and *"Search, create and update incidents (table incident )"*.</sub>
 
 ### 3.4 Rotation Patterns Without Breaking In-Flight Workflows
 
-The instinct on rotation day is *"update the secret value and save."* That works on a quiet system; on one with running workflows it can fail mid-execution. The safer pattern is **dual-credential overlap**:
+The instinct on rotation day is *"update the secret value and save."* That works on a quiet system; on one with running workflows, community practice is to avoid it — a task that starts while the old credential is already revoked fails. The safer pattern is **dual-credential overlap**:
 
 1. **Mint the new credential** at the vendor (new Slack bot token, new PagerDuty Integration Key on the same service, new ServiceNow OAuth client). Both old and new are now active.
 2. **Create a parallel Dynatrace Connection** with a `-v2` suffix (e.g. `slack-prod-alerts-v2`). Don't overwrite the existing one yet.
@@ -229,20 +225,22 @@ The instinct on rotation day is *"update the secret value and save."* That works
 5. **Revoke the old credential** at the vendor. Only after revocation is the rotation complete — if the old credential still works, the rotation has only added a credential, not retired one.
 6. **Delete the old Dynatrace Connection**.
 
-This pattern adds one day of dual-credential window, but no workflow ever runs against an invalid token. Compare with the naive "edit the secret value in place" path, which causes every in-flight task that hasn't yet sent its outbound request to fail with a 401 the moment the vendor invalidates the old value.
+This pattern adds one day of dual-credential window, but no workflow ever runs against an invalid token. With the naive "edit the secret value in place" path, any task that calls the vendor between revocation and the update fails with the vendor's authentication error.
 
 **When to rotate:**
 
 | Trigger | Cadence |
 |---------|---------|
-| Routine | Quarterly minimum for Slack bot tokens and ServiceNow OAuth secrets; annually for PagerDuty Integration Keys (lower exposure surface) |
+| Routine | Set by your security policy. In community practice, quarterly for Slack bot tokens and ServiceNow OAuth secrets and annually for PagerDuty Integration Keys is a common baseline — no vendor mandates a cadence. Slack bot tokens do not expire on their own unless token rotation is turned on, which Dynatrace's Slack manifest leaves off. |
 | Personnel change | When the engineer who originally minted the credential leaves the team or company |
 | Suspected exposure | Immediately. Bypass the overlap pattern; revoke first, accept the workflow outage, restore on the new credential |
 | Vendor-forced | When Slack / PagerDuty / ServiceNow issues a security advisory or forces a token regeneration |
 
-### 3.5 Detecting Workflows That Reference a Specific Credential
+> <sub>**Sources:** [Using token rotation (docs.slack.dev)](https://docs.slack.dev/authentication/using-token-rotation/) — *"Without token rotation, the access token never expires. With token rotation, it expires every 12 hours."*</sub>
 
-Before rotating, find every workflow that uses the connection — both to scope the migration and to be sure step 3 of the rotation pattern is exhaustive. Workflow execution events carry the connection name in task input, so a connection-name search across recent executions is the most reliable inventory:
+### 3.5 Detecting Workflows That Use a Connector App
+
+Before rotating, find every workflow that might use the connection — both to scope the migration and to be sure step 3 of the rotation pattern is exhaustive. Execution events record which connector **app** and function a task called, **not** which connection or what input it used. So the query below scopes the candidates: every workflow that has called the ServiceNow connector in the last 30 days, whichever connection it used. Then confirm the connection on each candidate's task — the task's `connection` input, visible in the editor or in the exported workflow. A workflow that has not run in the window does not appear, so also search the Workflows list for the connector's tasks.
 
 ```dql
 // Inventory: which workflows invoke a given connector — replace the literal below
@@ -251,10 +249,12 @@ Before rotating, find every workflow that uses the connection — both to scope 
 // `dt.system.events` with `event.kind == "WORKFLOW_EVENT"`, not in `events` under a non-existent
 // `automation.task.execution` type. `task.input` is not a field either — the connector actually
 // invoked is `dt.automation_engine.action.app` / `.action.function`, which is a better key than
-// scraping an input payload for a connection name.
+// scraping an input payload for a connection name. The connection itself is NOT recorded.
+// Each action writes a RUNNING record and a final record — keep the final one, so one row is one call.
 fetch dt.system.events, from:-30d
 | filter event.kind == "WORKFLOW_EVENT"
 | filter event.type == "ACTION_EXECUTION"
+| filter dt.automation_engine.state.is_final == true
 | filter contains(dt.automation_engine.action.app, "servicenow")
 | summarize {
     last_execution  = takeMax(timestamp),
@@ -264,7 +264,7 @@ fetch dt.system.events, from:-30d
 | limit 25
 ```
 
-If a workflow shows up here, it references the connection — migrate it before revoking the old credential. If a workflow you expected to see *doesn't* show up, it either hasn't executed in 30 days (extend the lookback) or references the connection only in a code path that hasn't been hit.
+If a workflow shows up here, it calls the connector — check which connection its task uses, and migrate it before revoking the old credential. If a workflow you expected to see *doesn't* show up, it either hasn't executed in 30 days (extend the lookback) or calls the connector only in a code path that hasn't been hit.
 
 **For a wider sweep across all external connections:**
 
@@ -292,12 +292,14 @@ If a workflow shows up here, it references the connection — migrate it before 
 fetch dt.system.events, from:-30d
 | filter event.kind == "WORKFLOW_EVENT"
 | filter event.type == "ACTION_EXECUTION"
-| summarize {executions = count(), workflows = countDistinctExact(dt.automation_engine.workflow.id)}, by:{dt.automation_engine.action.app}
+| filter dt.automation_engine.state.is_final == true
+| summarize {executions = count(), errors = countIf(dt.automation_engine.state == "ERROR"), workflows = countDistinctExact(dt.automation_engine.workflow.id)}, by:{dt.automation_engine.action.app}
+| fieldsAdd error_pct = round(100.0 * errors / executions, decimals: 1)
 | sort executions desc
 | limit 25
 ```
 
-Failure rates per connection type surface a soon-to-expire credential before the rotation deadline — a Slack token approaching expiry typically manifests as a rising 401 rate days before the token's nominal expiration.
+`error_pct` per connector app shows where calls are failing. The reason is in `dt.automation_engine.state_info` on the `ERROR` records — an authentication error points at the credential, while `Blocked request to '…' (host not in allowlist)` means the target host is missing from **Settings > General > External requests**. Alert on a rising error count per app (§6) rather than waiting for a credential to fail outright.
 
 ### 3.6 Cross-References
 
@@ -309,42 +311,71 @@ Failure rates per connection type surface a soon-to-expire credential before the
 ## 4. Access Control (RBAC)
 ### Workflow Permissions
 
+The IAM reference defines four `automation:workflows:*` permissions. There is no separate delete permission, and no `automation:connections:*` permission:
+
 | Permission | Allows |
 |------------|--------|
-| `automation:workflows:read` | View workflows, view execution history |
-| `automation:workflows:write` | Create, edit, enable/disable workflows |
-| `automation:workflows:run` | Execute workflows manually |
-| `automation:workflows:delete` | Delete workflows |
-| `automation:workflows:admin` | Full admin including secrets |
-| `automation:connections:read` | View connections |
-| `automation:connections:write` | Create, edit connections |
+| `automation:workflows:read` | View workflows |
+| `automation:workflows:write` | Create, update and delete workflows, including their schedule and event-trigger configuration. One condition: `automation:workflow-type` (`SIMPLE` or `STANDARD`; operators `IN`, `=`) |
+| `automation:workflows:run` | Run workflows manually via the UI or API |
+| `automation:workflows:admin` | Administer workflows — access all workflows and executions in **Workflow admin mode** |
+
+Using Workflows at all also needs `app-engine:apps:run`; writing and running workflows needs `app-engine:functions:run`. Reading execution history needs the two `storage:*` permissions in the Prerequisites.
+
+**Connections are settings objects.** Access to a connector's connections is granted on its settings schema, for example:
+
+```
+ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
+  WHERE settings:schemaId = "app:dynatrace.pagerduty:connection";
+```
 
 ### IAM Policy Example
 
+A broad user base that may build only simple workflows (one trigger, one task — they don't consume workflow hours):
+
 ```
-ALLOW automation:workflows:read;
-ALLOW automation:workflows:write WHERE workflow.owner == "${user.email}";
-ALLOW automation:workflows:run;
+ALLOW app-engine:apps:run, app-engine:functions:run;
+ALLOW automation:workflows:read, automation:workflows:run;
+ALLOW automation:workflows:write WHERE automation:workflow-type = "SIMPLE";
 ```
+
+The IAM reference lists no condition on a workflow's owner. "Own workflows" is enforced by ownership and visibility (below), not by a policy statement.
 
 ### Team-Based Access Pattern
 
 | Team | Permissions |
 |------|-------------|
-| **Workflow Admins** | Full admin access |
-| **SRE Team** | Read, write, run all workflows |
-| **App Teams** | Read, write, run own workflows |
-| **Viewers** | Read-only access |
+| **Workflow Admins** | All user permissions + `automation:workflows:admin` |
+| **SRE Team** | Read, write, run; works on workflows owned by the SRE group |
+| **App Teams** | Read, write, run on private workflows owned by the team's group |
+| **Viewers** | `automation:workflows:read` on public workflows |
 
-### Workflow Ownership
+### Actor, Owner and Visibility
+
+- **Actor.** A workflow runs with its actor's permissions. Dynatrace highly recommends a **service user** as the actor for production workflows that several people work on. Editing a workflow makes the editor its actor — unless the actor is a service user or the edit is made in Workflow admin mode. Selecting a service user as actor needs `iam:service-users:use`:
+
+  ```
+  ALLOW iam:service-users:use WHERE iam:service-user-email IN ("<SERVICE_USER_EMAIL>");
+  ```
+
+- **Owner and visibility.** A new workflow is **private** — only its owner can view, manage and run it. The owner can make it public (visible to every user with `automation:workflows:*` permissions) or transfer ownership to another user or to a **group**, so every member of the group can access it, subject to their permissions.
+- **Workflow admin mode.** Users with `automation:workflows:admin` turn it on under **Settings** in the Workflows app to manage workflows whose owner is unavailable, and to import or edit workflows while preserving their actor and owner.
+
+### Workflow Ownership in Exported Workflows
+
+Ownership lives in the workflow's own fields. There is no free-form ownership metadata block — an exported workflow's `metadata` holds only the version and app dependencies. Record team and classification in the `description` or the naming convention (§7):
 
 ```yaml
-# Include ownership metadata in workflow
-metadata:
-  owner: sre-team@company.com
-  team: platform
-  classification: production
+workflow:
+  title: sre-problem-notifications-prod
+  description: "team=platform; classification=production"
+  owner: <group-uuid>          # the owning group
+  ownerType: GROUP             # USER or GROUP
+  isPrivate: true
+  actor: <service-user-id>     # service user, not a person
 ```
+
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"automation : workflows:write Grants permission to write workflows conditions: automation:workflow-type - A string that identifies a workflow type either SIMPLE or STANDARD operators: IN , ="*; [Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"automation:workflows:write Write workflows. It includes creating, updating, and deleting a workflow."*, *"We highly recommend using service users as actors for all workflows that are worked on collaboratively and serve a production grade use case."*, *"A user who updates a workflow is set as the actor automatically."* and *"Right after a workflow is created, only the owner can view, manage, and execute the workflow."*; [PagerDuty Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup) — *"ALLOW settings:objects:read, settings:objects:write, settings:schemas:read WHERE settings:schemaId = "app:dynatrace.pagerduty:connection""*; [client-automation SDK reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — workflow fields `actor`, `owner`, `ownerType`, `isPrivate`.</sub>
 
 <a id="workflow-observability"></a>
 ## 5. Workflow Observability
@@ -355,7 +386,7 @@ metadata:
 | Execution success rate | See cell below | < 95% |
 | Execution duration | See cell below | > 5 min avg |
 | Failed executions | See cell below | > 5 per hour |
-| Rate limit hits | See cell below | Any |
+| Throttled workflows | Workflows overview → throttled filter (1,000 event-triggered executions / hour / workflow) | Any |
 
 ### Execution History Dashboard
 
@@ -485,7 +516,9 @@ fetch dt.system.events, from:-24h
 fetch dt.system.events, from:-24h
 | filter event.kind == "WORKFLOW_EVENT"
 | filter event.type == "TASK_EXECUTION"
-| filter dt.automation_engine.state.is_final == true
+// Durations: SUCCESS and ERROR only. DISCARDED and SKIPPED are final states too, but those tasks
+// never ran and always carry duration 0 (38% of final task records over 24 h on the validation tenant, 10/06/2026).
+| filter in(dt.automation_engine.state, {"SUCCESS", "ERROR"})
 | summarize {executions = count(), avg_ms = avg(duration) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
 | sort avg_ms desc
 | limit 25
@@ -493,7 +526,7 @@ fetch dt.system.events, from:-24h
 
 ### 4.1 Deeper debugging patterns
 
-The five queries above give a workflow-level health view. The patterns below drill into **per-task execution detail** — what readers actually need when a workflow execution shows `FAILED` and the high-level dashboard doesn't reveal which task in which step broke.
+The queries above give a workflow-level health view. The patterns below drill into **per-task execution detail** — what readers actually need when a workflow execution ends in `ERROR` and the high-level dashboard doesn't reveal which task in which step broke.
 
 Workflow executions are recorded in `dt.system.events` with `event.kind == "WORKFLOW_EVENT"`, split by `event.type`:
 
@@ -509,7 +542,7 @@ Workflow executions are recorded in `dt.system.events` with `event.kind == "WORK
 
 ### 4.2 Failed executions with task-level detail
 
-When a workflow ends in `ERROR`, the actionable question is *which task in the run failed and what was the error?* This goes one level below cell 8 (workflow-level failures) by filtering on `TASK_EXECUTION` records and surfacing `dt.automation_engine.state_info`.
+When a workflow ends in `ERROR`, the actionable question is *which task in the run failed and what was the error?* This goes one level below *Recent failures with error details* in §5 (workflow-level failures) by filtering on `TASK_EXECUTION` records and surfacing `dt.automation_engine.state_info`.
 
 ```dql
 // Failed task executions in the last 24h, with their workflow
@@ -543,7 +576,7 @@ fetch dt.system.events, from:-24h
 
 ### 4.3 Slowest tasks across all workflows (duration percentiles)
 
-`avg` and `max` (cell 9 above) hide long-tail behavior. A task whose p99 is 4× its p50 is a different problem from one with a uniformly high p50 — the first is a tail-latency / external-dependency issue, the second is a structural bottleneck. Percentile aggregations make the distinction visible.
+The `avg` in *Task-level performance* (§5) hides long-tail behavior. A task whose p99 is 4× its p50 is a different problem from one with a uniformly high p50 — the first is a tail-latency / external-dependency issue, the second is a structural bottleneck. Percentile aggregations make the distinction visible.
 
 ```dql
 // Slowest tasks across all workflows (last 7d) by p95
@@ -569,7 +602,9 @@ fetch dt.system.events, from:-24h
 fetch dt.system.events, from:-7d
 | filter event.kind == "WORKFLOW_EVENT"
 | filter event.type == "TASK_EXECUTION"
-| filter dt.automation_engine.state.is_final == true
+// Durations: SUCCESS and ERROR only. DISCARDED and SKIPPED are final states too, but those tasks
+// never ran and always carry duration 0 (38% of final task records over 24 h on the validation tenant, 10/06/2026).
+| filter in(dt.automation_engine.state, {"SUCCESS", "ERROR"})
 | summarize {executions = count(), p95_ms = percentile(duration, 95) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
 | filter executions > 5
 | sort p95_ms desc
@@ -610,11 +645,9 @@ fetch dt.system.events, from:-24h
 | limit 25
 ```
 
-### 4.5 Correlate workflow failures to downstream logs
+### 4.5 Workflow failures in the last hour
 
-When a workflow run emits logs (HTTP-action target service, JavaScript-action `console.log`, etc.), the run's `execution.id` is the join key. This pattern looks up logs that contain the failing run's `execution.id` so you can read the run's downstream side-effects in one query.
-
-> The `lookupField` in the join below assumes logs carry the workflow execution ID in the `dt.execution.id` attribute. If your downstream service writes the ID into the log body instead, swap the lookup subquery to `parse content, "...'execution_id=' DATA:exec_id"` and join on `exec_id`.
+A short-window failure list, suitable for a dashboard tile next to Davis problems. To follow a failing run into downstream logs, there is no built-in join key: execution records carry `dt.automation_engine.workflow_execution.id`, but logs do not carry it. Log the execution ID from your JavaScript task (or pass it to the target service) and filter your logs on it.
 
 ```dql
 // Workflow failures in the last hour
@@ -650,9 +683,9 @@ fetch dt.system.events, from:-1h
 
 These queries are written as ad-hoc investigation patterns — copy into a Notebook section, change the time range, run. To make them part of standing operations, promote them to a dashboard:
 
-- **Workflow Health overview** — cells 4.1-style success-rate tile + cell 4.3 percentile table + cell 4.2 recent-failures list.
-- **Per-workflow drilldown** — parameterize cell 4.4 with a `workflow.name` variable so SREs can pick a workflow from a dropdown.
-- **Cross-signal correlation** — cell 4.5 next to a Davis Problems tile filtered to the same time window, so failures and incidents appear side-by-side.
+- **Workflow Health overview** — the §5 overall-health success-rate tile + the §4.3 percentile table + the §4.2 failed-task list.
+- **Per-workflow drilldown** — parameterize the §4.4 lookup with a `dt.automation_engine.workflow.title` variable so SREs can pick a workflow from a dropdown.
+- **Cross-signal correlation** — the §4.5 failure list next to a Davis Problems tile filtered to the same time window, so failures and incidents appear side-by-side.
 
 Dashboard tile selection, variable binding, and layout patterns live in the **DASH** series — see *DASH-02 (tile types)*, *DASH-04 (variables and parameterization)*, and *DASH-06 (operational dashboards)*. The DQL stays the same; only the surface (Notebook section → dashboard tile) changes.
 
@@ -701,43 +734,54 @@ export default async function () {
 
 ### Conditional Alert Based on Check
 
+In the workflow document, `tasks` is a map keyed by task name, and each task carries its own `conditions` (`states` of predecessors, an optional `custom` expression, and `else`). The Slack action needs a connection; the `connection()` expression resolves a connection's ID from its name:
+
 ```yaml
-conditions:
-  - name: should_alert
-    expression: '{{ result("check_workflows").alert }}'
-
 tasks:
-  - name: check_workflows
+  check_workflows:
+    name: check_workflows
     action: dynatrace.automations:run-javascript
-    # ... check script above
-
-  - name: alert_slack
-    action: dynatrace.slack:slack-send-message
-    conditions: [should_alert]
-    predecessors: [check_workflows]
     input:
+      script: |
+        // paste the check script above
+  alert_slack:
+    name: alert_slack
+    action: dynatrace.slack:slack-send-message
+    predecessors:
+      - check_workflows
+    conditions:
+      states:
+        check_workflows: OK
+      custom: '{{ result("check_workflows").alert }}'
+      else: SKIP
+    input:
+      connection: "{{ connection('app:dynatrace.slack:connection', 'slack-prod-alerts') }}"
       channel: "#workflow-alerts"
       message: |
         :warning: *Workflow Health Alert*
-        
+
         {{ result("check_workflows").message }}
-        
+
         {% for wf in result("check_workflows").failing_workflows %}
         • {{ wf["dt.automation_engine.workflow.title"] }}: {{ wf.failures }} failures
         {% endfor %}
 ```
 
+The workflow's actor needs the `storage:*` permissions from the Prerequisites, or the check query reads nothing.
+
+> <sub>**Sources:** [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference) — *"connection() Get a single connection by schema ID and connection name."*; [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"Connection Connection ID. Required"*; [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — task shape with `conditions: states / custom / else`.</sub>
+
 <a id="change-management"></a>
 ## 7. Change Management
 ### Version Control
 
-Export workflows as JSON for version control:
+Export workflows for version control with the dedicated export endpoint:
 
 ```bash
 # Export via API
-curl -X GET "https://<env>/platform/automation/v1/workflows/<id>" \
+curl -X GET "https://<env>/platform/automation/v1/workflows/<id>/export" \
   -H "Authorization: Bearer <platform-token>" \
-  -o workflow-backup.json
+  -o workflow-export.json
 ```
 
 The platform token needs the `automation:workflows:read` scope. Platform tokens are sent as `Bearer`, not `Api-Token` ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)).
@@ -764,9 +808,11 @@ Examples:
 ### Rollback Procedure
 
 1. Disable failing workflow (toggle off)
-2. Import previous version from backup
+2. Restore the previous version from the workflow's history — `POST /platform/automation/v1/workflows/<id>/history/<version>/restore` (scope `automation:workflows:write`), which deploys the restored version. Import from your own export only if the history no longer has it.
 3. Enable restored workflow
 4. Verify execution
+
+> <sub>**Sources:** [client-automation SDK reference (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — `exportWorkflow`, and `restoreWorkflowHistoryRecord`: *"Restores the workflow to the specified history version which is deployed afterward."*</sub>
 
 <a id="operational-runbook"></a>
 ## 8. Operational Runbook
@@ -777,15 +823,16 @@ Examples:
 | Check dashboard | Daily | Review execution success rates |
 | Review failures | Daily | Investigate and fix any failures |
 | Verify connections | Weekly | Test all external connections |
-| Rotate secrets | Monthly | Update API tokens/passwords |
+| Rotate secrets | Per your policy (§3.4) | Dual-credential overlap, then revoke the old one |
 
 ### Troubleshooting Common Issues
 
 | Symptom | Likely Cause | Resolution |
 |---------|--------------|------------|
 | Task timeout | External API slow | Increase timeout, add retry |
-| Auth failure | Expired token | Rotate secret |
-| Rate limit | Too many executions | Add throttling, check trigger |
+| Auth failure | Revoked or rotated credential | Update the connection (§3.4) |
+| Throttled (HTTP 429) | Over 1,000 event-triggered executions / hour | Narrow the trigger filter |
+| Blocked request (host not in allowlist) | Target missing from External requests | Add a host pattern |
 | Missing data | Query returned empty | Check time range, filters |
 
 ### Escalation Path
@@ -826,6 +873,9 @@ Concurrency and tasks-per-workflow caps are not published; see WFLOW-01 § 5. An
 | **WFLOW-07** | Auto-remediation, guardrails, approval workflows |
 | **WFLOW-08** | JavaScript SDK, HTTP requests, custom integrations |
 | **WFLOW-09** | Security, governance, monitoring, operations |
+| **WFLOW-94 LAB** | EdgeConnect static egress IP for IP-allow-listed targets (Snowflake) |
+| **WFLOW-95 LAB** | CMDB-driven host tag enrichment |
+| **WFLOW-99** | Best-practice summary across the series |
 
 ### Implementation Checklist
 
@@ -853,7 +903,7 @@ Concurrency and tasks-per-workflow caps are not published; see WFLOW-01 § 5. An
 
 <a id="congratulations"></a>
 ## Congratulations!
-You've completed the WFLOW series. You now have the knowledge to:
+You've completed the core WFLOW series — WFLOW-99 consolidates its best practices, and the 94/95 LABs apply them end to end. You now have the knowledge to:
 
 - Build event-driven notification workflows
 - Integrate with incident management platforms

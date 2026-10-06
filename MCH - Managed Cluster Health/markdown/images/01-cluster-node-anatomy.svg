@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B"/>
+    </marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Anatomy of a Managed Cluster</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">Every node runs the same five components — what differs is how each store survives losing a node</text>
+
+  <!-- OneAgent traffic -->
+  <rect x="30" y="80" width="600" height="30" fill="#1E293B" stroke="#64748B" rx="6"/>
+  <text x="330" y="100" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">OneAgent / ActiveGate traffic — NGINX redirects away from a failed node</text>
+
+  <line x1="125" y1="112" x2="125" y2="128" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="30" y="130" width="190" height="210" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="125" y="152" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">Cluster node 1</text>
+  <rect x="42" y="162" width="166" height="26" fill="#1E293B" stroke="#64748B" rx="6"/>
+  <text x="125" y="179" text-anchor="middle" fill="#F8FAFC" font-size="11">NGINX</text>
+  <rect x="42" y="194" width="166" height="26" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="125" y="211" text-anchor="middle" fill="#F8FAFC" font-size="11">Server + transaction store</text>
+  <rect x="42" y="226" width="166" height="26" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="125" y="243" text-anchor="middle" fill="#F8FAFC" font-size="11">Cassandra — metrics store</text>
+  <rect x="42" y="258" width="166" height="26" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="125" y="275" text-anchor="middle" fill="#F8FAFC" font-size="11">Elasticsearch store</text>
+  <rect x="42" y="290" width="166" height="26" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="125" y="307" text-anchor="middle" fill="#F8FAFC" font-size="11">Embedded ActiveGate</text>
+  <text x="125" y="331" text-anchor="middle" fill="#94A3B8" font-size="10">+ self-monitoring OneAgent</text>
+
+  <line x1="330" y1="112" x2="330" y2="128" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="235" y="130" width="190" height="210" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="330" y="152" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">Cluster node 2</text>
+  <rect x="247" y="162" width="166" height="26" fill="#1E293B" stroke="#64748B" rx="6"/>
+  <text x="330" y="179" text-anchor="middle" fill="#F8FAFC" font-size="11">NGINX</text>
+  <rect x="247" y="194" width="166" height="26" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="330" y="211" text-anchor="middle" fill="#F8FAFC" font-size="11">Server + transaction store</text>
+  <rect x="247" y="226" width="166" height="26" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="330" y="243" text-anchor="middle" fill="#F8FAFC" font-size="11">Cassandra — metrics store</text>
+  <rect x="247" y="258" width="166" height="26" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="330" y="275" text-anchor="middle" fill="#F8FAFC" font-size="11">Elasticsearch store</text>
+  <rect x="247" y="290" width="166" height="26" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="330" y="307" text-anchor="middle" fill="#F8FAFC" font-size="11">Embedded ActiveGate</text>
+  <text x="330" y="331" text-anchor="middle" fill="#94A3B8" font-size="10">+ self-monitoring OneAgent</text>
+
+  <line x1="535" y1="112" x2="535" y2="128" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="440" y="130" width="190" height="210" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="535" y="152" text-anchor="middle" fill="#BFDBFE" font-size="15" font-weight="700">Cluster node 3</text>
+  <rect x="452" y="162" width="166" height="26" fill="#1E293B" stroke="#64748B" rx="6"/>
+  <text x="535" y="179" text-anchor="middle" fill="#F8FAFC" font-size="11">NGINX</text>
+  <rect x="452" y="194" width="166" height="26" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="535" y="211" text-anchor="middle" fill="#F8FAFC" font-size="11">Server + transaction store</text>
+  <rect x="452" y="226" width="166" height="26" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="535" y="243" text-anchor="middle" fill="#F8FAFC" font-size="11">Cassandra — metrics store</text>
+  <rect x="452" y="258" width="166" height="26" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="535" y="275" text-anchor="middle" fill="#F8FAFC" font-size="11">Elasticsearch store</text>
+  <rect x="452" y="290" width="166" height="26" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="535" y="307" text-anchor="middle" fill="#F8FAFC" font-size="11">Embedded ActiveGate</text>
+  <text x="535" y="331" text-anchor="middle" fill="#94A3B8" font-size="10">+ self-monitoring OneAgent</text>
+
+  <!-- Mission Control -->
+  <rect x="660" y="130" width="240" height="210" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="780" y="152" text-anchor="middle" fill="#FCD34D" font-size="15" font-weight="700">Mission Control</text>
+  <text x="780" y="176" text-anchor="middle" fill="#94A3B8" font-size="11">Dynatrace-run; the cluster</text>
+  <text x="780" y="192" text-anchor="middle" fill="#94A3B8" font-size="11">initiates every connection</text>
+  <text x="780" y="220" text-anchor="middle" fill="#F8FAFC" font-size="11">health check every 2 minutes</text>
+  <text x="780" y="238" text-anchor="middle" fill="#F8FAFC" font-size="11">licensing + usage data</text>
+  <text x="780" y="256" text-anchor="middle" fill="#F8FAFC" font-size="11">update packages (~every 4 weeks)</text>
+  <text x="780" y="284" text-anchor="middle" fill="#94A3B8" font-size="11">HTTPS / WSS on port 443</text>
+  <text x="780" y="316" text-anchor="middle" fill="#FCD34D" font-size="11">&gt;14 days offline: no overages</text>
+  <line x1="632" y1="235" x2="656" y2="235" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Redundancy strip -->
+  <text x="465" y="372" text-anchor="middle" fill="#F8FAFC" font-size="15" font-weight="700">What survives losing one node of a 3+ node cluster</text>
+  <rect x="30" y="386" width="205" height="72" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="132" y="408" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">Metrics, events, sessions</text>
+  <text x="132" y="426" text-anchor="middle" fill="#94A3B8" font-size="11">three copies across nodes</text>
+  <text x="132" y="444" text-anchor="middle" fill="#94A3B8" font-size="11">one node loss: no data loss</text>
+  <rect x="250" y="386" width="205" height="72" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="352" y="408" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">Log Monitoring events</text>
+  <text x="352" y="426" text-anchor="middle" fill="#94A3B8" font-size="11">two copies</text>
+  <text x="352" y="444" text-anchor="middle" fill="#94A3B8" font-size="11">two node loss: gaps</text>
+  <rect x="470" y="386" width="205" height="72" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="572" y="408" text-anchor="middle" fill="#FCA5A5" font-size="12" font-weight="700">Transaction storage</text>
+  <text x="572" y="426" text-anchor="middle" fill="#94A3B8" font-size="11">distributed, not replicated</text>
+  <text x="572" y="444" text-anchor="middle" fill="#94A3B8" font-size="11">and never backed up</text>
+  <rect x="690" y="386" width="210" height="72" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="795" y="408" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">Processing capacity</text>
+  <text x="795" y="426" text-anchor="middle" fill="#94A3B8" font-size="11">plan one-third above typical</text>
+  <text x="795" y="444" text-anchor="middle" fill="#94A3B8" font-size="11">so survivors absorb the load</text>
+  <line x1="40" y1="480" x2="890" y2="480" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="494" text-anchor="middle" fill="#64748B" font-size="10">Source: Dynatrace Managed docs — Managed components, Single-cluster high availability, Mission Control data exchange (read 09/25/2026)</text>
+</svg>

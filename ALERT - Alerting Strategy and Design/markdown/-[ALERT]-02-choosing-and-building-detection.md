@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -23,7 +23,7 @@ Detection is a choice between four mechanisms, and picking the wrong one is the 
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS Gen3 with the Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 2) |
+| **Dynatrace Environment** | SaaS Gen3. Custom alerts are created in **Settings** from SaaS 1.344, and in the Anomaly Detection app before that (§ 2) |
 | **Prior reading** | ALERT-01 (the end-to-end picture) |
 | **Build mechanics** | AIOPS-02 (anomaly detector setup), SLO-02/04 (SLIs and burn-rate) |
 
@@ -34,7 +34,7 @@ Detection is a choice between four mechanisms, and picking the wrong one is the 
 |-----------|-----------------|-----------------|
 | **OOTB Davis** | Latency/error/saturation anomalies, automatically, with seasonal baselines | AIOPS-02 §1 |
 | **Custom Davis anomaly detector** | A business-specific signal Davis does not cover, expressed as a DQL query an analyzer judges | AIOPS-02 §4 |
-| **OpenPipeline-derived metric** | A signal that lives in logs/spans, extracted to a metric at ingest and then alerted on cheaply | OPIPE, AIOPS-02 §6 |
+| **OpenPipeline-derived metric** | A signal that lives in logs/spans, extracted to a metric at ingest and then alerted on cheaply | OPIPE, FAQ-09 |
 | **SLO burn-rate** | A user journey burning its error budget too fast | SLO-04 |
 
 These are not alternatives to rank once — they are a toolkit. Most environments use all four.
@@ -51,9 +51,9 @@ Walk it top-down and stop at the first match:
 
 The cost — to build and to maintain — rises as you go down. Staying high is the lever on noise (ALERT-01 §2).
 
-> **Where a custom detector is created (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and AIOPS-02 § 4 walks that build.
+> **Where a custom detector is created (SaaS 1.344+).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344's staged rollout started 07/29/2026, so Settings is the place to create a custom detector. On a tenant still below 1.344, the **Anomaly Detection** app is where custom alerts are created, and AIOPS-02 § 4 walks that build.
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*, [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344) — *"Rollout start on Jul 29, 2026"*.</sub>
 
 <a id="antipatterns"></a>
 ## 3. Anti-Patterns
@@ -61,7 +61,7 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 - **Static thresholds on traffic-correlated metrics.** They alert every off-peak hour and every traffic spike. Use auto-adaptive or seasonal (AIOPS-02 §1). Reserve static thresholds for true hard limits (SLO/contract/capacity).
 - **Duplicating Davis.** Before building a custom detector, confirm OOTB Davis or an existing metric event does not already cover the condition. Duplicate detection means duplicate alerts.
 - **Querying logs/traces directly in a recurring detector.** Pays query cost on every evaluation, forever. Extract a metric first (FAQ-09, OPIPE).
-- **A detector with a bare event template.** No team/zone property means nothing to route on (ALERT-01 §4). Worse, an event template that leaves `dt.smartscape_source.id` unset correlates against the environment entity instead of the thing that broke — so those alerts merge with every other unattributed alert in the tenant into problems with no usable root cause, and no threshold change fixes it (AIOPS-02 §4, AIOPS-03 §1).
+- **A detector with a bare event template.** No team or area property means nothing to route on (ALERT-01 §4). Set `dt.smartscape_source.id` too. The docs ask for *"an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string"*, because that is what lets the correlation engine resolve the entity and apply its same-entity grouping rule. They do not say what happens to an event that has no source, but on a real tenant (7 days to 10/06/2026) every custom alert raised without one, 670 events, was attached to the environment entity alone. Problems attached only to the environment averaged 8.5 grouped events each, against about one for every other problem: many alerts end up in one problem whose only affected entity is the environment, which points no one at the thing that broke. Treat that as the likely outcome, not a documented rule. Either way, no threshold change fixes it; only the event template does (AIOPS-02 §4).
 - **Splitting the alert on a high-cardinality dimension.** Grouping a detector by application version, pod name, or HTTP status code turns one condition into one alert per dimension value. Alert volume then scales with your deployment frequency, and alerts strand themselves on entities that no longer exist — a pod replaced an hour ago still carries an open problem. Alert on the aggregate; working out *which* version or pod caused it is a downstream investigation step, not an alerting dimension. (Davis's own multi-dimensional baselining is a different mechanism and does want the dimensions — AIOPS-02 §1.4.)
 - **The cloned detector.** In a fast rollout the dominant noise source is not one badly-tuned alert — it is a base detector template copied across teams with its threshold, sensitivity, and routing left unchanged. Two weeks later that team has muted the channel. You cannot review your way out of this one clone at a time; defend at the template, not at each copy.
 
@@ -78,7 +78,7 @@ The cost — to build and to maintain — rises as you go down. Staying high is 
 
 This is **not** a fifth analyzer knob, and it does not replace the sliding-window minimum above. The analyzer parameters decide whether a series is anomalous; Minimum duration decides how long a problem must stay open before the workflow runs. The problem itself opens immediately. They act on different steps, so they compose — and because the delay applies at the workflow trigger, it damps notifications from flapping detectors you do not own, which is exactly the case a template standard cannot reach. Where it is not available yet, the violating-samples / sliding-window minimum remains the control to rely on for transient-spike noise.
 
-> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."* **Derived:** the "composes rather than substitutes" placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub>
+> <sub>**Sources:** [SaaS 1.344 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration."* [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string"*; it does not describe events without a source, so the environment-only figures are tenant measurements (`dt.davis.events` and `dt.davis.problems`, 7 days, run 10/06/2026). **Derived:** the "composes rather than substitutes" placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub>
 
 <a id="classic-metric-events"></a>
 ## 4. Migrating Classic Metric Events: Measure First
@@ -105,7 +105,7 @@ Events built on a plain metric key (`METRIC_KEY`) cannot go through the transfor
 // provider for the new DQL anomaly detectors and for built-in infrastructure detection.
 fetch dt.davis.events, from:-30d
 | filter dt.settings.schema_id == "builtin:anomaly-detection.metric-events"
-| summarize alerts = count(), last_raised = max(timestamp), by:{dt.settings.object_id, event.name}
+| summarize {alerts = count(), last_raised = max(timestamp)}, by:{dt.settings.object_id, event.name}
 | sort alerts desc
 ```
 
@@ -120,7 +120,7 @@ Compare the two lists. An enabled metric event that does not appear in the histo
 
 For each event you keep, run it through [the decision](#decision) above. A static threshold is where the classic event started, and it is not necessarily where it should end up.
 
-> <sub>**Sources:** [Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — both quotes above. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), `event.provider` (`stable`), read 09/29/2026. Tenant counts from `dtctl get settings` and the query above, both run 09/29/2026, with the `builtin:davis.anomaly-detectors` run as the control.</sub>
+> <sub>**Sources:** [Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — both quotes above. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), `event.provider` (`stable`), read 09/29/2026. Tenant counts from `dtctl get settings` and the query above, both run 09/29/2026, with the `builtin:davis.anomaly-detectors` run as the control. Re-run 10/06/2026 as shown: zero rows and no notifications, while the control returned 2,434 events from 8 detectors.</sub>
 
 <a id="prototype"></a>
 ## 5. Prototype Before You Commit

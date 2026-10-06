@@ -26,6 +26,9 @@ Create professional, informative notifications with dynamic content, formatting,
 | **Dynatrace Environment** | SaaS with Platform subscription |
 | **Permissions** | `automation:workflows:write` |
 | **Prior Knowledge** | **WFLOW-01** through **WFLOW-05** |
+| **Slack** | A Slack connection (Dynatrace Slack app) for the Slack templates |
+| **Microsoft Teams** | A Power Automate *Send webhook alerts to a channel* webhook URL as the Teams connection, and its host (for example `*.api.powerplatform.com`) under **Settings > General > External requests** |
+| **Problem trigger** | `storage:events:read` for the workflow actor |
 
 <a id="template-design-principles"></a>
 ## 1. Template Design Principles
@@ -53,11 +56,13 @@ Create professional, informative notifications with dynamic content, formatting,
 | `event.severity` | Slack | Teams | Email |
 |----------|-------|-------|-------|
 | 1 (Critical) | :red_circle: | Red header | Red banner |
-| 2 (High) | :large_orange_circle: | Orange header | Orange banner |
-| 3 (Medium) | :large_yellow_circle: | Yellow header | Yellow banner |
-| 4 (Low) | :large_blue_circle: | Blue header | Blue banner |
+| 2 (Major) | :large_orange_circle: | Orange header | Orange banner |
+| 3 (Minor) | :large_yellow_circle: | Yellow header | Yellow banner |
+| 4 (Warning) | :large_blue_circle: | Blue header | Blue banner |
 
-The problem record carries severity as `event.severity` on a 1–5 scale (`experimental` in the semantic dictionary), not as `CRITICAL`/`HIGH` strings. The templates below convert it with `| int(5)`, so a missing severity renders as the lowest tier; from SaaS 1.348 severity is no longer defaulted (WFLOW-04 §3). WFLOW-02 §7 maps the other old field names.
+The problem record carries severity as `event.severity` on a 1–5 scale (`experimental` in the semantic dictionary), not as `CRITICAL`/`HIGH` strings. Dynatrace names the levels Critical, Major, Minor, Warning and Informational, and problems carry only the first three: *"Warning and Informational events appear in the event list and can be grouped into a problem by problem correlation, but they don't raise problems on their own."* The Warning row matters only for templates that also serve Davis events. The templates below convert it with `| int(5)`, so a missing severity renders as the lowest tier; from SaaS 1.348 severity is no longer defaulted (WFLOW-04 §3). WFLOW-02 §7 maps the other old field names.
+
+> <sub>**Sources:** [Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity).</sub>
 
 <a id="jinja2-expression-deep-dive"></a>
 ## 2. Jinja2 Expression Deep Dive
@@ -65,7 +70,7 @@ The problem record carries severity as `event.severity` on a 1–5 scale (`exper
 
 ```jinja
 {{ event()["event.name"] }}         {# Direct field access #}
-{{ event().get("field", "default") }} {# With default value #}
+{{ event().get("field") or "default" }} {# With default value; also covers a present-but-null field #}
 {{ result("task_name").output }}    {# Previous task result #}
 {{ environment().url }}              {# Environment URL #}
 {{ problem_link() }}                 {# Link to the problem (Problem trigger only) #}
@@ -80,8 +85,14 @@ The problem record carries severity as `event.severity` on a 1–5 scale (`exper
 {{ event()["event.name"] | truncate(50) }}    {# Limit length #}
 {{ list_field | join(", ") }}            {# Join array #}
 {{ number | round(2) }}                   {# Round decimals #}
-{{ timestamp | format_datetime }}        {# Format date #}
+{{ now("Europe/Vienna").strftime("%Y-%m-%d %H:%M") }}  {# Format a date: strftime on a datetime #}
 ```
+
+There is no `format_datetime` filter. `now()` returns a datetime object, formatted with `strftime`: *"Use strftime and format codes as described in datetime Python documentation"*. For a timestamp string such as `event.start`, the `to_datetime` filter returns a datetime; test it in the expression preview, because problem timestamps carry nanoseconds.
+
+> **Deprecated problem fields.** The templates in this notebook read `affected_entity_ids` and `root_cause_entity_id`, which still work. The upgrade guide marks them deprecated: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities ."* The classic fields were the better-populated ones on the validation tenant (10/06/2026), so read the Smartscape field first and fall back, as in `{{ (event().get("smartscape.affected_entities") or []) | map(attribute="name") | join(", ") or event()["affected_entity_ids"] | join(", ") }}`. **WFLOW-05 §3** has the counts and a root-cause example.
+>
+> <sub>**Sources:** [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference); [Upgrade guide — alert notification (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification).</sub>
 
 ### Conditionals
 
@@ -90,7 +101,7 @@ The problem record carries severity as `event.severity` on a 1–5 scale (`exper
 {% if sev <= 1 %}
   :rotating_light: CRITICAL ALERT
 {% elif sev == 2 %}
-  :warning: HIGH ALERT
+  :warning: MAJOR ALERT
 {% else %}
   :information_source: {{ event()["event.category"] }} ALERT
 {% endif %}
@@ -113,7 +124,7 @@ Affected Entities:
 ```jinja
 {{ ":red_circle:" if (event().get("event.severity") | int(5)) <= 1 else ":large_yellow_circle:" }}
 
-{{ event().get("root_cause_entity_id", "Pending analysis") }}
+{{ event().get("root_cause_entity_id") or "Pending analysis" }}
 ```
 
 ### Dictionary Mapping
@@ -197,14 +208,14 @@ blocks:
     - type: context
       elements:
         - type: mrkdwn
-          text: "Detected by Dynatrace Dynatrace Intelligence | {{ now() }}"
+          text: "Detected by Dynatrace Intelligence | {{ now() }}"
 ```
 
 <a id="teams-adaptive-card-templates"></a>
 ## 4. Teams Adaptive Card Templates
 ### Full-Featured Alert Card
 
-The Microsoft Teams **Send message** action (`dynatrace.msteams:send-message`) takes the card as Adaptive Card JSON in its `message` field, with the connection in `connectionId`. There is no separate card input. The card below is written as YAML for readability: convert it to JSON and paste it into `message`. Use Dynatrace expressions, as here; the docs say *"We don't support Adaptive Cards Template Language templating"*.
+The Microsoft Teams **Send message** action (`dynatrace.msteams:send-message`) takes the card as Adaptive Card JSON in its `message` field, with the connection in `connectionId`; alternatively, `selectTemplate` picks *"A pre-defined AdaptiveCard used as a message."* The connection is a Power Automate webhook (*"Office 365 webhooks will stop working."*), and its host must be allowed under External requests (see Prerequisites). The card below is written as YAML for readability: convert it to JSON and paste it into `message`. Use Dynatrace expressions, as here; the docs say *"We don't support Adaptive Cards Template Language templating"*.
 
 > <sub>**Sources:** [Microsoft Teams Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams); [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.msteams:send-message"*.</sub>
 
@@ -282,7 +293,8 @@ async function runQuery(query) {
 
 export default async function () {
   const event = (await execution()).params.event;   // trigger payload
-  // Get recent error logs for the affected service
+  // Get recent error logs for the root-cause entity. root_cause_entity_id can be any
+  // entity type (on the validation tenant only ~6% were services), so match the field for its type.
   const rootCause = event.root_cause_entity_id;
   
   if (!rootCause) {
@@ -291,7 +303,9 @@ export default async function () {
   
   const recentErrors = await runQuery(`
     fetch logs, from: now() - 30m
-    | filter dt.entity.service == "${rootCause}"
+    | filter dt.entity.service == "${rootCause}" or dt.entity.host == "${rootCause}"
+          or dt.entity.process_group == "${rootCause}" or dt.entity.process_group_instance == "${rootCause}"
+          or dt.entity.cloud_application == "${rootCause}"
     | filter status == "ERROR"
     | fields timestamp, content
     | sort timestamp desc
@@ -313,7 +327,7 @@ export default async function () {
 • `{{ log.content | truncate(100) }}`
 {% endfor %}
 {% if result("enrich_data").recent_errors | length == 0 %}
-_No recent errors found_
+_No error logs found for the root-cause entity in the last 30 minutes_
 {% endif %}
 ```
 
@@ -321,17 +335,17 @@ _No recent errors found_
 
 ```javascript
 import { execution } from '@dynatrace-sdk/automation-utils';
-import { entitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
+import { monitoredEntitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
 export default async function () {
-  const event = (await execution()).params.event;
-  const entityId = event.root_cause_entity_id;
+  const event = (await execution()).event();   // trigger payload, or null
+  const entityId = event?.root_cause_entity_id;
   
   if (!entityId) {
     return { entity_name: 'Unknown', entity_type: 'Unknown' };
   }
   
-  const entity = await entitiesClient.getEntity({
+  const entity = await monitoredEntitiesClient.getEntity({
     entityId: entityId
   });
   
@@ -379,8 +393,8 @@ message: |
   
   *By Severity:*
   :red_circle: Critical: {{ result("query_stats").critical }}
-  :large_orange_circle: High: {{ result("query_stats").high }}
-  :large_yellow_circle: Medium: {{ result("query_stats").medium }}
+  :large_orange_circle: Major: {{ result("query_stats").major }}
+  :large_yellow_circle: Minor: {{ result("query_stats").minor }}
 ```
 
 ### Escalation Notice
@@ -389,7 +403,7 @@ message: |
 message: |
   :rotating_light: *ESCALATION*
   
-  Problem *{{ event()["display_id"] }}* has not been acknowledged after 15 minutes.
+  Problem *{{ event()["display_id"] }}* is still active after 15 minutes.
   
   *{{ event()["event.name"] }}*
   
@@ -468,7 +482,7 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Task errors (malformed templates surface here)
+// Action errors (connector / API failures). A malformed template fails before the action runs - see the next query
 // Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
 // `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
 // filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
@@ -498,6 +512,18 @@ fetch dt.system.events, from:-24h
 | limit 25
 ```
 
+```dql
+// Template (input-expression) errors
+// A template that does not evaluate fails before any action runs, so it is recorded on the
+// WORKFLOW_EXECUTION record ("Error evaluating '<input>' in input. ..."), not on ACTION_EXECUTION.
+fetch dt.system.events, from:-24h
+| filter event.kind == "WORKFLOW_EVENT" and event.type == "WORKFLOW_EXECUTION"
+| filter dt.automation_engine.state == "ERROR" and contains(dt.automation_engine.state_info, "Error evaluating")
+| summarize errors = count(), by:{dt.automation_engine.workflow.title, dt.automation_engine.state_info}
+| sort errors desc
+| limit 25
+```
+
 ## Next Steps
 
 With custom templates ready, implement auto-remediation:
@@ -514,7 +540,7 @@ With custom templates ready, implement auto-remediation:
 - **Slack Block Kit** creates rich, interactive messages
 - **Teams Adaptive Cards** provide structured formatting
 - **Data enrichment** adds context from DQL queries
-- **Test templates** with mock data before production
+- **Test templates** with mock data before production, and watch for `Error evaluating` on workflow executions
 
 ---
 
