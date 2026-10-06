@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -594,6 +594,8 @@ In this notebook, you learned:
 - Querying enriched data with DQL
 - Practical use cases: cost allocation, routing, security
 - Troubleshooting common issues
+
+> **Beyond Kubernetes:** **FAQ-26** covers how the same primary fields and tags are set by every other producer — OneAgent, OpenTelemetry, cloud connections, extensions, synthetic monitors and RUM — and how to audit coverage across all of them.
 
 ---
 

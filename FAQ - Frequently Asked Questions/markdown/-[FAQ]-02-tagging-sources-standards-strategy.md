@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -646,6 +646,7 @@ Tagging in Dynatrace draws from four sources (OneAgent, Kubernetes, cloud-provid
 - Define the seven-dimension standard (or your organization's adapted version) before the next host onboarding wave
 - Plan the OpenPipeline enrichment processors that normalize cross-cloud tags into `dt.*` canonical fields
 - Cross-reference with FAQ-01 (host group naming strategy) and the IAM / ORGNZ / OPIPE topic series for the consuming patterns
+- For the job-by-job view — which field each platform job reads, which producer sets it (extensions, synthetic monitors and RUM included), and a cross-signal coverage audit — see **FAQ-26: What Metadata Should We Set, Where, and Why?**
 
 > <sub>**Sources:** the §8 Final Recommendation is a **Derived** synthesis from §1–§7 — no single source endorses the combined "primary fields/tags first, K8s/cloud tags as enrichment, OpenPipeline normalization at ingest, auto-tagging only as legacy stop-gap" recommendation as a single statement. The Sources blocks on §1–§7 list the inputs the synthesis rests on.</sub>
 
