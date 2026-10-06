@@ -1,6 +1,6 @@
 # S2S-99: Best Practice Summary
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -126,8 +126,8 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | # | Best Practice | Recommended Setting/Value | Priority |
 |---|--------------|---------------------------|----------|
 | 29 | Export via `monaco download` | Run `monaco download --manifest manifest.yaml --environment source-tenant` to export all configuration in one operation | **Critical** |
-| 30 | Use the S2S-10 migration scripts for export | Automates Monaco download with a short-lived, auto-revoked read-only token and stages a timestamped folder for `monaco deploy`; Bash and PowerShell versions provided | **Recommended** |
-| 31 | Deploy with `monaco deploy` — do not plan on the SaaS Upgrade Assistant | The SUA is documented for a Managed source (*"imports your Dynatrace Managed environment configuration"*); no SaaS-source path is documented | **Critical** |
+| 30 | Use the S2S-10 migration scripts for export | Automates Monaco download with a short-lived, auto-revoked read-only token and stages a timestamped folder for `monaco deploy`, with an optional SaaS Upgrade Assistant package; Bash and PowerShell versions provided | **Recommended** |
+| 31 | Plan on `monaco deploy`; treat the SaaS Upgrade Assistant as an optional, rehearsed path | The SUA is documented for a Managed source (*"imports your Dynatrace Managed environment configuration"*); importing a packaged Monaco export (S2S-10 §1) is a field practice — rehearse it on a non-production target and keep `monaco deploy` as the fallback | **Critical** |
 | 32 | Store exported configuration in Git | Commit the Monaco export directory to a Git repository immediately after download | **Critical** |
 | 33 | Validate export completeness | Compare `ls projects/full-export/settings/ \| wc -l` against Settings API `totalCount` per schema | **Critical** |
 | 34 | Validate export contains no secrets | Run `grep -r "dt0c01" projects/` after export and confirm 0 matches | **Critical** |

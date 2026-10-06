@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/05/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -173,17 +173,22 @@ Primary Grail Fields are infrastructure-related fields that are **automatically 
 
 > **Best Practice:** Always prefer Primary Grail Fields in segment definitions. They are indexed, automatically enriched, and consistent across all signal types.
 
-### Fields That Also Propagate to Service Metrics
+### What Propagates to Service Metrics
 
-Some fields go further and propagate to derived data like service metrics:
+Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields and primary Grail tags. Standard tags and signal-local attributes do not:
 
 | Field | Propagates to Service Metrics |
 |-------|------------------------------|
+| Primary Grail Fields (`dt.host_group.id`, `k8s.namespace.name`, …) | Yes |
 | `dt.security_context` | Yes |
-| `dt.cost.costcenter` | Yes |
-| `dt.cost.product` | Yes |
-| Host group (`dt.host_group.id`) | Yes |
-| Other host tags | **No** |
+| `dt.cost.costcenter`, `dt.cost.product` | Yes |
+| Primary Grail Tags (`primary_tags.<key>`) | Yes |
+| Host tags without the `primary_tags.` prefix, Kubernetes labels, cloud tags | **No** |
+| Signal-local attributes (e.g. OpenTelemetry attributes without the `primary_tags.` convention) | **No** |
+
+The Management Zones → Segments upgrade guide still lists only the three special fields as reaching derived data; the primary Grail fields and tags page is broader, and on the validation tenant on 10/06/2026 `dt.service.request.count` split cleanly by two different `primary_tags.*` keys. MZ2POL-05 §5.2 and FAQ-26 §4 cover the conflict and the full reach-by-kind matrix.
+
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."*, [Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — non-convention attributes *"aren't automatically propagated across signal types or to Davis events and problems."*, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"Currently, only keys will be carried over to derived data: dt.security_context, dt.cost.costcenter, and dt.cost.product."*</sub>
 
 ### Primary Grail Tags
 

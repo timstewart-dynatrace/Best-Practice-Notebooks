@@ -1,6 +1,6 @@
 # S2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -69,7 +69,7 @@ The SaaS-to-SaaS migration follows the same proven three-phase, nine-step framew
 | Upgrade | 2-6 weeks | High — technical execution |
 | Run | 2-4 weeks | Medium — enablement and tuning |
 
-> **S2S vs. M2S:** The framework is identical, but SaaS-to-SaaS migrations typically move faster because there is no Managed-to-SaaS architecture change. Do not assume the two SaaS environments are identical, though: either can still use Dynatrace Classic surfaces, and they can be hosted on different clouds and regions (**S2S-01** §1). However, the absence of a SaaS Upgrade Assistant means you rely entirely on Monaco, Terraform, and the Settings API.
+> **S2S vs. M2S:** The framework is identical, but SaaS-to-SaaS migrations typically move faster because there is no Managed-to-SaaS architecture change. Do not assume the two SaaS environments are identical, though: either can still use Dynatrace Classic surfaces, and they can be hosted on different clouds and regions (**S2S-01** §1). However, the SaaS Upgrade Assistant is documented for a Managed source only, so plan on Monaco, Terraform, and the Settings API — the assistant is at most an optional, rehearsed import path (**S2S-10** §1).
 
 <a id="migration-approach-selection"></a>
 
@@ -148,7 +148,7 @@ SaaS-to-SaaS migration has inherent advantages that affect approach selection:
 | Risk Factor | S2S Impact |
 |-------------|------------|
 | **Entity IDs change completely** | Every entity gets a new ID in the target tenant — dashboards, SLOs, and alerts with entity references must be remapped |
-| **No SaaS Upgrade Assistant** | All configuration migration relies on Monaco, Terraform, or Settings API — no automated assistant |
+| **No documented SaaS Upgrade Assistant path** | Plan configuration migration on Monaco, Terraform, or the Settings API; importing a packaged Monaco export through the assistant is a field practice to rehearse first (**S2S-10** §1) |
 | **Rollback is harder** | Unlike M2S where Managed can remain as fallback, reverting S2S means redirecting agents back to a tenant that has data gaps |
 | **Double licensing cost** | Both tenants consume DPS during parallel operation — budget accordingly |
 
@@ -185,7 +185,7 @@ Regardless of which approach you choose, the migration must follow this exact 11
 | 10 | **Cutover** — Full switch to target tenant | Formal declaration that target is primary | Step 9: Optimize |
 | 11 | **Decommission** — Source tenant | Only after validation period complete | Step 9: Optimize |
 
-> **Key Difference from M2S:** In M2S, the SaaS Upgrade Assistant handles Steps 3-5 semi-automatically. In S2S, you use `monaco download` / `monaco deploy` (or Terraform) for export and import. The sequence is the same, but the tooling is manual.
+> **Key Difference from M2S:** In M2S, the SaaS Upgrade Assistant handles Steps 3-5 semi-automatically. In S2S, you use `monaco download` / `monaco deploy` (or Terraform) for export and import, optionally importing through the assistant as a field practice (**S2S-10** §1). The sequence is the same, but the tooling is largely manual.
 
 ### Critical Dependencies
 
@@ -502,7 +502,7 @@ In this notebook, you:
 - Built a timeline with milestone durations
 - Identified the 90/10 split between automated (Monaco/Terraform) and manual migration effort
 
-> **Key Takeaway:** SaaS-to-SaaS migration is simpler than Managed-to-SaaS in architecture but harder in entity management. The absence of a SaaS Upgrade Assistant means you own the entire toolchain. A clear approach, documented risks, and measurable success criteria are what separate migrations that succeed from those that spiral into firefighting.
+> **Key Takeaway:** SaaS-to-SaaS migration is simpler than Managed-to-SaaS in architecture but harder in entity management. With no documented SaaS Upgrade Assistant path, you own the toolchain. A clear approach, documented risks, and measurable success criteria are what separate migrations that succeed from those that spiral into firefighting.
 
 ---
 

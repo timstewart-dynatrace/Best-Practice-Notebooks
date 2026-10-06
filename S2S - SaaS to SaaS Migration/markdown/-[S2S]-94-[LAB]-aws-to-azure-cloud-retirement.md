@@ -1,6 +1,6 @@
 # S2S-94 LAB: Retiring AWS for Azure — Moving the Environment and the Workloads
 
-> **Series:** S2S — SaaS to SaaS Migration | **Reference:** 94 — AWS-to-Azure Cloud Retirement LAB | **Created:** September 2026 | **Last Updated:** 09/28/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Reference:** 94 — AWS-to-Azure Cloud Retirement LAB | **Created:** September 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -91,7 +91,7 @@ Choose between the two ways of getting an Azure-hosted environment (the full com
 | 1.2 | Keep group claims under Entra ID's limit — *"The number of groups emitted in a token is limited to 150 for SAML assertions"* | **S2S-99** #43 | Group claims arrive for your largest user |
 | 1.3 | Rebuild the IP allowlist on the target (per environment, inbound) | **S2S-04** §2 | CI/CD runners and admins reach the target API |
 | 1.4 | Deploy IAM with Terraform | **S2S-04** §2, **S2S-05** §3 | Groups, policies, bindings applied |
-| 1.5 | Export with `monaco download`, deploy with `monaco deploy` — not the SaaS Upgrade Assistant, which is documented for a Managed source | **S2S-10** | Dry-run clean; deploy to the target succeeds |
+| 1.5 | Export with `monaco download`, deploy with `monaco deploy` — the SaaS Upgrade Assistant is documented for a Managed source only, so import through it only after rehearsing that field practice | **S2S-10** | Dry-run clean; deploy to the target succeeds |
 | 1.6 | Deploy ActiveGates the target needs (routing, extensions, private synthetic locations) — on Azure where the workloads are going | **S2S-04** §4 | `smartscapeNodes "ACTIVEGATE"` lists them in the target |
 
 > **Unverified — egress addresses.** If your firewalls, webhook receivers or ITSM tools admit Dynatrace by source IP, the Azure-hosted cluster's egress addresses will differ from the AWS-hosted source's. No primary source for them was found for this LAB; request them from Dynatrace before cutover rather than reusing the old list.

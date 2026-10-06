@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -175,11 +175,13 @@ The guide describes these as its *"fully supported scenarios"* — its stated pu
 
 **The MZ pattern:** an auto-tagging rule derives a tag from a process name, host name, service name, or their metadata, and the Management Zone selects on that tag.
 
-**The move:** stop deriving the tag from observed names and **set it as a host tag at the source**, during OneAgent deployment. Tags applied this way propagate into Grail as field values on the signals themselves, which is what makes them usable in segment filter conditions across data types.
+**The move:** stop deriving the tag from observed names and **set it at the source as a primary Grail tag** — a host tag whose key carries the `primary_tags.` prefix (`primary_tags.app=checkout`), set during OneAgent deployment. Tags in that form are enriched onto the signals themselves as fields, which is what makes them usable in segment filter conditions across data types. A host tag *without* the prefix is a standard tag: it stays on the host's Smartscape node and is not enriched onto raw signals.
 
 This is the single most common scenario and also the one that requires the most upfront work, because it changes where tagging happens — from a rule evaluated in Dynatrace to a value supplied at install time. See FAQ-02 for tagging-source strategy and ORGNZ-10 §3 for the enrichment prerequisite and a coverage-audit query.
 
-> **Watch the derived-data caveat.** Custom tags do **not** all propagate to derived data such as service metrics and span-based calculations. Only `dt.security_context`, `dt.cost.costcenter`, and `dt.cost.product` carry through. See §5.2.
+> **Watch the derived-data caveat.** Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and `primary_tags.*`. Standard tags and signal-local attributes do **not** carry through. The `primary_tags.` prefix is therefore what decides whether a converted tag also works on metric-based dashboards. See §5.2.
+
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — standard tags: *"Dynatrace doesn't automatically enrich them on raw telemetry signals."*</sub>
 
 ### 4.2 Host group membership
 
@@ -278,7 +280,7 @@ Two consequences worth accepting up front:
 
 **The MZ pattern:** the zone scopes extension-collected data.
 
-**The move:** filter on the extension enrichment attributes — **security context**, **product**, and **cost center**. These are the same three keys that survive into derived data (§5.2), which is not a coincidence.
+**The move:** filter on the extension enrichment attributes — **security context**, **product**, and **cost center**, which the guide says can be configured *"for every extension configuration."* They write the three special fields `dt.security_context`, `dt.cost.product` and `dt.cost.costcenter`, which also reach derived data (§5.2).
 
 ### 4.8 Cloud-native and application-only injection
 
@@ -288,7 +290,7 @@ Two consequences worth accepting up front:
 
 > **They are not interchangeable.** `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` look similar but differ semantically — most visibly, `OTEL_RESOURCE_ATTRIBUTES` uses a **colon** where `DT_TAGS` uses a **space** as separator. Setting one and assuming the other is covered is a reliable way to produce a segment that half-works.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — for non-auto-tagging zones, a new tag *"with the value set to the name of the management zone"*, [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters).</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — for non-auto-tagging zones, a new tag *"with the value set to the name of the management zone"*; extensions: *"you can configure the enrichment attributes Security context, Product, and Cost center for every extension configuration"*, [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters).</sub>
 
 ### 4.9 Shortcut: reuse `dt.security_context` as a segment dimension
 
@@ -325,15 +327,27 @@ Any MZ built as *broad rule minus exceptions* has to be inverted into an explici
 
 This is the single most common reason a conversion is not one-to-one, and it is why the fallback tag in §4.6 exists: applying a `Segment` tag to exactly the right entities sidesteps the need to express the exclusion at all.
 
-### 5.2 Custom tags do not fully propagate to derived data
+### 5.2 Only primary fields and tags reach derived data
 
-Derived data — service metrics, span-based calculations — does **not** inherit arbitrary custom tags. Only three keys carry through:
+Derived data — service metrics, Davis events and problems — is enriched with primary Grail fields, the three special fields, and primary Grail tags. Nothing else carries through.
 
-- `dt.security_context`
-- `dt.cost.costcenter`
-- `dt.cost.product`
+| Kind | Example | Reaches service metrics |
+|---|---|---|
+| Primary Grail fields | `dt.host_group.id`, `k8s.namespace.name` | **Yes** |
+| Special fields | `dt.security_context`, `dt.cost.costcenter`, `dt.cost.product` | **Yes** |
+| Primary Grail tags | `primary_tags.<key>` | **Yes** |
+| Standard tags | Host tags without the `primary_tags.` prefix, Kubernetes labels and annotations, cloud tags | **No** |
+| Signal-local attributes | OpenTelemetry resource attributes that don't use the `primary_tags.` convention | **No** |
 
-A segment that filters correctly on logs and spans may therefore return unfiltered or empty results on service metrics. If the Management Zone was used to scope metric-based dashboards, verify that surface specifically — it is the one most likely to silently misbehave after conversion.
+A segment built on a standard tag may filter Smartscape-based views correctly and still return unfiltered or empty results on service metrics. If the Management Zone scoped metric-based dashboards, verify that surface specifically — it is the one most likely to silently misbehave after conversion. The fix is to promote the value into a primary Grail tag (§4.1) rather than to give up on the dimension.
+
+> **The upgrade guide is narrower than the reference page.** The Management Zones → Segments guide still says *"Currently, only keys will be carried over to derived data: dt.security_context, dt.cost.costcenter, and dt.cost.product."* The primary Grail fields and tags page says derived signals carry *"the same tags"*, and the OpenTelemetry enrichment page says the same for spans → service metrics. On the validation tenant on 10/06/2026, `timeseries sum(dt.service.request.count)` split cleanly by `dt.security_context`, `dt.host_group.id` and two different `primary_tags.*` keys. Read the guide's sentence as true of **non-primary** tags. FAQ-26 §4 carries the full reach-by-kind matrix.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."*</sub>
+> - <sub>[Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — *"Dynatrace automatically propagates the dt.security_context value, along with other primary Grail fields and tags carried on the resource, from spans to the corresponding service metrics."*; non-convention attributes *"aren't automatically propagated across signal types or to Davis events and problems."*</sub>
+> - <sub>[Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"Derived data such as service metrics, which are calculated based on span data, don't get every key-value that you add on the OneAgent side as a dimension."*</sub>
+> - <sub>**Derived:** "true of non-primary tags" reconciles the guide with the two reference pages; the primary-tag half was checked on `dt.service.request.count`, validation tenant, 10/06/2026.</sub>
 
 ### 5.3 Entity properties other than `entity.name` are equals-only
 
@@ -580,7 +594,7 @@ ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the go
 1. **Classify first** — Management Zones do three jobs: access control, filtering, and alerting. Only the filtering job becomes a segment; access control becomes IAM policy and boundary (MZ2POL-04), and alerting becomes routing dimensions on a problem-triggered workflow (MZ2POL-09).
 2. **There is no automatic conversion** — every segment is hand-authored. Consolidate the estate before converting it.
 3. **Match the zone to a scenario** — how the MZ was *defined* determines the approach, from free (host group, Kubernetes) to tagging work (name-based auto-tagging) to the `Segment` tag fallback.
-4. **Check the blockers** — exclusions cannot be expressed, custom tags do not reach derived data, entity includes lack `contains`, and problems need an `events` include.
+4. **Check the blockers** — exclusions cannot be expressed, non-primary tags do not reach derived data, entity includes lack `contains`, and problems need an `events` include.
 5. **Validate both surfaces** — entity-level and signal-level, before cutover.
 6. **Coexist deliberately** — classic apps and alerting profiles still need the Management Zone. Retire it last. The Services app's current Explorer tab, though, is Smartscape-backed and needs no classic-entity include.
 

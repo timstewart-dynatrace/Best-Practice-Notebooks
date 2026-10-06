@@ -24,7 +24,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | OpenPipeline rule migration, Grail bucket configuration, SLO migration, alerting/notification migration, retention optimization | `-[S2S]-07-step-7-expand.md` |
 | Parallel operation (dual-tenant cost control), Davis baseline establishment, SLO continuity, stakeholder communication, user training | `-[S2S]-08-step-8-enable.md` |
 | Go/no-go checklist, cutover execution, post-cutover validation queries, rollback procedures, source-tenant decommission, lessons learned | `-[S2S]-09-step-9-optimize.md` |
-| Ready-to-run Bash and PowerShell scripts: short-lived, auto-revoked export token, Monaco download/export staged for direct `monaco deploy` to the target (why not the SaaS Upgrade Assistant) | `-[S2S]-10-migration-scripts.md` |
+| Ready-to-run Bash and PowerShell scripts: short-lived, auto-revoked export token, Monaco download/export staged for direct `monaco deploy` to the target, plus an optional SaaS Upgrade Assistant `.tar.gz` package (field practice, not documented for a SaaS source) | `-[S2S]-10-migration-scripts.md` |
 | Retiring AWS for Azure: how do I move the environment to an Azure-hosted cluster *and* the workloads to Azure — target provisioning, dual-cloud AWS + Azure connections, agent waves, log/event cut-over, validation queries, AWS and source decommission | `-[S2S]-94-[LAB]-aws-to-azure-cloud-retirement.md` |
 | Consolidated checklist of 112 best practices across the 9 steps | `-[S2S]-99-best-practice-summary.md` |
 
