@@ -254,12 +254,12 @@ Connect detected problems to your notification channels so the mobile team is al
 | *or* Additional custom filter query | `matchesValue(affected_entity_ids, "MOBILE_APPLICATION-*")` |
 | Advanced options | Enable **Wait for root cause analysis** to avoid triggering on incomplete problem data |
 
-Then add a Slack task. The message template below uses only fields of the problem record. Action IDs shown are illustrative -- export a workflow built in the editor to get the exact identifiers (see WFLOW-03 §1).
+Then add a Slack **Send message** task. The message template below uses only fields of the problem record. The action ID is the one Dynatrace's workflow samples use; in an exported workflow, `connection` holds the Slack connection's ID rather than a name (see WFLOW-03 §1).
 
 ```yaml
 tasks:
   - name: notify_mobile_team
-    type: dynatrace.slack:send-message
+    action: dynatrace.slack:slack-send-message
     input:
       connection: slack-mobile-alerts
       channel: "#mobile-incidents"
@@ -273,7 +273,7 @@ tasks:
 
 > **Correction (09/28/2026).** Earlier revisions showed the trigger as a `trigger: type: davis-problem / entityTagsMatch` YAML block. No editor, export or API accepts that shape. The Problem trigger is configured through the settings above.
 
-> <sub>**Sources:** [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"Additional custom filter query : Add a DQL matcher expression to further refine which problems start the trigger."*</sub>
+> <sub>**Sources:** [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"Additional custom filter query : Add a DQL matcher expression to further refine which problems start the trigger."*; [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.slack:slack-send-message"*.</sub>
 
 > **Template fields come from the problem record.** The Problem trigger's `event()` is the `dt.davis.problems` record — run `fetch dt.davis.problems, from:-24h | limit 1` to see every field a template can read. It has no `title` field, and its `severity` field is not a CRITICAL/HIGH label (0 of 3,209 problem records on a validation tenant, 09/24/2026): the title is `event.name`, the kind of problem is `event.category`, and the link is `{{ problem_link() }}`, which *"evaluates correctly in workflows with Davis problem event triggers only."* ([Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger))
 

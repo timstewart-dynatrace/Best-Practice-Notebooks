@@ -1,6 +1,6 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -233,26 +233,36 @@ Workflows are the equivalent of Sumo's more complex monitors. Use when:
 
 ### Workflow Structure
 
+The schedule (cron `*/5 * * * *`, every 5 minutes) is the workflow's trigger, set in the editor rather than written into the task list. The HTTP task authenticates with a Credential Vault credential selected in its **Authentication** field.
+
 ```yaml
-trigger:
-  type: schedule
-  cron: "*/5 * * * *"   # every 5 minutes
 tasks:
   - name: check_error_rate
-    type: dql_execution
-    query: |
-      fetch logs, from:-5m
-      | filter sumo.source_category == "prod/api"
-      | summarize {total = count(), errors = countIf(contains(content, "error", caseSensitive:false))}
-      | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-5m
+        | filter sumo.source_category == "prod/api"
+        | summarize {total = count(), errors = countIf(contains(content, "error", caseSensitive:false))}
+        | fieldsAdd error_pct = 100.0 * toDouble(errors) / toDouble(total)
   - name: check_threshold
-    condition: "{{ tasks.check_error_rate.records[0].error_pct }} > 5"
-    type: notification_servicenow
-    payload:
-      incident:
-        short_description: "API error rate {{ tasks.check_error_rate.records[0].error_pct }}%"
-        assignment_group: "Payments Platform"
-        priority: 2
+    action: dynatrace.automations:http-function   # ServiceNow Table API — see §6
+    predecessors: [check_error_rate]
+    conditions:
+      states:
+        check_error_rate: SUCCESS
+      custom: '{{ result("check_error_rate").records[0].error_pct > 5 }}'
+    input:
+      method: POST
+      url: https://<instance>.service-now.com/api/now/table/incident
+      headers:
+        Content-Type: application/json
+      payload: |
+        {
+          "short_description": "API error rate {{ result('check_error_rate').records[0].error_pct }}%",
+          "assignment_group": "Payments Platform",
+          "priority": "2"
+        }
 ```
 
 ### Scheduled Search → Workflow
@@ -261,11 +271,11 @@ A Sumo scheduled search (query + schedule + action) maps directly:
 
 | Sumo Scheduled Search Field | Workflow Equivalent |
 |------------------------------|---------------------|
-| Query | `dql_execution` task |
-| Schedule (run every N) | `trigger.schedule.cron` |
-| Alert condition | `condition` on notification task |
-| Webhook action | Notification task with target |
-| Email action | `notification_email` task |
+| Query | **Execute DQL Query** task (`dynatrace.automations:execute-dql-query`) |
+| Schedule (run every N) | Schedule trigger with a cron rule, set in the editor |
+| Alert condition | `conditions.custom` on the notification task (a Jinja expression) |
+| Webhook action | HTTP Request task (`dynatrace.automations:http-function`) or a connector action |
+| Email action | **Send email** task (`dynatrace.email:send-email`) |
 
 ### DQL in Workflow Tasks
 
@@ -274,15 +284,16 @@ The translated DQL from SL2DT-04 goes directly here. Wrap long queries in `|` to
 ```yaml
 tasks:
   - name: find_slow_transactions
-    type: dql_execution
-    query: |
-      fetch logs, from:-5m
-      | filter sumo.source_category == "prod/api"
-      | parse content, "LD? 'latency=' INT:latency"
-      | filter latency > 2000
-      | summarize c = count(), by:{http.path}
-      | sort c desc
-      | limit 20
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-5m
+        | filter sumo.source_category == "prod/api"
+        | parse content, "LD? 'latency=' INT:latency"
+        | filter latency > 2000
+        | summarize c = count(), by:{http.path}
+        | sort c desc
+        | limit 20
 ```
 
 <a id="actions"></a>
@@ -292,11 +303,11 @@ Every Sumo monitor has one or more actions. Map each to a Dynatrace notification
 
 | Sumo Action | Dynatrace Target | Notes |
 |-------------|------------------|-------|
-| Email | Workflow notification_email task | Same recipient list |
-| Webhook → ServiceNow | Workflow notification_servicenow task | Rebuild incident payload |
-| Webhook → Slack | Workflow notification_slack task | Rebuild message format |
-| Webhook → PagerDuty | Workflow notification_pagerduty task | Rebuild event payload |
-| Webhook → custom HTTP | Workflow HTTP task | |
+| Email | **Send email** task (`dynatrace.email:send-email`) | Same recipient list; at most ten per field |
+| Webhook → ServiceNow | HTTP Request task to the Table API, or ServiceNow **Create Incident** (`dynatrace.servicenow:snow-create-incident`) | Rebuild incident payload |
+| Webhook → Slack | Slack **Send message** task (`dynatrace.slack:slack-send-message`) | Rebuild message format |
+| Webhook → PagerDuty | PagerDuty **Send event** task (`dynatrace.pagerduty:send-event`) | Rebuild event payload |
+| Webhook → custom HTTP | HTTP Request task (`dynatrace.automations:http-function`) | |
 | Mobile push | Workflow + Dynatrace Mobile app | |
 
 ### ServiceNow Integration — Specific Patterns
@@ -318,17 +329,26 @@ ServiceNow is the most common target and the highest-risk translation (wrong fie
 **Dynatrace Workflow equivalent:**
 ```yaml
 - name: create_servicenow_incident
-  type: http
-  method: POST
-  url: https://{{instance}}.service-now.com/api/now/table/incident
-  headers:
-    Authorization: Basic {{secrets.servicenow_auth}}
-  body:
-    short_description: "{{ tasks.check_threshold.name }}: {{ tasks.check_error_rate.records[0].error_pct }}%"
-    u_affected_service: "{{ tasks.check_error_rate.records[0].dt.entity.service }}"
-    assignment_group: "Payments Platform"
-    priority: 2
+  action: dynatrace.automations:http-function
+  input:
+    method: POST
+    url: https://<instance>.service-now.com/api/now/table/incident
+    # Authentication: select a Credential Vault credential (Basic) in the task's
+    # Authentication field. Never put the credential in a static Authorization header.
+    headers:
+      Content-Type: application/json
+    payload: |
+      {
+        "short_description": "API error rate {{ result('check_error_rate').records[0].error_pct }}%",
+        "u_affected_service": "{{ result('check_error_rate').records[0]['dt.entity.service'] }}",
+        "assignment_group": "Payments Platform",
+        "priority": "2"
+      }
 ```
+
+The request body goes in `payload`, and dotted field names need bracket access (`records[0]['dt.entity.service']`). The HTTP route keeps custom fields such as `u_affected_service`. The ServiceNow Connector's **Create Incident** action (`dynatrace.servicenow:snow-create-incident`) is the alternative when the standard fields are enough. It takes named inputs (`shortDescription`, `description`, `impact`, `urgency`, `category`, `group`, `correlationId`, …) rather than a raw body. For the query above, `u_affected_service` stays empty unless the query groups by `dt.entity.service`.
+
+> <sub>**Sources:** [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action) — *"Payload : The payload of the HTTP request."*, *"We strictly advise against providing any static Authorization header and therefore, leak a secret."*; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*.</sub>
 
 **Verify** with a test incident before flipping production traffic.
 
@@ -347,15 +367,23 @@ Dynatrace Workflow:
 ```yaml
 tasks:
   - name: check_heartbeat
-    type: dql_execution
-    query: |
-      fetch logs, from:-10m
-      | filter sumo.source_category == "prod/heartbeat"
-      | summarize c = count()
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        fetch logs, from:-10m
+        | filter sumo.source_category == "prod/heartbeat"
+        | summarize c = count()
   - name: alert_if_missing
-    condition: "{{ tasks.check_heartbeat.records[0].c }} == 0"
-    type: notification_email
-    recipients: [oncall@example.com]
+    action: dynatrace.email:send-email
+    predecessors: [check_heartbeat]
+    conditions:
+      custom: '{{ result("check_heartbeat").records[0].c == 0 }}'
+    input:
+      to: ["oncall@example.com"]
+      cc: []
+      bcc: []
+      subject: "No heartbeat from prod/heartbeat"
+      content: "No heartbeat logs from prod/heartbeat in the last 10 minutes."
 ```
 
 ### Change Detection Alerts

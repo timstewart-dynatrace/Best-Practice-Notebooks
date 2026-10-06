@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -72,7 +72,7 @@ There is no `env` object and no `event` parameter: *"The runtime injects workflo
 
 ```yaml
 name: custom_javascript
-type: dynatrace.automations:run-javascript
+action: dynatrace.automations:run-javascript
 input:
   script: |
     export default async function () {
@@ -186,14 +186,14 @@ export default async function () {
 
 ```yaml
 name: call_external_api
-type: dynatrace.automations:http-function
+action: dynatrace.automations:http-function
 input:
   url: "https://api.example.com/endpoint"
   method: POST
   # Authentication: select a Credential Vault token in the task's Authentication field
   headers:
     Content-Type: "application/json"
-  body: |
+  payload: |                # the request body: the action's Payload field
     {
       "problem_id": "{{ event()['display_id'] }}",
       "category": "{{ event()['event.category'] }}",
@@ -202,7 +202,7 @@ input:
     }
 ```
 
-The HTTP Request action docs: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication"* ([HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)).
+The request body goes in `payload`; the action has no `body` input (*"Payload : The payload of the HTTP request."*). The HTTP Request action docs also say: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication"* ([HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)).
 
 ### Using fetch() in JavaScript
 
@@ -898,7 +898,7 @@ Two timeouts apply to every workflow task — see WFLOW-01 § *Platform Limits* 
 
 The `timeout` field on a workflow task is the **task timeout**. It accepts an integer count of **seconds** when configured in JSON/YAML via the AutomationEngine. The Workflows UI exposes it under **Options → Adapt timeout** and labels the field *Timeout this task (seconds)*. Default: 60 minutes (3600s). Maximum: 7 days (604800s).
 
-Some task types (e.g., `wait-for-event` used in approval flows) accept a **duration string** like `"30m"` or `"24h"` on the task's own `timeout`/`waitFor` field. That is *not* the same field as the AutomationEngine task timeout — it's specific to the wait action. See the approval example below.
+Waiting is a task option, not a separate action. **Wait before** (`waitBefore`) pauses a task before it runs, from 0 to 86,400 seconds. An approval task such as Slack **Request approval** waits for an answer until the timeout set in its **Options** tab passes. Both are integer seconds, or a Jinja expression. See the approval example below.
 
 ### On `execute-dql-query`
 
@@ -954,20 +954,26 @@ tasks:
 
 Inside a JS task you actually deal with **three** timeouts: the task `timeout`, the runtime's 120s per-action ceiling, and any `requestTimeoutMilliseconds` you pass to SDK calls. The first one budgets the task as a whole; the second one is enforced by the runtime regardless; the third one is yours to set per outbound call.
 
-### On approval / wait-for-event tasks
+### On approval and delayed tasks
 
-Approval tasks intentionally wait for a human signal — task timeouts here are long by design, and the `wait-for-event` action has its own `timeout` field that accepts a duration string:
+Approval tasks intentionally wait for a human signal, so their timeouts are long by design. Slack **Request approval** has no timeout input of its own: the docs say to configure it in the action's **Options** tab, where the task timeout (**Adapt timeout**) is set. Confirm the window with a test run (WFLOW-07 §7). A task that only needs to start later uses `waitBefore`:
 
 ```yaml
 tasks:
   - name: wait_for_approval
-    action: dynatrace.automations:wait-for-event
+    action: dynatrace.slack:request-approval
+    timeout: 1800        # the approval window: 30 minutes, in seconds
     input:
-      eventType: "remediation.approval"
-      timeout: "30m"     # wait-action's own timeout — duration string
-      correlationId: "{{ event()['display_id'] }}"
-    # The outer AutomationEngine task timeout should be set >= the wait timeout:
-    timeout: 2400        # 40 minutes in seconds, gives the wait 30m of headroom
+      connection: slack-production
+      channel: "#approvals"
+      message: "Approve restarting {{ event()['root_cause_entity_id'] }}?"
+
+  - name: recheck_problem
+    action: dynatrace.automations:run-javascript
+    waitBefore: 900      # stay waiting 15 minutes before running; max 86400
+    input:
+      script: |
+        // re-query the problem state (WFLOW-04 §6)
 ```
 
 See **WFLOW-07 § Approval Workflows** for the full human-in-the-loop pattern.
@@ -981,11 +987,11 @@ When a DQL or JavaScript task hits a timeout, the right move depends on **which*
 | Task fails at ~120s with a runtime/engine error | Dynatrace runtime timeout (per-action) | Narrow the query window (`from: now() - 15m` instead of `now() - 24h`), pre-aggregate into a metric or bizevent, or split into multiple smaller tasks. Raising the task `timeout` will not help. |
 | Task fails at exactly the configured task `timeout` value | Task timeout | Raise `timeout`, or break the task into smaller tasks. Verify the work genuinely needs the budget — most legitimately-long tasks are waiting on a human or external system, not computing. |
 | `queryExecute()` returns well before 120s with no `result` — only the query state and a request token | The query outlasted `requestTimeoutMilliseconds` | Poll with `queryPoll` using the returned token — the §2 `runQuery()` helper does this. Raising `requestTimeoutMilliseconds` only moves the point where polling starts; code that reads `result.result.records` without checking `state` breaks either way. |
-| Approval/wait task fires at its `timeout` value | Wait-action's own timeout | This is usually the correct behavior — the human did not respond. Decide whether to escalate, auto-approve, or fail. |
+| Approval task ends at its `timeout` value | Task timeout on the approval task | This is usually the correct behavior — the human did not respond. Decide whether to escalate, auto-approve, or fail. |
 
 > **Rule of thumb.** Raise timeouts only after narrowing scope. A task that needs 10 minutes of DQL is almost always a task that needs a pre-aggregation upstream — fix that first.
 
-> <sub>**Sources:** [Build workflows — Adapt timeout (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build), [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action), [Grail DQL query API — client-query (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/) — *"If the query succeeded, the result will be included. Otherwise the response will contain a request token to reference the query in future polling requests."*; `queryPoll`: *"Retrieves query status and final result from Grail."* **Derived:** the three-timeout interaction model in *On `run-javascript`* and the decision table combine the cited per-field documentation; no single source presents them together.</sub>
+> <sub>**Sources:** [Build workflows — Adapt timeout (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build), [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action), [Grail DQL query API — client-query (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/) — *"If the query succeeded, the result will be included. Otherwise the response will contain a request token to reference the query in future polling requests."*; `queryPoll`: *"Retrieves query status and final result from Grail."* [Build workflows — Wait before (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — *"The Wait before option controls how long a task stays in the waiting state before being run."*; [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"Configure the timeout in the action's Options tab."* **Derived:** the three-timeout interaction model in *On `run-javascript`* and the decision table combine the cited per-field documentation; no single source presents them together.</sub>
 
 ### Monitor JavaScript Task Performance
 

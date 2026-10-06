@@ -1,6 +1,6 @@
 # WFLOW-06: Custom Notification Templates
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Rich Message Formatting
 Create professional, informative notifications with dynamic content, formatting, and data enrichment. This notebook covers Jinja templating, Slack Block Kit, Teams Adaptive Cards, and data enrichment patterns.
@@ -132,11 +132,13 @@ Affected Entities:
 ## 3. Slack Block Kit Templates
 ### Full-Featured Alert Template
 
+The Slack **Send message** action (`dynatrace.slack:slack-send-message`) has no separate `blocks` input. With `messageFormat: slack_format`, *"Slack Markdown or Slack Block Kit inputs are processed"* from the `message` field. The layout below is written as YAML for readability: convert it to JSON (Slack's Block Kit Builder does this) and paste it into `message`. Send one test message, because expressions resolve before Slack parses the JSON, and a value containing a double quote breaks it.
+
+> <sub>**Sources:** [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"If messageFormat is slack_format , Slack Markdown or Slack Block Kit inputs are processed."*</sub>
+
 ```yaml
-input:
-  connection: slack-production
-  channel: "#alerts-production"
-  blocks:
+# Block Kit layout for the Send message task's `message` (as JSON)
+blocks:
     # Header with severity
     - type: header
       text:
@@ -202,10 +204,13 @@ input:
 ## 4. Teams Adaptive Card Templates
 ### Full-Featured Alert Card
 
+The Microsoft Teams **Send message** action (`dynatrace.msteams:send-message`) takes the card as Adaptive Card JSON in its `message` field, with the connection in `connectionId`. There is no separate card input. The card below is written as YAML for readability: convert it to JSON and paste it into `message`. Use Dynatrace expressions, as here; the docs say *"We don't support Adaptive Cards Template Language templating"*.
+
+> <sub>**Sources:** [Microsoft Teams Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams); [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.msteams:send-message"*.</sub>
+
 ```yaml
-input:
-  connection: teams-production
-  card:
+# Adaptive Card for the Send message task's `message` (as JSON)
+card:
     type: AdaptiveCard
     $schema: "https://adaptivecards.microsoft.com/schemas/adaptive-card.json"
     version: "1.4"

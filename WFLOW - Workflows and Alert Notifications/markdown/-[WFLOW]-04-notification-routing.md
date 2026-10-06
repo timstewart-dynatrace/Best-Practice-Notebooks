@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -93,7 +93,7 @@ conditions:
 ```yaml
 tasks:
   - name: pagerduty_alert
-    type: dynatrace.pagerduty:create-incident
+    action: dynatrace.pagerduty:send-event
     conditions:
       - is_critical
       - is_production
@@ -105,7 +105,7 @@ tasks:
 ```yaml
 tasks:
   - name: slack_only_for_non_critical
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions:
       - not is_critical
     # Task runs when is_critical is FALSE
@@ -167,15 +167,18 @@ conditions:
 tasks:
   # CRITICAL: Page on-call + Slack urgent + Email
   - name: pagerduty_critical
-    type: dynatrace.pagerduty:create-incident
+    action: dynatrace.pagerduty:send-event
     conditions: [is_critical]
     input:
-      connection: pagerduty-prod
+      connectionId: pagerduty-prod      # an Events connection (routing key)
+      eventAction: trigger
       severity: critical
       summary: "{{ event()['event.name'] }}"
+      source: dynatrace
+      dedupKey: "dynatrace-{{ event()['display_id'] }}"
 
   - name: slack_urgent
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_critical]
     input:
       connection: slack-production
@@ -184,7 +187,7 @@ tasks:
 
   # HIGH: Slack alerts + Email
   - name: slack_high
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_high]
     input:
       channel: "#alerts-production"
@@ -192,7 +195,7 @@ tasks:
 
   # MEDIUM/LOW: Slack only
   - name: slack_low
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_medium_or_low]
     input:
       channel: "#alerts-production"
@@ -232,21 +235,21 @@ conditions:
 
 tasks:
   - name: notify_checkout
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_checkout_team]
     input:
       channel: "#checkout-alerts"
       message: "{{ event()['event.name'] }}"
 
   - name: notify_payments
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_payments_team]
     input:
       channel: "#payments-alerts"
       message: "{{ event()['event.name'] }}"
 
   - name: notify_platform
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_platform_team]
     input:
       channel: "#platform-alerts"
@@ -324,7 +327,7 @@ conditions:
 tasks:
   # Business hours: Slack channel
   - name: slack_business_hours
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_business_hours]
     input:
       channel: "#alerts-production"
@@ -332,15 +335,19 @@ tasks:
 
   # Off-hours: PagerDuty for CRITICAL only
   - name: pagerduty_off_hours
-    type: dynatrace.pagerduty:create-incident
+    action: dynatrace.pagerduty:send-event
     conditions: [is_off_hours, is_critical]
     input:
-      connection: pagerduty-prod
+      connectionId: pagerduty-prod
+      eventAction: trigger
+      severity: critical
       summary: "[Off-Hours] {{ event()['event.name'] }}"
+      source: dynatrace
+      dedupKey: "dynatrace-{{ event()['display_id'] }}"
 
   # Off-hours non-critical: Queue for morning
   - name: slack_queue
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_off_hours, not is_critical]
     input:
       channel: "#alerts-queue"
@@ -360,7 +367,7 @@ tasks:
     input:
       # Page weekend on-call rotation: a connection that holds that rotation's
       # routing key. Credentials live in connections, not in expressions.
-      connection: pagerduty-weekend-oncall
+      connectionId: pagerduty-weekend-oncall
 ```
 
 <a id="escalation-patterns"></a>
@@ -373,22 +380,18 @@ Escalate if not acknowledged within a time window.
 tasks:
   # Step 1: Initial notification
   - name: initial_slack
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     input:
       channel: "#alerts-production"
       message: ":warning: {{ event()['event.name'] }} - Acknowledge within 15 min"
 
-  # Step 2: Wait 15 minutes
-  - name: wait_for_ack
-    type: dynatrace.automations:wait
-    dependsOn: [initial_slack]
-    input:
-      duration: "15m"
-
-  # Step 3: Check if still open (event.status is ACTIVE or CLOSED — never OPEN)
+  # Step 2: After 15 minutes, check if still open (event.status is ACTIVE or
+  # CLOSED — never OPEN). There is no "wait" action: the delay is this task's
+  # own Wait before option, in seconds (max 86400).
   - name: check_problem_status
-    type: dynatrace.automations:run-javascript
-    dependsOn: [wait_for_ack]
+    action: dynatrace.automations:run-javascript
+    predecessors: [initial_slack]
+    waitBefore: 900
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
@@ -407,16 +410,24 @@ tasks:
           return { escalate: q.result.records[0]?.['event.status'] === 'ACTIVE' };
         }
 
-  # Step 4: Escalate to PagerDuty
+  # Step 3: Escalate to PagerDuty
   - name: escalate_pagerduty
-    type: dynatrace.pagerduty:create-incident
-    dependsOn: [check_problem_status]
+    action: dynatrace.pagerduty:send-event
+    predecessors: [check_problem_status]
     conditions:
       - '{{ result("check_problem_status").escalate }}'
     input:
-      severity: high
+      connectionId: pagerduty-prod
+      eventAction: trigger
+      severity: error                  # Events API v2 accepts critical, error, warning, info
+      source: dynatrace
+      dedupKey: "dynatrace-{{ event()['display_id'] }}"
       summary: "[ESCALATED] {{ event()['event.name'] }} - No acknowledgment in 15 min"
 ```
+
+Workflows has no separate wait action. **Wait before** is a task option: *"The Wait before option controls how long a task stays in the waiting state before being run."* It takes seconds, up to 86,400, or a Jinja expression.
+
+> <sub>**Sources:** [Build workflows — Task options (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — *"The default Wait is 0 second and max value is 86400 seconds."*; [PagerDuty Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions) — *"Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2"*.</sub>
 
 ### Multi-Tier Escalation
 
@@ -457,26 +468,26 @@ conditions:
 tasks:
   # PagerDuty: Critical + Production
   - name: pagerduty
-    type: dynatrace.pagerduty:create-incident
+    action: dynatrace.pagerduty:send-event
     conditions: [is_critical, is_production]
 
   # Slack Urgent: Critical + Production
   - name: slack_urgent
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_critical, is_production]
     input:
       channel: "#alerts-urgent"
 
   # Slack Standard: High or above + Production
   - name: slack_standard
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [is_high_or_above, is_production]
     input:
       channel: "#alerts-production"
 
   # Email: Critical or (High + Production + Business Hours)
   - name: email_alert
-    type: dynatrace.email:send-email
+    action: dynatrace.email:send-email
     conditions:
       - '{{ (event().get("event.severity") | int(5)) <= 1 or ((event().get("event.severity") | int(5)) == 2 and "env:prod" in event().get("tags", [])) }}'
 ```

@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -56,15 +56,17 @@ Trigger (Detected Problem, Schedule, etc.)
 
 | Channel | Task Type | Authentication |
 |---------|-----------|----------------|
-| Slack | `dynatrace.slack:message` (illustrative) | OAuth App or Webhook |
-| Microsoft Teams | `dynatrace.msteams:message` (illustrative) | Power Automate or Webhook (deprecated) |
-| Email | `dynatrace.email:send-email` | SMTP or built-in |
-| PagerDuty | `dynatrace.pagerduty:*` | Integration Key |
-| ServiceNow | `dynatrace.servicenow:*` | OAuth or Basic Auth |
-| Jira | `dynatrace.jira:*` | API Token |
+| Slack | `dynatrace.slack:slack-send-message` (Send message), `dynatrace.slack:request-approval` (Request approval) | OAuth App or Webhook |
+| Microsoft Teams | `dynatrace.msteams:send-message` | Power Automate or Webhook (deprecated) |
+| Email | `dynatrace.email:send-email` | Built-in — sends from `no-reply@apps.dynatrace.com`; no SMTP setup |
+| PagerDuty | `dynatrace.pagerduty:send-event` (Events API v2), `dynatrace.pagerduty:create-incident` (REST API) | Events connection (routing key) for Send event; REST API key for the others |
+| ServiceNow | `dynatrace.servicenow:snow-create-incident`, plus other `snow-*` actions | OAuth or Basic Auth |
+| Jira | `dynatrace.jira:jira-create-issue`, plus other `jira-*` actions | API Token |
 | Custom Webhook (HTTP Request) | `dynatrace.automations:http-function` | Credential Vault (Basic or Token) |
 
-The email and HTTP identifiers are the ones the platform records in `dt.system.events` (`dt.automation_engine.action.app` / `.action.function`), and the HTTP one appears in the Jinja reference's task sample. The other action IDs in this series' YAML are illustrative: export a workflow built in the editor to get the exact identifiers.
+These action identifiers were checked on 10/02/2026 against Dynatrace's published workflow samples and connector templates. Once an action has run, the platform records its app and function in `dt.system.events` (`dt.automation_engine.action.app` / `.action.function`), so a tenant can confirm them too. The YAML in this series uses these identifiers and the actions' real input names (`message`, `content`, `payload`, `connectionId`). It is simplified in two places: connection names stand in for connection IDs, and named `conditions:` lists stand in for each task's `conditions` (`states` / `custom`). Export a workflow built in the editor to get the exact document shape.
+
+> <sub>**Sources:** [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.slack:slack-send-message"*, *"action: dynatrace.msteams:send-message"*; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md); [PagerDuty Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions) — *"Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2"*; [Email (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email).</sub>
 
 <a id="setting-up-connections"></a>
 ## 2. Setting Up Connections
@@ -120,10 +122,11 @@ Single channel, no advanced features.
 
 ```yaml
 name: send_slack_alert
-type: dynatrace.slack:message
+action: dynatrace.slack:slack-send-message
 input:
-  connection: slack-production
+  connection: slack-production      # the Slack connection's ID in an exported workflow
   channel: "#alerts-production"
+  messageFormat: slack_format
   message: |
     :rotating_light: *Problem Detected*
     
@@ -136,37 +139,36 @@ input:
 
 ### Slack Message with Blocks
 
-For richer formatting:
+For richer formatting, put a Block Kit payload in `message`. The Send message action has no separate `blocks` input: with `messageFormat: slack_format`, *"Slack Markdown or Slack Block Kit inputs are processed"* from the message field.
 
 ```yaml
 input:
   connection: slack-production
   channel: "#alerts"
-  blocks:
-    - type: header
-      text:
-        type: plain_text
-        text: "{{ ':red_circle:' if (event().get('event.severity') | int(5)) <= 1 else ':large_orange_circle:' }} {{ event()['event.category'] }} Alert"
-    - type: section
-      fields:
-        - type: mrkdwn
-          text: "*Problem:*\n{{ event()['event.name'] }}"
-        - type: mrkdwn
-          text: "*Status:*\n{{ event()['event.status'] }}"
-    - type: section
-      fields:
-        - type: mrkdwn
-          text: "*Started:*\n{{ event()['event.start'] }}"
-        - type: mrkdwn
-          text: "*ID:*\n{{ event()['display_id'] }}"
-    - type: actions
-      elements:
-        - type: button
-          text:
-            type: plain_text
-            text: "View Problem"
-          url: "{{ problem_link() }}"
+  messageFormat: slack_format
+  message: |
+    {
+      "blocks": [
+        { "type": "header",
+          "text": { "type": "plain_text", "text": "{{ ':red_circle:' if (event().get('event.severity') | int(5)) <= 1 else ':large_orange_circle:' }} {{ event()['event.category'] }} Alert" } },
+        { "type": "section",
+          "fields": [
+            { "type": "mrkdwn", "text": "*Problem:*\n{{ event()['event.name'] }}" },
+            { "type": "mrkdwn", "text": "*Status:*\n{{ event()['event.status'] }}" } ] },
+        { "type": "section",
+          "fields": [
+            { "type": "mrkdwn", "text": "*Started:*\n{{ event()['event.start'] }}" },
+            { "type": "mrkdwn", "text": "*ID:*\n{{ event()['display_id'] }}" } ] },
+        { "type": "actions",
+          "elements": [
+            { "type": "button", "text": { "type": "plain_text", "text": "View Problem" }, "url": "{{ problem_link() }}" } ] }
+      ]
+    }
 ```
+
+The expressions resolve before the JSON reaches Slack, so a problem title that contains a double quote breaks the payload. Build the layout in Slack's Block Kit Builder and send one test message before you rely on it.
+
+> <sub>**Sources:** [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"If messageFormat is slack_format , Slack Markdown or Slack Block Kit inputs are processed."*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md) — *"Slack messages can be plain text/Slack Markdown, or a JSON Block Kit payload"*.</sub>
 
 <a id="microsoft-teams-notifications"></a>
 ## 4. Microsoft Teams Notifications
@@ -193,9 +195,9 @@ input:
 
 ```yaml
 name: send_teams_alert
-type: dynatrace.msteams:message
+action: dynatrace.msteams:send-message
 input:
-  connection: teams-production
+  connectionId: teams-production    # the Teams connection's ID in an exported workflow
   message: |
     **Problem Detected**
     
@@ -208,34 +210,33 @@ input:
 
 ### Teams Adaptive Card
 
-For richer formatting:
+For richer formatting, paste Adaptive Card JSON into `message`. The Teams action has no separate card input.
 
 ```yaml
 input:
-  connection: teams-production
-  card:
-    type: AdaptiveCard
-    $schema: "https://adaptivecards.microsoft.com/schemas/adaptive-card.json"
-    version: "1.4"
-    body:
-      - type: TextBlock
-        text: "{{ event()['event.category'] }} Alert"
-        size: Large
-        weight: Bolder
-        color: "{{ 'Attention' if (event().get('event.severity') | int(5)) <= 1 else 'Warning' }}"
-      - type: FactSet
-        facts:
-          - title: "Problem"
-            value: "{{ event()['event.name'] }}"
-          - title: "Status"
-            value: "{{ event()['event.status'] }}"
-          - title: "Started"
-            value: "{{ event()['event.start'] }}"
-    actions:
-      - type: Action.OpenUrl
-        title: "View in Dynatrace"
-        url: "{{ problem_link() }}"
+  connectionId: teams-production
+  message: |
+    {
+      "type": "AdaptiveCard",
+      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+      "version": "1.4",
+      "body": [
+        { "type": "TextBlock", "text": "{{ event()['event.category'] }} Alert", "size": "Large", "weight": "Bolder",
+          "color": "{{ 'Attention' if (event().get('event.severity') | int(5)) <= 1 else 'Warning' }}" },
+        { "type": "FactSet", "facts": [
+            { "title": "Problem", "value": "{{ event()['event.name'] }}" },
+            { "title": "Status", "value": "{{ event()['event.status'] }}" },
+            { "title": "Started", "value": "{{ event()['event.start'] }}" } ] }
+      ],
+      "actions": [
+        { "type": "Action.OpenUrl", "title": "View in Dynatrace", "url": "{{ problem_link() }}" }
+      ]
+    }
 ```
+
+Use Dynatrace expressions for the dynamic values, as above. The docs say *"We don't support Adaptive Cards Template Language templating"*.
+
+> <sub>**Sources:** [Microsoft Teams Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams); [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.msteams:send-message"*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md).</sub>
 
 <a id="email-notifications"></a>
 ## 5. Email Notifications
@@ -243,21 +244,23 @@ input:
 
 | Option | Setup | Best For |
 |--------|-------|----------|
-| **Built-in** | No setup required | Simple notifications |
-| **Custom SMTP** | Configure SMTP server | Corporate email servers |
-| **SendGrid/SES** | API integration | High volume, templates |
+| **Send email action** (`dynatrace.email:send-email`) | No setup — sends from `no-reply@apps.dynatrace.com`; the workflow needs the `email:emails:send` permission | Most notifications |
+| **Corporate mail relay** | Not an option of the Send email action — call the relay's HTTP API from an HTTP Request or JavaScript task | A corporate sender address is required |
+| **SendGrid/SES** | HTTP Request task to the provider's API | High volume, HTML templates |
 
 ### Basic Email Task
 
 ```yaml
 name: send_email_alert
-type: dynatrace.email:send-email
+action: dynatrace.email:send-email
 input:
   to:
     - "oncall@company.com"
     - "platform-team@company.com"
+  cc: []
+  bcc: []
   subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
-  body: |
+  content: |
     A problem has been detected in your Dynatrace environment.
     
     Problem Details:
@@ -278,28 +281,29 @@ input:
     {{ problem_link() }}
 ```
 
-### HTML Email
+### Formatted Email
+
+The `content` field takes markdown: bold, headings, lists, tables and links. It does not take HTML, so an HTML template arrives as literal tags, and there is no content-type input. For an HTML template, send through SendGrid or SES from an HTTP Request task (table above).
 
 ```yaml
 input:
   to: ["oncall@company.com"]
+  cc: []
+  bcc: []
   subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
-  contentType: "text/html"
-  body: |
-    <html>
-    <body style="font-family: Arial, sans-serif;">
-      <h2 style="color: {{ '#dc3545' if (event().get('event.severity') | int(5)) <= 1 else '#ffc107' }};">
-        {{ event()['event.category'] }} Alert
-      </h2>
-      <table style="border-collapse: collapse;">
-        <tr><td><b>Problem:</b></td><td>{{ event()['event.name'] }}</td></tr>
-        <tr><td><b>Status:</b></td><td>{{ event()['event.status'] }}</td></tr>
-        <tr><td><b>Started:</b></td><td>{{ event()['event.start'] }}</td></tr>
-      </table>
-      <p><a href="{{ problem_link() }}">View in Dynatrace</a></p>
-    </body>
-    </html>
+  content: |
+    ## {{ event()['event.category'] }} alert
+
+    | | |
+    |---|---|
+    | **Problem** | {{ event()['event.name'] }} |
+    | **Status** | {{ event()['event.status'] }} |
+    | **Started** | {{ event()['event.start'] }} |
+
+    [View in Dynatrace]({{ problem_link() }})
 ```
+
+> <sub>**Sources:** [Email (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email) — *"It doesn't offer support for HTML."*; [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.email:send-email"*.</sub>
 
 <a id="message-formatting"></a>
 ## 6. Message Formatting
@@ -364,7 +368,7 @@ trigger:
 
 tasks:
   - name: slack_notification
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     input:
       connection: slack-production
       channel: "#alerts-production"
@@ -380,9 +384,9 @@ tasks:
         <{{ problem_link() }}|:mag: View Problem>
 
   - name: teams_notification
-    type: dynatrace.msteams:message
+    action: dynatrace.msteams:send-message
     input:
-      connection: teams-production
+      connectionId: teams-production
       message: |
         **{{ event()["event.category"] }} Problem**
         
@@ -395,11 +399,13 @@ tasks:
         [View Problem]({{ problem_link() }})
 
   - name: email_notification
-    type: dynatrace.email:send-email
+    action: dynatrace.email:send-email
     input:
       to: ["platform-oncall@company.com"]
+      cc: []
+      bcc: []
       subject: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
-      body: |
+      content: |
         A {{ event()["event.category"] }} problem has been detected.
         
         Problem: {{ event()["event.name"] }}
@@ -535,7 +541,7 @@ In this notebook, you learned:
 - How to set up connections for Slack, Teams, and email
 - Basic and advanced Slack message formatting
 - Microsoft Teams notifications with Adaptive Cards
-- Plain text and HTML email notifications
+- Plain-text and markdown email notifications (the Send email action does not render HTML)
 - Jinja expressions for dynamic content
 - A complete multi-channel alert workflow
 

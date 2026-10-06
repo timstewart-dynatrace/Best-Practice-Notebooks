@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Production Best Practices
 This final notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -708,13 +708,13 @@ conditions:
 
 tasks:
   - name: check_workflows
-    type: dynatrace.automations:run-javascript
+    action: dynatrace.automations:run-javascript
     # ... check script above
 
   - name: alert_slack
-    type: dynatrace.slack:message
+    action: dynatrace.slack:slack-send-message
     conditions: [should_alert]
-    dependsOn: [check_workflows]
+    predecessors: [check_workflows]
     input:
       channel: "#workflow-alerts"
       message: |
