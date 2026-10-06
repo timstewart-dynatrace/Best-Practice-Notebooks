@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -84,7 +84,7 @@ The appendix LAB **S2S-94 (Retiring AWS for Azure)** is the ordered runbook for 
 
 > <sub>**Sources:** [Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls) — *"Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers."*</sub>
 
-> **Key Difference from M2S:** In a Managed-to-SaaS migration, the SaaS Upgrade Assistant handles most of the heavy lifting. For SaaS-to-SaaS, there is **no automated assistant** — you use Monaco, Terraform, and the Settings API to export and reimport configuration.
+> **Key Difference from M2S:** In a Managed-to-SaaS migration, the SaaS Upgrade Assistant handles most of the heavy lifting. For SaaS-to-SaaS, no assistant is documented — you export with Monaco (or Terraform) and import with `monaco deploy`, or optionally through the SaaS Upgrade Assistant as a field practice (**S2S-10** §1).
 
 ### S2S-Specific Order of Operations
 
@@ -380,7 +380,7 @@ fetch dt.davis.problems, from:-30d
 | **Terraform** | IAM (policies, groups, bindings), ongoing infrastructure-as-code management | State tracking, drift detection via `terraform plan`, cross-platform resource references, bulk export with the provider's `-export` utility | Requires HCL knowledge; some resources are excluded from a default export and must be named |
 | **Settings API** | Targeted, surgical changes to specific settings | Fine-grained programmatic control | Custom scripting required for large-scale migration |
 
-> **Note:** The SaaS Upgrade Assistant is documented for a Managed source only — *"SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration"* ([SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)). No SaaS-source path is documented, so this series moves configuration with Monaco and Terraform directly (**S2S-10**).
+> **Note:** The SaaS Upgrade Assistant is documented for a Managed source only — *"SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration"* ([SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)). No SaaS-source path is documented, so this series deploys with Monaco and Terraform directly (**S2S-10**). Uploading a packaged Monaco export to the assistant on a SaaS target is a field practice — S2S-10 builds the package as an option; rehearse it before relying on it.
 
 ### Where the Two Tools Differ
 

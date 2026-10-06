@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -208,7 +208,7 @@ terraform apply -var-file="target-tenant.tfvars"
 <a id="monaco-bulk-export"></a>
 ## 3. Monaco Bulk Export
 
-Monaco `download` exports all configuration from the source tenant into a structured directory. This export becomes the input for `monaco deploy` in Step 5. It is **not** an input for the SaaS Upgrade Assistant: that tool is documented for a Managed source only — *"SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration"* ([SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)).
+Monaco `download` exports all configuration from the source tenant into a structured directory. This export becomes the input for `monaco deploy` in Step 5. The SaaS Upgrade Assistant is documented for a Managed source only — *"SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration"* ([SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant)) — so plan on `monaco deploy`. As a field practice, the same export can be packaged as a `.tar.gz` and imported through the assistant on the target; **S2S-10** §1 builds that package and lists what to rehearse first.
 
 ### Export Commands
 
