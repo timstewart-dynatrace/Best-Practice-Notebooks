@@ -2,9 +2,8 @@
 
 Guidance for AI agents consuming this repository. Humans: see [README.md](README.md).
 
-This is a **content-only** repository: 33 series of Dynatrace best-practice
-notebooks (328 documents, ~880k words). There is no build system, no tests,
-and no application code.
+This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (333 notebooks)<!-- /bpn:counts -->.
+There is no build system, no tests, and no application code.
 
 ## How to navigate (important — do not crawl)
 
@@ -110,7 +109,7 @@ Paths are the literal directory names (they contain spaces — quote them in she
 | NR2DT | `NR2DT - New Relic to Dynatrace Migration Steps` | New Relic → Dynatrace: process, discovery → cutover |
 | NRLC | `NRLC - New Relic to Dynatrace Migration Deep Dives` | NR2DT companion: query translation, dashboards, alerting, validation reference |
 | OPMIG | `OPMIG - OpenPipeline Migration` | Classic log processing → OpenPipeline |
-| MZ2POL | `MZ2POL - Management Zone to Policy Migration` | Management Zones → policy-based access control (notebooks 01-04, 06-08) and → segments for filtering (notebook 05) |
+| MZ2POL | `MZ2POL - Management Zone to Policy Migration` | Management Zones → policy-based access control (notebooks 01-04, 06-08), → segments for filtering (notebook 05), and → problem-triggered workflows for alerting (notebook 09) |
 
 Disambiguation for the overlapping clusters:
 - **OpenPipeline**: logs → OPLOGS; other signal types → OPIPE; migrating from classic pipelines → OPMIG.
