@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -499,6 +499,10 @@ For a complete deep-dive on security context patterns, values, and IAM policy sy
 | **Entities** | **Settings > Topology model > Grail Security Context**, host tag, or an extraction rule for generic types | Controls access to **entities only** — data sent from an entity does not inherit the entity's security context |
 
 ### Extension Metrics and Security Context
+
+> **Extensions can now carry primary Grail tags directly** (OneAgent, ActiveGate and EEC 1.343+). A monitoring configuration accepts primary tags per configuration and per endpoint; remote extensions also accept primary fields, while local extensions inherit the host's. See **FAQ-26 §5.5** for the local/remote difference.
+>
+> <sub>**Sources:** [Enrich extensions with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-extensions) — *"Remote extensions run on the Extension Execution Controller (EEC) without a OneAgent host, so enrichment cannot be inherited automatically."*</sub>
 
 Metrics ingested via **Extensions 2.0** carry a `dt.security_context` only if something sets it. A common gap is to deploy extensions for database, cloud, or infrastructure metrics and assume the security context of the monitored entity carries over. It does not: an IAM policy that filters entities *"will not filter related metrics, logs, or traces"*.
 
