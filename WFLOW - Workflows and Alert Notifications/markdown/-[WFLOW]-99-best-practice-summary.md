@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -140,7 +140,7 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | 2 | Enforce time-window guardrails | Remediation only during safe hours: weekdays 06:00-22:00 | Critical | WFLOW-07 |
 | 3 | Implement cooldown periods | 30 minutes minimum between remediation actions on the same entity | Critical | WFLOW-07 |
 | 4 | Capture pre-remediation state for rollback | Record current state before executing any change | Critical | WFLOW-07 |
-| 5 | Require human approval for production remediation | Slack approval buttons with 30-minute timeout; auto-approve for non-production only | Critical | WFLOW-07 |
+| 5 | Require human approval for production remediation | Slack **Request approval** action (`dynatrace.slack:request-approval`) with a 30-minute task timeout; test what a Decline leaves before gating on it; auto-approve for non-production only | Critical | WFLOW-07 |
 | 6 | Auto-remediate only well-defined scenarios | Pod crash loops: yes (restart); Disk space 90%: yes (cleanup); Database deadlocks: no (investigate); Security incidents: no (human judgment) | Critical | WFLOW-07 |
 | 7 | Follow remediation maturity model | Level 0: manual; Level 1: notification + runbook link; Level 2: semi-automated (approval); Level 3: fully automated with guardrails | Recommended | WFLOW-07 |
 | 8 | Map problem types to runbooks | JavaScript `runbookMap` object mapping problem title patterns to runbook IDs | Recommended | WFLOW-07 |

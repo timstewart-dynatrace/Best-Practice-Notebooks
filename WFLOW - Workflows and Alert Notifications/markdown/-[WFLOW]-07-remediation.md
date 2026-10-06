@@ -1,6 +1,6 @@
 # WFLOW-07: Problem-Triggered Remediation
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 09/28/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Auto-Remediation with Workflows
 Move beyond notifications to automated problem resolution. This notebook covers remediation patterns, safety guardrails, runbook automation, and common remediation scenarios.
@@ -182,7 +182,7 @@ export default async function () {
 ```yaml
 tasks:
   - name: clear_cache
-    type: dynatrace.automations:http-function
+    action: dynatrace.automations:http-function
     input:
       url: "https://{{ event().get('affected_entity_ids')[0] }}.internal/admin/cache/clear"
       method: POST
@@ -476,52 +476,34 @@ message: |
 ## 7. Approval Workflows
 ### Human-in-the-Loop Pattern
 
+The Slack Connector's **Request approval** action is the built-in way to pause for a person. The docs describe it as: *"Send an approval request to a Slack channel and pause the workflow until a response is received."* The action posts the message with its own **Approve** and **Decline** buttons. It resumes the workflow when someone answers or the timeout set in its **Options** tab passes, and replies in the thread with the outcome.
+
 ```yaml
 tasks:
-  # 1. Notify team of proposed remediation
+  # 1. Ask for approval and pause until someone answers or the timeout passes
   - name: request_approval
-    type: dynatrace.slack:message
+    action: dynatrace.slack:request-approval
+    timeout: 1800          # 30 minutes, in seconds (Options tab)
     input:
+      connection: slack-production
       channel: "#approvals"
-      blocks:
-        - type: section
-          text:
-            type: mrkdwn
-            text: "*Remediation Approval Required*\n\nProblem: {{ event()['event.name'] }}\nProposed Action: Restart pod\nEntity: {{ event()['root_cause_entity_id'] }}"
-        - type: actions
-          elements:
-            - type: button
-              text:
-                type: plain_text
-                text: "Approve"
-              action_id: "approve_remediation"
-              style: primary
-            - type: button
-              text:
-                type: plain_text
-                text: "Reject"
-              action_id: "reject_remediation"
-              style: danger
+      message: "*Remediation approval required*\nProblem: {{ event()['event.name'] }}\nProposed action: restart pod\nEntity: {{ event()['root_cause_entity_id'] }}"
 
-  # 2. Wait for approval (timeout 30 min)
-  - name: wait_approval
-    type: dynatrace.automations:wait-for-event
-    dependsOn: [request_approval]
-    input:
-      eventType: "remediation.approval"
-      timeout: "30m"
-      correlationId: "{{ event()['display_id'] }}"
-
-  # 3. Execute if approved
+  # 2. Execute only after the approval task finished successfully
   - name: execute_remediation
-    type: dynatrace.automations:run-javascript
-    dependsOn: [wait_approval]
+    action: dynatrace.automations:run-javascript
+    predecessors: [request_approval]
     conditions:
-      - '{{ result("wait_approval").approved }}'
+      states:
+        request_approval: SUCCESS
     input:
       script: |
         // Perform remediation action
 ```
+
+> **Test Decline before you rely on the gate.** The docs list the action's outputs (`approvalType` plus the channel, message and thread IDs and a permalink), but they name no approved/declined field and do not say which task state a Decline or a timeout leaves. Run one approval, one decline and one timeout in a test workflow, and read the task's state and result each time. The same test confirms that the task timeout in the YAML (set in the Options tab as **Adapt timeout**) is the approval window. If a Decline also ends in `SUCCESS`, gate on whatever field distinguishes it, or the remediation runs either way. The message takes Slack Markdown only, so do not add buttons of your own.
+
+> <sub>**Sources:** [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — *"When an approver responds, or the configured timeout is reached, the workflow resumes and posts the outcome as a reply in the original message thread."*, *"Configure the timeout in the action's Options tab."*</sub>
 
 ### Auto-Approve for Non-Production
 

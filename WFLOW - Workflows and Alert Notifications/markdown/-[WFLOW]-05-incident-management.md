@@ -1,6 +1,6 @@
 # WFLOW-05: PagerDuty & ServiceNow Integration
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
 
 ## Incident Management Automation
 Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.
@@ -86,6 +86,10 @@ Reach for the native action first; drop to a raw HTTP action only when you need 
    - Enter the Integration Key
    - Name: `pagerduty-production`
 
+> **Two connection types.** The steps above create an **Events** connection (a routing key), which is what **Send event** uses: *"The Send event action uses the PagerDuty Events API v2 and requires a separate Events connection configured with a routing key."* **Create an incident** and the list actions use a different connection that holds a PagerDuty REST API key. Neither connection can stand in for the other.
+>
+> <sub>**Sources:** [Set up PagerDuty Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup) — *"Use the PagerDuty Connector with a PagerDuty API key to automate incident creation and retrieve on-call information via the PagerDuty REST API."*</sub>
+
 ### Multiple Services Pattern
 
 Create separate connections for different routing:
@@ -98,50 +102,70 @@ Create separate connections for different routing:
 
 <a id="pagerduty-workflow-tasks"></a>
 ## 3. PagerDuty Workflow Tasks
-### Create Incident
+PagerDuty has no separate resolve or acknowledge action. One action, **Send event** (`dynatrace.pagerduty:send-event`), covers the whole alert lifecycle: its **Event action** input is `trigger`, `acknowledge` or `resolve`. Send every event about one problem with the same deduplication key, through the same Events connection, so PagerDuty updates the existing alert instead of opening a new one.
+
+### Trigger an Alert
 
 ```yaml
-name: create_pagerduty_incident
-type: dynatrace.pagerduty:create-incident
+name: trigger_pagerduty_alert
+action: dynatrace.pagerduty:send-event
 input:
-  connection: pagerduty-production
+  connectionId: pagerduty-production
+  eventAction: trigger
   severity: '{{ {1: "critical", 2: "error", 3: "warning", 4: "info"}.get(event().get("event.severity") | int(5), "info") }}'
   summary: "[{{ event()['event.category'] }}] {{ event()['event.name'] }}"
   source: "dynatrace"
   component: "{{ event().get('root_cause_entity_id', 'unknown') }}"
   group: "{{ event().get('management_zones', ['default'])[0] }}"
   class: "{{ event()['event.category'] }}"
-  customDetails:
-    problem_id: "{{ event()['display_id'] }}"
-    problem_url: "{{ problem_link() }}"
-    affected_entities: "{{ event()['affected_entity_ids'] | join(', ') }}"
-    root_cause: "{{ event().get('root_cause_entity_id', 'N/A') }}"
-    start_time: "{{ event()['event.start'] }}"
+  customDetails: |             # a JSON object, written as text
+    {
+      "problem_id": "{{ event()['display_id'] }}",
+      "problem_url": "{{ problem_link() }}",
+      "affected_entities": "{{ event()['affected_entity_ids'] | join(', ') }}",
+      "root_cause": "{{ event().get('root_cause_entity_id', 'N/A') }}",
+      "start_time": "{{ event()['event.start'] }}"
+    }
   dedupKey: "dynatrace-{{ event()['display_id'] }}"
 ```
 
-### Resolve Incident
+### Resolve the Alert
 
-Triggered when problem closes:
+Run when the problem closes:
 
 ```yaml
-name: resolve_pagerduty_incident
-type: dynatrace.pagerduty:resolve-incident
+name: resolve_pagerduty_alert
+action: dynatrace.pagerduty:send-event
 input:
-  connection: pagerduty-production
+  connectionId: pagerduty-production
+  eventAction: resolve
+  severity: info
+  summary: "Resolved in Dynatrace: {{ event()['event.name'] }}"
+  source: "dynatrace"
   dedupKey: "dynatrace-{{ event()['display_id'] }}"
-  description: "Problem resolved in Dynatrace at {{ event().get('event.end', now()) }}"
 ```
 
-### Acknowledge Incident
+### Acknowledge the Alert
 
 ```yaml
-name: acknowledge_pagerduty
-type: dynatrace.pagerduty:acknowledge-incident
+name: acknowledge_pagerduty_alert
+action: dynatrace.pagerduty:send-event
 input:
-  connection: pagerduty-production
+  connectionId: pagerduty-production
+  eventAction: acknowledge
+  severity: info
+  summary: "Acknowledged from Dynatrace: {{ event()['event.name'] }}"
+  source: "dynatrace"
   dedupKey: "dynatrace-{{ event()['display_id'] }}"
 ```
+
+Dynatrace's own *Send problem as event to PagerDuty* template does the same in a single task: it sets the event action to `resolve` when the problem's status is `CLOSED`.
+
+### Opening an Incident Instead of an Alert
+
+When you need a PagerDuty *incident* opened directly, with a service ID, priority or assignee, use **Create an incident** (`dynatrace.pagerduty:create-incident`) with the REST API connection. Its inputs differ from Send event (From, Title, Service ID, Priority ID, Urgency, Incident key), and it has no resolve counterpart in the connector.
+
+> <sub>**Sources:** [PagerDuty Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions) — *"Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2"*, *"Creates an incident in your PagerDuty environment for a service."*; [Send problem as event to PagerDuty template (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-problem-notification-template).</sub>
 
 <a id="servicenow-setup"></a>
 ## 4. ServiceNow Setup
@@ -175,7 +199,7 @@ The ServiceNow connection supports two authentication methods — these are the 
 <a id="servicenow-workflow-tasks"></a>
 ## 5. ServiceNow Workflow Tasks
 
-The native ServiceNow connector exposes these operations, selected **by name** in the workflow builder. The docs do not publish stable action-type identifiers, so the `# Operation:` comments below are the source of truth — the `name:` and field inputs are illustrative:
+The native ServiceNow connector exposes these operations, selected **by name** in the workflow builder. Create Incident is `dynatrace.servicenow:snow-create-incident`, and Comment on an incident is `dynatrace.servicenow:snow-comment-on-incident`, in Dynatrace's workflow samples. The other operations are shown by name only (`# Operation:`): export a workflow that uses one to read its identifier and input names, rather than guessing them:
 
 | Operation | Use |
 |-----------|-----|
@@ -193,10 +217,10 @@ The native ServiceNow connector exposes these operations, selected **by name** i
 
 ```yaml
 name: create_snow_incident
-# Operation: "Create Incident" (select in the workflow builder)
+action: dynatrace.servicenow:snow-create-incident
 input:
-  connection: servicenow-production
-  short_description: "[Dynatrace] {{ event()['event.name'] }}"
+  connectionId: servicenow-production
+  shortDescription: "[Dynatrace] {{ event()['event.name'] }}"
   description: |
     A problem has been detected by Davis.
 
@@ -218,11 +242,15 @@ input:
   impact: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get("event.severity") | int(5), 3) }}'
   urgency: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get("event.severity") | int(5), 3) }}'
   category: "Software"
-  subcategory: "Application"
-  assignment_group: "Platform Engineering"
-  caller_id: "dynatrace.integration"
-  correlation_id: "DT-{{ event()['display_id'] }}"
+  subCategory: "Application"
+  group:                         # the assignment group, picked in the editor
+    id: "<sys_id of Platform Engineering>"
+    displayName: "Platform Engineering"
+  caller: "dynatrace.integration"
+  correlationId: "DT-{{ event()['display_id'] }}"
 ```
+
+> <sub>**Sources:** [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*; [wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml) — *"action: dynatrace.servicenow:snow-comment-on-incident"*.</sub>
 
 **Severity → Impact / Urgency.** Dynatrace's unified `event.severity` is an integer **1–5** (1 = Critical … 5 = Informational; see AIOPS-03), and it is what the Davis problem and `fetch events` carry. ServiceNow `Impact`/`Urgency` run **1 (High) … 3 (Low)**, so the Dynatrace scale compresses:
 
@@ -240,11 +268,13 @@ input:
 
 ```yaml
 name: comment_snow_incident
-# Operation: "Comment on an incident"
+action: dynatrace.servicenow:snow-comment-on-incident
 input:
-  connection: servicenow-production
-  correlation_id: "DT-{{ event()['display_id'] }}"
-  work_notes: |
+  connectionId: servicenow-production
+  # The incident number, not the correlation ID. Look it up first with a
+  # Search incidents task, and check that task's result shape in a test run
+  number: "INC0012345"
+  comment: |
     [Automated Update from Dynatrace]
     Problem updated at {{ now() }}
     Current status: {{ event()['event.status'] }}
@@ -316,12 +346,12 @@ Capture the ServiceNow incident number for later updates and for the link-back p
 ```yaml
 tasks:
   - name: create_incident
-    # Operation: "Create Incident"
+    action: dynatrace.servicenow:snow-create-incident
     # ... configuration ...
 
   - name: store_incident_id
-    type: dynatrace.automations:run-javascript
-    dependsOn: [create_incident]
+    action: dynatrace.automations:run-javascript
+    predecessors: [create_incident]
     input:
       script: |
         import { result } from '@dynatrace-sdk/automation-utils';
@@ -359,21 +389,27 @@ conditions:
 
 tasks:
   # CREATE: When problem opens
-  - name: create_incident
-    type: dynatrace.pagerduty:create-incident
+  - name: trigger_alert
+    action: dynatrace.pagerduty:send-event
     conditions: [is_problem_open]
     input:
-      connection: pagerduty-production
+      connectionId: pagerduty-production
+      eventAction: trigger
+      source: dynatrace
       severity: critical
       summary: "{{ event()['event.name'] }}"
       dedupKey: "dynatrace-{{ event()['display_id'] }}"
 
   # RESOLVE: When problem closes
-  - name: resolve_incident
-    type: dynatrace.pagerduty:resolve-incident
+  - name: resolve_alert
+    action: dynatrace.pagerduty:send-event
     conditions: [is_problem_closed]
     input:
-      connection: pagerduty-production
+      connectionId: pagerduty-production
+      eventAction: resolve
+      source: dynatrace
+      severity: info
+      summary: "Resolved in Dynatrace: {{ event()['event.name'] }}"
       dedupKey: "dynatrace-{{ event()['display_id'] }}"
 ```
 
@@ -518,7 +554,7 @@ With incident management configured, customize message templates:
 
 ### Key Takeaways
 
-- **PagerDuty** uses Events API v2 with routing keys
+- **PagerDuty**: **Send event** triggers, acknowledges and resolves through Events API v2 (routing key); **Create an incident** uses the REST API (API key)
 - **ServiceNow** uses a native connection (Basic or OAuth Client Credentials) with operations selected by name; `Category`, `Subcategory`, `Impact`, `Urgency`, `Assignment Group` are required on create
 - **Deduplication** via the correlation ID prevents duplicate incidents
 - **Lifecycle workflows** handle open/update/close events
