@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -24,7 +24,9 @@ The most common workflow use case is sending alert notifications to Slack, Micro
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:write`, `automation:connections:write` |
+| **Permissions** | `automation:workflows:write`, `automation:workflows:run` (WFLOW-01 §4) |
+| **Workflows authorization settings** | `app-settings:objects:read` and `app-settings:objects:write` for connector actions; `email:emails:send` for email. Each connector's setup page lists its full set (Workflows > Settings > Authorization settings) |
+| **External requests** | A host pattern for every outbound destination (Settings > General > External requests) |
 | **Prior Knowledge** | **WFLOW-01** and **WFLOW-02** |
 | **External Access** | Slack workspace admin or Teams channel access |
 
@@ -56,15 +58,15 @@ Trigger (Detected Problem, Schedule, etc.)
 
 | Channel | Task Type | Authentication |
 |---------|-----------|----------------|
-| Slack | `dynatrace.slack:slack-send-message` (Send message), `dynatrace.slack:request-approval` (Request approval) | OAuth App or Webhook |
-| Microsoft Teams | `dynatrace.msteams:send-message` | Power Automate or Webhook (deprecated) |
+| Slack | `dynatrace.slack:slack-send-message` (Send message); Request approval (copy its ID from the action picker) | Bot OAuth token from a Slack app |
+| Microsoft Teams | `dynatrace.msteams:send-message` | Teams Workflows (Power Automate) webhook URL |
 | Email | `dynatrace.email:send-email` | Built-in — sends from `no-reply@apps.dynatrace.com`; no SMTP setup |
-| PagerDuty | `dynatrace.pagerduty:send-event` (Events API v2), `dynatrace.pagerduty:create-incident` (REST API) | Events connection (routing key) for Send event; REST API key for the others |
+| PagerDuty | Send event (Events API v2) and REST API actions — copy the exact IDs from the action picker | Events connection (routing key) for Send event; REST API key for the others |
 | ServiceNow | `dynatrace.servicenow:snow-create-incident`, plus other `snow-*` actions | OAuth or Basic Auth |
 | Jira | `dynatrace.jira:jira-create-issue`, plus other `jira-*` actions | API Token |
 | Custom Webhook (HTTP Request) | `dynatrace.automations:http-function` | Credential Vault (Basic or Token) |
 
-These action identifiers were checked on 10/02/2026 against Dynatrace's published workflow samples and connector templates. Once an action has run, the platform records its app and function in `dt.system.events` (`dt.automation_engine.action.app` / `.action.function`), so a tenant can confirm them too. The YAML in this series uses these identifiers and the actions' real input names (`message`, `content`, `payload`, `connectionId`). It is simplified in two places: connection names stand in for connection IDs, and named `conditions:` lists stand in for each task's `conditions` (`states` / `custom`). Export a workflow built in the editor to get the exact document shape.
+The Slack Send message, Teams, Email, ServiceNow, Jira and HTTP Request identifiers were checked against Dynatrace's published workflow samples and connector templates (10/02/2026, re-checked 10/06/2026). The PagerDuty and Slack Request approval identifiers do not appear there, so copy them from the action picker rather than typing them. Once an action has run, the platform records its app and function in `dt.system.events` (`dt.automation_engine.action.app` / `.action.function`), so a tenant can confirm them too. The YAML in this series uses these identifiers and the actions' real input names (`message`, `content`, `payload`, `connectionId`). It is simplified in two places: connection names stand in for connection IDs, and named `conditions:` lists stand in for each task's `conditions` (`states` / `custom`). Export a workflow built in the editor to get the exact document shape.
 
 > <sub>**Sources:** [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.slack:slack-send-message"*, *"action: dynatrace.msteams:send-message"*; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — *"action: dynatrace.servicenow:snow-create-incident"*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md); [PagerDuty Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions) — *"Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2"*; [Email (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email).</sub>
 
@@ -74,15 +76,17 @@ Connections store credentials separately from workflows for security and reusabi
 
 ### Accessing Connections
 
-1. Open **Settings** (gear icon)
-2. Navigate to **Integration** → **Connections**
-3. Or use direct URL: `https://<env>/ui/apps/dynatrace.hub/connections`
+1. Open **Settings**
+2. Select **Connections** → **Connectors**, then the tool (Slack, Microsoft Teams, ServiceNow, …)
+3. Select **Connection** to add one
+
+Dynatrace's connector pages word this path slightly differently (*Connections > Slack* on the Slack page, *Connections > Connectors > Microsoft Teams* on the Teams page); both lead to the same place.
 
 ### Creating a Connection
 
-1. Click **+ Connection**
-2. Select connection type (Slack, Teams, etc.)
-3. Enter credentials
+1. Open the connector (step 2 above) and select **Connection**
+2. Enter the credential the connector asks for (a Slack bot token, a Teams webhook URL, …)
+3. Allow the destination host under **Settings > General > External requests**
 4. Name the connection (e.g., `slack-production-alerts`)
 5. Save
 
@@ -97,26 +101,20 @@ Connections store credentials separately from workflows for security and reusabi
 
 <a id="slack-notifications"></a>
 ## 3. Slack Notifications
-### Option 1: Slack App (Recommended)
+### Setting Up the Slack Connection
 
-Provides richer features: channels, DMs, reactions, threads.
-
-**Setup:**
-1. Create Slack App at https://api.slack.com/apps
-2. Add OAuth scopes: `chat:write`, `chat:write.public`
-3. Install to workspace
-4. Copy Bot User OAuth Token
-5. Create connection in Dynatrace with token
-
-### Option 2: Incoming Webhook (Simpler)
-
-Single channel, no advanced features.
+The Slack connection takes a bot token from a Slack app you create: *"Your Dynatrace Slack Connector requires an OAuth token to authorize sending messages to Slack."*
 
 **Setup:**
-1. Go to Slack channel settings → Integrations
-2. Add **Incoming Webhook**
-3. Copy webhook URL
-4. Create connection with webhook URL
+1. **Allow the host.** Settings > General > External requests: add a host pattern for `slack.com`.
+2. **Grant Workflows the connector permissions.** Workflows > Settings > Authorization settings: enable `app-settings:objects:read`, `app-settings:objects:write` and the `state:app-states:*` and `state:user-app-states:*` permissions the setup page lists.
+3. **Create the Slack app** at https://api.slack.com/apps, from an app manifest. To send messages to channels, the minimal bot scopes are `channels:read`, `groups:read` and `chat:write`. Add `chat:write.public` to post to public channels the bot has not joined. Approvals, reactions and file attachments need more scopes, listed on the setup page.
+4. **Install** the app to the workspace and copy the **Bot User OAuth Token**.
+5. **Create the connection.** Settings > Connections > Slack > **Connection**: name it and paste the token in **Bot token**.
+
+> **There is no webhook option on the Slack connection.** If you must post through a Slack incoming webhook, that is an HTTP Request task (`dynatrace.automations:http-function`) to the webhook URL, outside the Slack connector, with the webhook host allowed under External requests.
+
+> <sub>**Sources:** [Set up Slack Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup) — the External requests and Authorization settings steps and the minimal manifest; [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions) — scopes per action.</sub>
 
 ### Basic Slack Message Task
 
@@ -173,22 +171,15 @@ The expressions resolve before the JSON reaches Slack, so a problem title that c
 <a id="microsoft-teams-notifications"></a>
 ## 4. Microsoft Teams Notifications
 
-> **Warning — O365 Connectors Deprecated:** Microsoft retired Office 365 Connectors (Incoming Webhooks) in late 2024. Existing webhooks may continue to work temporarily, but **new O365 Connector creation is disabled**. Use one of these alternatives instead:
->
-> | Method | Status | Notes |
-> |--------|--------|-------|
-> | **Power Automate Workflow** | Recommended | Create a "When a Teams webhook request is received" flow in Power Automate; use the resulting URL in an HTTP Request task (`dynatrace.automations:http-function`) |
-> | **Teams Workflows Connector** | Recommended | Available in new Teams client under channel **...** → **Workflows** |
-> | **O365 Incoming Webhook** | Deprecated | Legacy method shown below for reference only |
+> **Office 365 connectors no longer work.** Microsoft's final schedule: *"Rollout begins : May 18, 2026 Rollout completes : May 22, 2026 After these dates, Office 365 Connectors will no longer function."* An Office 365 incoming-webhook URL in a Dynatrace connection stops delivering. The Dynatrace Microsoft Teams connector takes a Teams **Workflows** (Power Automate) webhook URL instead.
 
-### Setting Up Teams Webhook (Legacy)
+### Setting Up the Teams Connection
 
-1. Open target Teams channel
-2. Click **...** → **Connectors** (or **Workflows** in new Teams)
-3. Add **Incoming Webhook**
-4. Name it (e.g., "Dynatrace Alerts")
-5. Copy the webhook URL
-6. Create connection in Dynatrace
+1. **Create the webhook in Teams.** Open the channel's context menu, select **Workflows**, and choose **Send webhook alerts to a channel**. Save, then select **Copy webhook link**.
+2. **Allow the host.** Settings > General > External requests: add a host pattern for the webhook's domain. Dynatrace's example is `*.api.powerplatform.com`.
+3. **Create the connection.** Settings > Connections > Connectors > Microsoft Teams > **Connection**: name it and paste the URL in **Webhook URL**.
+
+Messages arrive under the name of the user who created the webhook. If an existing connection's URL contains `logic.azure.com`, the Teams connector page explains how to replace it with the flow's updated URL.
 
 
 ### Basic Teams Message Task
@@ -198,6 +189,7 @@ name: send_teams_alert
 action: dynatrace.msteams:send-message
 input:
   connectionId: teams-production    # the Teams connection's ID in an exported workflow
+  messageFormat: dynatrace_markdown # converts each Markdown element to a card element
   message: |
     **Problem Detected**
     
@@ -210,7 +202,7 @@ input:
 
 ### Teams Adaptive Card
 
-For richer formatting, paste Adaptive Card JSON into `message`. The Teams action has no separate card input.
+For richer formatting, put Adaptive Card JSON in `message` with the default `messageFormat` (`msteams_format`), or pick a predefined card in `selectTemplate`.
 
 ```yaml
 input:
@@ -236,7 +228,7 @@ input:
 
 Use Dynatrace expressions for the dynamic values, as above. The docs say *"We don't support Adaptive Cards Template Language templating"*.
 
-> <sub>**Sources:** [Microsoft Teams Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams); [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.msteams:send-message"*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md).</sub>
+> <sub>**Sources:** [Microsoft Teams Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams) — setup steps, `messageFormat` (*"Must be msteams_format or dynatrace_markdown"*) and `selectTemplate`; [Retirement of Office 365 connectors within Microsoft Teams (Microsoft 365 Developer Blog)](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/); [threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — *"action: dynatrace.msteams:send-message"*; [Workflow samples action catalog (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md).</sub>
 
 <a id="email-notifications"></a>
 ## 5. Email Notifications
@@ -247,6 +239,10 @@ Use Dynatrace expressions for the dynamic values, as above. The docs say *"We do
 | **Send email action** (`dynatrace.email:send-email`) | No setup — sends from `no-reply@apps.dynatrace.com`; the workflow needs the `email:emails:send` permission | Most notifications |
 | **Corporate mail relay** | Not an option of the Send email action — call the relay's HTTP API from an HTTP Request or JavaScript task | A corporate sender address is required |
 | **SendGrid/SES** | HTTP Request task to the provider's API | High volume, HTML templates |
+
+The two HTTP routes need the provider's host allowed under **Settings > General > External requests**. A host on a private network, such as a corporate relay, is reached through EdgeConnect (WFLOW-94).
+
+The Send email action has two limits: *"For To , Cc , and Bcc fields the number of email addresses is restricted to 10 per field."* and *"Trial environments are prohibited to send emails with Email ."*
 
 ### Basic Email Task
 
@@ -275,13 +271,15 @@ input:
     {{ event()["affected_entity_ids"] | join(", ") }}
     
     Root Cause:
-    {{ event()["root_cause_entity_id"] }}
+    {{ (event().get("root_cause.smartscape_entity") or {}).get("name", "not yet determined") }}
     
     View this problem:
     {{ problem_link() }}
 ```
 
 ### Formatted Email
+
+The root cause is read with `.get()` because most problems do not carry one: on a validation tenant, 127 of 540 problems over 24 h had `root_cause.smartscape_entity` (10/06/2026), and a bracket read of a missing field fails the task with *Undefined variables*. The older `root_cause_entity_id` is deprecated and just as often absent. Enabling **Wait for root cause analysis** on the trigger (WFLOW-02 §2) addresses the early-lifecycle gap but does not guarantee a root cause: *"Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events."*
 
 The `content` field takes markdown: bold, headings, lists, tables and links. It does not take HTML, so an HTML template arrives as literal tags, and there is no content-type input. For an HTML template, send through SendGrid or SES from an HTTP Request task (table above).
 
@@ -327,7 +325,7 @@ input:
 {% if sev <= 1 %}
 :red_circle: CRITICAL ALERT
 {% elif sev == 2 %}
-:large_orange_circle: HIGH ALERT
+:large_orange_circle: MAJOR ALERT
 {% else %}
 :large_yellow_circle: {{ event()["event.category"] }} ALERT
 {% endif %}
@@ -338,9 +336,11 @@ input:
 | `event.severity` | Slack Emoji | Teams Color |
 |----------|-------------|-------------|
 | 1 (Critical) | `:red_circle:` | `Attention` |
-| 2 (High) | `:large_orange_circle:` | `Warning` |
-| 3 (Medium) | `:large_yellow_circle:` | `Accent` |
-| 4 (Low) | `:large_blue_circle:` | `Good` |
+| 2 (Major) | `:large_orange_circle:` | `Warning` |
+| 3 (Minor) | `:large_yellow_circle:` | `Accent` |
+| 4 (Warning) | `:large_blue_circle:` | `Good` |
+
+Level names follow the Davis severity scale (see WFLOW-04 § 3); Warning and Informational events never open a problem, so a problem-triggered workflow sees levels 1–3.
 
 ### Inline Severity Mapping
 
@@ -350,7 +350,7 @@ input:
 
 <a id="complete-alert-workflow-example"></a>
 ## 7. Complete Alert Workflow Example
-A production-ready workflow that sends alerts to Slack, Teams, and email.
+A workflow that sends the same problem to Slack, Teams, and email. Tasks are keyed by name and the trigger block uses the exported shape (WFLOW-02 §2); export a workflow built in the editor for the exact document.
 
 ### Workflow Configuration
 
@@ -359,15 +359,26 @@ name: production-alert-notifications
 description: Send alerts to all channels for production problems
 
 trigger:
-  type: davis-problem
-  config:
-    entityTagsMatch: all
-    entityTags:
-      - key: env
-        value: prod
+  eventTrigger:
+    isActive: true
+    triggerConfiguration:
+      type: davis-problem
+      value:
+        triggerOn: open
+        categories:
+          availability: true
+          error: true
+          slowdown: true
+          resource: true
+        entityTagsMatch: all
+        entityTags:
+          env:
+            - prod
+        analysisReady: true          # Wait for root cause analysis
 
 tasks:
-  - name: slack_notification
+  slack_notification:
+    name: slack_notification
     action: dynatrace.slack:slack-send-message
     input:
       connection: slack-production
@@ -383,10 +394,12 @@ tasks:
         
         <{{ problem_link() }}|:mag: View Problem>
 
-  - name: teams_notification
+  teams_notification:
+    name: teams_notification
     action: dynatrace.msteams:send-message
     input:
       connectionId: teams-production
+      messageFormat: dynatrace_markdown
       message: |
         **{{ event()["event.category"] }} Problem**
         
@@ -398,7 +411,8 @@ tasks:
         
         [View Problem]({{ problem_link() }})
 
-  - name: email_notification
+  email_notification:
+    name: email_notification
     action: dynatrace.email:send-email
     input:
       to: ["platform-oncall@company.com"]
@@ -417,7 +431,13 @@ tasks:
 
 ### Task Execution
 
-By default, tasks execute **in parallel**. All three notifications send simultaneously.
+All three tasks have no predecessor, so they start in parallel when the trigger fires. A task that does have predecessors waits for them: *"By default, a task will run if its predecessors ended successfully."*
+
+### Cost: this is a standard workflow
+
+Three tasks make this a **standard** workflow, which consumes workflow hours for as long as it exists (WFLOW-01 §3.5). For a single destination, a simple workflow with one task costs no workflow hours. The upgrade guide keeps standard workflows for cases like this one, *"when one filter must fan out to several destinations in a single configuration."*
+
+> <sub>**Sources:** [Monitor workflow executions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/running); [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification); [Automation Workflow consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation).</sub>
 
 ### Monitor Your Notification Workflows
 
@@ -525,11 +545,12 @@ Now that you can send basic notifications, learn advanced patterns:
 ### Key Takeaways
 
 - **Connections** store credentials securely and are reusable
-- **Slack** supports both OAuth apps and webhooks
-- **Teams** requires Power Automate or Teams Workflows connector (O365 Incoming Webhooks are deprecated)
-- **Email** can use built-in SMTP or custom servers
-- **Jinja expressions** enable dynamic message content
-- Tasks execute in **parallel** by default
+- **Slack** connections take a bot OAuth token from a Slack app; there is no webhook option
+- **Teams** connections take a Teams Workflows (Power Automate) webhook URL; Office 365 connectors stopped working in May 2026
+- **Email** sends from `no-reply@apps.dynatrace.com`; for another sender, call a mail provider's API from an HTTP Request task
+- Every outbound destination needs an **External requests** host pattern
+- **Jinja expressions** enable dynamic message content; read optional fields such as the root cause with `.get()`
+- Tasks with no predecessor run in **parallel**; more than one task makes a **standard** workflow, billed in workflow hours
 
 ---
 
@@ -551,6 +572,8 @@ In this notebook, you learned:
 
 - [Notification actions umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions)
 - [Slack action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack)
+- [Set up Slack Connector (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup)
+- [Retirement of Office 365 connectors within Microsoft Teams (Microsoft 365 Developer Blog)](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/)
 - [Microsoft Teams action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams)
 - [Email action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email)
 - [PagerDuty action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty)

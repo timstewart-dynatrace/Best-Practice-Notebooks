@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -24,7 +24,7 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:write` |
+| **Permissions** | `automation:workflows:write` (and `automation:workflows:run` for API runs, §5). The workflow's **actor** also needs read access to the table each trigger watches (§1) |
 | **Prior Knowledge** | **WFLOW-01: Workflow Fundamentals** |
 
 ## 1. Trigger Types Overview
@@ -33,9 +33,9 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 |--------------|------------|------------------|
 | **Detected Problem** | Dynatrace Intelligence detects/updates/closes a problem | Alert notifications, incident management |
 | **Davis Event** | An anomaly detector raises a Davis event | Per-alert automation, before problem grouping |
-| **Schedule** | Cron expression matches | Reports, health checks, cleanup jobs |
+| **Schedule** | A fixed time, a time interval or a cron expression comes due | Reports, health checks, cleanup jobs |
 | **On-Demand** | Manual execution or API call | Testing, ad-hoc automation |
-| **Event** | Business/custom event ingested | Business process automation |
+| **Event** | Any event matching a DQL matcher in `events`, `bizevents`, `security.events` or `dt.system.events` | Business process automation |
 
 ![Trigger Types Overview](images/02-trigger-types-overview.png)
 
@@ -46,9 +46,22 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 | Davis Event | Anomaly detector alert | Per-alert automation |
 | Schedule | Cron expression | Reports, health checks |
 | On-Demand | Manual/API | Testing, ad-hoc |
-| Event | Business event | Business automation |
+| Event | events / bizevents / security.events / dt.system.events | Business and other event automation |
 For environments where SVG doesn't render
 -->
+
+> **Two reasons a trigger never fires.** First, *"Triggers only start on live workflows."* A saved draft runs only from the **Run** button; select **Deploy** before you wait for a problem, event or schedule. Second, the actor must be able to read what the trigger watches: *"The workflow actor requires read access to the event type the trigger reacts on."*
+>
+> | Trigger | Actor permission |
+> |---|---|
+> | Problem, Davis event, Event (`events`) | `storage:events:read` |
+> | Event (`bizevents`) | `storage:bizevents:read` |
+> | Event (`security.events`) | `storage:security.events:read` |
+> | Event (`dt.system.events`) | `storage:system:read` |
+>
+> Add `storage:buckets:read`, restricted to the bucket that holds the events. Use a service user as the actor for production workflows (WFLOW-01 §3.5).
+
+> <sub>**Sources:** [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger), [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger).</sub>
 
 ### Choosing the Right Trigger
 
@@ -68,14 +81,18 @@ The most common trigger for alert notifications. Fires when Dynatrace Intelligen
 
 | Setting | Description | Example |
 |---------|-------------|----------|
-| **Problem state** | Active only, or active + closed | `Active` |
-| **Categories** | Problem categories to include | Infrastructure, Application |
+| **Problem state** | `active` (default) starts when the problem opens; `active or closed` also when it closes; `closed` only when it closes | `active` |
+| **Event category** | Problem categories to include | Availability, Error, Slowdown |
 | **Severity** | The level at or above which problems start the workflow (see the SaaS 1.348 note in WFLOW-04 §3 before relying on it) | Any |
 | **Affected entities — tags** | Tags the problem's affected entities must carry. Three modes: include all / all defined tags / any defined tag | `team:checkout` |
 | **Additional custom filter query** | A DQL **matcher** on the incoming problem record (a subset of DQL — no aggregation, no querying across a set of events) | `maintenance.is_under_maintenance == false` |
-| **Updates** | Re-trigger when selected fields change | Root cause changed |
+| **Minimum duration** (Advanced options) | Postpones the trigger until the problem has been open this long: 5, 10, 15, 30, 60, 120, 240, 1440 or 10080 minutes | `15` |
+| **Updates** (Advanced options) | Re-trigger when selected fields change. Without it, the trigger starts once per state transition | Root cause changed |
+| **Wait for root cause analysis** (Advanced options) | Start only after root cause analysis has completed for the problem | On |
 
-> ⚠️ **There is no Management Zone filter on the problem trigger.** An earlier revision of this notebook listed one; that was wrong. Dynatrace's upgrade guide describes the replacement directly: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem. There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* The trigger's configuration (problem state, event category, severity, affected-entity tags, custom filter) has no Management Zone option ([Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)). Scope the trigger with **affected-entity tags** plus the custom DQL matcher instead.
+Enable **Wait for root cause analysis** unless you need the earliest possible signal. The reference says *"Recommended: Enable this to avoid triggering on incomplete problem data."* All of these fields compile into one DQL matcher, which is limited to 1,000 characters, so every selected category and tag uses part of that budget.
+
+> ⚠️ **There is no Management Zone filter on the problem trigger.** An earlier revision of this notebook listed one; that was wrong. Dynatrace's upgrade guide describes the replacement directly: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem. There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint."* The trigger's configuration (problem state, event category, severity, affected-entity tags, minimum duration, updates, wait for root cause analysis, custom filter) has no Management Zone option ([Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)). Scope the trigger with **affected-entity tags** plus the custom DQL matcher instead.
 >
 > This matters most if you are migrating off Management Zones: do not route on `event()["management_zones"]`. The field is **not present on problem records** — on a live tenant (10/05/2026) 0 of 15,878 problems in `dt.davis.problems` over 30 days carried it, while 14 of 15 hosts belonged to a management zone — so a condition that reads it has nothing to match, whether or not your zones still exist. Check your own tenant with `fetch dt.davis.problems, from:-30d | summarize n = countIf(isNotNull(management_zones))`. See MZ2POL-01 §5 for the full MZ-job-to-successor mapping.
 
@@ -95,7 +112,7 @@ The payload is the `dt.davis.problems` record. Run `fetch dt.davis.problems, fro
   "event.category": "SLOWDOWN",
   "event.status": "ACTIVE",
   "event.status_transition": "CREATED",
-  "event.severity": "3",
+  "event.severity": 3,
   "event.start": "2026-09-24T12:37:00.000000000Z",
   "affected_entity_ids": ["SERVICE-ABC123"],
   "smartscape.affected_entities": [{"id": "SERVICE-ABC123", "name": "checkout", "type": "SERVICE"}],
@@ -111,7 +128,7 @@ There is no `title`, `status`, `problem_url` or `start_time` field. The link to 
 | Event | When | Typical Action |
 |-------|------|----------------|
 | Problem opened | New problem detected | Create incident, notify team |
-| Problem updated | Root cause/impact changed | Update incident notes |
+| Problem updated (only with **Updates** enabled) | A tracked field changed (root cause, impact, affected entities, …) | Update incident notes |
 | Problem closed | Problem resolved | Close incident, send summary |
 
 ![Detected Problem Lifecycle](images/02-davis-problem-lifecycle.png)
@@ -119,26 +136,37 @@ There is no `title`, `status`, `problem_url` or `start_time` field. The link to 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | State | Description | Typical Workflow Actions |
 |-------|-------------|--------------------------|
-| OPENED | Problem detected (`event.status` ACTIVE) | Create ticket, notify team, page if critical |
-| UPDATED | Root cause changed | Add notes, escalate if spreading |
+| OPENED | Problem detected (`event.status` ACTIVE) | Create ticket, notify team, page if severity 1 |
+| UPDATED | A tracked field changed; starts the trigger only with Updates enabled | Add notes, escalate if spreading |
 | CLOSED | Problem resolved (`event.status` CLOSED) | Resolve ticket, send summary, log MTTR |
 For environments where SVG doesn't render
 -->
 
 ### Example: Filter Critical Production Problems
 
+This is the shape the trigger takes in an exported workflow. Values are illustrative: build the trigger in the editor and export the workflow for the exact document, which also carries the compiled `filterQuery`.
+
 ```yaml
 trigger:
-  type: davis-problem
-  config:
-    categories:
-      - AVAILABILITY
-      - PERFORMANCE
-    entityTagsMatch: all
-    entityTags:
-      - key: env
-        value: prod
+  eventTrigger:
+    isActive: true
+    triggerConfiguration:
+      type: davis-problem
+      value:
+        triggerOn: open              # open | open-and-close | close
+        categories:                  # availability, error, slowdown, resource, custom,
+          availability: true         # monitoringUnavailable, info — there is no "performance"
+          slowdown: true
+        entityTagsMatch: all
+        entityTags:
+          env:
+            - prod
+        analysisReady: true          # Wait for root cause analysis
+        problemOpenDuration: 15      # Minimum duration, in minutes
+        customFilter: maintenance.is_under_maintenance == false
 ```
+
+> <sub>**Sources:** [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"Wait for root cause analysis : When enabled, the trigger starts only after Dynatrace Intelligence has completed root cause analysis for the problem."*; [Automation client SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — `DavisProblemConfig` and `DavisProblemCategories` field names; [wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml) — an exported `davis-problem` trigger.</sub>
 
 <a id="davis-event-trigger-metrics"></a>
 ## 3. Davis Event Trigger
@@ -171,7 +199,15 @@ The payload is the `dt.davis.events` record. Run `fetch dt.davis.events, from:-2
 
 <a id="schedule-trigger"></a>
 ## 4. Schedule Trigger
-Execute workflows on a recurring schedule using cron expressions.
+Run workflows at a set time or interval. There are three schedule types:
+
+| Type | Use |
+|---|---|
+| **Fixed time** | A time of day (HH:MM) on the days a scheduling rule selects: every day, weekdays, or business days from a business calendar. Time zone defaults to UTC |
+| **Time interval** | Every N minutes (1–720), optionally within active hours and a scheduling rule |
+| **Cron schedule** | Standard five-field cron, for patterns the other two cannot express |
+
+Cron expressions use the Debian cron format. *"Six-field (Quartz) expressions and the ? wildcard are not supported."*
 
 ### Cron Expression Format
 
@@ -197,19 +233,26 @@ Execute workflows on a recurring schedule using cron expressions.
 
 ### Example: Daily Health Check Report
 
+The shape of a cron Schedule trigger in an exported workflow (illustrative; export a workflow built in the editor for the exact document):
+
 ```yaml
 trigger:
-  type: schedule
-  config:
-    cron: "0 9 * * 1-5"  # Weekdays at 9 AM
-    timezone: "America/New_York"
+  schedule:
+    isActive: true
+    trigger:
+      type: cron
+      cron: "3 9 * * 1-5"      # Weekdays at 09:03, staggered off the hour
+    timezone: America/New_York
 ```
 
 ### Schedule Best Practices
 
-- **Avoid minute 0** - Many workflows run at :00, spread load
-- **Use timezones** - Be explicit about timezone
-- **Consider rate limits** - Don't schedule too frequently
+- **Stagger start times.** Dynatrace's guidance: *"stagger their start times by a few minutes, for example, 00:00 , 00:03 , and 00:07 ."* Pinning many workflows to :00 bursts load on the systems they call.
+- **Set the time zone explicitly.** For cron, *"The time zone defaults to your browser's locale."*
+- **Check the next runs.** Use **Next scheduled executions** in the trigger configuration before saving.
+- **Don't schedule more often than the work needs.** Each run costs AppEngine function invocations, and DQL tasks consume query volume.
+
+> <sub>**Sources:** [Workflow schedule trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/schedules); [Automation client SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — `Schedule` / `CronTrigger`.</sub>
 
 <a id="on-demand-trigger"></a>
 ## 5. On-Demand Trigger
@@ -233,7 +276,7 @@ curl -X POST "https://<env>/platform/automation/v1/workflows/<id>/run" \
   -d '{"input": {"environment": "prod", "notify_slack": true}}'
 ```
 
-The platform token needs the `automation:workflows:run` scope. Platform tokens use `Bearer`, not `Api-Token`: *"To use a platform token please provide the token in the Authorization header: Authorization: Bearer <platformtoken>"* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)).
+The platform token needs the `automation:workflows:run` scope. The call runs the **live** workflow: *"An API call can always trigger a live workflow, regardless of its trigger type."* A draft runs only from the editor: *"A workflow in draft mode can only be run via Workflows using the Run button."* Platform tokens use `Bearer`, not `Api-Token`: *"To use a platform token please provide the token in the Authorization header: Authorization: Bearer <platformtoken>"* ([Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens)).
 
 ### Workflow Inputs
 
@@ -244,7 +287,7 @@ Values passed as `input` arrive as workflow inputs. *"The input is a merge of th
 {{ input('notify_slack') }}
 ```
 
-> <sub>**Sources:** [Monitor workflow executions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/running) — the run endpoint's `input` and `params` attributes, [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference) — `input()`.</sub>
+> <sub>**Sources:** [Monitor workflow executions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/running) — the run endpoint's `input` and `params` attributes, [Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference) — `input()`, [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger), [Automation Workflow consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation).</sub>
 
 <a id="event-trigger-custombusiness-events"></a>
 ## 6. Event Trigger (Custom/Business Events)
@@ -259,51 +302,62 @@ Trigger on business events or custom events ingested into Grail.
 
 ### Configuration
 
+The Event trigger has two settings. **Event type** is the Grail table it watches: `events`, `bizevents`, `security.events` or `dt.system.events`. **Filter query** is a DQL matcher evaluated on each event as it arrives. For business events, choose `bizevents` and put the business event's own type in the filter as `event.type`. The actor needs `storage:bizevents:read` (§1).
+
+The shape in an exported workflow (illustrative values):
+
 ```yaml
 trigger:
-  type: event
-  config:
-    eventType: "com.company.order-completed"
-    filterQuery: |
-      event.type == "com.company.order-completed"
-      AND order.total > 1000
+  eventTrigger:
+    isActive: true
+    triggerConfiguration:
+      type: event
+      value:
+        eventType: bizevents
+        query: event.type == "com.company.order-completed" and total > 1000
 ```
 
 ### Sending Business Events
 
-Ingest events via API:
+Send **flat** JSON. *"Every top-level attribute is stored as a top-level field in Grail; nested JSON objects are stored as strings."* A field inside a nested `data` object therefore cannot be filtered on or read on its own. In the pure-JSON format, set `event.type` and `event.provider` as top-level fields, as Dynatrace's example does. (In the CloudEvents format, `type` maps to `event.type` instead.)
 
 ```bash
-curl -X POST "https://<env>/api/v2/bizevents/ingest" \
-  -H "Authorization: Api-Token <token>" \
+curl -X POST "https://<environment-id>.live.dynatrace.com/api/v2/bizevents/ingest" \
+  -H "Authorization: Bearer <platform-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "com.company.order-completed",
-    "data": {
-      "order_id": "ORD-12345",
-      "customer": "ACME Corp",
-      "total": 1500.00
-    }
+    "event.type": "com.company.order-completed",
+    "event.provider": "com.company.shop",
+    "order_id": "ORD-12345",
+    "customer": "ACME Corp",
+    "total": 1500
   }'
 ```
 
+The platform token needs the `openpipeline:bizevents:ingest` scope. The same page documents two alternatives: an OAuth bearer token on `https://<environment-id>.apps.dynatrace.com/platform/classic/environment-api/v2/bizevents/ingest` (*"This URL only supports OAuth authentication."*), and a Classic access token with the `bizevents.ingest` scope, sent as `Authorization: Api-Token …` to the `live` URL above.
+
 ### Event Data
 
-Access event fields in tasks:
+Top-level fields are read directly in tasks:
 
 ```
-{{ event()["data"]["order_id"] }}
-{{ event()["data"]["customer"] }}
-{{ event()["data"]["total"] }}
+{{ event()["order_id"] }}
+{{ event()["customer"] }}
+{{ event()["total"] }}
+{{ event()["event.type"] }}
 ```
+
+Before you deploy, run **Query past events** in the trigger, or `fetch bizevents, from:-1h | filter event.type == "com.company.order-completed"`, to confirm the events arrive with the fields your filter uses.
+
+> <sub>**Sources:** [Ingest business events via API (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources) — *"type : Automatically converted to event.type"* (CloudEvents), the pure-JSON example, and the platform-token scope; [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — event types and permissions.</sub>
 
 ### Business events never open problems
 
 That is a feature of this trigger, not a gap. A record ingested through `/api/v2/bizevents/ingest` lands in Grail as a business event: queryable, and able to trigger a workflow exactly as shown above — but it never raises a Davis problem and never enters problem correlation. `dt.smartscape_source.id`, the correlation key that decides which Davis events merge into one problem (AIOPS-03 §1), is not part of this path and does not apply here.
 
-**If what you actually want is a problem, this is the wrong API.** Custom *Davis* events go to `/api/v2/events/ingest` with an `entitySelector` naming the entity the signal is about. Omitting that selector is the classic mistake: the event associates with the environment entity rather than a real one — so instead of failing to merge, it merges with every other environment-scoped alert in the tenant into one problem that names nothing actionable. S2D-05 works through that failure in a scheduled-workflow context.
+**If what you actually want is a problem, this is the wrong API.** Custom *Davis* events go to `/api/v2/events/ingest` with an `entitySelector` naming the entity the signal is about. Omitting that selector is the classic mistake: the event associates with the environment entity rather than a real one — so instead of failing to merge, it can merge with other alerts on that same entity that arrive within the correlation timeframe, into one problem that names nothing actionable. S2D-05 works through that failure in a scheduled-workflow context.
 
-> <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity.", [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting).</sub>
+> <sub>**Sources:** [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity.", [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"Any two alerts that reference the same Smartscape entity and arrive within the established timeframe are merged into a single problem."*</sub>
 
 <a id="trigger-data-and-expressions"></a>
 ## 7. Trigger Data and Expressions
@@ -313,7 +367,7 @@ That is a feature of this trigger, not a gap. A record ingested through `/api/v2
 |------------|---------|----------|
 | `{{ event() }}` | Full event object | `{"event.name": "...", ...}` |
 | `{{ event()["field"] }}` | Specific field | `"High response time"` |
-| `{{ event().get("field", "default") }}` | Field with a fallback | `"n/a"` |
+| `{{ event().get("field") or "default" }}` | Field with a fallback (also covers a field that is present but null) | `"n/a"` |
 | `{{ execution() }}` | Current execution (id, state, started_at, workflow) | `{"state": "RUNNING", ...}` |
 | `{{ input("name") }}` | A workflow input (on-demand / API runs) | `"prod"` |
 | `{{ problem_link() }}` | URL of the problem (Problem trigger only) | `https://…/ui/apps/dynatrace.davis.problems/problem/…` |
@@ -332,7 +386,7 @@ There is no `trigger()` expression. Field names contain dots, so use bracket acc
 {{ event()["event.severity"] }}       # 1-5 (1 = most severe); experimental, may be absent
 {{ event()["event.start"] }}          # When the problem opened
 {{ event()["affected_entity_ids"] }}  # Array of entity IDs
-{{ event()["root_cause_entity_id"] }} # Root cause entity (when determined)
+{{ (event().get("root_cause.smartscape_entity") or {}).get("name", "n/a") }}  # Root cause; often absent or null
 {{ event()["management_zones"] }}     # Legacy — not present on problem records (0 of 15,878 over 30 days); do not route on this
 {{ problem_link() }}                  # Link to problem
 ```
@@ -374,16 +428,18 @@ Workflows on a Detected Problem trigger receive one `event` object: the `dt.davi
 | `event.category` | string | Always | `AVAILABILITY`, `ERROR`, `SLOWDOWN`, `RESOURCE_CONTENTION`, `CUSTOM_ALERT`, `MONITORING_UNAVAILABLE`, `INFO`. `{ProblemSeverity}` maps here. |
 | `event.status` | string | Always | `ACTIVE` or `CLOSED`. The documented open/close discriminator. |
 | `event.status_transition` | string | Always | `CREATED`, `UPDATED`, `REFRESHED`, `RESOLVED`, `CLOSED`. `experimental` in the dictionary. |
-| `event.severity` | 1–5 | Usually | 1 = most severe, 5 = least. `experimental`. Arrives as a string (`"3"`) on the validation tenant, so convert with `\| int`. No longer defaulted from SaaS 1.348 (WFLOW-04 §3). |
+| `event.severity` | long, 1–5 | Usually | 1 = most severe, 5 = least. `experimental`. Typed `long` in Grail (validation tenant, 10/06/2026); keep `\| int(5)` in templates, which also covers a missing value. No longer defaulted from SaaS 1.348 (WFLOW-04 §3). |
 | `event.start` | timestamp | Always | When the problem opened (`{startTime}`). |
 | `event.end` | timestamp | Closed only | When the problem closed (`{endTime}`). |
 | `event.description` | string | Usually | Markdown problem details (`{ProblemDetailsText}`). |
 | `affected_entity_ids` | string[] | Always | Classic entity IDs. Deprecated in favor of `smartscape.affected_entities`. |
 | `smartscape.affected_entities` | record[] | Usually | Each element has `id`, `type`, `name` — the entity *name* without an extra lookup. |
 | `affected_entity_types` | string[] | Always | Entity types touched by this problem. Useful for routing without enumerating IDs. |
-| `root_cause_entity_id` | string | When determined | Deprecated in favor of `root_cause.smartscape_entity`. Often empty early in the lifecycle. |
+| `root_cause_entity_id` | string | When determined | Deprecated in favor of `root_cause.smartscape_entity`. Absent on most problems (102 of 540 carried it over 24 h on a validation tenant, 10/06/2026) — never bracket-read it. |
+| `root_cause.smartscape_entity` | record | When determined | Root-cause node: `id`, `type`, `name`. The replacement field; absent just as often (127 of 540 over the same 24 h). Read with `.get()`. |
 | `entity_tags` | string[] | When tagged | `key:value` strings (`"team:checkout"`), not objects. Deprecated in favor of `primary_tags.*`. |
-| `primary_tags.*` | string | When enriched | Primary Grail tags propagated from the alerting events. |
+| `primary_tags.*` | string | When enriched | Primary Grail tags propagated from the alerting events. The upgrade guide maps Classic `{Tags}` here. Values from every grouped event accumulate on the problem. |
+| `dt.davis.impact_level` | string[] | Usually | `{ProblemImpact}`: every impact level observed across the problem's events (Application, Environment, Infrastructure, Services, Synthetic). |
 | `dt.davis.event_ids` | string[] | Always | The Davis events grouped into this problem. |
 | `maintenance.is_under_maintenance` | boolean | Always | Whether the problem falls in a maintenance window. |
 | `dt.duration_marker` | string | Usually | Stepped open-duration marker used by the trigger's Minimum duration option. |
@@ -463,7 +519,11 @@ fetch dt.davis.problems, from:-7d
 {% else %}                                   create/update ticket
 {% endif %}
 
-# Custom-tag access (entity_tags is an array of "key:value" strings)
+# Team routing on a primary tag (preferred; set primary_tags.team in your environment first).
+# Values accumulate across the problem's events, so this can hold more than one team.
+{{ event().get("primary_tags.team") or "unassigned" }}
+
+# Custom-tag access on the deprecated entity_tags (an array of "key:value" strings)
 {% for tag in event().get("entity_tags", []) %}
   {% if tag.startswith("team:") %}{{ tag.split(":", 1)[1] }}{% endif %}
 {% endfor %}
@@ -494,19 +554,19 @@ fetch dt.davis.problems, from:-7d
 ### Query Detected Problems
 
 ```dql
-// Recent detected problems that could trigger workflows
-// Field names corrected 09/24/2026: `severity` / `status` are not the problem fields; the trigger
-// payload uses `event.category` and `event.status` (ACTIVE / CLOSED).
-fetch events, from: now() - 24h
-| filter event.kind == "DAVIS_PROBLEM"
-| fields timestamp, 
+// Recent detected problems that could trigger workflows — one row per problem.
+// dt.davis.problems holds one record per problem (540 records = 540 distinct event.id over 24 h on a
+// validation tenant, 10/06/2026). `fetch events | filter event.kind == "DAVIS_PROBLEM"` holds one record
+// per problem *update*: its latest 20 rows covered only 2 problems.
+fetch dt.davis.problems, from:-24h
+| fields event.start,
          display_id,
          event.name,
          event.category,
          event.status,
-         affected_entity_ids,
-         root_cause_entity_id
-| sort timestamp desc
+         smartscape.affected_entities,
+         root_cause.smartscape_entity
+| sort event.start desc
 | limit 20
 ```
 
@@ -576,6 +636,10 @@ In this notebook, you learned:
 - [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
 - [Cron expression sandbox (crontab.guru)](https://crontab.guru/)
 - [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification)
+- [Event triggers for workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger)
+- [Workflow schedule trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/schedules)
+- [Ingest business events via API (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources)
+- [Automation client SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/)
 
 ---
 

@@ -1,6 +1,6 @@
 # ALERT-99: Best-Practice Summary and Setup Checklist
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 09/24/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 99 | **Created:** June 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -29,7 +29,7 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 
 1. **OOTB Davis first.** Tune before you build; descend the funnel only when the layer above cannot express the condition.
 2. **One enriched problem is the hub.** Every mechanism converges on a Davis problem; everything downstream operates on it.
-3. **Enrich upstream or you cannot route downstream.** Team/zone/severity belong on the problem before a workflow ever sees it.
+3. **Enrich upstream or you cannot route downstream.** Team/area/severity belong on the problem before a workflow ever sees it.
 4. **Burn-rate beats threshold-on-SLI.** Alert on how fast the budget drains, with multiwindow confirmation.
 5. **Prefer simple workflows.** Pay for multi-step only when you need conditional/multi-team logic.
 6. **Match destination to urgency.** Fast-burn → page; slow-burn → ticket.
@@ -50,10 +50,11 @@ The series on one page: the principles, a complete end-to-end setup checklist, a
 - [ ] Sparse log/event conditions use records-based detectors with a large window and matching delay
 
 **Enrichment**
-- [ ] Detector event templates carry team / zone / service properties
-- [ ] Entity tags and Smartscape ownership populated for OOTB problems
+- [ ] Detector event templates carry team / area / service properties
+- [ ] Primary Grail tags (`primary_tags.*`) set for the routing dimensions — they carry onto the problem, as a deduplicated union across its entities
+- [ ] Entity tags and Smartscape ownership populated for OOTB problems (a workflow reads ownership with the `get_owners` action, which is a second task and so a standard workflow)
 - [ ] `event.severity` used to drive priority, and each event source confirmed to actually *set* it: from SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) Davis events and problems no longer default it to 3, so severity filters and priority mappings need a plan for a missing value (ALERT-04 §5)
-- [ ] Custom detector event templates set `dt.smartscape_source.id` to a real entity ID, so alerts correlate against the thing that broke instead of falling back to the environment entity and merging with unrelated alerts
+- [ ] Custom detector event templates set `dt.smartscape_source.id` to an existing entity ID, as the docs recommend — custom alerts raised without one have been seen attached to the environment entity alone (ALERT-02 §3)
 
 **Routing**
 - [ ] Problem-trigger workflows filter on enriched metadata
@@ -102,7 +103,7 @@ Every FP must trace back to a concrete cause — the analyzer type, the entity s
 | **Runbook link** | An alert with no runbook attached has no possible action |
 | **Owner / area property** | Present, so the alert maps to a team — also catches copy-paste clones that never set it |
 | **Problem age** | A problem open for weeks is not a long incident — it is a misconfigured detector or an entity that no longer exists |
-| **Correlation coverage** | Alerts with no `dt.smartscape_source.id` fall back to the environment entity, so they merge with unrelated alerts into problems with no usable root cause |
+| **Correlation coverage** | Alerts attached to the environment entity alone have nothing more specific to correlate on and collect in large problems. Custom alerts without `dt.smartscape_source.id` are one cause; an integration that reports against the environment is another |
 
 **Remove, do not only tune.** A review that only ever adjusts thresholds accumulates configuration. Each quarter, actively delete:
 
@@ -119,19 +120,19 @@ Every FP must trace back to a concrete cause — the analyzer type, the entity s
 | **Early** (first ~3 months) | Monthly | Top-noise alerts reviewed with the owning team |
 | **Steady state** | Quarterly | Cross-area review; retire detectors silent 90+ days or at a 100% silence rate |
 
-Express these as recurring queries, and pick the data object deliberately — there are **three** surfaces here and they answer different questions. Counts measured over the same 7 days on one tenant, 07/31/2026:
+Express these as recurring queries, and pick the data object deliberately — there are **three** surfaces here and they answer different questions. Counts measured over the same 7 days on one tenant, 10/06/2026:
 
 | Query | Returns | Use it for |
 |---|---:|---|
-| `fetch dt.davis.problems` | 3,318 | **Problem-level signals** — one row per problem. MTTR, severity rollups, problem age. |
-| `fetch dt.davis.events` | 251,833 | **Detector-level noise ranking** — the firing stream (AIOPS-02 §8). |
-| `fetch events \| filter event.kind == "DAVIS_PROBLEM"` | 2,480,783 | The **raw problem-event stream** — many records per problem as its state updates. Valid, but do not count these and call the result "problems": it over-counts by roughly 750× here. |
+| `fetch dt.davis.problems` | 4,246 | **Problem-level signals** — one row per problem. MTTR, severity rollups, problem age. |
+| `fetch dt.davis.events` | 264,272 | **Detector-level noise ranking** — the firing stream (AIOPS-02 §8). |
+| `fetch events \| filter event.kind == "DAVIS_PROBLEM"` | 122,837 | The **raw problem-event stream** — many records per problem as its state updates. Valid, but do not count these and call the result "problems": they cover 4,264 distinct problems, a 29× over-count. The multiplier is not a constant to divide by — on the same tenant it was about 750× on 07/31/2026. |
 
 The trap worth naming: **`fetch dt.davis.events | filter event.kind == "DAVIS_PROBLEM"` returns exactly zero** — `dt.davis.events` carries only `DAVIS_EVENT` (AIOPS-03 §3). That is a filter on the wrong table, not a deprecated form, and it fails silently. The superficially similar `fetch events | filter event.kind == "DAVIS_PROBLEM"` is a different query against a different table and works fine. AIOPS-03 and ORGNZ-10 carry validated problem-feed patterns to build on.
 
 Two of the signals above are worth turning into standing trend queries rather than one-off checks, both built from the two-data-object model in AIOPS-03 §3.
 
-**Denoising ratio (events → problems).** How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging. Read it alongside "Correlation coverage" above rather than as the same signal: poor correlation coverage pushes the ratio the *other* way, since environment-fallback events over-merge. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.
+**Denoising ratio (events → problems).** How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging. Read it alongside "Correlation coverage" above rather than as the same signal: poor correlation coverage pushes the ratio the *other* way. On the tenant above, problems attached only to the environment grouped 8.5 events each, against about one for every other problem (7 days to 10/06/2026). Filter both sides of the ratio on the same event categories, or problems from an excluded category enter the denominator with no events behind them. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.
 
 ```dql
 // Denoising ratio — problem-worthy events divided by resulting problems, trended daily
@@ -141,13 +142,19 @@ Two of the signals above are worth turning into standing trend queries rather th
 // window (or is still open from weeks ago) lands in a day bucket with zero events and
 // reports denoising_ratio = 0. Verified 08/27/2026: without the event.start filter the
 // first 12 rows were all such artifacts, dated back to 2026-06-01.
+//
+// Both streams must also use the SAME categories. Filtering only the events would leave
+// problems opened by excluded categories (custom alerts, for instance) in the denominator
+// with no events behind them, and the ratio would read low. Validated 10/06/2026:
+// 31 daily rows, ratio 1.69-3.65, no notifications.
 fetch dt.davis.events, from:-30d
-| filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN"})
+| filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
 | fieldsAdd kind = "event", day = bin(timestamp, 24h)
 | append [
     fetch dt.davis.problems, from:-30d
     | filter not(dt.davis.is_duplicate)
     | filter event.start >= now() - 30d
+    | filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
     | fieldsAdd kind = "problem", day = bin(event.start, 24h)
   ]
 | summarize {event_count = countIf(kind == "event"), problem_count = countIf(kind == "problem")}, by:{day}
@@ -156,19 +163,39 @@ fetch dt.davis.events, from:-30d
 | sort day asc
 ```
 
-**Correlation coverage.** "Correlation coverage" in the table above names the mechanism: an event with no `dt.smartscape_source.id` is not unattributed but *mis*-attributed, falling back to the environment entity and merging with everything else that did the same (AIOPS-03 §1). Trended directly, it is the share of non-informational Davis events that carry the entity a meaningful chain needs:
+**Correlation coverage.** The share of non-informational Davis events attached to something more specific than the environment entity. The docs ask for `dt.smartscape_source.id` to be an existing entity ID so that the correlation engine can resolve the entity; they do not describe what happens to an event without one. The data shows what to watch: an event attached only to the environment has nothing but the environment to be grouped on, and those events collect in large problems (ALERT-02 §3). Measure the attachment itself, not whether `dt.smartscape_source.id` is present. On the same tenant over 7 days, 88% of events without that field were still attached to a real entity, and one cloud integration's events carried a source yet were attached to the environment alone. Over 30 days to 10/06/2026 the daily share below ranged from 74% to 87%:
 
 ```dql
-// Correlation coverage — share of non-informational Davis events carrying a source-entity reference, trended daily
+// Correlation coverage — share of non-informational Davis events attached to something
+// other than the environment entity alone, trended daily.
+// affected_entity_ids is populated on every Davis event; smartscape.affected_entities was
+// present on fewer than half of them. Validated 10/06/2026: 31 daily values, 73.7-87.3%,
+// no notifications.
 fetch dt.davis.events, from:-30d
 | filter not(in(event.category, {"INFO","WARNING"}))
-| fieldsAdd attributed_flag = if(isNotNull(dt.smartscape_source.id), 100.0, else: 0.0)
-| makeTimeseries correlation_coverage_pct = avg(attributed_flag), interval:1d
+| fieldsAdd env_only = arraySize(affected_entity_ids) == 1 and startsWith(toString(affected_entity_ids[0]), "ENVIRONMENT-")
+| fieldsAdd attributed_flag = if(env_only, 0.0, else: 100.0)
+| makeTimeseries correlation_coverage_pct = avg(attributed_flag), interval:24h
 ```
 
-**Reading the two together.** A falling correlation-coverage trend is a config problem — trace it to the event templates behind it (the Enrichment block of Section 2's checklist). A falling denoising ratio *despite* stable correlation coverage points the other way, at scoping or tuning rather than attribution.
+When the share drops, break the environment-only events down by what produced them:
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting). **Derived:** the audit signals table extends the documented review targets with the correlation-coverage and problem-age checks implied by the correlation-key and long-running-alert guidance; the denoising-ratio and correlation-coverage trend queries apply the two-data-object model (AIOPS-03 §3) and the `dt.smartscape_source.id` correlation key (AIOPS-03 §1) to already-documented fields as standing metrics.</sub>
+```dql
+// What produces the environment-only events? A CUSTOM_* type with no source points at
+// that detector's event template; a built-in provider points at the integration instead.
+// Validated 10/06/2026: 6 rows, no notifications.
+fetch dt.davis.events, from:-30d
+| filter not(in(event.category, {"INFO","WARNING"}))
+| filter arraySize(affected_entity_ids) == 1 and startsWith(toString(affected_entity_ids[0]), "ENVIRONMENT-")
+| fieldsAdd has_source = isNotNull(dt.smartscape_source.id)
+| summarize {events = count(), detectors = countDistinctExact(dt.settings.object_id)}, by:{event.provider, event.type, dt.settings.schema_id, has_source}
+| sort events desc
+| limit 20
+```
+
+**Reading the two together.** When correlation coverage falls, the breakdown above says where to look. A `CUSTOM_*` event type with no source points at that detector's event template (the Enrichment block of Section 2's checklist). A built-in provider whose events land on the environment points at that integration, not at a template you own. A falling denoising ratio *despite* stable correlation coverage points the other way, at scoping or tuning rather than attribution.
+
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string"*; *"The same Smartscape entity rule groups all events that share the same dt.smartscape_source.id field value."* Coverage, breakdown, denoising and over-count figures are tenant measurements run 10/06/2026. **Derived:** the audit signals table extends the documented review targets with the correlation-coverage and problem-age checks implied by the entity-ID and long-running-alert guidance; the denoising-ratio and correlation-coverage trend queries apply the two-data-object model (AIOPS-03 §3) to already-documented fields as standing metrics.</sub>
 
 <a id="map"></a>
 ## 4. Cross-Series Map

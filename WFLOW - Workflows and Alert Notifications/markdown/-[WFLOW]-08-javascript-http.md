@@ -28,8 +28,11 @@ When built-in actions aren't enough, use JavaScript and HTTP requests for custom
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:write` (§11 also needs an API token with `oneAgents.write` stored in the Credential Vault) |
+| **Permissions** | `automation:workflows:write` to author. Each task also needs the scopes its SDK calls use, granted to the workflow under **Settings > Authorization settings** in the Workflows app — for example `automation:workflows:read` for `execution()` and `result()`, `environment-api:credentials:read` for the Credential Vault, `environment-api:entities:read` for entity lookups, `environment-api:problems:write` for problem comments, and the `storage:*:read` scope of each data object a query reads. A missing one fails the task with a 403. §11 also needs an API token with `oneAgents.write` stored in the Credential Vault |
+| **Outbound access** | Every external host added under **Settings > General > External requests**; hosts on a private network also need an EdgeConnect host pattern (§3) |
 | **Prior Knowledge** | **WFLOW-01** through **WFLOW-07**, JavaScript basics |
+
+> <sub>**Sources:** [Workflows security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security) — *"If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error."*</sub>
 
 <a id="javascript-action-basics"></a>
 ## 1. JavaScript Action Basics
@@ -87,10 +90,10 @@ input:
 | Client | Purpose | Import |
 |--------|---------|--------|
 | `queryExecutionClient` | Execute DQL queries | `@dynatrace-sdk/client-query` |
-| `entitiesClient` | Entity CRUD operations | `@dynatrace-sdk/client-classic-environment-v2` |
+| `monitoredEntitiesClient` | Read monitored entities | `@dynatrace-sdk/client-classic-environment-v2` |
 | `problemsClient` | Problem management | `@dynatrace-sdk/client-classic-environment-v2` |
 | `eventsClient` | Event ingestion | `@dynatrace-sdk/client-classic-environment-v2` |
-| `settingsClient` | Settings management | `@dynatrace-sdk/client-classic-environment-v2` |
+| `settingsObjectsClient` | Settings 2.0 objects | `@dynatrace-sdk/client-classic-environment-v2` |
 
 ### Execute DQL Query
 
@@ -138,17 +141,20 @@ The polling loop is bounded by the runtime's own per-action ceiling (§10): a qu
 
 ```javascript
 import { execution } from '@dynatrace-sdk/automation-utils';
-import { entitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
+import { monitoredEntitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
 export default async function () {
   const ev = (await execution()).params.event;
-  const entityId = ev.root_cause_entity_id;
-  
-  const entity = await entitiesClient.getEntity({
+  const entityId = ev.root_cause_entity_id;   // classic entity ID; absent on most problems
+  if (!entityId) {
+    return { skipped: 'problem has no root-cause entity' };
+  }
+
+  const entity = await monitoredEntitiesClient.getEntity({
     entityId: entityId,
     fields: '+properties,+tags'
   });
-  
+
   return {
     name: entity.displayName,
     type: entity.type,
@@ -156,6 +162,10 @@ export default async function () {
   };
 }
 ```
+
+> **Most problems name no root cause.** On the validation tenant over seven days (10/06/2026), 3,348 of 4,241 problems carried neither `root_cause_entity_id` nor its replacement `root_cause.smartscape_entity`, so check the field before you use it. The upgrade guide states that *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities."* `getEntity` takes a classic entity ID; WFLOW-07 §1 has a helper that reads the Smartscape field first and falls back to the classic one.
+
+> <sub>**Sources:** [Upgrade guide: alert notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events."*; [client-classic-environment-v2 SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/).</sub>
 
 ### Add Problem Comment
 
@@ -182,6 +192,12 @@ export default async function () {
 
 <a id="http-request-patterns"></a>
 ## 3. HTTP Request Patterns
+### Allow the Host First
+
+Every host a task calls must be allow-listed. For a script, *"The external endpoint must be added to External requests."* For the HTTP Request action, *"All HTTP calls are validated against the global allowlist."* Add the host under **Settings > General > External requests**. The workflow runs in Dynatrace SaaS, so a host on your private network also needs an EdgeConnect host pattern: *"Any HTTP request (from your app functions, workflows, or ad-hoc functions) that matches a defined host pattern is handled by an EdgeConnect instance"*. The **WFLOW-94 LAB** sets one up.
+
+> <sub>**Sources:** [Run JavaScript action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action), [HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action), [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"Use EdgeConnect to make apps and workflows interact securely with your systems."*</sub>
+
 ### HTTP Request Action
 
 ```yaml
@@ -195,14 +211,14 @@ input:
     Content-Type: "application/json"
   payload: |                # the request body: the action's Payload field
     {
-      "problem_id": "{{ event()['display_id'] }}",
-      "category": "{{ event()['event.category'] }}",
-      "title": "{{ event()['event.name'] }}",
-      "link": "{{ problem_link() }}"
+      "problem_id": {{ event()['display_id'] | to_json }},
+      "category": {{ event()['event.category'] | to_json }},
+      "title": {{ event()['event.name'] | to_json }},
+      "link": {{ problem_link() | to_json }}
     }
 ```
 
-The request body goes in `payload`; the action has no `body` input (*"Payload : The payload of the HTTP request."*). The HTTP Request action docs also say: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication"* ([HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)).
+Each value goes through `to_json`, which *"Converts an object to its JSON representation"*, so a quote or backslash in a problem title cannot break the JSON. The request body goes in `payload`; the action has no `body` input (*"Payload : The payload of the HTTP request."*). The HTTP Request action docs also say: *"We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication"* ([HTTP request action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action)).
 
 ### Using fetch() in JavaScript
 
@@ -244,13 +260,16 @@ import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment
 
 export default async function () {
   const ev = (await execution()).params.event;   // trigger payload
+  if (!ev.root_cause_entity_id) {
+    return { skipped: 'problem has no root-cause entity' };
+  }
   const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
   const params = new URLSearchParams({
     entity_id: ev.root_cause_entity_id,
     from: new Date(Date.now() - 3600000).toISOString(),
     to: new Date().toISOString()
   });
-  
+
   const response = await fetch(
     `https://api.example.com/metrics?${params}`,
     {
@@ -259,7 +278,7 @@ export default async function () {
       }
     }
   );
-  
+
   return await response.json();
 }
 ```
@@ -311,34 +330,32 @@ export default async function () {
 ```javascript
 import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
+// Retries network errors and 5xx responses only. A 4xx fails the same way on every
+// attempt, so it is thrown at once instead of being sent again.
 async function fetchWithRetry(url, options, maxRetries = 3) {
-  let lastError;
-  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let response;
     try {
-      const response = await fetch(url, options);
-      
-      if (response.ok) {
-        return response;
-      }
-      
-      // Retry on 5xx errors
-      if (response.status >= 500 && attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * attempt));
-        continue;
-      }
-      
-      throw new Error(`HTTP ${response.status}`);
-      
+      response = await fetch(url, options);
     } catch (error) {
-      lastError = error;
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * attempt));
-      }
+      // Network error: retry unless this was the last attempt
+      if (attempt === maxRetries) throw error;
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+      continue;
     }
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status >= 500 && attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+      continue;
+    }
+
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
-  
-  throw lastError;
+  throw new Error('fetchWithRetry: maxRetries must be at least 1');
 }
 
 export default async function () {
@@ -350,10 +367,12 @@ export default async function () {
       headers: { 'Authorization': `Bearer ${token}` }
     }
   );
-  
+
   return await response.json();
 }
 ```
+
+Retry a `POST` only if the target treats a repeated request as a no-op. A 5xx can arrive after the target already acted, and the retry then creates the ticket, or runs the remediation, a second time.
 
 <a id="workflow-level-failure-branching"></a>
 ## 5. Workflow-Level Failure Branching
@@ -366,15 +385,21 @@ The mechanism is the task **`conditions`** block. Each task can declare which pr
 
 Every task chained from a predecessor selects a state condition. The five values exposed in the workflow editor are:
 
-| State condition | Run task when predecessor… |
-|---|---|
-| `success or skipped` | …succeeded **or** was skipped by upstream branching (default) |
-| `success` | …succeeded only |
-| `error or cancelled` | …failed **or** was cancelled |
-| `error` | …failed only — use for on-failure tasks |
-| `any` | …finished with any outcome |
+| State condition (editor) | Value in YAML / API | Run task when predecessor… |
+|---|---|---|
+| `success or skipped` | `OK` | …succeeded **or** was skipped by upstream branching (default) |
+| `success` | `SUCCESS` | …succeeded only |
+| `error or cancelled` | `NOK` | …failed **or** was cancelled |
+| `error` | `ERROR` | …failed only — use for on-failure tasks |
+| `any` | `ANY` | …finished with any outcome |
 
-> <sub>**Sources:** [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — the page lists the five state-condition options verbatim and shows reading them as a sentence ("Run this task if &lt;predecessor&gt; ended with &lt;state&gt;").</sub>
+The Automation API accepts exactly the five values `SUCCESS`, `ERROR`, `ANY`, `OK` and `NOK`, and `else` takes `SKIP` or `STOP`. The pairing with the editor labels follows their names and the Dynatrace workflow samples, which annotate `previous_task: OK` as *"Wait for previous_task to complete successfully"*.
+
+### A task waits for all of its predecessors
+
+State conditions on several predecessors are combined with AND: *"The custom condition of a task is only checked if all the predecessor tasks are finished and fulfilled their state condition."* A failure task with several predecessors in a chain therefore never fires. If the first task fails, the later ones never run, so their conditions are never met. Give each step its own failure task with a single predecessor, which is the pattern the docs use: *"This task will only run if the run_tests task ends with an error."*
+
+> <sub>**Sources:** [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — the page lists the five state-condition options verbatim and shows reading them as a sentence ("Run this task if &lt;predecessor&gt; ended with &lt;state&gt;"); [client-automation SDK — TaskConditionOptionStates (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/); [Dynatrace workflow samples (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md).</sub>
 
 ### "Else" behaviour
 
@@ -393,59 +418,62 @@ For checks beyond predecessor state — inspecting a field on a prior task's res
 
 The `result("task_name")` function returns the result object of a previously executed task; `event()` and `execution()` are also available. See [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference) for the full expression catalog.
 
-### Illustrative task YAML
+### Task YAML
 
-The shape below illustrates the conceptual structure of a failure-branching task. **Verify the exact YAML keys and casing in your tenant** — workflows are most commonly authored in the editor UI, and the on-disk YAML schema can drift between releases:
+The shape below is the exported workflow format: `tasks` is a map keyed by task name, and each task's `conditions` holds `states`, an optional `custom` expression and `else`. If you generate workflows programmatically, export one you built in the editor and compare.
 
 ```yaml
-# Predecessor: a DQL query → JS transform chain
-notify_failure:
-  action: dynatrace.automations:run-javascript
-  description: Notify on-call when any preceding task fails
-  predecessors:
-    - fetch_problem_data
-    - transform_payload
-    - post_to_webhook
-  conditions:
-    states:
-      fetch_problem_data: error or cancelled
-      transform_payload: error or cancelled
-      post_to_webhook: error or cancelled
-    custom: ""
-  input:
-    script: |
-      export default async function () {
-        return { posted_failure_notice: true };
-      }
-```
+tasks:
+  transform_payload:
+    name: transform_payload
+    action: dynatrace.automations:run-javascript
+    predecessors:
+      - fetch_errors
+    conditions:
+      states:
+        fetch_errors: SUCCESS
+    input:
+      script: |
+        // ... transform the query result
 
-> <sub>The literal keys `states` / `custom` and the string values shown reflect the field names surfaced by the docs assistant and community examples — they may differ in casing or nesting in the exported workflow JSON. If you are generating workflows programmatically, export a workflow you built in the UI and use that shape as the source of truth.</sub>
+  notify_fetch_failed:
+    name: notify_fetch_failed
+    action: dynatrace.automations:run-javascript
+    description: Notify on-call when fetch_errors fails
+    predecessors:
+      - fetch_errors
+    conditions:
+      states:
+        fetch_errors: NOK
+      else: SKIP
+    input:
+      script: |
+        export default async function () {
+          return { posted_failure_notice: 'fetch_errors' };
+        }
+
+  # notify_transform_failed and notify_post_failed have the same shape, each with a
+  # single predecessor (transform_payload, post_to_webhook) set to NOK
+```
 
 ### Worked example — DQL → JS → webhook with a failure-notify branch
 
 A common shape: query data, transform it, send it somewhere, and send a separate notice if any step fails.
 
-```
-fetch_errors (DQL)
-        │
-        ▼
-transform_payload (JS)
-        │
-        ▼
-post_to_webhook (HTTP)        notify_failure (JS or HTTP)
-        │                       ▲   (runs only when any of
-        ▼                       │    the three predecessors
-   workflow ends                │    end with error)
-                                │
-        └───────────────────────┘
-```
+| Task | Type | Predecessor | State condition | Else |
+|---|---|---|---|---|
+| `fetch_errors` | DQL query | — (first task) | — | — |
+| `transform_payload` | JavaScript | `fetch_errors` | `SUCCESS` | Stop (default) |
+| `post_to_webhook` | HTTP request | `transform_payload` | `SUCCESS` | Stop (default) |
+| `notify_fetch_failed` | JavaScript or HTTP | `fetch_errors` | `NOK` | Skip |
+| `notify_transform_failed` | JavaScript or HTTP | `transform_payload` | `NOK` | Skip |
+| `notify_post_failed` | JavaScript or HTTP | `post_to_webhook` | `NOK` | Skip |
 
-- **`fetch_errors`** runs a DQL query against logs/spans.
-- **`transform_payload`** is a JavaScript task with predecessor `fetch_errors`, condition `states: { fetch_errors: success }`. If the query failed, this task does not run.
-- **`post_to_webhook`** is an HTTP task with predecessor `transform_payload`, condition `states: { transform_payload: success }`.
-- **`notify_failure`** has all three as predecessors with `states: <predecessor>: error or cancelled` and an **else: Skip**. It runs only when at least one upstream task ends with an error.
+- **`fetch_errors`** runs a DQL query against logs or spans.
+- **`transform_payload`** runs only if the query succeeded; **`post_to_webhook`** runs only if the transform succeeded.
+- **Each `notify_*_failed` task** watches one step. Whichever step fails, its own failure task runs; the others do not. A single notify task with all three steps as predecessors would never run: when `fetch_errors` fails, the other two never run, so their conditions are never met.
 
-In community practice, the failure-notify branch is kept narrowly scoped — a single notification or a quick cleanup — rather than a parallel happy-path. If recovery logic itself can fail, give it its own `notify_failure` predecessor as well.
+In community practice, the failure-notify branch is kept narrowly scoped — a single notification or a quick cleanup — rather than a parallel happy-path. If recovery logic itself can fail, give it its own failure task as well.
 
 ### Decision guidance — JS try/catch vs workflow-level branching
 
@@ -462,8 +490,8 @@ The two patterns compose. A JS task can `try/catch` its own recoverable errors a
 
 ### Related notebooks
 
-- **WFLOW-07: Auto-Remediation** — remediation tasks are the canonical use case for `error` / `error or cancelled` conditions. A diagnose task runs; a remediation task runs only on `error`; a verify task confirms the remediation; a notify task runs on `error or cancelled` of either remediation or verify.
-- **WFLOW-05: Incident Management** — PagerDuty/ServiceNow tasks are commonly chained as on-failure branches off a primary workflow — incident creation runs only if the primary path errored out.
+- **WFLOW-07: Problem-Triggered Remediation** — remediation is a common use for failure conditions. A diagnose task runs; the remediation task runs only if the diagnosis succeeded; a verify task confirms the remediation; and the remediation and verify tasks each get their own failure task set to `NOK`.
+- **WFLOW-05: PagerDuty & ServiceNow Integration** — PagerDuty/ServiceNow tasks are commonly chained as on-failure branches off a primary workflow — incident creation runs only if the primary path errored out.
 
 > <sub>**Sources:** [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — *"Stop means no more tasks are executed on this branch of the workflow graph."*, [Workflow reference / Jinja expressions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference).</sub>
 
@@ -471,36 +499,39 @@ The two patterns compose. A JS task can `try/catch` its own recoverable errors a
 ## 6. Working with Data
 ### Transform DQL Results
 
+Group errors by service on spans, not logs. On the validation tenant (10/06/2026), `dt.service.name` was set on every span in a 15-minute sample and on none of 116,843 error logs in an hour; `dt.entity.service` was on 236 of them. Error logs group by `dt.source_entity` or `dt.entity.host` instead.
+
 ```javascript
 import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 
 // runQuery() as defined in §2
 
 export default async function () {
+  // Failed spans carry the service name; most error logs do not
   const records = await runQuery(`
-    fetch logs, from: now() - 1h
-    | filter status == "ERROR"
-    | fields timestamp, content, dt.entity.service
+    fetch spans, from: now() - 1h
+    | filter span.status_code == "error"
+    | fields start_time, dt.service.name, span.name
     | limit 100
   `);
 
   // Group by service
-  const byService = records.reduce((acc, log) => {
-    const service = log['dt.entity.service'] || 'unknown';
+  const byService = records.reduce((acc, span) => {
+    const service = span['dt.service.name'] || 'unknown';
     if (!acc[service]) {
       acc[service] = [];
     }
-    acc[service].push(log.content);
+    acc[service].push(span['span.name']);
     return acc;
   }, {});
-  
+
   // Create summary
-  const summary = Object.entries(byService).map(([service, logs]) => ({
+  const summary = Object.entries(byService).map(([service, spans]) => ({
     service,
-    error_count: logs.length,
-    sample: logs[0]
+    error_count: spans.length,
+    sample: spans[0]
   }));
-  
+
   return {
     total_errors: records.length,
     by_service: summary
@@ -515,19 +546,24 @@ import { execution } from '@dynatrace-sdk/automation-utils';
 
 export default async function () {
   const ev = (await execution()).params.event;   // trigger payload
-  const tags = ev.entity_tags || [];   // "key:value" strings
-  
-  // Parse key:value tags
+  // "key:value" strings. entity_tags is deprecated in favor of primary_tags.*;
+  // it may arrive as an array or as a JSON string.
+  let tags = ev.entity_tags || [];
+  if (typeof tags === 'string') {
+    try { tags = JSON.parse(tags); } catch { tags = [tags]; }
+  }
+
+  // Parse key:value tags (split on the first colon only)
   const tagMap = tags.reduce((acc, tag) => {
-    if (tag.includes(':')) {
-      const [key, value] = tag.split(':');
-      acc[key] = value;
+    const i = tag.indexOf(':');
+    if (i > 0) {
+      acc[tag.slice(0, i)] = tag.slice(i + 1);
     } else {
       acc[tag] = true;
     }
     return acc;
   }, {});
-  
+
   return {
     team: tagMap['team'] || 'unknown',
     env: tagMap['env'] || 'unknown',
@@ -545,7 +581,10 @@ import { queryExecutionClient } from '@dynatrace-sdk/client-query';
 export default async function () {
   const ev = (await execution()).params.event;
   const entityId = ev.root_cause_entity_id;
-  
+  if (!entityId) {
+    return { entity_type: null, errors: null, skipped: 'problem has no root-cause entity' };
+  }
+
   // Build query based on entity type
   let query;
   if (entityId.startsWith('SERVICE-')) {
@@ -614,14 +653,14 @@ name: fetch_errors
 action: dynatrace.automations:execute-dql-query
 input:
   query: |
-    fetch logs, from: now() - 15m
-    | filter status == "ERROR"
-    | summarize error_count = count(), by: { dt.entity.service }
+    fetch spans, from: now() - 15m
+    | filter span.status_code == "error"
+    | summarize error_count = count(), by: { dt.service.name }
     | sort error_count desc
     | limit 5
 ```
 
-Result shape: `{ records: [ { "dt.entity.service": "SERVICE-...", error_count: 42 }, ... ] }`
+Result shape: `{ records: [ { "dt.service.name": "checkout", error_count: 42 }, ... ] }`
 
 **Task 2 — `transform` (JavaScript), reads `fetch_errors`:**
 
@@ -633,35 +672,41 @@ export default async function () {
   const rows = upstream.records ?? [];
 
   if (rows.length === 0) {
-    return { has_errors: false, summary: 'No errors in the last 15 minutes.' };
+    return { has_errors: false, summary: 'No failed requests in the last 15 minutes.' };
   }
 
   const top = rows[0];
   const summary_lines = rows.map(
-    (r) => `- ${r['dt.entity.service']}: ${r.error_count} errors`
+    (r) => `- ${r['dt.service.name']}: ${r.error_count} errors`
   );
 
   return {
     has_errors: true,
-    top_service: top['dt.entity.service'],
+    top_service: top['dt.service.name'],
     top_count: top.error_count,
     affected_count: rows.length,
-    summary: `Top offender: ${top['dt.entity.service']} (${top.error_count} errors)`,
+    summary: `Top offender: ${top['dt.service.name']} (${top.error_count} errors)`,
     summary_lines,
   };
 }
 ```
 
-Result shape: `{ has_errors: true, top_service: "SERVICE-...", top_count: 42, affected_count: 3, summary: "...", summary_lines: [...] }`
+Result shape: `{ has_errors: true, top_service: "checkout", top_count: 42, affected_count: 3, summary: "...", summary_lines: [...] }`
 
 **Task 3 — `notify_slack` (Slack message), reads `transform`:**
 
 ```yaml
 name: notify_slack
 action: dynatrace.slack:slack-send-message
+predecessors:
+  - transform
 conditions:
+  states:
+    transform: SUCCESS
   custom: '{{ result("transform").has_errors }}'
+  else: SKIP
 input:
+  connection: slack-production      # the Slack connection ID
   channel: "#sre-alerts"
   message: |
     *Error spike detected*
@@ -672,7 +717,9 @@ input:
     {% endfor %}
 ```
 
-The `conditions.custom` Jinja expression gates the notification: if `transform` returned `has_errors: false`, this task is skipped.
+The `conditions.custom` Jinja expression gates the notification: if `transform` returned `has_errors: false`, this task is skipped. Both settings matter. Without the `transform` predecessor, the task runs straight after the trigger, before `transform` has a result; without `else: SKIP`, an unmet condition stops the branch instead (Stop is the default). The Slack action's `connection` input is required.
+
+> <sub>**Sources:** [Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build) — *"As a direct successor of the trigger, no task can define a state condition to a predecessor, as none exists."*; [Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions).</sub>
 
 ### 7.4. Object passing — arrays, nested objects, flatten vs nested
 
@@ -751,14 +798,12 @@ export default async function () {
       body: JSON.stringify({
         title: `[Dynatrace] ${ev['event.name']}`,
         body: `
-<a id="problem-details"></a>
 ## Problem Details
 - **Problem ID:** ${ev.display_id}
 - **Category:** ${ev['event.category']}
 - **Started:** ${ev['event.start']}
 - **Link:** [View in Dynatrace](${problemUrl})
 
-<a id="affected-entities"></a>
 ## Affected Entities
 ${ev.affected_entity_ids.map(e => `- ${e}`).join('\n')}
         `,
@@ -846,7 +891,8 @@ import { execution } from '@dynatrace-sdk/automation-utils';
 export default async function () {
   const entityIds = (await execution()).params.event.affected_entity_ids;
   
-  // Execute all lookups in parallel
+  // Execute all lookups in parallel.
+  // placeholder: getEntityDetails() is yours, e.g. a monitoredEntitiesClient.getEntity() call (§2)
   const results = await Promise.all(
     entityIds.map(id => getEntityDetails(id))
   );
@@ -904,7 +950,8 @@ Waiting is a task option, not a separate action. **Wait before** (`waitBefore`) 
 
 ```yaml
 tasks:
-  - name: query_errors
+  query_errors:
+    name: query_errors
     description: Count error logs in the last hour
     action: dynatrace.automations:execute-dql-query
     timeout: 180   # task timeout, seconds — caps the whole task
@@ -922,7 +969,8 @@ tasks:
 
 ```yaml
 tasks:
-  - name: enrich_problem
+  enrich_problem:
+    name: enrich_problem
     action: dynatrace.automations:run-javascript
     timeout: 300   # task timeout, seconds
     input:
@@ -960,15 +1008,17 @@ Approval tasks intentionally wait for a human signal, so their timeouts are long
 
 ```yaml
 tasks:
-  - name: wait_for_approval
+  wait_for_approval:
+    name: wait_for_approval
     action: dynatrace.slack:request-approval
     timeout: 1800        # the approval window: 30 minutes, in seconds
     input:
       connection: slack-production
       channel: "#approvals"
-      message: "Approve restarting {{ event()['root_cause_entity_id'] }}?"
+      message: "Approve restarting {{ event().get('root_cause_entity_id', 'the affected component') }}?"
 
-  - name: recheck_problem
+  recheck_problem:
+    name: recheck_problem
     action: dynatrace.automations:run-javascript
     waitBefore: 900      # stay waiting 15 minutes before running; max 86400
     input:
@@ -1027,8 +1077,8 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// An empty result here is the HEALTHY answer: on the validation tenant http-function ran 49
-// times over 7 days with 0 ERROR states. Rows appearing means real HTTP task failures.
+// An empty result here is the HEALTHY answer: on the validation tenant (10/06/2026) http-function
+// ran 70 times in 7 days, all SUCCESS. Rows appearing means real HTTP task failures.
 // HTTP request task errors
 // Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
 // `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
@@ -1091,9 +1141,9 @@ With custom integrations ready, learn governance:
 
 - **JavaScript actions** enable custom logic
 - **Dynatrace SDK** provides typed API access
-- **HTTP requests** integrate any REST API
+- **HTTP requests** integrate any REST API whose host is in External requests (and behind EdgeConnect when private)
 - **Error handling** is critical for reliability — inside a task use `try/catch`; between tasks use the workflow `conditions` block
-- **On-failure branches** use `error` / `error or cancelled` state conditions to route around dead tasks
+- **On-failure branches** use `error` / `error or cancelled` state conditions (`ERROR` / `NOK` in YAML), one failure task per step
 - **Performance** matters - limit query scope, use parallelism
 - **Bulk host operations** combine an enrichment query with a `withItems` loop over the Remote Configuration Management API — introduced in §11, full hands-on build in the **WFLOW-95 LAB**
 

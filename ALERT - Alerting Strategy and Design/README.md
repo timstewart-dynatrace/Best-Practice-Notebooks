@@ -13,7 +13,7 @@ End-to-end alerting strategy and design for Dynatrace — detection, routing, re
 1. [End-to-End Alerting Architecture](markdown/-[ALERT]-01-end-to-end-architecture.md) — The whole alerting board on one canvas: what to set up, where, and how detection, routing, and reliability connect end to end
 2. [Choosing and Building Detection](markdown/-[ALERT]-02-choosing-and-building-detection.md) — Decision framework for the four detection mechanisms — which to use for which signal, and the anti-patterns that cause noise
 3. [Routing, Destinations, and Cost](markdown/-[ALERT]-03-routing-destinations-cost.md) — Simple vs multi-step workflow routing, the destination landscape, the legacy alerting-profile path, and cost discipline
-4. [ITSM Integration: ServiceNow](markdown/-[ALERT]-04-servicenow-integration.md) — Integration maturity ladder from one-way incident creation to bi-directional sync, with the worked ServiceNow Table API path
+4. [ITSM Integration: ServiceNow](markdown/-[ALERT]-04-servicenow-integration.md) — Integration maturity ladder from one-way incident creation to ServiceNow-side event management, with the worked ServiceNow Table API path
 99. [Best-Practice Summary and Setup Checklist](markdown/-[ALERT]-99-best-practice-summary.md) — The series on one page: principles, a complete end-to-end setup checklist, and the cross-series build map
 
 ## Usage

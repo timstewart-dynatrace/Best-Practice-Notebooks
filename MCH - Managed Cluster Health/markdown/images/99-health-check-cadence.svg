@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">A Health-Check Cadence for a Managed Cluster</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">This series' suggested rhythm — built from the documented signals, not a Dynatrace requirement</text>
+
+  <rect x="30" y="80" width="210" height="364" fill="#DE350B" opacity="0.08" stroke="#DE350B" stroke-width="1.5" rx="8"/>
+  <text x="135" y="108" text-anchor="middle" fill="#FCA5A5" font-size="16" font-weight="700">Daily</text>
+  <text x="44" y="138" fill="#FCA5A5" font-size="12">•</text>
+  <text x="56" y="138" fill="#F8FAFC" font-size="11.5">Read the alert mailbox</text>
+  <text x="44" y="168" fill="#FCA5A5" font-size="12">•</text>
+  <text x="56" y="168" fill="#F8FAFC" font-size="11.5">CMC Events: SEVERE items</text>
+  <text x="56" y="184" fill="#CBD5E1" font-size="11.5">that never email — backups,</text>
+  <text x="56" y="200" fill="#CBD5E1" font-size="11.5">certificates, traffic control,</text>
+  <text x="56" y="216" fill="#CBD5E1" font-size="11.5">heap emergency</text>
+  <text x="44" y="246" fill="#FCA5A5" font-size="12">•</text>
+  <text x="56" y="246" fill="#F8FAFC" font-size="11.5">External node poll</text>
+  <text x="56" y="262" fill="#CBD5E1" font-size="11.5">(operationState), continuous</text>
+  <rect x="250" y="80" width="210" height="364" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="355" y="108" text-anchor="middle" fill="#FCD34D" font-size="16" font-weight="700">Weekly</text>
+  <text x="264" y="138" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="138" fill="#F8FAFC" font-size="11.5">dynatrace.sh status / check</text>
+  <text x="276" y="154" fill="#CBD5E1" font-size="11.5">on every node</text>
+  <text x="264" y="184" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="184" fill="#F8FAFC" font-size="11.5">nodetool status and</text>
+  <text x="276" y="200" fill="#CBD5E1" font-size="11.5">_cluster/health</text>
+  <text x="264" y="230" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="230" fill="#F8FAFC" font-size="11.5">du per store vs its ceiling</text>
+  <text x="264" y="260" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="260" fill="#F8FAFC" font-size="11.5">CMC Home: Last backup</text>
+  <text x="264" y="290" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="290" fill="#F8FAFC" font-size="11.5">ActiveGates: Unknown or</text>
+  <text x="276" y="306" fill="#CBD5E1" font-size="11.5">out of date</text>
+  <text x="264" y="336" fill="#FCD34D" font-size="12">•</text>
+  <text x="276" y="336" fill="#F8FAFC" font-size="11.5">ALR episodes, dsfm throughput</text>
+  <rect x="470" y="80" width="210" height="364" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="575" y="108" text-anchor="middle" fill="#BFDBFE" font-size="16" font-weight="700">Monthly</text>
+  <text x="484" y="138" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="138" fill="#F8FAFC" font-size="11.5">Installed vs supported version</text>
+  <text x="484" y="168" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="168" fill="#F8FAFC" font-size="11.5">Load vs one-third headroom</text>
+  <text x="484" y="198" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="198" fill="#F8FAFC" font-size="11.5">Retention audit: sessions,</text>
+  <text x="496" y="214" fill="#CBD5E1" font-size="11.5">custom log retention</text>
+  <text x="484" y="244" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="244" fill="#F8FAFC" font-size="11.5">Certificate expiry dates</text>
+  <text x="484" y="274" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="274" fill="#F8FAFC" font-size="11.5">Remote-access scope</text>
+  <text x="484" y="304" fill="#BFDBFE" font-size="12">•</text>
+  <text x="496" y="304" fill="#F8FAFC" font-size="11.5">Restore kit still current</text>
+  <rect x="690" y="80" width="210" height="364" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="795" y="108" text-anchor="middle" fill="#86EFAC" font-size="16" font-weight="700">After every change</text>
+  <text x="704" y="138" fill="#86EFAC" font-size="12">•</text>
+  <text x="716" y="138" fill="#F8FAFC" font-size="11.5">Hardware: ingest limit,</text>
+  <text x="716" y="154" fill="#CBD5E1" font-size="11.5">load balancer, DNS</text>
+  <text x="704" y="184" fill="#86EFAC" font-size="12">•</text>
+  <text x="716" y="184" fill="#F8FAFC" font-size="11.5">Node added: cleanup after</text>
+  <text x="716" y="200" fill="#CBD5E1" font-size="11.5">the last one; web UI role</text>
+  <text x="704" y="230" fill="#86EFAC" font-size="12">•</text>
+  <text x="716" y="230" fill="#F8FAFC" font-size="11.5">Node removed: 24 h gap,</text>
+  <text x="716" y="246" fill="#CBD5E1" font-size="11.5">headroom re-checked</text>
+  <text x="704" y="276" fill="#86EFAC" font-size="12">•</text>
+  <text x="716" y="276" fill="#F8FAFC" font-size="11.5">Upgrade: 24 h waits; same</text>
+  <text x="716" y="292" fill="#CBD5E1" font-size="11.5">buildVersion on every node</text>
+  <text x="704" y="322" fill="#86EFAC" font-size="12">•</text>
+  <text x="716" y="322" fill="#F8FAFC" font-size="11.5">Proxy or firewall: check</text>
+  <text x="716" y="338" fill="#CBD5E1" font-size="11.5">the Mission Control link</text>
+  <line x1="40" y1="462" x2="890" y2="462" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="484" text-anchor="middle" fill="#64748B" font-size="10">Each item maps to a documented signal or rule in MCH-01 to MCH-07; the grouping into a cadence is this series' recommendation</text>
+</svg>

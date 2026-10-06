@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">The Five Layers of Managed Cluster Health</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">Check them bottom-up — a failure in a lower layer can surface as symptoms in the layers above it</text>
+  <text x="120" y="88" text-anchor="middle" fill="#64748B" font-size="11" font-weight="700">LAYER</text>
+  <text x="440" y="88" text-anchor="middle" fill="#64748B" font-size="11" font-weight="700">THE QUESTION · WHAT TELLS YOU</text>
+  <text x="840" y="88" text-anchor="middle" fill="#64748B" font-size="11" font-weight="700">DEEP DIVE</text>
+
+  <rect x="30" y="98" width="870" height="64" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="50" y="136" fill="#A5F3FC" font-size="20" font-weight="700">5</text>
+  <text x="76" y="136" fill="#A5F3FC" font-size="15" font-weight="700">Lifecycle</text>
+  <text x="250" y="125" fill="#F8FAFC" font-size="12">Are backups succeeding and the version still supported?</text>
+  <text x="250" y="145" fill="#94A3B8" font-size="11">Cassandra / Elasticsearch backup problem · last backup · release table</text>
+  <rect x="780" y="115" width="110" height="30" fill="#1E293B" stroke="#22D3EE" rx="6"/>
+  <text x="835" y="135" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">MCH-07</text>
+
+  <rect x="30" y="172" width="870" height="64" fill="#FFB800" opacity="0.08" stroke="#FFB800" stroke-width="1.5" rx="8"/>
+  <text x="50" y="210" fill="#FCD34D" font-size="20" font-weight="700">4</text>
+  <text x="76" y="210" fill="#FCD34D" font-size="15" font-weight="700">Connectivity</text>
+  <text x="250" y="199" fill="#F8FAFC" font-size="12">Can agents reach nodes, and nodes reach Mission Control?</text>
+  <text x="250" y="219" fill="#94A3B8" font-size="11">Lack of connection to Mission Control · node can't receive traffic</text>
+  <rect x="780" y="189" width="110" height="30" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="835" y="209" text-anchor="middle" fill="#FCD34D" font-size="12" font-weight="700">MCH-05</text>
+
+  <rect x="30" y="246" width="870" height="64" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="50" y="284" fill="#DDD6FE" font-size="20" font-weight="700">3</text>
+  <text x="76" y="284" fill="#DDD6FE" font-size="15" font-weight="700">Capacity</text>
+  <text x="250" y="273" fill="#F8FAFC" font-size="12">Can the cluster keep up — with one node gone?</text>
+  <text x="250" y="293" fill="#94A3B8" font-size="11">Adaptive Load Reduction · memory emergency · Cluster health dashboard</text>
+  <rect x="780" y="263" width="110" height="30" fill="#1E293B" stroke="#A78BFA" rx="6"/>
+  <text x="835" y="283" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">MCH-06</text>
+
+  <rect x="30" y="320" width="870" height="64" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="50" y="358" fill="#86EFAC" font-size="20" font-weight="700">2</text>
+  <text x="76" y="358" fill="#86EFAC" font-size="15" font-weight="700">Storage</text>
+  <text x="250" y="347" fill="#F8FAFC" font-size="12">Is every store healthy, within size, with free disk?</text>
+  <text x="250" y="367" fill="#94A3B8" font-size="11">Insufficient disk space · metrics > 2 TB · retention truncation</text>
+  <rect x="780" y="337" width="110" height="30" fill="#1E293B" stroke="#73BE28" rx="6"/>
+  <text x="835" y="357" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">MCH-03 / 04</text>
+
+  <rect x="30" y="394" width="870" height="64" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="50" y="432" fill="#BFDBFE" font-size="20" font-weight="700">1</text>
+  <text x="76" y="432" fill="#BFDBFE" font-size="15" font-weight="700">Node and process</text>
+  <text x="250" y="421" fill="#F8FAFC" font-size="12">Are all nodes up, and all services on each node running?</text>
+  <text x="250" y="441" fill="#94A3B8" font-size="11">CMC Deployment status · Node is down event · onpremise/cluster API</text>
+  <rect x="780" y="411" width="110" height="30" fill="#1E293B" stroke="#1496FF" rx="6"/>
+  <text x="835" y="431" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">MCH-02</text>
+  <line x1="40" y1="478" x2="890" y2="478" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="494" text-anchor="middle" fill="#64748B" font-size="10">Signals are the documented cluster event notifications and CMC views; the layering is this series' model, not a Dynatrace construct</text>
+</svg>

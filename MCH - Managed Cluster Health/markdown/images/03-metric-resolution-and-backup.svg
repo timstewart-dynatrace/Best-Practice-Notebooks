@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="36" text-anchor="middle" fill="#F8FAFC" font-size="22" font-weight="700">Metric Resolution by Age — and What a Backup Restores</text>
+  <text x="465" y="58" text-anchor="middle" fill="#94A3B8" font-size="13">Metrics are kept 5 years; the finer the resolution, the shorter it lasts — and the less of it a restore brings back</text>
+  <text x="30" y="100" fill="#F8FAFC" font-size="15" font-weight="700">Data age →</text>
+
+  <rect x="30" y="114" width="140" height="86" fill="#1496FF" opacity="0.08" stroke="#1496FF" stroke-width="1.5" rx="8"/>
+  <text x="100" y="142" text-anchor="middle" fill="#BFDBFE" font-size="14" font-weight="700">0–14 days</text>
+  <text x="100" y="168" text-anchor="middle" fill="#F8FAFC" font-size="13">1 minute</text>
+  <text x="100" y="188" text-anchor="middle" fill="#94A3B8" font-size="11">query resolution</text>
+  <rect x="190" y="114" width="140" height="86" fill="#22D3EE" opacity="0.08" stroke="#22D3EE" stroke-width="1.5" rx="8"/>
+  <text x="260" y="142" text-anchor="middle" fill="#A5F3FC" font-size="14" font-weight="700">14–28 days</text>
+  <text x="260" y="168" text-anchor="middle" fill="#F8FAFC" font-size="13">5 minutes</text>
+  <text x="260" y="188" text-anchor="middle" fill="#94A3B8" font-size="11">query resolution</text>
+  <rect x="350" y="114" width="240" height="86" fill="#A78BFA" opacity="0.08" stroke="#A78BFA" stroke-width="1.5" rx="8"/>
+  <text x="470" y="142" text-anchor="middle" fill="#DDD6FE" font-size="14" font-weight="700">28–400 days</text>
+  <text x="470" y="168" text-anchor="middle" fill="#F8FAFC" font-size="13">1 hour</text>
+  <text x="470" y="188" text-anchor="middle" fill="#94A3B8" font-size="11">query resolution</text>
+  <rect x="610" y="114" width="280" height="86" fill="#73BE28" opacity="0.08" stroke="#73BE28" stroke-width="1.5" rx="8"/>
+  <text x="750" y="142" text-anchor="middle" fill="#86EFAC" font-size="14" font-weight="700">400 days – 5 years</text>
+  <text x="750" y="168" text-anchor="middle" fill="#F8FAFC" font-size="13">1 day</text>
+  <text x="750" y="188" text-anchor="middle" fill="#94A3B8" font-size="11">query resolution</text>
+  <text x="30" y="236" fill="#F8FAFC" font-size="15" font-weight="700">In the daily Cassandra backup?</text>
+  <rect x="30" y="250" width="310" height="70" fill="#1E293B" stroke="#DE350B" rx="6"/>
+  <text x="185" y="278" text-anchor="middle" fill="#FCA5A5" font-size="13" font-weight="700">No — excluded</text>
+  <text x="185" y="300" text-anchor="middle" fill="#94A3B8" font-size="11">1-minute and 5-minute resolution data</text>
+  <rect x="350" y="250" width="550" height="70" fill="#1E293B" stroke="#FFB800" rx="6"/>
+  <text x="625" y="278" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">Partly</text>
+  <text x="625" y="300" text-anchor="middle" fill="#94A3B8" font-size="11">the most frequently changing column families (~80% of storage) are excluded as well</text>
+
+  <text x="30" y="358" fill="#F8FAFC" font-size="15" font-weight="700">What that means</text>
+  <rect x="30" y="372" width="280" height="84" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="170" y="398" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">After a restore</text>
+  <text x="170" y="418" text-anchor="middle" fill="#94A3B8" font-size="11">the 1-minute and 5-minute detail</text>
+  <text x="170" y="434" text-anchor="middle" fill="#94A3B8" font-size="11">of the last 28 days is not restored</text>
+  <rect x="325" y="372" width="280" height="84" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="465" y="398" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">No retention knob</text>
+  <text x="465" y="418" text-anchor="middle" fill="#94A3B8" font-size="11">5-year metric retention has no documented</text>
+  <text x="465" y="434" text-anchor="middle" fill="#94A3B8" font-size="11">setting; adaptive retention skips metrics</text>
+  <rect x="620" y="372" width="280" height="84" fill="#1E293B" stroke="#334155" rx="6"/>
+  <text x="760" y="398" text-anchor="middle" fill="#F8FAFC" font-size="12" font-weight="700">Growth is managed by nodes</text>
+  <text x="760" y="418" text-anchor="middle" fill="#94A3B8" font-size="11">the documented remedy for a large store</text>
+  <text x="760" y="434" text-anchor="middle" fill="#94A3B8" font-size="11">is another node, or fewer metrics</text>
+
+  <line x1="40" y1="474" x2="890" y2="474" stroke="#334155" stroke-width="1"/>
+  <text x="465" y="492" text-anchor="middle" fill="#64748B" font-size="10">Tier widths are not to scale. Source: Data retention periods; Backup and restore a cluster; Hardware requirements (DT docs, read 09/28/2026)</text>
+</svg>

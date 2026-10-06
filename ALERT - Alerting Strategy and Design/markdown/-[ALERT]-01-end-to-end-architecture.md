@@ -1,6 +1,6 @@
 # ALERT-01: End-to-End Alerting Architecture
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 01 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -24,7 +24,7 @@ This is the doorway for the ALERT series. It does not re-document mechanics; it 
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS Gen3 with Grail, the Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 3), the SLO app, and AutomationEngine (Workflows) |
+| **Dynatrace Environment** | SaaS Gen3 with Grail, **Settings** for custom alerts (the Anomaly Detection app before SaaS 1.344 — § 3), the SLO app, and AutomationEngine (Workflows) |
 | **Audience** | Platform owners and SREs standing up alerting for the first time, or rationalising an ad-hoc setup |
 | **Companion series** | AIOPS (detection), SLO (reliability targets), WFLOW (routing) |
 
@@ -38,11 +38,11 @@ Every Dynatrace alert, regardless of source, follows the same spine: **telemetry
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Layer | Pieces | Where configured |
 |-------|--------|------------------|
-| Detect | OOTB Davis · anomaly detector · OpenPipeline metric · SLO burn-rate | Davis automatic / Anomaly Detection app / OpenPipeline / SLO app |
-| Converge | one enriched Davis problem (team, zone, tags) | event template + tags/ownership |
+| Detect | OOTB Davis · custom alert (anomaly detector) · OpenPipeline metric · SLO burn-rate | Settings (Davis automatic, custom alerts) / OpenPipeline / SLO app |
+| Converge | one enriched Davis problem (team, area, tags, service) | event template + primary Grail tags / entity tags / ownership |
 | Route | workflow — simple (no workflow-hours) vs multi-step (workflow-hours) | AutomationEngine |
-| Notify/act | Slack · Teams · PagerDuty · Jira · ServiceNow · xMatters(legacy) | workflow connectors / classic profiles |
-| Closed loop | remediation · ServiceNow state sync | workflow / ServiceNow-side app |
+| Notify/act | Slack · Teams · PagerDuty · Jira · ServiceNow · classic integrations | workflow connectors (HTTP Request where there is no connector, e.g. xMatters) / existing classic profiles |
+| Closed loop | remediation · incident resolved when the problem closes | workflow / ServiceNow connector or store app |
 For environments where SVG doesn't render
 -->
 
@@ -68,17 +68,19 @@ Each step down costs more to build and maintain. Staying as high as possible is 
 | Layer | What you configure | Where | Cost note |
 |-------|--------------------|-------|-----------|
 | Detection — automatic | Review & tune sensitivity | OOTB Davis (Settings 2.0) | included |
-| Detection — custom signal | Anomaly detector (analyzer + event template) | Anomaly Detection app → config-as-code | included |
+| Detection — custom signal | Custom alert (analyzer + event template) | Settings (Anomaly Detection app before SaaS 1.344) → config-as-code | included for metric (`timeseries`) queries; a log or record query bills query usage on every evaluation |
 | Detection — cheap custom metric | Metric extraction from logs/spans | OpenPipeline | ingest cost, no query cost |
 | Detection — reliability | SLO + burn-rate alert | SLO app | included |
-| Convergence | Enrichment (team, zone, tags) so routing has something to filter | event template / tags / ownership | — |
+| Convergence | Enrichment (team, area, service) so routing has something to filter | event template / primary Grail tags / entity tags / ownership | — |
 | Routing | Problem-trigger workflow | AutomationEngine — simple (no workflow-hours) vs multi-step (workflow-hours) | choose deliberately |
-| Destinations | Connector per channel | workflow connectors; legacy via alerting profiles | — |
-| Closed loop | Remediation / bi-directional sync | workflow / ServiceNow-side app | — |
+| Destinations | Connector per channel | workflow connectors, or HTTP Request where there is none; existing classic integrations via alerting profiles | — |
+| Closed loop | Remediation / resolve the incident when the problem closes | workflow / ServiceNow connector or store app | — |
 
-> **Custom alerts move to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and the *Anomaly Detection app* entry in the table above is the working path there.
+> **Custom alerts live in Settings (SaaS 1.344+).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344's staged rollout started 07/29/2026. On a tenant still below 1.344, the **Anomaly Detection** app is where custom alerts are created.
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+> **What "included" means for a custom alert.** A custom alert runs its query on every evaluation, by default once a minute. A metric query costs nothing extra: *"Querying metrics using the timeseries command is always included."* A query over logs or other records is billed each time it runs, which is why the docs pair records-based alerts with a long window and execution delay: *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*
+
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*, [Metrics powered by Grail overview (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics) — *"Querying metrics using the timeseries command is always included."*, [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour."*</sub>
 
 ### A noise control on the routing side
 
@@ -97,12 +99,15 @@ ALERT-02 covers choosing detection; ALERT-03 covers routing and cost; ALERT-04 c
 
 > **Enrich the problem upstream, or you cannot route it downstream.**
 
-A workflow routes by *filtering* — "send problems where `team == checkout` to #checkout-alerts." That only works if the problem carries a `team` property. Two ways it gets there:
+A workflow routes by *filtering* — "send problems where `team == checkout` to #checkout-alerts." That only works if the problem carries a `team` property. Three ways it gets there:
 
-- **The detector's event template** — when you build a custom anomaly detector, its event template defines the properties on the event it raises (AIOPS-02 §4). Put team / service / zone there.
-- **Entity tags and ownership** — for OOTB problems, the affected entity's tags and Smartscape ownership carry the metadata; sprint-1.337 made ownership a first-class routing attribute (WFLOW-04).
+- **Primary Grail tags** — primary Grail fields and tags (`primary_tags.*`) are copied from the alerting events onto the problem record, so the trigger can filter on them directly. A problem that groups several entities holds the deduplicated union of their values, so one problem can carry two teams (ALERT-04 §2).
+- **The detector's event template** — when you build a custom anomaly detector, its event template defines the properties on the event it raises (AIOPS-02 §4). Put team / service / area there.
+- **Entity tags and ownership** — for OOTB problems, the affected entity's tags carry the metadata. Since SaaS 1.337, ownership is also available on Smartscape nodes, and a workflow reads it with the Ownership `get_owners` action. That is a second task, so the workflow becomes a standard one (ALERT-03 §1, WFLOW-04).
 
 A problem that fires with no team or ownership metadata forces every workflow to re-derive routing from scratch — the most common reason an alerting setup degenerates into "everything goes to one channel." Spend the effort upstream.
+
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"You can filter and template on them directly on the problem"*; *"The problem carries the deduplicated union."*, [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Ownership information is now available in Smartscape and for Smartscape nodes."*, [Create a simple workflow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow) — *"limited to only one task"*.</sub>
 
 <a id="next"></a>
 ## 5. Where to Go Next
@@ -112,7 +117,7 @@ A problem that fires with no team or ownership metadata forces every workflow to
 | Choose and build a detection mechanism | ALERT-02 → AIOPS-02 |
 | Set reliability targets and alert on burn rate | SLO-04 |
 | Route alerts to teams without noise (simple vs multi-step cost) | ALERT-03 → WFLOW-04 |
-| Create ServiceNow incidents (and sync state) | ALERT-04 |
+| Create ServiceNow incidents (and resolve them when the problem closes) | ALERT-04 |
 | See the complete setup checklist | ALERT-99 |
 
 > <sub>**Sources:** [Alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications), [Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app). **Derived:** the anti-noise funnel ordering is a synthesis of OOTB-first guidance and the query-cost economics in OPIPE/FINOPS.</sub>

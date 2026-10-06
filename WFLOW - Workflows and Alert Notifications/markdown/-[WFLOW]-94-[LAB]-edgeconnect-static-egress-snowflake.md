@@ -1,6 +1,6 @@
 # WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Reference:** 94 — EdgeConnect Static Egress LAB | **Created:** July 2026 | **Last Updated:** 10/06/2026
 
 ## Overview
 
@@ -8,7 +8,7 @@ Many SaaS and internal targets a Dynatrace Workflow needs to call are **IP-allow
 
 This hands-on LAB solves that with **EdgeConnect**: a small stateless container you run in your own network that registers with your Dynatrace environment over an *outbound* WebSocket and transparently executes matching HTTP(S) requests on the runtime's behalf. Deployed on **AWS ECS Fargate in a private subnet behind a NAT Gateway with an Elastic IP**, every request the connector makes egresses from **one static, dedicated IP** — the only address the target needs to admit.
 
-The worked example is the **Snowflake for Workflows** connector against a Snowflake account enforcing a network policy, but the pattern applies unchanged to any IP-allow-listed target (§11). It is a companion to **WFLOW-08 (JavaScript & HTTP Actions)** — EdgeConnect routes those `fetch()` calls too.
+The worked example is the **Snowflake for Workflows** connector against a Snowflake account enforcing a network policy, but the pattern applies unchanged to any IP-allow-listed target (§12). It is a companion to **WFLOW-08 (JavaScript & HTTP Actions)** — EdgeConnect routes those `fetch()` calls too.
 
 ---
 
@@ -35,15 +35,16 @@ The worked example is the **Snowflake for Workflows** connector against a Snowfl
 
 | Requirement | Details |
 |-------------|---------|
-| **Dynatrace Environment** | SaaS (Gen3) with the Workflows app; permission to create EdgeConnect configurations (`Settings` > `General` > `External Requests` > `EdgeConnect`) |
-| **Snowflake for Workflows** | Installed from Dynatrace Hub; permission to create Connections (`Settings` > `Connections`) |
+| **Dynatrace Environment** | SaaS (Gen3) with the Workflows app; permission to create EdgeConnect configurations (`Settings` > `General` > `External Requests` > `EdgeConnect`): `app-engine:edge-connects:write` plus `oauth2:clients:manage WHERE oauth2:scopes = "app-engine:edge-connects:connect"` |
+| **Snowflake for Workflows** | Installed from Dynatrace Hub (`app-engine:apps:install`); connection settings need `settings:objects:read`, `settings:objects:write`, `settings:schemas:read` WHERE `settings:schemaId = "app:dynatrace.snowflake.connector:connection"` |
+| **Workflow actor** | For *Store Statement Result* (§9): `storage:buckets:read` + `storage:events:write` to store bizevents, or `storage:files:write` to store a lookup table |
 | **AWS Account** | Ability to create a VPC, NAT Gateway + Elastic IP, ECS Fargate cluster/service, Secrets Manager secrets, CloudWatch log group |
 | **Snowflake Account** | `SECURITYADMIN`/`ACCOUNTADMIN` (or delegated roles) to create a service user, network rule, and network policy |
 | **Tooling** | Terraform ≥ 1.5 for the AWS samples; SnowSQL (or a worksheet) for the Snowflake SQL |
 
-> **Note on EdgeConnect version:** run **EdgeConnect ≥ 1.724.3**. The June 2026 release fixed a vulnerability where *"secrets could be leaked in HTTP error messages"* — relevant here because EdgeConnect carries authenticated Snowflake traffic.
+> **Note on EdgeConnect version:** run the latest EdgeConnect release — **1.744.0** (07/27/2026) at the time of writing — and never older than **1.724.3**. The June 2026 release fixed a vulnerability where *"secrets could be leaked in HTTP error messages"* — relevant here because EdgeConnect carries authenticated Snowflake traffic.
 >
-> <sub>**Sources:** [EdgeConnect 1.724.3 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3) — *"Fixed an issue where secrets could be leaked in HTTP error messages."*</sub>
+> <sub>**Sources:** [EdgeConnect 1.724.3 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3) — *"Fixed an issue where secrets could be leaked in HTTP error messages."*; [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — *"We recommend that you always run (and regularly upgrade to) the latest available version of EdgeConnect."* and *"ALLOW app-engine:edge-connects:write, oauth2:clients:manage WHERE oauth2:scopes = "app-engine:edge-connects:connect";"*; [Set up Snowflake (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-setup) — *"To store bizevents, ensure that the actor has the storage:buckets:read and storage:events:write permissions."*</sub>
 
 <a id="the-problem"></a>
 ## 2. The Problem: Shared Egress vs IP Allow-Lists
@@ -104,7 +105,7 @@ For environments where SVG doesn't render
 
 In **Settings** > **General** > **External Requests** > **EdgeConnect** > **New EdgeConnect**, create a configuration named `snowflake-egress` with host pattern `*.snowflakecomputing.com` (or, tighter, the exact account host). Download `edgeConnect.yaml` — the OAuth client secret is shown **once**; store it in AWS Secrets Manager immediately.
 
-Separately, the Snowflake connector requires the target domain under **Settings Classic** > **Preferences** > **Limit Outbound Connections** — per the connector setup docs: *"Select Add item and add the domain of your publicly accessible Snowflake, for example, `*.snowflakecomputing.com`."* This allow-list gates what the AppEngine runtime may call at all; the EdgeConnect host pattern then decides *where* matching calls execute.
+Separately, add the Snowflake domain (`*.snowflakecomputing.com`) to the outbound allowlist — **Settings > General > External requests** > **New host pattern**. The Snowflake connector setup page still names the classic location: *"Open the Settings Classic and go to Preferences > Limit Outbound Connections . Select Add item and add the domain of your publicly accessible Snowflake"*. No page says whether requests that EdgeConnect executes still pass through this allowlist, so configure both and let URL verification (§10) confirm the routing.
 
 ```yaml
 # edgeConnect.yaml — reference (values feed the ECS task in §7)
@@ -230,7 +231,7 @@ Notes:
 
 EdgeConnect is configured entirely through environment variables; the OAuth credentials are injected from Secrets Manager. `assign_public_ip` stays **false** — a public task IP would bypass the NAT and break the allow-list.
 
-**Pin the image version.** `dynatrace/edgeconnect:latest` makes rollbacks and change control impossible and can silently change behavior under you; pin a released version (≥ 1.724.3 for the June 2026 security fix) and bump it deliberately.
+**Pin the image version.** `dynatrace/edgeconnect:latest` makes rollbacks and change control impossible and can silently change behavior under you; pin the latest released version (1.744.0 here; never below 1.724.3, the June 2026 security fix), check the EdgeConnect release notes regularly, and bump it deliberately.
 
 ```json
 {
@@ -243,7 +244,7 @@ EdgeConnect is configured entirely through environment variables; the OAuth cred
   "containerDefinitions": [
     {
       "name": "edgeconnect",
-      "image": "dynatrace/edgeconnect:1.724.3",
+      "image": "dynatrace/edgeconnect:1.744.0",
       "essential": true,
       "environment": [
         { "name": "EDGE_CONNECT_NAME",
@@ -278,8 +279,11 @@ EdgeConnect is configured entirely through environment variables; the OAuth cred
 }
 ```
 
+The task definition is shown as registered JSON. It assumes an execution role that can pull the two secrets (`secretsmanager:GetSecretValue` on the `ec-oauth` secret, on top of the standard ECS task-execution policy) and an existing `/ecs/edgeconnect` CloudWatch log group. The service below is a **fragment**: it also needs an `aws_ecs_cluster.main` resource and an `aws_ecs_task_definition.edgeconnect` resource holding the task definition above (`container_definitions = jsonencode([...])`).
+
 ```hcl
-# service.tf
+# service.tf (fragment — add aws_ecs_cluster.main, aws_ecs_task_definition.edgeconnect,
+# the execution role and the log group)
 resource "aws_ecs_service" "edgeconnect" {
   name            = "edgeconnect-snowflake"
   cluster         = aws_ecs_cluster.main.id
@@ -316,15 +320,17 @@ GRANT SELECT ON ALL TABLES IN SCHEMA ANALYTICS.PUBLIC
   TO ROLE DYNATRACE_WF_ROLE;
 GRANT ROLE DYNATRACE_WF_ROLE TO USER DYNATRACE_WF_SVC;
 
--- 2. Network rule: the NAT Gateway's Elastic IP, and nothing else
-CREATE NETWORK RULE DYNATRACE_EDGECONNECT_RULE
+-- 2. Network rule: the NAT Gateway's Elastic IP, and nothing else.
+--    Network rules are schema-level objects: qualify the name with a database and schema
+--    your admin role can create in (e.g. SECURITYDB.NETWORK_RULES — create it first if needed).
+CREATE NETWORK RULE SECURITYDB.NETWORK_RULES.DYNATRACE_EDGECONNECT_RULE
   MODE       = INGRESS
   TYPE       = IPV4
   VALUE_LIST = ('203.0.113.25/32');
 
--- 3. Network policy referencing the rule
+-- 3. Network policy referencing the rule (fully qualified)
 CREATE NETWORK POLICY DYNATRACE_EDGECONNECT_POLICY
-  ALLOWED_NETWORK_RULE_LIST = ('DYNATRACE_EDGECONNECT_RULE')
+  ALLOWED_NETWORK_RULE_LIST = ('SECURITYDB.NETWORK_RULES.DYNATRACE_EDGECONNECT_RULE')
   COMMENT = 'Dynatrace Workflows via EdgeConnect on AWS ECS';
 
 -- 4. Bind at USER level: overrides the account policy for this user only
@@ -334,6 +340,8 @@ ALTER USER DYNATRACE_WF_SVC
 -- Verify
 SHOW PARAMETERS LIKE 'NETWORK_POLICY' FOR USER DYNATRACE_WF_SVC;
 ```
+
+> <sub>**Sources:** [Network policies (Snowflake docs)](https://docs.snowflake.com/en/user-guide/network-policies) — *"network rules , which are schema-level objects"*.</sub>
 
 Grant only what the workflow needs (`SELECT` here). If the workflow will also write (e.g., status-table updates), add those grants explicitly rather than widening the role.
 
@@ -346,8 +354,10 @@ Grant only what the workflow needs (`SELECT` here). If the workflow will also wr
 
 | Action | What it does | Use when |
 | --- | --- | --- |
-| **Execute Statement** | Executes one SQL statement and returns the rows as the *action's output* (available downstream via `{{ result('task_name') }}`) | You want to transform, route, or act on the rows in later tasks (e.g., a *Run JavaScript* task) |
-| **Store Statement Result** | Executes the provided statement and *"stores its result directly in Grail"* as business events — the rows never pass through the workflow | You just want the data queryable in Grail |
+| **Execute Statement** | Executes one SQL statement and returns the rows as the *action's output* (available downstream via `{{ result('task_name') }}`) — **first partition only**, so use it for small results | You want to transform, route, or act on the rows in later tasks (e.g., a *Run JavaScript* task) |
+| **Store Statement Result** | Executes the provided statement and *"stores its result directly in Grail"* — as business events by default, or as a lookup table — the rows never pass through the workflow | You just want the data queryable in Grail |
+
+> <sub>**Sources:** [Snowflake actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-actions) — *"The action will only return the first partition of the data returned by Snowflake"* and *"Store the whole result in Grail as lookup data ."*</sub>
 
 > **These do not chain.** *Store Statement Result* takes a **statement**, not data — you cannot feed *Execute Statement*'s output into it. To land rows in Grail, use *Store Statement Result* on its own with the same SQL.
 
@@ -362,11 +372,11 @@ For the daily-sync use case, a single-task workflow does it:
    WHERE  updated_at >= DATEADD('day', -1, CURRENT_TIMESTAMP())
    ```
 
-3. Set **Event type** to `snowflake.orders.daily`. Every stored row becomes a bizevent with that `event.type` (the default is `snowflake_connector`); `event.provider` is set to `data_connector`.
+3. Keep **Grail storage type** at *Business events* and set **Event type** to `snowflake.orders.daily`. Every stored row becomes a bizevent with that `event.type` (the default is `snowflake_connector`); `event.provider` is set to `data_connector`.
 
 > **Workflow-as-code note.** The exact machine-readable action identifiers for the Snowflake actions are not published in the Dynatrace docs. Build the workflow in the editor first, then **export its YAML** — the export is the authoritative form if you want to manage it via AUTOM-04/Monaco patterns. Don't hand-author the action IDs from guesswork.
 
-**Grail bucket routing.** Stored bizevents land in the default events bucket unless you route them; if this feeds long-lived reporting, review the connector's *Grail bucket permissions* guidance and the bucket strategy in ORGNZ-02 before the data volume grows.
+**Actor permissions and bucket routing.** The workflow's actor needs `storage:buckets:read` and `storage:events:write` to store bizevents (Prerequisites). Stored bizevents land in the default business-events bucket unless you route them; if this feeds long-lived reporting, review the connector's *Grail bucket permissions* guidance and the bucket strategy in ORGNZ-02 before the data volume grows.
 
 <a id="validation"></a>
 ## 10. Validation Checklist
@@ -395,7 +405,8 @@ fetch bizevents, from:-24h
 | *"IP x.x.x.x is not allowed to access Snowflake"* | Request did not traverse EdgeConnect (host pattern mismatch — re-run URL verification), a task got a public IP (`assign_public_ip` must be false), or the EIP isn't in the network rule's `VALUE_LIST`. |
 | EdgeConnect offline in Dynatrace | OAuth client_id/secret mismatch with the tenant configuration, or the security group / NACL blocks outbound 443 to `sso.dynatrace.com` and `abc12345.apps.dynatrace.com`. |
 | Requests rejected by EdgeConnect itself | `restrict_hosts_to` doesn't cover the account host. It must include every Snowflake host the connector calls. |
-| Connector action fails before any network call | Snowflake domain missing from **Limit Outbound Connections** (Settings Classic > Preferences) — required by the connector independently of EdgeConnect. |
+| Connector action fails with `Blocked request to '…' (host not in allowlist)` | Snowflake domain missing from the outbound allowlist — **Settings > General > External requests** (*Limit Outbound Connections* in Settings Classic). |
+| Store Statement Result fails to write | The workflow actor lacks `storage:buckets:read` + `storage:events:write` (bizevents) or `storage:files:write` (lookup table). |
 | Timeouts on long statements | EdgeConnect enforces a 120 s per-request timeout and 6 MB payload cap; 20 concurrent requests per container. Split large queries, page results, set the action's timeout accordingly, or add tasks. |
 | JWT authentication fails | Public key on the user doesn't match the private key in the connection, or the account identifier in the JWT issuer is wrong. Validate the pair with SnowSQL first. |
 | Rows missing from the bizevents query | Wrong `event.type` filter (default is `snowflake_connector` unless you set it), or results were routed to a bucket the querying user can't read. |
@@ -420,6 +431,14 @@ Capacity: the 20-concurrent/120 s/6 MB limits are **per container** — scale `d
 - **AUTOM-04 / AUTOM-09** — managing the Terraform here (state, lifecycle protections like the EIP's `prevent_destroy`) and exporting the built workflow as code.
 - **ORGNZ-02** — bucket strategy if the stored bizevents feed long-lived reporting.
 
+> **New (EdgeConnect 1.744.0, released 07/27/2026): Dynatrace domains are allowed in host patterns.** Verbatim: *"EdgeConnect now allows Dynatrace domains in host patterns. Requests to Dynatrace-owned domains are no longer rejected and can be routed through EdgeConnect. This feature requires Dynatrace version 1.345."*
+>
+> Previously a host pattern matching a Dynatrace-owned domain was rejected outright, so any flow that needed to reach a Dynatrace domain *through* EdgeConnect — rather than directly — had no supported path. That restriction is lifted.
+>
+> Two conditions gate it: **EdgeConnect 1.744.0 or later** on the connector side, and **Dynatrace 1.345 or later** on the tenant side. Both must hold; the EdgeConnect upgrade alone is not enough. It does not change the static-egress-IP pattern this lab builds — that mechanism is unchanged — but it widens what you can put in a host pattern, which is worth knowing before concluding that a Dynatrace-domain target is out of scope for EdgeConnect.
+
+> <sub>**Sources:** [EdgeConnect 1.744.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-744-0) — quoted above, read 08/28/2026.</sub>
+
 ## References
 
 - [EdgeConnect (DT docs)](https://docs.dynatrace.com/docs/ingest-from/edgeconnect) — host patterns, env-var configuration, `restrict_hosts_to`, the 20-concurrent/120 s/6 MB limits, URL verification
@@ -434,11 +453,3 @@ Capacity: the 20-concurrent/120 s/6 MB limits are **per container** — scale `d
 ---
 
 <sub>*This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.*</sub>
-
-> **New (EdgeConnect 1.744.0, released 07/27/2026): Dynatrace domains are allowed in host patterns.** Verbatim: *"EdgeConnect now allows Dynatrace domains in host patterns. Requests to Dynatrace-owned domains are no longer rejected and can be routed through EdgeConnect. This feature requires Dynatrace version 1.345."*
->
-> Previously a host pattern matching a Dynatrace-owned domain was rejected outright, so any flow that needed to reach a Dynatrace domain *through* EdgeConnect — rather than directly — had no supported path. That restriction is lifted.
->
-> Two conditions gate it: **EdgeConnect 1.744.0 or later** on the connector side, and **Dynatrace 1.345 or later** on the tenant side. Both must hold; the EdgeConnect upgrade alone is not enough. It does not change the static-egress-IP pattern this lab builds — that mechanism is unchanged — but it widens what you can put in a host pattern, which is worth knowing before concluding that a Dynatrace-domain target is out of scope for EdgeConnect.
-
-> <sub>**Sources:** [EdgeConnect 1.744.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-744-0) — quoted above, read 08/28/2026.</sub>
