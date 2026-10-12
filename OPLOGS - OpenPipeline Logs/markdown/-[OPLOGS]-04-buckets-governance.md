@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -224,9 +224,9 @@ A **route** sends a record to a **pipeline**; the **bucket** is chosen inside th
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Bucket assignment stage: *"Assign records to the best-fit bucket."*, executed *first match only*.</sub>
 
 ```dql
-// Preview routing decision logic
+// Preview routing decision logic over the whole hour (the summarize bounds the output;
+// a limit before it lets the first records decide the mix and hides whole branches)
 fetch logs, from: now() - 1h
-| limit 1000
 | fieldsAdd target_bucket = if(loglevel == "DEBUG" OR loglevel == "TRACE", "debug_logs",
                             else: if(status == "ERROR", "error_logs",
                             else: if(contains(content, "audit") OR contains(content, "security"), "audit_logs",
@@ -311,7 +311,7 @@ Querying specific buckets **reduces scan costs** and **improves performance**.
 
 **✅ Efficient - targets specific bucket:**
 ```
-fetch logs, bucket: "error_logs", from: now() - 7d
+fetch logs, bucket: {"error_logs"}, from: now() - 7d
 | filter status == "ERROR"
 | limit 100
 ```
@@ -333,7 +333,7 @@ fetch logs, bucket: {"prod_logs", "error_logs"}, from: now() - 24h
 
 ```dql
 // Query specific bucket (efficient)
-fetch logs, bucket: "default_logs", from: now() - 1h
+fetch logs, bucket: {"default_logs"}, from: now() - 1h
 | summarize {count = count()}, by: {loglevel}
 | sort count desc
 ```

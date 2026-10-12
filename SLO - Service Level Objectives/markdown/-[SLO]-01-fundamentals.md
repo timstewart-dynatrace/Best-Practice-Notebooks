@@ -1,6 +1,6 @@
 # SLO-01: SLO and SLI Fundamentals
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 6 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -27,8 +27,10 @@ This is the conceptual foundation for the series. SLO-02 builds the SLI queries,
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 with Grail and the SLO app |
 | **IAM permissions (SLO app itself)** | `slo:slos:read`, `slo:slos:write`, `slo:objective-templates:read` — the gating permissions for the app; a minimal read/write grant is `ALLOW slo:slos:read, slo:objective-templates:read; ALLOW slo:slos:write;` |
-| **Data-source permissions** | `storage:metrics:read`, `storage:spans:read`, plus whichever of `storage:logs:read` / `storage:bizevents:read` / `storage:events:read` / `storage:buckets:read` your SLI queries touch; `settings:objects:read/write` to create SLOs |
+| **Data-source permissions** | `storage:buckets:read`, `storage:files:read`, plus whichever of `storage:metrics:read` / `storage:logs:read` / `storage:bizevents:read` / `storage:events:read` / `storage:security.events:read` your SLI queries touch (the SLO app's documented list). `storage:spans:read` is not in that list; add it only if an SLI queries spans |
 | **Concepts** | Basic DQL (see the SPANS and DBMON series); familiarity with your service topology |
+
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), permissions table read 10/12/2026.</sub>
 
 <a id="blocks"></a>
 ## 1. The Three Building Blocks

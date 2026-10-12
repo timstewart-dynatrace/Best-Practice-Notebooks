@@ -1,6 +1,6 @@
 # OPLOGS-99: Best Practice Summary
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.
 
@@ -30,7 +30,7 @@ Definitive best practice settings for OpenPipeline log processing. Each entry sp
 | First-match order | Routes (which pick the **pipeline**) and Bucket assignment processors (which pick the **bucket**) are both first-match: most specific first, catch-all last | Critical |
 | Drop health check logs at ingestion | Drop record processor: `matchesValue(content, "*health*") AND loglevel == "INFO"` — `contains()` is not enabled in OpenPipeline matchers | Recommended |
 | Drop DEBUG logs in production | Drop processor: `loglevel == "DEBUG"` — or, to keep extraction from DEBUG records, a **No storage assignment** processor in the Bucket assignment stage (there is no log-sampling processor) | Recommended |
-| Parse NONE-level logs | DQL processor with matcher `loglevel == "NONE"`: `parse content, "DATA? '[' LD:parsed_level ']'"` (the `DATA?` lets the bracket sit mid-line — `parse` anchors at the start) and set `loglevel` only when `upper(parsed_level)` is a supported level (EMERGENCY, ALERT, CRITICAL, SEVERE, ERROR, FATAL, WARN, NOTICE, INFO, DEBUG, TRACE) — anything else leaves the record unchanged | Recommended |
+| Parse NONE-level logs | DQL processor with matcher `loglevel == "NONE"`: `fieldsAdd parsed_levels = parseAll(content, "'[' LD:l ']'")`, then set `loglevel` to the first element whose `upper()` is a supported level (EMERGENCY, ALERT, CRITICAL, SEVERE, ERROR, FATAL, WARN, NOTICE, INFO, DEBUG, TRACE) — a leading `[timestamp][thread]` does not hide the level, and anything else leaves the record unchanged. Not `DATA? '[' LD ']'`, which captures a later bracket | Recommended |
 | Add computed environment attribute | `fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production", else: "development")` | Recommended |
 | Confirm nothing is left on the classic pipeline | `countIf(in(dt.openpipeline.pipelines, "logs:default"))` must be 0 — `isNotNull(dt.openpipeline.pipelines)` is true for classic records too, so it proves nothing | Critical |
 | Compare hourly volume before/after migration | `makeTimeseries count(), by:{dt.openpipeline.source}, interval:1h` — volume must be consistent | Critical |
@@ -56,9 +56,9 @@ Definitive best practice settings for OpenPipeline log processing. Each entry sp
 |----------|---------|----------|
 | Mask in the Processing stage, before anything copies the field | OpenPipeline masking is a DQL processor in the first stage (Processing); records reach Bucket assignment and storage only after it — but a processor placed *before* the masking processor sees the raw value | Critical |
 | Mask email addresses | Pattern: `[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+` in a DQL processor (`replacePattern`) → `[EMAIL-MASKED]` | Critical |
-| Mask credit card numbers | Pattern: `CREDITCARD` in a DQL processor (`replacePattern`) → `[CC-MASKED]` | Critical |
+| Mask credit card numbers | Pattern: `!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]` (bounded — unbounded `CREDITCARD` rewrites digit runs inside UUIDs) in a DQL processor (`replacePattern`) → `[CC-MASKED]` | Critical |
 | Mask SSNs | Pattern: `[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}` in a DQL processor (`replacePattern`) → `[SSN-MASKED]` | Critical |
-| Mask API keys and tokens | Pattern: `<<('api_key=' \| 'apikey=' \| 'key=') [A-Za-z0-9_-]{20,}` — include `_` and `-`, or keys like `sk_live_…` stay in clear in a DQL processor (`replacePattern`) → `[KEY-MASKED]` | Critical |
+| Mask API keys and tokens | Pattern: `<<(('api_key' \| 'API_KEY' \| 'apikey' \| 'APIKEY' \| 'key' \| 'KEY' \| 'token' \| 'TOKEN') '=') [A-Za-z0-9_-]{20,}`, plus a second statement for JSON-quoted keys — DPL literals are case-sensitive, so list each casing; include `_` and `-`, or keys like `sk_live_…` stay in clear in a DQL processor (`replacePattern`) → `[KEY-MASKED]` | Critical |
 | Mask JWT tokens | Search for `eyJ` prefix, mask full token value | Critical |
 | Mask passwords | Pattern: `password=`, `passwd=`, `pwd=` in content | Critical |
 | Hash instead of mask when correlation is needed | DQL processor: `fieldsAdd user_hash = hashSha256(user.email) \| fieldsRemove user.email` | Recommended |
@@ -177,7 +177,7 @@ fetch logs, from: now() - 6h
 | makeTimeseries {
     errors = countIf(status == "ERROR"),
     warnings = countIf(status == "WARN"),
-    info = countIf(loglevel == "INFO")
+    info = countIf(status == "INFO")
   }, interval: 5m
 ```
 

@@ -1,6 +1,6 @@
 # IAM-08: Multi-Environment IAM
 
-> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Scaling IAM Across Multiple Environments
 Enterprise organizations typically have multiple Dynatrace environments (development, staging, production). This notebook covers strategies for managing IAM consistently across environments while maintaining security boundaries.
@@ -383,6 +383,16 @@ fetch dt.system.events, from:-7d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, "/query:") or contains(resource, "effective-permissions")
+             or endsWith(resource, "/lookup") or contains(resource, "/verify")
+             or contains(resource, "/autocomplete") or contains(resource, "filter-preview")
+             or endsWith(resource, "/run") or startsWith(resource, "/platform/state/v1/user-app-states/")
+             or contains(resource, "lookup:upload") or startsWith(resource, "/lookups/"))
 | summarize actions = count(), by:{user.organization, event.type}
 | sort actions desc
 ```

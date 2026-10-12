@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -66,7 +66,7 @@ Users have a lifecycle from creation to deactivation. Effective management requi
 ## 2. SCIM Provisioning
 SCIM (System for Cross-domain Identity Management) automatically syncs users and groups from your IdP to Dynatrace.
 
-> **Breaking (SaaS 1.347 — pre-release notes; staged rollout planned from 09/08/2026): `GET /Users` pagination is now RFC-compliant.** Verbatim: *"The SCIM `GET /Users` endpoint now interprets `startIndex` as the absolute, 1-based index of the first result, per RFC 7644."*
+> **Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026): `GET /Users` pagination is now RFC-compliant.** Verbatim: *"The SCIM `GET /Users` endpoint now interprets `startIndex` as the absolute, 1-based index of the first result, per RFC 7644."*
 >
 > **A client that passed a page number silently reads the wrong window.** Under the old interpretation `startIndex=2` meant "the second page"; under RFC 7644 it means "start at record 2". The request still returns `200` with a well-formed body, so the failure surfaces as users that never sync rather than as an error — the same silent shape that makes provisioning bugs hard to attribute.
 >
@@ -378,6 +378,10 @@ API tokens provide access for scripts, tools, and legacy integrations.
 4. Revoke old token
 5. Document rotation
 
+> **Deprecation — Dynatrace API 1.348 (pre-release; staged rollout planned from 09/22/2026).** The [API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) marks the whole `/apiTokens` endpoint family deprecated — *"The following endpoints are deprecated"*: `GET`/`POST /apiTokens`, `POST /apiTokens/lookup`, and `GET`/`PUT`/`DELETE /apiTokens/{id}`. That changelog names no successor. Deprecated endpoints keep working during the deprecation period, so the rotation steps above remain the working path; re-check the changelog when 1.348 reaches GA before building new rotation automation on these endpoints.
+>
+> **Phase 3 environments cannot run step 1.** Once an environment opts into **Phase 3** of the upgrade to Latest Dynatrace, *"classic API token creation is disabled; all new integrations must use platform tokens"* ([Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints)). "Create new token with same scopes" then fails. Check your environment's upgrade phase before you rotate. In a Phase 3 environment, move the consumer onto a platform token or an OAuth client instead of minting a replacement classic token.
+
 ### Tenant Token Rotation — a Different Object
 
 Everything above concerns **API tokens**. The **tenant token** is a different credential: it is what OneAgents and ActiveGates use to authenticate to the cluster. It is not created, scoped, or revoked through the API-token surface, and rotating it affects **the monitored fleet**, not a script or a pipeline. Nothing in the rotation process above applies to it.
@@ -596,6 +600,8 @@ In this notebook, you learned:
 - [SAML Federation](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 - [API Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; pre-release)
+- [Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints) — *"For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens."*
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
 
 ---

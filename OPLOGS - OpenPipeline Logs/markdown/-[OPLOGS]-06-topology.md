@@ -1,6 +1,6 @@
 # OPLOGS-06: Topology & Entity Context
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Leveraging Entity Relationships in Log Analysis
 This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.
@@ -157,8 +157,9 @@ fetch logs, from: now() - 1h
 fetch logs, from: now() - 1h
 | filter isNotNull(dt.entity.process_group)
 | filter status == "ERROR"
-| fieldsAdd content_preview = substring(content, from: 0, to: 80)
-| summarize {error_count = count()}, by: {dt.entity.process_group, content_preview}
+// Group on a normalized signature (UUIDs, then digits collapsed) so one recurring error is one row, not one row per second
+| fieldsAdd error_sig = substring(replacePattern(replacePattern(content, "[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}", replacement: "<id>"), "[0-9]+", replacement: "#"), from: 0, to: 80)
+| summarize {error_count = count(), sample = takeAny(substring(content, from: 0, to: 100))}, by: {dt.entity.process_group, error_sig}
 | sort error_count desc
 | limit 20
 ```

@@ -1,12 +1,12 @@
 # ORGNZ-05: Bucket-Level Access Control
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 5 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
 Bucket-level access control provides a straightforward way to isolate data by team, application, or business unit. By granting permissions to specific buckets, you can ensure teams only access data relevant to their responsibilities.
 
-> **Canonical pattern (when bucket-level access fits):** Bucket-level access works well in specific scenarios — **compliance separation** (PCI/HIPAA), **retention isolation** (different retention requirements naturally produce distinct buckets), **hard cost attribution** (per-LOB billing buckets), or **hostile multi-tenancy** (strict cross-tenant isolation). For general team-scoped data access without one of those scenarios, **`dt.security_context` + record-level permissions** (covered in **ORGNZ-06**) is usually the simpler choice — it scales beyond the custom-bucket limit and is mutable without re-routing ingest. See **[IAM REFERENCE.md § Bucket-Match Overlay](../../iam/docs/REFERENCE.md#bucket-match-overlay-scenario-driven)** for the canonical scenario gating. The patterns below teach bucket-level mechanics for when the scenario fits.
+> **Canonical pattern (when bucket-level access fits):** Bucket-level access works well in specific scenarios — **compliance separation** (PCI/HIPAA), **retention isolation** (different retention requirements naturally produce distinct buckets), **hard cost attribution** (per-LOB billing buckets), or **hostile multi-tenancy** (strict cross-tenant isolation). For general team-scoped data access without one of those scenarios, **`dt.security_context` + record-level permissions** (covered in **ORGNZ-06**) is usually the simpler choice — it scales beyond the custom-bucket limit and is mutable without re-routing ingest. See **IAM-04: Policy Authoring and Management** § 5 *Choosing Between Patterns* (Patterns 3 and 9 cover the bucket-based scenarios) for the canonical scenario gating. The patterns below teach bucket-level mechanics for when the scenario fits.
 
 ## Prerequisites
 
@@ -156,7 +156,9 @@ In the log pipeline's **Storage** stage, add one **Bucket assignment** processor
 | Matching condition (DQL) | Bucket |
 |---|---|
 | `matchesValue(dt.host_group.id, "platform-*")` | `team_platform_logs` |
-| `matchesPhrase(service.name, "checkout")` | `team_checkout_logs` |
+| `k8s.namespace.name == "checkout"` | `team_checkout_logs` |
+
+Match on a field your logs actually carry. `service.name` is an OpenTelemetry resource attribute: on the validation tenant (10/12/2026) it was set on 7,521 of 784,813 logs in an hour (about 1%), against 765,062 (97%) for `k8s.namespace.name`. A matcher on `service.name` would leave most checkout logs in the default bucket, and nothing would error. Run the field-coverage check in **ORGNZ-10 § 3** before choosing.
 
 See **ORGNZ-03 § Routing Data to Buckets** for how the Storage stage works and which matcher functions to use.
 

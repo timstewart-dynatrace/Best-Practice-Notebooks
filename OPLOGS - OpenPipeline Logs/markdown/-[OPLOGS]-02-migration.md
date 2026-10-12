@@ -1,6 +1,6 @@
 # OPLOGS-02: Migration to OpenPipeline
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 2 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Planning and Executing Your Log Migration
 This notebook guides you through assessing your current log environment and planning migration to OpenPipeline v2.0.
@@ -218,7 +218,7 @@ fetch logs, from: now() - 1h
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Pattern | Processor | Matcher | Action |
 |---------|-----------|---------|--------|
-| **Parse Log Levels** | DQL | `loglevel == "NONE"` | Extract level from `[LEVEL]` anywhere in content (`DATA? '[' LD:level ']'`) |
+| **Parse Log Levels** | DQL | `loglevel == "NONE"` | First supported level among all bracketed tokens (`parseAll(content, "'[' LD:level ']'")`) |
 | **Drop Debug Logs** | Drop | `loglevel == "DEBUG"` | Remove debug logs before storage |
 | **Route Errors** | Bucket assignment | `status == "ERROR"` | Send to `error_logs` bucket (90d retention) |
 -->
@@ -233,13 +233,18 @@ When logs have `loglevel = NONE`, configure a DQL processor to extract the level
 - **Statement:**
 
 ```dql
-// DATA? lets the bracket sit anywhere: "2026-10-02 12:00:01 [ERROR] ..." as well as "[ERROR] ..."
-parse content, "DATA? '[' LD:parsed_level ']'"
-| fieldsAdd loglevel = if(in(upper(parsed_level), {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"}), upper(parsed_level), else: loglevel)
-| fieldsRemove parsed_level
+// parseAll collects every bracketed token: "[2026-10-12 13:20:22][worker:4][INFO]: ..." as well as "2026-10-02 12:00:01 [ERROR] ..."
+fieldsAdd parsed_levels = parseAll(content, "'[' LD:l ']'")
+| fieldsAdd parsed_level = arrayRemoveNulls(iCollectArray(if(in(upper(parsed_levels[]), {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"}), upper(parsed_levels[]))))[0]
+| fieldsAdd loglevel = coalesce(parsed_level, loglevel)
+| fieldsRemove parsed_levels, parsed_level
 ```
 
-> `parse` matches from the start of the field, so without `DATA?` the pattern only fires on lines that *begin* with `[`. It takes the **first** bracketed token; only values from the supported loglevel list are accepted — anything else (a thread name, a bracketed timestamp) leaves the record unchanged. Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.
+> `parseAll` collects every bracketed token; the first one that is a supported level wins, so a leading timestamp or thread name (`[2026-…][worker:4][INFO]`) does not hide the level. Anything else leaves the record unchanged. Do not use a single `parse content, "DATA? '[' LD:level ']'"` for this: `DATA?` consumes ahead and the capture lands on a later bracket (`[main] [ERROR] x` → `x`), so on the validation tenant it recovered **0 of 2,171** bracketed NONE-level lines in 30 minutes (10/12/2026). Measure the parse rate at query time (the next cell) before deploying: ingest-time parsing is forward-only.
+>
+> `parseAll`, `arrayRemoveNulls`, `coalesce`, `in` and `upper` are listed among the OpenPipeline DQL processor functions, and `iCollectArray` among its iterative operators. The statement above was executed at query time (10/12/2026); verify it saves in your pipeline before relying on it.
+>
+> <sub>**Sources:** [DQL functions in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions) — *"These functions apply exclusively to the DQL processor."*, [DQL operators in OpenPipeline DQL processor (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-operators) — *"Collects the results of an iterative expression into an array."*</sub>
 
 ### Pattern 2: Drop Debug Logs
 
@@ -262,9 +267,9 @@ Send error logs to a dedicated bucket with longer retention for compliance.
 // Simulate parsing log levels from content
 fetch logs, from: now() - 1h
 | filter loglevel == "NONE" OR status == "NONE"
-| parse content, "DATA? '[' LD:parsed_level ']'"
-| fieldsAdd parsed_level = upper(parsed_level)
-| filter in(parsed_level, {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"})
+| fieldsAdd parsed_levels = parseAll(content, "'[' LD:l ']'")
+| fieldsAdd parsed_level = arrayRemoveNulls(iCollectArray(if(in(upper(parsed_levels[]), {"EMERGENCY", "ALERT", "CRITICAL", "SEVERE", "ERROR", "FATAL", "WARN", "NOTICE", "INFO", "DEBUG", "TRACE"}), upper(parsed_levels[]))))[0]
+| filter isNotNull(parsed_level)
 | fields timestamp, content, parsed_level
 | limit 10
 ```

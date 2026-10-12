@@ -1,6 +1,6 @@
 # OPMIG-08: Security, Masking & Compliance
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ---
 
@@ -120,7 +120,7 @@ OpenPipeline includes pre-built matchers for common sensitive data.
 
 **DPL Pattern:**
 ```
-CREDITCARD
+!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]
 ```
 
 **Matches:**
@@ -131,9 +131,11 @@ CREDITCARD
 **Masking Processor (DQL):**
 ```dql
 // Name: Mask Credit Cards · Matching condition: true
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDACTED]")
-| fieldsAdd message = replacePattern(message, "CREDITCARD", replacement: "[CC_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
+| fieldsAdd message = replacePattern(message, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
 ```
+
+> **Bound `CREDITCARD`.** On its own, the matcher finds a Luhn-valid digit run wherever it sits, including inside a UUID: `req 9cbcb510-8833-4981-87ab-1234567890ab ok` becomes `req 9cbcb[CC_REDACTED]ab-1234567890ab ok`. On a validation tenant, 1,366 of the 1,541 log records a bare `CREDITCARD` changed in 15 minutes were IDs, not card numbers (10/12/2026), and an ingest processor would have corrupted every one of them, forward-only. The negative lookbehind `!<<` and lookahead `!>>` reject a match that touches a letter, digit or hyphen. The UUID is then left intact, and the three formats above, plus `x=4111111111111111,y`, are still masked (verified 10/12/2026).
 
 ### Email Addresses
 
@@ -248,7 +250,7 @@ fieldsAdd content = replacePattern(content, "'password=' [^&\\s]+", replacement:
 
 ```dql
 // Apply multiple masks in sequence
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
 | fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "[EMAIL_REDACTED]")
 | fieldsAdd content = replacePattern(content, "IPADDR", replacement: "[IP_REDACTED]")
 ```
@@ -270,7 +272,7 @@ fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDA
 
 ```dql
 // Mask credit card numbers
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[PAN_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[PAN_REDACTED]")
 // Mask CVV (3-4 digits after 'cvv=' or 'cvc=')
 | fieldsAdd content = replacePattern(content, "('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}", replacement: "cvv=[REDACTED]")
 ```
@@ -321,13 +323,17 @@ fieldsAdd content = replacePattern(content, "'patientId=' NSPACE", replacement: 
 **Pipeline Configuration:**
 
 ```dql
-// Mask passwords
-fieldsAdd content = replacePattern(content, "('password='|'pwd='|'passwd=') NSPACE", replacement: "password=[REDACTED]")
-// Mask API keys
-| fieldsAdd content = replacePattern(content, "('api_key='|'apiKey='|'API_KEY=') NSPACE", replacement: "api_key=[REDACTED]")
+// Mask passwords. DPL literals are case-sensitive, so list each casing; <<(…) keeps the key name
+fieldsAdd content = replacePattern(content, "<<(('password' | 'PASSWORD' | 'Password' | 'passwd' | 'pwd') '=') NSPACE", replacement: "[REDACTED]")
+// Mask API keys and tokens (token= also covers access_token=)
+| fieldsAdd content = replacePattern(content, "<<(('api_key' | 'API_KEY' | 'apiKey' | 'apikey' | 'APIKEY' | 'token' | 'TOKEN') '=') NSPACE", replacement: "[REDACTED]")
+// Mask JSON-quoted secrets: "password":"…", "api_key": "…"
+| fieldsAdd content = replacePattern(content, "<<('\"' ('password' | 'passwd' | 'api_key' | 'apiKey' | 'apikey' | 'token' | 'secret') '\"' ' '* ':' ' '* '\"') [^\"]+", replacement: "[REDACTED]")
 // Mask tokens
 | fieldsAdd content = replacePattern(content, "'Bearer ' NSPACE", replacement: "Bearer [REDACTED]")
 ```
+
+> **There is no case-insensitive literal in DPL.** The SOC 2 key list used to cover `api_key=`, `apiKey=` and `API_KEY=` only, so `apikey=`, `token=`, `PASSWORD=` and JSON-quoted keys such as `{"password":"hunter2"}` were stored in clear. The statements above mask all of them and keep each key name; `monkey=banana` is left alone (verified 10/12/2026 with `data record(...)`). List every casing your applications emit, and keep a separate statement for JSON-quoted keys. A sequence inside an alternation needs its own parentheses: `<<(('token' | 'TOKEN') '=')`, not `<<('token' '=' | …)`.
 
 ---
 
@@ -371,9 +377,10 @@ After configuring masking, verify it's working correctly.
 ```dql
 // Check for any remaining card numbers in stored logs — if masking works, this returns 0 rows.
 // replacePattern() finds a CREDITCARD match anywhere; matchesPhrase(content, "4111") would not,
+// and the !<< / !>> bounds keep digit runs inside UUIDs from counting as cards.
 // because an unbroken 16-digit number is a single token that "4111" never equals.
 fetch logs, from: now() - 24h
-| filter replacePattern(content, "CREDITCARD", replacement: "") != content
+| filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content
 | fields timestamp, log.source, dt.openpipeline.pipelines
 | limit 10
 ```
@@ -500,7 +507,7 @@ Before deploying masking rules, test them:
 
 **Masking Processor 1: Credit Cards** (DQL processor, matching condition `true`)
 ```dql
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
 | fieldsAdd card_number = replacePattern(card_number, "CREDITCARD", replacement: "[CC_REDACTED]")
 ```
 

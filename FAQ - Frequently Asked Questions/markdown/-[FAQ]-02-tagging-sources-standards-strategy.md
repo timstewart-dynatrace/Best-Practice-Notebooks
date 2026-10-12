@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/06/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -245,9 +245,9 @@ pipeline, so the same fields are available for pipeline routing, bucket assignme
 allocation without any post-processing steps."* That is what makes them interchangeable with at-source tags
 for OpenPipeline routing and bucket assignment.
 
-**Precedence, in two layers.** Within central enrichment: *"When rules at multiple scopes target the same
-dimension for the same signal, the narrower-scope rule takes precedence"*, and *"Rules are evaluated in
-priority order. When two rules target the same dimension for the same signal, the higher-priority rule
+**Precedence, in two layers.** Within central enrichment: *"When rules at multiple scopes write to the same
+target for the same signal, the narrower-scope rule takes precedence"*, and *"Rules are evaluated in
+priority order. When two rules write to the same target for the same signal, the higher-priority rule
 wins."*
 
 Across the two domains — the answer to *"I set it in both places, which one lands?"*:

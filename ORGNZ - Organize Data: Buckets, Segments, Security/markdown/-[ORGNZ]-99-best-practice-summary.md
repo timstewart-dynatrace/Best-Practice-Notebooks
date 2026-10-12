@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -227,10 +227,10 @@ fetch logs, from:-1h
 | 42 | Stay within the 20-include limit per segment | Maximum 20 include blocks per segment; plan rule complexity accordingly | Critical | Architecture |
 | 43 | One include block per data type | Cannot have two `logs` includes; combine conditions with `OR` within a single include | Critical | Architecture |
 | 44 | Use Primary Grail Fields in segment filters | Filter on `dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name`, `aws.account.id`, `azure.subscription`, `gcp.project.id` — these are indexed and propagate across all signal types | Critical | Performance |
-| 45 | Use prefix-based naming for cross-signal filtering | Name host groups, namespaces, etc. with prefixes (e.g., `prod-web-tier` not `web-tier-prod`) so `starts-with` works on both entity and signal includes | Recommended | Naming |
+| 45 | Use prefix-based naming for cross-signal filtering | Name host groups, namespaces, etc. with prefixes (e.g., `prod-web-tier` not `web-tier-prod`) so a prefix (`= "prod-*"`) works on signal includes and on classic `entity.name` (the only classic-entity property that accepts starts-with) | Recommended | Naming |
 | 46 | Create one segment per dimension | Separate segments for platform, application, environment, and region — users combine them as needed | Recommended | Architecture |
 | 47 | Add event includes for detected problem filtering | Define events include with `event.kind = "DAVIS_PROBLEM"` — entity includes alone do not filter problems | Critical | Troubleshooting |
-| 48 | Set official segments to Public visibility | Platform team-owned segments: set to Public; application team segments: share with their group | Recommended | Governance |
+| 48 | Set official segments to Public visibility | Platform-team segments: *Anyone in the environment*; application-team segments: *Unlisted*, surfaced through the team's shared notebooks and dashboards (segments have no share-with-group setting) | Recommended | Governance |
 | 49 | Use consistent segment naming prefixes | Prefixes: `team-`, `env-`, `app-`, `region-` (e.g., `team-platform-infra`, `env-production`) | Recommended | Naming |
 | 50 | Test segment filter conditions with DQL before creating the segment | Run the equivalent `filter` clause as a DQL query; verify record counts match expectations | Critical | Operations |
 | 51 | Limit segment variable dropdowns to 10,000 values | Maximum 10,000 values per variable; 100 selected values per segment | Recommended | Architecture |
@@ -258,15 +258,8 @@ fetch dt.entity.service
 | fields entity.name, tags
 | limit 20
 
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "SERVICE"
-//   | expand tags
-//   | filter contains(tags, "team:platform")
-//   | fields name, tags
-//   | limit 20
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Smartscape: tags is a record, not an array — this classic query has no drop-in
+// Smartscape equivalent (expand/contains on it match nothing); see FAQ-16 for the migration pattern.
 ```
 
 ```dql
@@ -374,6 +367,8 @@ Use bucket targeting to control scan scope and stay within the 500 GB scan limit
 
 ```dql
 // Query from multiple buckets simultaneously — reduce scan scope by naming targets explicitly
+// Bucket names that don't exist are skipped with no warning — a misspelled name looks like an empty bucket.
+// Check names first: fetch dt.system.buckets | filter dt.system.table == "logs" | fields name
 fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 | limit 100
 ```
@@ -396,7 +391,7 @@ fetch logs, from:-1h
 | 69 | Document all bucket purposes | Maintain a registry mapping each bucket to its owner, data type, retention, cost center, and routing rule | Recommended | Governance |
 | 70 | Document all security context values | Maintain a registry of all `dt.security_context` values, their meaning, and which IAM policies reference them | Recommended | Governance |
 | 71 | Platform team owns infrastructure segments | Platform/SRE team creates and maintains public environment and infrastructure segments | Recommended | Governance |
-| 72 | Application teams own app-specific segments | Each team creates segments for their applications; share with their IAM group | Recommended | Governance |
+| 72 | Application teams own app-specific segments | Each team creates segments for its applications, kept *Unlisted* and referenced from the team's shared documents | Recommended | Governance |
 | 73 | Review segments quarterly | Remove unused segments; verify filter conditions still match data; check for empty results | Recommended | Operations |
 | 74 | Use combined approach for defense in depth | Buckets for retention/cost + Security context for access control + Segments for dynamic views — all three together | Critical | Architecture |
 | 75 | Implement in phases | Phase 1: Plan → Phase 2: Buckets + routing → Phase 3: IAM policies → Phase 4: Segments → Phase 5: Governance | Recommended | Operations |

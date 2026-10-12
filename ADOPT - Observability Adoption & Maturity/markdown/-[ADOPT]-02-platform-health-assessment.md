@@ -1,6 +1,6 @@
 # ADOPT-02: Platform Health Assessment
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -58,7 +58,7 @@ Dynatrace supports multiple monitoring modes. Full-Stack provides the deepest vi
 
 **Read the mode from billing, not from the host entity.** The classic `monitoringMode` property on `dt.entity.host` is not populated for every host. On the validation tenant (10/01/2026), 29 of the 36 hosts billed as Full-Stack in the last 24 hours had `monitoringMode` empty, so a `by:{monitoringMode}` breakdown put four in five Full-Stack hosts in a null bucket. On DPS, each monitored host emits billing usage events that name the capability it was charged under — that is the mode that counts.
 
-> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
+> **SaaS 1.347 — staged tenant rollout from 09/16/2026:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
 
 ```dql
 // Hosts by the capability they were billed under (DPS), last 24 hours.

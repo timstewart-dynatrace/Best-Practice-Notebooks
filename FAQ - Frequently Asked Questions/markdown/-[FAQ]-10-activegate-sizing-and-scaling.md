@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -402,7 +402,7 @@ If you do query `dsfm:` keys in DQL, mind the colon: `timeseries` parses an unqu
 > - <sub>[Sizing guide for ActiveGates in the Kubernetes monitoring use-case (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/resource-management/ag-resource-limits) — lists *"dt.sfm.active_gate.kubernetes.pipeline_duration"* and *"dt.sfm.active_gate.jvm.gc.major_collection_time"* among its validation metrics;</sub>
 > - <sub>[ActiveGate 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345) — the Diagnostic Overview dashboard's move to Fleet Management, and SFM metrics gaining a host entity dimension when the ActiveGate is OneAgent-monitored;</sub>
 > - <sub>[Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements) — 50%/80% thresholds</sub>
-> - <sub>[ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Published Oct 01, 2026 Rollout start on Sep 30, 2026"*; *"Removed several ActiveGate disk space self-monitoring metrics and dimensions deprecated in ActiveGate version 1.330"* and *"Also, removed the volume and module_name dimensions."*</sub>
+> - <sub>[ActiveGate 1.347 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347) — *"Rollout start on Sep 30, 2026"*; *"Removed several ActiveGate disk space self-monitoring metrics and dimensions deprecated in ActiveGate version 1.330"* and *"Also, removed the volume and module_name dimensions."*</sub>
 > - <sub>[ActiveGate 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343) — the Kubernetes module now calls the Kubernetes API once per minute, down from multiple calls per collection cycle</sub>
 > - <sub>**Derived:** the Gen2/Gen3 split, the 50%/80% thresholds applied to JVM-level metrics, and the `dt.sfm.active_gate.*` catalog are all inferred rather than documented on the sfm page</sub>
 

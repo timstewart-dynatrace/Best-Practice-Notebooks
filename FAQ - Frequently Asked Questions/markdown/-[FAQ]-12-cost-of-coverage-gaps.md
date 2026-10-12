@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/05/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -161,7 +161,7 @@ Before arguing about what to enable, measure what you have. Three queries:
 
 **Query 1 — hosts by monitoring mode, read from billing.** Do not break hosts down by the `monitoringMode` attribute on `fetch dt.entity.host`. On the validation tenant it was empty on 26 of 33 hosts — every Kubernetes and AWS Fargate host — although all 26 were billed as Full-Stack, so a breakdown on it files most of a containerized estate under no mode at all. (`smartscapeNodes "HOST"` does not expose the attribute either.) The billing events record the capability each host is actually charged for. A host billed under more than one capability appears in each row — 18 of 39 hosts on the validation tenant were billed for both Full-Stack and Code Monitoring — so do not add the rows up.
 
-> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026).
+> **SaaS 1.347 — staged tenant rollout from 09/16/2026:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026).
 
 ```dql
 // Coverage audit — hosts by the monitoring capability they are billed for.

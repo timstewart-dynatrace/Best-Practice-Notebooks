@@ -1,6 +1,6 @@
 # OPMIG-99: Best Practice Summary
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 Definitive best practice settings for migrating from classic logs to OpenPipeline. Each entry specifies the exact configuration.
 
@@ -121,18 +121,18 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
 | Masking processors FIRST in the Processing stage | Sensitive data redacted before parsing, extraction and storage. Routing runs before any processor — keep PII out of routing conditions | Critical |
-| Credit cards | Built-in `CREDITCARD` matcher → `[CC_REDACTED]` | Critical |
+| Credit cards | Built-in `CREDITCARD` matcher, bounded: `!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]` → `[CC_REDACTED]`. Unbounded, it rewrites digit runs inside UUIDs | Critical |
 | CVV codes | `('cvv='\|'cvc=') [0-9]{3,4}` → `cvv=[REDACTED]` | Critical |
 | Email addresses | `[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+` → `[EMAIL_REDACTED]` (no built-in `EMAIL` matcher exists) | Critical |
 | IP addresses (GDPR) | Built-in `IPADDR` matcher → `[IP_REDACTED]` | Critical |
 | SSNs | `[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}` → `[SSN_REDACTED]` (`INT` takes no `{n}` quantifier) | Critical |
 | Bearer tokens | `'Bearer ' NSPACE` → `Bearer [TOKEN_REDACTED]` | Critical |
-| API keys | `('api_key='\|'apiKey=') NSPACE` → `api_key=[REDACTED]` (a trailing `LD` would erase the rest of the line) | Critical |
-| Passwords | `('password='\|'pwd='\|'passwd=') NSPACE` → `password=[REDACTED]`; in URLs `'password=' [^&\s]+` | Critical |
+| API keys and tokens | `<<(('api_key' \| 'API_KEY' \| 'apiKey' \| 'apikey' \| 'APIKEY' \| 'token' \| 'TOKEN') '=') NSPACE` → `[REDACTED]`, plus a separate statement for JSON-quoted keys. DPL literals are case-sensitive; a trailing `LD` would erase the rest of the line | Critical |
+| Passwords | `<<(('password' \| 'PASSWORD' \| 'Password' \| 'passwd' \| 'pwd') '=') NSPACE` → `[REDACTED]`; in URLs `'password=' [^&\s]+` | Critical |
 | Remove always-sensitive fields | `fieldsRemove password, secret, api_key, token, authorization` | Recommended |
 | Use descriptive placeholders | `[CC_REDACTED]`, `[EMAIL_REDACTED]`, `[PHI_REDACTED]` — enables audit counts by type | Recommended |
 | Chain all masking in single processor | Apply CC, CVV, email, IP, SSN, tokens in sequence — single pass | Recommended |
-| Validate masking weekly | `filter replacePattern(content, "CREDITCARD", replacement: "") != content` must return 0 — `matchesPhrase(content, "4111")` misses unbroken 16-digit numbers | Critical |
+| Validate masking weekly | `filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content` must return 0 — `matchesPhrase(content, "4111")` misses unbroken 16-digit numbers | Critical |
 | Handle masking failure as critical incident | Stop storing the exposed records, identify exposure window, restrict access via IAM, delete exposed records (Grail record deletion API) | Critical |
 
 <a id="compliance"></a>

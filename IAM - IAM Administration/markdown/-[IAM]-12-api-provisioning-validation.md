@@ -1,6 +1,6 @@
 # IAM-12: API Provisioning & Validation Scripts
 
-> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -921,6 +921,8 @@ Policy, group and binding changes are account-level: answer this question from t
 fetch dt.system.events, from:-24h
 | filter event.kind == "AUDIT_EVENT"
 | filter contains(resource, "iam")
+// Corrected 10/12/2026: the daily /lookups/iam_* upload job matched "iam" (8 of 10 events in 24 h)
+| filter not startsWith(resource, "/lookups/")
 | summarize calls = count(), by:{event.type, event.outcome}
 | sort calls desc
 ```

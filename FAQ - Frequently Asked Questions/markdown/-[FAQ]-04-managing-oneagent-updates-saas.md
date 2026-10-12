@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -43,7 +43,7 @@ The intent is not to talk anyone out of auto-update. For most fleets, **automati
 <a id="cadence"></a>
 ## 1. Why OneAgent Update Cadence Matters
 
-> **Breaking (SaaS 1.347 — pre-release notes, rollout planned from 09/08/2026): very old agents are disconnected, not merely unsupported.** Verbatim: *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
+> **Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026): very old agents are disconnected, not merely unsupported.** Verbatim: *"Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier."*
 >
 > This is a different kind of floor from the support window. Dynatrace supports a OneAgent version for 9 months after rollout under Standard Support and 12 months under Enterprise Success and Support; as of OneAgent 1.347 the oldest supported versions are 1.329 and 1.323 respectively. **Falling outside that support window means you stop receiving fixes; being at or below 1.241 means the host stops reporting.** A fleet on "Auto-update disabled" (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.
 >

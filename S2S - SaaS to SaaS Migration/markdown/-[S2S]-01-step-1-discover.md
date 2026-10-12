@@ -307,7 +307,7 @@ Beyond entities, you need a count of configuration objects to estimate migration
 | Classic dashboards | Dashboard API v1 | ___ | 20–200 |
 | Credential vault entries | Environment API v2: `/credentials` (secrets are never returned) | ___ | 5–20 |
 
-¹ Classic only. [Service naming upgrade guide (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services-classic/upgrade-guide-service-naming): *"In Latest Dynatrace with Smartscape on Grail, service naming rules (builtin:naming.services) no longer apply."* Inventory them to migrate a Classic target; don't plan to recreate them on a Latest Dynatrace one.
+¹ Classic only. [Service naming upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/upgrade-guide-service-naming): *"In Latest Dynatrace with Smartscape on Grail, service naming rules (builtin:naming.services) no longer apply."* Inventory them to migrate a Classic target; don't plan to recreate them on a Latest Dynatrace one.
 
 ### Gen3 (Grail) Configuration
 

@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/05/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -93,7 +93,7 @@ DPS bills along **capabilities** — discrete units of platform functionality, e
 | **Metrics powered by Grail** | Ingest & Process (with included-quota subtraction), Retain | Data points / Bytes |
 | **Traces powered by Grail** | Ingest & Process, Retain, Query | Bytes (`ingested_bytes` for Ingest, `billed_bytes` for Retain/Query) |
 | **Automation** | Automation Workflow | Workflow-hours (record count per hour) |
-| **AppEngine Functions** | AppEngine Functions - Small (Ad-hoc, Actions, App functions) | Invocations |
+| **Standard Function Calls** (formerly AppEngine Functions) | AppEngine Functions - Small (Ad-hoc, Actions, App functions) | Invocations |
 | **Synthetic Monitoring** | Browser Monitor / Clickpath, HTTP Monitor | Synthetic actions / HTTP requests |
 | **Real User Monitoring** | RUM session billing | Sessions |
 | **Files** | Files - Retain | Bytes |
@@ -168,7 +168,7 @@ In community practice, the split that works is: if your question is *"how much d
 <a id="mandatory-patterns"></a>
 ## 4. Mandatory Patterns — `dedup`, `event.kind`, `billing_type`
 
-Two patterns belong in every DPS consumption query, and a third applies to AppEngine Functions. Skipping them produces results that look reasonable but are wrong.
+Two patterns belong in every DPS consumption query, and a third applies to Standard Function Calls (formerly AppEngine Functions), whose billing events still carry `event.type == "AppEngine Functions - Small"`. Skipping them produces results that look reasonable but are wrong.
 
 ### `dedup event.id` before any aggregation
 
@@ -196,7 +196,7 @@ Dynatrace's cost tutorials call it mandatory in every billing query. In communit
 
 `usage.bucket` is present on every bucket-scoped capability observed, including all three Events capabilities. **Events - Ingest & Process** additionally carries `usage.event_bucket`; Events - Retain and Events - Query do not. Group by `usage.bucket`; when unifying across capabilities, `coalesce(usage.bucket, usage.event_bucket)` is a safe fold.
 
-> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Dynatrace refreshes metering records when correcting measurements."*; every billing query in that tutorial and in [Forecast costs with run-rate projections (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate) applies `filter event.kind == "BILLING_USAGE_EVENT"` and `dedup event.id`. [Calculate your consumption of AppEngine Functions (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/consumption-details) — both example queries filter on `(billing_type == "BILLABLE" OR isNull(billing_type))`. Field coverage read on a SaaS tenant 10/05/2026 (30 days): AppEngine `billing_type` null on 60/60 records; `usage.bucket` on 3,185/3,185 Events Ingest, 1,984/1,984 Events Retain and 8,871/8,871 Events Query records; `usage.event_bucket` on Events Ingest only.</sub>
+> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Dynatrace refreshes metering records when correcting measurements."*; every billing query in that tutorial and in [Forecast costs with run-rate projections (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate) applies `filter event.kind == "BILLING_USAGE_EVENT"` and `dedup event.id`. [Standard Function Calls consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls) — filter on `event.type == "AppEngine Functions - Small"` *"to find Standard Function Call invocations"*, and both example queries filter on `(billing_type == "BILLABLE" OR isNull(billing_type))`. Field coverage read on a SaaS tenant 10/05/2026 (30 days): AppEngine `billing_type` null on 60/60 records; `usage.bucket` on 3,185/3,185 Events Ingest, 1,984/1,984 Events Retain and 8,871/8,871 Events Query records; `usage.event_bucket` on Events Ingest only.</sub>
 
 <a id="host-based"></a>
 ## 5. Querying Host-Based Capabilities
@@ -229,7 +229,7 @@ timeseries {
 
 **Worked example — per-host attribution for Full-Stack (which hosts are driving cost):**
 
-> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347). One trap when you filter on the new field: `dt.smartscape.host` is a `smartscape_id`, not a string, so `dt.smartscape.host == "HOST-…"` never matches and raises no error. Compare with `toSmartscapeId("HOST-…")`, or compare `toString(dt.smartscape.host)` (verified 10/05/2026: the string comparison returned `false` and both alternatives `true` for the same host).
+> **SaaS 1.347 — staged tenant rollout from 09/16/2026:** billing usage events are moving their host ID from `dt.entity.host` to `dt.smartscape.host`. Verbatim: *"If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names."* The query below reads `coalesce(toString(dt.smartscape.host), dt.entity.host)`, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347). One trap when you filter on the new field: `dt.smartscape.host` is a `smartscape_id`, not a string, so `dt.smartscape.host == "HOST-…"` never matches and raises no error. Compare with `toSmartscapeId("HOST-…")`, or compare `toString(dt.smartscape.host)` (verified 10/05/2026: the string comparison returned `false` and both alternatives `true` for the same host).
 
 ```dql
 // Top-spending hosts by Full-Stack Monitoring (uses per-record events for entity attribution)
@@ -343,7 +343,7 @@ Synthetic, RUM, AppEngine, and Automation Workflow bill on counts rather than by
 | AppEngine Functions - Small | `billed_invocations` | `user.email`, `caller.app.id` |
 | Automation Workflow | (record count — 1 per standard workflow per hour of existence) | `workflow.title`, `workflow.owner`, `workflow.trigger_type` |
 
-**Automation Workflow records are workflow-hours, not executions.** A deployed standard workflow is billed for every hour it exists, whether it runs once a month or every minute, so execution frequency does not change this capability. Executions are billed elsewhere: each task run is an AppEngine Functions invocation, and any DQL a task runs bills the query capability it reads. Simple and draft-only workflows consume no workflow-hours.
+**Automation Workflow records are workflow-hours, not executions.** A deployed standard workflow is billed for every hour it exists, whether it runs once a month or every minute, so execution frequency does not change this capability. Executions are billed elsewhere: each task run is a Standard Function Call invocation, and any DQL a task runs bills the query capability it reads. Simple and draft-only workflows consume no workflow-hours.
 
 **Worked example — workflow-hours by trigger type:**
 
@@ -368,7 +368,7 @@ fetch dt.system.events, from:-7d
 | limit 10
 ```
 
-**Worked example — AppEngine Functions by function type excluding records marked non-billable:**
+**Worked example — Standard Function Calls by function type excluding records marked non-billable:**
 
 ```dql
 // AppEngine Functions - Small — invocation count by function type
@@ -397,7 +397,7 @@ fetch dt.system.events, from:-7d
 | limit 10
 ```
 
-> <sub>**Sources:** [DPS Automation (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-automation), [DPS AppEngine Functions (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-appfunctions). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."*; *"Simple workflows do not directly consume workflow hours"*; *"Each workflow execution triggers AppEngine functions that execute tasks."* [Calculate your consumption of AppEngine Functions (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/consumption-details) — the `billing_type` filter, `function.type` category mapping and `user.email` / `caller.app.id` attribution. Executed on a SaaS tenant 10/05/2026: every Automation Workflow record is unique per `workflow.id` and hour (21,954 workflow-hours, maximum 1 per hour); manual 10,920 workflow-hours / 65 workflows, schedule 8,232 / 49, event 2,802 / 17 over 7 days — 168 hours per workflow, run or not; the AppEngine query returned 60 Ad-hoc invocations over 30 days, where the strict `billing_type == "BILLABLE"` form returned none. Synthetic query verified 2026-05-19.</sub>
+> <sub>**Sources:** [DPS Automation (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-automation), [DPS AppEngine Functions (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-appfunctions). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."*; *"Simple workflows do not directly consume workflow hours"*; *"Each workflow execution triggers Standard Function Calls that execute tasks"* [Standard Function Calls consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls) — the `billing_type` filter, `function.type` category mapping and `user.email` / `caller.app.id` attribution. Executed on a SaaS tenant 10/05/2026: every Automation Workflow record is unique per `workflow.id` and hour (21,954 workflow-hours, maximum 1 per hour); manual 10,920 workflow-hours / 65 workflows, schedule 8,232 / 49, event 2,802 / 17 over 7 days — 168 hours per workflow, run or not; the AppEngine query returned 60 Ad-hoc invocations over 30 days, where the strict `billing_type == "BILLABLE"` form returned none. Synthetic query verified 2026-05-19.</sub>
 
 <a id="metrics-ingest"></a>
 ## 8. Metrics-Ingest with Included-Quota Subtraction
@@ -562,7 +562,7 @@ Retain is the case where pitfall #6 bites after an `expand`: each record is an h
 | 9 | Grouping Events Retain / Query by `usage.event_bucket` | A single null row — only Events Ingest carries `usage.event_bucket` | Group by `usage.bucket`; `coalesce(usage.bucket, usage.event_bucket)` for cross-capability work |
 | 10 | Strict `billing_type == "BILLABLE"` on AppEngine | The field is often null, so the filter drops every record and reports zero usage | `billing_type == "BILLABLE" or isNull(billing_type)` — Dynatrace's own AppEngine queries keep nulls |
 
-> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — lists *"Missing dedup event.id"* as a common investigation mistake (pitfall #1). Pitfalls #2–#8 come from live tenant validation against the DPS Usage Details DEMO dashboard's queries (2026-05-19); #9 and #10 were re-read on a SaaS tenant 10/05/2026, and #10's fix is the filter in [Calculate your consumption of AppEngine Functions (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/consumption-details).</sub>
+> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — lists *"Missing dedup event.id"* as a common investigation mistake (pitfall #1). Pitfalls #2–#8 come from live tenant validation against the DPS Usage Details DEMO dashboard's queries (2026-05-19); #9 and #10 were re-read on a SaaS tenant 10/05/2026, and #10's fix is the filter in [Standard Function Calls consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls).</sub>
 
 <a id="validating"></a>
 ## 12. Validating Numbers Against Account Management

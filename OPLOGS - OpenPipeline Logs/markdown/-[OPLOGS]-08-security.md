@@ -1,6 +1,6 @@
 # OPLOGS-08: Security & Data Protection
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Sensitive Data Discovery, Masking, and Compliance
 This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.
@@ -106,14 +106,11 @@ fetch logs, from: now() - 1h
 ```
 
 ```dql
-// Search for potential credit card patterns (16 digits)
+// Lines carrying a Luhn-valid card number (CREDITCARD), bounded so digit runs inside UUIDs do not count
+// Grouped by source, not by content, so the card numbers are not echoed into the result table
 fetch logs, from: now() - 1h
-| filter contains(content, "card")
-        OR contains(content, "payment")
-        OR contains(content, "visa")
-        OR contains(content, "mastercard")
-| fieldsAdd content_preview = substring(content, from: 0, to: 120)
-| summarize {count = count()}, by: {content_preview}
+| filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", "") != content
+| summarize {count = count()}, by: {k8s.namespace.name, log.source}
 | sort count desc
 | limit 15
 ```
@@ -143,21 +140,16 @@ Step 1: Identify Sensitive Data
 - Discover PII, credentials, tokens in logs
 - Define patterns and risk levels
 
-Step 2: Configure Masking Processors
-- Mask value: Replace with fixed pattern (***MASKED***)
-- Hash value: One-way hash for correlation
-- Remove field: Completely remove the field
-- Partial masking (keep the last 4 digits) is NOT possible with replacePattern — it has no back-references; mask the whole value
+Place masking processors first, so sensitive data is redacted before parsing, extraction and storage.
 
-Step 3: Apply at Ingestion
-- Masking occurs BEFORE storage in Grail
-- Irreversible - original data never stored
-- Applied in OpenPipeline processing stage
+| Raw log input (contains PII) | Masking processors (first in Processing) | Safe for storage |
+|---|---|---|
+| email: user@test.com | email pattern → [EMAIL-MASKED] | email: [EMAIL-MASKED] |
+| card: 4111111111111111 | CREDITCARD → [CC-MASKED] | card: [CC-MASKED] |
+| ssn: 123-45-6789 | SSN pattern → [SSN-MASKED] | ssn: [SSN-MASKED] |
+| ip: 192.168.1.100 | IPADDR → xxx.xxx.xxx.xxx | ip: xxx.xxx.xxx.xxx |
 
-Step 4: Verify Masking
-- Check for masked patterns in logs
-- Validate sensitive data no longer visible
-- Monitor masking effectiveness
+Key benefits: masked at ingest · before any copy · before storage · never stored unmasked.
 -->
 
 ### Masking Options
@@ -167,6 +159,8 @@ Step 4: Verify Masking
 | **DQL processor** — `replacePattern` / `replaceString` / `ipMask` | Replace a value or part of it (e.g. `[EMAIL-MASKED]`, last octet → 0) |
 | **DQL processor** — `hashSha256()` | One-way hash when you need to correlate on a value without exposing it |
 | **Remove fields** | Drop a whole field |
+
+**Partial masking.** `replacePattern` has no back-references, but a `>>` lookahead keeps the trailing digits without one: `replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' >>([0-9]{4} !>>[0-9A-Za-z-])", "***-**-")` turns `ssn 123-45-6789 rest` into `ssn ***-**-6789 rest`, and `"!<<[0-9A-Za-z-] [0-9]{12} >>([0-9]{4} !>>[0-9A-Za-z-])"` with `"XXXXXXXXXXXX"` turns `4111111111111234` into `XXXXXXXXXXXX1234`. The `!<<[0-9A-Za-z-]` / `!>>[0-9A-Za-z-]` bounds stop the pattern firing inside a longer number or an alphanumeric ID (digit-only bounds still masked inside `3f2b9c1e4111111111111111aa`) — without them, `order 99999999999999999999` becomes `order XXXXXXXXXXXX99999999` (verified with `data record`, 10/12/2026).
 
 ### Configuration Path
 
@@ -179,13 +173,14 @@ Step 4: Verify Masking
 
 ```text
 fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
-fieldsAdd content = replacePattern(content, "CREDITCARD", "[CC-MASKED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", "[CC-MASKED]")
 fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", "[SSN-MASKED]")
-fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
+fieldsAdd content = replacePattern(content, "<<(('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
+fieldsAdd content = replacePattern(content, "<<('\"' ('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '\"' ' '* ':' ' '* '\"') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
 fieldsAdd content = replacePattern(content, "IPADDR", "xxx.xxx.xxx.xxx")
 ```
 
-> DPL, not regex — see FAQ-15 §3. `CREDITCARD` validates the Luhn checksum. There is no `EMAIL` matcher; the character-class pattern above is the working form. Regex syntax (`\b`, `\d`, `(?:…)`, `$1`) is rejected when you save the processor. Test every statement with `data record(content="…") | fieldsAdd x = replacePattern(…)` before deploying — including against your real key formats. The key class includes `_` and `-`: with `[A-Za-z0-9]{20,}`, a key like `sk_live_51Hx…` (underscores) or a dash-separated key matched nothing and was **stored in clear** (verified 10/02/2026). Keys shorter than 20 characters are not matched by design; lower the bound if yours are shorter.
+> DPL, not regex — see FAQ-15 §3. `CREDITCARD` validates the Luhn checksum. There is no `EMAIL` matcher; the character-class pattern above is the working form. Regex syntax (`\b`, `\d`, `(?:…)`, `$1`) is rejected when you save the processor. Test every statement with `data record(content="…") | fieldsAdd x = replacePattern(…)` before deploying — including against your real key formats. The key class includes `_` and `-`: with `[A-Za-z0-9]{20,}`, a key like `sk_live_51Hx…` (underscores) or a dash-separated key matched nothing and was **stored in clear** (verified 10/02/2026). Keys shorter than 20 characters are not matched by design; lower the bound if yours are shorter. DPL literals are case-sensitive and there is no case-insensitive flag — list each casing your applications emit (`Token=` is not covered above), and keep the separate statement for JSON-quoted keys (`"api_key": "…"`). Bound `CREDITCARD` with negative lookarounds: unbounded, it matches Luhn-valid digit runs inside UUIDs (`9cbcb510-8833-4981-87ab-…` → `9cbcb[CC-MASKED]ab-…`) and corrupts the IDs at ingest — on the validation tenant 1,525 lines in 15 minutes matched unbounded and 169 bounded (10/12/2026).
 >
 > <sub>**Sources:** [OpenPipeline processing examples (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data) — *"You can mask parts of an attribute by leveraging replacePattern in combination with other DQL functions."*</sub>
 
@@ -196,7 +191,7 @@ fetch logs, from: now() - 1h
 | summarize {
     total = count(),
     unmasked_email = countIf(replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "") != content),
-    unmasked_card = countIf(replacePattern(content, "CREDITCARD", "") != content),
+    unmasked_card = countIf(replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", "") != content),
     masked_markers = countIf(contains(content, "MASKED"))
   }
 ```
@@ -248,8 +243,9 @@ fetch logs, from: now() - 1h
         OR contains(content, "auth")
         OR contains(content, "signin")
         OR contains(content, "logout")
-| fieldsAdd content_preview = substring(content, from: 0, to: 100)
-| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, "[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}", replacement: "<id>"), "[0-9]+", replacement: "#"), from: 0, to: 100)
+| summarize {count = count(), sample = takeAny(substring(content, from: 0, to: 100))}, by: {msg_sig, k8s.namespace.name}
 | sort count desc
 | limit 20
 ```
@@ -301,12 +297,14 @@ fetch logs, from: now() - 24h
 | filter contains(content, "user") 
         OR contains(content, "admin")
         OR contains(content, "config")
-| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, "[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}", replacement: "<id>"), "[0-9]+", replacement: "#"), from: 0, to: 100)
 | summarize {
     count = count(),
     first_seen = min(timestamp),
-    last_seen = max(timestamp)
-  }, by: {content_preview, k8s.namespace.name}
+    last_seen = max(timestamp),
+    sample = takeAny(substring(content, from: 0, to: 100))
+  }, by: {msg_sig, k8s.namespace.name}
 | sort count desc
 | limit 20
 ```
@@ -320,8 +318,9 @@ fetch logs, from: now() - 24h
 | filter contains(content, "change")
         OR contains(content, "update")
         OR contains(content, "reload")
-| fieldsAdd content_preview = substring(content, from: 0, to: 120)
-| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, "[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}", replacement: "<id>"), "[0-9]+", replacement: "#"), from: 0, to: 120)
+| summarize {count = count(), sample = takeAny(substring(content, from: 0, to: 120))}, by: {msg_sig, k8s.namespace.name}
 | sort count desc
 | limit 15
 ```
@@ -401,7 +400,8 @@ One **DQL** processor in the **Processing** stage (matcher `true`, or a narrower
 
 ```text
 fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
-| fieldsAdd content = replacePattern(content, "<<('api_key=' | 'apikey=' | 'key=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
+| fieldsAdd content = replacePattern(content, "<<(('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '=') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
+| fieldsAdd content = replacePattern(content, "<<('\"' ('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '\"' ' '* ':' ' '* '\"') [A-Za-z0-9_-]{20,}", "[KEY-MASKED]")
 ```
 
 The patterns are DPL, not regex; `<<(…)` is a lookbehind, so the key name stays and only the value is replaced — no `$1` back-reference is needed (or supported).

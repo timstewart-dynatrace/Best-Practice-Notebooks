@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/05/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -311,10 +311,10 @@ Cross-cutting rather than a data type — this is the consumption caused by *rea
 Automation Workflow bills **workflow-hours**: every deployed standard workflow is billed for each hour it exists, run or not (FINOPS-01 §7).
 
 1. **Cut first?** Delete standard workflows nobody uses — they bill every hour they exist, whether they ran in the last 90 days or not.
-2. **Tune next?** Where a workflow qualifies, make it a simple workflow, and leave unfinished work as a draft — neither consumes workflow-hours. **Reducing schedule frequency does not reduce Automation Workflow consumption**; it only reduces the AppEngine Functions invocations and query usage of the tasks each run executes.
+2. **Tune next?** Where a workflow qualifies, make it a simple workflow, and leave unfinished work as a draft — neither consumes workflow-hours. **Reducing schedule frequency does not reduce Automation Workflow consumption**; it only reduces the Standard Function Calls and query usage of the tasks each run executes.
 3. **Filter** — workflow filtering is at the trigger condition (only fire if X), which is an action-level filter. Like schedule frequency, it trims the AppEngine and query usage of the runs, not the workflow-hours.
 
-> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Standard workflows consume workflow hours."*; *"Simple workflows do not directly consume workflow hours"*; *"Draft-only workflows do not directly consume workflow hours"*; *"Each workflow execution triggers AppEngine functions that execute tasks."* [Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."* [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."*</sub>
+> <sub>**Sources:** Per-capability billing semantics: [DPS docs](https://docs.dynatrace.com/docs/license). [Calculate your consumption of Automation Workflow (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation) — *"Standard workflows consume workflow hours."*; *"Simple workflows do not directly consume workflow hours"*; *"Draft-only workflows do not directly consume workflow hours"*; *"Each workflow execution triggers Standard Function Calls that execute tasks"* [Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."* [Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"each timeseries is billed for no more than one data point per minute."*</sub>
 
 <a id="tradeoffs"></a>
 ## 7. Trade-offs and Hidden Costs

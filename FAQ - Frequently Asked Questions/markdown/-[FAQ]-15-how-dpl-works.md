@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -668,10 +668,14 @@ fetch logs, from: -1h
 `replacePattern(expression, pattern, replacement)` is the masking primitive:
 
 ```dql
-fieldsAdd content = replacePattern(content, "CREDITCARD", "[PAN_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", "[PAN_REDACTED]")
 ```
 
 Because masking depends on the pattern matching, **an invalid or non-matching pattern means no redaction happens** — and nothing tells you. Test every masking pattern against sample data before deploying it. See § 13.
+
+**Bound the matcher.** A bare `CREDITCARD` matches a Luhn-valid digit run wherever it sits, including inside an identifier: on `req 9cbcb510-8833-4981-87ab-1234567890ab ok` it returns `req 9cbcb[PAN_REDACTED]ab-1234567890ab ok`. On a validation tenant, 1,366 of the 1,541 log records a bare `CREDITCARD` changed in 15 minutes were IDs of that kind, not card numbers (10/12/2026). As an ingest processor it would have corrupted those IDs, forward-only. The negative lookbehind `!<<` and negative lookahead `!>>` above refuse a match that touches a letter, digit or hyphen, so the UUID is left intact while `4111111111111111`, `4111-1111-1111-1111`, `4111 1111 1111 1111` and `x=4111111111111111,y` are all still masked (live-verified 10/12/2026).
+
+**Partial masking uses a lookahead, not a back-reference.** `replacePattern` has no back-references, but `>>` checks text without consuming it, so the checked text survives the replacement: `replacePattern("ssn 123-45-6789 rest", "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' >>([0-9]{4} !>>[0-9A-Za-z-])", "***-**-")` returns `ssn ***-**-6789 rest` (live-verified 10/12/2026). Bound both ends, as here, so the pattern cannot fire inside a longer number or an alphanumeric ID.
 
 ### `splitByPattern` — splitting on a pattern
 
@@ -683,7 +687,7 @@ data record(t = "ERROR svc=api code=500")
 
 All five are available inside the OpenPipeline DQL processor as well as at query time.
 
-> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — `parse` signature, the four parameters, and the field-override warning; [String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `parse`, `parseAll`, `matchesPattern`, `replacePattern`, `splitByPattern`; [OpenPipeline DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions) — availability inside the DQL processor; [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — the matcher's *Functions* list is `matchesPhrase`, `matchesValue`, `isNotNull`, `isNull` and `duration` (read 10/02/2026).</sub>
+> <sub>**Sources:** [Extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands) — `parse` signature, the four parameters, and the field-override warning; [String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `parse`, `parseAll`, `matchesPattern`, `replacePattern`, `splitByPattern`; [OpenPipeline DQL functions (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions) — availability inside the DQL processor; [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — the matcher's *Functions* list is `matchesPhrase`, `matchesValue`, `isNotNull`, `isNull` and `duration` (read 10/02/2026); [DPL Modifiers (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language/log-processing-modifiers) — *"negative look ahead - returns true if bytes forward from the current position do not match"*.</sub>
 
 ---
 

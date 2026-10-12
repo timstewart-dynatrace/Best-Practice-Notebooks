@@ -1,6 +1,6 @@
 # FAQ-22: What Happened to My PurePath Timings in Grail?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 22 — PurePath Timings in the Grail Span Model | **Created:** August 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -136,7 +136,7 @@ The customer premise here is correct, and it follows from one sentence in the di
 
 `endpoint.name` is `stable`, and its definition reads: *"The endpoint name is derived from endpoint detection rules and uniquely identifies one endpoint of a particular service… Endpoints are **exclusively detected on request root spans**."*
 
-> **Breaking (SaaS 1.347 — staged rollout from 09/08/2026): endpoint names keep their volatile segments** — for customers using URL truncation, that is Service Detection v2, or Service Detection v1 with enhanced endpoint naming enabled. Verbatim: *"Volatile segments are no longer dropped. Instead, they're replaced with typed placeholders, and path processing continues for the full path."* This does not change *where* endpoints are detected — the root-span rule below still holds — but it changes the **shape of every name**. A path that previously truncated at its first volatile segment now runs its full length with `{id}` / `{token}` standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.
+> **Breaking (SaaS 1.347 — staged rollout from 09/16/2026): endpoint names keep their volatile segments** — for customers using URL truncation, that is Service Detection v2, or Service Detection v1 with enhanced endpoint naming enabled. Verbatim: *"Volatile segments are no longer dropped. Instead, they're replaced with typed placeholders, and path processing continues for the full path."* This does not change *where* endpoints are detected — the root-span rule below still holds — but it changes the **shape of every name**. A path that previously truncated at its first volatile segment now runs its full length with `{id}` / `{token}` standing in for the volatile parts, so a filter written against a truncated name stops matching. Cardinality moves with it: two URLs that used to collapse to the same truncated endpoint can now resolve to two names. Re-check endpoint-scoped filters, dashboards and alerts once 1.347 reaches your tenant; until it does, the truncating behaviour is what you will observe.
 
 A client span — the caller's side of an outbound HTTP, gRPC, or database call — is by construction *not* a request root span. So:
 

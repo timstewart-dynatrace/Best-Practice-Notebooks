@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -250,7 +250,7 @@ trigger:
 - **Stagger start times.** Dynatrace's guidance: *"stagger their start times by a few minutes, for example, 00:00 , 00:03 , and 00:07 ."* Pinning many workflows to :00 bursts load on the systems they call.
 - **Set the time zone explicitly.** For cron, *"The time zone defaults to your browser's locale."*
 - **Check the next runs.** Use **Next scheduled executions** in the trigger configuration before saving.
-- **Don't schedule more often than the work needs.** Each run costs AppEngine function invocations, and DQL tasks consume query volume.
+- **Don't schedule more often than the work needs.** Each run costs Standard Function Calls, and DQL tasks consume query volume.
 
 > <sub>**Sources:** [Workflow schedule trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/schedules); [Automation client SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-automation/) — `Schedule` / `CronTrigger`.</sub>
 

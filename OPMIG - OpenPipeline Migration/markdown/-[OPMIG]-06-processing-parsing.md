@@ -1,6 +1,6 @@
 # OPMIG-06: Processing, Parsing & Transformation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ---
 
@@ -495,8 +495,8 @@ parse content, "DATA? 'File \"' LD:file '\", line ' INT:line ', in ' NSPACE:func
 Masking uses `replacePattern`, which takes a **DPL** pattern (not a regular expression — there is no `replaceAll` function). See OPMIG-08 for the full masking set.
 
 ```dql
-// Credit cards (1234-5678-9012-3456 → ****-****-****-****)
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "****-****-****-****")
+// Credit cards (4111-1111-1111-1111 → ****-****-****-****); bounded so IDs and UUIDs are left alone
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "****-****-****-****")
 
 // Email addresses
 | fieldsAdd content = replacePattern(content, "[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+", replacement: "***@***.***")
@@ -505,7 +505,18 @@ fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "****-***
 | fieldsAdd content = replacePattern(content, "[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}", replacement: "***-**-****")
 ```
 
-> **Partial masking ("keep the last 4 digits")** has no DPL equivalent — `replacePattern` has no back-references, so the previous `$4` example cannot be expressed. Mask the whole number.
+**Partial masking ("keep the last 4 digits")** needs a lookahead, not a back-reference. `replacePattern` has no back-references, so the old `$4` example cannot be expressed, but a `>>` lookahead checks the last four digits without consuming them, so they survive the replacement. Bound both ends so the pattern cannot fire inside a longer number or an ID:
+
+```dql
+// 4111-1111-1111-1234 → ****-****-****-1234
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{4} '-' [0-9]{4} '-' [0-9]{4} '-' >>([0-9]{4} !>>[0-9A-Za-z-])", replacement: "****-****-****-")
+// 4111111111111234 → XXXXXXXXXXXX1234 (unbroken; the letter bound keeps hex IDs such as 3f2b9c1e4111111111111111aa intact)
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{12} >>([0-9]{4} !>>[0-9A-Za-z-])", replacement: "XXXXXXXXXXXX")
+// 123-45-6789 → ***-**-6789
+| fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' >>([0-9]{4} !>>[0-9A-Za-z-])", replacement: "***-**-")
+```
+
+All three statements were run with `data record(...)` on 10/12/2026 and returned the values in the comments; `card=4111-1111-1111-1111, cvv=123` became `card=****-****-****-1111, cvv=123`.
 
 ### Network Patterns
 

@@ -1,6 +1,6 @@
 # OPMIG-04: OpenPipeline Migration Guide: Part 4
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Pipeline Configuration Fundamentals
 ---
@@ -376,7 +376,7 @@ Davis stage → **Davis event** processor:
 
 **Processor 1: Mask Credit Cards (FIRST!)**
 ```dql
-fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "[CC_REDACTED]")
+fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "[CC_REDACTED]")
 ```
 
 **Processor 2: Mask CVV**
@@ -802,7 +802,7 @@ k8s.namespace.name == "payments" OR log.source == "payment-service"
 
 1. **Mask Credit Cards** (Masking)
    - Matching: `matchesPhrase(content, "card")`
-   - Definition: `fieldsAdd content = replacePattern(content, "CREDITCARD", replacement: "****-****-****-****")` — `replacePattern` takes a DPL pattern, not a regular expression
+   - Definition: `fieldsAdd content = replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "****-****-****-****")` — `replacePattern` takes a DPL pattern, not a regular expression. The `!<<` / `!>>` bounds stop `CREDITCARD` matching digit runs inside UUIDs, which it otherwise rewrites (OPMIG-08)
 
 2. **Drop Health Checks** (Drop)
    - Matching: `matchesValue(content, "*/health*") OR matchesValue(content, "*/ready*")`

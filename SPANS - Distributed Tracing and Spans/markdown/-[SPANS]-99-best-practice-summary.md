@@ -1,6 +1,6 @@
 # SPANS-99: Best Practice Summary
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 Definitive best practice settings for distributed tracing and span analysis. Each entry specifies the exact configuration.
 
@@ -122,7 +122,7 @@ Definitive best practice settings for distributed tracing and span analysis. Eac
 | Enumeration detection | 404 count >100 with high unique path count = scanning alert (community threshold) | Recommended |
 | Limit `trace.id` exposure | `takeAny(trace.id)` per error pattern — never expose all trace IDs | Recommended |
 | Mask emails in span URLs via OpenPipeline | DQL processor: `replacePattern(url.path, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")` | Critical |
-| Mask tokens in query params via OpenPipeline | DQL processor: `replacePattern(url.query, "<<(('token' \| 'key' \| 'secret' \| 'password') '=') [^&]+", "[REDACTED]")` — DPL, no back-references | Critical |
+| Mask tokens in query params via OpenPipeline | DQL processor: `replacePattern(url.query, "<<(('token' \| 'TOKEN' \| 'Token' \| 'key' \| 'KEY' \| 'Key' \| 'secret' \| 'SECRET' \| 'Secret' \| 'password' \| 'PASSWORD' \| 'Password') '=') [^&]+", "[REDACTED]")` — DPL literals are case-sensitive, so list each casing | Critical |
 
 <a id="openpipeline-span-configuration"></a>
 ## 8. OpenPipeline Span Configuration
