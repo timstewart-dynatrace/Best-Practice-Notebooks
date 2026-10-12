@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -117,7 +117,9 @@ The built-in set varies by tenant and grows as Dynatrace adds capabilities — t
 
 Each bucket is associated with exactly **one data type**. You cannot mix data types in the same bucket.
 
-**Custom buckets can be created for:** logs, events, security events, bizevents, and spans.
+**Custom buckets can be created for:** logs, events, security events, bizevents, spans, user events and user sessions — not for metrics.
+
+> <sub>**Sources:** [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"Buckets are always associated with a specific record type, such as logs, events, spans, user events, or user sessions"*.</sub>
 
 
 ![Logs Bucket Hierarchy — Default and Custom](images/02-logs-bucket-hierarchy.png)
@@ -247,12 +249,14 @@ Use the `bucket:` parameter to target specific storage:
 
 ```dql
 // Query logs from a specific bucket — use the bucket: parameter to target storage
-fetch logs, from:-1h, bucket:"default_logs"
+fetch logs, from:-1h, bucket:{"default_logs"}
 | limit 10
 ```
 
 ```dql
 // Query from multiple buckets simultaneously — controls scan scope
+// Bucket names that don't exist are skipped with no warning — a misspelled name looks like an empty bucket.
+// Check names first: fetch dt.system.buckets | filter dt.system.table == "logs" | fields name
 fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 | limit 100
 ```
@@ -292,7 +296,7 @@ fetch logs, from:-1h, bucket:{"default_logs", "audit_logs", "security_logs"}
 ```
 team_logs_30d
 finance-audit-logs
-prod_metrics_90d
+prod_events_90d
 app123_spans
 ```
 
@@ -323,7 +327,7 @@ Continue with the ORGNZ series:
 
 ## References
 
-- [Grail Buckets](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
 - [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 

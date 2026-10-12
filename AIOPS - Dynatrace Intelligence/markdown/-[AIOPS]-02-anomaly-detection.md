@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -46,7 +46,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 with Anomaly Detection app installed (custom alerts are created in **Settings** from SaaS 1.344 — § 3) |
-| **Permissions** | `davis:analyzers:execute`, `settings:objects:read/write`, `events:read` |
+| **Permissions** | `davis:analyzers:execute`, `settings:objects:read/write`, `storage:events:read` |
 | **MCP** | Dynatrace MCP server (for AIOPS-04 / AIOPS-06 integration); analyzers also exposed in the app |
 | **Optional** | Monaco / Terraform for config-as-code (see AUTOM-03 / AUTOM-04) |
 
@@ -213,9 +213,9 @@ Those properties are the metadata a downstream workflow filters on. **Enrich her
 
 **Attribute the event to a real entity, or it correlates against the wrong one.** Alongside name, description, type and properties, a Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal is *about*. Davis's universal correlation rule merges every event naming the same entity into a single problem (AIOPS-03 §1). Set it to an actual host, service, or workload ID, normally interpolated from a `by:{}` dimension the query already groups on.
 
-The documentation asks for this field to be set "to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string" — it does not say where a detector's event lands when the field is left unset. The one documented fallback belongs to the Events API v2: an event posted without an `entitySelector` "is associated with the environment" entity. For detector events the answer is a tenant observation, not a documented contract: on a validation tenant, events without a `dt.smartscape_source.id` were mostly **not** unattributed — they carried `affected_entity_ids` naming the **environment** entity (re-checked 09/28/2026 over 1 day: 3,940 such events named the environment; 691 named no entity at all). Events that share that one entity are welded into the same problem by the correlation rule, so **the failure observed was over-merge, not a problem per firing.** On the same tenant over 7 days on 08/11/2026, environment-fallback events ran at **583 firings per correlation against a single entity**, versus **1.1** for events naming a real entity. No amount of threshold tuning fixes that, because the fault is structural rather than sensitivity-related — what you lose is the ability to tell which service the alert was ever about. Section 8 has a query that finds these in your own tenant.
+The documentation asks for this field to be set "to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string" — it does not say where a detector's event lands when the field is left unset. The one documented fallback belongs to the Events API v2: an event posted without an `entitySelector` "is associated with the environment" entity. For detector events no page says where an unset source lands. On a validation tenant (7 days to 10/12/2026), most problem-eligible events without one were still attached to a real entity, but those attached to the environment entity alone collected in large problems: 14.7 events per problem against 1.1 for the rest. Either way no threshold change fixes it; only the event template does (AIOPS-03 §1). Section 8 has a query that finds these in your own tenant.
 
-**Two event types that never open a problem.** `CUSTOM_INFO` and `WARNING` are both severity SEV-5: they are stored in Grail, are fully queryable, and can trigger workflows, but they do not raise problems. That makes them useful for chronic issues already tracked elsewhere, for routing an observation to Slack or Jira without cluttering the Problems app, and — most valuably — for calibration:
+**Two event types that never open a problem on their own.** `CUSTOM_INFO` (severity 5, Informational) and `WARNING` (severity 4, Warning) are stored in Grail, are fully queryable, and can trigger workflows, but they do not raise problems; correlation can still group them into a problem that something else opened. That makes them useful for chronic issues already tracked elsewhere, for routing an observation to Slack or Jira without cluttering the Problems app, and — most valuably — for calibration:
 
 > **Shadow-deploy a new detector.** Rather than guessing a threshold, ship the detector with `event.type` set to `CUSTOM_INFO`, leave it running for two to four weeks, then measure how often it *would* have fired (Section 8). Tune against that evidence, and only then promote it to `CUSTOM_ALERT`. This turns threshold-setting from a guess into a measurement, and being wrong during the observation window costs nothing but storage.
 
@@ -237,7 +237,7 @@ Three checks, run before a detector leaves the notebook-as-scratchpad stage — 
   | summarize distinct_entities = countDistinct(dt.entity.cloud_application_instance)
   ```
 
-- **Attribution.** Does the event template set `dt.smartscape_source.id` to a real entity ID (Step 3)? Unset, on the tenant measured above the detector's events correlated against the environment entity instead — Section 8 shows what that looks like once it's already in production, with unrelated alerts sharing a problem and no usable root cause.
+- **Attribution.** Does the event template set `dt.smartscape_source.id` to an existing entity ID, as the docs recommend (Step 3)? Events attached to the environment entity alone end up in large problems with no usable root cause (Section 8).
 - **Cost.** Was the query prototyped in a notebook first (Step 1), and — for a records-based detector — is the aggregation window wide enough to avoid a per-minute scan of raw data (Step 1a)? A detector that scans expensively on every evaluation compounds the cost of every firing, noisy or not.
 
 None of these three are analyzer tuning — they're structural, and a mistuned analyzer sitting on a structurally broken detector still fires wrong.
@@ -248,6 +248,7 @@ None of these three are analyzer tuning — they're structural, and a mistuned a
 > - <sub>[Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string"*</sub>
 > - <sub>[Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — *"If not set, the event is associated with the environment"* (scoped to events posted through this API)</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344)</sub>
+> - <sub>[Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity) — *"they don't raise problems on their own"* (Warning and Informational events)</sub>
 
 <a id="dql-alerts"></a>
 ## 5. Custom Alerts via DQL
@@ -363,13 +364,13 @@ Real output from a demonstration tenant over seven days, **measured 07/30/2026**
 | `DYNATRACE USER LOGIN` | 285 | `builtin:davis.anomaly-detectors` … | *null* |
 | `Backoff event` | 254 | `builtin:anomaly-detection.kubernetes.workload` … | `K8S_DEPLOYMENT-79081F0B98463CC2` |
 
-**Read the top row first.** A custom detector firing 5,378 times in seven days with **no `dt.smartscape_source.id`** is the anti-pattern from Section 4 in its natural habitat. What it is *not* is one problem per firing — that reading is wrong, and it sends you hunting the wrong symptom. On this tenant these events were still attributed — the attribution fell back to another entity, and where that was the environment entity they all merged together (a tenant observation; no page documents where a detector's event lands when the field is unset — see Section 4, Step 3). Re-measured on the same tenant over 7 days on 08/11/2026, this detector's firings collapsed to roughly **11 firings per correlation**, and the tenant's environment-fallback events collapsed at **583 firings per correlation onto one entity**. The damage is unrelated alerts sharing a problem and no usable root cause — not problem-count inflation. Re-tuning the threshold would not help either way. The event template has to name a real entity.
+**Read the top row first.** A custom detector firing 5,378 times in seven days with **no `dt.smartscape_source.id`** is the anti-pattern from Section 4 in its natural habitat. What it is *not* is one problem per firing — that reading is wrong, and it sends you hunting the wrong symptom. Re-measured on the same tenant over 7 days on 08/11/2026, this detector's firings collapsed to roughly **11 firings per correlation**. The damage is unrelated alerts sharing a problem and no usable root cause — not problem-count inflation. Re-tuning the threshold would not help either way. The event template has to name a real entity.
 
 **Then read the two ID columns, which answer different questions:**
 
 | Column | Question it answers | Null means |
 |--------|--------------------|------------|
-| `dt.smartscape_source.id` | Is this alert attributed to the entity it is about? | No — on the tenant measured here it fell back to another entity, commonly the environment, and merged with unrelated alerts |
+| `dt.smartscape_source.id` | Is this alert attributed to the entity it is about? | The template did not name the entity it is about. Check `affected_entity_ids`: if it holds only the environment entity, the alert will be grouped with unrelated ones |
 | `dt.settings.object_id` | Can I navigate to the configuration behind it? | No settings object; identify it by `event.name` instead |
 
 `dt.settings.object_id` identifies the configuration that produced the event, so a populated value leads straight to the detector's configuration. A useful property, observed in the values returned on 07/30/2026 rather than a documented contract: it encodes both the settings **schema** and the **scope**. The values abbreviated above resolve to `builtin:davis.anomaly-detectors` scoped to the tenant, and `builtin:anomaly-detection.kubernetes.workload` scoped to one specific `KUBERNETES_CLUSTER`. That scoping is why a single event name legitimately appears under several distinct object IDs — one per cluster — rather than indicating duplicated configuration.

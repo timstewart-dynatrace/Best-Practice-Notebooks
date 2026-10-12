@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/06/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -65,7 +65,7 @@ Segment filter conditions define which data a segment includes. Understanding th
 > **Important — operator availability depends on data type:**
 > - The underlying operator set is **`=` and `in()`** only. `starts-with`, `contains`, and `ends-with` are not separate operators — they are expressed by placing a **wildcard `*` inside the value** (`"prefix*"`, `"*text*"`, `"*suffix"`).
 > - **Signal data includes** (logs, spans, events, metrics) accept wildcards freely, so all three matching modes are available.
-> - **Classic entity includes** (`dt.entity.*`): documented wildcard support applies to the `entity.name` property. Other entity *properties* support exact `equals` only, so wildcard matching is unavailable on them. Tag conditions test **membership in the tag set** rather than a substring, so verify tag-based entity includes against your own tenant.
+> - **Classic entity includes** (`dt.entity.*`): `entity.name` supports **starts-with only** (`entity.name = "payment*"`); contains and ends-with are not supported on any classic-entity property, and other entity *properties* support exact `equals` only. The [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) page: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. Tag conditions test **membership in the tag set** rather than a substring, so verify tag-based entity includes against your own tenant.
 > - An asterisk may follow a variable name in a starts-with condition — `foo = $bar*`.
 >
 > For cross-signal consistency, prefer prefix-based naming conventions (e.g., `prod-web-tier` not `web-tier-prod`) so `starts-with` works everywhere.
@@ -258,7 +258,7 @@ The variable definition is a DQL query. The columns in the result set determine 
 | Permissions | Users must have read access to entities queried by the variable DQL |
 | Empty dropdown | Usually means the user lacks permission for the variable query |
 
-> **SaaS 1.347 — staged tenant rollout; the release notes are still marked pre-release:** segment variable queries move from the consuming app's context to the Segments app's. Once the change reaches your tenant, *"variable queries succeed even when the consuming app lacks the required data scopes"*, provided users hold `ALLOW app-engine:apps:run WHERE shared:app-id = 'dynatrace.segments.management'` — without it, *"variable queries will fall back to the old behavior."* Until then, the two permission rows above describe the working behaviour. Source: [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
+> **SaaS 1.347 — staged tenant rollout from 09/16/2026:** segment variable queries move from the consuming app's context to the Segments app's. Once the change reaches your tenant, *"variable queries succeed even when the consuming app lacks the required data scopes"*, provided users hold `ALLOW app-engine:apps:run WHERE shared:app-id = 'dynatrace.segments.management'` — without it, *"variable queries will fall back to the old behavior."* Until then, the two permission rows above describe the working behaviour. Source: [What's new in SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).
 
 ### Variable DQL Examples
 
@@ -379,7 +379,7 @@ fetch dt.entity.host_group
 | App | `dt.host_group.id contains $app` | Matches host groups containing selected app (signal includes only) |
 | Stage | `dt.host_group.id ends-with _$stage` | Matches host groups ending with selected stage (signal includes only) |
 
-> **Note:** contains and ends-with matching (wildcards anywhere in the value) works on signal data includes. On classic entity includes, documented wildcard support applies to `entity.name`; other entity properties are exact-equals only, so prefix-based naming conventions are the reliable pattern there. Always test with the segment preview before deploying.
+> **Note:** contains and ends-with matching (wildcards anywhere in the value) works on signal data includes. On classic entity includes, `entity.name` supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other entity properties are exact-equals only, so prefix-based naming conventions are the reliable pattern there. Always test with the segment preview before deploying.
 
 ### Step 4: Validate Across Signal Types
 
@@ -408,11 +408,13 @@ After creating the segments, validate they filter correctly across:
 
 | Permission | Action | Included In |
 |------------|--------|-------------|
-| `storage:filter-segments:read` | View and use segments | Dynatrace Standard User |
-| `storage:filter-segments:write` | Create and edit segments | Dynatrace Standard User |
-| `storage:filter-segments:share` | Share with others | Dynatrace Standard User |
-| `storage:filter-segments:delete` | Delete segments | Dynatrace Standard User |
-| `storage:filter-segments:admin` | Manage segment permissions | Dynatrace Professional User |
+| `storage:filter-segments:read` | View and use segments | Standard User, Pro User, Admin User |
+| `storage:filter-segments:write` | Create and edit segments | Standard User, Pro User, Admin User |
+| `storage:filter-segments:share` | Share with others | Pro User, Admin User |
+| `storage:filter-segments:delete` | Delete segments | Standard User, Pro User, Admin User |
+| `storage:filter-segments:admin` | Maintain all segments in the environment, including ones you do not own | Admin User |
+
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — Standard User: *"ALLOW storage:filter-segments:read, storage:filter-segments:write, storage:filter-segments:delete;"*; Pro User adds `storage:filter-segments:share`; Admin User adds `storage:filter-segments:admin`. [dynatrace_segment resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/segment.md) — *"Maintain all Filter-Segments on the environment"*.</sub>
 
 ### Governance Recommendations
 
@@ -462,7 +464,7 @@ When you select a segment in one Dynatrace app (e.g., Logs), the selection **per
 | **detected problems require event includes** | To filter problems with segments, define an events include with `event.kind = "DAVIS_PROBLEM"`; entity includes alone do not filter problem records | Add event-type includes alongside entity includes |
 | **Single relationship traversal** | Entity relationships can only traverse one hop | Target specific entity types directly in includes |
 | **Inclusions only, no exclusions** | Cannot say "everything EXCEPT team-X" | Explicitly include what you want (MZ supported exclusions; segments do not) |
-| **Entity properties are equals-only** | Wildcard matching on classic entity includes is documented for `entity.name`; other entity properties support exact `equals` only | Use prefix-based naming conventions; put the broader condition on a signal include |
+| **Entity properties are equals-only** | On classic entity includes, `entity.name` supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other properties support exact `equals` only | Use prefix-based naming conventions; put the broader condition on a signal include |
 | **1 include per data type** | Cannot have two `logs` include blocks | Combine conditions with `OR` within a single include |
 | **Max 20 includes per segment** | Hard limit on rule count | Consolidate rules; use variables for flexibility |
 | **Max 10 expressions per filter** | Limits filter complexity | Use OpenPipeline to pre-enrich data with simpler filter fields |
@@ -477,7 +479,7 @@ When you select a segment in one Dynatrace app (e.g., Logs), the selection **per
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Empty variable dropdown | Missing entity read permissions | Grant `dt.entity.*:read` to user's policy |
+| Empty variable dropdown | Missing read permissions for the data the variable DQL queries | Grant `storage:entities:read` (and `storage:<table>:read` for any other data object the variable DQL reads). Once SaaS 1.347 reaches your tenant, also `app-engine:apps:run` on `dynatrace.segments.management` (§4) |
 | Segment shows no data | Filter field not enriched on signal data | Verify enrichment with audit queries from Section 3 |
 | Segment filters entities but not logs | Entity includes don't apply to signals | Add separate signal-type includes (logs, spans) |
 | Unexpected data included | OR logic combining values | Review filter condition logic within the include |

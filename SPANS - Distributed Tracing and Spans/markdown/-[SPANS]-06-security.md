@@ -1,6 +1,6 @@
 # SPANS-06: Security Analysis with Spans
 
-> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** SPANS — Distributed Tracing and Spans | **Notebook:** 6 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Protecting Distributed Traces and Ensuring Compliance
 This notebook demonstrates how to use span data for security analysis, audit for sensitive data exposure, and ensure compliance with regulations.
@@ -415,11 +415,11 @@ There is no dedicated masking processor. Masking is a **DQL** processor in the *
 
 ```text
 fieldsAdd url.path = replacePattern(url.path, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")
-| fieldsAdd url.query = replacePattern(url.query, "<<(('token' | 'key' | 'secret' | 'password') '=') [^&]+", "[REDACTED]")
+| fieldsAdd url.query = replacePattern(url.query, "<<(('token' | 'TOKEN' | 'Token' | 'key' | 'KEY' | 'Key' | 'secret' | 'SECRET' | 'Secret' | 'password' | 'PASSWORD' | 'Password') '=') [^&]+", "[REDACTED]")
 | fieldsAdd url.path = replacePattern(url.path, "<<'/' CREDITCARD (>>'/' | >>'?' | EOF)", "[CARD-MASKED]")
 ```
 
-Each statement was run against sample values on 10/02/2026: `/users/john.doe@example.com/orders` → `/users/[EMAIL-MASKED]/orders`; `token=abc123XYZ&page=2&password=hunter2` → `token=[REDACTED]&page=2&password=[REDACTED]`; `/pay/4111111111111111/confirm` → `/pay/[CARD-MASKED]/confirm`. The card statement is bounded to a whole path segment on purpose: a bare `CREDITCARD` matcher also hits Luhn-valid digit runs **inside** hex identifiers — on the validation tenant it rewrote `/session/c05e365fe5eee852102159234007ec45/element` to `/session/c05e365fe5eee8[CARD]7ec45/element`, and all 30 "card" hits in an hour were session hashes of that kind. `<<(…)` is a lookbehind, so the parameter name stays and only the value is replaced. `replacePattern` has no back-references, so partial masking ("keep the last four digits") is not possible this way. Apply the same statements to `url.full` if your spans carry it. For the DPL syntax in depth, see **OPLOGS-08** and **FAQ-15**.
+Each statement was run against sample values on 10/02/2026: `/users/john.doe@example.com/orders` → `/users/[EMAIL-MASKED]/orders`; `token=abc123XYZ&page=2&password=hunter2` → `token=[REDACTED]&page=2&password=[REDACTED]`; `/pay/4111111111111111/confirm` → `/pay/[CARD-MASKED]/confirm`. The card statement is bounded to a whole path segment on purpose: a bare `CREDITCARD` matcher also hits Luhn-valid digit runs **inside** hex identifiers — on the validation tenant it rewrote `/session/c05e365fe5eee852102159234007ec45/element` to `/session/c05e365fe5eee8[CARD]7ec45/element`, and all 30 "card" hits in an hour were session hashes of that kind. `<<(…)` is a lookbehind, so the parameter name stays and only the value is replaced. DPL literals are case-sensitive and there is no case-insensitive flag, so the key list names each casing: with lowercase keys only, `API_KEY=ABCDEF&page=2`, `TOKEN=…` and `Password=…` were left in clear, and with the list above they are masked (verified 10/12/2026). `key` also masks `api_key` and `token` also masks `access_token`, because the lookbehind only checks the characters before `=`. The same reason makes it over-mask `monkey=`, which is the safe direction. `replacePattern` has no back-references, but partial masking ("keep the last four digits") still works with a `>>` lookahead, which checks the trailing digits without consuming them: `replacePattern(url.path, "<<'/' [0-9]{12} >>([0-9]{4} ('/' | '?' | EOF))", "XXXXXXXXXXXX")` turns `/pay/4111111111111234/confirm` into `/pay/XXXXXXXXXXXX1234/confirm` (verified 10/12/2026). Apply the same statements to `url.full` if your spans carry it. For the DPL syntax in depth, see **OPLOGS-08** and **FAQ-15**.
 
 ### Routing sensitive spans to restricted buckets
 
@@ -442,7 +442,7 @@ fetch spans, from:-1h
 | summarize {
     total = count(),
     unmasked_email = countIf(replacePattern(url.path, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "") != url.path),
-    unmasked_secret_param = countIf(replacePattern(url.query, "<<(('token' | 'key' | 'secret' | 'password') '=') [^&]+", "") != url.query),
+    unmasked_secret_param = countIf(replacePattern(url.query, "<<(('token' | 'TOKEN' | 'Token' | 'key' | 'KEY' | 'Key' | 'secret' | 'SECRET' | 'Secret' | 'password' | 'PASSWORD' | 'Password') '=') [^&]+", "") != url.query),
     unmasked_card = countIf(replacePattern(url.path, "<<'/' CREDITCARD (>>'/' | >>'?' | EOF)", "") != url.path)
   }
 ```

@@ -1,6 +1,6 @@
 # OPLOGS-05: Querying & Parsing Logs
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## DQL Fundamentals and DPL Pattern Matching
 This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.
@@ -247,11 +247,12 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Parse HTTP-style logs
-// Example: GET /api/users 200 45ms
+// Example: GET /api/users 200 45ms -> GET, /api/users, 200
+// Returns rows only for single-spaced lines of this exact shape; the range filter drops counters in the status position
 fetch logs, from: now() - 1h
 | filter contains(content, "GET") OR contains(content, "POST")
-| parse content, "LD:method SPACE '/' LD:path SPACE INT:status_code"
-| filter isNotNull(status_code)
+| parse content, "[A-Z]+:method ' ' NSPACE:path ' ' INT:status_code ' '"
+| filter status_code >= 100 and status_code <= 599
 | summarize {count = count()}, by: {method, status_code}
 | sort count desc
 | limit 15

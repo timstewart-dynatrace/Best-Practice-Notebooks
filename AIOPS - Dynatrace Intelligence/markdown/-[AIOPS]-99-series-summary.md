@@ -1,6 +1,6 @@
 # AIOPS-99: Series Summary
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 8 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -75,17 +75,17 @@ the original caution stands.
 SaaS 1.348 (pre-release; staged rollout planned from 09/22/2026) also changes the value itself:
 *"Davis events and problems no longer default event.severity to 3."* Once that reaches your tenant,
 an unset severity is null — the query below tests for it first and labels it `not set`, rather than
-letting it fall through to `5 - info`.
+letting it fall through to `5 - informational`.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Semantic Dictionary changelog 1.348 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348).</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [Semantic Dictionary changelog 1.348 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348), [Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity) — *"If an event source doesn't set severity, the field is empty."*</sub>
 
 ```dql
 fetch dt.davis.problems, from:-7d
 | fieldsAdd severity_label = if(isNull(event.severity), "not set",
                              else: if(event.severity == 1, "1 - critical",
-                             else: if(event.severity == 2, "2 - high",
-                             else: if(event.severity == 3, "3 - medium",
-                             else: if(event.severity == 4, "4 - low", else: "5 - info")))))
+                             else: if(event.severity == 2, "2 - major",
+                             else: if(event.severity == 3, "3 - minor",
+                             else: if(event.severity == 4, "4 - warning", else: "5 - informational")))))
 | summarize problem_count = count(), by:{event.severity, severity_label}
 | sort event.severity asc
 ```
@@ -120,10 +120,10 @@ events never open a problem, and PROBLEM_UPDATE records are lifecycle updates, n
 // Run both, compare:
 fetch dt.davis.events, from:-7d
 | filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
-| makeTimeseries signals = count(), interval:1d
+| makeTimeseries signals = count(), interval:24h
 
 fetch dt.davis.problems, from:-7d
-| makeTimeseries problems = count(), interval:1d
+| makeTimeseries problems = count(), interval:24h
 ```
 
 Each query above is a text-only copy of one executed in AIOPS-01, AIOPS-03 or AIOPS-07.
@@ -137,7 +137,7 @@ Each query above is a text-only copy of one executed in AIOPS-01, AIOPS-03 or AI
 |--------|----------|
 | **WFLOW** | Notification routing on active problems |
 | **AUTOM** | Anomaly detection settings as code (Monaco / Terraform) |
-| **ADOPT** | AIOps maturity model and adoption metrics |
+| **ADOPT** | Observability maturity model (ADOPT-01); the AIOps stages are in AIOPS-07 §6 |
 | **DASH** | Problem-driven SLO and executive dashboards |
 | **K8S, DBMON, CLOUD** | Domain-specific anomaly patterns layered on these mechanisms |
 | **OPLOGS, OPMIG** | Pre-AI investment: clean log streams that AI can reason over |

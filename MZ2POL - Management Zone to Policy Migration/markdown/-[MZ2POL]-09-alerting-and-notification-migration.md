@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -288,7 +288,7 @@ Rebuild the payload against the destination's current API contract — do not po
 
 Some people were added to an MZ-scoped email profile purely for awareness, not as responders. The Problems app has offered them a personal email subscription to a filter, with no workflow and no configuration permission — *"The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied."*
 
-> **Problems app personal notifications — deprecated from SaaS 1.347.** SaaS 1.347 (pre-release; staged tenant rollout planned from 09/08/2026) deprecates them: *"Personal problem notifications in Problems, are deprecated. You can no longer create new ones, and existing notifications continue to work but prompt you to turn them off. The recommended alternative is Workflows."* Verify your tenant's version. Before 1.347 reaches your tenant, a personal subscription still works for an awareness-only recipient; after it, that recipient needs a simple email workflow of their own. Either way, do not plan an MZ migration around **new** personal subscriptions. (The Problems app page still describes the feature without a deprecation note — the release note is the newer source.)
+> **Problems app personal notifications — deprecated from SaaS 1.347.** SaaS 1.347 (staged tenant rollout from 09/16/2026) deprecates them: *"Personal problem notifications in Problems, are deprecated. You can no longer create new ones, and existing notifications continue to work but prompt you to turn them off. The recommended alternative is Workflows."* Verify your tenant's version. Before 1.347 reaches your tenant, a personal subscription still works for an awareness-only recipient; after it, that recipient needs a simple email workflow of their own. Either way, do not plan an MZ migration around **new** personal subscriptions. (The Problems app page still describes the feature without a deprecation note — the release note is the newer source.)
 
 > <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app) — *"The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied."* [SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"For each personal problem notification you rely on, build a simple workflow in Workflows that sends you email alerts for problems, then turn off the corresponding personal problem notification in Problems."*</sub>
 

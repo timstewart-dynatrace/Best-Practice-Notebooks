@@ -1,6 +1,6 @@
 # AIOPS-01: Dynatrace Intelligence Overview
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 1 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ For environments where SVG doesn't render
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS with Grail (Dynatrace Platform / Gen3) |
-| **Permissions** | `events:read` and `storage:events:read` for problem queries; `davis:analyzers:execute` for analyzer notebooks (introduced later in series) |
+| **Permissions** | `storage:events:read` for problem queries; `davis:analyzers:execute` for analyzer notebooks (introduced later in series) |
 | **Apps** | Problems app, Anomaly Detection app (custom alerts are created in **Settings** from SaaS 1.344 — § 2), Notebooks app |
 | **Optional** | Dynatrace Assist enabled (most modern tenants); MCP server for AIOPS-06 |
 
@@ -144,7 +144,7 @@ fetch dt.davis.events, from:-1h
 
 - **WFLOW** (Workflows & Alert Notifications) — once you have problems detected here, route them through WFLOW
 - **AUTOM** (Configuration Automation) — anomaly detection settings as code via Monaco / Terraform
-- **ADOPT** (Adoption & Maturity) — AIOps maturity model and metrics
+- **ADOPT** (Adoption & Maturity) — observability maturity model (ADOPT-01); the AIOps stages are in AIOPS-07 §6
 - **DASH** (Dashboards) — problem-driven SLO and executive reporting
 
 <a id="next-steps"></a>

@@ -1,6 +1,6 @@
 # ORGNZ-08: Grail Segments
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -126,19 +126,21 @@ Segment:
 
 ### Operators and Wildcards
 
-Segment filter conditions offer only two operators: **`=` and `in()`**. There is no separate `contains` operator — substring and suffix matching is expressed by placing a **wildcard `*` inside the value**.
+Segment filter conditions offer only two operators: **`=` and `in`**. There is no separate `contains` operator — substring and suffix matching is expressed by placing a **wildcard `*` inside the value**. Conditions are written in the **filter-field grammar** of the segment editor (`key = value`, `key in (value1, value2)`), not in DQL: the DQL function form `in(field, {"a", "b"})` is a different language.
 
 | Matching | How to express it | Where it works |
 |----------|-------------------|----------------|
 | Equals | `field = "value"` | Everywhere |
-| Set membership | `in(field, {"a", "b"})` | Everywhere |
-| Starts-with | `field = "prefix*"` | Signal data; `entity.name` |
-| Contains | `field = "*text*"` | Signal data; `entity.name` |
-| Ends-with | `field = "*suffix"` | Signal data; `entity.name` |
+| Set membership | `field in ("a", "b")` | Everywhere — exact values only; `*` inside the list is not a wildcard |
+| Starts-with | `field = "prefix*"` | Signal data; classic `entity.name` |
+| Contains | `field = "*text*"` | Signal data — not classic entity includes |
+| Ends-with | `field = "*suffix"` | Signal data — not classic entity includes |
 
-> **Important**: on **classic entity** includes, the documented wildcard support applies to the `entity.name` property; other entity *properties* support exact `equals` only, so `starts-with` / `contains` / `ends-with` matching is unavailable on them. Signal-data includes (logs, spans, events, metrics) have no such restriction. Tag conditions are a separate case — a tag filter tests **membership in the tag set**, not a substring of a string field — so verify tag-based entity includes against your own tenant before relying on wildcard behavior there.
+> **Important**: on **classic entity** includes, `entity.name` supports **starts-with only** (`entity.name = "payment*"`); contains and ends-with are not supported on any classic-entity property, and every other property is exact `equals` only. Signal-data includes (logs, spans, events, metrics) have no such restriction. Tag conditions are a separate case — a tag filter tests **membership in the tag set**, not a substring of a string field — so verify tag-based entity includes against your own tenant before relying on wildcard behavior there.
 
 > An asterisk may also follow a variable name in a starts-with condition — for example `foo = $bar*` — which is what makes variable-driven segments practical.
+
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"Only operators `=`, and `in()` are supported."*; classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. [Filter field (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/ui-filter-field) — `in` *"matches one or more values in a list of values"*; *"Wildcards are not supported within the in () operator."*</sub>
 
 <a id="segment-design-patterns"></a>
 ## Segment Design Patterns
@@ -346,6 +348,7 @@ Continue with the ORGNZ series:
 ## References
 
 - [Grail Segments](https://docs.dynatrace.com/docs/manage/segments)
+- [Filter field (DT docs)](https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/ui-filter-field)
 - [Smartscape topology and entities (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/smartscape)
 - [Segment Limits](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits)
 - [Configure custom filter segments — get started (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data)

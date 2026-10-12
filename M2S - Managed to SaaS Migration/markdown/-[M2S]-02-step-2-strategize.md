@@ -1,6 +1,6 @@
 # M2S-02: Step 2 — Strategize: Define Your Migration Approach
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 2 of 9 | **Phase:** Plan | **Step:** Strategize | **Created:** March 2026 | **Last Updated:** 10/12/2026
 
 With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.
 
@@ -221,7 +221,7 @@ These are the non-obvious factors that derail migrations when overlooked.
 | **New ActiveGates required** | SaaS requires Environment ActiveGates — cannot reuse Managed Cluster ActiveGates |
 | **Network zones** | Must exist in SaaS with SaaS ActiveGates assigned before agents move — the Upgrade Assistant can import the definitions; plan ActiveGate placement per zone |
 | **Firewall rules** | New outbound rules to `*.live.dynatrace.com` and `*.apps.dynatrace.com` on port 443 |
-| **OneAgent version compatibility** | Dynatrace supports OneAgent versions for 9 months (Standard) / 12 months (Enterprise) — verify your oldest agents are within support. Separately, SaaS 1.347 (staged tenant rollout; pre-release notes) **rejects connections** from OneAgent 1.241 and earlier, so those hosts send no data after redirect — see the Step 1 (M2S-01) callout |
+| **OneAgent version compatibility** | Dynatrace supports OneAgent versions for 9 months (Standard) / 12 months (Enterprise) — verify your oldest agents are within support. Separately, SaaS 1.347 (staged tenant rollout from 09/16/2026) **rejects connections** from OneAgent 1.241 and earlier, so those hosts send no data after redirect — see the Step 1 (M2S-01) callout |
 
 ### Configuration
 

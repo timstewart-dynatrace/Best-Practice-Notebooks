@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -118,11 +118,13 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Test parse pattern before configuring in OpenPipeline
-// Expects lines that START with the method, e.g. "GET /api/users 200 45ms" — parse anchors at the start of the field
+// Expects lines that START with the method, single-spaced, e.g. "GET /api/users 200 45ms" — parse anchors at the start of the field
+// Returns rows only for lines of this exact shape; the range filter drops counters that land in the status position
+// (multi-space stats tables parsed with SPACE/INT returned "status codes" like 211653; validation tenant, 10/12/2026)
 fetch logs, from: now() - 1h
 | filter contains(content, "GET") OR contains(content, "POST")
-| parse content, "LD:method SPACE '/' LD:path SPACE INT:status_code"
-| filter isNotNull(status_code)
+| parse content, "[A-Z]+:method ' ' NSPACE:path ' ' INT:status_code ' '"
+| filter status_code >= 100 and status_code <= 599
 | summarize {count = count()}, by: {method, status_code}
 | sort count desc
 | limit 15
@@ -477,7 +479,7 @@ Here is one complete log pipeline, written as the processors you add in **Settin
 | # | Stage | Processor | Matching condition | Configuration |
 |---|-------|-----------|--------------------|---------------|
 | 1 | Processing | **Drop record** | `matchesValue(content, "*health*") AND loglevel == "INFO"` | — |
-| 2 | Processing | **DQL** | `matchesValue(content, "*HTTP*")` | `parse content, "LD:method SPACE '/' LD:path SPACE INT:http.status_code SPACE INT:duration_ms"` — for lines that start with the method (`GET /api/users 200 45`); parse into `http.status_code`, not `status`, which is the log record's own status field |
+| 2 | Processing | **DQL** | `matchesValue(content, "GET *") OR matchesValue(content, "POST *")` | `parse content, "[A-Z]+:method ' ' NSPACE:path ' ' INT:http.status_code ' ' INT:duration_ms"` — for single-spaced lines that start with the method (`GET /api/users 200 45`); parse into `http.status_code`, not `status`, which is the log record's own status field. Check the 100–599 range at query time first (§1): `INT` takes any integer, so a counter in that position parses as a "status code" |
 | 3 | Processing | **DQL** | `true` | `fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production", else: "non-prod")` |
 | 4 | Processing | **DQL** (masking — the pattern is DPL, not regex) | `true` | `fieldsAdd content = replacePattern(content, "[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+", "[EMAIL-MASKED]")` |
 | 5 | Bucket assignment | **Bucket assignment** | `loglevel == "DEBUG"` | Bucket: `debug_logs` |

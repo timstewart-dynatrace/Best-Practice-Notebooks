@@ -1,6 +1,6 @@
 # AIOPS-06: AI Integrations and Agentic Workflows
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 6 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -44,7 +44,7 @@ For environments where SVG doesn't render
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 |
 | **Apps** | Workflows app; Notebooks app |
-| **Permissions** | `davis:analyzers:execute`, `events:read`, `automation:workflows:run`, `automation:workflows:write` (§2–§4 build workflows) |
+| **Permissions** | `davis:analyzers:execute`, `storage:events:read`, `automation:workflows:run`, `automation:workflows:write` (§2–§4 build workflows) |
 | **For MCP integrations** | Dynatrace MCP server installed in your IDE / CLI agent (Claude Code, Cursor, GitHub Copilot) |
 | **For external LLMs** | Provider credentials (OpenAI / Anthropic / Bedrock / Vertex) configured as Dynatrace credentials |
 
@@ -105,7 +105,8 @@ The queries below are the documented reconstruction pattern. Both queries were e
 
 ```dql
 // Reconstruct one conversation, turn by turn.
-// Source: Dynatrace AI Observability documentation (conversation and session tracking).
+// Source: Dynatrace docs: Conversation ID and agent session tracking (sample use case) —
+// adapted: sorts on start_time, not timestamp.
 // Executed against a live tenant 07/30/2026: the query runs, but that tenant has no
 // GenAI telemetry, so it returned 0 rows. Shape confirmed; field population is not.
 // Replace the id with one you captured from the frontend's sessionStorage.
@@ -149,7 +150,7 @@ fetch spans, from:-24h
 
 **Verification status:** syntax-verified **and executed** 07/30/2026; returned 0 rows for the same reason as above — no GenAI telemetry on the validation tenant, not a query defect.
 
-> <sub>**Sources:** [Conversation and session tracking (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability), [Semantic Dictionary — `gen_ai` fields (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` (`experimental`), `dt.rum.session.id` (`stable`); no row for `gen_ai.conversation.id` or `session.id` under `filter contains(name, "conversation") or name == "session.id"`, read 09/28/2026 (control: the same filter returned `messaging.message.conversation_id`).</sub>
+> <sub>**Sources:** [Conversation ID and agent session tracking (DT docs)](https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/sample-use-cases/conversation-and-session-tracking) — *"A `SessionIdExporter` wrapper copies the staged value to `gen_ai.conversation.id`"*, [Semantic Dictionary — `gen_ai` fields (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary). **Dictionary:** `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` (`experimental`), `dt.rum.session.id` (`stable`); no row for `gen_ai.conversation.id` or `session.id` under `filter contains(name, "conversation") or name == "session.id"`, read 09/28/2026 (control: the same filter returned `messaging.message.conversation_id`).</sub>
 
 <a id="wf-dql-cost"></a>
 ## 2. Workflow Tutorial: Optimize DQL Cost
@@ -255,8 +256,8 @@ The MCP server is how your agent (Claude Code, Cursor, GitHub Copilot, etc.) cal
 Tool names as registered by the Dynatrace MCP gateway, 09/24/2026 — the catalog changes; list your server's tools before scripting against a name.
 
 **Setup outline:**
-1. Create a Platform Token with the scopes you need (`davis:analyzers:execute`, `events:read`, etc.)
-2. Add the Dynatrace MCP server config to your agent (Claude Code: `.claude/settings.json` or `.mcp.json`; Cursor: settings.json; GitHub Copilot: similar)
+1. Create a Platform Token with `mcp-gateway:servers:invoke` and `mcp-gateway:servers:read`, plus the data scopes the tools need (`davis:analyzers:execute`, `storage:events:read`, …)
+2. Add the Dynatrace MCP server config to your agent (Claude Code: `.mcp.json` at the project root, or `claude mcp add` (stored in `~/.claude.json`); Cursor: settings.json; GitHub Copilot: similar)
 3. Test with a tool call from the agent
 
 **Use cases:**
@@ -264,11 +265,15 @@ Tool names as registered by the Dynatrace MCP gateway, 09/24/2026 — the catalo
 - *Incident response* — Claude Code investigates a deployed service, calls `query-problems` and `execute-dql`, summarizes findings
 - *Custom agents* — your own LangChain / LangGraph agent uses Dynatrace MCP as one of many tools
 
-Auth and IAM bind the MCP integration to your IAM policy — same `davis:analyzers:execute` scope as the Anomaly Detection app, same `events:read` for problem queries.
+Auth and IAM bind the MCP integration to your IAM policy — same `davis:analyzers:execute` scope as the Anomaly Detection app, same `storage:events:read` for problem queries.
 
 > **Custom alerts move from the app to Settings (SaaS 1.344).** *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones."* SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the **Anomaly Detection** app is where custom alerts are created, and it is the app the scope comparison above refers to.
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*</sub>
+> - <sub>[Dynatrace MCP server (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp) — *"both the user and the token must have the following permissions to access and invoke server tools"* (`mcp-gateway:servers:invoke`, `mcp-gateway:servers:read`)</sub>
+> - <sub>[IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)</sub>
+> - <sub>[Connect Claude Code to tools via MCP (Anthropic docs)](https://code.claude.com/docs/en/mcp) — *"Project-scoped servers enable team collaboration by storing configurations in a `.mcp.json` file at your project's root directory."*</sub>
 
 <a id="agentic"></a>
 ## 6. Agentic Patterns: AutomationEngine and Approval-Based Remediation

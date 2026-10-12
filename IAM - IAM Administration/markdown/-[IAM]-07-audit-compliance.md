@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -79,7 +79,9 @@ Dynatrace audit logs capture all security-relevant events in your environment.
 Track who is accessing your Dynatrace environment and how.
 
 ```dql
-// All authentication events in the last 24 hours
+// Authenticated API calls by credential type (24 h)
+// Retitled 10/12/2026: authentication.type is set on every audited request, so this is API traffic
+// (about 31,700 calls a day on the validation tenant), not sign-ins. Sign-ins are event.type == "LOGIN".
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -122,7 +124,9 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Login activity by hour to identify patterns
+// Sign-in activity by hour (successful and failed interactive logins)
+// Corrected 10/12/2026: this cell counted isNotNull(authentication.type), which is every authenticated API
+// call: 31,712 events in 24 h on the validation tenant, of which 4 were sign-ins.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -136,8 +140,8 @@ fetch dt.system.events, from:-7d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter isNotNull(authentication.type)
-| makeTimeseries logins = count(), interval:1h
+| filter event.type == "LOGIN"
+| makeTimeseries logins = count(), by:{event.outcome}, interval:1h
 ```
 
 ### Authentication Patterns to Monitor
@@ -371,6 +375,16 @@ fetch dt.system.events, from:-90d
 fetch dt.system.events, from:-90d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, "/query:") or contains(resource, "effective-permissions")
+             or endsWith(resource, "/lookup") or contains(resource, "/verify")
+             or contains(resource, "/autocomplete") or contains(resource, "filter-preview")
+             or endsWith(resource, "/run") or startsWith(resource, "/platform/state/v1/user-app-states/")
+             or contains(resource, "lookup:upload") or startsWith(resource, "/lookups/"))
 | fields timestamp, user.id, user.organization, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 100
@@ -396,6 +410,16 @@ SOX requires segregation of duties and change authorization.
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, "/query:") or contains(resource, "effective-permissions")
+             or endsWith(resource, "/lookup") or contains(resource, "/verify")
+             or contains(resource, "/autocomplete") or contains(resource, "filter-preview")
+             or endsWith(resource, "/run") or startsWith(resource, "/platform/state/v1/user-app-states/")
+             or contains(resource, "lookup:upload") or startsWith(resource, "/lookups/"))
 | summarize privileged_actions = count(), by:{user.id, event.type}
 | sort privileged_actions desc
 | limit 25
@@ -417,6 +441,11 @@ fetch dt.system.events, from:-30d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"}) and contains(resource, "settings")
+// Corrected 10/12/2026: effective-permissions:resolve is a permission check sent as POST, not a change.
+// It was 1,149 of 2,314 matching events over 30 days on the validation tenant.
+// The settings service also records changes with event.provider == "SETTINGS", where resource is the
+// settings object rather than an API path, so this filter does not select them.
+| filter not contains(resource, "effective-permissions")
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
@@ -426,8 +455,12 @@ fetch dt.system.events, from:-30d
 
 HIPAA requires logging of access to protected health information.
 
+Most reads of data stored in Grail are DQL queries, so the report below counts query executions as well as `GET` calls. A query's audit record names the caller, the app and the API path. On the validation tenant it did not carry the query text or the records the query returned. Use buckets and security context to limit what a query can read: the access model sets that limit, and the audit log only records that the query ran.
+
 ```dql
-// HIPAA: All data access events
+// HIPAA: data access events — API reads (GET) and Grail queries (POST …/query:execute)
+// Corrected 10/12/2026: running a DQL query is a POST to query:execute, so a GET-only filter never showed
+// who queried logs, spans or business events. That was 112,000 events over 30 days on the validation tenant.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -441,7 +474,7 @@ HIPAA requires logging of access to protected health information.
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.type == "GET"
+| filter event.type == "GET" or contains(resource, "/query:execute")
 | summarize reads = count(), by:{user.id, resource}
 | sort reads desc
 | limit 50
@@ -594,7 +627,7 @@ Create dashboards for ongoing compliance monitoring.
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter event.type == "LOGIN" and event.outcome == "success"
-| makeTimeseries logins = count(), interval:1d
+| makeTimeseries logins = count(), interval:24h
 ```
 
 ```dql
@@ -613,7 +646,7 @@ fetch dt.system.events, from:-30d
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter event.outcome == "failure" or toLong(event.outcome) >= 400
-| makeTimeseries failures = count(), interval:1d
+| makeTimeseries failures = count(), interval:24h
 ```
 
 ```dql
@@ -632,6 +665,16 @@ fetch dt.system.events, from:-30d
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"POST", "PUT", "PATCH", "DELETE", "CREATE", "UPDATE"})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, "/query:") or contains(resource, "effective-permissions")
+             or endsWith(resource, "/lookup") or contains(resource, "/verify")
+             or contains(resource, "/autocomplete") or contains(resource, "filter-preview")
+             or endsWith(resource, "/run") or startsWith(resource, "/platform/state/v1/user-app-states/")
+             or contains(resource, "lookup:upload") or startsWith(resource, "/lookups/"))
 | fields timestamp, user.id, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 25

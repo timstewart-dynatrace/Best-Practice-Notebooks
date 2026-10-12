@@ -1,6 +1,6 @@
 # SLO-05: SLOs as Code
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 6 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -164,7 +164,22 @@ State handling follows the same rules as every other Dynatrace Terraform resourc
 <a id="monaco"></a>
 ## 4. Monaco Alternative
 
-If your shop standardises on Monaco rather than Terraform, note first that **Monaco has supported the modern SLO Service Public API since v2.22** — prefer that over the classic settings object below, which targets the blocked `builtin:monitoring.slo` schema. The classic form is retained here because it is what existing Monaco projects contain, and because `monaco download` against it is how you inventory what needs moving:
+If your shop standardises on Monaco rather than Terraform, use the **`slo-v2`** type for a modern, DQL-based SLO. Monaco has supported it since v2.22. It is a different type from the classic `slo` type, and the Monaco docs say the two cannot be swapped. The docs' example of an SLO with a custom DQL SLI:
+
+```yaml
+configs:
+  - id: custom-sli          # an SLO that uses a custom DQL query as its SLI
+    type: slo-v2
+    config:
+      name: custom-sli
+      template: custom-sli.json
+```
+
+The `slo-v2` type needs no extra type fields. Validate the SLI query in a notebook first. Then export the working SLO with `monaco download` to capture `custom-sli.json`, rather than hand-writing the JSON.
+
+### Classic — inventory only
+
+Existing Monaco projects may still hold the classic settings object below, which targets the blocked `builtin:monitoring.slo` schema. It is kept here because running `monaco download` against it is how you inventory what needs moving:
 
 ```yaml
 configs:
@@ -178,7 +193,9 @@ configs:
       skip: false
 ```
 
-The JSON template carries the SLI, target, warning, and window — and, unlike the Terraform resource, the Settings API payload behind a DQL-based Custom SLO (SLO-01 §3) is a first-class fit here, since Monaco pushes whatever JSON shape the schema accepts rather than mapping through the narrower Terraform resource attributes. As with Terraform, validate the SLI query in a notebook first, then export the working SLO from the app with `monaco download` to capture the exact current JSON shape rather than hand-writing it.
+The classic schema takes a metric expression, not DQL, so a DQL SLI has no classic form. Move it to `slo-v2`, not into this object.
+
+> <sub>**Sources:** [Monaco YAML configuration: SaaS type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"These two configuration types are incompatible, and deploying a slo configuration as a slo-v2 or vice versa results in the API rejecting the request."*; *"This type does not require additional fields."* [dynatrace_slo_v2 (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/slo_v2), the Terraform twin of `builtin:monitoring.slo`, takes a `metric_expression`.</sub>
 
 <a id="api"></a>
 ## 5. API and CI/CD

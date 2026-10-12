@@ -1,6 +1,6 @@
 # SLO-06: Site Reliability Guardians
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 09/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -25,9 +25,11 @@ An SLO answers *"is this service reliable over time?"* — evaluated continuousl
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | SaaS Gen3 with the Site Reliability Guardian app |
-| **Permissions** | Grail read scopes covering whatever data your objective DQL queries touch (`storage:spans:read`, `storage:metrics:read`, `storage:bizevents:read`, …); workflow authoring permissions for automated validation |
+| **Permissions** | `app-settings:objects:read` / `app-settings:objects:write` (read and write guardian configurations); `storage:buckets:read`; `storage:events:write` (write business events during validations); the read scopes your objectives touch (`storage:logs:read`, `storage:metrics:read`, `storage:bizevents:read`, `storage:events:read`, `storage:spans:read`, `storage:entities:read`). For automation: `automation:workflows:read`, `automation:workflows:admin`, and `automation:workflows:run` (the last only if the pipeline triggers the workflow via API) |
 | **Tooling (as code)** | Terraform with the `dynatrace-oss/dynatrace` provider, or Monaco |
 | **Prior reading** | SLO-01 (SLI/SLO fundamentals), SLO-02 (writing DQL SLI queries — the same DQL skill authors guardian objectives) |
+
+> <sub>**Sources:** [Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian), permissions table read 10/12/2026.</sub>
 
 <a id="what"></a>
 ## 1. What a Guardian Validates
@@ -65,7 +67,7 @@ Each objective is, at its core, a DQL query returning a single scalar value, che
 | `objectiveType` | What it evaluates |
 |---|---|
 | **`DQL`** | A DQL query you write, evaluated over the guardian's validation timeframe |
-| **`REFERENCE_SLO`** | An existing SLO's current value — ties a guardian directly to an SLO defined in SLO-01/02 rather than duplicating the query |
+| **`REFERENCE_SLO`** | An existing **Classic** SLO, by its `func:slo.*` metric key. The docs mark this option **deprecated**. For an SLO built in the modern SLO app (SLO-01/02), reuse its SLI query in a `DQL` objective instead |
 
 ### Threshold type
 
@@ -73,7 +75,7 @@ Each objective is, at its core, a DQL query returning a single scalar value, che
 |---|---|
 | **No thresholds** | Informational only — the objective reports a value but never fails the guardian |
 | **Static thresholds** | Fixed `target` (fail point) and `warning` (soft threshold) values |
-| **Auto-adaptive thresholds** | Threshold adjusts dynamically from historical data — the same idea as an SLO's adaptive baseline |
+| **Auto-adaptive thresholds** | Threshold computed from history by the Dynatrace Intelligence threshold analyzer. It needs at least 5 validations first, and returns **Info** during that learning phase. DQL objectives only |
 
 A `comparisonOperator` says which direction is good — "a higher value is good" (`GREATER_THAN_OR_EQUAL`) or "a lower value is good" (`LESS_THAN_OR_EQUAL`). An error-rate objective is a lower-is-good comparison against a `target`/`warning` pair; a request-count or bizevent-count objective is usually higher-is-good.
 
@@ -87,23 +89,24 @@ Each objective resolves to one of five states, and **the guardian's overall resu
 | **Warning** | Value crossed the warning threshold but not the fail threshold |
 | **Fail** | Value crossed the fail threshold |
 | **Error** | The indicator could not be derived (bad query, no data) |
-| **Info** | Informational objective (no threshold) — never drives Fail |
+| **Info** | Informational objective (no threshold), or an auto-adaptive objective still learning — never drives Fail |
 
 Two objective queries below, live-verified against the validation tenant, in the shape a guardian would actually run them — a short window, since a guardian validates one change, not a rolling reliability posture.
+
+> <sub>**Sources:** [Add Site Reliability Guardian objective (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference) — under a *Deprecated* badge: *"If you want to reference a Classic SLO, you need to create a Classic SLO first and then the SRG allows you to select it."* [Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian) — *"The Dynatrace Intelligence threshold analyzer requires a minimum of 5 validations for auto-adaptive thresholds to take effect. During this learning phase, the objective validation returns an info state."* Read 10/12/2026.</sub>
 
 **Error rate — lower is good (`LESS_THAN_OR_EQUAL` comparison):**
 
 ```dql
 // Guardian objective — error rate. Lower is good; compare against target/warning with LESS_THAN_OR_EQUAL.
-// Live-verified against the validation tenant: returned ~0.40% over the last hour.
-fetch spans, from:-1h
-| filter span.kind == "server"
-| summarize {
-    good = countIf(duration < 500ms),
-    total = count()
-  }
-| fieldsAdd errorRate = 100.0 - (good * 100.0) / total
-| fields errorRate, good, total
+// Live-verified 10/12/2026: returned 3.08% over the last 30 minutes, notifications [].
+// Drop from: when pasting into a guardian objective — the validation sets the window.
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-30m
+| fieldsAdd errorRate = arraySum(failures) / arraySum(total) * 100
+| fields errorRate
 ```
 
 **Availability — higher is good (`GREATER_THAN_OR_EQUAL` comparison):**
@@ -111,6 +114,7 @@ fetch spans, from:-1h
 ```dql
 // Guardian objective — availability. Higher is good; compare against target/warning with GREATER_THAN_OR_EQUAL.
 // Live-verified against the validation tenant: returned ~95.6% over the last 30 minutes.
+// Drop from: when pasting into a guardian objective — the validation sets the window.
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
@@ -163,11 +167,10 @@ resource "dynatrace_site_reliability_guardian" "checkout_release_gate" {
       name                = "Error rate"
       objective_type      = "DQL"
       comparison_operator = "LESS_THAN_OR_EQUAL"
+      # No from: — the validation (workflow timeframeSelector or Validate dialog) sets the window.
       dql_query           = <<-EOT
-        fetch spans, from:-30m
-        | filter span.kind == "server"
-        | summarize good = countIf(duration < 500ms), total = count()
-        | fieldsAdd errorRate = 100.0 - (good * 100.0) / total
+        timeseries { total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count) }
+        | fieldsAdd errorRate = arraySum(failures) / arraySum(total) * 100
         | fields errorRate
       EOT
       target  = 8
@@ -177,8 +180,9 @@ resource "dynatrace_site_reliability_guardian" "checkout_release_gate" {
       name                = "Checkout volume"
       objective_type      = "DQL"
       comparison_operator = "GREATER_THAN_OR_EQUAL"
+      # No from: — the validation sets the window.
       dql_query           = <<-EOT
-        fetch bizevents, from:-30m
+        fetch bizevents
         | filter event.type == "checkout"
         | summarize count()
       EOT
@@ -193,7 +197,7 @@ A few things this schema encodes, and where it diverges from the SLO-05 Terrafor
 
 - **`target` / `warning`**, not SLO-05's `target_success` / `target_warning` — two different resources, two different argument names for a similar idea.
 - **`comparison_operator`** takes exactly `GREATER_THAN_OR_EQUAL` or `LESS_THAN_OR_EQUAL` — not the SLO app's own comparison vocabulary.
-- **`objective_type = "REFERENCE_SLO"`** is the alternative to `DQL` — set `reference_slo` to an existing SLO instead of writing a query, which is the as-code form of §7's "guardian objective backed by an SLO" pattern.
+- **`objective_type = "REFERENCE_SLO"`** is the alternative to `DQL`: set `reference_slo` to a **Classic** SLO's `func:slo.*` metric key instead of writing a query. The docs mark referencing a Classic SLO as deprecated (§2), and a modern SLO-app SLO cannot be selected this way.
 - **`event_kind`** is `SDLC_EVENT` or `BIZ_EVENT` — matching the guardian-type distinction from §1.
 
 ### Monaco
@@ -220,7 +224,7 @@ The guardian mechanics above only pay off wired into a pipeline. The shape is co
 3. **Trigger the guardian workflow** — either directly from the pipeline (call the workflow/guardian API) or let the event trigger from step 2 fire it automatically (§4).
 4. **Read back the result.** A Pass gates the pipeline forward; a Fail blocks promotion; a Warning is a judgment call — treat it like the slow-burn tier in SLO-04, a signal to the team rather than an automatic block.
 
-**AUTOM-07** documents the working samples for this: `github_pipeline_observability` / `gitlab_pipeline_observability` / `argocd_observability` (Monaco and Terraform variants) ingest SDLC events via OpenPipeline with pre-built dashboards, and the community [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) CLI wraps guardian validation and deployment-event ingestion specifically for CI/CD use — see AUTOM-07's Community Resources section for the full sample matrix across GitHub Actions, GitLab CI, Azure DevOps, and ArgoCD.
+**AUTOM-07** documents the working samples for this: `github_pipeline_observability` / `gitlab_pipeline_observability` / `argocd_observability` (Monaco and Terraform variants) ingest SDLC events via OpenPipeline with pre-built dashboards, and the former [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) CLI, which wrapped guardian validation, is now **archived and no longer maintained** (its README points to dtctl). For new pipelines, send the SDLC event through the native CI/CD integrations. AUTOM-07's Community Resources section has the full sample matrix across GitHub Actions, GitLab CI, Azure DevOps, and ArgoCD.
 
 <a id="decision"></a>
 ## 7. Guardian vs SLO — Which One, or Both
@@ -228,24 +232,24 @@ The guardian mechanics above only pay off wired into a pipeline. The shape is co
 | | SLO (SLO-01–05) | Site Reliability Guardian |
 |---|---|---|
 | **Question answered** | Is this service reliable over time? | Is this specific change safe to release? |
-| **Evaluation** | Continuous, rolling or calendar window (SLO-01 §2) | Point-in-time, triggered by an event |
+| **Evaluation** | Continuous, rolling or calendar window (SLO-01 §4, SLO-03 §5) | Point-in-time, triggered by an event |
 | **Output** | Error budget consumption, burn rate (SLO-03) | Pass / Warning / Fail / Error / Info per objective |
 | **Alerting fit** | Burn-rate alerting, ongoing (SLO-04) | Pipeline gate — block or promote a deployment |
 | **As code** | `dynatrace_platform_slo` (SLO-05) | `dynatrace_site_reliability_guardian` (§5) |
 
-They are not competing mechanisms — a guardian objective can reference an SLO directly (`objective_type = "REFERENCE_SLO"`, §5), which is the natural way to use both together: **the SLO defines what "reliable" means for the service on an ongoing basis; the guardian asks whether the change you're about to ship keeps it that way.** A team with no SLOs yet can still use guardians standalone with DQL objectives (§2) — a guardian doesn't require an SLO to exist first — but a mature setup typically has SLOs defining the target and guardians enforcing it at every release.
+They are not competing mechanisms. To use both together, reuse the SLO's SLI query as a `DQL` objective — or its burn-rate form, which the SLO docs describe as *"input for regularly scheduled evaluations via Site-Reliability Guardian"*. (`REFERENCE_SLO` works only with a Classic SLO, and the docs mark it deprecated, §2.) The division of labor: **the SLO defines what "reliable" means for the service on an ongoing basis; the guardian asks whether the change you're about to ship keeps it that way.** A team with no SLOs yet can still use guardians standalone with DQL objectives (§2) — a guardian doesn't require an SLO to exist first — but a mature setup typically has SLOs defining the target and guardians enforcing it at every release.
 
 ## Summary
 
 In this notebook you learned:
 
 1. **What a guardian validates** — point-in-time change validation, not continuous reliability; Lifecycle (`SDLC_EVENT`) vs Business (`BIZ_EVENT`) guardian types
-2. **Objectives and thresholds** — `DQL` vs `REFERENCE_SLO` objective types, static / adaptive / no-threshold modes, and the five-state Pass / Warning / Fail / Error / Info result model (most severe wins)
+2. **Objectives and thresholds** — `DQL` objectives (and the deprecated, Classic-only `REFERENCE_SLO`), static / auto-adaptive / no-threshold modes, and the five-state Pass / Warning / Fail / Error / Info result model (most severe wins)
 3. **Creating a guardian** — template vs blank, the 50-objective limit, guardian-level variables
 4. **Triggering validation** — on-demand Validate vs the automated Workflow action
 5. **Guardians as code** — the `dynatrace_site_reliability_guardian` Terraform resource, the Monaco three-file convention, and reaching guardians through `dtctl` settings
 6. **CI/CD integration** — the deploy → event → trigger → gate shape, and where AUTOM-07's working samples plug in
-7. **Guardian vs SLO** — complementary, not competing; a guardian objective can reference an SLO directly
+7. **Guardian vs SLO** — complementary, not competing; a guardian objective reuses the SLO's SLI query
 
 ## Series Summary
 
@@ -258,7 +262,7 @@ In this notebook you learned:
 | SLO-05 | SLOs as Code | Terraform/Monaco/API provisioning for the modern SLO app |
 | SLO-06 | Site Reliability Guardians | Point-in-time deployment validation gates, complementary to ongoing SLOs |
 
-> <sub>**Sources:** [Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian), [Create a Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/create-srg), [Add Site Reliability Guardian objective (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference), [Site Reliability Guardian as code (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/config-as-code-srg), [dynatrace_site_reliability_guardian resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/site_reliability_guardian). Terraform schema and the objective/threshold model fetched at source 08/31/2026; the two DQL objective queries in §2 were executed against the validation tenant the same day. The `dtctl` note in §5 is a dated check (`dtctl` 0.40.0, `dtctl get --help`, `dtctl apply --help` (its examples include updating a settings object) and `dtctl get settings --schema app:dynatrace.site.reliability.guardian:guardians`, 09/28/2026); the schema ID is the one the Site Reliability Guardian as code page's Monaco example uses.</sub>
+> <sub>**Sources:** [Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian), [Create a Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/create-srg), [Add Site Reliability Guardian objective (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference), [Site Reliability Guardian as code (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/config-as-code-srg), [dynatrace_site_reliability_guardian resource (Dynatrace provider docs)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/site_reliability_guardian). Terraform schema and the objective/threshold model fetched at source 08/31/2026; the two DQL objective queries in §2 were executed against the validation tenant the same day. On 10/12/2026 the error-rate objective was rewritten to count failures (it had measured the share of requests slower than 500 ms) and re-executed, and the `REFERENCE_SLO`, auto-adaptive and permissions statements were re-read against the pages above; the SLO-docs quote in §7 is from [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives). The `dtctl` note in §5 is a dated check (`dtctl` 0.40.0, `dtctl get --help`, `dtctl apply --help` (its examples include updating a settings object) and `dtctl get settings --schema app:dynatrace.site.reliability.guardian:guardians`, 09/28/2026); the schema ID is the one the Site Reliability Guardian as code page's Monaco example uses.</sub>
 
 ---
 

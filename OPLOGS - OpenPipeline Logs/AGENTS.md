@@ -22,7 +22,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Writing log DQL: filters, string matching, `parse` with DPL matchers (LD/INT/IPADDR/JSON), JSON logs, null handling | `-[OPLOGS]-05-querying-parsing.md` |
 | Entity context on logs: `dt.entity.host`/`process_group`/`service`, `k8s.*` fields, cross-entity correlation, entity-ID lookups | `-[OPLOGS]-06-topology.md` |
 | Aggregations, `makeTimeseries`, statistical/trend analysis, log pattern analysis, dashboard-ready log queries | `-[OPLOGS]-07-analytics.md` |
-| Finding sensitive data (PII, credit cards, SSNs, tokens), masking with DPL `replacePattern` statements in a DQL processor (not regex), audit log queries, compliance reporting | `-[OPLOGS]-08-security.md` |
+| Finding sensitive data (PII, credit cards, SSNs, tokens), masking with DPL `replacePattern` statements in a DQL processor (not regex) — bounded `CREDITCARD` so UUIDs survive, case-sensitive key/token masking incl. JSON-quoted keys, keep-last-4 masking with a `>>` lookahead — audit log queries, compliance reporting | `-[OPLOGS]-08-security.md` |
 | Consolidated settings checklist: processor order within the Processing stage, retention values by log type, masking patterns, DQL cookbook | `-[OPLOGS]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[OPLOGS]-99-best-practice-summary.md`

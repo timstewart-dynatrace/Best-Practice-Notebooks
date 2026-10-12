@@ -1,6 +1,6 @@
 # SLO-03: Composition and Error Budgets
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 6 | **Created:** June 2026 | **Last Updated:** 09/28/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -29,7 +29,7 @@ A single SLI rarely captures a service's health, and a raw SLI percentage is a w
 <a id="budget"></a>
 ## 1. Error Budget Math
 
-The error budget is the inverse of the target:
+The error budget is the complement of the target:
 
 ```
 error budget = 100% − SLO target

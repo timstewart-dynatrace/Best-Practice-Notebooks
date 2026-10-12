@@ -1,6 +1,6 @@
 # SLO-04: SLO Alerting
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 4 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -110,13 +110,15 @@ If you want one aggregated burn-rate value across every contributing entity rath
 <a id="routing"></a>
 ## 4. Routing SLO Breaches
 
-An SLO breach raises a problem; routing it is the WFLOW series' job, not a separate mechanism:
+A burn-rate custom alert raises a Davis event, which Dynatrace Intelligence considers when it detects problems. Route it with a workflow on that event, or on the problem it joins. Routing is the WFLOW series' job, not a separate mechanism:
 
-1. **Problem-trigger workflow** filters for the SLO-breach event (by event properties — name, the owning team/zone you set in the detector's event template).
+1. **Workflow trigger** filters for the burn-rate event, or the problem it joins, on the event properties you set on the custom alert: `slo.name` and `dt.owner`.
 2. **Route to the owning team's channel** — Slack, Teams, PagerDuty, or an ITSM incident.
 3. **Differentiate by tier** — fast-burn → page (PagerDuty / on-call); slow-burn → ticket (Jira / ServiceNow).
 
 This is exactly the routing covered in WFLOW-04. The key dependency is upstream: the burn-rate detector's **event template must carry the team/service metadata** (AIOPS-02 §4) or the workflow has nothing to filter on.
+
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives) — *"an event with the set event properties is raised"*; `dt.owner` is *"a team identifier that allows automatic routing and ticketing"*. Read 10/12/2026.</sub>
 
 <a id="fatigue"></a>
 ## 5. Avoiding Alert Fatigue

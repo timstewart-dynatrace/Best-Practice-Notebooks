@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -370,9 +370,10 @@ fetch logs, from: now() - 1h
 ```dql
    // Widen from: until first_exposure stops moving. replacePattern finds a card number
    // anywhere in the line; matchesPhrase on a fixed number would miss every other card.
+   // The !<< / !>> bounds stop digit runs inside UUIDs being counted as exposed cards.
    fetch logs, from: now() - 7d
    | filter log.source == "payment-service"
-   | filter replacePattern(content, "CREDITCARD", replacement: "") != content
+   | filter replacePattern(content, "!<<[0-9A-Za-z-] CREDITCARD !>>[0-9A-Za-z-]", replacement: "") != content
    | summarize 
        first_exposure = min(timestamp),
        last_exposure = max(timestamp),

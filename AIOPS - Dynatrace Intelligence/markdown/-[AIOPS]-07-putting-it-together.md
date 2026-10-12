@@ -1,6 +1,6 @@
 # AIOPS-07: Putting It Together — Detect, Investigate, Remediate
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 7 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
 
 ## Overview
 
@@ -120,7 +120,9 @@ Subtler than incident response — slow drift, not sudden spike.
 // Weekly error rate trend by service — last 8 weeks, services with real traffic only
 //
 // Corrected 08/12/2026: `interval:1w` is a CALENDAR duration and `interval` does not accept them
-// (NAMED_PARAMETER_MUST_NOT_BE_CALENDAR_DURATION). Use the fixed-length equivalent, `interval:7d`.
+// (NAMED_PARAMETER_MUST_NOT_BE_CALENDAR_DURATION). `interval:` accepts only fixed durations, and
+// `7d` is silently rewritten to `168h` with a DEPRECATED_DURATION_UNIT_DAYS notification (10/12/2026),
+// so write `168h`.
 // default:0 makes zero-failure weeks count as 0, not null; the volume floor keeps services that
 // handled a handful of requests (and so sit at 100%) from filling the top 25.
 timeseries {
@@ -129,7 +131,7 @@ timeseries {
   },
   by:{dt.entity.service},
   from:-8w,
-  interval:7d
+  interval:168h
 | fieldsAdd error_rate = (failures[] / total[]) * 100
 | fieldsAdd requests = arraySum(total), overall_error_rate = arraySum(failures) / arraySum(total) * 100
 | filter requests >= 1000
@@ -154,13 +156,13 @@ The first two are obvious. The third is interesting — a high compression ratio
 // (Run side-by-side with the problem volume query below.)
 fetch dt.davis.events, from:-7d
 | filter in(event.category, {"AVAILABILITY","ERROR","RESOURCE_CONTENTION","SLOWDOWN","CUSTOM_ALERT"})
-| makeTimeseries signals = count(), interval:1d
+| makeTimeseries signals = count(), interval:24h
 ```
 
 ```dql
 // Problem volume — last 7 days (compare against signals above)
 fetch dt.davis.problems, from:-7d
-| makeTimeseries problems = count(), interval:1d
+| makeTimeseries problems = count(), interval:24h
 ```
 
 Higher signals-per-problem ratio = better Causal AI compression. Track this number monthly; if it drops, audit topology completeness.

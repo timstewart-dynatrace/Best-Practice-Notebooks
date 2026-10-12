@@ -1,6 +1,6 @@
 # IAM-02: SSO and Authentication Configuration
 
-> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
 
 ## Setting Up Enterprise Authentication
 Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.
@@ -384,7 +384,9 @@ Common SSO issues and their resolutions.
 | **Audience mismatch** | Audience error | Match Entity ID exactly |
 
 ```dql
-// Monitor SSO authentication events
+// Authenticated API calls by credential type and grant type (24 h)
+// Retitled 10/12/2026: authentication.type is set on every audited request, so this is API traffic, not
+// SSO sign-ins. Sign-ins are event.type == "LOGIN" (see IAM-07 § 2).
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
