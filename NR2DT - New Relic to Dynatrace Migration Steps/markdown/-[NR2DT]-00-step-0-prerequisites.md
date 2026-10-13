@@ -1,6 +1,6 @@
 # NR2DT-00: Tenant Prerequisites — Minimum Setup Before Migration
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Reference:** 00 — Tenant Prerequisites | **Created:** May 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -156,13 +156,13 @@ export DYNATRACE_DETECTOR_ACTOR="<service-user-uuid>"
 
 ### 3.1 OneAgent / ActiveGate Rollout
 
-**Recommended Approach:** roll OneAgent to the hosts that will be in scope before NR2DT-08 Validate runs. ActiveGate sits in front for log routing, OTel reception, and CloudWatch / Azure Monitor / GCP integrations. For NR→DT migrations specifically, decide the OneAgent-vs-OTel split per workload before instrumenting.
+**Recommended Approach:** roll OneAgent to the hosts that will be in scope before NR2DT-08 Validate runs. ActiveGate sits in front for log routing, OTel reception, and CloudWatch / Azure Monitor / GCP integrations. For NR→DT migrations specifically, decide the OneAgent/OTel split per workload before instrumenting.
 
 **Consideration:** OneAgent is the default for JVM, .NET, Node, Go, Python — code-free, infra correlation, host-level metrics. OTel is the choice for effect-system languages (Cats Effect, ZIO), polyglot meshes, or workloads where instrumentation-as-code is a hard requirement. Capture the per-workload decision in writing before instrumenting; the OTEL series covers the underlying capabilities and trade-offs.
 
 **Where covered:**
 - ONBRD series — Dynatrace onboarding fundamentals
-- OTEL series — OpenTelemetry integration and the OneAgent-vs-OTel decision space
+- OTEL series — OpenTelemetry integration and the OneAgent/OTel decision space
 
 ---
 
@@ -228,7 +228,7 @@ NR2DT-01 cannot start until every Mandatory item is ticked. Strongly Recommended
 - [ ] Platform Token issued with required scopes (§2.1)
 - [ ] `migrate.py preflight` returns clean (§2.2)
 - [ ] Service user created for anomaly detectors; `DYNATRACE_DETECTOR_ACTOR` set (§2.3)
-- [ ] OneAgent / ActiveGate rollout plan in place; OneAgent-vs-OTel split decided per workload (§3.1)
+- [ ] OneAgent / ActiveGate rollout plan in place; OneAgent/OTel split decided per workload (§3.1)
 - [ ] Log forwarder destination endpoints known (§3.2)
 - [ ] OTel collector endpoints confirmed if applicable (§3.3)
 
@@ -286,7 +286,7 @@ Quick lookup if a stakeholder asks *where do I learn more?*
 | OpenPipeline routing & enrichment | OPLOGS, OPMIG | OPIPE |
 | Platform tokens & scopes | NR2DT-01 § Access | IAM series |
 | OneAgent rollout | ONBRD | — |
-| OneAgent vs OTel decision | OTEL series | ONBRD |
+| OneAgent and OTel decision | OTEL series | ONBRD |
 | Log forwarder migration | OPMIG, OPLOGS | NR2DT-07 |
 | OTel collector setup | OTEL | NRLC-01 § Sprint 1.337 |
 | Silent notification channel | WFLOW | NR2DT-05 Wave 3 |

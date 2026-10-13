@@ -1,6 +1,6 @@
 # MOBL-99: Best Practice Summary
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -102,7 +102,7 @@ Best practices for HTTP monitoring, backend correlation, and network performance
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|--------------|-----------------|----------|--------|
-| 1 | Instrument backend services with OneAgent or OpenTelemetry | Required for `x-dynatrace` / W3C trace-context correlation (W3C from OneAgent for Mobile 8.333); enables end-to-end distributed tracing from device to database | **Critical** | MOBL-07 |
+| 1 | Instrument backend services with OneAgent, OpenTelemetry, or both | Required for `x-dynatrace` / W3C trace-context correlation (W3C from OneAgent for Mobile 8.333); enables end-to-end distributed tracing from device to database | **Critical** | MOBL-07 |
 | 2 | Use manual web request tagging for non-standard transports | Add the header named by `Dynatrace.getRequestTagHeader()` (`x-dynatrace`) with a tag from `action?.getTagFor(url)` (iOS) or `action.getRequestTag()` / `Dynatrace.getRequestTag()` (Android) for WebSocket, gRPC, or custom HTTP clients | **Recommended** | MOBL-12 |
 | 3 | Enable gzip/brotli compression on API responses | Substantially smaller text payloads | **Recommended** | MOBL-07 |
 | 4 | Implement response pagination | Avoid loading entire datasets in a single request | **Recommended** | MOBL-07 |

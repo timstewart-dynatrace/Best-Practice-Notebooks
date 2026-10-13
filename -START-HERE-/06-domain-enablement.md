@@ -76,7 +76,7 @@ The order is a guideline, not a rule. Skip what doesn't apply; reorder based on 
 
 | Aspect | Detail |
 |---|---|
-| Prerequisites | Foundation in progress; OneAgent or OTel on applications |
+| Prerequisites | Foundation in progress; OneAgent and/or OTel on applications |
 | Time | 1–3 weeks (varies by maturity of security program) |
 | Mandatory entry | Notebooks 01 (fundamentals), 09 (IAM and permissions) |
 | Recommended next | 02 (RVA — runtime vulnerability analytics), 04 (RAP — runtime application protection), 05 (SPM — security posture management) |
@@ -89,7 +89,7 @@ The order is a guideline, not a rule. Skip what doesn't apply; reorder based on 
 
 | Aspect | Detail |
 |---|---|
-| Prerequisites | OneAgent or OTel instrumentation on at least one service |
+| Prerequisites | OneAgent and/or OTel instrumentation on at least one service |
 | Time | 1–2 weeks |
 | Mandatory entry | Notebooks 01 (fundamentals), 02 (querying) |
 | Recommended next | 03 (troubleshooting), 04 (topology), 05 (analytics) |

@@ -1,6 +1,6 @@
 # MOBL-07: Network Request Monitoring
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 7 of 12 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -36,7 +36,7 @@ This notebook explains how Dynatrace captures network requests across platforms,
 | **Mobile App Instrumented** | Dynatrace Mobile SDK deployed (iOS, Android, Flutter, or React Native) |
 | **Network Requests** | Mobile app actively making HTTP(S) requests being captured by the SDK |
 | **Permissions** | `storage:user.events:read`, `storage:spans:read` |
-| **Distributed Tracing** | Backend services instrumented with OneAgent or OpenTelemetry for correlation |
+| **Distributed Tracing** | Backend services instrumented with OneAgent, OpenTelemetry, or both for correlation |
 
 <a id="automatic-http-capture"></a>
 
@@ -165,7 +165,7 @@ For environments where SVG doesn't render
 
 1. **Request Initiation** -- The mobile app makes an HTTP(S) request using a standard networking library.
 2. **Header Injection** -- The Dynatrace Mobile SDK adds the `x-dynatrace` header to the outgoing request (RUM Classic), and from OneAgent for Mobile 8.333 also injects the W3C Trace Context headers `traceparent` and `tracestate`. Custom networking stacks must add the headers manually (for `x-dynatrace`, via `Dynatrace.getRequestTagHeader()` and a request tag -- see MOBL-12 §4).
-3. **Backend Processing** -- The backend service (instrumented with OneAgent or OpenTelemetry) reads the trace context and creates a server-side span that is linked to the mobile request.
+3. **Backend Processing** -- The backend service (instrumented with OneAgent, OpenTelemetry, or both) reads the trace context and creates a server-side span that is linked to the mobile request.
 4. **Trace Stitching** -- Dynatrace automatically stitches the mobile user action and the backend service call into a unified distributed trace.
 
 ### What This Enables
@@ -177,7 +177,7 @@ For environments where SVG doesn't render
 | **Service dependency mapping** | Understand which backend services support which mobile features |
 | **Error correlation** | Link a mobile HTTP 500 error to the specific backend exception |
 
-> **Important:** For correlation to work, the backend service must be instrumented with Dynatrace OneAgent or OpenTelemetry. W3C trace context works with both.
+> **Important:** For correlation to work, the backend service must be instrumented with Dynatrace OneAgent, OpenTelemetry, or both. W3C trace context works with either.
 
 > **Correction (09/28/2026).** Earlier revisions named the mobile correlation header `x-dtc`. That is the web RUM JavaScript header; the mobile SDK uses `x-dynatrace` and, from 8.333, W3C trace context. OneAgent for Mobile 8.333 was released 02/23/2026 with rollout from 02/24/2026; mobile agent versions reach users with app releases, so older builds in the field still send only `x-dynatrace`.
 

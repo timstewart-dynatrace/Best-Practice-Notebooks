@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 10 | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 10 of 14 | **Created:** July 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -83,17 +83,19 @@ Segments touch alerting in exactly one documented place: **scoping an anomaly de
 
 An alerting profile scoped to MZ *X*, routing to team *X*'s channel, becomes:
 
-```
-Workflow  "Route — Team X"
-  Trigger:  Problem trigger
-            ├─ Problem state ......... Active
-            ├─ Severity .............. (as per the old profile's severity rules;
-            │                           see the SaaS 1.348 note in §5)
-            ├─ Affected entities ..... include entities with tag  team:X
-            └─ Custom filter query ... optional DQL matcher, e.g.
-                                       maintenance.is_under_maintenance == false
-  Action:   Slack / ServiceNow / email / PagerDuty → team X's destination
-```
+![From alerting profile to problem-triggered workflow](images/09-profile-to-workflow.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Alerting profile (classic) | Workflow "Route — Team X" |
+|---|---|
+| Management zone: Team X | Trigger: Problem trigger |
+| Severity rules | Severity: as the profile's rules (see the SaaS 1.348 note in §5) |
+| Event filters | Affected entities: include entities with tag team:X |
+| — | Custom filter query: optional DQL matcher, e.g. maintenance.is_under_maintenance == false |
+| Delay | Minimum duration (§6.1) |
+| Problem notification | Action: Slack / ServiceNow / email / PagerDuty → team X's destination |
+For environments where SVG doesn't render
+-->
 
 No separate profile object exists in this shape. **The filter *is* the trigger.** Dynatrace notes that *"a single workflow trigger can encapsulate the combined filter logic of multiple alerting profiles"*, and that the filter *"can use DQL matchers on the incoming problem record, which is much more flexible and powerful than alerting profiles."*
 
@@ -303,6 +305,17 @@ If a Management Zone was doing double duty — restricting which problems a team
 | Field | Entity tags + DQL matcher | `dt.security_context` |
 | Failure if wrong | Wrong team paged | Wrong team **sees data they should not** |
 
+![Routing and visibility are separate axes](images/09-routing-vs-visibility.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Axis | Mechanism | Field | Wrong → |
+|---|---|---|---|
+| Routing — who gets paged | Workflow trigger filter | Entity tags + DQL matcher | The wrong team is paged |
+| Visibility — who may see it | IAM record-level policy | dt.security_context only | A team sees data it must not |
+| Constraint | Problem field values aggregate into arrays; only dt.security_context supports filtering array values; use MATCH, not = | | |
+For environments where SVG doesn't render
+-->
+
 ### The constraint that decides the design
 
 When multiple events aggregate into a problem, the values of a given field are combined into an **array**. Because of how Grail record-level permission filters currently work, **only `dt.security_context` supports filtering array values.**
@@ -322,14 +335,20 @@ This is the same field the access-control half of the migration uses, which is c
 
 ### The order
 
-```
-1. Build workflows            — with tags verified at 100% coverage (§4)
-2. Run in parallel            — classic profiles AND new workflows both active
-3. Prove alert parity         — per-team volume matches, for an agreed window
-4. DISABLE classic profiles   — not delete; disable, so rollback is one click
-5. Soak                       — agreed quiet period
-6. Delete Management Zones    — SEPARATE change window, last
-```
+![Alerting cutover sequence](images/09-cutover-sequence.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|---|---|
+| 1 | Build workflows — with tags verified at 100% coverage (§4) |
+| 2 | Run in parallel — classic profiles AND new workflows both active |
+| 3 | Prove alert parity — per-team volume matches, for an agreed window |
+| 4 | DISABLE classic profiles — not delete; disable, so rollback is one click |
+| 5 | Soak — agreed quiet period |
+| 6 | Delete Management Zones — SEPARATE change window, last |
+| Untested | What a profile does when its zone is deleted is undocumented: fail-open (page storm) or fail-closed (silent loss) — run the test below |
+For environments where SVG doesn't render
+-->
 
 Steps 4 and 6 must not share a change window. After a combined change there is no way to tell which half caused a regression.
 

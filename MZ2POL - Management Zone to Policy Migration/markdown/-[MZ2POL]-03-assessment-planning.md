@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 4 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -205,15 +205,18 @@ fetch dt.entity.service
 ## 4. Migration Priority Matrix
 ### Prioritize Based on Impact and Complexity
 
-![Migration Phases](images/migration-phases.png)
+![Prioritizing the zone estate](images/03-migration-priority-matrix.png)
 
-<!--MARKDOWN_TABLE_ALTERNATIVE
-| Priority | Criteria | Examples |
-|----------|----------|----------|
-| P1 - Critical | Security/compliance requirements | Production access control |
-| P2 - High | Actively used for access control | Team-based MZs |
-| P3 - Medium | Used for filtering only | Region/app MZs |
-| P4 - Low | Informational/rarely used | Legacy MZs |
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Priority | Criteria | Typical zones | Migrates to |
+|---|---|---|---|
+| P1 - Critical | Security/compliance access | Production, PCI, regulated data | Policies + boundaries |
+| P2 - High | Actively used for team access | Team / LOB zones | Policies + boundaries |
+| P2 - High | Scopes who gets paged | Zones on alerting profiles | Workflows (MZ2POL-09) |
+| P3 - Medium | Used for filtering only | Region / app / stage views | Segments (MZ2POL-05) |
+| P4 - Low | Unused or informational | No recent query activity | Delete, don't convert |
+| All | Shared prerequisite | — | Translate rules (MZ2POL-11) and pass the MZ2POL-10 tag gate first |
+For environments where SVG doesn't render
 -->
 
 | Priority | Criteria | Examples |
@@ -344,7 +347,13 @@ In this notebook, you:
 
 ## Next Steps
 
-Continue to **MZ2POL-04: Policies and Boundaries** to:
+**First, the tagging foundation.** Every replacement for a management zone reads a field on the data, so the tags have to be in place before you build on them:
+- **MZ2POL-10: Tagging at Source** — the model change, the enrichment ladder, and the readiness gate
+- **MZ2POL-11: Translating MZ Rules into Source Attributes** — the rule-by-rule catalog that turns this inventory into target fields
+- **MZ2POL-12: IAM Reference Architecture** — how the access-control zones become groups, default policies and one boundary per team, and the boundary pitfalls that widen access
+- **MZ2POL-14 [WORKSHOP]: Zone Disposition** — run the decisions in this notebook with the zone owners; **MZ2POL-95 [LAB]** is the worked example on a sample estate
+
+Then continue to **MZ2POL-04: Policies and Boundaries** to:
 - Learn policy syntax and structure
 - Create custom policies
 - Understand default policy capabilities

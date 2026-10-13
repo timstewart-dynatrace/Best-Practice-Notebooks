@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 7 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -45,21 +45,24 @@ By the end of this notebook, you will:
 
 ### Phase Summary
 
-```
-Phase 1: Foundation Setup
-    ↓
-Phase 2: Security Context Assignment
-    ↓
-Phase 3: Policy & Boundary Configuration
-    ↓
-Phase 4: Segment Creation
-    ↓
-Phase 5: Parallel Running (MZ + New Model)
-    ↓
-Phase 6: Cutover
-    ↓
-Phase 7: Cleanup
-```
+![Migration phases and their gates](images/06-migration-phases.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Notebooks | Hands over |
+|---|---|---|
+| 1 · Assess | MZ2POL-00, -03 | Zones classified by job |
+| 2 · Tag + translate | MZ2POL-10, -11 | Readiness gate passed — GATE: tags verified |
+| 3 · Access | MZ2POL-12, -04, -08 | Groups, one boundary per team |
+| 4 · Filtering | MZ2POL-05 | Segments per dimension |
+| 5 · Alerting | MZ2POL-09 | Workflows, alert parity |
+| 6 · Parallel run | §6, states 0→2 | Evidence, not weeks — GATE: parity + permissions |
+| 7 · Cutover | §7 | Zone lines removed |
+| 8 · Cleanup | §8 | Zones deleted last |
+| Why | Phases 3–5 read fields on the data; built before the gate they return partial data without an error. Phases 3–5 can run in parallel once it passes | |
+For environments where SVG doesn't render
+-->
+
+The headings below keep this notebook's original phase numbering (Foundation → Cleanup); the diagram adds the two phases the series now runs first — assessment and the tag readiness gate.
 
 ### Risk Mitigation Strategy
 
@@ -106,51 +109,55 @@ For each MZ-based access pattern, create a corresponding group:
 ## 3. Phase 2: Security Context Assignment
 ### Why Security Context?
 
-Security context enables entity-level access control with boundaries. Before creating boundaries, entities must have security context assigned.
+Security context is the one record field that every Grail table accepts in an IAM condition (MZ2POL-12 §1). Before creating boundaries, the **data** — logs, spans, metrics, events — must carry it, not only the entities. Entity coverage alone is misleading: the classic *Grail Security Context* mapping can copy zone names onto entities, while the records from those entities *"do not inherit the management zones of that entity."*
+
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."*</sub>
 
 ### Query Current Security Context Coverage
 
 ```dql
-// Check security context assignment status
-// Identify entities needing security context
-fetch dt.entity.service
-| summarize 
-    total = count(),
-    withContext = countIf(isNotNull(dt.security_context)),
-    withoutContext = countIf(isNull(dt.security_context))
-| fields total, withContext, withoutContext,
-         coveragePercent = 100.0 * withContext / total
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Security-context coverage on the DATA, per table.
+// Records without dt.security_context are invisible to users scoped only by it.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| fields table, records, without_sc, without_pct
 ```
 
 ### Assignment Methods
 
-| Method | Best For | Automation |
-|--------|----------|------------|
-| Auto-tagging rules | Tag-based assignment | Yes |
-| Settings API | Bulk updates | Yes |
-| UI Settings | Individual entities | No |
-| OneAgent config | Host-level | Yes |
+Set it where the data is produced, cheapest first — MZ2POL-10 §5 has the full ladder:
 
-### Recommended: Tag-Based Security Context
+| Method | Best For |
+|---|---|
+| OneAgent host tag (`--set-host-tag` / `oneagentctl`) | Whole hosts owned by one team |
+| `DT_TAGS` on the process | Shared hosts |
+| Kubernetes namespace labels / annotations | Namespaces owned by one team |
+| Central *Ingest enrichment configuration* (OneAgent 1.343+) | Values already present as host tags, host groups or naming conventions |
+| OpenTelemetry resource attributes | OTel-instrumented services |
+| OpenPipeline *Set security context* processor | Last resort — runs after routing |
 
-If entities already have team/environment tags, derive security context from tags:
+Auto-tagging rules are **not** a method: they *"have no effect on Smartscape on Grail"* (MZ2POL-10 §2).
 
+### Recommended: Derive It from the Tags You Already Have
+
+If hosts already carry team or environment tags, promote them centrally rather than re-tagging hosts — an ingest enrichment rule reads `host.tags.<key>` and writes `dt.security_context` (and `primary_tags.team` in the same rule):
+
+```text
+host tag team:frontend                  → dt.security_context = team-frontend
+host tag team:frontend + env:production → dt.security_context = prod/team-frontend
 ```
-Tag: team:frontend → Security Context: team-frontend
-Tag: env:production → Security Context: prod-{team}
-```
+
+> <sub>**Sources:** [Differences between classic auto-tagging and primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app."*</sub>
 
 ### Checklist
 
 - [ ] Identify security context naming strategy
 - [ ] Map existing tags to security context values
-- [ ] Apply security context to all relevant entities
+- [ ] Apply security context at every relevant data producer
 - [ ] Verify coverage with DQL query
 - [ ] Document security context → team/env mapping
 
@@ -164,7 +171,7 @@ Confirm policies and boundaries are created per MZ2POL-04:
 
 - [ ] Built-in policies identified for each user type
 - [ ] Custom policies created where needed
-- [ ] Gen3 boundary (`storage` + `settings:dt.security_context`) and Gen2 boundary (`environment:management-zone`) for each access scope
+- [ ] One boundary per access scope with a line for every domain the bound policies grant — `storage:`, `settings:`, and `environment:management-zone` during the parallel run (MZ2POL-04 §6)
 - [ ] Security context conditions configured
 - [ ] Boundary naming follows convention
 - [ ] Policy and boundary documentation complete
@@ -235,16 +242,18 @@ For dashboards currently using MZ filtering:
 ## 6. Phase 5: Parallel Running
 ### Duration
 
-Recommended: **2-4 weeks** depending on complexity
+There is no documented duration. In community practice teams plan a few weeks per batch — but exit each state on evidence (tag coverage, effective permissions, alert parity), not on a calendar.
 
-![Parallel Running](images/parallel-running.png)
+![Running both models side by side](images/06-parallel-running.png)
 
-<!--MARKDOWN_TABLE_ALTERNATIVE
-| System | Status | User Experience |
-|--------|--------|----------------|
-| Management Zones | Active | Users see MZ-filtered data |
-| Policies + Boundaries | Active | Access control via ABAC |
-| Segments | Active | Users can select segments |
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| State | Boundary | Result |
+|---|---|---|
+| 0 · Today | Zone-scoped roles | Check: a zone-only boundary on a default policy already grants all Grail data |
+| 1 · Dual | One boundary: zone + Grail + settings lines | Classic scoped by zone; Grail by security context |
+| 2 · Verified | Same | Effective permissions resolved; MZ2POL-12 §10 and MZ2POL-10 §9 checks clean |
+| 3 · Retired | Zone line removed | Classic pages no longer used by the team; Grail unchanged |
+For environments where SVG doesn't render
 -->
 
 ### During Parallel Running
@@ -423,7 +432,7 @@ After successful cutover (recommended: wait 2+ weeks):
 
 #### Full Rollback (After Cutover)
 
-1. Re-enable RBAC MZ assignments
+1. Re-enable RBAC MZ assignments, or re-add the `environment:management-zone` line to the team boundary
 2. Communicate to users
 3. Document what went wrong
 4. Create remediation plan
@@ -444,38 +453,33 @@ After successful cutover (recommended: wait 2+ weeks):
 ### Final Verification
 
 ```dql
-// Verify: Security context coverage is complete
-fetch dt.entity.service
-| summarize 
-    total = count(),
-    withContext = countIf(isNotNull(dt.security_context))
-| fields total, withContext,
-         coveragePercent = 100.0 * withContext / total
-| filter coveragePercent < 100
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Verify: security-context coverage on the DATA is complete enough to cut over.
+// Entity coverage is not a substitute — entity contexts may be copied from zone names.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| filter without_sc > 0
+| fields table, records, without_sc, without_pct
 ```
 
 ```dql
-// Verify: entities reached by the replacement tag match the MZ they replace
-// Replace "Frontend-Team" and "team:frontend" with your MZ name and its replacement tag.
-// (Counting isNotNull(tags) is not a check: classic tags are never null, so it counts everything.)
-fetch dt.entity.service
-| summarize {
-    viaMZ  = countIf(in(managementZones, {"Frontend-Team"})),
-    viaTag = countIf(matchesValue(tags, "team:frontend"))
-  }
-| fields viaMZ, viaTag
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - management zones have NO Smartscape node equivalent; they are what this migration
-//     replaces with segments and policies.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Verify: the hosts whose DATA carries the replacement tag match the zone's hosts.
+// Replace the zone name and the tag condition (see MZ2POL-10 §9 Step 5).
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| summarize {tagged = countIf(primary_tags.team == "frontend"), records = count()}, by:{dt.entity.host}
+| fieldsAdd carries_tag = tagged > 0
+| lookup [fetch dt.entity.host | fields id, entity.name, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {entity.name, managementZones}
+| fieldsAdd in_zone = in("Frontend-Team", managementZones)
+| fieldsAdd verdict = if(in_zone and carries_tag, "match",
+    else: if(in_zone, "in zone, tag missing",
+    else: if(carries_tag, "tagged, not in zone", else: "neither")))
+| summarize {hosts = count()}, by:{verdict}
+| sort hosts desc
 ```
 
 ---

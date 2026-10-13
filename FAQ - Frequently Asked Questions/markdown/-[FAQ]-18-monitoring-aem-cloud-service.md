@@ -1,6 +1,6 @@
 # FAQ-18: How Do I Monitor Adobe Experience Manager as a Cloud Service?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 18 — Monitoring AEM as a Cloud Service | **Created:** July 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -40,7 +40,7 @@ This entry covers **what the integration is, how to get it turned on, exactly wh
 | **Dynatrace environment** | SaaS or Managed. Managed additionally requires a reachable ActiveGate and its port |
 | **Permissions** | Enough access in Dynatrace to mint the token Adobe asks for — Adobe names the classic access-token scope **PaaS integration - Installer download**, which current Dynatrace docs label **Download OneAgent and ActiveGate installers** (`InstallerDownload`). On a Latest Dynatrace environment, which has no classic access tokens, see § 4 |
 | **Licensing headroom** | Full-stack capacity for the containers Adobe runs — see § 7 before you request enablement, not after |
-| **Related series** | **ONBRD** (tenant and access design), **K8S** (the container model underneath), **FAQ-03** (OneAgent vs OpenTelemetry), **FAQ-04** (OneAgent update management — mostly *not* applicable here, see § 9), **NR2DT** / **NRLC** (if you are migrating off New Relic — read § 8 first) |
+| **Related series** | **ONBRD** (tenant and access design), **K8S** (the container model underneath), **FAQ-03** (OneAgent and OpenTelemetry), **FAQ-04** (OneAgent update management — mostly *not* applicable here, see § 9), **NR2DT** / **NRLC** (if you are migrating off New Relic — read § 8 first) |
 
 ---
 
@@ -263,7 +263,7 @@ Several pieces of guidance elsewhere in this corpus assume host and agent contro
 |---|---|
 | **FAQ-04** — managing OneAgent updates | **Mostly not applicable.** Update rings, version pinning, and staged agent rollout are Adobe's. The reasoning about *why* agent version matters still helps you ask Adobe the right question |
 | **FAQ-01** — host group naming | **Not applicable as written.** There is no host you name. Organise at the service and tag layer instead |
-| **FAQ-03** — OneAgent vs OpenTelemetry | **Decided for you** on these containers: it is OneAgent. Still relevant for anything you build *around* AEM |
+| **FAQ-03** — OneAgent and OpenTelemetry | **Decided for you** on these containers: it is OneAgent. Still relevant for anything you build *around* AEM |
 | **ORGNZ** — buckets, segments, security | **Fully applies.** All tenant-side |
 | **IAM** — access model | **Fully applies.** All tenant-side |
 | **ALERT / SLO / DASH / WFLOW / AIOPS** | **Fully applies.** These consume the data; they do not care how the agent arrived |

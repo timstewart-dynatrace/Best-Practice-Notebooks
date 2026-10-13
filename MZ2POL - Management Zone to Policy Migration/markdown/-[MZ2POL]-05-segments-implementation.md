@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/06/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 6 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ The work is **manual**. There is no button that turns a Management Zone into a s
 | **Dynatrace Environment** | SaaS with Grail — segments are a Grail-only construct |
 | **Existing Management Zones** | An inventory of the zones you intend to migrate (see MZ2POL-00 and MZ2POL-03) |
 | **Permissions** | `storage:filter-segments:read` and `storage:filter-segments:write` to create segments; `storage:entities:read` and `storage:logs:read` to run the validation queries in §7 |
-| **Enrichment in place** | Host tags, host groups, or Kubernetes metadata must already reach Grail — see §4 for which scenario applies |
+| **Enrichment in place** | Host tags, host groups, or Kubernetes metadata must already reach Grail — see §4 for which scenario applies, and pass the MZ2POL-10 readiness gate first; MZ2POL-11 maps each MZ rule to its target field |
 | **Background reading** | ORGNZ-08 and ORGNZ-10 for segment mechanics; this notebook covers the migration, not the feature |
 
 ---
@@ -100,6 +100,18 @@ An estate with dozens of zones across three dimensions — app, stage, platform 
 
 > **Segment sprawl is the common failure mode.** Teams migrate zone-for-zone, end up with dozens of overlapping segments, and reproduce exactly the maintenance burden they were trying to escape — with the added downside that users now face a long, confusing segment picker.
 
+![One segment per dimension, not per zone](images/05-one-segment-per-dimension.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zones (one per value) | Segments (one per dimension) |
+|---|---|
+| Easytrade - Prod, Easytrade - Dev, Hipstershop - Prod, Hipstershop - Dev, Easytravel - Prod, Easytravel - Dev, AWS - Prod, K8s - Platform, … one per new app | app: variable $app from distinct primary_tags.app; filter primary_tags.app = $app |
+| | stage: variable $stage from distinct primary_tags.stage; filter primary_tags.stage = $stage |
+| | platform: variable $platform from dt.host_group.id parts; filter dt.host_group.id = "$platform*" |
+| Dozens to hundreds | Usually three to eight; a new app appears in $app automatically if its data carries the tag |
+For environments where SVG doesn't render
+-->
+
 This rule is canonical in **ORGNZ-10** (§ *Best Practice: One Segment Per Dimension*) and **ORGNZ-99** (rule 46); this notebook applies it to the migration.
 
 ### Other reductions worth making
@@ -138,6 +150,19 @@ What you need to carry into the migration from those notebooks is a short list o
 | Classic entity properties | Only `entity.name` accepts wildcards | Every **other** entity property is exact-equals only |
 
 > **Include blocks are ORed.** Data matching *any* include is in scope. Within a single include, conditions are ANDed. An MZ whose rules were implicitly ANDed across entity types will not behave the same way if you map each rule to its own include.
+
+![How a segment is built](images/05-segment-include-model.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Part | Content |
+|---|---|
+| Include: Data (all types) — recommended start | primary_tags.team = "payments" AND primary_tags.stage = $stage |
+| Include: events — scopes the problem feed | event.kind = "DAVIS_PROBLEM" AND primary_tags.team = "payments" |
+| Include: classic entity — backward compatibility | entity.name = "payment*" (starts-with only); other properties equals only |
+| Logic | Includes are ORed; conditions inside one include are ANDed |
+| Limits | 20 includes; 1 include block per data type; 10 expressions per condition; 10 segments per query; = and in() only; wildcard inside the value; no exclusions; no * in variable names or values; anyone with storage:filter-segments:read can apply any segment |
+For environments where SVG doesn't render
+-->
 
 ### Start with `Data (all types)`
 
@@ -318,6 +343,18 @@ smartscapeNodes "PROCESS"
 ## 5. Conversion Blockers
 
 Four constraints make some Management Zones impossible to reproduce exactly. Find these before you start authoring, not after — each one changes the design rather than just the syntax.
+
+![Four conversion blockers](images/05-conversion-blockers.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Blocker | Symptom | Fix |
+|---|---|---|
+| 5.1 No exclusions | "prod except legacy" cannot be written | Push the NOT into the enrichment rule and filter on a positive value (MZ2POL-11 §5) |
+| 5.2 Only primary fields and tags reach derived data | A standard tag filters entities but not service metrics | Promote the value to primary_tags.<key> at the source (MZ2POL-10) |
+| 5.3 Classic entity properties are equals-only | entity.name starts-with only; no contains on classic | Use a Data (all types) or Smartscape include, or an explicit membership tag |
+| 5.4 Problems need an events include | Entity includes do not filter the problem feed | Add event.kind = "DAVIS_PROBLEM" AND <condition> as an events include |
+For environments where SVG doesn't render
+-->
 
 ### 5.1 Segments cannot express exclusions
 

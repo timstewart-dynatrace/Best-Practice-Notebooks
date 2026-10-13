@@ -1,6 +1,6 @@
 # ONBRD-00: Architect's Sequence & Dependency Runbook
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 00 — Architect's Sequence & Dependency Runbook | **Created:** May 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -93,7 +93,7 @@ For environments where SVG doesn't render
 - **Depends on:** Step 02 (Platform Token with `fleet-management:oneagents:download` for installer download).
 - **2026 specifics:** **Set primary fields/tags at install** via the single `--set-host-tag` form the June-2026 tags hub documents for both: `oneagentctl --set-host-tag="primary_tags.<key>=<value>"` (prefix written explicitly — it is never added automatically) and `oneagentctl --set-host-tag="dt.security_context=<value>"` — or later on existing hosts, since the enrichment page documents an option to *"Define fields and tags for existing OneAgent installations using oneagentctl"* (in community practice, expect the new fields only on data ingested after the change). Primary tags emit on every signal (metrics / spans / logs / events) at ingest. Kubernetes: Dynatrace Operator + **Cloud Native FullStack** mode (the Operator docs list Classic Full-Stack under *Other* deployment modes; in community practice, prefer Cloud Native FullStack for new clusters). DynaKube **v1beta6** for new manifests — the Operator 1.11 release notes say *"Before upgrading, update all DynaKube manifests to v1beta6."* From **OneAgent 1.337**, Windows OneAgent requires **Npcap** for Network Agent metrics (WinPcap is no longer supported).
 - **Output:** OneAgent installed on at least one host group; primary tags propagating to every signal at ingest.
-- **Deep dive:** K8S series for DynaKube + Cloud Native FullStack; **FAQ-01: Why you need a good Host Group naming strategy** for host-group naming; **FAQ-02: Tagging — Sources, Standards, and Strategy** for primary-fields strategy; **FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework** for OneAgent vs OTel decision.
+- **Deep dive:** K8S series for DynaKube + Cloud Native FullStack; **FAQ-01: Why you need a good Host Group naming strategy** for host-group naming; **FAQ-02: Tagging — Sources, Standards, and Strategy** for primary-fields strategy; **FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload** for OneAgent and OTel decision.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Upgrade from access tokens classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Latest environment Platform tokens only. Classic access tokens don't exist in latest environments, and v2/apiTokens isn't available."*</sub>
@@ -184,7 +184,7 @@ ONBRD ends. The next checkpoint is *"do you need a deeper series for the domains
 | Default — Standard new tenant | All 10 steps in order |
 | Existing SSO from another DT tenant | Skip IDP-config part of Step 02; configure groups + parameterized policies |
 | Pure SaaS-only, no on-prem | Step 03 (ActiveGate) optional; defer until cloud-API polling demands it |
-| Cloud-only / Serverless | Step 05 mostly N/A; focus on Step 04 + OTel; see FAQ-03 |
+| Cloud-only / Serverless | Step 05 narrows: OneAgent via the AWS Lambda layer and supported Azure Functions plans (OneAgent 1.343+); OTel where OneAgent does not run (e.g. GCP Cloud Functions); focus on Step 04; see FAQ-03 |
 | Kubernetes-first | Step 05 collapses into K8S series (Operator + DynaKube + Cloud Native FullStack) |
 | Migrating from another tool | Run ONBRD foundation in parallel with NR2DT / S2D / SL2DT / M2S / S2S |
 For environments where SVG doesn't render
@@ -194,10 +194,12 @@ For environments where SVG doesn't render
 |---|---|---|
 | Existing SSO already configured | New tenant for an org with SAML (optionally + SCIM) live on another Dynatrace tenant | Skip the IDP-config part of Step 02; reuse the existing IDP. Still configure groups + parameterized policies in the new tenant. |
 | Pure SaaS-only, no on-prem | All workloads in cloud; no private/on-prem footprint | Step 03 (ActiveGate) is optional — defer until cloud-API polling demands it. |
-| Cloud-only, no hosts | Serverless / managed services only; no VMs or containers under your control | Step 05 (OneAgent) is mostly inapplicable — focus on Step 04 (cloud integrations) and OpenTelemetry for application code. See **FAQ-03: OneAgent vs OpenTelemetry — A Decision Framework**. |
+| Cloud-only, no hosts | Serverless / managed services only; no VMs or containers under your control | Step 05 narrows rather than disappears: OneAgent reaches AWS Lambda through the Dynatrace Lambda layer (Python, Node.js, Java, .NET) and supported Azure Functions plans from OneAgent 1.343. Use OpenTelemetry for application code where OneAgent does not run (for example GCP Cloud Functions) or where OTel is already your strategy. Focus on Step 04 (cloud integrations) either way. See **FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload**. |
 | Kubernetes-first | Workloads run primarily on K8s | Step 05 collapses into K8S series — Operator + DynaKube replaces per-host install. |
 | Migrating from another tool | Replacing New Relic / Splunk / Sumo Logic / managed Dynatrace | Run ONBRD foundation in parallel with the migration series (NR2DT, S2D, SL2DT, M2S, S2S). |
 | Multi-tenant org | Several Dynatrace tenants for different BUs / environments | Step 02 expands — see **IAM-08: Multi-Environment IAM** for cross-tenant patterns. |
+
+> <sub>**Sources:** [AWS Lambda integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration) — *"using auto-instrumentation without code changes"*; [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows.</sub>
 
 <a id="after-onbrd"></a>
 ## 7. After ONBRD

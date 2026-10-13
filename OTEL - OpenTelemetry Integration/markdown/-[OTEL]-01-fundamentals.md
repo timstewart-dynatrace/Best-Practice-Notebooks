@@ -1,21 +1,21 @@
 # OTEL-01: OpenTelemetry Fundamentals
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 1 of 8 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Introduction to OpenTelemetry and Dynatrace
-OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics.
+OpenTelemetry (OTel) is the industry-standard framework for collecting telemetry data. Dynatrace fully supports OpenTelemetry through native OTLP ingestion, allowing you to leverage OTel instrumentation while benefiting from Dynatrace's AI-powered analytics — on its own, or combined with OneAgent per workload.
 
 ---
 
 ## Table of Contents
 
 1. [What is OpenTelemetry?](#what-is-opentelemetry)
-2. [OTel vs. Proprietary Agents](#otel-vs-proprietary-agents)
+2. [OpenTelemetry and OneAgent in Dynatrace](#otel-and-oneagent)
 3. [Core Components](#core-components)
 4. [Signal Types: Traces, Metrics, Logs](#signal-types-traces-metrics-logs)
 5. [Semantic Conventions](#semantic-conventions)
 6. [Dynatrace OTel Integration](#dynatrace-otel-integration)
-7. [When to Use OpenTelemetry](#when-to-use-opentelemetry)
+7. [Choosing the Combination per Workload](#choosing-per-workload)
 
 ---
 
@@ -46,38 +46,46 @@ OpenTelemetry is a Cloud Native Computing Foundation (CNCF) project, formed from
 
 | Benefit | Description |
 |---------|-------------|
-| **Vendor Neutral** | No lock-in to specific backends |
+| **Vendor Neutral** | Open standard — the same instrumentation works with any OTLP-compatible backend |
 | **Standardized** | Consistent across languages and platforms |
 | **Comprehensive** | Traces, metrics, and logs in one framework |
 | **Community-Driven** | Active development, broad adoption |
 
-<a id="otel-vs-proprietary-agents"></a>
-## 2. OTel vs. Proprietary Agents
-### Comparison
+<a id="otel-and-oneagent"></a>
+## 2. OpenTelemetry and OneAgent in Dynatrace
+
+OpenTelemetry and OneAgent are complementary, not alternatives. OpenTelemetry is the open, vendor-neutral foundation: one instrumentation standard and common semantic conventions across languages, environments and tools. OneAgent adds automation and runtime depth on top of that foundation. Dynatrace analyzes the two together *"regardless of how you mix your instrumentation choices"*, so the choice is made per workload rather than once for the whole organization.
+
+### What Each Adds
 
 | Aspect | OpenTelemetry | Dynatrace OneAgent |
 |--------|---------------|--------------------|
-| **Instrumentation** | Manual or auto-instrumentation | Automatic |
-| **Deployment** | SDK + Collector | Single agent |
-| **Coverage** | Code-level | Full-stack |
-| **Flexibility** | High (any backend) | Dynatrace-specific |
-| **Maintenance** | Higher | Lower |
-| **Features** | Standard signals | AI, RCA, Dynatrace Intelligence |
+| **Role** | Open telemetry foundation — APIs, SDKs, semantic conventions, OTLP | Automation and runtime depth on top of that foundation |
+| **Instrumentation** | Per-runtime auto-instrumentation, plus SDK calls for custom spans | Automatic — injected at process start, no code change |
+| **Deployment** | SDK and/or Collector, owned by your teams | Single agent with a centrally managed lifecycle |
+| **Coverage** | The signals you choose to emit | Full stack — host, process, runtime, code level, topology |
+| **Portability** | Any OTLP-compatible backend, Dynatrace included | Dynatrace, where its data is analyzed alongside OTel data |
+| **Dynatrace Intelligence** | Yes — including service detection and service topology from OTel spans | Yes — with infrastructure topology filled in automatically |
+| **Runtime-access capabilities** | Not provided by OTel telemetry | Application Security, Live Debugger, automatic RUM JavaScript injection |
 
-### When to Choose OTel
+### Choosing per Workload
 
 | Scenario | Recommendation |
 |----------|----------------|
-| Multi-vendor observability | OTel |
-| Serverless/Lambda | OTel |
-| Custom instrumentation needs | OTel |
-| Existing OTel investment | OTel |
-| Full-stack visibility | OneAgent + OTel |
+| Organization has chosen OpenTelemetry | OTel — a complete path; add OneAgent only where its automation or runtime-access capabilities are wanted |
+| No preference, standard runtimes on hosts, VMs or Kubernetes | OneAgent — fully managed, lowest effort; OTel for custom business spans |
+| Existing OTel instrumentation | Keep it; add OneAgent alongside where runtime depth is wanted (see FAQ-03) |
+| Prometheus endpoints | OTel Collector — the documented recommendation for new deployments |
+| Open-standard or multi-backend instrumentation mandate | OTel owns application instrumentation; OneAgent alongside where it runs |
+| AWS Lambda | Dynatrace Lambda layer (Python, Node.js, Java, .NET); OTel for custom spans |
+| Azure Functions | OneAgent on the plans and runtimes OneAgent 1.343+ supports; OTel elsewhere |
+| GCP Cloud Functions, Ruby application code | OTel for application spans; OneAgent for host and process where it runs |
+| Application Security, Live Debugger or RUM auto-injection needed | OneAgent on those workloads |
 | Minimal effort | OneAgent |
 
-### Hybrid Approach
+### Using Both Together
 
-Dynatrace supports using both OneAgent and OTel together:
+Dynatrace supports using OneAgent and OTel together — in the same application, or across teams and workloads in the same environment:
 
 ![Hybrid Instrumentation](images/hybrid-instrumentation.png)
 
@@ -291,34 +299,41 @@ fetch spans, from:-1h
 | limit 20
 ```
 
-<a id="when-to-use-opentelemetry"></a>
-## 7. When to Use OpenTelemetry
-### OTel is Ideal For
+<a id="choosing-per-workload"></a>
+## 7. Choosing the Combination per Workload
+
+### Where OpenTelemetry Leads
 
 | Scenario | Why OTel |
 |----------|----------|
-| **Serverless** | AWS Lambda, Azure Functions (no agent) |
-| **Multi-cloud** | Consistent instrumentation across clouds |
-| **Custom metrics** | Business-specific measurements |
-| **Vendor diversity** | Send to multiple backends |
+| **OTel as the collection strategy** | A complete path — services, endpoints and service topology are detected from OTel data |
+| **Custom business telemetry** | Spans and metrics specific to your domain |
+| **Prometheus endpoints** | Collector-based scraping is the documented recommendation for new deployments |
+| **Open-standard mandate** | One instrumentation model across teams and backends |
+| **Multi-cloud / polyglot** | Consistent instrumentation across clouds and languages |
+| **Where OneAgent does not run** | GCP Cloud Functions, unsupported Azure Functions plans, Ruby application code |
 | **Edge/IoT** | Lightweight collection |
-| **Polyglot** | Many languages, one standard |
 
-### OneAgent is Better For
+### Where OneAgent Adds Depth
 
 | Scenario | Why OneAgent |
 |----------|---------------|
-| **Full-stack** | Infrastructure + code in one |
-| **Zero-effort** | Auto-instrumentation |
-| **Dynatrace Intelligence** | Full AI capabilities |
-| **PurePath** | Complete transaction tracing |
-| **Real User Monitoring** | RUM integration |
+| **Full-stack** | Infrastructure, process, runtime and code in one install |
+| **Zero-effort** | Automatic instrumentation, centrally managed updates |
+| **Infrastructure topology** | Hosts, processes and containers in Smartscape without running a Collector |
+| **PurePath** | Code-level transaction tracing |
+| **Application Security** | Runtime Vulnerability Analytics and Runtime Application Protection |
+| **Live Debugger** | Java and Node.js, OneAgent 1.309+ |
+| **Real User Monitoring** | Automatic RUM JavaScript injection |
+| **Serverless (supported platforms)** | AWS Lambda layer; supported Azure Functions plans from OneAgent 1.343 |
 
-### Recommended: Hybrid
+### Recommended: Both, per Workload
 
 For most enterprises:
-- **OneAgent** for infrastructure and supported technologies
-- **OTel** for unsupported languages, serverless, custom metrics
+- **OTel-only is a complete path** where OTel is the collection strategy — the tooling decision should not push teams off it
+- **OneAgent** where teams want fully managed collection and the capabilities that need runtime access
+- **Both** where a workload benefits from OTel's open instrumentation and OneAgent's depth together
+- **Mixed estates are normal** — decide per team, application, host or Kubernetes workload
 
 ## Next Steps
 
@@ -337,19 +352,29 @@ Now that you understand OTel fundamentals, proceed to:
 In this notebook, you learned:
 
 - What OpenTelemetry is and its benefits
-- How OTel compares to proprietary agents
+- How OpenTelemetry and OneAgent complement each other
 - Core OTel components: API, SDK, Collector
 - Signal types: traces, metrics, logs
 - Semantic conventions for consistent telemetry (including the stable HTTP and DB naming migration)
 - Dynatrace OTLP integration configuration (HTTP only — gRPC requires Collector)
-- When to use OTel vs. OneAgent
+- How to choose the OTel and OneAgent combination per workload
 
 ---
 
 ## References
 
 - [OpenTelemetry Official Docs](https://opentelemetry.io/docs/)
-- [Dynatrace OpenTelemetry Integration](https://docs.dynatrace.com/docs/ingest-from/opentelemetry)
+- [Dynatrace OpenTelemetry Integration](https://docs.dynatrace.com/docs/ingest-from/opentelemetry) — *"regardless of how you mix your instrumentation choices"*
+- [Dynatrace OpenTelemetry Collector (Dynatrace blog, 03/18/2024)](https://www.dynatrace.com/news/blog/dynatrace-opentelemetry-collector-for-production-ready-observability/) — *"Used together, Dynatrace extends OpenTelemetry observability, and OpenTelemetry extends Dynatrace observability."*
+- [Unified services (DT docs)](https://docs.dynatrace.com/docs/shortlink/unified-service) — services detected with Service Detection v2 *"were first introduced for OpenTelemetry"*
+- [OpenTelemetry Host Monitoring extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/opentelemetry-host-monitoring) — *"This extension automatically generates entities for hosts and their running processes."*
+- [Prometheus data source (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/prometheus-extensions) — *"For high-volume Prometheus scraping in Kubernetes, and for new deployments, consider the OpenTelemetry Collector"*
+- [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*
+- [Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*
+- [Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*
+- [RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*
+- [AWS Lambda integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration) — *"using auto-instrumentation without code changes"*
+- [OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows
 - [OTLP Specification](https://opentelemetry.io/docs/specs/otlp/)
 - [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/)
 - [HTTP Semconv Migration Guide](https://opentelemetry.io/docs/specs/semconv/non-normative/http-migration/)

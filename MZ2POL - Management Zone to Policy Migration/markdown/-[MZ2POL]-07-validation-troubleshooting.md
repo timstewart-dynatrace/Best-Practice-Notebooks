@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -246,16 +246,16 @@ fetch dt.entity.service
 
 <a id="common-issues-and-troubleshooting"></a>
 ## 5. Common Issues and Troubleshooting
-![Troubleshooting Flow](images/troubleshooting-flow.png)
+![Access troubleshooting after the migration](images/07-troubleshooting-flow.png)
 
-<!--MARKDOWN_TABLE_ALTERNATIVE
-| Issue | Likely Cause | Solution |
-|-------|-------------|----------|
-| User can't access anything | No policy bound | Bind policy to user's group |
-| User sees too much | Boundary too broad or missing | Tighten boundary conditions |
-| User can't see expected data | Missing data policy | Add a data-read policy (`Read Logs` / `All Grail data read access`) |
-| Permissions inconsistent | Multiple conflicting policies | Review all bound policies |
-| Works in classic, not Grail | Only environment domain used | Add storage domain to boundary |
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Symptom | Likely causes |
+|---|---|
+| Sees nothing | Bucket permission missing (table + bucket both needed); records lack dt.security_context; = / IN on an array field (events); boundary value spelled differently |
+| Sees too much | Unscoped data policy in another of the user's groups; zone-only boundary on a default policy (Grail unscoped); second boundary leaking a permission |
+| Classic OK, Grail wrong | Boundary has only the zone line; data never got the field (auto-tags don't reach Grail); entities are scoped only by dt.security_context |
+| Steps | 1 effective-permissions API → 2 list every binding and group → 3 each boundary covers every domain? → 4 record field present, which type? → 5 retest as a pilot user (never an admin) |
+For environments where SVG doesn't render
 -->
 
 ### Issue 1: User Can't See Any Data

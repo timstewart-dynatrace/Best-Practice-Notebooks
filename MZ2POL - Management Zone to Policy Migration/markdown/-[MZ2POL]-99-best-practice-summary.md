@@ -1,173 +1,196 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
-This notebook consolidates every actionable best practice from the MZ2POL series (notebooks 00-08) into a single definitive reference. Each practice includes the exact setting or value to use, a priority level, and its category. Use this as a pre-flight checklist before, during, and after your migration from Management Zones to Policies, Boundaries, and Segments.
+This notebook consolidates the actionable practices from the whole MZ2POL series — notebooks 00–13, the MZ2POL-14 workshop and the MZ2POL-95 LAB — into one checklist. Each row gives the practice, the concrete setting or value, a priority, and the notebook that explains and sources it.
+
+It was rewritten on 10/13/2026. The previous version recommended practices the series has since corrected: splitting zone and Grail conditions into separate boundaries as a rule, describing boundary lines as always OR-combined, measuring security-context coverage on entities, setting security context with auto-tagging rules, and a fixed 2–4-week parallel run. Those rows are gone; where the correction matters, the row that replaces it says so.
+
+![The migration on one page](images/99-migration-map.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Notebooks | Key point |
+|---|---|---|
+| Assess | 00 inventory, 03 jobs + priority, 14 workshop | Classify zones by job |
+| Tag + translate | 10 tagging at source, 11 rule translation | Readiness gate before anything is built |
+| Access | 12 architecture, 04 syntax, 08 templates | One boundary per team covering every domain; MATCH on arrays |
+| Filtering | 05 segments | One segment per dimension; exclusions pushed into tags |
+| Alerting | 09 workflows | Routing tags; visibility via dt.security_context |
+| Run + cut over | 06 phases and states, 07 validation, 95 LAB rehearsal | Exit on evidence; delete zones last |
+| Traps | Zone-only boundary on a default policy; a second boundary on one binding; an unscoped data policy in another group | All widen access silently |
+| Not yet | 13 Spaces | Upcoming, not documented as available |
+For environments where SVG doesn't render
+-->
 
 ---
 
 ## Table of Contents
 
-1. [Assessment and Planning](#assessment-and-planning)
-2. [Security Context](#security-context)
-3. [Policy Design](#policy-design)
-4. [Boundary Design](#boundary-design)
-5. [Segment Design](#segment-design)
-6. [Bucket Strategy](#bucket-strategy)
-7. [Group and SAML Structure](#group-and-saml-structure)
-8. [Templated Policies at Scale](#templated-policies-at-scale)
-9. [Migration Execution](#migration-execution)
-10. [Validation and Ongoing Maintenance](#validation-and-ongoing-maintenance)
+1. [Model and Assessment](#model-and-assessment)
+2. [Tagging at Source](#tagging-at-source)
+3. [Rule Translation](#rule-translation)
+4. [Access: Policies and Boundaries](#access)
+5. [Settings Access](#settings-access)
+6. [Filtering: Segments](#filtering)
+7. [Buckets](#buckets)
+8. [Alerting](#alerting)
+9. [Execution and Cutover](#execution)
+10. [Validation and Ongoing Checks](#validation)
+11. [Spaces](#spaces)
 
 ---
 
-<a id="assessment-and-planning"></a>
-## 1. Assessment and Planning
+## Prerequisites
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Classify every MZ by type before migration | Categories: Team/Ownership, Environment, Geographic, Application, Infrastructure | Critical |
-| Prioritize migration by impact | P1: Security/compliance MZs, P2: Team-based MZs, P3: Filtering-only MZs, P4: Informational/legacy MZs | Critical |
-| Audit entity security context coverage before starting | Run `countIf(isNotNull(dt.security_context))` on services, hosts, and process groups; target 100% | Critical |
-| Map each MZ to its replacement construct | Team MZ -> Security Context + Policy + Boundary; Environment MZ -> Boundary; Region MZ -> Segment; Application MZ -> Segment | Critical |
-| Document all MZ dependencies before migration | Inventory alerting profiles, dashboards, API integrations, SLOs, and automation workflows referencing each MZ | Critical |
-| Use MZ2POL-00 SDK tool for MZ inventory | Run the TypeScript analysis tool against Settings API `builtin:management-zones` to export all rules in flat table format | Recommended |
-| Identify tag patterns for segment creation | Query `fetch dt.entity.host \| expand tag = tags \| parse tag, "LD:tagKey ':' LD:tagValue"` to discover common tag keys | Recommended |
-| Perform risk assessment per MZ | Score each MZ on likelihood and impact for: users lose access, wrong data visible, alert routing breaks, dashboard filters fail | Recommended |
+| Requirement | Details |
+|-------------|---------|
+| **Use** | A checklist alongside the series — every row names the notebook that explains and sources it |
+| **Status** | Reflects the series as of 10/13/2026, including the corrections in MZ2POL-04, -06 and -12 |
 
-<a id="security-context"></a>
-## 2. Security Context
+<a id="model-and-assessment"></a>
+## 1. Model and Assessment
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Set `dt.security_context` on every entity before creating boundaries | Assign via Entity Enrichment rules (preferred), OneAgent host properties, or OpenPipeline processing | Critical |
-| Use a consistent naming convention for security context values | `team-{name}` for teams, `env-{name}` for environments, `region-{code}` for regions, `app-{name}` for applications | Critical |
-| Derive security context from existing tags | Map `tag team:frontend` to `dt.security_context = "team-frontend"` to avoid double-entry | Recommended |
-| Achieve 100% security context coverage before cutover | Any entity without `dt.security_context` becomes invisible to boundary-scoped users | Critical |
-| Use combined naming for multi-dimensional scoping | Format: `{env}-{team}` (e.g., `prod-frontend`) when access requires both environment and team dimensions | Recommended |
-| Automate security context for new entities | Configure auto-tagging rules or Entity Enrichment so newly deployed services/hosts get security context automatically | Critical |
-| Leverage primary Grail fields for context | Use `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `dt.host_group.id` as security context sources for Kubernetes/cloud workloads | Recommended |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Classify every zone by job before anything else | Access (removing it exposes data), filtering (removing it adds noise), alerting (it decides who is paged); a zone can do several | Critical | 03, 05 §1, 14 |
+| Delete unused zones instead of converting them | No queries, role assignments, profiles or dashboards in 90 days → archive the export, delete | Critical | 05 §2, 14 |
+| Know what does not carry forward | Auto-tagging rules have no effect on Grail data; zones are not supported by any platform feature or Latest app | Critical | 10 §2 |
+| Prioritize by risk | P1 security/compliance access · P2 team access and alerting scope · P3 filtering only · P4 unused | Critical | 03 |
+| Export rules with the SDK tool | `builtin:management-zones` flattened per rule | Recommended | 00 |
+| Inventory dependencies per zone | Role assignments, alerting profiles, dashboards, SLOs, API calls, automation | Critical | 03, 06 |
+| Run the disposition workshop with the owners | Six sessions, six tables, stop list | Recommended | 14 |
 
-<a id="policy-design"></a>
-## 3. Policy Design
+<a id="tagging-at-source"></a>
+## 2. Tagging at Source
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Start with built-in policies; customize only when needed | `Standard User` for regular/read-only users (+ data-read policies), `Pro User` for power users, `Admin User` for admins. (Classic "Dynatrace Viewer / Professional User" and "Data Viewer / Editor" are not current IAM policy names.) | Critical |
-| Pair a platform policy with data-access policies | Viewers -> `Standard User` + `Read Logs`/`Read Metrics`; Developers -> `Standard User` + `Read Logs`/`Read Spans`/`Read Metrics`; SRE -> `Pro User` + `All Grail data read access`; Admins -> `Admin User` | Critical |
-| Apply least privilege | Grant the minimum permissions required for each role; enumerate them explicitly — wildcards like `ALLOW storage:*:*` are rejected by the API (live-verified 07/2026) — and scope reads with conditions/boundaries | Critical |
-| Use policy conditions with `WHERE` for scoped access | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-frontend"` (a `WHERE` clause supports `AND`, not `OR`) | Recommended |
-| Never create one policy per user | Assign policies to groups; bind users to groups | Critical |
-| Never duplicate default policies | Extend with custom policies only for permissions default policies do not cover | Recommended |
-| Use descriptive policy names | Format: `"Frontend Team - Standard Access"` not `"Policy 1"` | Recommended |
-| Document every custom policy's purpose | Include description field when creating the policy via UI or API | Recommended |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Put the context on the data before building anything | Every replacement reads a field on the record; enrichment is forward-only | Critical | 10 §1, §8 |
+| Use built-in fields first | `dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name`, cloud account fields — no configuration | Critical | 10 §5 |
+| Promote standard tags | Cloud tags, K8s labels, plain host tags live only on Smartscape nodes — promote to `primary_tags.*` or a special field | Critical | 10 §3 |
+| Write access dimensions twice, in one step | `primary_tags.team` (filter, route) **and** `dt.security_context` (IAM) from the same source | Critical | 10 §4 |
+| Climb the enrichment ladder from the top | Built-in → source (`--set-host-tag`, `DT_TAGS`, K8s annotations, OTel attributes) → central Ingest enrichment configuration (OneAgent 1.343+) → OpenPipeline primary Grail tag rule | Critical | 10 §5 |
+| Guard OpenPipeline tag rules | Condition `isNull(primary_tags.<key>)` — rules overwrite existing values by default | Critical | 10 §5 |
+| Set routing-critical values at source or centrally | Docs disagree on whether OpenPipeline tag rules run before routing | Recommended | 10 §5 |
+| Constrain values | Allowlists for stage, region, classification; Grail compares exactly | Critical | 10 §4 |
+| Stay under the tag cap | Fewer than 20 primary tags per host or process — extras are dropped silently | Critical | 10 §8 |
+| Move host properties to host tags | From OneAgent 1.345 host `primary_tags` come from host tags | Recommended | 11 §3 |
+| Pass the readiness gate | Parity by value, per-zone acceptance, coverage by host group (incl. no-host data), drift, derived-data reach | Critical | 10 §9–§10 |
 
-<a id="boundary-design"></a>
-## 4. Boundary Design
+<a id="rule-translation"></a>
+## 3. Rule Translation
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Pair Gen2 + Gen3 policies with their own boundaries | Two parallel bindings on the group: (Gen3) `storage:dt.security_context` + `settings:dt.security_context` for Grail data and Settings 2.0; (Gen2 transitional) `environment:management-zone` for Classic entity access. Don't bundle conditions in one boundary — each boundary only filters its own policy domain | **Critical** |
-| Keep boundary conditions simple | One condition per line; each line is OR-combined within the boundary | Critical |
-| Stay within the 10-line limit per boundary | Create multiple boundaries if you need more than 10 conditions | Critical |
-| Use `startsWith` for environment/region prefixes | `storage:dt.security_context startsWith "prod-"` to match all production contexts | Recommended |
-| Use `IN` for multi-value restrictions | `storage:dt.security_context IN ("team-infra", "team-sre", "team-platform")` for platform teams boundary | Recommended |
-| Create reusable boundaries | One boundary should serve multiple policy bindings; avoid one-off boundaries | Recommended |
-| Use descriptive boundary names | Format: `"Production Environment"`, `"LOB5-Scope"`, `"Frontend Team Scope"` | Recommended |
-| Never omit the `settings:dt.security_context` domain | Without it, settings objects remain unrestricted even when storage is scoped | Critical |
-| Never omit the `storage:dt.security_context` domain | Without it, Grail data (logs, spans, metrics) remains unrestricted even when classic entities are scoped | Critical |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Translate rules, not zones | A zone is ORed rules of ANDed conditions; each rule may land elsewhere | Critical | 11 §1 |
+| Take the first yes on the decision path | Built-in field → set at source → central rule → OpenPipeline tag rule → explicit membership tag | Critical | 11 §2 |
+| Push exclusions into enrichment | `NOT` in the central-rule condition; filter on a positive value | Critical | 11 §5 |
+| Compute what no surface can evaluate | Regex, numeric comparisons, IP ranges → a value set at the source | Critical | 11 §4 |
+| Replace propagation flags deliberately | Set the value where it is true (host or process); propagation is built in and downward | Recommended | 10 §7 |
+| Treat selector zones by purpose | Entity lists → Smartscape queries; data scope → a tag | Recommended | 11 §7 |
+| Keep the per-rule worksheet | Zone, rule, step, target, owner, segment, boundary, verified | Critical | 11 §10 |
 
-<a id="segment-design"></a>
-## 5. Segment Design
+<a id="access"></a>
+## 4. Access: Policies and Boundaries
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Use segments for data filtering; use policies+boundaries for access control | Segments replace MZ filtering; policies+boundaries replace MZ permissions. Never conflate the two. | Critical |
-| Align segments with business structure | Create segments per team, product, region, or environment — not per technical component | Critical |
-| Write segment conditions with `=` and `in()` only — not DQL functions | Segment conditions accept only `=` and `in()`; substring matching is a `*` wildcard inside the value. `matchesValue()` and `contains()` are DQL, not segment syntax | Critical |
-| Use `tags = "[Environment]<key>:<value>"` for tag-based entity includes | Replaces MZ rule `host tag equals value` (mind the `[Environment]` prefix — MZ2POL-05 §4.5) | Critical |
-| Use `entity.name = "<prefix>*"` for service-name rules on classic-entity includes | Classic entities support only *starts-with* on `entity.name` (the field is `entity.name`, not `dt.entity.service.name`). A *service name contains* rule needs a signal include, a Smartscape include, or the `Segment:` fallback tag — MZ2POL-05 §5.3 | Recommended |
-| Use variables for dynamic segments | Condition `k8s.cluster.name = $cluster`; a wildcard may only follow the variable (`$stage*`), never sit inside its value | Recommended |
-| Test segment filter logic with DQL before creating the segment | Run the filter as a standalone DQL query and verify results match expected entity set | Critical |
-| Use consistent segment naming | `"Production Environment"`, `"Frontend Team Services"`, `"North America Region"` — not `"Segment 1"` | Recommended |
-| Share segments appropriately | Private for personal use, shared for team use, public for org-wide use | Recommended |
-| Use indexed fields in segment filters | Tags and entity IDs are indexed; avoid regex on large datasets | Recommended |
-| Layer multiple segments for precise filtering | Select multiple segments in the app header for multi-dimensional filtering (e.g., team + environment) | Optional |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Scope Grail data by record fields | Grail does not evaluate zones; `dt.security_context` is the only field every table accepts | Critical | 12 §1 |
+| Default policies for "what", boundaries for "where" | Standard / Pro / Admin User + Read Logs, Read Spans, Read Metrics, Read Events, Settings Reader/Writer | Critical | 04 §3, 12 §6 |
+| **One boundary covers every domain its policies grant** | `storage:` line, `settings:` line, and `environment:management-zone` while classic pages are used. *Corrects the earlier "never mix, two bindings" rule* — mixing is documented; a missing domain is unscoped | **Critical** | 04 §6, 12 §4 |
+| Never attach a zone-only boundary to a default policy | Default policies carry classic and Grail statements; the Grail ones come out unscoped | **Critical** | 12 §4.2 |
+| Don't add a second boundary for shared data | Boundaries are computed separately; add the shared value to the same condition | Critical | 12 §4.1, §6 |
+| Use `MATCH` on `storage:dt.security_context` | Events hold it as an array; `=`, `IN`, `startsWith` never match arrays | Critical | 12 §6, 08 §2 |
+| Repeated lines on one condition multiply (OR) | *Corrects "every line is OR-combined"* — lines on different conditions each scope their own permissions | Recommended | 04 §4–§5 |
+| Expect no negation on record fields | Record conditions take `=`, `IN`, `startsWith`, `MATCH`; negation exists only on `storage:bucket-name` | Recommended | 04 §4, 11 §4 |
+| Keep team members out of unscoped data groups | One unscoped table permission anywhere wins | Critical | 12 §3 |
+| No record-level conditional `DENY` | It runs as an unconditional DENY on the whole table | Critical | 04 §2, 12 §3 |
+| Entities scope only by security context | `storage:entities:read` accepts `dt.security_context` and `entity.type` | Recommended | 12 §4.1 |
+| Groups by team × role from the IdP | Not one group per zone | Critical | 12 §6 |
+| Template when teams are many | `${bindParam:…}` via REST API; bound policies editable only while parameters are unchanged | Recommended | 08 |
+| Inventory classic roles that see all zones | `agent-install`, `configure-request-capture-data` | Recommended | 12 §8 |
 
-<a id="bucket-strategy"></a>
-## 6. Bucket Strategy
+<a id="settings-access"></a>
+## 5. Settings Access
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Use buckets for physical data isolation (compliance, strict team separation) | Create team-specific or compliance buckets: `pci_logs`, `frontend_logs`, `prod_spans` | Critical |
-| Use segments (not buckets) for ad-hoc or regional filtering | Buckets are irreversible; segments are flexible. Only use buckets when physical isolation is required. | Critical |
-| Plan bucket names carefully — they are immutable | Naming convention: `{team}_{datatype}` or `{env}_{datatype}`. 3-100 chars, lowercase alphanumeric, underscores, hyphens only. | Critical |
-| One data type per bucket | Logs, metrics, events, or spans — never mixed in a single bucket | Critical |
-| Stay within 80 buckets per environment | Default platform limit | Critical |
-| Target ~1 TB/day per bucket for optimal query performance | Acceptable: 1-3 TB/day (limited query window). No hard per-bucket cap is documented; Dynatrace sizing guidance on where to split varies between pages (MZ2POL-02). | Recommended |
-| Create buckets and configure OpenPipeline routing BEFORE migrating policies | Data must flow to correct buckets first; policies reference bucket names | Critical |
-| Reference buckets in both policies and boundaries | Policy: `ALLOW storage:logs:read WHERE storage:bucket-name = "frontend_logs"`. Boundary: `storage:bucket-name IN ("frontend_logs", "frontend_spans")` | Recommended |
-| Do not use buckets for regional or application MZs | Use segments instead — buckets cannot be consolidated or split later | Recommended |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Replace zone-scoped settings conditions | `environment:management-zone` and MZ-derived security contexts stop matching settings as the Smartscape transition arrives (rolling out) | Critical | 12 §5 |
+| Use edge-set security context for settings | `settings:dt.security_context` matches only where the context was set at the source | Critical | 12 §5 |
+| Address host groups by name | `settings:scope = "dt.host_group.id:<name>"` or `settings:entity.hostGroup` | Recommended | 12 §5 |
+| Fall back to schema scoping | `settings:schemaId` where no edge-set context exists (e.g. process groups) | Recommended | 12 §5 |
 
-<a id="group-and-saml-structure"></a>
-## 7. Group and SAML Structure
+<a id="filtering"></a>
+## 6. Filtering: Segments
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Use SAML groups tied to Active Directory for team management | Map AD groups to Dynatrace groups via SAML assertion; no separate user management needed | Critical |
-| Structure: Group -> two parallel bindings (Gen3 + Gen2) | `Group: "LOB5-Team" (SAML)` -> `Pro User` + Gen3 boundary (`storage`/`settings:dt.security_context`), and `Environment role - Access environment` + Gen2 boundary (`environment:management-zone`) | Critical |
-| For stricter isolation, apply the Gen3 boundary to all platform policies on a group | Both `Standard User` and `Pro User` get the same Gen3 boundary | Recommended |
-| Create one group per MZ-equivalent scope | `frontend-team`, `prod-viewers`, `sre-team` — one group per access boundary | Critical |
-| Never assign permissions to individual users | Always use group-based policy bindings | Critical |
-| Document group-to-MZ mapping during migration | Maintain a table: MZ name -> new group name -> policy -> boundary | Recommended |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Segments are views, never access | Anyone with `storage:filter-segments:read` can apply any segment | Critical | 05 §1, §9 |
+| One segment per dimension | Variables from live queries; usually three to eight segments | Critical | 05 §2 |
+| Start with `Data (all types)` | Classic-entity includes only for backward compatibility | Recommended | 05 §3 |
+| Use only `=` and `in()` | Wildcard `*` inside the value; no exclusions | Critical | 05 §3 |
+| Add an events include for problems | `event.kind = "DAVIS_PROBLEM"` AND the condition | Critical | 05 §5.4 |
+| Filter derived data on primary fields or tags | Standard tags do not reach service metrics | Critical | 05 §5.2 |
+| Validate at entity and signal level | Before creating the segment | Critical | 05 §7 |
 
-<a id="templated-policies-at-scale"></a>
-## 8. Templated Policies at Scale
+<a id="buckets"></a>
+## 7. Buckets
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Use `${bindParam:...}` templated policies instead of one policy per MZ | 3-5 templates replace 92+ individual policies. Template: `ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read WHERE storage:dt.security_context = "${bindParam:team}"` (enumerated — wildcards are rejected). **Test events access before rollout:** event records hold `dt.security_context` as an array, and *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`"* ([Permissions in Grail](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)) — MZ2POL-08 §2 | Critical |
-| Create templates by MZ type, not by MZ instance | `tpl-team-data-reader`, `tpl-team-data-editor`, `tpl-region-reader` — one template per access pattern | Critical |
-| Use Pattern A (read-only) for viewer MZ replacements | Template grants `storage:logs:read`, `storage:spans:read`, `storage:metrics:read` scoped by `${bindParam:team}` | Recommended |
-| Use Pattern B (full access) for editor MZ replacements | Template grants `storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read, storage:bizevents:read` and `settings:objects:read, settings:objects:write`, scoped by `${bindParam:team}` (enumerated — see the events caution in the first row). Storage writes cannot take a `WHERE` condition — grant them separately, only where justified (MZ2POL-08 §2) | Recommended |
-| Use multiple bindings of the same template for multi-MZ users | Bind template twice to same group with different parameter values (e.g., `team: checkout` and `team: shared-services`); bindings are additive | Recommended |
-| Use `startsWith` in templates for region/environment patterns | `WHERE storage:dt.security_context startsWith "${bindParam:region-prefix}"` | Optional |
-| Automate bulk binding via IAM API | `POST /iam/v1/repo/account/{ACCOUNT}/bindings/{POLICY_UUID}/{GROUP_UUID}` with `{"parameters": {"team": "value"}}` | Recommended |
-| Verify all bindings after bulk creation | `GET /iam/v1/repo/account/{ACCOUNT}/bindings/{POLICY_UUID}` and validate HTTP 201/409 responses | Critical |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Grant bucket and table permissions together | `storage:buckets:read` plus the table permission; record conditions on top | Critical | 12 §1 |
+| Use buckets for isolation or retention, not for views | Views are segments; bucket design is in ORGNZ-02/03 | Recommended | 02 §3.5, ORGNZ-03 |
+| Route to buckets with values present before routing | Source or central enrichment | Recommended | 10 §5 |
 
-<a id="migration-execution"></a>
-## 9. Migration Execution
+<a id="alerting"></a>
+## 8. Alerting
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Follow the 7-phase migration order | Phase 1: Foundation -> Phase 2: Security Context -> Phase 3: Policies/Boundaries -> Phase 4: Segments -> Phase 5: Parallel Running -> Phase 6: Cutover -> Phase 7: Cleanup | Critical |
-| Run parallel (MZ + new model) for 2-4 weeks before cutover | Both systems active simultaneously; users should see identical data via both paths | Critical |
-| Compare entity counts between MZ and segment during parallel running | `countIf(in(managementZones, {"MZ-Name"}))` vs `countIf(matchesValue(tags, "key:value"))` — counts must match | Critical |
-| Update dashboards to use segments before cutover | Replace MZ filters with segment selectors at dashboard level and tile level | Critical |
-| Rebuild MZ-scoped alerting profiles as problem-triggered workflows before removing MZs | The MZ filter does not carry over — the workflow trigger filters on the problem itself; route on affected-entity tags + optional DQL matcher. Segments do **not** scope alerting. Inventory `delayInMinutes` first and map each value onto the trigger's **Minimum duration** option — its values are fixed (5 min to 1 week), so decide rounding per profile | Critical |
-| Update API integrations to use new access model before cutover | API calls with MZ parameters must be converted to policy-based authentication | Recommended |
-| Archive MZ configurations before deletion | Export via Settings API and store in version control | Recommended |
-| Wait 2+ weeks after cutover before deleting MZs | Verify no remaining MZ dependencies in alerting, dashboards, or API integrations | Critical |
-| Send cutover communication to all users | Include: what changed, action required (select segments in apps), documentation link, support contact | Recommended |
-| Prepare a rollback plan | Document how to re-enable RBAC MZ assignments if critical access issues arise post-cutover | Critical |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Replace zone-scoped profiles with problem-triggered workflows | Trigger filters on affected-entity tags plus an optional DQL matcher; segments do not scope alerting | Critical | 09 §2 |
+| Tag entities before building workflows | Routing tags at full coverage | Critical | 09 §4 |
+| Map delay to Minimum duration | Fixed values; decide rounding per profile | Recommended | 09 §6.1 |
+| Keep visibility on `dt.security_context` | With `MATCH` — problem records hold it as an array | Critical | 09 §7 |
+| Prove parity, disable, soak, then delete zones | Disable and delete in separate change windows | Critical | 09 §8 |
+| Test zone deletion on a profile in non-prod | Fail-open vs fail-closed is undocumented | Critical | 09 §8 |
 
-<a id="validation-and-ongoing-maintenance"></a>
-## 10. Validation and Ongoing Maintenance
+<a id="execution"></a>
+## 9. Execution and Cutover
 
-| Practice | Recommended Setting/Value | Priority |
-|----------|----------------|----------|
-| Validate security context coverage reaches 100% | `fetch dt.entity.service \| summarize total = count(), covered = countIf(isNotNull(dt.security_context))` | Critical |
-| Compare MZ membership vs security context alignment per MZ | Query entities `in(managementZones, {"MZ"}) AND matchesValue(dt.security_context, "expected-value")` — all must match. `dt.security_context` is an array on `dt.entity.*` records, so `==` against a string is always false and reports every entity as misaligned | Critical |
-| Find entities in MZ but missing from segment | `filter in(managementZones, {"MZ"}) \| filter NOT matchesValue(tags, "key:value")` — result must be empty | Critical |
-| Test each user type with a test account | Log in as test user, verify expected data visible, verify restricted data hidden | Critical |
-| Audit security context weekly | Run coverage query to catch new entities deployed without security context | Recommended |
-| Review segment effectiveness monthly | Verify segments return expected entity counts and data | Recommended |
-| Perform access review quarterly | Verify user group memberships, policy bindings, and boundary conditions are still appropriate | Recommended |
-| Monitor for untagged entities | `fetch dt.entity.service \| filter isNull(dt.security_context) \| filter NOT matchesValue(tags, "team:*")` — track count on a dashboard | Recommended |
-| Build an access health dashboard | Include KPIs: security context coverage %, entities per context, untagged entity count | Optional |
-| Automate onboarding for new entities | Auto-tagging + Entity Enrichment rules ensure new services/hosts inherit correct security context | Recommended |
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Follow the phase order with gates | Assess → tag + translate (gate) → access / filtering / alerting → parallel run → cutover → cleanup | Critical | 06 §1 |
+| Move each team through four states | Today → dual boundary → verified → zone line removed | Critical | 06 §6, 12 §9 |
+| Check "today" first | A zone-only boundary on a default policy may already grant all Grail data | Critical | 12 §9 |
+| Exit states on evidence, not on a calendar | Tag gate, effective permissions, alert parity. *Replaces the fixed "2–4 weeks"* | Critical | 06 §6 |
+| Pilot every boundary change on one group | Boundary edits apply immediately to every binding | Critical | 12 §9 |
+| Rehearse on the LAB estate | Steps 1–8 | Recommended | 95 |
+| Keep a rollback line per batch | Re-add the zone line; re-enable the profile | Critical | 06 §9 |
+| Delete zones last, in their own window | After profiles are disabled and dashboards repointed | Critical | 06 §8, 09 §8 |
+
+<a id="validation"></a>
+## 10. Validation and Ongoing Checks
+
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Measure security context on **records**, not entities | Per table: logs, spans, events. *Replaces entity coverage* — entity contexts can be copied from zone names and read 100% while data reads far less | **Critical** | 06 §3, 12 §10 |
+| Check the type per table | Any `array` row needs `MATCH` | Critical | 12 §10 |
+| Compare zone and tag per zone on data | The acceptance test: match / in zone, tag missing / tagged, not in zone | Critical | 10 §9, 06 §10 |
+| Resolve effective permissions per persona | Account API, one pilot user each; no `storage:*:read` without a condition | Critical | 12 §10 |
+| Test as a pilot user, never an admin | Admin grants hide boundary problems | Critical | 07 §5 |
+| Re-run drift and coverage on a schedule | New producers arrive unenriched | Recommended | 10 §9 |
+
+<a id="spaces"></a>
+## 11. Spaces
+
+| Practice | Setting / value | Priority | Notebook |
+|---|---|---|---|
+| Do not design access around Spaces yet | `dt.space` is an `experimental` dictionary entry; no docs page, IAM condition or release entry as of 10/13/2026 | Critical | 13 §1–§2 |
+| Do not keep zones waiting for Spaces | Zones are not evaluated for Grail data | Recommended | 13 §4 |
+| Prepare with no-regret steps | Team values at source, one boundary per team, segments per dimension, ownership tags, inventory of delegated responsibility | Recommended | 13 §4 |
+| Re-check each platform release | Dictionary query with a control row | Optional | 13 §5 |
 
 ---
 

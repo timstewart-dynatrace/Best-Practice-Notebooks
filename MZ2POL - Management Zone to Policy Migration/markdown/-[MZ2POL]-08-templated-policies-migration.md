@@ -1,6 +1,6 @@
 # MZ2POL-08: Templated Policies for MZ Migration
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 10 | **Created:** February 2026 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 14 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -112,13 +112,13 @@ ALLOW settings:objects:read, settings:objects:write
 Combined with **two parallel boundaries** using the same scope (Gen2 boundary attaches to Gen2 policy, Gen3 boundary attaches to Gen3 policy):
 
 ```
-# Gen3 boundary — pairs with Gen3 policies (storage:* / settings:*)
+// Gen3 boundary — pairs with Gen3 policies (storage:* / settings:*)
 storage:dt.security_context IN ("LOB5");
 settings:dt.security_context IN ("LOB5");
 ```
 
 ```
-# Gen2 boundary — pairs with Gen2 policies (environment:*), transitional
+// Gen2 boundary — pairs with Gen2 policies (environment:*), transitional
 environment:management-zone IN ("LOB5");
 ```
 
@@ -132,8 +132,29 @@ environment:management-zone IN ("LOB5");
 | Horizontal (team) | Team-scoped | `team` | Yes — restrict to security context |
 | LOB | Full three-domain | `lob` | Yes — three-domain boundary |
 
-> **Transversal access tip:** For organisations where some teams need cross-application access by component type (database, networking, OS), consider a structured `comp:<component>/bu:<business-unit>/app:<application>` context format. A single template with `MATCH('comp:db*')` then covers all database-layer data across every application — no per-app policy per team needed. See **IAM-04: Policy Authoring** for the full pattern.
 | Bucket-based | Bucket-scoped | `log-bucket`, `span-bucket` | Optional |
+
+> **Transversal access tip:** For organisations where some teams need cross-application access by component type (database, networking, OS), consider a structured `comp:<component>/bu:<business-unit>/app:<application>` context format. A single template with `MATCH('comp:db*')` then covers all database-layer data across every application — no per-app policy per team needed. See **IAM-04: Policy Authoring** for the full pattern.
+
+### How a Template Becomes Many Policies
+
+![One template, many bindings](images/08-template-binding-flow.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Element | Content |
+|---|---|
+| Template policy | ALLOW storage:logs:read, storage:spans:read, storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}"; |
+| Binding per group | POST …/bindings/<policy>/<group> with {"parameters": {"team": "frontend"}} (and checkout, payments …) |
+| Effective policy per group | … dt.security_context = "frontend" |
+| Rule | Parameterized policies are managed only via REST API; group management does not bind parameters |
+| Rule | Every referenced parameter must be supplied at binding time — a mismatch returns HTTP 400 |
+| Rule | A bound policy can be edited only while its parameter set stays the same |
+| Rule | A list value is one comma-separated string: IN ("${bindParam:teams}") with {"teams": "a,b,c"} |
+| Rule | Events hold dt.security_context as an array: = never matches them — test events access before rollout |
+For environments where SVG doesn't render
+-->
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — *"Parameterized policies can be managed only via REST API."*, *"Currently, group management does not support binding policies with parameters."* and *"Modification of bound policies is allowed only if the parameter set doesn’t change"*</sub>
 
 <a id="template-patterns"></a>
 ## 3. Template Patterns for Common MZ Replacements
@@ -177,11 +198,11 @@ ALLOW document:documents:read, document:documents:write, document:documents:dele
 **Solution:** Create **two bindings** of the same template with different parameter values to the same group:
 
 ```bash
-# Binding 1: Checkout access
+// Binding 1: Checkout access
 curl -X POST "${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}" \
   -d '{"parameters": {"team": "checkout"}}'
 
-# Binding 2: Shared services access
+// Binding 2: Shared services access
 curl -X POST "${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}" \
   -d '{"parameters": {"team": "shared-services"}}'
 ```
@@ -216,7 +237,23 @@ ALLOW settings:objects:read WHERE settings:dt.security_context startsWith "${bin
 <a id="bulk-binding"></a>
 ## 4. Bulk Binding via IAM API
 
-Organizations with 92 MZs cannot bind one at a time via the UI. Use the IAM API for bulk operations.
+Organizations with 92 MZs cannot bind one at a time via the UI. Use the IAM API for bulk operations — templated bindings cannot be made in the UI at all.
+
+![From zone inventory to verified bindings](images/08-bulk-binding-pipeline.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Input | Hands to the next stage |
+|---|---|---|
+| 1 · Inventory | MZ2POL-00 / -03 | Only zones doing the access job (filtering → segments, alerting → workflows) |
+| 2 · Translate | MZ2POL-11 worksheet | One security-context value per team, already set at the source (MZ2POL-10 gate passed) |
+| 3 · Team table | Account Management | Group UUIDs (not names), team value, account or environment level per row |
+| 4 · Bind loop | §4 script | One POST binding per group |
+| 5 · Verify | Effective permissions + DQL (§5) | — |
+| Before production | Pilot group first; check for any storage:*:read without a condition; check no member holds an unscoped data policy through another group; run in batches; keep the classic zone binding until §6 sign-off | |
+For environments where SVG doesn't render
+-->
+
+> <sub>**Sources:** [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Consider deploying your changes in batches rather than all at once."*</sub>
 
 ### Preparation Checklist
 

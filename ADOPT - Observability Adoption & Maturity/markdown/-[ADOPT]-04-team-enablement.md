@@ -1,6 +1,6 @@
 # ADOPT-04: Team Enablement
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -122,7 +122,7 @@ Map roles to notebook series from this repository for structured learning.
 | 2 | SPANS | Understanding distributed traces | 1 week |
 | 3 | OTEL | OpenTelemetry integration | 1 week |
 | 4 | ORGNZ (notebooks 1-3) | Data organization basics | 3 days |
-| 5 | FAQ-03, FAQ-15 | OneAgent vs OpenTelemetry decision; DPL for parsing | 2 days |
+| 5 | FAQ-03, FAQ-15 | OneAgent and OpenTelemetry decision; DPL for parsing | 2 days |
 
 ### 3.3 Platform Engineer Track
 

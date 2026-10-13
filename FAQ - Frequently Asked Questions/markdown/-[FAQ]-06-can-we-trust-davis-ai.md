@@ -1,6 +1,6 @@
 # FAQ-06: Can We Trust Davis AI? A Risk and Controls Walkthrough
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 06 — Can We Trust Davis AI? A Risk and Controls Walkthrough | **Created:** May 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ The goal is to give a platform team, a security review, or an executive briefing
 | **Format** | Decision-support document — presents Dynatrace's posture and controls, no hands-on lab |
 | **Deployment** | Dynatrace SaaS (Gen3 / Platform). Generative and agentic AI is available on SaaS environments on the latest Dynatrace (AWS and Azure), not on Managed; the region decides where prompts are processed (§3). |
 | **Related topic series** | AIOPS (Dynatrace Intelligence), IAM (IAM Administration), WFLOW (Workflows and Alert Notifications) |
-| **Related FAQ** | FAQ-03 OneAgent vs OTel (for AI Observability context on the instrumentation side) |
+| **Related FAQ** | FAQ-03 OneAgent and OTel (for AI Observability context on the instrumentation side) |
 
 <a id="short-answer"></a>
 ## 1. Short Answer
@@ -258,7 +258,7 @@ The sixth concern in most security reviews: *who can use the AI, and what can th
 Dynatrace Assist is governed by the same IAM that governs everything else in the platform. Specifically:
 
 - **A user must have Assist permission** to interact with it at all (granted via IAM policy statements on the `davis-copilot:*` service — conversational chat, NL→DQL, DQL→NL, document search).
-- **Assist inherits the user's data scope.** *"All agentic Dynatrace Assist calls are done within the scope of your user permissions and the results won't include anything outside of it."* When Assist grounds an answer on tenant data, it grounds on the data the *asking user* can see — not the data the platform as a whole has. A user with management-zone-scoped access gets Assist answers grounded only on their permitted data.
+- **Assist inherits the user's data scope.** *"All agentic AI calls are done within the scope of your user permissions and the results won't include anything outside of it."* When Assist grounds an answer on tenant data, it grounds on the data the *asking user* can see — not the data the platform as a whole has. A user with management-zone-scoped access gets Assist answers grounded only on their permitted data.
 - **Assist does not bypass IAM to read your data.** This is the load-bearing claim. The model does not run as a privileged identity that sees everything; it runs as the user.
 
 ### Policy examples (verified against current IAM policy reference)
@@ -441,7 +441,7 @@ Davis AI is four surfaces, not one — and most of the risk concerns customers r
 - Read **AIOPS** topic series for a deeper walkthrough of each Davis AI surface and its operational use.
 - Read **IAM** topic series for the policy-statement and scope mechanics that govern Assist access.
 - Read **WFLOW** topic series for the workflow-side of Assist-suggested actions and how to scope them.
-- Read **FAQ-03** for the AI Observability instrumentation side (OneAgent vs OpenTelemetry for GenAI apps).
+- Read **FAQ-03** for the AI Observability instrumentation side (OneAgent and OpenTelemetry for GenAI apps).
 - Verify current Trust Center language and IAM policy reference against the load-bearing claims in this FAQ before any procurement or compliance review.
 
 ---

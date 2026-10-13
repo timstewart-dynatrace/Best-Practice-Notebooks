@@ -1,6 +1,6 @@
 # K8S-11: Multi-Tool Coexistence & Advanced Configuration
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 11 of 14 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Running Dynatrace Alongside Other Monitoring Tools
 Many organizations run multiple monitoring tools during migrations or for specialized use cases. This notebook covers patterns for running Dynatrace alongside tools like New Relic, Datadog, or Prometheus without conflicts.
@@ -166,7 +166,7 @@ spec:
 <a id="oneagent-otel-injector-coexistence"></a>
 ## 2a. OneAgent + OpenTelemetry Auto-Instrumentation Coexistence
 
-A common multi-tool scenario in 2026 is running **OneAgent alongside OpenTelemetry auto-instrumentation** — typically when an organization uses OTel for vendor-neutral language SDK injection while keeping OneAgent for infrastructure, network-zone, and Smartscape topology coverage.
+A common multi-tool scenario in 2026 is running **OneAgent alongside OpenTelemetry auto-instrumentation** — typically when an organization uses OTel for open-standard language instrumentation while keeping OneAgent for infrastructure, network-zone and infrastructure-topology coverage. Both are supported ways to instrument a workload; the conflicts below are about two *injectors* reaching the same process, not about choosing one platform over the other.
 
 The two injectors can conflict in several ways:
 
@@ -188,11 +188,11 @@ OTel auto-instrumentation reaches a Kubernetes pod in one of two ways: the **Ope
 ### Recommended decision flow
 
 1. **Inventory:** list every namespace running OTel auto-instrumentation today.
-2. **Scope:** decide per namespace — OneAgent OR OTel auto-instrumentation, not both, for any given language runtime.
+2. **Scope:** decide per namespace which auto-instrumentation *injector* each language runtime gets — OneAgent's code module or the OTel agent, not both in the same process. That is an injector rule, not a platform choice: OTel SDK spans in a OneAgent-instrumented process still reach Dynatrace through the Span Sensor or OTLP (see FAQ-03), and OneAgent keeps infrastructure coverage in OTel-managed namespaces (step 4).
 3. **Configure DynaKube namespace selector** (Section 2 above) to exclude OTel-managed namespaces from OneAgent injection.
 4. **Keep OneAgent for infra:** even in OTel-managed namespaces, OneAgent at the host/node level still provides Smartscape topology, network-zone routing, and host-level metrics — those don't conflict with in-pod instrumentation.
 
-> See the **OTEL** series for OTel collector configuration. The OneAgent-vs-OTel decision is workload-specific — record it explicitly per language runtime and per namespace before instrumenting.
+> See the **OTEL** series for OTel collector configuration. The OneAgent/OTel split is workload-specific — record it explicitly per language runtime and per namespace before instrumenting.
 
 <a id="feature-flags-reference"></a>
 ## 3. Feature Flags Reference
