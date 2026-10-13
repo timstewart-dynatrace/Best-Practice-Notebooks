@@ -10,16 +10,17 @@ This notebook provides a step-by-step guide for executing your migration from Ma
 
 ## Table of Contents
 
-1. [Phase 1: Foundation Setup](#phase-1-foundation-setup)
-2. [Phase 2: Security Context Assignment](#phase-2-security-context-assignment)
-3. [Phase 3: Policy & Boundary Configuration](#phase-3-policy-boundary-configuration)
-4. [Phase 4: Segment Creation](#phase-4-segment-creation)
-5. [Phase 5: Parallel Running](#phase-5-parallel-running)
-6. [Phase 6: Cutover](#phase-6-cutover)
-7. [Phase 7: Cleanup](#phase-7-cleanup)
-8. [Rollback Procedures](#rollback-procedures)
-9. [Migration Verification Queries](#migration-verification-queries)
-10. [Additional Resources](#additional-resources)
+1. [Migration Phase Overview](#migration-phase-overview)
+2. [Phase 1: Foundation Setup](#phase-1-foundation-setup)
+3. [Phase 2: Security Context Assignment](#phase-2-security-context-assignment)
+4. [Phase 3: Policy & Boundary Configuration](#phase-3-policy-boundary-configuration)
+5. [Phase 4: Segment Creation](#phase-4-segment-creation)
+6. [Phase 5: Parallel Running](#phase-5-parallel-running)
+7. [Phase 6: Cutover](#phase-6-cutover)
+8. [Phase 7: Cleanup](#phase-7-cleanup)
+9. [Rollback Procedures](#rollback-procedures)
+10. [Migration Verification Queries](#migration-verification-queries)
+11. [Additional Resources](#additional-resources)
 
 
 ---
@@ -41,6 +42,7 @@ By the end of this notebook, you will:
 
 ---
 
+<a id="migration-phase-overview"></a>
 ## 1. Migration Phase Overview
 
 ### Phase Summary

@@ -13,7 +13,7 @@ This notebook provides a deep dive into the **ABAC (Attribute-Based Access Contr
 1. [ABAC Framework Architecture](#abac-framework-architecture)
 2. [Policies Deep Dive](#policies-deep-dive)
 3. [Boundaries Deep Dive](#boundaries-deep-dive)
-4. [5 Buckets: Data Partitioning for Access Control](#5-buckets-data-partitioning-for-access-control)
+4. [Buckets: Data Partitioning for Access Control](#buckets-data-partitioning-for-access-control)
 5. [Segments Deep Dive](#segments-deep-dive)
 6. [Querying Current Access Configuration](#querying-current-access-configuration)
 7. [Mapping MZ Concepts to New Model](#mapping-mz-concepts-to-new-model)
@@ -186,8 +186,8 @@ storage:bucket-name IN ("frontend_logs", "frontend_spans")
 
 ---
 
-<a id="5-buckets-data-partitioning-for-access-control"></a>
-## 3.5 Buckets: Data Partitioning for Access Control
+<a id="buckets-data-partitioning-for-access-control"></a>
+## 4. Buckets: Data Partitioning for Access Control
 ### What Are Buckets?
 
 **Buckets** are Grail storage containers that physically partition your data. Unlike boundaries (which filter at query time), buckets provide **hard data separation** - data in one bucket is completely isolated from other buckets.
@@ -297,7 +297,7 @@ environment:management-zone IN ("Frontend-Team");
 ---
 
 <a id="segments-deep-dive"></a>
-## 4. Segments Deep Dive
+## 5. Segments Deep Dive
 ### What Are Segments?
 
 Segments are **DQL-based filter conditions** that control what data users see - they're the replacement for MZ data filtering.
@@ -330,7 +330,7 @@ When a segment is applied, Grail:
 ---
 
 <a id="querying-current-access-configuration"></a>
-## 5. Querying Current Access Configuration
+## 6. Querying Current Access Configuration
 ### View Services with Security Context
 
 Security Context is key for access control in the new model:
@@ -398,7 +398,7 @@ fetch dt.entity.kubernetes_cluster
 ---
 
 <a id="mapping-mz-concepts-to-new-model"></a>
-## 6. Mapping MZ Concepts to New Model
+## 7. Mapping MZ Concepts to New Model
 ### Common MZ Patterns and Their Replacements
 
 | MZ Pattern | New Approach |
@@ -435,7 +435,7 @@ fetch dt.entity.kubernetes_cluster
 ---
 
 <a id="access-control-decision-flow"></a>
-## 7. Access Control Decision Flow
+## 8. Access Control Decision Flow
 ### Permission and Filter Are Separate Paths
 
 ![Permission path and filter path](images/02-permission-and-filter-paths.png)
@@ -468,7 +468,7 @@ The permission path follows a handful of documented rules — implicit deny, a u
 ---
 
 <a id="best-practices-for-the-new-model"></a>
-## 8. Best Practices for the New Model
+## 9. Best Practices for the New Model
 ### Policy Design
 
 1. **Start with default policies** - customize only when needed

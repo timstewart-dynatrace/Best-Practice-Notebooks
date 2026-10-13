@@ -141,7 +141,7 @@ For environments where SVG doesn't render
 | Practice | Setting / value | Priority | Notebook |
 |---|---|---|---|
 | Grant bucket and table permissions together | `storage:buckets:read` plus the table permission; record conditions on top | Critical | 12 §1 |
-| Use buckets for isolation or retention, not for views | Views are segments; bucket design is in ORGNZ-02/03 | Recommended | 02 §3.5, ORGNZ-03 |
+| Use buckets for isolation or retention, not for views | Views are segments; bucket design is in ORGNZ-02/03 | Recommended | 02 §4, ORGNZ-03 |
 | Route to buckets with values present before routing | Source or central enrichment | Recommended | 10 §5 |
 
 <a id="alerting"></a>

@@ -199,7 +199,7 @@ Call out, as each appears:
 The facilitator checks every row against MZ2POL-12 before the session closes:
 
 - **Every domain covered.** A zone-only boundary on a default policy leaves Grail unscoped; a Grail-only boundary on Standard User leaves classic pages unscoped (MZ2POL-12 §4.2).
-- **One boundary per binding** for team scope; shared data as an extra value on the same condition, not a second boundary (§4.1).
+- **One boundary per binding** for team scope; shared data as an extra value on the same condition, not a second boundary (MZ2POL-12 §4.1).
 - **No unscoped data policy** in any group a team member also belongs to (§3).
 - **`MATCH`** on `storage:dt.security_context` wherever events are in scope.
 - **Settings** scoped by edge-set security context or `settings:schemaId` — not by zones (§5).
