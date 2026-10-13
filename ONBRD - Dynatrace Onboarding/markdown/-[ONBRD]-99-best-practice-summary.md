@@ -1,6 +1,6 @@
 # ONBRD-99: Best Practice Summary
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Reference:** 99 — Best Practice Summary | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -67,7 +67,7 @@ Decisions an architect makes during onboarding, with default and when to deviate
 | Tag taxonomy | env / team / app / `dt.security_context` / `dt.cost.costcenter` | Add compliance dimensions (`*-pci`, `*-pii`) only if a hard audit boundary exists |
 | Host group naming | `<env>-<app>` or `<env>-<workload-type>` per FAQ-01 | Customer-specific patterns acceptable; avoid `all-hosts` / `default` / hardware-trait names |
 | Bucket strategy | `dt.security_context` for general data access; **buckets only for compliance / retention / hard cost / hostile multi-tenancy** | See ORGNZ-02 (Grail buckets) and ORGNZ-99 for the buckets-vs-`dt.security_context` decision |
-| OTel coexistence | OneAgent for instrumentation; OTel for app-code spans / business events / serverless | Per FAQ-03 OneAgent vs OpenTelemetry decision framework |
+| OTel coexistence | OneAgent for instrumentation; OTel for app-code spans / business events / serverless | Per FAQ-03 OneAgent and OpenTelemetry decision framework |
 | Workflow trigger | Problem trigger (default); Event trigger with a DQL filter (advanced) | Custom DQL triggers when business-event-driven alerting is required |
 | Dashboard tier | Operations + Executive (mandatory); Engineering (recommended) | Skip Executive if there is no exec stakeholder for this tenant |
 | Notification channel for new tenant | Slack / email / PagerDuty silent channel for first 1–2 weeks | Switch to live channels only after dual-alert window validates volume parity |

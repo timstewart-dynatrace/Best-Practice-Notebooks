@@ -1,6 +1,6 @@
 # CLOUD-01: Cloud Integration Fundamentals
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 1 of 8 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ Dynatrace supports multiple approaches for cloud integration, with **direct conn
 
 ### Key Consideration: Integration vs Agent
 
-Cloud integration (whether direct or via ActiveGate) provides **infrastructure-level** visibility (CPU, memory, network, cloud-specific metrics). For **application-level** visibility (distributed traces, code-level diagnostics), you still need OneAgent or OpenTelemetry instrumentation.
+Cloud integration (whether direct or via ActiveGate) provides **infrastructure-level** visibility (CPU, memory, network, cloud-specific metrics). For **application-level** visibility (distributed traces, code-level diagnostics), you add OneAgent, OpenTelemetry, or both.
 
 <a id="activegate-vs-api"></a>
 

@@ -1,6 +1,6 @@
 # FAQ-08: How Does OneAgent Decide Which Logs to Collect?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 08 — How OneAgent Decides Which Logs to Collect | **Created:** June 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -34,7 +34,7 @@ This entry explains how the decision is made, what gets picked up automatically 
 | **Format** | Decision-support document — explains the discovery mechanism and the auto-vs-custom decision; no hands-on lab |
 | **Deployment** | Dynatrace SaaS with Grail; Log Monitoring powered by the OneAgent log module (enabled by default). Applies to host OneAgent on Linux and Windows |
 | **Related topic series** | OPLOGS (OpenPipeline log processing), OPMIG (Classic Log Monitoring → OpenPipeline), ONBRD-07 (validating discovered data), K8S (container/Kubernetes log collection), S2D (locating logs during migration) |
-| **Related FAQ** | FAQ-03 (OneAgent vs OpenTelemetry — includes Windows Event Log and IIS handling) |
+| **Related FAQ** | FAQ-03 (OneAgent and OpenTelemetry — includes Windows Event Log and IIS handling) |
 
 <a id="short-answer"></a>
 ## 1. Short Answer

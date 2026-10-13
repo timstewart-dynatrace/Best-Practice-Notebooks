@@ -30,14 +30,14 @@
 | **CLOUD** | [Cloud Provider Integrations](../CLOUD%20-%20Cloud%20Provider%20Integrations/) | 9 | AWS, Azure, GCP integrations; Lambda, EKS, multi-cloud patterns |
 | **DASH** | [Dashboard Design & Building](../DASH%20-%20Dashboard%20Design%20&%20Building/) | 8 | Dashboard hierarchy, executive/operations/engineering audiences, sharing and reporting |
 | **DBMON** | [Database Monitoring](../DBMON%20-%20Database%20Monitoring/) | 7 | SQL, NoSQL, cache, messaging, query analysis |
-| **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 25+ | Standalone single-page reference docs (host groups, tagging, OneAgent vs OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail, metadata strategy) — growing |
+| **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 25+ | Standalone single-page reference docs (host groups, tagging, OneAgent and OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail, metadata strategy) — growing |
 | **FINOPS** | [Cost Management & FinOps](../FINOPS%20-%20Cost%20Management%20&%20FinOps/) | 3+ | DPS consumption, forecasting, anomaly detection, optimization framework — growing |
 | **IAM** | [IAM Administration](../IAM%20-%20IAM%20Administration/) | 15 | Policies, boundaries, groups, SSO, audit, parameterized assignments |
 | **K8S** | [Kubernetes Monitoring](../K8S%20-%20Kubernetes%20Monitoring/) | 15 | DynaKube, GitOps deployment, cluster + workload monitoring, troubleshooting |
 | **M2S** | [Managed to SaaS Migration](../M2S%20-%20Managed%20to%20SaaS%20Migration/) | 11 | 9-step procedural runbook for Managed → SaaS deployment migration |
 | **MCH** | [Managed Cluster Health](../MCH%20-%20Managed%20Cluster%20Health/) | 8 | Keeping a self-hosted Managed cluster healthy: node architecture, five-layer health model, storage, capacity, Mission Control connectivity, backup and upgrades (markdown/PDF only — no DQL) |
 | **MOBL** | [Mobile Monitoring](../MOBL%20-%20Mobile%20Monitoring/) | 13 | iOS, Android, cross-platform SDKs; crash reporting, session replay, privacy |
-| **MZ2POL** | [Management Zone to Policy Migration](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) | 11 | MZ analysis, Gen2 → Gen3 access control migration |
+| **MZ2POL** | [Management Zone to Policy Migration](../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/) | 17 | MZ analysis, tagging at source, MZ rule translation, IAM reference architecture, Spaces status, disposition workshop, end-to-end LAB, Gen2 → Gen3 access control migration |
 | **NR2DT** | [New Relic to Dynatrace Migration Steps](../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/) | 11 | Procedural runbook (00 prereqs + 9 steps + summary); refers to NRLC for component depth |
 | **NRLC** | [New Relic to Dynatrace Migration Deep Dives](../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/) | 9 | Standalone component deep dives (NRQL→DQL, dashboards, alerts, synthetics, SLOs, logs) |
 | **ONBRD** | [Dynatrace Onboarding](../ONBRD%20-%20Dynatrace%20Onboarding/) | 12 | First steps, IAM, ActiveGate, OneAgent, basic data org and dashboards |

@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 09/17/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -22,6 +22,13 @@ This notebook introduces the migration from **Management Zones (MZs)** in classi
 
 ---
 
+## Prerequisites
+
+| Requirement | Details |
+|-------------|---------|
+| **Dynatrace Environment** | SaaS on Latest Dynatrace, with management zones in use |
+| **Background** | None — this notebook is the starting point; MZ2POL-00 inventories your zones |
+
 ## Target Audience
 - Dynatrace administrators managing access control
 - Platform engineers responsible for multi-tenant configurations
@@ -31,7 +38,7 @@ This notebook introduces the migration from **Management Zones (MZs)** in classi
 ## Learning Objectives
 
 By the end of this notebook, you will:
-1. Understand why Management Zones are being deprecated
+1. Understand why Management Zones do not carry into Latest Dynatrace
 2. Know the key differences between MZs and the new model
 3. Recognize the benefits of Policies, Boundaries, and Segments
 4. Distinguish the three jobs a Management Zone conflates — access control, filtering, and alerting — and see how each fans out to a different construct (Policies + Boundaries, Segments, and problem-triggered workflows, respectively)
@@ -87,17 +94,16 @@ The latest Dynatrace platform uses **Grail** as its data lakehouse. Grail:
 ## 2. The New Access Control Model
 The modern Dynatrace access control framework is based on **ABAC (Attribute-Based Access Control)** and consists of three key components:
 
-![MZ vs New Model](images/mz-vs-new-model.png)
+![Management zones and the model that replaces them](images/01-mz-vs-new-model.png)
 
-<!--MARKDOWN_TABLE_ALTERNATIVE
-| Aspect | Management Zones | Policies + Boundaries + Segments |
-|--------|------------------|----------------------------------|
-| Scope | Classic apps only | All apps including Grail-based |
-| Performance | Precalculated (bottleneck) | Query-time evaluation (scalable) |
-| Flexibility | Single dimension | Multi-dimensional |
-| Reusability | Limited | High (components are decoupled) |
-| Data filtering | Built into MZ | Segments (separate concern) |
-| Access control | Built into MZ | Policies + Boundaries (separate) |
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | Management Zones (classic) | Latest Dynatrace |
+|---|---|---|
+| Jobs | Access + filtering + alerting scope in one object | Three mechanisms: policies + boundaries (access), segments (filtering), problem-triggered workflows (alerting) |
+| Evaluation | Rules on entities, periodically in the background, with propagation flags | Fields on each record, set at the source |
+| Grail data | Not evaluated — available only on classic pages | Native |
+| Prerequisite | Entity rules | primary_tags.* and dt.security_context on the data (MZ2POL-10) |
+For environments where SVG doesn't render
 -->
 
 ### Policies

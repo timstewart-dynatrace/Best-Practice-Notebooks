@@ -1,6 +1,6 @@
 # OTEL-99: Best Practice Summary
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Introduction
 
@@ -82,103 +82,108 @@ This notebook consolidates every actionable best practice from the OTEL series (
 | 33 | Use ActiveGate endpoint for on-prem or network-restricted envs | `https://{activegate-host}:9999/e/{env-id}/api/v2/otlp` | Recommended | OTEL-07 |
 | 34 | Use Dynatrace Operator OTLP auto-config for K8s (v1.8+) | Annotation `otlp-exporter-configuration.dynatrace.com/inject` for per-pod control | Recommended | OTEL-07 |
 | 35 | Inventory OTLP metric dimensions before enabling Advanced OTLP metric dimensions | All attributes become dimensions, keys keep their case, and histograms change type (Counter → Histogram) — re-check SLOs, alerts and dashboards afterwards | Critical | OTEL-05, OTEL-07 |
+| 36 | Treat OTel and OneAgent as complementary — decide per workload | OTel-only is a complete path; OneAgent where fully managed collection or runtime depth is wanted; both where that fits. Mixed estates are normal | Critical | OTEL-01 |
+| 37 | Keep existing OTel instrumentation when adding OneAgent | Layer, don't convert; pick one ingestion path per process (Span Sensor **or** OTLP export) to avoid duplicate spans | Critical | OTEL-01, OTEL-07 |
+| 38 | Add OneAgent where runtime-access capabilities are needed | Application Security (RVA / RAP), Live Debugger (Java, Node.js; OneAgent 1.309+), automatic RUM JavaScript injection — not provided by OTel telemetry | Recommended | OTEL-01 |
+| 39 | Manage large Collector fleets centrally | Bindplane (OpAMP-based fleet management, multi-destination routing) — optional, not a prerequisite; never write into the reserved `dt.bindplane.*` namespace (SaaS 1.346) | Recommended | OTEL-07 |
+| 40 | Give OTel-only hosts host and process entities | Collector `hostmetrics` with the Dynatrace reference configuration + activate the OpenTelemetry Host Monitoring extension from Hub | Recommended | OTEL-07 |
 
 <a id="resource-attributes-and-entity-mapping"></a>
 ## 5. Resource Attributes and Entity Mapping
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 36 | Always set `service.name` resource attribute | `resource.create({"service.name": "checkout-api"})` | Critical | OTEL-07, OTEL-08 |
-| 37 | Set `service.version` for release tracking | `"service.version": "1.2.3"` | Recommended | OTEL-07 |
-| 38 | Set `service.namespace` for service grouping | `"service.namespace": "ecommerce"` | Recommended | OTEL-07 |
-| 39 | Set `deployment.environment.name` for environment identification | `"deployment.environment.name": "production"` (use stable name, not legacy `deployment.environment`) | Recommended | OTEL-01, OTEL-07 |
-| 40 | Set K8s resource attributes for entity linking | `k8s.namespace.name`, `k8s.pod.name`, `k8s.deployment.name` | Recommended | OTEL-01, OTEL-07 |
-| 41 | Use `resourcedetection` processor for cloud/K8s metadata | `processors.resourcedetection` with env, gcp, aws, azure, or k8s detectors | Recommended | OTEL-02 |
+| 41 | Always set `service.name` resource attribute | `resource.create({"service.name": "checkout-api"})` | Critical | OTEL-07, OTEL-08 |
+| 42 | Set `service.version` for release tracking | `"service.version": "1.2.3"` | Recommended | OTEL-07 |
+| 43 | Set `service.namespace` for service grouping | `"service.namespace": "ecommerce"` | Recommended | OTEL-07 |
+| 44 | Set `deployment.environment.name` for environment identification | `"deployment.environment.name": "production"` (use stable name, not legacy `deployment.environment`) | Recommended | OTEL-01, OTEL-07 |
+| 45 | Set K8s resource attributes for entity linking | `k8s.namespace.name`, `k8s.pod.name`, `k8s.deployment.name` | Recommended | OTEL-01, OTEL-07 |
+| 46 | Use `resourcedetection` processor for cloud/K8s metadata | `processors.resourcedetection` with env, gcp, aws, azure, or k8s detectors | Recommended | OTEL-02 |
 
 <a id="trace-instrumentation"></a>
 ## 6. Trace Instrumentation
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 42 | Start with auto-instrumentation, add manual spans for business logic | Auto-instrument frameworks; add custom spans with `tracer.start_as_current_span()` | Recommended | OTEL-04 |
-| 43 | Use low-cardinality span names | `HTTP GET /users/{id}` not `HTTP GET /users/12345` | Critical | OTEL-04 |
-| 44 | Use descriptive, operation-based span names | `process_order`, `db.query` not `order_abc123`, `SELECT * FROM...` | Critical | OTEL-04 |
-| 45 | Always record errors on spans | `span.record_exception(e)` + `span.set_status(StatusCode.ERROR, str(e))` | Critical | OTEL-04 |
-| 46 | Add business context as span attributes | `span.set_attribute("order.id", order_id)` | Recommended | OTEL-04 |
-| 47 | Use span events for key milestones | `span.add_event("payment_completed", {"transaction_id": txn_id})` | Optional | OTEL-04 |
-| 48 | Use `BatchSpanProcessor` (never `SimpleSpanProcessor` in production) | `provider.add_span_processor(BatchSpanProcessor(exporter))` | Critical | OTEL-04 |
-| 49 | Use W3C Trace Context propagation (required for OneAgent interop) | `W3CTraceparentPropagator` + `W3CTracestatePropagator` | Critical | OTEL-04, OTEL-07 |
-| 50 | Propagate context across async boundaries | Attach/detach context explicitly in async code | Critical | OTEL-04, OTEL-08 |
-| 51 | Propagate context in messaging (Kafka, RabbitMQ) | Inject context into message headers on produce; extract on consume | Recommended | OTEL-04 |
-| 52 | Use `TraceIdRatioBased` sampler to control trace volume | `TraceIdRatioBased(0.1)` for 10% sampling in high-throughput envs | Recommended | OTEL-08 |
+| 47 | Start with auto-instrumentation, add manual spans for business logic | Auto-instrument frameworks; add custom spans with `tracer.start_as_current_span()` | Recommended | OTEL-04 |
+| 48 | Use low-cardinality span names | `HTTP GET /users/{id}` not `HTTP GET /users/12345` | Critical | OTEL-04 |
+| 49 | Use descriptive, operation-based span names | `process_order`, `db.query` not `order_abc123`, `SELECT * FROM...` | Critical | OTEL-04 |
+| 50 | Always record errors on spans | `span.record_exception(e)` + `span.set_status(StatusCode.ERROR, str(e))` | Critical | OTEL-04 |
+| 51 | Add business context as span attributes | `span.set_attribute("order.id", order_id)` | Recommended | OTEL-04 |
+| 52 | Use span events for key milestones | `span.add_event("payment_completed", {"transaction_id": txn_id})` | Optional | OTEL-04 |
+| 53 | Use `BatchSpanProcessor` (never `SimpleSpanProcessor` in production) | `provider.add_span_processor(BatchSpanProcessor(exporter))` | Critical | OTEL-04 |
+| 54 | Use W3C Trace Context propagation (required for OneAgent interop) | `W3CTraceparentPropagator` + `W3CTracestatePropagator` | Critical | OTEL-04, OTEL-07 |
+| 55 | Propagate context across async boundaries | Attach/detach context explicitly in async code | Critical | OTEL-04, OTEL-08 |
+| 56 | Propagate context in messaging (Kafka, RabbitMQ) | Inject context into message headers on produce; extract on consume | Recommended | OTEL-04 |
+| 57 | Use `TraceIdRatioBased` sampler to control trace volume | `TraceIdRatioBased(0.1)` for 10% sampling in high-throughput envs | Recommended | OTEL-08 |
 
 <a id="metrics-instrumentation"></a>
 ## 7. Metrics Instrumentation
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 53 | Choose the correct instrument type | Counter for monotonic; Histogram for durations/sizes; UpDownCounter for gauges; ObservableGauge for current state | Critical | OTEL-05 |
-| 54 | Use hierarchical metric naming | `<domain>.<component>.<metric>` e.g. `http.server.request.duration` | Recommended | OTEL-05 |
-| 55 | Use the semantic-convention unit | `http.server.request.duration` is a Histogram in `s` (seconds); `unit="By"` for bytes. Never reuse a convention name with a different unit | Recommended | OTEL-05 |
-| 56 | Keep attribute cardinality low | Use route templates (`/users/{id}`), status classes (`2xx`), never user IDs or timestamps | Critical | OTEL-05 |
-| 57 | Configure explicit histogram bucket boundaries | `boundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]` (seconds) for response times | Recommended | OTEL-05 |
-| 58 | Use Views to drop noisy internal metrics | `View(instrument_name="internal.debug.*", aggregation=DropAggregation())` | Optional | OTEL-05 |
-| 59 | Use `ObservableGauge` / `ObservableCounter` for system stats | Avoid polling in the request hot path | Recommended | OTEL-05 |
-| 60 | Set appropriate export interval | `PeriodicExportingMetricReader(exporter, export_interval_millis=60000)` (60s default) | Recommended | OTEL-05 |
-| 61 | Measure RED metrics for services | Rate (Counter), Errors (Counter), Duration (Histogram) | Critical | OTEL-05 |
-| 62 | Measure USE metrics for resources | Utilization, Saturation, Errors | Recommended | OTEL-05 |
+| 58 | Choose the correct instrument type | Counter for monotonic; Histogram for durations/sizes; UpDownCounter for gauges; ObservableGauge for current state | Critical | OTEL-05 |
+| 59 | Use hierarchical metric naming | `<domain>.<component>.<metric>` e.g. `http.server.request.duration` | Recommended | OTEL-05 |
+| 60 | Use the semantic-convention unit | `http.server.request.duration` is a Histogram in `s` (seconds); `unit="By"` for bytes. Never reuse a convention name with a different unit | Recommended | OTEL-05 |
+| 61 | Keep attribute cardinality low | Use route templates (`/users/{id}`), status classes (`2xx`), never user IDs or timestamps | Critical | OTEL-05 |
+| 62 | Configure explicit histogram bucket boundaries | `boundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]` (seconds) for response times | Recommended | OTEL-05 |
+| 63 | Use Views to drop noisy internal metrics | `View(instrument_name="internal.debug.*", aggregation=DropAggregation())` | Optional | OTEL-05 |
+| 64 | Use `ObservableGauge` / `ObservableCounter` for system stats | Avoid polling in the request hot path | Recommended | OTEL-05 |
+| 65 | Set appropriate export interval | `PeriodicExportingMetricReader(exporter, export_interval_millis=60000)` (60s default) | Recommended | OTEL-05 |
+| 66 | Measure RED metrics for services | Rate (Counter), Errors (Counter), Duration (Histogram) | Critical | OTEL-05 |
+| 67 | Measure USE metrics for resources | Utilization, Saturation, Errors | Recommended | OTEL-05 |
 
 <a id="logs-instrumentation"></a>
 ## 8. Logs Instrumentation
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 63 | Use the Log Bridge pattern (do not replace your logging library) | Attach `LoggingHandler` to standard Python logger; use Log4j/Logback appenders for Java | Critical | OTEL-06 |
-| 64 | Enable automatic log-trace correlation | Use OTel tracing + log bridge together; `trace_id` and `span_id` are injected automatically | Critical | OTEL-06 |
-| 65 | Use structured JSON logging | Output logs as JSON objects with `timestamp`, `level`, `message`, and structured fields | Recommended | OTEL-06 |
-| 66 | Filter DEBUG/TRACE logs at the Collector, not in the app | `processors.filter.logs.log_record: ['severity_number < 9']` | Recommended | OTEL-06 |
-| 67 | Use `BatchLogRecordProcessor` for log export | Never use synchronous log export in production | Critical | OTEL-06 |
-| 68 | Use the file log receiver for container/file-based log collection | `receivers.file_log.include: ["/var/log/containers/*.log"]` — `file_log` from collector-contrib v0.149.0; older Collectors only know `filelog` | Recommended | OTEL-02, OTEL-06 |
-| 69 | Set log severity appropriately | ERROR: unexpected failures; WARN: recoverable issues; INFO: business events; DEBUG: dev only | Recommended | OTEL-06 |
-| 70 | Never log PII or secrets | Exclude passwords, tokens, personal data from log bodies and attributes | Critical | OTEL-06 |
+| 68 | Use the Log Bridge pattern (do not replace your logging library) | Attach `LoggingHandler` to standard Python logger; use Log4j/Logback appenders for Java | Critical | OTEL-06 |
+| 69 | Enable automatic log-trace correlation | Use OTel tracing + log bridge together; `trace_id` and `span_id` are injected automatically | Critical | OTEL-06 |
+| 70 | Use structured JSON logging | Output logs as JSON objects with `timestamp`, `level`, `message`, and structured fields | Recommended | OTEL-06 |
+| 71 | Filter DEBUG/TRACE logs at the Collector, not in the app | `processors.filter.logs.log_record: ['severity_number < 9']` | Recommended | OTEL-06 |
+| 72 | Use `BatchLogRecordProcessor` for log export | Never use synchronous log export in production | Critical | OTEL-06 |
+| 73 | Use the file log receiver for container/file-based log collection | `receivers.file_log.include: ["/var/log/containers/*.log"]` — `file_log` from collector-contrib v0.149.0; older Collectors only know `filelog` | Recommended | OTEL-02, OTEL-06 |
+| 74 | Set log severity appropriately | ERROR: unexpected failures; WARN: recoverable issues; INFO: business events; DEBUG: dev only | Recommended | OTEL-06 |
+| 75 | Never log PII or secrets | Exclude passwords, tokens, personal data from log bodies and attributes | Critical | OTEL-06 |
 
 <a id="semantic-conventions"></a>
 ## 9. Semantic Conventions
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 71 | Migrate to stable HTTP semantic conventions | Use `http.request.method` (not `http.method`), `http.response.status_code` (not `http.status_code`), `url.full` (not `http.url`) | Recommended | OTEL-01 |
-| 72 | Migrate to stable DB semantic conventions | Use `db.namespace` (not `db.name`), `db.query.text` (not `db.statement`), `db.operation.name` (not `db.operation`) | Recommended | OTEL-01 |
-| 73 | Use `OTEL_SEMCONV_STABILITY_OPT_IN` to control migration | `http` for stable-only, `http/dup` for dual-emit during migration; same pattern for `database` | Recommended | OTEL-01 |
-| 74 | Use stable resource attribute `deployment.environment.name` | Not the legacy `deployment.environment` | Recommended | OTEL-01 |
-| 75 | Follow semantic conventions for all standard attributes | Use `service.name`, `service.version`, `k8s.namespace.name`, `k8s.pod.name`, etc. | Critical | OTEL-01 |
+| 76 | Migrate to stable HTTP semantic conventions | Use `http.request.method` (not `http.method`), `http.response.status_code` (not `http.status_code`), `url.full` (not `http.url`) | Recommended | OTEL-01 |
+| 77 | Migrate to stable DB semantic conventions | Use `db.namespace` (not `db.name`), `db.query.text` (not `db.statement`), `db.operation.name` (not `db.operation`) | Recommended | OTEL-01 |
+| 78 | Use `OTEL_SEMCONV_STABILITY_OPT_IN` to control migration | `http` for stable-only, `http/dup` for dual-emit during migration; same pattern for `database` | Recommended | OTEL-01 |
+| 79 | Use stable resource attribute `deployment.environment.name` | Not the legacy `deployment.environment` | Recommended | OTEL-01 |
+| 80 | Follow semantic conventions for all standard attributes | Use `service.name`, `service.version`, `k8s.namespace.name`, `k8s.pod.name`, etc. | Critical | OTEL-01 |
 
 <a id="performance-and-reliability"></a>
 ## 10. Performance and Reliability
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 76 | Derive RED metrics from traces before sampling | `span_metrics` connector (`spanmetrics` before contrib v0.151.0) with histogram buckets `[100ms, 500ms, 1s, 5s]` | Optional | OTEL-02, OTEL-04 |
-| 77 | Filter health-check spans at the Collector | `processors.filter.traces.span: ['attributes["url.path"] == "/health"']` | Recommended | OTEL-02 |
-| 78 | Use fan-out to send data to multiple backends | Define multiple named exporters under `exporters` and list all in pipeline | Optional | OTEL-02 |
-| 79 | Increase `sending_queue.num_consumers` for high throughput | `num_consumers: 10` | Recommended | OTEL-08 |
-| 80 | Do not over-instrument | Only create spans for meaningful operations; avoid spans on every function call | Recommended | OTEL-04 |
-| 81 | Limit attribute value sizes | Avoid multi-KB strings in span attributes or log bodies | Recommended | OTEL-04 |
-| 82 | Configure proxy for network-restricted environments | `exporters.otlphttp.proxy_url: http://proxy.example.com:8080` or `HTTPS_PROXY` env var | Optional | OTEL-08 |
+| 81 | Derive RED metrics from traces before sampling | `span_metrics` connector (`spanmetrics` before contrib v0.151.0) with histogram buckets `[100ms, 500ms, 1s, 5s]` | Optional | OTEL-02, OTEL-04 |
+| 82 | Filter health-check spans at the Collector | `processors.filter.traces.span: ['attributes["url.path"] == "/health"']` | Recommended | OTEL-02 |
+| 83 | Use fan-out to send data to multiple backends | Define multiple named exporters under `exporters` and list all in pipeline | Optional | OTEL-02 |
+| 84 | Increase `sending_queue.num_consumers` for high throughput | `num_consumers: 10` | Recommended | OTEL-08 |
+| 85 | Do not over-instrument | Only create spans for meaningful operations; avoid spans on every function call | Recommended | OTEL-04 |
+| 86 | Limit attribute value sizes | Avoid multi-KB strings in span attributes or log bodies | Recommended | OTEL-04 |
+| 87 | Configure proxy for network-restricted environments | `exporters.otlphttp.proxy_url: http://proxy.example.com:8080` or `HTTPS_PROXY` env var | Optional | OTEL-08 |
 
 <a id="troubleshooting-and-observability"></a>
 ## 11. Troubleshooting and Observability
 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---|---|---|---|
-| 83 | Enable `health_check` extension | `extensions.health_check.endpoint: 0.0.0.0:13133` | Critical | OTEL-02, OTEL-08 |
-| 84 | Enable `zpages` extension in non-production | `extensions.zpages.endpoint: 0.0.0.0:55679` | Recommended | OTEL-02, OTEL-08 |
-| 85 | Use `debug` exporter during development | `exporters.debug.verbosity: detailed` alongside production exporter | Recommended | OTEL-02, OTEL-08 |
-| 86 | Set Collector log level to `info` in production, `debug` for troubleshooting | `service.telemetry.logs.level: info` (default), switch to `debug` when investigating | Recommended | OTEL-08 |
-| 87 | Verify tracer provider is not NoOp | In Python: `print(trace.get_tracer_provider())` must not show `NoOpTracerProvider` | Critical | OTEL-08 |
-| 88 | Test connectivity with curl before deploying | `curl -v https://{env}.live.dynatrace.com/api/v2/otlp/v1/traces -X POST -H "Authorization: Api-Token <token>" -H "Content-Type: application/x-protobuf" --data-binary ''` | Recommended | OTEL-08 |
-| 89 | Troubleshoot systematically: SDK -> Collector -> Backend | Follow the data path; isolate which component is failing | Recommended | OTEL-08 |
-| 90 | Enable `pprof` extension for Go heap profiling | `extensions.pprof.endpoint: 0.0.0.0:1777` | Optional | OTEL-08 |
+| 88 | Enable `health_check` extension | `extensions.health_check.endpoint: 0.0.0.0:13133` | Critical | OTEL-02, OTEL-08 |
+| 89 | Enable `zpages` extension in non-production | `extensions.zpages.endpoint: 0.0.0.0:55679` | Recommended | OTEL-02, OTEL-08 |
+| 90 | Use `debug` exporter during development | `exporters.debug.verbosity: detailed` alongside production exporter | Recommended | OTEL-02, OTEL-08 |
+| 91 | Set Collector log level to `info` in production, `debug` for troubleshooting | `service.telemetry.logs.level: info` (default), switch to `debug` when investigating | Recommended | OTEL-08 |
+| 92 | Verify tracer provider is not NoOp | In Python: `print(trace.get_tracer_provider())` must not show `NoOpTracerProvider` | Critical | OTEL-08 |
+| 93 | Test connectivity with curl before deploying | `curl -v https://{env}.live.dynatrace.com/api/v2/otlp/v1/traces -X POST -H "Authorization: Api-Token <token>" -H "Content-Type: application/x-protobuf" --data-binary ''` | Recommended | OTEL-08 |
+| 94 | Troubleshoot systematically: SDK -> Collector -> Backend | Follow the data path; isolate which component is failing | Recommended | OTEL-08 |
+| 95 | Enable `pprof` extension for Go heap profiling | `extensions.pprof.endpoint: 0.0.0.0:1777` | Optional | OTEL-08 |
 
 ## Summary
 

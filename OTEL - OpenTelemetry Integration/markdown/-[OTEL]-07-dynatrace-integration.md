@@ -1,6 +1,6 @@
 # OTEL-07: Dynatrace OTLP Integration
 
-> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** OTEL — OpenTelemetry Integration | **Notebook:** 7 of 8 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Complete Setup for OpenTelemetry with Dynatrace
 This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.
@@ -506,7 +506,7 @@ In community practice, placement tends to follow the table below — confirm it 
 | Signal type | Preferred path | Why |
 |-------------|----------------|-----|
 | Host CPU / memory / disk / network | OneAgent (DynaKube) | Auto-discovers; tightly integrated with the Smartscape host entity |
-| Process-level metrics, process group detection | OneAgent | SDV2 entity detection requires the agent |
+| Process-level metrics, process group detection | OneAgent where installed; otherwise Collector `hostmetrics` + the OpenTelemetry Host Monitoring extension | OneAgent detects process groups automatically; the extension generates host and process entities from Collector data |
 | Application traces (OneAgent-supported language) | OneAgent | Auto-instrumentation, no code change |
 | Application traces (unsupported language or fine-grained custom) | OTel SDK → Collector → OTLP | OTel covers languages OneAgent does not |
 | Prometheus-exposed metrics from third-party / business apps | OTel Collector `prometheus` receiver → OTLP | Scales horizontally with a Target Allocator; a Dynatrace Prometheus extension (run on a OneAgent host or remotely on an ActiveGate) is the alternative when you want host-context enrichment |
@@ -578,12 +578,32 @@ set_global_textmap(CompositePropagator([
 ]))
 ```
 
+### 9.6. Managing Collector Fleets with Bindplane
+
+Once a team runs more than a handful of OTel Collectors, the work shifts from writing one configuration to keeping many of them consistent. Dynatrace documents **Bindplane** for that job: *"a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally"*. It manages collectors remotely over OpAMP, the open protocol for collector management, and it fits the open-foundation model this series follows. The same fleet can *"send data to multiple backends simultaneously, including Dynatrace and Splunk."* Dynatrace announced an agreement to acquire Bindplane on 04/08/2026.
+
+| Question | Where Bindplane fits |
+|----------|----------------------|
+| Many Collectors drifting apart in configuration | Central fleet management from one control plane |
+| Telemetry that must reach Dynatrace **and** another backend | Multi-destination routing from the same Collectors |
+| Deployment model | Cloud or self-hosted |
+
+Two practical notes:
+
+- **Bindplane does not change the coexistence decisions above.** It manages *Collectors*; the signal-routing table in §9.1 and the Span Sensor vs OTLP rule still decide which component emits which signal.
+- **Do not write into `dt.bindplane.*`.** From SaaS 1.346 that namespace is *"reserved exclusively for Bindplane"*. A processing rule that sets those fields should move to a namespace you own.
+- **Bindplane is optional.** It helps operate many Collectors; it is not a prerequisite for sending OTel data to Dynatrace. As with any SaaS sprint, rollout to tenants is staged — check the tenant version.
+
 > <sub>**Sources:**</sub>
 > - <sub>[k8sattributes processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor)</sub>
 > - <sub>[Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor)</sub>
 > - <sub>[Configure OTLP Metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
 > - <sub>[Dynatrace Operator (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator)</sub>
 > - <sub>[About OTLP metrics ingest (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — *"The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."*</sub>
+> - <sub>[Bindplane (DT docs)](https://docs.dynatrace.com/docs/ingest-from/bindplane) — *"Bindplane is a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally"*; *"Collectors can send data to multiple backends simultaneously, including Dynatrace and Splunk."*</sub>
+> - <sub>[Dynatrace to acquire Bindplane (Dynatrace press release, 04/08/2026)](https://www.dynatrace.com/news/press-release/dynatrace-to-acquire-bindplane/) — *"today announced it has signed a definitive agreement to acquire Bindplane"*</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"The `dt.bindplane.*` namespace is now reserved exclusively for Bindplane."*</sub>
+> - <sub>[OpenTelemetry Host Monitoring extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/opentelemetry-host-monitoring) — *"This extension automatically generates entities for hosts and their running processes."*</sub>
 > - <sub>[Prometheus data source (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/prometheus-extensions) — *"For high-volume Prometheus scraping in Kubernetes, and for new deployments, consider the OpenTelemetry Collector"*</sub>
 
 ---
@@ -602,6 +622,7 @@ In this notebook, you learned:
 - OTLP metric dimensions changes and auto-configuration
 - Verification and troubleshooting
 - Coexistence patterns across OneAgent, DynaKube, and the OTel Collector — signal routing, entity-model joining via `metadata.dynatrace.com/*`, counter temporality
+- Managing OTel Collector fleets centrally with Bindplane, and the reserved `dt.bindplane.*` namespace
 
 ---
 
@@ -613,6 +634,7 @@ In this notebook, you learned:
 - [Configure OTLP Metrics](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)
 - [OTLP Auto-Config for K8s](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/otlp-auto-config)
 - [Ensure Success with OTel](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting)
+- [Bindplane](https://docs.dynatrace.com/docs/ingest-from/bindplane)
 
 ---
 

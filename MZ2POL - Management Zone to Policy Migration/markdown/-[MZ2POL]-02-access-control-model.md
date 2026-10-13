@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 09/24/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -44,7 +44,7 @@ By the end of this notebook, you will:
 ## 1. ABAC Framework Architecture
 ### The Permission Flow
 
-![ABAC Framework](images/abac-framework.png)
+![The permission flow](images/02-abac-framework.png)
 
 <!--MARKDOWN_TABLE_ALTERNATIVE
 | Component | Purpose | Configured In |
@@ -54,6 +54,7 @@ By the end of this notebook, you will:
 | Policies | Permission definitions | Policy Management |
 | Boundaries | Scope restrictions | Policy Boundaries |
 | Segments | Data filtering | Segments app |
+| Example statement | ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("payments"); — service prefixes are required | — |
 -->
 
 ### Key Components
@@ -138,11 +139,12 @@ A boundary query is a **bare condition expression** — no `WHERE` keyword (that
 <field> <operator> "<value>"
 ```
 
-**Supported Operators:**
-- `=` / `!=` - Equals / not equals
-- `IN` / `NOT IN` - Value in / not in list
-- `startsWith` / `NOT startsWith` - Prefix match
-- `MATCH` - Wildcard match, `storage` domain only (see note below)
+**Supported Operators** — they vary by attribute (*"Not every operator applies to every service attribute."*):
+- Grail record fields (`storage:dt.security_context`, `storage:dt.host_group.id`, `storage:k8s.namespace.name` …): `=`, `IN`, `startsWith`, `MATCH` — **no negation**
+- `storage:bucket-name`: all of the above plus `!=`, `NOT IN`, `NOT startsWith`
+- `environment:management-zone`: `=`, `!=`, `IN`, `startsWith`, `NOT startsWith`, `MATCH`
+
+> <sub>**Sources:** [IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — per-attribute operator lists.</sub>
 
 **Common Fields:**
 - `environment` - Environment restrictions
@@ -150,7 +152,7 @@ A boundary query is a **bare condition expression** — no `WHERE` keyword (that
 - `storage:dt.security_context` - Security context filtering
 - `storage:bucket-name` - Bucket-based restrictions
 
-> **Note:** `MATCH` provides wildcard pattern matching on the `storage` domain — `storage:dt.security_context MATCH("team-*")` — and supports `*` at any position (unlike `startsWith`). It is also the documented workaround for the known `startsWith` bug on Smartscape / Classic-entity conditions (e.g. `storage:smartscape:read`). For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
+> **Note:** `MATCH` provides wildcard pattern matching on Grail record fields (and on `environment:management-zone`) — `storage:dt.security_context MATCH("team-*")` — and supports `*` at any position (unlike `startsWith`). It is also the documented workaround for the known `startsWith` bug on Smartscape / Classic-entity conditions (e.g. `storage:smartscape:read`). For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
 
 ### Boundary Examples
 
@@ -179,7 +181,7 @@ storage:bucket-name IN ("frontend_logs", "frontend_spans")
 | Limitation | Workaround |
 |------------|------------|
 | Max 10 conditions per boundary | Create multiple boundaries |
-| No logical operators — one line per condition, OR-combined | Use multiple boundary assignments for AND |
+| No logical operators — one line per condition | Repeated lines on the **same** condition multiply the statement (OR); lines on different conditions each scope their own permissions. Several boundaries on one binding are evaluated separately (MZ2POL-12 §4) |
 | Bare conditions (no `WHERE`) | `WHERE` belongs to policy statements, not boundaries |
 
 ---
@@ -248,26 +250,28 @@ ALLOW storage:metrics:read WHERE storage:bucket-name = "frontend_metrics"
 
 Combine buckets with security context for layered control:
 
-**Pair Gen3 policies with Gen3 boundaries; pair Gen2 policies with Gen2 boundaries.** Two parallel bindings, not one mixed boundary:
+**One boundary can cover every domain the bound policies grant** — Grail lines and, while classic pages are used, the zone line (MZ2POL-04 §6). The two-binding form below also works, provided each binding's policies stay inside its boundary's domain:
 
 ```
-# Gen3 binding: storage policies + Gen3 boundary
+// Gen3 binding: storage policies + Gen3 boundary
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
 WHERE storage:bucket-name IN ("frontend_logs", "frontend_spans", "frontend_metrics")
   AND storage:dt.security_context IN ("team-frontend");
 ```
 
 ```
-# Gen2 policy (transitional)
+// Gen2 policy (transitional)
 ALLOW environment:roles:viewer;
 ```
 
 ```
-# Gen2 boundary
+// Gen2 boundary
 environment:management-zone IN ("Frontend-Team");
 ```
 
-> **`MATCH` is Gen3-only.** Don't use `MATCH('*')` on `storage:entities:read` (a Gen2 surface) — it silently grants all Gen2 entities.
+> **`MATCH` is not Gen3-only** — the IAM policy reference lists it for `environment:management-zone` too. `storage:entities:read` is a Grail permission that accepts only `storage:dt.security_context` and `storage:entity.type`; `MATCH("*")` on any attribute matches everything.
+>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:viewer`: *"Grants user the Access environment permission."*</sub>
 
 ### When to Use Buckets vs Other Options
 
@@ -432,26 +436,25 @@ fetch dt.entity.kubernetes_cluster
 
 <a id="access-control-decision-flow"></a>
 ## 7. Access Control Decision Flow
-### Permission Evaluation Order
+### Permission and Filter Are Separate Paths
 
-```
-1. User attempts action
-2. System checks user's group memberships
-3. For each group, evaluate bound policies
-4. Apply boundary restrictions (if any)
-5. If ALLOW found with matching conditions → Permit
-6. If no ALLOW found → Deny (implicit)
-```
+![Permission path and filter path](images/02-permission-and-filter-paths.png)
 
-### Segment Application
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Permission path — what you MAY read | Filter path — what you LOOK AT |
+|---|---|
+| User → groups (SAML / SCIM) | User picks a segment, or a dashboard / notebook applies one |
+| Bindings: policy + boundaries — the union of every group's bindings | Segment conditions injected into the query as filters |
+| Statements expanded — conditions per service; DENY wins | Grail runs the filtered query, only inside what the permission allows |
+| Grail checks bucket, table, record and field | Narrower result — never wider than the permission |
+| Result: the set of records you are allowed to query | Anyone with storage:filter-segments:read can apply any segment |
+Migration test: if removing the zone would let someone see data they must not, it is the permission path (MZ2POL-04, MZ2POL-12); if it would only make dashboards noisy, the filter path (MZ2POL-05); if it decides who is paged, MZ2POL-09.
+For environments where SVG doesn't render
+-->
 
-```
-1. User queries data (DQL, dashboard, app)
-2. Active segment(s) identified
-3. Segment conditions injected into query
-4. Grail evaluates with segment filters
-5. Filtered results returned
-```
+The permission path follows a handful of documented rules — implicit deny, a union across every binding, boundaries applied separately and only to their own service, `DENY` overriding. They matter more in a migration than any syntax detail, because each one can make a translated zone wider than the original. **MZ2POL-12 §3** walks through them with Dynatrace's wording.
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only conditions added to service configuration will be applied to relative permissions."*, [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility).</sub>
 
 ### Key Differences from MZ
 

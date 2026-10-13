@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ Carried into Dynatrace, the same habits quietly rebuild the old architecture ins
 
 This entry goes **down the list of items that migration customers most commonly leave un-enabled**, and for each one names the habit it comes from and the specific handicap it creates. The goal is not that everything must be on everywhere (§6 covers where reduced coverage is genuinely right) — it is that "we've always done it that way" stops being an invisible decision and becomes a priced one.
 
-> **Scope:** Dynatrace SaaS on DPS. This entry answers *"what happens if we keep the old habits?"* — for *"how do we instrument?"* see FAQ-03 (OneAgent vs OpenTelemetry); for the staged rollout program see ADOPT-06; for tool-specific migration runbooks see the NR2DT, S2D, and SL2DT series.
+> **Scope:** Dynatrace SaaS on DPS. This entry answers *"what happens if we keep the old habits?"* — for *"how do we instrument?"* see FAQ-03 (OneAgent and OpenTelemetry); for the staged rollout program see ADOPT-06; for tool-specific migration runbooks see the NR2DT, S2D, and SL2DT series.
 
 ---
 
@@ -35,7 +35,7 @@ This entry goes **down the list of items that migration customers most commonly 
 | **Dynatrace Environment** | SaaS on the Dynatrace Platform Subscription (DPS). Discovery mode is DPS-only. |
 | **Permissions** | Environment settings access to review monitoring modes and process-group monitoring rules; `storage:*:read` scopes for the coverage-audit DQL in §5. |
 | **Audience** | Platform / Observability Lead (primary); application owners and executives deciding coverage scope. |
-| **Related series** | FAQ-03 (OneAgent vs OpenTelemetry), ADOPT (maturity + staged enablement — ADOPT-06 operationalizes this entry), FINOPS (cost side of the same decision), ONBRD (deployment), APPSEC (code-module dependency). |
+| **Related series** | FAQ-03 (OneAgent and OpenTelemetry), ADOPT (maturity + staged enablement — ADOPT-06 operationalizes this entry), FINOPS (cost side of the same decision), ONBRD (deployment), APPSEC (code-module dependency). |
 
 <a id="short-answer"></a>
 ## 1. Short Answer
@@ -274,7 +274,7 @@ Dynatrace's value concentrates in the connections between layers — traces make
 ## Next Steps
 
 - **ADOPT-06** — the staged-enablement program built on this entry: audit → prioritize → waves → value gates.
-- **FAQ-03** — OneAgent vs OpenTelemetry, when the instrumentation question comes up in the same conversation.
+- **FAQ-03** — OneAgent and OpenTelemetry, when the instrumentation question comes up in the same conversation.
 - **FINOPS-01 / FINOPS-03** — measure the spend per mode; decide Cut / Tune / Filter with data.
 - **APPSEC-01** — the security capabilities riding on the code modules.
 - **NR2DT / S2D / SL2DT** — the tool-specific migration runbooks (New Relic, Splunk, Sumo Logic) that plan the habit transitions in §4 step by step.

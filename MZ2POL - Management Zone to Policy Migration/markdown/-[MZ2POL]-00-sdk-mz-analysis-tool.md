@@ -1,6 +1,6 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/05/2026
+> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 1 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 > **Purpose:** Query Management Zone configurations via the Dynatrace SDK, analyze entity assignments, and assess security context coverage to support migration planning.
 
@@ -30,6 +30,15 @@
 10. [Documentation](#documentation)
 
 ---
+
+## Prerequisites
+
+| Requirement | Details |
+|-------------|---------|
+| **Dynatrace Environment** | SaaS with management zones still configured |
+| **Permissions** | `settings.read` / `settings:objects:read` to read `builtin:management-zones`; `storage:entities:read` and `storage:logs:read` for the DQL cells |
+| **Runtime** | A notebook or app that can run the TypeScript cells with `@dynatrace-sdk/client-classic-environment-v2` |
+| **Next** | Classify the output with MZ2POL-03, then translate each rule with MZ2POL-11 |
 
 <a id="export-all-management-zone-configurations"></a>
 ## 1. Export All Management Zone Configurations

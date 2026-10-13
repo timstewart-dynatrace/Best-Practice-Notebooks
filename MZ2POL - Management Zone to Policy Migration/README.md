@@ -24,7 +24,13 @@ There is no automatic conversion in either direction: every policy and every seg
 7. [Validation & Troubleshooting](markdown/-[MZ2POL]-07-validation-troubleshooting.md) — Validating and resolving issues
 8. [Templated Policies Migration](markdown/-[MZ2POL]-08-templated-policies-migration.md) — Policy templates for bulk MZ migration
 9. [Alerting and Notification Migration](markdown/-[MZ2POL]-09-alerting-and-notification-migration.md) — MZ-scoped alerting profiles become problem-triggered workflows; the tag prerequisite, the connector gap and delay mapping, and the deletion test
-99. [Best Practice Summary](markdown/-[MZ2POL]-99-best-practice-summary.md) — Consolidated best practices from the MZ2POL series
+10. [Tagging at Source — The Foundation](markdown/-[MZ2POL]-10-tagging-at-source-foundation.md) — Tagging at source as the prerequisite for every MZ replacement — entity-first vs data-first, what stops working, primary tags vs `dt.security_context`, the enrichment ladder, propagation, and the readiness-gate audit
+11. [Translating MZ Rules into Source Attributes](markdown/-[MZ2POL]-11-translating-mz-rules-to-source-attributes.md) — Translating each MZ rule into a target field — rule types, property families, operator mapping, pushing exclusions into enrichment, and a per-rule worksheet
+12. [IAM Reference Architecture](markdown/-[MZ2POL]-12-iam-reference-architecture.md) — IAM reference architecture for a former MZ estate — the access model, how a request is evaluated, the boundary pitfalls that widen access, the scoped-settings change, persona walkthrough and classic-role mapping
+13. [Spaces — What Is Coming](markdown/-[MZ2POL]-13-spaces-what-is-coming.md) — Spaces (`dt.space`) — upcoming, not yet documented as available: what is published, what is not, where it would fit, and the no-regret preparation to do now
+14. [Zone Disposition Workshop](markdown/-[MZ2POL]-14-[WORKSHOP]-zone-disposition.md) — Zone disposition workshop — six sessions with the zone owners (triage, jobs, dimensions and tags, rule translation, personas and boundaries, alerting and cutover), pre-work queries, stop conditions and facilitator traps
+95. [LAB: End-to-End Migration](markdown/-[MZ2POL]-95-[LAB]-end-to-end-migration.md) — End-to-end LAB — a fictional eight-zone estate migrated from inventory to cutover on simulated records (zero bytes, any tenant), then the same checks on your own data
+99. [Best Practice Summary](markdown/-[MZ2POL]-99-best-practice-summary.md) — Consolidated checklist across notebooks 00–13, the workshop and the LAB — every row names its source notebook
 
 ## Usage
 1. Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.
