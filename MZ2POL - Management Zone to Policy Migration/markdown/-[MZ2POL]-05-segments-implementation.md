@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -262,7 +262,12 @@ smartscapeNodes "K8S_NAMESPACE"
 
 For the filter conditions themselves, the Primary Grail Fields are `k8s.cluster.name` (cluster-scoped) and `k8s.namespace.name` (namespace-scoped). ORGNZ-10 §5 walks the full four-step build for both the host-group and Kubernetes variants.
 
-> **Limitation:** Primary Grail Tags do not yet enrich Kubernetes **metrics or events** — they work for logs, spans, and topology. A segment that must scope K8s metrics needs a different include shape.
+> **Kubernetes coverage:** both central enrichment rules and dedicated annotations (`metadata.dynatrace.com/primary_tags.<key>`) reach Kubernetes platform metrics, Kubernetes events and Smartscape Kubernetes entities, so one `primary_tags.*` include scopes K8s metrics, events, logs and spans alike. On the validation tenant on 10/13/2026, 7,377 of 8,617 Kubernetes events in 24 h carried a `primary_tags.*` field, and `dt.kubernetes.container.restarts` split by it. Two documented caveats apply:
+>
+> - OneAgent-based enrichment needs the **Cloud Native Full Stack** or **Application Monitoring** deployment mode; Classic Full Stack is not supported.
+> - The cost-allocation page says **pod** annotations don't reach Kubernetes metrics, events, Smartscape entities or Prometheus metrics, while the Kubernetes page ticks a combined pod/workload/namespace column. Until the pages agree, set any tag that must scope K8s metrics with a central rule or at namespace level.
+>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"consistently across logs, metrics, spans, events, and Smartscape entities"*; *"OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported."*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
 
 ### 4.5 Host tags and properties
 

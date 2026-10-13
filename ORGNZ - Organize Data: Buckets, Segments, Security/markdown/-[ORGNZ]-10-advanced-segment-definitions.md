@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/12/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -196,10 +196,15 @@ When Primary Grail Fields don't align with how your organization wants to segmen
 
 - Identified by the prefix `primary_tags.`
 - Example: `primary_tags.stage=prod`, `primary_tags.team=platform`
-- Set via host tags, environment variables (`DT_TAGS`), or OpenPipeline — not host properties (see *Enrichment via Host Tags* below)
+- Set via host tags, environment variables (`DT_TAGS`), Kubernetes annotations or central enrichment rules, or OpenPipeline — not host properties (see *Enrichment via Host Tags* below)
 - Propagated across all data points, similar to Primary Grail Fields
 
-> **Limitation:** Primary Grail Tags do not yet enrich Kubernetes metrics or events. They work for logs, spans, and topology data. Check the [Dynatrace documentation](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/k8s-metadata-telemetry-enrichment) for the latest supported signal types.
+> **Kubernetes coverage:** both central enrichment rules and dedicated annotations (`metadata.dynatrace.com/primary_tags.<key>`) reach Kubernetes platform metrics, Kubernetes events and Smartscape Kubernetes entities, so one `primary_tags.*` include scopes K8s metrics, events, logs and spans alike. On the validation tenant on 10/13/2026, 7,377 of 8,617 Kubernetes events in 24 h carried a `primary_tags.*` field, and `dt.kubernetes.container.restarts` split by it. Two documented caveats apply:
+>
+> - OneAgent-based enrichment needs the **Cloud Native Full Stack** or **Application Monitoring** deployment mode; Classic Full Stack is not supported.
+> - The cost-allocation page says **pod** annotations don't reach Kubernetes metrics, events, Smartscape entities or Prometheus metrics, while the Kubernetes page ticks a combined pod/workload/namespace column. Until the pages agree, set any tag that must scope K8s metrics with a central rule or at namespace level.
+>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"consistently across logs, metrics, spans, events, and Smartscape entities"*; *"OneAgent-based enrichment requires the Cloud Native Full Stack or Application Monitoring deployment mode. Classic Full Stack is not supported."*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
 
 ### Enrichment Approaches
 

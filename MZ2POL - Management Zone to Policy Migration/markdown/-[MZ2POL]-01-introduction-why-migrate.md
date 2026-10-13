@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 

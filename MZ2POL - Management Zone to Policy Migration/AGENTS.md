@@ -3,7 +3,7 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-17 notebooks on migrating off Management Zones. All three replacements below
+15 numbered notebooks (00–14), a LAB and a summary — 17 in all — on migrating off Management Zones. All three replacements below
 read a field on the data, so the series starts from **tagging at source**:
 notebook 10 (the model change, enrichment ladder and readiness gate) and
 notebook 11 (translating each MZ rule into a target field); notebook 12 is the
