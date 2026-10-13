@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">The Enrichment Ladder</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Start at step 1 and climb only when the step below cannot carry the value</text>
+  <rect x="20" y="72" width="700" height="76" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="38" y="102" text-anchor="start" fill="#86EFAC" font-size="22" font-weight="700">1</text>
+  <text x="68" y="94" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">Built-in primary Grail fields</text>
+  <text x="293.7" y="94" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">no configuration</text>
+  <text x="68" y="113" text-anchor="start" fill="#94A3B8" font-size="10.5">dt.host_group.id, k8s.cluster.name, k8s.namespace.name,</text>
+  <text x="68" y="128" text-anchor="start" fill="#94A3B8" font-size="10.5">aws.account.id, azure.subscription — populated automatically</text>
+  <rect x="740" y="99" width="170" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="740" y="99" width="170" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="825.0" y="114.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">before routing</text>
+  <rect x="38" y="154" width="682" height="76" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="56" y="184" text-anchor="start" fill="#86EFAC" font-size="22" font-weight="700">2</text>
+  <text x="86" y="176" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">Enrich at the source</text>
+  <text x="246.0" y="176" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">install / deploy time</text>
+  <text x="86" y="195" text-anchor="start" fill="#94A3B8" font-size="10.5">--set-host-tag / oneagentctl (host) · DT_TAGS (process) · K8s</text>
+  <text x="86" y="210" text-anchor="start" fill="#94A3B8" font-size="10.5">annotations · OTEL_RESOURCE_ATTRIBUTES · extension config</text>
+  <rect x="740" y="181" width="170" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="740" y="181" width="170" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="825.0" y="196.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">before routing</text>
+  <rect x="56" y="236" width="664" height="76" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="74" y="266" text-anchor="start" fill="#BFDBFE" font-size="22" font-weight="700">3</text>
+  <text x="104" y="258" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">Configure centrally</text>
+  <text x="256.7" y="258" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">OneAgent 1.343+, no restart</text>
+  <text x="104" y="277" text-anchor="start" fill="#94A3B8" font-size="10.5">Ingest enrichment configuration: promote host tags, host</text>
+  <text x="104" y="292" text-anchor="start" fill="#94A3B8" font-size="10.5">groups or naming conventions (DPL) per environment / host group</text>
+  <rect x="740" y="263" width="170" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="740" y="263" width="170" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="825.0" y="278.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">before routing</text>
+  <rect x="74" y="318" width="646" height="76" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="92" y="348" text-anchor="start" fill="#FCD34D" font-size="22" font-weight="700">4</text>
+  <text x="122" y="340" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">OpenPipeline primary Grail tag rule</text>
+  <text x="391.5" y="340" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">fallback, any record type</text>
+  <text x="122" y="359" text-anchor="start" fill="#94A3B8" font-size="10.5">Derive primary_tags.* from fields already on the record;</text>
+  <text x="122" y="374" text-anchor="start" fill="#94A3B8" font-size="10.5">overwrites existing values unless the condition is isNull(...)</text>
+  <rect x="740" y="345" width="170" height="22" rx="11" fill="#FFB800" opacity="0.10"/>
+  <rect x="740" y="345" width="170" height="22" rx="11" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="825.0" y="360.0" text-anchor="middle" fill="#FCD34D" font-size="10.5" font-weight="700">docs disagree</text>
+  <rect x="92" y="400" width="628" height="76" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="110" y="430" text-anchor="start" fill="#FCA5A5" font-size="22" font-weight="700">5</text>
+  <text x="140" y="422" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">OpenPipeline processors</text>
+  <text x="321.9" y="422" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">last resort</text>
+  <text x="140" y="441" text-anchor="start" fill="#94A3B8" font-size="10.5">Set security context / DQL processors inside a pipeline —</text>
+  <text x="140" y="456" text-anchor="start" fill="#94A3B8" font-size="10.5">run after routing, so they cannot choose a pipeline or bucket</text>
+  <rect x="740" y="427" width="170" height="22" rx="11" fill="#DE350B" opacity="0.10"/>
+  <rect x="740" y="427" width="170" height="22" rx="11" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="825.0" y="442.0" text-anchor="middle" fill="#FCA5A5" font-size="10.5" font-weight="700">after routing</text>
+</svg>

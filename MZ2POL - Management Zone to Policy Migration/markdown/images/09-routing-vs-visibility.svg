@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Routing and Visibility Are Separate Axes</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Replacing who gets paged does not replace who may see the problem</text>
+  <rect x="20" y="80" width="430" height="220" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Routing — who gets paged</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="11.5">Mechanism: workflow trigger filter</text>
+  <text x="30" y="140" text-anchor="start" fill="#94A3B8" font-size="11.5">Field: entity tags + DQL matcher</text>
+  <text x="30" y="164" text-anchor="start" fill="#94A3B8" font-size="11.5">Owner: alerting / on-call design</text>
+  <text x="30" y="188" text-anchor="start" fill="#94A3B8" font-size="11.5">Wrong → the wrong team is paged</text>
+  <text x="30" y="212" text-anchor="start" fill="#94A3B8" font-size="11.5"></text>
+  <text x="30" y="236" text-anchor="start" fill="#94A3B8" font-size="11.5">Covered: §4–§6</text>
+  <rect x="480" y="80" width="430" height="220" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="490" y="99" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Visibility — who may see it</text>
+  <text x="490" y="116" text-anchor="start" fill="#94A3B8" font-size="11.5">Mechanism: IAM record-level policy</text>
+  <text x="490" y="140" text-anchor="start" fill="#94A3B8" font-size="11.5">Field: dt.security_context only</text>
+  <text x="490" y="164" text-anchor="start" fill="#94A3B8" font-size="11.5">Owner: access design (MZ2POL-12)</text>
+  <text x="490" y="188" text-anchor="start" fill="#94A3B8" font-size="11.5">Wrong → a team sees data it must not</text>
+  <text x="490" y="212" text-anchor="start" fill="#94A3B8" font-size="11.5"></text>
+  <text x="490" y="236" text-anchor="start" fill="#94A3B8" font-size="11.5">Covered: §7</text>
+  <rect x="20" y="320" width="890" height="158" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="320" width="890" height="158" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="344" text-anchor="start" fill="#FCA5A5" font-size="13" font-weight="700">The constraint that decides visibility</text>
+  <text x="36" y="370" text-anchor="start" fill="#94A3B8" font-size="11.5">A problem aggregates events, so its field values become arrays — and only dt.security_context supports</text>
+  <text x="36" y="394" text-anchor="start" fill="#94A3B8" font-size="11.5">filtering array values in record-level permissions. Team tags or custom attributes cannot carry problem visibility.</text>
+  <text x="36" y="418" text-anchor="start" fill="#94A3B8" font-size="11.5">Use MATCH, not = : problem records hold dt.security_context as an array, and = never matches an array.</text>
+  <text x="36" y="442" text-anchor="start" fill="#94A3B8" font-size="11.5">If MZ2POL-12's boundaries are in place, visibility is largely handled already — verify rather than rebuild.</text>
+</svg>

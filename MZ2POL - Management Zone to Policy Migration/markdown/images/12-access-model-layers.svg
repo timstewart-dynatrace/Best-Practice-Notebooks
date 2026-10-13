@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">The IAM Access Model That Replaces Zone Membership</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Who you are decides the bindings; each binding is a policy narrowed by boundaries; Grail checks four layers</text>
+  <rect x="20" y="76" width="150" height="92" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Identity provider</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">SAML / SCIM</text>
+  <text x="30" y="129" text-anchor="start" fill="#94A3B8" font-size="10.5">AD or IdP groups</text>
+  <line x1="170" y1="122" x2="196" y2="122" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="198" y="76" width="150" height="92" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="208" y="95" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">User group</text>
+  <text x="208" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">one per team × role</text>
+  <text x="208" y="129" text-anchor="start" fill="#94A3B8" font-size="10.5">account or env level</text>
+  <line x1="348" y1="122" x2="374" y2="122" stroke="#1496FF" stroke-width="1.6" marker-end="url(#arr-blue)"/>
+  <rect x="376" y="76" width="534" height="92" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="390" y="96" text-anchor="start" fill="#DDD6FE" font-size="12.5" font-weight="700">Policy binding  =  policy  +  0..n boundaries  (+ bind parameters)</text>
+  <text x="390" y="118" text-anchor="start" fill="#94A3B8" font-size="10.5">Policy: WHAT — default (Standard User, Read Logs …) or custom ALLOW / DENY statements</text>
+  <text x="390" y="134" text-anchor="start" fill="#94A3B8" font-size="10.5">Boundary: WHERE — one condition per line, e.g. storage:dt.security_context MATCH ("pay-*")</text>
+  <text x="390" y="150" text-anchor="start" fill="#94A3B8" font-size="10.5">Template parameters: ${bindParam:team} filled in per binding (REST API only)</text>
+  <text x="465" y="196" text-anchor="middle" fill="#CBD5E1" font-size="12.5" font-weight="700">What one statement can reach in Grail — every layer must allow it</text>
+  <rect x="20" y="210" width="209" height="100" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="30" y="229" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">1 · Bucket</text>
+  <text x="30" y="246" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:buckets:read</text>
+  <text x="30" y="263" text-anchor="start" fill="#94A3B8" font-size="10.5">WHERE storage:bucket-name …</text>
+  <text x="30" y="280" text-anchor="start" fill="#94A3B8" font-size="10.5">required alongside the table</text>
+  <rect x="247" y="210" width="209" height="100" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="257" y="229" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">2 · Table</text>
+  <text x="257" y="246" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:logs:read, :spans:read,</text>
+  <text x="257" y="263" text-anchor="start" fill="#94A3B8" font-size="10.5">:metrics:read, :events:read …</text>
+  <text x="257" y="280" text-anchor="start" fill="#94A3B8" font-size="10.5">one permission per table</text>
+  <rect x="474" y="210" width="209" height="100" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="484" y="229" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">3 · Record</text>
+  <text x="484" y="246" text-anchor="start" fill="#94A3B8" font-size="10.5">WHERE storage:dt.security_context,</text>
+  <text x="484" y="263" text-anchor="start" fill="#94A3B8" font-size="10.5">dt.host_group.id, k8s.namespace.name,</text>
+  <text x="484" y="280" text-anchor="start" fill="#94A3B8" font-size="10.5">log.source, frontend.name …</text>
+  <rect x="701" y="210" width="209" height="100" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="711" y="229" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">4 · Field</text>
+  <text x="711" y="246" text-anchor="start" fill="#94A3B8" font-size="10.5">fieldsets hide sensitive fields</text>
+  <text x="711" y="263" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:fieldsets:read</text>
+  <text x="711" y="280" text-anchor="start" fill="#94A3B8" font-size="10.5">spans, user events, custom</text>
+  <rect x="20" y="326" width="890" height="70" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="349" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">Classic surface during the parallel run</text>
+  <text x="36" y="369" text-anchor="start" fill="#94A3B8" font-size="11">environment:roles:viewer, :manage-settings, :logviewer … WHERE environment:management-zone IN (…)</text>
+  <text x="36" y="386" text-anchor="start" fill="#94A3B8" font-size="11">Applies to classic pages only — Grail "does not support management zones but uses the storage: fields"</text>
+  <rect x="20" y="408" width="890" height="70" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="408" width="890" height="70" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="431" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">Entity permissions do not cascade to data</text>
+  <text x="36" y="451" text-anchor="start" fill="#94A3B8" font-size="11">ALLOW storage:entities:read WHERE storage:dt.security_context = "x" filters which entities DQL returns —</text>
+  <text x="36" y="468" text-anchor="start" fill="#94A3B8" font-size="11">it "will not filter related metrics, logs, or traces". Each table needs its own scoped permission.</text>
+</svg>

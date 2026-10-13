@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">No-Regret Preparation for Spaces</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Every step below pays off today; none depends on how Spaces turn out</text>
+  <rect x="20" y="74" width="440" height="74" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="100" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">One team vocabulary, set at source</text>
+  <text x="36" y="124" text-anchor="start" fill="#94A3B8" font-size="10.5">primary_tags.team + dt.security_context in one step (MZ2POL-10)</text>
+  <rect x="470" y="74" width="440" height="74" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="470" y="74" width="440" height="74" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="486" y="116" text-anchor="start" fill="#94A3B8" font-size="11.5">Any future record-level scope needs the team on the record</text>
+  <rect x="20" y="156" width="440" height="74" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="36" y="182" text-anchor="start" fill="#DDD6FE" font-size="12.5" font-weight="700">One boundary per team</text>
+  <text x="36" y="206" text-anchor="start" fill="#94A3B8" font-size="10.5">groups × default policies × team boundary (MZ2POL-12)</text>
+  <rect x="470" y="156" width="440" height="74" rx="7" fill="#A78BFA" opacity="0.10"/>
+  <rect x="470" y="156" width="440" height="74" rx="7" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="486" y="198" text-anchor="start" fill="#94A3B8" font-size="11.5">A clean unit to re-point if a new condition appears</text>
+  <rect x="20" y="238" width="440" height="74" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="36" y="264" text-anchor="start" fill="#A5F3FC" font-size="12.5" font-weight="700">Segments per dimension</text>
+  <text x="36" y="288" text-anchor="start" fill="#94A3B8" font-size="10.5">team, app, stage (MZ2POL-05)</text>
+  <rect x="470" y="238" width="440" height="74" rx="7" fill="#22D3EE" opacity="0.10"/>
+  <rect x="470" y="238" width="440" height="74" rx="7" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="486" y="280" text-anchor="start" fill="#94A3B8" font-size="11.5">Views that do not depend on the access mechanism</text>
+  <rect x="20" y="320" width="440" height="74" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="346" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">Ownership tags on entities</text>
+  <text x="36" y="370" text-anchor="start" fill="#94A3B8" font-size="10.5">owner / dt.owner (FAQ-21)</text>
+  <rect x="470" y="320" width="440" height="74" rx="7" fill="#1496FF" opacity="0.10"/>
+  <rect x="470" y="320" width="440" height="74" rx="7" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="486" y="362" text-anchor="start" fill="#94A3B8" font-size="11.5">Who is responsible — already used for routing</text>
+  <rect x="20" y="402" width="440" height="74" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="428" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">Inventory delegated responsibility</text>
+  <text x="36" y="452" text-anchor="start" fill="#94A3B8" font-size="10.5">which zones delegated settings, alerts, dashboards</text>
+  <rect x="470" y="402" width="440" height="74" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="470" y="402" width="440" height="74" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="486" y="444" text-anchor="start" fill="#94A3B8" font-size="11.5">The gap the dt.space description names; record it now</text>
+</svg>

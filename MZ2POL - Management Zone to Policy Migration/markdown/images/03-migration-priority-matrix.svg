@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Prioritizing the Zone Estate</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Classify each zone by the job it does, then by how much breaks if it is wrong</text>
+  <rect x="20" y="72" width="160" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="93" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Priority</text>
+  <rect x="188" y="72" width="280" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="198" y="93" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Criteria</text>
+  <rect x="476" y="72" width="230" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="486" y="93" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Typical zones</text>
+  <rect x="714" y="72" width="196" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="724" y="93" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Migrates to</text>
+  <rect x="20" y="110" width="160" height="52" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="110" width="160" height="52" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="32" y="142" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">P1 · Critical</text>
+  <rect x="188" y="110" width="280" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="200" y="142" text-anchor="start" fill="#94A3B8" font-size="11.5">Security or compliance access</text>
+  <rect x="476" y="110" width="230" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="488" y="142" text-anchor="start" fill="#94A3B8" font-size="11.5">Production, PCI, regulated data</text>
+  <rect x="714" y="110" width="196" height="52" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="726" y="142" text-anchor="start" fill="#FCA5A5" font-size="11.5" font-weight="700">Policies + boundaries</text>
+  <rect x="20" y="168" width="160" height="52" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="20" y="168" width="160" height="52" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="200" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">P2 · High</text>
+  <rect x="188" y="168" width="280" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="200" y="200" text-anchor="start" fill="#94A3B8" font-size="11.5">Actively used for team access</text>
+  <rect x="476" y="168" width="230" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="488" y="200" text-anchor="start" fill="#94A3B8" font-size="11.5">Team / LOB zones</text>
+  <rect x="714" y="168" width="196" height="52" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="726" y="200" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Policies + boundaries</text>
+  <rect x="20" y="226" width="160" height="52" rx="7" fill="#1496FF" opacity="0.10"/>
+  <rect x="20" y="226" width="160" height="52" rx="7" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="258" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">P2 · High</text>
+  <rect x="188" y="226" width="280" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="200" y="258" text-anchor="start" fill="#94A3B8" font-size="11.5">Scopes who gets paged</text>
+  <rect x="476" y="226" width="230" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="488" y="258" text-anchor="start" fill="#94A3B8" font-size="11.5">Zones on alerting profiles</text>
+  <rect x="714" y="226" width="196" height="52" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="726" y="258" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">Workflows (MZ2POL-09)</text>
+  <rect x="20" y="284" width="160" height="52" rx="7" fill="#22D3EE" opacity="0.10"/>
+  <rect x="20" y="284" width="160" height="52" rx="7" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="32" y="316" text-anchor="start" fill="#A5F3FC" font-size="12.5" font-weight="700">P3 · Medium</text>
+  <rect x="188" y="284" width="280" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="200" y="316" text-anchor="start" fill="#94A3B8" font-size="11.5">Used for filtering only</text>
+  <rect x="476" y="284" width="230" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="488" y="316" text-anchor="start" fill="#94A3B8" font-size="11.5">Region / app / stage views</text>
+  <rect x="714" y="284" width="196" height="52" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="726" y="316" text-anchor="start" fill="#A5F3FC" font-size="11.5" font-weight="700">Segments (MZ2POL-05)</text>
+  <rect x="20" y="342" width="160" height="52" rx="7" fill="#64748B" opacity="0.10"/>
+  <rect x="20" y="342" width="160" height="52" rx="7" fill="none" stroke="#64748B" stroke-width="1.2"/>
+  <text x="32" y="374" text-anchor="start" fill="#CBD5E1" font-size="12.5" font-weight="700">P4 · Low</text>
+  <rect x="188" y="342" width="280" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="200" y="374" text-anchor="start" fill="#94A3B8" font-size="11.5">Unused or informational</text>
+  <rect x="476" y="342" width="230" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="488" y="374" text-anchor="start" fill="#94A3B8" font-size="11.5">No recent query activity</text>
+  <rect x="714" y="342" width="196" height="52" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="726" y="374" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Delete, don't convert</text>
+  <rect x="20" y="404" width="890" height="74" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="20" y="404" width="890" height="74" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="428" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">Every priority shares one prerequisite: the tag readiness gate</text>
+  <text x="36" y="448" text-anchor="start" fill="#94A3B8" font-size="11">Policies, segments and workflows all read fields set at the source. Translate each zone's rules (MZ2POL-11)</text>
+  <text x="36" y="465" text-anchor="start" fill="#94A3B8" font-size="11">and pass the MZ2POL-10 gate before building any of them — P1 first, so the riskiest zones get the most soak time.</text>
+</svg>

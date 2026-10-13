@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Alerting Cutover Sequence</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Six steps; disabling profiles and deleting zones never share a change window</text>
+  <rect x="20" y="72" width="560" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="96" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">1 · Build workflows</text>
+  <text x="36" y="116" text-anchor="start" fill="#94A3B8" font-size="11">tags verified at 100% coverage (§4)</text>
+  <line x1="300" y1="128" x2="300" y2="135" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="136" width="560" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="160" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">2 · Run in parallel</text>
+  <text x="36" y="180" text-anchor="start" fill="#94A3B8" font-size="11">classic profiles AND workflows active</text>
+  <line x1="300" y1="192" x2="300" y2="199" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="200" width="560" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="224" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">3 · Prove alert parity</text>
+  <text x="36" y="244" text-anchor="start" fill="#94A3B8" font-size="11">per-team volume matches for an agreed window</text>
+  <line x1="300" y1="256" x2="300" y2="263" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="264" width="560" height="56" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="288" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">4 · DISABLE profiles</text>
+  <text x="36" y="308" text-anchor="start" fill="#94A3B8" font-size="11">disable, not delete — rollback is one click</text>
+  <line x1="300" y1="320" x2="300" y2="327" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="328" width="560" height="56" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="352" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">5 · Soak</text>
+  <text x="36" y="372" text-anchor="start" fill="#94A3B8" font-size="11">agreed quiet period</text>
+  <line x1="300" y1="384" x2="300" y2="391" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="392" width="560" height="56" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="416" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">6 · Delete zones</text>
+  <text x="36" y="436" text-anchor="start" fill="#94A3B8" font-size="11">separate change window, last</text>
+  <rect x="600" y="72" width="310" height="184" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="600" y="72" width="310" height="184" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="614" y="96" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">Untested: deleting a zone</text>
+  <text x="614" y="120" text-anchor="start" fill="#94A3B8" font-size="11">What an alerting profile does when</text>
+  <text x="614" y="140" text-anchor="start" fill="#94A3B8" font-size="11">its zone is deleted is undocumented:</text>
+  <text x="614" y="160" text-anchor="start" fill="#94A3B8" font-size="11">• fail-open → page storm</text>
+  <text x="614" y="180" text-anchor="start" fill="#94A3B8" font-size="11">• fail-closed → silent alert loss</text>
+  <text x="614" y="200" text-anchor="start" fill="#94A3B8" font-size="11">Run the §8 test in non-prod first.</text>
+  <rect x="600" y="270" width="310" height="184" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="614" y="294" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">Why separate windows</text>
+  <text x="614" y="318" text-anchor="start" fill="#94A3B8" font-size="11">After a combined change there is</text>
+  <text x="614" y="338" text-anchor="start" fill="#94A3B8" font-size="11">no way to tell which half caused a</text>
+  <text x="614" y="358" text-anchor="start" fill="#94A3B8" font-size="11">regression. Step 4 is reversible;</text>
+  <text x="614" y="378" text-anchor="start" fill="#94A3B8" font-size="11">step 6 is not.</text>
+</svg>

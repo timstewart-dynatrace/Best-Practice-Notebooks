@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Three Bindings, Three Outcomes</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">The same team, three ways to bind it — only the first scopes both Grail and classic pages</text>
+  <rect x="20" y="80" width="285" height="200" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">One boundary, every domain</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="11">Standard User + Read Logs</text>
+  <text x="30" y="137" text-anchor="start" fill="#94A3B8" font-size="11">Boundary: storage:dt.security_context</text>
+  <text x="30" y="158" text-anchor="start" fill="#94A3B8" font-size="11">  MATCH ("team-a");</text>
+  <text x="30" y="179" text-anchor="start" fill="#94A3B8" font-size="11">environment:management-zone</text>
+  <text x="30" y="200" text-anchor="start" fill="#94A3B8" font-size="11">  IN ("Team-A");</text>
+  <rect x="20" y="292" width="285" height="56" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="20" y="292" width="285" height="56" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="32" y="324" text-anchor="start" fill="#86EFAC" font-size="11" font-weight="700">Grail: team-a only · classic: Team-A only</text>
+  <rect x="322" y="80" width="285" height="200" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="332" y="99" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Zone line only</text>
+  <text x="332" y="116" text-anchor="start" fill="#94A3B8" font-size="11">Standard User + Read Logs</text>
+  <text x="332" y="137" text-anchor="start" fill="#94A3B8" font-size="11">Boundary:</text>
+  <text x="332" y="158" text-anchor="start" fill="#94A3B8" font-size="11">environment:management-zone</text>
+  <text x="332" y="179" text-anchor="start" fill="#94A3B8" font-size="11">  IN ("Team-A");</text>
+  <text x="332" y="200" text-anchor="start" fill="#94A3B8" font-size="11"></text>
+  <rect x="322" y="292" width="285" height="56" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="322" y="292" width="285" height="56" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="334" y="324" text-anchor="start" fill="#FCA5A5" font-size="11" font-weight="700">Grail: ALL logs · classic: Team-A only</text>
+  <rect x="624" y="80" width="285" height="200" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="634" y="99" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Two boundaries on one binding</text>
+  <text x="634" y="116" text-anchor="start" fill="#94A3B8" font-size="11">Read Logs + Read Entities</text>
+  <text x="634" y="137" text-anchor="start" fill="#94A3B8" font-size="11">Boundary 1: storage:host.name …</text>
+  <text x="634" y="158" text-anchor="start" fill="#94A3B8" font-size="11">Boundary 2: storage:dt.security_</text>
+  <text x="634" y="179" text-anchor="start" fill="#94A3B8" font-size="11">  context = "team-a"</text>
+  <text x="634" y="200" text-anchor="start" fill="#94A3B8" font-size="11">(computed separately)</text>
+  <rect x="624" y="292" width="285" height="56" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="624" y="292" width="285" height="56" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="636" y="324" text-anchor="start" fill="#FCA5A5" font-size="11" font-weight="700">Entities: ALL (boundary 1 cannot scope them)</text>
+  <rect x="20" y="370" width="890" height="108" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="394" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">The rules behind the outcomes (Policy boundaries page)</text>
+  <text x="36" y="418" text-anchor="start" fill="#94A3B8" font-size="11.5">"Only conditions added to service configuration will be applied to relative permissions."</text>
+  <text x="36" y="438" text-anchor="start" fill="#94A3B8" font-size="11.5">"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"</text>
+  <text x="36" y="458" text-anchor="start" fill="#94A3B8" font-size="11.5">Boundaries narrow the policy they are bound with — they never narrow another binding the user also has.</text>
+</svg>

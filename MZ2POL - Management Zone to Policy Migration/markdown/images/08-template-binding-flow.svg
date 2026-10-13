@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">One Template, Many Bindings</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">The policy holds the shape; each binding supplies the value — bound through the REST API, not the UI</text>
+  <rect x="20" y="80" width="300" height="150" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Template policy: team-access</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="10.5">ALLOW storage:logs:read,</text>
+  <text x="30" y="134" text-anchor="start" fill="#94A3B8" font-size="10.5">      storage:spans:read,</text>
+  <text x="30" y="152" text-anchor="start" fill="#94A3B8" font-size="10.5">      storage:metrics:read</text>
+  <text x="30" y="170" text-anchor="start" fill="#94A3B8" font-size="10.5">WHERE storage:dt.security_context</text>
+  <text x="30" y="188" text-anchor="start" fill="#94A3B8" font-size="10.5">  = "${bindParam:team}";</text>
+  <line x1="320" y1="155" x2="380" y2="108" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <rect x="382" y="80" width="230" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="394" y="102" text-anchor="start" fill="#BFDBFE" font-size="10.5" font-weight="700">POST …/bindings/&lt;policy&gt;/&lt;group&gt;</text>
+  <text x="394" y="122" text-anchor="start" fill="#94A3B8" font-size="10.5">{"parameters": {"team": "frontend"}}</text>
+  <line x1="612" y1="108" x2="652" y2="108" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="654" y="80" width="256" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="666" y="102" text-anchor="start" fill="#86EFAC" font-size="11" font-weight="700">group frontend</text>
+  <text x="666" y="122" text-anchor="start" fill="#94A3B8" font-size="10.5">… dt.security_context = "frontend"</text>
+  <line x1="320" y1="155" x2="380" y2="178" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <rect x="382" y="150" width="230" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="394" y="172" text-anchor="start" fill="#BFDBFE" font-size="10.5" font-weight="700">POST …/bindings/&lt;policy&gt;/&lt;group&gt;</text>
+  <text x="394" y="192" text-anchor="start" fill="#94A3B8" font-size="10.5">{"parameters": {"team": "checkout"}}</text>
+  <line x1="612" y1="178" x2="652" y2="178" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="654" y="150" width="256" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="666" y="172" text-anchor="start" fill="#86EFAC" font-size="11" font-weight="700">group checkout</text>
+  <text x="666" y="192" text-anchor="start" fill="#94A3B8" font-size="10.5">… dt.security_context = "checkout"</text>
+  <line x1="320" y1="155" x2="380" y2="248" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <rect x="382" y="220" width="230" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="394" y="242" text-anchor="start" fill="#BFDBFE" font-size="10.5" font-weight="700">POST …/bindings/&lt;policy&gt;/&lt;group&gt;</text>
+  <text x="394" y="262" text-anchor="start" fill="#94A3B8" font-size="10.5">{"parameters": {"team": "payments"}}</text>
+  <line x1="612" y1="248" x2="652" y2="248" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="654" y="220" width="256" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="666" y="242" text-anchor="start" fill="#86EFAC" font-size="11" font-weight="700">group payments</text>
+  <text x="666" y="262" text-anchor="start" fill="#94A3B8" font-size="10.5">… dt.security_context = "payments"</text>
+  <rect x="20" y="300" width="890" height="176" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="324" text-anchor="start" fill="#FCD34D" font-size="13" font-weight="700">Rules from the templating reference</text>
+  <text x="36" y="350" text-anchor="start" fill="#94A3B8" font-size="11.5">• Parameterized policies are managed only via REST API; group management does not bind parameters.</text>
+  <text x="36" y="374" text-anchor="start" fill="#94A3B8" font-size="11.5">• Every referenced parameter must be supplied at binding time — a mismatch returns HTTP 400 listing expected vs supplied.</text>
+  <text x="36" y="398" text-anchor="start" fill="#94A3B8" font-size="11.5">• A bound policy can be edited only while its parameter set stays the same — adding a parameter fails.</text>
+  <text x="36" y="422" text-anchor="start" fill="#94A3B8" font-size="11.5">• A list value is one comma-separated string: IN ("${bindParam:teams}") with {"teams": "a,b,c"}.</text>
+  <text x="36" y="446" text-anchor="start" fill="#94A3B8" font-size="11.5">• Events hold dt.security_context as an array: = never matches them — test events access before rollout.</text>
+</svg>

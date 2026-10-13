@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">The LAB Estate: Eight Zones, Three Teams, One Platform</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">A fictional estate small enough to migrate end to end — every zone shape from the series appears once</text>
+  <rect x="20" y="68" width="210" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="88" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Zone</text>
+  <rect x="238" y="68" width="300" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="88" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Rule</text>
+  <rect x="546" y="68" width="140" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="88" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Jobs</text>
+  <rect x="694" y="68" width="216" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="704" y="88" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Disposition</text>
+  <rect x="20" y="104" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="129" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Payments - Prod</text>
+  <rect x="238" y="104" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="129" text-anchor="start" fill="#94A3B8" font-size="10.5">HOST_GROUP_NAME EQUALS prod-pay</text>
+  <rect x="546" y="104" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="129" text-anchor="start" fill="#94A3B8" font-size="11">access, filter, alert</text>
+  <rect x="694" y="104" width="216" height="40" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="704" y="129" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">host group + security context</text>
+  <rect x="20" y="150" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="175" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Checkout - Prod</text>
+  <rect x="238" y="150" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="175" text-anchor="start" fill="#94A3B8" font-size="10.5">PG_DETECTED_NAME CONTAINS checkout</text>
+  <rect x="546" y="150" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="175" text-anchor="start" fill="#94A3B8" font-size="11">access</text>
+  <rect x="694" y="150" width="216" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="704" y="175" text-anchor="start" fill="#DDD6FE" font-size="10.5" font-weight="700">DT_TAGS on the process</text>
+  <rect x="20" y="196" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="221" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Catalog</text>
+  <rect x="238" y="196" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="221" text-anchor="start" fill="#94A3B8" font-size="10.5">K8s NAMESPACE_NAME EQUALS catalog</text>
+  <rect x="546" y="196" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="221" text-anchor="start" fill="#94A3B8" font-size="11">filter</text>
+  <rect x="694" y="196" width="216" height="40" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="704" y="221" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">k8s.namespace.name (built in)</text>
+  <rect x="20" y="242" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="267" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Production (excl. legacy)</text>
+  <rect x="238" y="242" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="267" text-anchor="start" fill="#94A3B8" font-size="10.5">HG BEGINS_WITH prod- AND NOT legacy</text>
+  <rect x="546" y="242" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="267" text-anchor="start" fill="#94A3B8" font-size="11">filter</text>
+  <rect x="694" y="242" width="216" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="704" y="267" text-anchor="start" fill="#BFDBFE" font-size="10.5" font-weight="700">central rule → tier tag</text>
+  <rect x="20" y="288" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="313" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Platform</text>
+  <rect x="238" y="288" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="313" text-anchor="start" fill="#94A3B8" font-size="10.5">SELECTOR type(HOST),tag(role:platform)</text>
+  <rect x="546" y="288" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="313" text-anchor="start" fill="#94A3B8" font-size="11">access</text>
+  <rect x="694" y="288" width="216" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="704" y="313" text-anchor="start" fill="#BFDBFE" font-size="10.5" font-weight="700">central rule on host.tags.role</text>
+  <rect x="20" y="334" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="359" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Payments logs</text>
+  <rect x="238" y="334" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="359" text-anchor="start" fill="#94A3B8" font-size="10.5">DIMENSION LOG_FILE_NAME /var/log/payments</text>
+  <rect x="546" y="334" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="359" text-anchor="start" fill="#94A3B8" font-size="11">access</text>
+  <rect x="694" y="334" width="216" height="40" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="704" y="359" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">log.source (on the record)</text>
+  <rect x="20" y="380" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="405" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Old Test MZ</text>
+  <rect x="238" y="380" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="405" text-anchor="start" fill="#94A3B8" font-size="10.5">no usage in 90 days</text>
+  <rect x="546" y="380" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="405" text-anchor="start" fill="#94A3B8" font-size="11">—</text>
+  <rect x="694" y="380" width="216" height="40" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="704" y="405" text-anchor="start" fill="#FCA5A5" font-size="10.5" font-weight="700">delete</text>
+  <rect x="20" y="426" width="210" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="451" text-anchor="start" fill="#CBD5E1" font-size="11" font-weight="700">Payments on-call (profile)</text>
+  <rect x="238" y="426" width="300" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="248" y="451" text-anchor="start" fill="#94A3B8" font-size="10.5">alerting profile on Payments - Prod</text>
+  <rect x="546" y="426" width="140" height="40" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="556" y="451" text-anchor="start" fill="#94A3B8" font-size="11">alert</text>
+  <rect x="694" y="426" width="216" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="704" y="451" text-anchor="start" fill="#A5F3FC" font-size="10.5" font-weight="700">workflow, tag team:payments</text>
+  <text x="465" y="486" text-anchor="middle" fill="#94A3B8" font-size="11">Teams: payments, checkout, catalog · shared platform · security context values carry the stage: prod/&lt;team&gt;</text>
+</svg>

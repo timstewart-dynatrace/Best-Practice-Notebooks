@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">One Enrichment Step, Every Job</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Write the team value to both fields at the same time, from the same source, so they never drift apart</text>
+  <rect x="20" y="150" width="200" height="150" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="169" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Source of truth</text>
+  <text x="30" y="186" text-anchor="start" fill="#94A3B8" font-size="10.5">host tag / DT_TAGS</text>
+  <text x="30" y="202" text-anchor="start" fill="#94A3B8" font-size="10.5">K8s namespace annotation</text>
+  <text x="30" y="218" text-anchor="start" fill="#94A3B8" font-size="10.5">OTel resource attribute</text>
+  <text x="30" y="234" text-anchor="start" fill="#94A3B8" font-size="10.5">central enrichment rule</text>
+  <text x="30" y="250" text-anchor="start" fill="#94A3B8" font-size="10.5"></text>
+  <text x="30" y="266" text-anchor="start" fill="#94A3B8" font-size="10.5">team = payments</text>
+  <line x1="220" y1="205" x2="268" y2="175" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <line x1="220" y1="245" x2="268" y2="300" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <rect x="270" y="120" width="230" height="100" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="280" y="139" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">primary_tags.team = payments</text>
+  <text x="280" y="156" text-anchor="start" fill="#94A3B8" font-size="10.5">filters, routes, allocates</text>
+  <text x="280" y="171" text-anchor="start" fill="#94A3B8" font-size="10.5">reaches every signal and</text>
+  <text x="280" y="186" text-anchor="start" fill="#94A3B8" font-size="10.5">derived data</text>
+  <rect x="270" y="255" width="230" height="100" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="280" y="274" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">dt.security_context = payments</text>
+  <text x="280" y="291" text-anchor="start" fill="#94A3B8" font-size="10.5">the access-control field</text>
+  <text x="280" y="306" text-anchor="start" fill="#94A3B8" font-size="10.5">permission-tagged in the</text>
+  <text x="280" y="321" text-anchor="start" fill="#94A3B8" font-size="10.5">semantic dictionary</text>
+  <rect x="620" y="90" width="290" height="48" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="634" y="110" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Segment filter</text>
+  <text x="634" y="127" text-anchor="start" fill="#94A3B8" font-size="10.5">every Grail app</text>
+  <rect x="620" y="148" width="290" height="48" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="634" y="168" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Workflow / alert routing</text>
+  <text x="634" y="185" text-anchor="start" fill="#94A3B8" font-size="10.5">event trigger + Davis events</text>
+  <rect x="620" y="206" width="290" height="48" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="634" y="226" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">OpenPipeline routing</text>
+  <text x="634" y="243" text-anchor="start" fill="#94A3B8" font-size="10.5">bucket and retention choice</text>
+  <rect x="620" y="300" width="290" height="48" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="634" y="320" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">IAM policy condition</text>
+  <text x="634" y="337" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:dt.security_context</text>
+  <rect x="620" y="358" width="290" height="48" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="634" y="378" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Record-level access</text>
+  <text x="634" y="395" text-anchor="start" fill="#94A3B8" font-size="10.5">logs, spans, metrics, events</text>
+  <line x1="500" y1="170" x2="618" y2="114" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <line x1="500" y1="170" x2="618" y2="172" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <line x1="500" y1="170" x2="618" y2="230" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <line x1="500" y1="305" x2="618" y2="324" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <line x1="500" y1="305" x2="618" y2="382" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <path d="M 500 190 C 560 250, 570 300, 612 318" fill="none" stroke="#DE350B" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <path d="M553,255 L567,269 M567,255 L553,269" stroke="#DE350B" stroke-width="2.4"/>
+  <text x="575" y="450" text-anchor="middle" fill="#FCA5A5" font-size="11.5" font-weight="700">A primary tag is not an access boundary: primary_tags.* carries no permission tag</text>
+  <text x="575" y="468" text-anchor="middle" fill="#94A3B8" font-size="11">in the semantic dictionary. Restrict access through dt.security_context.</text>
+</svg>

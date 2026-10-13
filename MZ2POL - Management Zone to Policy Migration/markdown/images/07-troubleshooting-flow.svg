@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Access Troubleshooting After the Migration</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Start from the symptom; most causes are a missing field on the data or a grant from somewhere else</text>
+  <rect x="20" y="76" width="285" height="196" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Sees nothing</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="11">• Bucket permission missing —</text>
+  <text x="30" y="136" text-anchor="start" fill="#94A3B8" font-size="11">   table + bucket both needed</text>
+  <text x="30" y="160" text-anchor="start" fill="#94A3B8" font-size="11">• Records lack dt.security_context</text>
+  <text x="30" y="184" text-anchor="start" fill="#94A3B8" font-size="11">• = / IN on an array field (events)</text>
+  <text x="30" y="208" text-anchor="start" fill="#94A3B8" font-size="11">• Boundary value spelled differently</text>
+  <rect x="322" y="76" width="285" height="196" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="332" y="95" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Sees too much</text>
+  <text x="332" y="112" text-anchor="start" fill="#94A3B8" font-size="11">• Unscoped data policy in another</text>
+  <text x="332" y="136" text-anchor="start" fill="#94A3B8" font-size="11">   of the user's groups</text>
+  <text x="332" y="160" text-anchor="start" fill="#94A3B8" font-size="11">• Zone-only boundary on a default</text>
+  <text x="332" y="184" text-anchor="start" fill="#94A3B8" font-size="11">   policy (Grail unscoped)</text>
+  <text x="332" y="208" text-anchor="start" fill="#94A3B8" font-size="11">• Second boundary leaking a permission</text>
+  <rect x="624" y="76" width="285" height="196" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="634" y="95" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Classic OK, Grail wrong</text>
+  <text x="634" y="112" text-anchor="start" fill="#94A3B8" font-size="11">• Boundary has only the zone line</text>
+  <text x="634" y="136" text-anchor="start" fill="#94A3B8" font-size="11">• Data never got the field —</text>
+  <text x="634" y="160" text-anchor="start" fill="#94A3B8" font-size="11">   auto-tags don't reach Grail</text>
+  <text x="634" y="184" text-anchor="start" fill="#94A3B8" font-size="11">• Entities: only dt.security_context</text>
+  <text x="634" y="208" text-anchor="start" fill="#94A3B8" font-size="11">   scopes storage:entities:read</text>
+  <text x="465" y="300" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">Systematic steps</text>
+  <rect x="20" y="314" width="170" height="64" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="340" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">1 · Effective</text>
+  <text x="32" y="360" text-anchor="start" fill="#94A3B8" font-size="11">permissions API</text>
+  <rect x="200" y="314" width="170" height="64" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="212" y="340" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">2 · List every</text>
+  <text x="212" y="360" text-anchor="start" fill="#94A3B8" font-size="11">binding + group</text>
+  <rect x="380" y="314" width="170" height="64" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="392" y="340" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">3 · Each boundary:</text>
+  <text x="392" y="360" text-anchor="start" fill="#94A3B8" font-size="11">every domain?</text>
+  <rect x="560" y="314" width="170" height="64" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="572" y="340" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">4 · Record field</text>
+  <text x="572" y="360" text-anchor="start" fill="#94A3B8" font-size="11">present, which type?</text>
+  <rect x="740" y="314" width="170" height="64" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="752" y="340" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">5 · Retest as</text>
+  <text x="752" y="360" text-anchor="start" fill="#94A3B8" font-size="11">pilot user</text>
+  <line x1="190" y1="346" x2="199" y2="346" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="370" y1="346" x2="379" y2="346" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="550" y1="346" x2="559" y2="346" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="730" y1="346" x2="739" y2="346" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="396" width="890" height="82" rx="7" fill="#1496FF" opacity="0.10"/>
+  <rect x="20" y="396" width="890" height="82" rx="7" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="420" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">Test with a pilot user, never an admin</text>
+  <text x="36" y="440" text-anchor="start" fill="#94A3B8" font-size="11">An admin holds unscoped grants that hide every boundary problem. MZ2POL-12 §10 has the API call and the DQL</text>
+  <text x="36" y="458" text-anchor="start" fill="#94A3B8" font-size="11">checks for array-typed and missing security contexts.</text>
+</svg>

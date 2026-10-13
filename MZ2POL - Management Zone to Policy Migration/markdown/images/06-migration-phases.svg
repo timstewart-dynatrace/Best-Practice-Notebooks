@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Migration Phases and Their Gates</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Each phase hands the next one something verifiable — the tag gate comes before anything is built</text>
+  <rect x="20" y="74" width="200" height="100" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="102" text-anchor="start" fill="#CBD5E1" font-size="13" font-weight="700">1 · Assess</text>
+  <text x="34" y="126" text-anchor="start" fill="#94A3B8" font-size="11">MZ2POL-00, -03</text>
+  <text x="34" y="146" text-anchor="start" fill="#94A3B8" font-size="11">zones by job</text>
+  <rect x="250" y="74" width="200" height="100" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="264" y="102" text-anchor="start" fill="#86EFAC" font-size="13" font-weight="700">2 · Tag + translate</text>
+  <text x="264" y="126" text-anchor="start" fill="#94A3B8" font-size="11">MZ2POL-10, -11</text>
+  <text x="264" y="146" text-anchor="start" fill="#94A3B8" font-size="11">readiness gate</text>
+  <rect x="480" y="74" width="200" height="100" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="494" y="102" text-anchor="start" fill="#DDD6FE" font-size="13" font-weight="700">3 · Access</text>
+  <text x="494" y="126" text-anchor="start" fill="#94A3B8" font-size="11">MZ2POL-12, -04, -08</text>
+  <text x="494" y="146" text-anchor="start" fill="#94A3B8" font-size="11">groups, one boundary/team</text>
+  <rect x="710" y="74" width="200" height="100" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="724" y="102" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">4 · Filtering</text>
+  <text x="724" y="126" text-anchor="start" fill="#94A3B8" font-size="11">MZ2POL-05</text>
+  <text x="724" y="146" text-anchor="start" fill="#94A3B8" font-size="11">segments per dimension</text>
+  <rect x="20" y="200" width="200" height="100" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="34" y="228" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">5 · Alerting</text>
+  <text x="34" y="252" text-anchor="start" fill="#94A3B8" font-size="11">MZ2POL-09</text>
+  <text x="34" y="272" text-anchor="start" fill="#94A3B8" font-size="11">workflows, parity</text>
+  <rect x="250" y="200" width="200" height="100" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="264" y="228" text-anchor="start" fill="#FCD34D" font-size="13" font-weight="700">6 · Parallel run</text>
+  <text x="264" y="252" text-anchor="start" fill="#94A3B8" font-size="11">§6 states 0→2</text>
+  <text x="264" y="272" text-anchor="start" fill="#94A3B8" font-size="11">evidence, not weeks</text>
+  <rect x="480" y="200" width="200" height="100" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="494" y="228" text-anchor="start" fill="#FCA5A5" font-size="13" font-weight="700">7 · Cutover</text>
+  <text x="494" y="252" text-anchor="start" fill="#94A3B8" font-size="11">§7</text>
+  <text x="494" y="272" text-anchor="start" fill="#94A3B8" font-size="11">remove zone lines</text>
+  <rect x="710" y="200" width="200" height="100" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="724" y="228" text-anchor="start" fill="#CBD5E1" font-size="13" font-weight="700">8 · Cleanup</text>
+  <text x="724" y="252" text-anchor="start" fill="#94A3B8" font-size="11">§8</text>
+  <text x="724" y="272" text-anchor="start" fill="#94A3B8" font-size="11">delete zones last</text>
+  <line x1="220" y1="124" x2="248" y2="124" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="220" y1="250" x2="248" y2="250" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="450" y1="124" x2="478" y2="124" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="450" y1="250" x2="478" y2="250" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="680" y1="124" x2="708" y2="124" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="680" y1="250" x2="708" y2="250" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <path d="M 810 174 C 810 190, 120 180, 120 198" fill="none" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="250" y="312" width="200" height="26" rx="13" fill="#DE350B" opacity="0.10"/>
+  <rect x="250" y="312" width="200" height="26" rx="13" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="350" y="330" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">GATE: tags verified</text>
+  <rect x="480" y="312" width="200" height="26" rx="13" fill="#DE350B" opacity="0.10"/>
+  <rect x="480" y="312" width="200" height="26" rx="13" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="580" y="330" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">GATE: parity + permissions</text>
+  <rect x="20" y="356" width="890" height="122" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="380" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">Why this order</text>
+  <text x="36" y="404" text-anchor="start" fill="#94A3B8" font-size="11.5">Phases 3–5 all read fields on the data; built before phase 2's gate, they return partial data without an error.</text>
+  <text x="36" y="426" text-anchor="start" fill="#94A3B8" font-size="11.5">Phases 3–5 can run in parallel once the gate passes — they are independent jobs of the zone (access, filter, alert).</text>
+  <text x="36" y="448" text-anchor="start" fill="#94A3B8" font-size="11.5">Zone lines and alerting profiles leave in separate change windows; zones themselves are deleted last (MZ2POL-09 §8).</text>
+</svg>

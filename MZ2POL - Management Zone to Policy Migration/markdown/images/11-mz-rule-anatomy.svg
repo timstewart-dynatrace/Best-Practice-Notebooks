@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Anatomy of a Management Zone Rule</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">builtin:management-zones — what each part of a rule becomes when you translate it</text>
+  <rect x="20" y="72" width="300" height="400" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="36" y="96" text-anchor="start" fill="#CBD5E1" font-size="13" font-weight="700">Management zone</text>
+  <text x="36" y="114" text-anchor="start" fill="#94A3B8" font-size="10.5">name · description · rules[ ]</text>
+  <text x="36" y="140" text-anchor="start" fill="#94A3B8" font-size="11">Each rule has a type:</text>
+  <rect x="36" y="154" width="268" height="84" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="50" y="176" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">ME</text>
+  <text x="81.0" y="176" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">entity attribute rule</text>
+  <text x="50" y="198" text-anchor="start" fill="#94A3B8" font-size="10.5">entityType + conditions[ ]</text>
+  <text x="50" y="214" text-anchor="start" fill="#94A3B8" font-size="10.5">+ 8 propagation flags</text>
+  <rect x="36" y="250" width="268" height="84" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="50" y="272" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">DIMENSION</text>
+  <text x="147.5" y="272" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">dimension rule</text>
+  <text x="50" y="294" text-anchor="start" fill="#94A3B8" font-size="10.5">appliesTo ANY / LOG / METRIC</text>
+  <text x="50" y="310" text-anchor="start" fill="#94A3B8" font-size="10.5">DIMENSION, LOG_FILE_NAME, METRIC_KEY</text>
+  <rect x="36" y="346" width="268" height="84" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="50" y="368" text-anchor="start" fill="#DDD6FE" font-size="13" font-weight="700">SELECTOR</text>
+  <text x="138.0" y="368" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">entity selector rule</text>
+  <text x="50" y="390" text-anchor="start" fill="#94A3B8" font-size="10.5">one entitySelector string</text>
+  <text x="50" y="406" text-anchor="start" fill="#94A3B8" font-size="10.5">e.g. type(SERVICE),tag(app:x)</text>
+  <text x="36" y="455" text-anchor="start" fill="#94A3B8" font-size="10.5">Rules are ORed: an entity matching any rule joins</text>
+  <rect x="340" y="72" width="570" height="236" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="356" y="96" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">One ME condition</text>
+  <rect x="356" y="112" width="170" height="72" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="366" y="132" text-anchor="start" fill="#94A3B8" font-size="10.5">key</text>
+  <text x="366" y="154" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">HOST_GROUP_NAME</text>
+  <text x="366" y="172" text-anchor="start" fill="#94A3B8" font-size="10.5">198 property keys</text>
+  <rect x="536" y="112" width="170" height="72" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="546" y="132" text-anchor="start" fill="#94A3B8" font-size="10.5">operator</text>
+  <text x="546" y="154" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">BEGINS_WITH</text>
+  <text x="546" y="172" text-anchor="start" fill="#94A3B8" font-size="10.5">24 operators incl. NOT_*</text>
+  <rect x="716" y="112" width="180" height="72" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="726" y="132" text-anchor="start" fill="#94A3B8" font-size="10.5">value</text>
+  <text x="726" y="154" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">"PROD-"</text>
+  <text x="726" y="172" text-anchor="start" fill="#94A3B8" font-size="10.5">string / enum / int / tag</text>
+  <rect x="356" y="196" width="260" height="44" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="356" y="196" width="260" height="44" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="368" y="216" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">caseSensitive: false</text>
+  <text x="368" y="232" text-anchor="start" fill="#94A3B8" font-size="10.5">Grail field filters compare exactly</text>
+  <rect x="626" y="196" width="270" height="44" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="626" y="196" width="270" height="44" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="638" y="216" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">tag: [CONTEXT]key:value</text>
+  <text x="638" y="232" text-anchor="start" fill="#94A3B8" font-size="10.5">[Environment], [AWS], [Kubernetes] …</text>
+  <text x="356" y="266" text-anchor="start" fill="#94A3B8" font-size="11">Conditions inside one rule are ANDed. A rule is evaluated periodically in the</text>
+  <text x="356" y="283" text-anchor="start" fill="#94A3B8" font-size="11">background, against entities seen in a limited timeframe.</text>
+  <rect x="340" y="320" width="570" height="152" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="356" y="344" text-anchor="start" fill="#86EFAC" font-size="13" font-weight="700">Translation targets</text>
+  <text x="356" y="368" text-anchor="start" fill="#86EFAC" font-size="11.5" font-weight="700">key</text>
+  <text x="450" y="368" text-anchor="start" fill="#94A3B8" font-size="11">→ a field the producer sets, or a built-in primary Grail field</text>
+  <text x="356" y="389" text-anchor="start" fill="#86EFAC" font-size="11.5" font-weight="700">operator</text>
+  <text x="450" y="389" text-anchor="start" fill="#94A3B8" font-size="11">→ an enrichment-rule condition, a segment filter, or an IAM condition</text>
+  <text x="356" y="410" text-anchor="start" fill="#86EFAC" font-size="11.5" font-weight="700">value</text>
+  <text x="450" y="410" text-anchor="start" fill="#94A3B8" font-size="11">→ one controlled value per key (agree allowed values up front)</text>
+  <text x="356" y="431" text-anchor="start" fill="#86EFAC" font-size="11.5" font-weight="700">propagation</text>
+  <text x="450" y="431" text-anchor="start" fill="#94A3B8" font-size="11">→ nothing: built into primary tags (see MZ2POL-10 §7)</text>
+  <text x="356" y="452" text-anchor="start" fill="#86EFAC" font-size="11.5" font-weight="700">rule type</text>
+  <text x="450" y="452" text-anchor="start" fill="#94A3B8" font-size="11">→ ME needs work · DIMENSION is nearly 1:1 · SELECTOR → Smartscape</text>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Management Zones and the Model That Replaces Them</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">One construct doing three jobs on entities, replaced by three mechanisms that read fields on the data</text>
+  <rect x="20" y="72" width="420" height="330" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="230" y="96" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">MANAGEMENT ZONE (classic)</text>
+  <rect x="40" y="112" width="380" height="70" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="50" y="131" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">One object, three jobs</text>
+  <text x="50" y="148" text-anchor="start" fill="#94A3B8" font-size="10.5">access + filtering + alerting scope,</text>
+  <text x="50" y="165" text-anchor="start" fill="#94A3B8" font-size="10.5">assigned per zone</text>
+  <rect x="40" y="194" width="380" height="70" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="50" y="213" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Rules evaluated on entities</text>
+  <text x="50" y="230" text-anchor="start" fill="#94A3B8" font-size="10.5">periodically in the background,</text>
+  <text x="50" y="247" text-anchor="start" fill="#94A3B8" font-size="10.5">with propagation flags</text>
+  <rect x="40" y="276" width="380" height="70" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="50" y="295" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Not evaluated for Grail data</text>
+  <text x="50" y="312" text-anchor="start" fill="#94A3B8" font-size="10.5">available only on classic pages</text>
+  <text x="50" y="329" text-anchor="start" fill="#94A3B8" font-size="10.5">for backward compatibility</text>
+  <text x="230" y="380" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">Data was in scope because its entity was</text>
+  <line x1="440" y1="237" x2="488" y2="237" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="490" y="72" width="420" height="330" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="700" y="96" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">LATEST DYNATRACE</text>
+  <rect x="510" y="112" width="380" height="58" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="524" y="135" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Access → policies + boundaries</text>
+  <text x="524" y="154" text-anchor="start" fill="#94A3B8" font-size="10.5">record conditions, mostly dt.security_context — MZ2POL-04, -12</text>
+  <rect x="510" y="180" width="380" height="58" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="524" y="203" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">Filtering → segments</text>
+  <text x="524" y="222" text-anchor="start" fill="#94A3B8" font-size="10.5">query-time filters on fields — MZ2POL-05</text>
+  <rect x="510" y="248" width="380" height="58" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="524" y="271" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Alerting → problem-triggered workflows</text>
+  <text x="524" y="290" text-anchor="start" fill="#94A3B8" font-size="10.5">trigger filters on the problem — MZ2POL-09</text>
+  <rect x="510" y="316" width="380" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="520" y="335" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">All three read fields set at the source</text>
+  <text x="520" y="352" text-anchor="start" fill="#94A3B8" font-size="10.5">primary_tags.*, dt.security_context — MZ2POL-10</text>
+  <text x="700" y="392" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">Each record carries its own context</text>
+  <rect x="20" y="418" width="890" height="60" rx="7" fill="#1496FF" opacity="0.10"/>
+  <rect x="20" y="418" width="890" height="60" rx="7" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="442" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">Dynatrace: management zones "are not supported by any platform feature or Dynatrace app" — and auto-tagging rules</text>
+  <text x="36" y="462" text-anchor="start" fill="#94A3B8" font-size="11.5">"have no effect on Smartscape on Grail". Both stay available on classic pages during the transition.</text>
+</svg>

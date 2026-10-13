@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">LAB Steps</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Steps 1–7 run on simulated records (zero bytes, any tenant); step 8 runs against your own tenant</text>
+  <rect x="20" y="80" width="200" height="100" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="114" text-anchor="start" fill="#CBD5E1" font-size="14" font-weight="700">1 · Inventory</text>
+  <text x="34" y="142" text-anchor="start" fill="#94A3B8" font-size="12">classify jobs</text>
+  <rect x="250" y="80" width="200" height="100" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="264" y="114" text-anchor="start" fill="#BFDBFE" font-size="14" font-weight="700">2 · Translate</text>
+  <text x="264" y="142" text-anchor="start" fill="#94A3B8" font-size="12">decision path</text>
+  <rect x="480" y="80" width="200" height="100" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="494" y="114" text-anchor="start" fill="#86EFAC" font-size="14" font-weight="700">3 · Enrich</text>
+  <text x="494" y="142" text-anchor="start" fill="#94A3B8" font-size="12">the actual config</text>
+  <rect x="710" y="80" width="200" height="100" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="724" y="114" text-anchor="start" fill="#86EFAC" font-size="14" font-weight="700">4 · Readiness</text>
+  <text x="724" y="142" text-anchor="start" fill="#94A3B8" font-size="12">gate checks</text>
+  <rect x="20" y="220" width="200" height="100" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="34" y="254" text-anchor="start" fill="#DDD6FE" font-size="14" font-weight="700">5 · IAM</text>
+  <text x="34" y="282" text-anchor="start" fill="#94A3B8" font-size="12">who sees what</text>
+  <rect x="250" y="220" width="200" height="100" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="264" y="254" text-anchor="start" fill="#A5F3FC" font-size="14" font-weight="700">6 · Segments</text>
+  <text x="264" y="282" text-anchor="start" fill="#94A3B8" font-size="12">filters + exclusion</text>
+  <rect x="480" y="220" width="200" height="100" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="494" y="254" text-anchor="start" fill="#BFDBFE" font-size="14" font-weight="700">7 · Alerting</text>
+  <text x="494" y="282" text-anchor="start" fill="#94A3B8" font-size="12">trigger config</text>
+  <rect x="710" y="220" width="200" height="100" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="724" y="254" text-anchor="start" fill="#FCD34D" font-size="14" font-weight="700">8 · Your tenant</text>
+  <text x="724" y="282" text-anchor="start" fill="#94A3B8" font-size="12">real checks</text>
+  <line x1="220" y1="130" x2="248" y2="130" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="220" y1="270" x2="248" y2="270" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="450" y1="130" x2="478" y2="130" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="450" y1="270" x2="478" y2="270" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="680" y1="130" x2="708" y2="130" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="680" y1="270" x2="708" y2="270" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <path d="M 810 180 C 810 200, 120 196, 120 218" fill="none" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="352" width="890" height="126" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="376" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">Why simulated records</text>
+  <text x="36" y="400" text-anchor="start" fill="#94A3B8" font-size="11.5">data record(...) builds the estate's records in the query itself: no ingest, no bytes scanned, same result everywhere.</text>
+  <text x="36" y="422" text-anchor="start" fill="#94A3B8" font-size="11.5">Each step uses the same query shape as the series notebook it exercises, so the logic carries straight over</text>
+  <text x="36" y="444" text-anchor="start" fill="#94A3B8" font-size="11.5">to real data in step 8. The traps — array security contexts, value drift, untagged producers — are planted on purpose.</text>
+</svg>

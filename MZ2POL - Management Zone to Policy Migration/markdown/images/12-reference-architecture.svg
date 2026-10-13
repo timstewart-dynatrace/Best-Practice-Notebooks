@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Reference Architecture for a Former MZ Estate</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Few groups, default policies, one team boundary each — the team value comes from tagging at source</text>
+  <rect x="20" y="74" width="210" height="96" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="93" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">IdP groups (SAML)</text>
+  <text x="30" y="110" text-anchor="start" fill="#94A3B8" font-size="10.5">dt-payments-dev</text>
+  <text x="30" y="127" text-anchor="start" fill="#94A3B8" font-size="10.5">dt-payments-lead</text>
+  <text x="30" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">dt-platform-sre · dt-audit</text>
+  <line x1="230" y1="122" x2="256" y2="122" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="258" y="76" width="330" height="46" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="270" y="95" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Team developer</text>
+  <text x="270" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">Standard User + Read Logs/Spans/Metrics/Events</text>
+  <rect x="258" y="130" width="330" height="46" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="270" y="149" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Team lead</text>
+  <text x="270" y="166" text-anchor="start" fill="#94A3B8" font-size="10.5">Pro User + Settings Writer + data reads</text>
+  <rect x="258" y="184" width="330" height="46" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="270" y="203" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Platform / SRE</text>
+  <text x="270" y="220" text-anchor="start" fill="#94A3B8" font-size="10.5">Pro User + Storage Default Monitoring Read — no boundary</text>
+  <rect x="258" y="238" width="330" height="46" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="270" y="257" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">Auditor</text>
+  <text x="270" y="274" text-anchor="start" fill="#94A3B8" font-size="10.5">Standard User + Storage All System Data Read</text>
+  <rect x="258" y="292" width="330" height="46" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="270" y="311" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Break-glass admin</text>
+  <text x="270" y="328" text-anchor="start" fill="#94A3B8" font-size="10.5">Admin User — no boundary, few members, audited</text>
+  <line x1="588" y1="99" x2="636" y2="128" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <line x1="588" y1="153" x2="636" y2="128" stroke="#A78BFA" stroke-width="1.6" marker-end="url(#arr-purple)"/>
+  <rect x="638" y="74" width="272" height="178" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="648" y="93" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Boundary: team-payments</text>
+  <text x="648" y="110" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:dt.security_context</text>
+  <text x="648" y="127" text-anchor="start" fill="#94A3B8" font-size="10.5">   MATCH ("payments", "shared");</text>
+  <text x="648" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">settings:dt.security_context</text>
+  <text x="648" y="161" text-anchor="start" fill="#94A3B8" font-size="10.5">   IN ("payments");</text>
+  <text x="648" y="178" text-anchor="start" fill="#94A3B8" font-size="10.5">environment:management-zone</text>
+  <text x="648" y="195" text-anchor="start" fill="#94A3B8" font-size="10.5">   IN ("Payments");  ← transitional</text>
+  <text x="648" y="212" text-anchor="start" fill="#94A3B8" font-size="10.5"></text>
+  <text x="648" y="229" text-anchor="start" fill="#94A3B8" font-size="10.5">one condition name per domain</text>
+  <rect x="638" y="262" width="272" height="76" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="638" y="262" width="272" height="76" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="650" y="282" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Not a second "shared" boundary</text>
+  <text x="650" y="300" text-anchor="start" fill="#94A3B8" font-size="10.5">boundaries apply separately, so</text>
+  <text x="650" y="314" text-anchor="start" fill="#94A3B8" font-size="10.5">Standard User's classic viewer would</text>
+  <text x="650" y="328" text-anchor="start" fill="#94A3B8" font-size="10.5">come out unscoped (see §4)</text>
+  <rect x="20" y="356" width="890" height="118" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="380" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">Where the team value comes from — and what else reads it</text>
+  <text x="36" y="404" text-anchor="start" fill="#94A3B8" font-size="11.5">Source enrichment (MZ2POL-10) writes primary_tags.team = payments AND dt.security_context = payments in one step.</text>
+  <text x="36" y="426" text-anchor="start" fill="#94A3B8" font-size="11.5">IAM reads dt.security_context · segments read primary_tags.team (MZ2POL-05) · workflows route on it (MZ2POL-09)</text>
+  <text x="36" y="448" text-anchor="start" fill="#94A3B8" font-size="11.5">· buckets can be chosen by it. One value, four consumers; the management zone is no longer in the chain.</text>
+</svg>

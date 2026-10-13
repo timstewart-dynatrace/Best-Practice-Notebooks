@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Policy and Boundary: What and Where</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">The policy says what may be done; the boundary says on which records — per domain the policy grants</text>
+  <rect x="20" y="80" width="430" height="150" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Without a boundary</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="11">Policy: Read Logs</text>
+  <text x="30" y="135" text-anchor="start" fill="#94A3B8" font-size="11">ALLOW storage:buckets:read WHERE storage:table-name = "logs";</text>
+  <text x="30" y="154" text-anchor="start" fill="#94A3B8" font-size="11">ALLOW storage:logs:read;</text>
+  <text x="30" y="173" text-anchor="start" fill="#94A3B8" font-size="11"></text>
+  <text x="30" y="192" text-anchor="start" fill="#94A3B8" font-size="11">Result: every log in every log bucket</text>
+  <rect x="480" y="80" width="430" height="150" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="490" y="99" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">With a boundary</text>
+  <text x="490" y="116" text-anchor="start" fill="#94A3B8" font-size="11">Policy: Read Logs</text>
+  <text x="490" y="135" text-anchor="start" fill="#94A3B8" font-size="11">Boundary: storage:dt.security_context MATCH ("team-a");</text>
+  <text x="490" y="154" text-anchor="start" fill="#94A3B8" font-size="11">→ ALLOW storage:logs:read</text>
+  <text x="490" y="173" text-anchor="start" fill="#94A3B8" font-size="11">     WHERE storage:dt.security_context MATCH ("team-a");</text>
+  <text x="490" y="192" text-anchor="start" fill="#94A3B8" font-size="11">Result: team-a's logs only</text>
+  <text x="465" y="262" text-anchor="middle" fill="#CBD5E1" font-size="13" font-weight="700">A boundary line only scopes permissions of its own service</text>
+  <rect x="20" y="280" width="290" height="84" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="34" y="304" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">storage:…</text>
+  <text x="34" y="326" text-anchor="start" fill="#94A3B8" font-size="11">Grail data — logs, spans, metrics,</text>
+  <text x="34" y="344" text-anchor="start" fill="#94A3B8" font-size="11">events, entities, buckets</text>
+  <rect x="320" y="280" width="290" height="84" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="334" y="304" text-anchor="start" fill="#DDD6FE" font-size="12.5" font-weight="700">settings:…</text>
+  <text x="334" y="326" text-anchor="start" fill="#94A3B8" font-size="11">Settings objects — edge-set</text>
+  <text x="334" y="344" text-anchor="start" fill="#94A3B8" font-size="11">security context or schemaId</text>
+  <rect x="620" y="280" width="290" height="84" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="634" y="304" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">environment:management-zone</text>
+  <text x="634" y="326" text-anchor="start" fill="#94A3B8" font-size="11">Classic environment roles —</text>
+  <text x="634" y="344" text-anchor="start" fill="#94A3B8" font-size="11">transitional, classic pages only</text>
+  <rect x="20" y="382" width="890" height="96" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="382" width="890" height="96" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="406" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">So the boundary needs a line for every domain the bound policies grant</text>
+  <text x="36" y="428" text-anchor="start" fill="#94A3B8" font-size="11">Default policies mix domains: Read Logs also holds environment:roles:logviewer; Standard User holds environment:roles:viewer.</text>
+  <text x="36" y="446" text-anchor="start" fill="#94A3B8" font-size="11">A domain without a line comes out unscoped — §6 of this notebook and MZ2POL-12 §4 show the trap and the fix.</text>
+</svg>

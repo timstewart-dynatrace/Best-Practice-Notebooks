@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Propagation: Rule Flags vs Built In</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Classic MZ rules needed a flag for every hop. A primary tag set once reaches every hop by itself</text>
+  <rect x="20" y="72" width="430" height="400" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="235" y="94" text-anchor="middle" fill="#FCD34D" font-size="12.5" font-weight="700">CLASSIC — EIGHT PROPAGATION FLAGS</text>
+  <rect x="160" y="130" width="150" height="44" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="235" y="157" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Service</text>
+  <rect x="160" y="250" width="150" height="44" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="235" y="277" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Process group</text>
+  <rect x="160" y="370" width="150" height="44" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="235" y="397" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">Host</text>
+  <line x1="215" y1="174" x2="215" y2="248" stroke="#FFB800" stroke-width="1.6" marker-end="url(#arr-amber)"/>
+  <text x="130" y="215" text-anchor="start" fill="#FCD34D" font-size="10.5">serviceToPG</text>
+  <line x1="255" y1="248" x2="255" y2="176" stroke="#FFB800" stroke-width="1.6" marker-end="url(#arr-amber)"/>
+  <text x="266" y="205" text-anchor="start" fill="#FCD34D" font-size="10.5">pgToService</text>
+  <line x1="215" y1="294" x2="215" y2="368" stroke="#FFB800" stroke-width="1.6" marker-end="url(#arr-amber)"/>
+  <text x="146" y="335" text-anchor="start" fill="#FCD34D" font-size="10.5">pgToHost</text>
+  <line x1="255" y1="368" x2="255" y2="296" stroke="#FFB800" stroke-width="1.6" marker-end="url(#arr-amber)"/>
+  <text x="266" y="335" text-anchor="start" fill="#FCD34D" font-size="10.5">hostToPG</text>
+  <path d="M 312 152 C 400 200, 400 330, 312 390" fill="none" stroke="#FFB800" stroke-width="1.6" marker-end="url(#arr-amber)"/>
+  <text x="372" y="270" text-anchor="start" fill="#FCD34D" font-size="10.5">serviceToHost</text>
+  <text x="36" y="432" text-anchor="start" fill="#94A3B8" font-size="10.5">+ azureToService, azureToPG, customDeviceGroupToCustomDevice.</text>
+  <text x="36" y="447" text-anchor="start" fill="#94A3B8" font-size="10.5">Unticked flag = the zone silently stops at that hop.</text>
+  <rect x="480" y="72" width="430" height="400" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="695" y="94" text-anchor="middle" fill="#86EFAC" font-size="12.5" font-weight="700">LATEST — PROPAGATION IS BUILT IN</text>
+  <rect x="500" y="110" width="390" height="56" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="510" y="129" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Host tag: primary_tags.team=payments</text>
+  <text x="510" y="146" text-anchor="start" fill="#94A3B8" font-size="10.5">set once with --set-host-tag or oneagentctl</text>
+  <line x1="695" y1="166" x2="695" y2="184" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="500" y="186" width="390" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="510" y="205" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Every Smartscape node on the host</text>
+  <text x="510" y="222" text-anchor="start" fill="#94A3B8" font-size="10.5">processes, containers, disks, network interfaces</text>
+  <line x1="695" y1="242" x2="695" y2="260" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="500" y="262" width="390" height="56" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="510" y="281" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Every signal from them</text>
+  <text x="510" y="298" text-anchor="start" fill="#94A3B8" font-size="10.5">logs, metrics, spans, events</text>
+  <line x1="695" y1="318" x2="695" y2="336" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="500" y="338" width="390" height="56" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="510" y="357" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Everything derived from those signals</text>
+  <text x="510" y="374" text-anchor="start" fill="#94A3B8" font-size="10.5">service metrics, Davis events, problems</text>
+  <text x="500" y="424" text-anchor="start" fill="#94A3B8" font-size="10.5">DT_TAGS on one process overrides the host value for that</text>
+  <text x="500" y="439" text-anchor="start" fill="#94A3B8" font-size="10.5">process and its services; host tags fill the keys it leaves unset.</text>
+</svg>
