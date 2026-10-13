@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 2 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -18,7 +18,8 @@ This notebook introduces the migration from **Management Zones (MZs)** in classi
 3. [Understanding Your Current Management Zone Usage](#understanding-your-current-management-zone-usage)
 4. [Benefits of Migration](#benefits-of-migration)
 5. [Migration Timeline Considerations](#migration-timeline-considerations)
-6. [Additional Resources](#additional-resources)
+6. [Choose Your Reading Path](#choose-your-reading-path)
+7. [Additional Resources](#additional-resources)
 
 ---
 
@@ -255,13 +256,42 @@ Segments are not an access-control mechanism and are not a routing mechanism. An
 
 > <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the **Minimum duration** option and the `dt.duration_marker` field quoted above.</sub>
 
+<a id="choose-your-reading-path"></a>
+## 6. Choose Your Reading Path
+
+The series is long because a management zone does up to three jobs, and each job migrates to a different construct. You do not need every notebook. Classify your zones first (MZ2POL-03; the test is in MZ2POL-05 §1), then take the lane for the job they do.
+
+![Choose your reading path](images/01-reading-paths.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
+Notebooks 10 (tagging at source) and 11 (rule translation) are on every working path.
+For environments where SVG doesn't render
+-->
+
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
+
+Two notebooks are on every working path: **MZ2POL-10** (tagging at source) and **MZ2POL-11** (rule translation). Every replacement — segment, boundary or workflow — reads a field on the data, so those two come before anything is built.
+
 ---
 
 ## Summary
 
 In this notebook, you learned:
 
-1. **Why migrate**: Management Zones don't work with Grail and will be retired
+1. **Why migrate**: Management Zones are not evaluated for Grail data and remain only on classic pages
 2. **The new model**: Policies (what) + Boundaries (where) + Segments (filter)
 3. **Key benefits**: Scalability, flexibility, separation of concerns
 4. **The fan-out**: one MZ's jobs migrate to *different* constructs — access to policies/boundaries, UI filtering to segments, alert routing to workflow triggers, problem visibility to `dt.security_context`
@@ -269,7 +299,7 @@ In this notebook, you learned:
 
 ## Next Steps
 
-Continue to **MZ2POL-02: Understanding the New Access Control Model** to dive deeper into:
+Pick your lane in §6. On the full path, continue to **MZ2POL-02: Understanding the New Access Control Model** to dive deeper into:
 - Policy structure and syntax
 - Boundary configuration
 - Segment creation and management

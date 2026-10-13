@@ -1,6 +1,6 @@
 # MZ2POL-12: IAM Reference Architecture for a Former Management-Zone Estate
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 13 of 14 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 14 | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 

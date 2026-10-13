@@ -266,7 +266,7 @@ Dynatrace mobile Real User Monitoring (RUM) for iOS, Android, and cross-platform
 - [MOBL-12: Advanced Instrumentation](MOBL%20-%20Mobile%20Monitoring/markdown/-%5BMOBL%5D-12-advanced-instrumentation.md) — Custom events, nested actions, A/B testing, and multi-app strategies
 - [MOBL-99: Best Practice Summary](MOBL%20-%20Mobile%20Monitoring/markdown/-%5BMOBL%5D-99-best-practice-summary.md) — Consolidated best practices from the MOBL series
 
-### [MZ2POL - Management Zone to Policy Migration](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/README.md)
+### [MZ2POL - Management Zone Migration: Segments, Policies, Workflows](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/README.md)
 Tools and guidance for migrating from Management Zones to Policy-based access control.
 - [MZ2POL-00: SDK MZ Analysis Tool](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-00-sdk-mz-analysis-tool.md) — Analyze existing management zones
 - [MZ2POL-01: Introduction: Why Migrate](MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/markdown/-%5BMZ2POL%5D-01-introduction-why-migrate.md) — Benefits and overview

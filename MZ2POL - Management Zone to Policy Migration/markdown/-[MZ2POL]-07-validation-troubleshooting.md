@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 8 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 8 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 

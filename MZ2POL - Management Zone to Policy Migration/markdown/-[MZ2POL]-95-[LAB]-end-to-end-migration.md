@@ -1,6 +1,6 @@
 # MZ2POL-95 LAB: Migrating a Sample Zone Estate End to End
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Reference:** 95 — End-to-End Migration LAB | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Reference:** 95 — End-to-End Migration LAB | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
