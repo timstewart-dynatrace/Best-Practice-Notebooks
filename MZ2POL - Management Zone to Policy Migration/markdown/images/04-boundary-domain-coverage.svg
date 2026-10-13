@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">One Boundary, Every Domain</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Each boundary line scopes only the permissions of its own service — so the boundary needs a line per domain</text>
+  <rect x="20" y="76" width="250" height="96" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Group: LOB5-Team</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">source: SAML / AD group</text>
+  <text x="30" y="130" text-anchor="start" fill="#94A3B8" font-size="10.5">one binding</text>
+  <line x1="270" y1="124" x2="300" y2="124" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="302" y="76" width="300" height="96" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="312" y="95" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Policies bound together</text>
+  <text x="312" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">Standard User</text>
+  <text x="312" y="130" text-anchor="start" fill="#94A3B8" font-size="10.5">Read Logs · Read Spans · Read Metrics</text>
+  <text x="312" y="148" text-anchor="start" fill="#94A3B8" font-size="10.5">Settings Reader</text>
+  <line x1="602" y1="124" x2="632" y2="124" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="634" y="76" width="276" height="96" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="644" y="95" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Boundary: LOB5-Scope</text>
+  <text x="644" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">3 lines — one per domain</text>
+  <text x="644" y="130" text-anchor="start" fill="#94A3B8" font-size="10.5">(max 10 per boundary)</text>
+  <rect x="20" y="196" width="890" height="58" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="20" y="196" width="890" height="58" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="220" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">storage:dt.security_context MATCH ("LOB5");</text>
+  <text x="36" y="240" text-anchor="start" fill="#94A3B8" font-size="11">scopes storage:logs/spans/metrics/events:read, storage:buckets:read</text>
+  <text x="894" y="220" text-anchor="end" fill="#86EFAC" font-size="11" font-weight="700">Grail</text>
+  <rect x="20" y="262" width="890" height="58" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="20" y="262" width="890" height="58" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="286" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">settings:dt.security_context IN ("LOB5");</text>
+  <text x="36" y="306" text-anchor="start" fill="#94A3B8" font-size="11">scopes settings:objects:read / :write (edge-set context only)</text>
+  <text x="894" y="286" text-anchor="end" fill="#86EFAC" font-size="11" font-weight="700">Settings</text>
+  <rect x="20" y="328" width="890" height="58" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="20" y="328" width="890" height="58" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="352" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">environment:management-zone IN ("LOB5");</text>
+  <text x="36" y="372" text-anchor="start" fill="#94A3B8" font-size="11">scopes environment:roles:viewer, :logviewer … on classic pages</text>
+  <text x="894" y="352" text-anchor="end" fill="#FCD34D" font-size="11" font-weight="700">Classic — remove at retirement</text>
+  <rect x="20" y="400" width="890" height="78" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="400" width="890" height="78" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="424" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">Drop any line and that domain becomes unscoped</text>
+  <text x="36" y="444" text-anchor="start" fill="#94A3B8" font-size="11">No storage line → Read Logs reads every log. No environment line → Standard User views every classic zone.</text>
+  <text x="36" y="462" text-anchor="start" fill="#94A3B8" font-size="11">Permissions that no line applies to (documents, apps, workflows) are feature access and stay unscoped by design.</text>
+</svg>

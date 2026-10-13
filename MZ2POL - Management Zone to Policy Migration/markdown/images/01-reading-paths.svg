@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Choose Your Reading Path</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Pick the lane for the job your zones do — zones doing several jobs take the full path</text>
+  <rect x="20" y="74" width="200" height="72" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="34" y="104" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">Filtering only</text>
+  <text x="34" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">zones scope views and dashboards</text>
+  <rect x="234" y="94" width="52" height="32" rx="6" fill="#22D3EE" opacity="0.10"/>
+  <rect x="234" y="94" width="52" height="32" rx="6" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="260.0" y="115" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">00</text>
+  <rect x="296" y="94" width="52" height="32" rx="6" fill="#22D3EE" opacity="0.10"/>
+  <rect x="296" y="94" width="52" height="32" rx="6" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="322.0" y="115" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">03</text>
+  <rect x="358" y="94" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="384.0" y="115" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">10</text>
+  <rect x="420" y="94" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="446.0" y="115" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">11</text>
+  <rect x="482" y="94" width="52" height="32" rx="6" fill="#22D3EE" opacity="0.10"/>
+  <rect x="482" y="94" width="52" height="32" rx="6" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="508.0" y="115" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">05</text>
+  <rect x="544" y="94" width="52" height="32" rx="6" fill="#22D3EE" opacity="0.10"/>
+  <rect x="544" y="94" width="52" height="32" rx="6" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="570.0" y="115" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">06</text>
+  <rect x="606" y="94" width="52" height="32" rx="6" fill="#22D3EE" opacity="0.10"/>
+  <rect x="606" y="94" width="52" height="32" rx="6" fill="none" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="632.0" y="115" text-anchor="middle" fill="#A5F3FC" font-size="12" font-weight="700">07</text>
+  <rect x="20" y="156" width="200" height="72" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="34" y="186" text-anchor="start" fill="#DDD6FE" font-size="13" font-weight="700">Access control</text>
+  <text x="34" y="208" text-anchor="start" fill="#94A3B8" font-size="10.5">zones restrict who may read</text>
+  <rect x="234" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="234" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="260.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">00</text>
+  <rect x="296" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="296" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="322.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">03</text>
+  <rect x="358" y="176" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="384.0" y="197" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">10</text>
+  <rect x="420" y="176" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="446.0" y="197" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">11</text>
+  <rect x="482" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="482" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="508.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">12</text>
+  <rect x="544" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="544" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="570.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">04</text>
+  <rect x="606" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="606" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="632.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">08</text>
+  <rect x="668" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="668" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="694.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">06</text>
+  <rect x="730" y="176" width="52" height="32" rx="6" fill="#A78BFA" opacity="0.10"/>
+  <rect x="730" y="176" width="52" height="32" rx="6" fill="none" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="756.0" y="197" text-anchor="middle" fill="#DDD6FE" font-size="12" font-weight="700">07</text>
+  <rect x="20" y="238" width="200" height="72" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="34" y="268" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">Alerting</text>
+  <text x="34" y="290" text-anchor="start" fill="#94A3B8" font-size="10.5">zones scope alerting profiles</text>
+  <rect x="234" y="258" width="52" height="32" rx="6" fill="#1496FF" opacity="0.10"/>
+  <rect x="234" y="258" width="52" height="32" rx="6" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="260.0" y="279" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">00</text>
+  <rect x="296" y="258" width="52" height="32" rx="6" fill="#1496FF" opacity="0.10"/>
+  <rect x="296" y="258" width="52" height="32" rx="6" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="322.0" y="279" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">03</text>
+  <rect x="358" y="258" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="384.0" y="279" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">10</text>
+  <rect x="420" y="258" width="52" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="446.0" y="279" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">11</text>
+  <rect x="482" y="258" width="52" height="32" rx="6" fill="#1496FF" opacity="0.10"/>
+  <rect x="482" y="258" width="52" height="32" rx="6" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="508.0" y="279" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">09</text>
+  <rect x="544" y="258" width="52" height="32" rx="6" fill="#1496FF" opacity="0.10"/>
+  <rect x="544" y="258" width="52" height="32" rx="6" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="570.0" y="279" text-anchor="middle" fill="#BFDBFE" font-size="12" font-weight="700">06</text>
+  <rect x="20" y="320" width="200" height="72" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="34" y="350" text-anchor="start" fill="#86EFAC" font-size="13" font-weight="700">Full migration</text>
+  <text x="34" y="372" text-anchor="start" fill="#94A3B8" font-size="10.5">zones do several jobs</text>
+  <rect x="234" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="234" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="253.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">01</text>
+  <rect x="276" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="276" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="295.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">02</text>
+  <rect x="318" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="318" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="337.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">00</text>
+  <rect x="360" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="360" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="379.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">03</text>
+  <rect x="402" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="402" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="421.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">14</text>
+  <rect x="444" y="340" width="38" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="463.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">10</text>
+  <rect x="486" y="340" width="38" height="32" rx="6" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="505.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">11</text>
+  <rect x="528" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="528" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="547.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">12</text>
+  <rect x="570" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="570" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="589.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">04</text>
+  <rect x="612" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="612" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="631.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">08</text>
+  <rect x="654" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="654" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="673.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">05</text>
+  <rect x="696" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="696" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="715.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">09</text>
+  <rect x="738" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="738" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="757.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">06</text>
+  <rect x="780" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="780" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="799.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">07</text>
+  <rect x="822" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="822" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="841.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">95</text>
+  <rect x="864" y="340" width="38" height="32" rx="6" fill="#73BE28" opacity="0.10"/>
+  <rect x="864" y="340" width="38" height="32" rx="6" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="883.0" y="361" text-anchor="middle" fill="#86EFAC" font-size="12" font-weight="700">99</text>
+  <rect x="20" y="402" width="200" height="72" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="432" text-anchor="start" fill="#CBD5E1" font-size="13" font-weight="700">Decision makers</text>
+  <text x="34" y="454" text-anchor="start" fill="#94A3B8" font-size="10.5">scope, approach, what is not ready</text>
+  <rect x="234" y="422" width="52" height="32" rx="6" fill="#64748B" opacity="0.10"/>
+  <rect x="234" y="422" width="52" height="32" rx="6" fill="none" stroke="#64748B" stroke-width="1.2"/>
+  <text x="260.0" y="443" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">01</text>
+  <rect x="296" y="422" width="52" height="32" rx="6" fill="#64748B" opacity="0.10"/>
+  <rect x="296" y="422" width="52" height="32" rx="6" fill="none" stroke="#64748B" stroke-width="1.2"/>
+  <text x="322.0" y="443" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">02</text>
+  <rect x="358" y="422" width="52" height="32" rx="6" fill="#64748B" opacity="0.10"/>
+  <rect x="358" y="422" width="52" height="32" rx="6" fill="none" stroke="#64748B" stroke-width="1.2"/>
+  <text x="384.0" y="443" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">13</text>
+  <rect x="420" y="422" width="52" height="32" rx="6" fill="#64748B" opacity="0.10"/>
+  <rect x="420" y="422" width="52" height="32" rx="6" fill="none" stroke="#64748B" stroke-width="1.2"/>
+  <text x="446.0" y="443" text-anchor="middle" fill="#CBD5E1" font-size="12" font-weight="700">99</text>
+  <text x="465" y="486" text-anchor="middle" fill="#CBD5E1" font-size="11">Green chips (10, 11) are on every working path: the tags at source and the rule translation come before anything is built</text>
+</svg>

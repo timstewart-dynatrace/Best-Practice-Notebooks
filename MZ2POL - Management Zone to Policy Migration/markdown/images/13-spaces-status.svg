@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Spaces: What Is and Is Not Documented</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Status as of 10/13/2026 — upcoming, not documented as an available feature</text>
+  <rect x="20" y="76" width="430" height="214" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Published</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="11.5">Semantic dictionary permission-field page:</text>
+  <text x="30" y="134" text-anchor="start" fill="#94A3B8" font-size="11.5">dt.space — string, resource, experimental</text>
+  <text x="30" y="156" text-anchor="start" fill="#94A3B8" font-size="11.5">Tags: permission, primary-field</text>
+  <text x="30" y="178" text-anchor="start" fill="#94A3B8" font-size="11.5">"The space associated with the record.</text>
+  <text x="30" y="200" text-anchor="start" fill="#94A3B8" font-size="11.5">Spaces enable granular scoping and</text>
+  <text x="30" y="222" text-anchor="start" fill="#94A3B8" font-size="11.5">delegation of monitoring responsibilities."</text>
+  <rect x="480" y="76" width="430" height="214" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="490" y="95" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Not documented</text>
+  <text x="490" y="112" text-anchor="start" fill="#94A3B8" font-size="11.5">• A Spaces docs page or how-to</text>
+  <text x="490" y="134" text-anchor="start" fill="#94A3B8" font-size="11.5">• An IAM policy condition on dt.space</text>
+  <text x="490" y="156" text-anchor="start" fill="#94A3B8" font-size="11.5">• How a record gets its space</text>
+  <text x="490" y="178" text-anchor="start" fill="#94A3B8" font-size="11.5">• Relation to dt.security_context, segments</text>
+  <text x="490" y="200" text-anchor="start" fill="#94A3B8" font-size="11.5">• Ownership of documents or config objects</text>
+  <text x="490" y="222" text-anchor="start" fill="#94A3B8" font-size="11.5">• A release version or GA date</text>
+  <rect x="20" y="306" width="890" height="92" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="330" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">History</text>
+  <text x="36" y="354" text-anchor="start" fill="#94A3B8" font-size="11.5">09/24/2026 — SaaS 1.348 pre-release notes announced space-based access control with dt.space.</text>
+  <text x="36" y="376" text-anchor="start" fill="#94A3B8" font-size="11.5">10/13/2026 — the same notes no longer list it; the validation tenant's dictionary has no dt.space row.</text>
+  <rect x="20" y="412" width="890" height="66" rx="7" fill="#1496FF" opacity="0.10"/>
+  <rect x="20" y="412" width="890" height="66" rx="7" fill="none" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="436" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">So: design production access on dt.security_context and boundaries today (MZ2POL-12).</text>
+  <text x="36" y="456" text-anchor="start" fill="#94A3B8" font-size="11.5">Prepare for Spaces only with steps that already pay off without them (§4).</text>
+</svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">One Segment per Dimension, Not per Zone</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Zones encode one value each; a segment variable enumerates every value of a dimension from a live query</text>
+  <rect x="20" y="76" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="98" text-anchor="start" fill="#FCD34D" font-size="11.5">Easytrade - Prod</text>
+  <rect x="20" y="116" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="138" text-anchor="start" fill="#FCD34D" font-size="11.5">Easytrade - Dev</text>
+  <rect x="20" y="156" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="178" text-anchor="start" fill="#FCD34D" font-size="11.5">Hipstershop - Prod</text>
+  <rect x="20" y="196" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="218" text-anchor="start" fill="#FCD34D" font-size="11.5">Hipstershop - Dev</text>
+  <rect x="20" y="236" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="258" text-anchor="start" fill="#FCD34D" font-size="11.5">Easytravel - Prod</text>
+  <rect x="20" y="276" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="298" text-anchor="start" fill="#FCD34D" font-size="11.5">Easytravel - Dev</text>
+  <rect x="20" y="316" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="338" text-anchor="start" fill="#FCD34D" font-size="11.5">AWS - Prod</text>
+  <rect x="20" y="356" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="378" text-anchor="start" fill="#FCD34D" font-size="11.5">K8s - Platform</text>
+  <rect x="20" y="396" width="260" height="34" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="32" y="418" text-anchor="start" fill="#FCD34D" font-size="11.5">… one zone per new app</text>
+  <text x="150" y="452" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">Zones: one per value — dozens to hundreds</text>
+  <rect x="380" y="92" width="530" height="96" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="396" y="118" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">Segment: app</text>
+  <text x="396" y="142" text-anchor="start" fill="#94A3B8" font-size="11">variable $app ← distinct primary_tags.app</text>
+  <text x="396" y="164" text-anchor="start" fill="#94A3B8" font-size="11">filter: primary_tags.app = $app</text>
+  <rect x="380" y="212" width="530" height="96" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="396" y="238" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">Segment: stage</text>
+  <text x="396" y="262" text-anchor="start" fill="#94A3B8" font-size="11">variable $stage ← distinct primary_tags.stage</text>
+  <text x="396" y="284" text-anchor="start" fill="#94A3B8" font-size="11">filter: primary_tags.stage = $stage</text>
+  <rect x="380" y="332" width="530" height="96" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="396" y="358" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">Segment: platform</text>
+  <text x="396" y="382" text-anchor="start" fill="#94A3B8" font-size="11">variable $platform ← dt.host_group.id parts</text>
+  <text x="396" y="404" text-anchor="start" fill="#94A3B8" font-size="11">filter: dt.host_group.id = "$platform*"</text>
+  <line x1="282" y1="260" x2="378" y2="140" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="282" y1="260" x2="378" y2="260" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="282" y1="260" x2="378" y2="380" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <text x="645" y="452" text-anchor="middle" fill="#A5F3FC" font-size="11" font-weight="700">Segments: one per dimension — usually three to eight</text>
+  <text x="645" y="472" text-anchor="middle" fill="#94A3B8" font-size="11">A new app appears in $app automatically, if its data carries the tag</text>
+</svg>

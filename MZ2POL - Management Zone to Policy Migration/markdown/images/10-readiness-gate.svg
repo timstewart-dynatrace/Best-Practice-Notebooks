@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Tags First: The Migration Readiness Gate</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Enrichment is forward-only, so it has to land — and be audited — before anything is built on it</text>
+  <rect x="20" y="90" width="170" height="104" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="109" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">1 · Plan the schema</text>
+  <text x="30" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">keys + allowed values</text>
+  <text x="30" y="143" text-anchor="start" fill="#94A3B8" font-size="10.5">one owner per producer</text>
+  <text x="30" y="160" text-anchor="start" fill="#94A3B8" font-size="10.5">before agents install</text>
+  <rect x="200" y="90" width="170" height="104" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="210" y="109" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">2 · Enrich at source</text>
+  <text x="210" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">host tags, DT_TAGS, K8s</text>
+  <text x="210" y="143" text-anchor="start" fill="#94A3B8" font-size="10.5">central rules, OTel</text>
+  <text x="210" y="160" text-anchor="start" fill="#94A3B8" font-size="10.5">extensions, synthetics, RUM</text>
+  <rect x="380" y="90" width="170" height="104" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="390" y="109" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">3 · Audit coverage</text>
+  <text x="390" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">§9 queries per signal</text>
+  <text x="390" y="143" text-anchor="start" fill="#94A3B8" font-size="10.5">classic-vs-primary parity</text>
+  <text x="390" y="160" text-anchor="start" fill="#94A3B8" font-size="10.5">value drift, derived data</text>
+  <rect x="560" y="90" width="170" height="104" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="570" y="109" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">4 · Build on it</text>
+  <text x="570" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">segments · policies +</text>
+  <text x="570" y="143" text-anchor="start" fill="#94A3B8" font-size="10.5">boundaries · workflows</text>
+  <text x="570" y="160" text-anchor="start" fill="#94A3B8" font-size="10.5">bucket routing</text>
+  <rect x="740" y="90" width="170" height="104" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="750" y="109" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">5 · Parallel run, retire</text>
+  <text x="750" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">MZs stay for classic</text>
+  <text x="750" y="143" text-anchor="start" fill="#94A3B8" font-size="10.5">pages until unused,</text>
+  <text x="750" y="160" text-anchor="start" fill="#94A3B8" font-size="10.5">then delete</text>
+  <line x1="190" y1="142" x2="199" y2="142" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="370" y1="142" x2="379" y2="142" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="550" y1="142" x2="559" y2="142" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="730" y1="142" x2="739" y2="142" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="380" y="202" width="170" height="30" rx="15" fill="#DE350B" opacity="0.10"/>
+  <rect x="380" y="202" width="170" height="30" rx="15" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="465" y="222" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">GATE — no build until green</text>
+  <line x1="40" y1="330" x2="890" y2="330" stroke="#334155" stroke-width="2"/>
+  <rect x="40" y="312" width="300" height="36" rx="4" fill="#DE350B" opacity="0.10"/>
+  <rect x="40" y="312" width="300" height="36" rx="4" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="190" y="335" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">data ingested before enrichment: no tag, ever</text>
+  <rect x="340" y="312" width="550" height="36" rx="4" fill="#73BE28" opacity="0.10"/>
+  <rect x="340" y="312" width="550" height="36" rx="4" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="615" y="335" text-anchor="middle" fill="#86EFAC" font-size="11" font-weight="700">data ingested after: tagged on every signal and derived data</text>
+  <line x1="340" y1="296" x2="340" y2="364" stroke="#FFB800" stroke-width="2.4"/>
+  <text x="340" y="290" text-anchor="middle" fill="#FCD34D" font-size="11" font-weight="700">enrichment goes live</text>
+  <text x="40" y="392" text-anchor="start" fill="#94A3B8" font-size="11.5">Why the gate matters: a segment, boundary or workflow built on a key that only half the producers send</text>
+  <text x="40" y="410" text-anchor="start" fill="#94A3B8" font-size="11.5">returns partial data with no error. Historical data is never back-filled, so a late tag also means a</text>
+  <text x="40" y="428" text-anchor="start" fill="#94A3B8" font-size="11.5">comparison window with a hole in it. New keys can take up to 24 h to appear in app filter dropdowns</text>
+  <text x="40" y="446" text-anchor="start" fill="#94A3B8" font-size="11.5">(DQL sees them at once), and more than 20 primary tags per host or process are dropped without warning.</text>
+</svg>

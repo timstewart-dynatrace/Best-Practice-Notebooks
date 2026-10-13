@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Four Conversion Blockers</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Find these before authoring — each changes the design, not just the syntax</text>
+  <rect x="20" y="74" width="430" height="92" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="102" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">5.1 No exclusions</text>
+  <text x="36" y="126" text-anchor="start" fill="#94A3B8" font-size="11">"prod except legacy" cannot be written</text>
+  <line x1="450" y1="120" x2="478" y2="120" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="480" y="74" width="430" height="92" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="480" y="74" width="430" height="92" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="496" y="102" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Fix</text>
+  <text x="496" y="126" text-anchor="start" fill="#94A3B8" font-size="11">Push the NOT into the enrichment rule and filter on a positive value (MZ2POL-11 §5)</text>
+  <rect x="20" y="176" width="430" height="92" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="204" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">5.2 Only primary fields and tags reach derived data</text>
+  <text x="36" y="228" text-anchor="start" fill="#94A3B8" font-size="11">a standard tag filters entities but not service metrics</text>
+  <line x1="450" y1="222" x2="478" y2="222" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="480" y="176" width="430" height="92" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="480" y="176" width="430" height="92" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="496" y="204" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Fix</text>
+  <text x="496" y="228" text-anchor="start" fill="#94A3B8" font-size="11">Promote the value to primary_tags.&lt;key&gt; at the source (MZ2POL-10)</text>
+  <rect x="20" y="278" width="430" height="92" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="36" y="306" text-anchor="start" fill="#DDD6FE" font-size="12.5" font-weight="700">5.3 Classic entity properties are equals-only</text>
+  <text x="36" y="330" text-anchor="start" fill="#94A3B8" font-size="11">entity.name starts-with only; no contains on classic</text>
+  <line x1="450" y1="324" x2="478" y2="324" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="480" y="278" width="430" height="92" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="480" y="278" width="430" height="92" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="496" y="306" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Fix</text>
+  <text x="496" y="330" text-anchor="start" fill="#94A3B8" font-size="11">Use a Data (all types) or Smartscape include, or an explicit membership tag</text>
+  <rect x="20" y="380" width="430" height="92" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="36" y="408" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">5.4 Problems need an events include</text>
+  <text x="36" y="432" text-anchor="start" fill="#94A3B8" font-size="11">entity includes do not filter the problem feed</text>
+  <line x1="450" y1="426" x2="478" y2="426" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="480" y="380" width="430" height="92" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="480" y="380" width="430" height="92" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="496" y="408" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Fix</text>
+  <text x="496" y="432" text-anchor="start" fill="#94A3B8" font-size="11">Add event.kind = "DAVIS_PROBLEM" AND &lt;condition&gt; as an events include</text>
+</svg>

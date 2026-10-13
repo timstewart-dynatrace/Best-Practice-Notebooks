@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">From Alerting Profile to Problem-Triggered Workflow</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">The filter moves into the trigger; there is no separate profile object and no zone to point at</text>
+  <rect x="20" y="80" width="380" height="230" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Alerting profile (classic)</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="11.5">Management zone: Team X</text>
+  <text x="30" y="138" text-anchor="start" fill="#94A3B8" font-size="11.5">Severity rules: availability, error …</text>
+  <text x="30" y="160" text-anchor="start" fill="#94A3B8" font-size="11.5">Event filters: titles, properties</text>
+  <text x="30" y="182" text-anchor="start" fill="#94A3B8" font-size="11.5">Delay: N minutes</text>
+  <text x="30" y="204" text-anchor="start" fill="#94A3B8" font-size="11.5"></text>
+  <text x="30" y="226" text-anchor="start" fill="#94A3B8" font-size="11.5">→ problem notification</text>
+  <text x="30" y="248" text-anchor="start" fill="#94A3B8" font-size="11.5">   (Slack / email / ServiceNow …)</text>
+  <line x1="400" y1="195" x2="450" y2="195" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="452" y="80" width="458" height="230" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="462" y="99" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Workflow "Route — Team X"</text>
+  <text x="462" y="116" text-anchor="start" fill="#94A3B8" font-size="11.5">Trigger: Problem trigger</text>
+  <text x="462" y="138" text-anchor="start" fill="#94A3B8" font-size="11.5">  · Problem state ........ Active</text>
+  <text x="462" y="160" text-anchor="start" fill="#94A3B8" font-size="11.5">  · Severity ............. as the profile's rules</text>
+  <text x="462" y="182" text-anchor="start" fill="#94A3B8" font-size="11.5">  · Affected entities .... tag team:X</text>
+  <text x="462" y="204" text-anchor="start" fill="#94A3B8" font-size="11.5">  · Custom filter ........ optional DQL matcher</text>
+  <text x="462" y="226" text-anchor="start" fill="#94A3B8" font-size="11.5">  · Minimum duration ..... replaces Delay</text>
+  <text x="462" y="248" text-anchor="start" fill="#94A3B8" font-size="11.5">Action: team X's destination</text>
+  <rect x="20" y="330" width="890" height="148" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="354" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">What changes</text>
+  <text x="36" y="378" text-anchor="start" fill="#94A3B8" font-size="11.5">• The zone has no successor inside alerting: route on tags the affected entity carries, plus a DQL matcher on the problem.</text>
+  <text x="36" y="401" text-anchor="start" fill="#94A3B8" font-size="11.5">• One trigger can combine the filter logic of several profiles — fewer objects than profiles, not one per zone.</text>
+  <text x="36" y="424" text-anchor="start" fill="#94A3B8" font-size="11.5">• Segments do not scope alerting; they scope what a user sees. Detector scoping by segment is a separate feature.</text>
+  <text x="36" y="447" text-anchor="start" fill="#94A3B8" font-size="11.5">• Tags must exist on the entities first — the same readiness gate as everything else (MZ2POL-10).</text>
+</svg>

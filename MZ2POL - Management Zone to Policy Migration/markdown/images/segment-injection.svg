@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">How a Segment Is Built</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Includes are ORed; conditions inside one include are ANDed — and only = and in() exist</text>
+  <rect x="20" y="72" width="600" height="406" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="96" text-anchor="start" fill="#A5F3FC" font-size="14" font-weight="700">Segment: team-payments</text>
+  <rect x="36" y="112" width="568" height="98" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="50" y="136" text-anchor="start" fill="#86EFAC" font-size="12.5" font-weight="700">Data (all types)  — recommended start</text>
+  <text x="50" y="162" text-anchor="start" fill="#94A3B8" font-size="11.5">primary_tags.team = "payments"</text>
+  <text x="50" y="182" text-anchor="start" fill="#94A3B8" font-size="11.5">AND primary_tags.stage = $stage</text>
+  <rect x="36" y="222" width="568" height="98" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="50" y="246" text-anchor="start" fill="#BFDBFE" font-size="12.5" font-weight="700">events  — needed to scope the problem feed</text>
+  <text x="50" y="272" text-anchor="start" fill="#94A3B8" font-size="11.5">event.kind = "DAVIS_PROBLEM"</text>
+  <text x="50" y="292" text-anchor="start" fill="#94A3B8" font-size="11.5">AND primary_tags.team = "payments"</text>
+  <rect x="36" y="332" width="568" height="98" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="50" y="356" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">classic entity  — backward compatibility only</text>
+  <text x="50" y="382" text-anchor="start" fill="#94A3B8" font-size="11.5">entity.name = "payment*"  (starts-with only)</text>
+  <text x="50" y="402" text-anchor="start" fill="#94A3B8" font-size="11.5">other properties: equals only</text>
+  <text x="320" y="218" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="700">OR</text>
+  <text x="320" y="328" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="700">OR</text>
+  <rect x="640" y="72" width="270" height="406" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="656" y="96" text-anchor="start" fill="#CBD5E1" font-size="12.5" font-weight="700">Limits that shape the conversion</text>
+  <text x="656" y="124" text-anchor="start" fill="#94A3B8" font-size="11">20 includes per segment</text>
+  <text x="656" y="148" text-anchor="start" fill="#94A3B8" font-size="11">1 include block per data type</text>
+  <text x="656" y="172" text-anchor="start" fill="#94A3B8" font-size="11">10 expressions per condition</text>
+  <text x="656" y="196" text-anchor="start" fill="#94A3B8" font-size="11">10 segments applied per query</text>
+  <text x="656" y="220" text-anchor="start" fill="#94A3B8" font-size="11">operators: = and in() only</text>
+  <text x="656" y="244" text-anchor="start" fill="#94A3B8" font-size="11">wildcard * inside the value</text>
+  <text x="656" y="268" text-anchor="start" fill="#94A3B8" font-size="11">no exclusions</text>
+  <text x="656" y="292" text-anchor="start" fill="#94A3B8" font-size="11">variables: no * in names or values</text>
+  <text x="656" y="316" text-anchor="start" fill="#94A3B8" font-size="11">visibility ≠ access: anyone with</text>
+  <text x="656" y="340" text-anchor="start" fill="#94A3B8" font-size="11">storage:filter-segments:read</text>
+  <text x="656" y="364" text-anchor="start" fill="#94A3B8" font-size="11">can apply any segment</text>
+</svg>

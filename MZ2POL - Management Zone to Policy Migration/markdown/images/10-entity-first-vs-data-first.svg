@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Entity-First (Classic) vs Data-First (Grail)</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">A management zone was computed after the fact. A Grail record has to arrive already carrying its context</text>
+  <rect x="20" y="72" width="435" height="400" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="237" y="94" text-anchor="middle" fill="#FCD34D" font-size="13" font-weight="700">CLASSIC — ENTITY-FIRST</text>
+  <rect x="40" y="108" width="395" height="62" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="50" y="127" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">1 · Telemetry arrives with no organizational context</text>
+  <text x="50" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">hosts, processes, services are detected as entities</text>
+  <line x1="237" y1="170" x2="237" y2="186" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="188" width="395" height="76" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="50" y="207" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">2 · Rules run later, in the background</text>
+  <text x="50" y="224" text-anchor="start" fill="#94A3B8" font-size="10.5">auto-tagging rules + MZ rules evaluate entity properties</text>
+  <text x="50" y="238" text-anchor="start" fill="#94A3B8" font-size="10.5">periodically, over a limited timeframe; propagation flags</text>
+  <text x="50" y="252" text-anchor="start" fill="#94A3B8" font-size="10.5">copy the result to related hosts, process groups, services</text>
+  <line x1="237" y1="264" x2="237" y2="280" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="282" width="395" height="62" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="50" y="301" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">3 · The entity carries the zone</text>
+  <text x="50" y="318" text-anchor="start" fill="#94A3B8" font-size="10.5">managementZones = ["Billing - Prod"] on the entity</text>
+  <line x1="237" y1="344" x2="237" y2="360" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="362" width="395" height="62" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="50" y="381" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">4 · Users find the entity, then its data</text>
+  <text x="50" y="398" text-anchor="start" fill="#94A3B8" font-size="10.5">dashboards, alerting profiles, permissions scope by zone</text>
+  <text x="237" y="452" text-anchor="middle" fill="#FCD34D" font-size="11.5" font-weight="700">Context lives on the entity, never on the record</text>
+  <rect x="475" y="72" width="435" height="400" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="692" y="94" text-anchor="middle" fill="#86EFAC" font-size="13" font-weight="700">LATEST DYNATRACE — DATA-FIRST</text>
+  <rect x="495" y="108" width="395" height="76" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="505" y="127" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">1 · The producer sets the metadata</text>
+  <text x="505" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">host tag, DT_TAGS, K8s annotation, OTel resource attribute,</text>
+  <text x="505" y="158" text-anchor="start" fill="#94A3B8" font-size="10.5">central ingest enrichment rule — before data leaves the source</text>
+  <line x1="692" y1="184" x2="692" y2="200" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="495" y="202" width="395" height="76" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="505" y="221" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">2 · Every record carries it</text>
+  <text x="505" y="238" text-anchor="start" fill="#94A3B8" font-size="10.5">logs, metrics, spans, events, Smartscape nodes — and the</text>
+  <text x="505" y="252" text-anchor="start" fill="#94A3B8" font-size="10.5">derived service metrics, Davis events and problems</text>
+  <line x1="692" y1="278" x2="692" y2="294" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="495" y="296" width="395" height="128" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="505" y="315" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">3 · Every consumer reads the record</text>
+  <text x="505" y="332" text-anchor="start" fill="#94A3B8" font-size="10.5">OpenPipeline routing and bucket assignment</text>
+  <text x="505" y="346" text-anchor="start" fill="#94A3B8" font-size="10.5">IAM policy on dt.security_context</text>
+  <text x="505" y="360" text-anchor="start" fill="#94A3B8" font-size="10.5">segment filters in every Grail app</text>
+  <text x="505" y="374" text-anchor="start" fill="#94A3B8" font-size="10.5">workflow triggers and alert routing</text>
+  <text x="505" y="388" text-anchor="start" fill="#94A3B8" font-size="10.5">cost allocation on dt.cost.*</text>
+  <text x="692" y="452" text-anchor="middle" fill="#86EFAC" font-size="11.5" font-weight="700">No rule engine, no propagation flags — no tag, no scope</text>
+</svg>

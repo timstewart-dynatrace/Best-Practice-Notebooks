@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Translating One MZ Rule: The Decision Path</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Ask in order — the first yes is the cheapest correct translation</text>
+  <rect x="20" y="82" width="470" height="60" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="106" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Does a built-in primary Grail field already hold the value?</text>
+  <text x="34" y="125" text-anchor="start" fill="#94A3B8" font-size="10.5">host group, K8s cluster/namespace, cloud account</text>
+  <rect x="500" y="101" width="50" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="500" y="101" width="50" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="525.0" y="116.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">yes</text>
+  <line x1="552" y1="112" x2="578" y2="112" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="580" y="82" width="330" height="60" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="594" y="106" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Use the field. Retire the rule.</text>
+  <text x="594" y="125" text-anchor="start" fill="#94A3B8" font-size="10.5">dt.host_group.id · k8s.namespace.name</text>
+  <line x1="255" y1="142" x2="255" y2="152" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <text x="266" y="151" text-anchor="start" fill="#94A3B8" font-size="10.5">no</text>
+  <rect x="20" y="154" width="470" height="60" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="178" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Can the producer set it at deploy time?</text>
+  <text x="34" y="197" text-anchor="start" fill="#94A3B8" font-size="10.5">you own the install, the manifest or the SDK</text>
+  <rect x="500" y="173" width="50" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="500" y="173" width="50" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="525.0" y="188.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">yes</text>
+  <line x1="552" y1="184" x2="578" y2="184" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="580" y="154" width="330" height="60" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="594" y="178" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Host tag / DT_TAGS / annotation / OTel attr</text>
+  <text x="594" y="197" text-anchor="start" fill="#94A3B8" font-size="10.5">primary_tags.&lt;key&gt; (+ dt.security_context)</text>
+  <line x1="255" y1="214" x2="255" y2="224" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <text x="266" y="223" text-anchor="start" fill="#94A3B8" font-size="10.5">no</text>
+  <rect x="20" y="226" width="470" height="60" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="250" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Is it derivable from host tags, host group or a name?</text>
+  <text x="34" y="269" text-anchor="start" fill="#94A3B8" font-size="10.5">equals / contains / starts-ends-with, AND OR NOT</text>
+  <rect x="500" y="245" width="50" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="500" y="245" width="50" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="525.0" y="260.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">yes</text>
+  <line x1="552" y1="256" x2="578" y2="256" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="580" y="226" width="330" height="60" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="594" y="250" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Central ingest enrichment rule</text>
+  <text x="594" y="269" text-anchor="start" fill="#94A3B8" font-size="10.5">condition + static value or DPL extraction</text>
+  <line x1="255" y1="286" x2="255" y2="296" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <text x="266" y="295" text-anchor="start" fill="#94A3B8" font-size="10.5">no</text>
+  <rect x="20" y="298" width="470" height="60" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="322" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Is it on the record but under the wrong name?</text>
+  <text x="34" y="341" text-anchor="start" fill="#94A3B8" font-size="10.5">aws.tags.team vs azure.tags.team vs a label</text>
+  <rect x="500" y="317" width="50" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="500" y="317" width="50" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="525.0" y="332.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">yes</text>
+  <line x1="552" y1="328" x2="578" y2="328" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="580" y="298" width="330" height="60" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="594" y="322" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">OpenPipeline primary Grail tag rule</text>
+  <text x="594" y="341" text-anchor="start" fill="#94A3B8" font-size="10.5">ordered source fields, condition isNull(...)</text>
+  <line x1="255" y1="358" x2="255" y2="368" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <text x="266" y="367" text-anchor="start" fill="#94A3B8" font-size="10.5">no</text>
+  <rect x="20" y="370" width="470" height="60" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="34" y="394" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Is the zone a hand-kept list nobody can re-derive?</text>
+  <text x="34" y="413" text-anchor="start" fill="#94A3B8" font-size="10.5">SELECTOR lists, nested exceptions, history</text>
+  <rect x="500" y="389" width="50" height="22" rx="11" fill="#73BE28" opacity="0.10"/>
+  <rect x="500" y="389" width="50" height="22" rx="11" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="525.0" y="404.0" text-anchor="middle" fill="#86EFAC" font-size="10.5" font-weight="700">yes</text>
+  <line x1="552" y1="400" x2="578" y2="400" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <rect x="580" y="370" width="330" height="60" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="594" y="394" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Explicit membership tag</text>
+  <text x="594" y="413" text-anchor="start" fill="#94A3B8" font-size="10.5">e.g. primary_tags.segment = &lt;zone name&gt;</text>
+  <rect x="20" y="442" width="890" height="40" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="442" width="890" height="40" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="34" y="467" text-anchor="start" fill="#FCA5A5" font-size="11.5" font-weight="700">None of the above → the zone's job may be wrong: re-check whether it is access, filtering or alerting (MZ2POL-03) before encoding it.</text>
+</svg>

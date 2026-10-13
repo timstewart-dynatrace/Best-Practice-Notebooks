@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">From Zone Inventory to Verified Bindings</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">The bulk-binding script is one step in a pipeline — the inputs and the checks matter as much as the loop</text>
+  <rect x="20" y="90" width="170" height="96" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="109" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">1 · Inventory</text>
+  <text x="30" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">MZ2POL-00 / -03</text>
+  <text x="30" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">zones by job</text>
+  <rect x="200" y="90" width="170" height="96" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="210" y="109" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">2 · Translate</text>
+  <text x="210" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">MZ2POL-11 worksheet</text>
+  <text x="210" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">zone → team value</text>
+  <rect x="380" y="90" width="170" height="96" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="390" y="109" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">3 · Team table</text>
+  <text x="390" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">group UUID,</text>
+  <text x="390" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">team value, level</text>
+  <rect x="560" y="90" width="170" height="96" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="570" y="109" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">4 · Bind loop</text>
+  <text x="570" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">POST binding</text>
+  <text x="570" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">per group (§4)</text>
+  <rect x="740" y="90" width="170" height="96" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="750" y="109" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">5 · Verify</text>
+  <text x="750" y="126" text-anchor="start" fill="#94A3B8" font-size="10.5">effective permissions</text>
+  <text x="750" y="144" text-anchor="start" fill="#94A3B8" font-size="10.5">+ DQL (§5)</text>
+  <line x1="190" y1="138" x2="199" y2="138" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="370" y1="138" x2="379" y2="138" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="550" y1="138" x2="559" y2="138" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <line x1="730" y1="138" x2="739" y2="138" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="20" y="214" width="890" height="120" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="238" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">What each stage must hand to the next</text>
+  <text x="36" y="262" text-anchor="start" fill="#94A3B8" font-size="11.5">Inventory → only zones doing the access job (filtering zones go to segments, alerting zones to workflows).</text>
+  <text x="36" y="284" text-anchor="start" fill="#94A3B8" font-size="11.5">Translate → one security-context value per team, already set at the source (MZ2POL-10 gate passed).</text>
+  <text x="36" y="306" text-anchor="start" fill="#94A3B8" font-size="11.5">Team table → group UUIDs from Account Management, not names; account or environment level chosen per row.</text>
+  <rect x="20" y="350" width="890" height="126" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="350" width="890" height="126" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="374" text-anchor="start" fill="#FCA5A5" font-size="13" font-weight="700">Before the loop runs in production</text>
+  <text x="36" y="398" text-anchor="start" fill="#94A3B8" font-size="11.5">• Bind to one pilot group and resolve its effective permissions — look for any storage:*:read without a condition.</text>
+  <text x="36" y="420" text-anchor="start" fill="#94A3B8" font-size="11.5">• Check no member also holds an unscoped data policy through another group: one unscoped grant defeats the template.</text>
+  <text x="36" y="442" text-anchor="start" fill="#94A3B8" font-size="11.5">• Run in batches (the role-migration guide's recommendation) and keep the classic zone binding until §6 sign-off.</text>
+</svg>

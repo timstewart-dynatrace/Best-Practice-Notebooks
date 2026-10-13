@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Deciding One Zone's Fate</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Usage first, then jobs — a zone can do several jobs, and each job migrates on its own path</text>
+  <rect x="20" y="76" width="250" height="92" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Zone</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">rules, role assignments,</text>
+  <text x="30" y="130" text-anchor="start" fill="#94A3B8" font-size="10.5">profiles, dashboards</text>
+  <line x1="270" y1="122" x2="300" y2="122" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="302" y="76" width="280" height="92" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="316" y="102" text-anchor="start" fill="#FCD34D" font-size="12.5" font-weight="700">Used in the last 90 days?</text>
+  <text x="316" y="124" text-anchor="start" fill="#94A3B8" font-size="11">queries, role assignments,</text>
+  <text x="316" y="142" text-anchor="start" fill="#94A3B8" font-size="11">profiles or dashboards</text>
+  <line x1="582" y1="100" x2="640" y2="100" stroke="#DE350B" stroke-width="1.6" marker-end="url(#arr-red)"/>
+  <text x="610" y="92" text-anchor="middle" fill="#FCA5A5" font-size="11" font-weight="700">no</text>
+  <rect x="642" y="76" width="268" height="56" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="652" y="95" text-anchor="start" fill="#FCA5A5" font-size="12" font-weight="700">Delete — don't convert</text>
+  <text x="652" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">archive the export first</text>
+  <line x1="442" y1="168" x2="442" y2="196" stroke="#73BE28" stroke-width="1.6" marker-end="url(#arr-green)"/>
+  <text x="458" y="188" text-anchor="start" fill="#86EFAC" font-size="11" font-weight="700">yes</text>
+  <rect x="20" y="198" width="290" height="160" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="34" y="222" text-anchor="start" fill="#DDD6FE" font-size="13" font-weight="700">Access job</text>
+  <text x="34" y="242" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">test: removing it would expose data</text>
+  <text x="34" y="270" text-anchor="start" fill="#94A3B8" font-size="11.5">→ tags at source (10, 11)</text>
+  <text x="34" y="292" text-anchor="start" fill="#94A3B8" font-size="11.5">→ boundary per team (12, 04)</text>
+  <text x="34" y="314" text-anchor="start" fill="#94A3B8" font-size="11.5">→ templates if many (08)</text>
+  <rect x="320" y="198" width="290" height="160" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="334" y="222" text-anchor="start" fill="#A5F3FC" font-size="13" font-weight="700">Filtering job</text>
+  <text x="334" y="242" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">test: removing it only adds noise</text>
+  <text x="334" y="270" text-anchor="start" fill="#94A3B8" font-size="11.5">→ tags or built-in fields</text>
+  <text x="334" y="292" text-anchor="start" fill="#94A3B8" font-size="11.5">→ one segment per dimension</text>
+  <text x="334" y="314" text-anchor="start" fill="#94A3B8" font-size="11.5">   (05)</text>
+  <rect x="620" y="198" width="290" height="160" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="634" y="222" text-anchor="start" fill="#BFDBFE" font-size="13" font-weight="700">Alerting job</text>
+  <text x="634" y="242" text-anchor="start" fill="#94A3B8" font-size="10.5" font-style="italic">test: it decides who is paged</text>
+  <text x="634" y="270" text-anchor="start" fill="#94A3B8" font-size="11.5">→ routing tags on entities</text>
+  <text x="634" y="292" text-anchor="start" fill="#94A3B8" font-size="11.5">→ problem-triggered workflow</text>
+  <text x="634" y="314" text-anchor="start" fill="#94A3B8" font-size="11.5">   (09)</text>
+  <rect x="20" y="374" width="890" height="104" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="20" y="374" width="890" height="104" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="36" y="398" text-anchor="start" fill="#86EFAC" font-size="13" font-weight="700">Every path starts the same way</text>
+  <text x="36" y="422" text-anchor="start" fill="#94A3B8" font-size="11.5">The value has to be on the data first. A zone doing all three jobs gets one translation (MZ2POL-11) that feeds</text>
+  <text x="36" y="444" text-anchor="start" fill="#94A3B8" font-size="11.5">three consumers: dt.security_context for the boundary, primary_tags.* for the segment and the workflow trigger.</text>
+</svg>

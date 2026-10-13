@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Permission Path and Filter Path</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">A management zone did both jobs at once. In Latest Dynatrace they are separate, and only one is security</text>
+  <rect x="20" y="72" width="430" height="330" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="235" y="94" text-anchor="middle" fill="#DDD6FE" font-size="13" font-weight="700">PERMISSION — what you MAY read</text>
+  <rect x="40" y="108" width="390" height="52" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="54" y="130" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">User → groups</text>
+  <text x="54" y="148" text-anchor="start" fill="#94A3B8" font-size="10.5">from SAML / SCIM</text>
+  <line x1="235" y1="160" x2="235" y2="176" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="178" width="390" height="52" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="54" y="200" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Bindings: policy + boundaries</text>
+  <text x="54" y="218" text-anchor="start" fill="#94A3B8" font-size="10.5">union of every group's bindings</text>
+  <line x1="235" y1="230" x2="235" y2="246" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="248" width="390" height="52" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="54" y="270" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Statements expanded</text>
+  <text x="54" y="288" text-anchor="start" fill="#94A3B8" font-size="10.5">conditions per service; DENY wins</text>
+  <line x1="235" y1="300" x2="235" y2="316" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="40" y="318" width="390" height="52" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="54" y="340" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Grail checks</text>
+  <text x="54" y="358" text-anchor="start" fill="#94A3B8" font-size="10.5">bucket · table · record · field</text>
+  <text x="235" y="392" text-anchor="middle" fill="#DDD6FE" font-size="11" font-weight="700">Result: the set of records you are allowed to query</text>
+  <rect x="480" y="72" width="430" height="330" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="695" y="94" text-anchor="middle" fill="#A5F3FC" font-size="13" font-weight="700">FILTER — what you LOOK AT</text>
+  <rect x="500" y="108" width="390" height="52" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="514" y="130" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">User picks a segment</text>
+  <text x="514" y="148" text-anchor="start" fill="#94A3B8" font-size="10.5">or a dashboard / notebook applies one</text>
+  <line x1="695" y1="160" x2="695" y2="176" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="500" y="178" width="390" height="52" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="514" y="200" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">Segment conditions injected</text>
+  <text x="514" y="218" text-anchor="start" fill="#94A3B8" font-size="10.5">into the query as filters</text>
+  <line x1="695" y1="230" x2="695" y2="246" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="500" y="248" width="390" height="52" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="514" y="270" text-anchor="start" fill="#A5F3FC" font-size="12" font-weight="700">Grail runs the filtered query</text>
+  <text x="514" y="288" text-anchor="start" fill="#94A3B8" font-size="10.5">only inside what the permission allows</text>
+  <line x1="695" y1="300" x2="695" y2="316" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="500" y="318" width="390" height="52" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="514" y="340" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Narrower result</text>
+  <text x="514" y="358" text-anchor="start" fill="#94A3B8" font-size="10.5">never wider than the permission</text>
+  <text x="695" y="392" text-anchor="middle" fill="#A5F3FC" font-size="11" font-weight="700">Anyone with storage:filter-segments:read can apply any segment</text>
+  <rect x="20" y="418" width="890" height="60" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="20" y="418" width="890" height="60" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="36" y="442" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Migration test: if removing the zone would let someone see data they must not — permission path (MZ2POL-04, -12).</text>
+  <text x="36" y="462" text-anchor="start" fill="#94A3B8" font-size="11.5">If it would only make their dashboards noisy — filter path (MZ2POL-05). If it decides who is paged — MZ2POL-09.</text>
+</svg>

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">MZ Access Patterns and Their Replacements</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Not every zone has a one-step equivalent — the field must exist on the data first (MZ2POL-10, -11)</text>
+  <rect x="20" y="70" width="230" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="90" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Zone pattern</text>
+  <rect x="258" y="70" width="236" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="268" y="90" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Field on the record</text>
+  <rect x="502" y="70" width="200" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="512" y="90" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Boundary line</text>
+  <rect x="710" y="70" width="200" height="30" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="720" y="90" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Segment filter</text>
+  <rect x="20" y="106" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="131" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Host group</text>
+  <rect x="258" y="106" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="131" text-anchor="start" fill="#BFDBFE" font-size="10.5">dt.host_group.id (built in)</text>
+  <rect x="502" y="106" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="131" text-anchor="start" fill="#DDD6FE" font-size="10.5">storage:dt.host_group.id</text>
+  <rect x="710" y="106" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="131" text-anchor="start" fill="#A5F3FC" font-size="10.5">dt.host_group.id = "…"</text>
+  <rect x="20" y="152" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="177" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">K8s namespace / cluster</text>
+  <rect x="258" y="152" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="177" text-anchor="start" fill="#BFDBFE" font-size="10.5">k8s.namespace.name (built in)</text>
+  <rect x="502" y="152" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="177" text-anchor="start" fill="#DDD6FE" font-size="10.5">storage:k8s.namespace.name</text>
+  <rect x="710" y="152" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="177" text-anchor="start" fill="#A5F3FC" font-size="10.5">k8s.namespace.name = "…"</text>
+  <rect x="20" y="198" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="223" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Cloud account</text>
+  <rect x="258" y="198" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="223" text-anchor="start" fill="#BFDBFE" font-size="10.5">aws.account.id … (built in)</text>
+  <rect x="502" y="198" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="223" text-anchor="start" fill="#DDD6FE" font-size="10.5">storage:aws.account.id</text>
+  <rect x="710" y="198" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="223" text-anchor="start" fill="#A5F3FC" font-size="10.5">aws.account.id = "…"</text>
+  <rect x="20" y="244" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="269" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Team / LOB</text>
+  <rect x="258" y="244" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="269" text-anchor="start" fill="#BFDBFE" font-size="10.5">dt.security_context + primary_tags.team</text>
+  <rect x="502" y="244" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="269" text-anchor="start" fill="#DDD6FE" font-size="10.5">storage:dt.security_context MATCH</text>
+  <rect x="710" y="244" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="269" text-anchor="start" fill="#A5F3FC" font-size="10.5">primary_tags.team = "…"</text>
+  <rect x="20" y="290" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="315" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Stage (prod / dev)</text>
+  <rect x="258" y="290" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="315" text-anchor="start" fill="#BFDBFE" font-size="10.5">context prod/&lt;team&gt;; primary_tags.stage</text>
+  <rect x="502" y="290" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="315" text-anchor="start" fill="#DDD6FE" font-size="10.5">MATCH ("prod/*")</text>
+  <rect x="710" y="290" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="315" text-anchor="start" fill="#A5F3FC" font-size="10.5">primary_tags.stage = "prod"</text>
+  <rect x="20" y="336" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="361" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Name-based / selector</text>
+  <rect x="258" y="336" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="361" text-anchor="start" fill="#BFDBFE" font-size="10.5">tag set at source (MZ2POL-11)</text>
+  <rect x="502" y="336" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="361" text-anchor="start" fill="#DDD6FE" font-size="10.5">via dt.security_context</text>
+  <rect x="710" y="336" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="361" text-anchor="start" fill="#A5F3FC" font-size="10.5">primary_tags.&lt;key&gt;</text>
+  <rect x="20" y="382" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="407" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Transversal (all DBs)</text>
+  <rect x="258" y="382" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="407" text-anchor="start" fill="#BFDBFE" font-size="10.5">structured context comp:db/…</text>
+  <rect x="502" y="382" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="407" text-anchor="start" fill="#DDD6FE" font-size="10.5">MATCH ("comp:db*")</text>
+  <rect x="710" y="382" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="407" text-anchor="start" fill="#A5F3FC" font-size="10.5">primary_tags.component</text>
+  <rect x="20" y="428" width="230" height="40" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="453" text-anchor="start" fill="#FCD34D" font-size="11.5" font-weight="700">Hand-kept list</text>
+  <rect x="258" y="428" width="236" height="40" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="268" y="453" text-anchor="start" fill="#BFDBFE" font-size="10.5">explicit membership tag</text>
+  <rect x="502" y="428" width="200" height="40" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="512" y="453" text-anchor="start" fill="#DDD6FE" font-size="10.5">via dt.security_context</text>
+  <rect x="710" y="428" width="200" height="40" rx="7" fill="#1E293B" stroke="#22D3EE" stroke-width="1.2"/>
+  <text x="720" y="453" text-anchor="start" fill="#A5F3FC" font-size="10.5">primary_tags.segment</text>
+  <text x="465" y="488" text-anchor="middle" fill="#94A3B8" font-size="10.5">Boundary lines for built-in fields are documented on storage:*:read; entities accept only storage:dt.security_context</text>
+</svg>

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Where Each MZ Operator Can Still Be Expressed</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Push logic as early as possible: the enrichment condition is the most expressive surface after the source</text>
+  <rect x="20" y="70" width="200" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="30" y="91" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">MZ operator</text>
+  <rect x="230" y="70" width="220" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="240" y="91" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Central enrichment rule</text>
+  <rect x="460" y="70" width="220" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="470" y="91" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">Segment filter</text>
+  <rect x="690" y="70" width="220" height="32" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="700" y="91" text-anchor="start" fill="#CBD5E1" font-size="11.5" font-weight="700">IAM storage condition</text>
+  <rect x="20" y="108" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="131" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">EQUALS</text>
+  <rect x="230" y="108" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="230" y="108" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="240" y="131" text-anchor="start" fill="#86EFAC" font-size="11">matchesValue</text>
+  <rect x="460" y="108" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="460" y="108" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="470" y="131" text-anchor="start" fill="#86EFAC" font-size="11">= / in()</text>
+  <rect x="690" y="108" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="690" y="108" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="700" y="131" text-anchor="start" fill="#86EFAC" font-size="11">= / IN</text>
+  <rect x="20" y="148" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="171" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">BEGINS_WITH</text>
+  <rect x="230" y="148" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="230" y="148" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="240" y="171" text-anchor="start" fill="#86EFAC" font-size="11">matchesPhrase</text>
+  <rect x="460" y="148" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="460" y="148" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="470" y="171" text-anchor="start" fill="#86EFAC" font-size="11">"x*" (classic: name only)</text>
+  <rect x="690" y="148" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="690" y="148" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="700" y="171" text-anchor="start" fill="#86EFAC" font-size="11">startsWith</text>
+  <rect x="20" y="188" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="211" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">CONTAINS / ENDS_WITH</text>
+  <rect x="230" y="188" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="230" y="188" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="240" y="211" text-anchor="start" fill="#86EFAC" font-size="11">matchesPhrase</text>
+  <rect x="460" y="188" width="220" height="36" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="460" y="188" width="220" height="36" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="470" y="211" text-anchor="start" fill="#FCD34D" font-size="11">"*x*" — not on classic</text>
+  <rect x="690" y="188" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="690" y="188" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="700" y="211" text-anchor="start" fill="#86EFAC" font-size="11">MATCH pattern</text>
+  <rect x="20" y="228" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="251" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">NOT_* (exclusion)</text>
+  <rect x="230" y="228" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="230" y="228" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="240" y="251" text-anchor="start" fill="#86EFAC" font-size="11">NOT operator</text>
+  <rect x="460" y="228" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="460" y="228" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="470" y="251" text-anchor="start" fill="#FCA5A5" font-size="11">no exclusions</text>
+  <rect x="690" y="228" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="690" y="228" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="700" y="251" text-anchor="start" fill="#FCA5A5" font-size="11">only on bucket-name</text>
+  <rect x="20" y="268" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="291" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">EXISTS / NOT_EXISTS</text>
+  <rect x="230" y="268" width="220" height="36" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="230" y="268" width="220" height="36" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="240" y="291" text-anchor="start" fill="#86EFAC" font-size="11">isNotNull / isNull</text>
+  <rect x="460" y="268" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="460" y="268" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="470" y="291" text-anchor="start" fill="#FCA5A5" font-size="11">not expressible</text>
+  <rect x="690" y="268" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="690" y="268" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="700" y="291" text-anchor="start" fill="#FCA5A5" font-size="11">not expressible</text>
+  <rect x="20" y="308" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="331" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">REGEX_MATCHES</text>
+  <rect x="230" y="308" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="230" y="308" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="240" y="331" text-anchor="start" fill="#FCA5A5" font-size="11">regex not supported</text>
+  <rect x="460" y="308" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="460" y="308" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="470" y="331" text-anchor="start" fill="#FCA5A5" font-size="11">no regex</text>
+  <rect x="690" y="308" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="690" y="308" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="700" y="331" text-anchor="start" fill="#FCA5A5" font-size="11">no regex</text>
+  <rect x="20" y="348" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="371" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">Numeric &gt; &lt; ≥ ≤</text>
+  <rect x="230" y="348" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="230" y="348" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="240" y="371" text-anchor="start" fill="#FCA5A5" font-size="11">no comparison operator</text>
+  <rect x="460" y="348" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="460" y="348" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="470" y="371" text-anchor="start" fill="#FCA5A5" font-size="11">= and in() only</text>
+  <rect x="690" y="348" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="690" y="348" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="700" y="371" text-anchor="start" fill="#FCA5A5" font-size="11">not on record fields</text>
+  <rect x="20" y="388" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="411" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">IS_IP_IN_RANGE</text>
+  <rect x="230" y="388" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="230" y="388" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="240" y="411" text-anchor="start" fill="#FCA5A5" font-size="11">no IP-range test</text>
+  <rect x="460" y="388" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="460" y="388" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="470" y="411" text-anchor="start" fill="#FCA5A5" font-size="11">no IP-range test</text>
+  <rect x="690" y="388" width="220" height="36" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="690" y="388" width="220" height="36" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="700" y="411" text-anchor="start" fill="#FCA5A5" font-size="11">no IP-range test</text>
+  <rect x="20" y="428" width="200" height="36" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="451" text-anchor="start" fill="#BFDBFE" font-size="11.5" font-weight="700">caseSensitive: false</text>
+  <rect x="230" y="428" width="220" height="36" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="230" y="428" width="220" height="36" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="240" y="451" text-anchor="start" fill="#FCD34D" font-size="11">normalize the value</text>
+  <rect x="460" y="428" width="220" height="36" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="460" y="428" width="220" height="36" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="470" y="451" text-anchor="start" fill="#FCD34D" font-size="11">exact values</text>
+  <rect x="690" y="428" width="220" height="36" rx="7" fill="#FFB800" opacity="0.10"/>
+  <rect x="690" y="428" width="220" height="36" rx="7" fill="none" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="700" y="451" text-anchor="start" fill="#FCD34D" font-size="11">exact values</text>
+  <text x="20" y="482" text-anchor="start" fill="#94A3B8" font-size="11">Green = direct · amber = partial or needs a design change · red = translate the membership into a tag value instead</text>
+</svg>

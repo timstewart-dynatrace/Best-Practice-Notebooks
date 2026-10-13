@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Two Boundaries Are Not Two Filters</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Dynatrace's own example: each boundary is applied separately, so a permission one boundary cannot scope leaks</text>
+  <rect x="20" y="80" width="270" height="74" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="99" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Policy</text>
+  <text x="30" y="116" text-anchor="start" fill="#94A3B8" font-size="10.5">ALLOW storage:logs:read,</text>
+  <text x="30" y="132" text-anchor="start" fill="#94A3B8" font-size="10.5">      storage:entities:read;</text>
+  <rect x="20" y="172" width="270" height="56" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="30" y="191" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Boundary one</text>
+  <text x="30" y="208" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:host.name = "myHost"</text>
+  <rect x="20" y="246" width="270" height="56" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="30" y="265" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Boundary two</text>
+  <text x="30" y="282" text-anchor="start" fill="#94A3B8" font-size="10.5">storage:dt.security_context = "mySC"</text>
+  <line x1="290" y1="190" x2="330" y2="190" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="332" y="80" width="578" height="222" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="348" y="104" text-anchor="start" fill="#CBD5E1" font-size="13" font-weight="700">Effective statements (computed per boundary)</text>
+  <rect x="348" y="118" width="546" height="40" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="348" y="118" width="546" height="40" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="360" y="135" text-anchor="start" fill="#FCA5A5" font-size="10.5" font-weight="700">ALLOW storage:entities:read;</text>
+  <text x="360" y="151" text-anchor="start" fill="#94A3B8" font-size="10.5">boundary one has no condition for entities → unconditional</text>
+  <rect x="348" y="162" width="546" height="40" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="348" y="162" width="546" height="40" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="360" y="179" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">ALLOW storage:entities:read WHERE storage:dt.security_context = "mySC";</text>
+  <text x="360" y="195" text-anchor="start" fill="#94A3B8" font-size="10.5">from boundary two</text>
+  <rect x="348" y="206" width="546" height="40" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="348" y="206" width="546" height="40" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="360" y="223" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">ALLOW storage:logs:read WHERE storage:host.name = "myHost";</text>
+  <text x="360" y="239" text-anchor="start" fill="#94A3B8" font-size="10.5">from boundary one</text>
+  <rect x="348" y="250" width="546" height="40" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="348" y="250" width="546" height="40" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="360" y="267" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">ALLOW storage:logs:read WHERE storage:dt.security_context = "mySC";</text>
+  <text x="360" y="283" text-anchor="start" fill="#94A3B8" font-size="10.5">from boundary two</text>
+  <rect x="20" y="324" width="890" height="150" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="36" y="348" text-anchor="start" fill="#FCD34D" font-size="13" font-weight="700">Rules that follow for an MZ estate</text>
+  <text x="36" y="372" text-anchor="start" fill="#94A3B8" font-size="11.5">• Before binding a boundary, list the permissions in the policy and check each one has a condition it accepts.</text>
+  <text x="36" y="394" text-anchor="start" fill="#94A3B8" font-size="11.5">• Entities accept only storage:dt.security_context (and entity.type) — a host-group or namespace line never scopes them.</text>
+  <text x="36" y="416" text-anchor="start" fill="#94A3B8" font-size="11.5">• Prefer one boundary per team that covers every domain the policy grants, over several narrow boundaries.</text>
+  <text x="36" y="438" text-anchor="start" fill="#94A3B8" font-size="11.5">• The union rule applies across bindings too: an unscoped Read Logs anywhere in the user's groups wins.</text>
+</svg>

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">Composing Access from Default Policies</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">One platform policy for features, plus data policies per table — all bound under the same team boundary</text>
+  <rect x="20" y="72" width="300" height="34" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="32" y="94" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Persona</text>
+  <rect x="328" y="72" width="200" height="34" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="340" y="94" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Platform policy</text>
+  <rect x="536" y="72" width="374" height="34" rx="7" fill="#1E293B" stroke="#64748B" stroke-width="1.2"/>
+  <text x="548" y="94" text-anchor="start" fill="#CBD5E1" font-size="12" font-weight="700">Data / settings policies</text>
+  <rect x="20" y="112" width="300" height="50" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="133" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Viewer / executive</text>
+  <text x="32" y="151" text-anchor="start" fill="#94A3B8" font-size="10.5">dashboards and notebooks</text>
+  <rect x="328" y="112" width="200" height="50" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="340" y="142" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Standard User</text>
+  <rect x="536" y="112" width="374" height="50" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="548" y="142" text-anchor="start" fill="#86EFAC" font-size="11">Read Logs · Read Metrics (or Storage Default Monitoring Read)</text>
+  <rect x="20" y="168" width="300" height="50" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="189" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Developer</text>
+  <text x="32" y="207" text-anchor="start" fill="#94A3B8" font-size="10.5">own team's telemetry</text>
+  <rect x="328" y="168" width="200" height="50" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="340" y="198" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Standard User</text>
+  <rect x="536" y="168" width="374" height="50" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="548" y="198" text-anchor="start" fill="#86EFAC" font-size="11">Read Logs · Read Spans · Read Metrics · Read Events</text>
+  <rect x="20" y="224" width="300" height="50" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="245" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Team lead</text>
+  <text x="32" y="263" text-anchor="start" fill="#94A3B8" font-size="10.5">+ edits team settings</text>
+  <rect x="328" y="224" width="200" height="50" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="340" y="254" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Pro User</text>
+  <rect x="536" y="224" width="374" height="50" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="548" y="254" text-anchor="start" fill="#86EFAC" font-size="11">data reads above · Settings Writer</text>
+  <rect x="20" y="280" width="300" height="50" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="301" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">SRE / operations</text>
+  <text x="32" y="319" text-anchor="start" fill="#94A3B8" font-size="10.5">whole estate</text>
+  <rect x="328" y="280" width="200" height="50" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="340" y="310" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Pro User</text>
+  <rect x="536" y="280" width="374" height="50" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="548" y="310" text-anchor="start" fill="#86EFAC" font-size="11">Storage Default Monitoring Read · Settings Writer</text>
+  <rect x="20" y="336" width="300" height="50" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="32" y="357" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Platform admin</text>
+  <text x="32" y="375" text-anchor="start" fill="#94A3B8" font-size="10.5">everything, few people</text>
+  <rect x="328" y="336" width="200" height="50" rx="7" fill="#1E293B" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="340" y="366" text-anchor="start" fill="#DDD6FE" font-size="12" font-weight="700">Admin User</text>
+  <rect x="536" y="336" width="374" height="50" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="548" y="366" text-anchor="start" fill="#86EFAC" font-size="11">as needed — no boundary, audited</text>
+  <rect x="20" y="400" width="890" height="78" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="20" y="400" width="890" height="78" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="36" y="424" text-anchor="start" fill="#FCA5A5" font-size="12.5" font-weight="700">Every one of these default policies also carries classic statements</text>
+  <text x="36" y="444" text-anchor="start" fill="#94A3B8" font-size="11">Standard / Pro / Admin User include environment:roles:viewer; Read Logs includes environment:roles:logviewer.</text>
+  <text x="36" y="462" text-anchor="start" fill="#94A3B8" font-size="11">The boundary must therefore scope both the Grail and the classic domain — see §6 and MZ2POL-12 §4.</text>
+</svg>

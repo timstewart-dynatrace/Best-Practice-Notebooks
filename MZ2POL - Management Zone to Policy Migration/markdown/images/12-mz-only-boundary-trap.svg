@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1496FF"/></marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#73BE28"/></marker>
+    <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/></marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#DE350B"/></marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="arr-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
+  </defs>
+  <rect width="930" height="500" fill="#0F172A"/>
+  <text x="465" y="34" text-anchor="middle" fill="#F8FAFC" font-size="21" font-weight="700">The MZ-Only Boundary Trap</text>
+  <text x="465" y="56" text-anchor="middle" fill="#94A3B8" font-size="12.5">Default policies mix classic and Grail statements. A boundary scopes only the statements its conditions belong to</text>
+  <rect x="20" y="76" width="280" height="132" rx="7" fill="#1E293B" stroke="#1496FF" stroke-width="1.2"/>
+  <text x="30" y="95" text-anchor="start" fill="#BFDBFE" font-size="12" font-weight="700">Default policy: Read Logs</text>
+  <text x="30" y="112" text-anchor="start" fill="#94A3B8" font-size="10.5">ALLOW storage:buckets:read</text>
+  <text x="30" y="130" text-anchor="start" fill="#94A3B8" font-size="10.5">   WHERE storage:table-name = "logs";</text>
+  <text x="30" y="148" text-anchor="start" fill="#94A3B8" font-size="10.5">ALLOW storage:logs:read;</text>
+  <text x="30" y="166" text-anchor="start" fill="#94A3B8" font-size="10.5">ALLOW environment:roles:logviewer;</text>
+  <rect x="20" y="226" width="280" height="76" rx="7" fill="#1E293B" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="30" y="245" text-anchor="start" fill="#FCD34D" font-size="12" font-weight="700">Boundary migrated from the MZ</text>
+  <text x="30" y="262" text-anchor="start" fill="#94A3B8" font-size="10.5">environment:management-zone IN ("Payments");</text>
+  <line x1="300" y1="190" x2="340" y2="190" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr-grey)"/>
+  <rect x="342" y="76" width="568" height="226" rx="7" fill="#1E293B" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="358" y="100" text-anchor="start" fill="#FCA5A5" font-size="13" font-weight="700">Effective statements</text>
+  <rect x="358" y="120" width="536" height="46" rx="7" fill="#73BE28" opacity="0.10"/>
+  <rect x="358" y="120" width="536" height="46" rx="7" fill="none" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="370" y="140" text-anchor="start" fill="#86EFAC" font-size="10.5" font-weight="700">environment:roles:logviewer WHERE environment:management-zone IN ("Payments")</text>
+  <text x="370" y="157" text-anchor="start" fill="#94A3B8" font-size="10.5">scoped ✓</text>
+  <rect x="358" y="174" width="536" height="46" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="358" y="174" width="536" height="46" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="370" y="194" text-anchor="start" fill="#FCA5A5" font-size="10.5" font-weight="700">storage:buckets:read WHERE storage:table-name = "logs"</text>
+  <text x="370" y="211" text-anchor="start" fill="#94A3B8" font-size="10.5">every log bucket</text>
+  <rect x="358" y="228" width="536" height="46" rx="7" fill="#DE350B" opacity="0.10"/>
+  <rect x="358" y="228" width="536" height="46" rx="7" fill="none" stroke="#DE350B" stroke-width="1.2"/>
+  <text x="370" y="248" text-anchor="start" fill="#FCA5A5" font-size="10.5" font-weight="700">storage:logs:read</text>
+  <text x="370" y="265" text-anchor="start" fill="#94A3B8" font-size="10.5">UNSCOPED — all logs</text>
+  <text x="358" y="290" text-anchor="start" fill="#94A3B8" font-size="10.5">Grail ignores management-zone conditions — the classic page is scoped, the data is not</text>
+  <text x="465" y="334" text-anchor="middle" fill="#86EFAC" font-size="12.5" font-weight="700">Fix: put the Grail condition in the same boundary (or a second one) before removing anything</text>
+  <rect x="20" y="350" width="890" height="120" rx="7" fill="#1E293B" stroke="#73BE28" stroke-width="1.2"/>
+  <text x="30" y="369" text-anchor="start" fill="#86EFAC" font-size="12" font-weight="700">Boundary: Payments (transition period)</text>
+  <text x="30" y="386" text-anchor="start" fill="#94A3B8" font-size="11">environment:management-zone IN ("Payments");       ← scopes environment:roles:* on classic pages until they are retired</text>
+  <text x="30" y="408" text-anchor="start" fill="#94A3B8" font-size="11">storage:dt.security_context MATCH ("payments");    ← scopes storage:*:read on Grail (MATCH also matches array values)</text>
+  <text x="30" y="430" text-anchor="start" fill="#94A3B8" font-size="11">settings:dt.security_context IN ("payments");      ← scopes settings objects whose security context is set at the edge</text>
+</svg>
