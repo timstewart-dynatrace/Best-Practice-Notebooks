@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -20,15 +20,17 @@
 ## Table of Contents
 
 1. [What Are Buckets?](#what-are-buckets)
-2. [Supported Data Types (Tables)](#supported-data-types-tables)
-3. [Bucket Limits](#bucket-limits)
-4. [Query Constraints](#query-constraints)
-5. [Default Buckets](#default-buckets)
-6. [Querying Bucket Information](#querying-bucket-information)
-7. [Querying Data from Buckets](#querying-data-from-buckets)
-8. [Bucket Characteristics](#bucket-characteristics)
-9. [Bucket Naming Rules](#bucket-naming-rules)
-10. [When to Create Custom Buckets](#when-to-create-custom-buckets)
+2. [Built-in Grail Buckets](#built-in-grail-buckets)
+3. [Supported Data Types (Tables)](#supported-data-types-tables)
+4. [System Tables](#system-tables)
+5. [Bucket Limits](#bucket-limits)
+6. [Query Constraints](#query-constraints)
+7. [Default Buckets](#default-buckets)
+8. [Querying Bucket Information](#querying-bucket-information)
+9. [Querying Data from Buckets](#querying-data-from-buckets)
+10. [Bucket Characteristics](#bucket-characteristics)
+11. [Bucket Naming Rules](#bucket-naming-rules)
+12. [When to Create Custom Buckets](#when-to-create-custom-buckets)
 
 ---
 
@@ -62,7 +64,7 @@ Buckets organize data to meet performance, compliance, and retention requirement
 | **Access Control** | Bucket-level IAM policies for team isolation |
 | **Cost Attribution** | Enable data cost tracking by organizational unit |
 
-<a id="supported-data-types-tables"></a>
+<a id="built-in-grail-buckets"></a>
 ## Built-in Grail Buckets
 
 Dynatrace provides a set of predefined built-in buckets that cannot be modified. Use this DQL to discover them all:
@@ -113,6 +115,8 @@ The built-in set varies by tenant and grows as Dynatrace adds capabilities — t
 | spans | Default | default_spans |
 | spans | Custom | spans_shared, spans_delivery, spans_accounting, spans_infra |
 -->
+
+<a id="supported-data-types-tables"></a>
 ## Supported Data Types (Tables)
 
 Each bucket is associated with exactly **one data type**. You cannot mix data types in the same bucket.
@@ -134,6 +138,7 @@ Each bucket is associated with exactly **one data type**. You cannot mix data ty
 -->
 > **Important:** Metrics do not support custom buckets — all metric data routes to `default_metrics`.
 
+<a id="system-tables"></a>
 ## System Tables
 
 In addition to regular data tables, Grail exposes **system tables** — virtual tables representing Grail metadata, not stored in any bucket:
