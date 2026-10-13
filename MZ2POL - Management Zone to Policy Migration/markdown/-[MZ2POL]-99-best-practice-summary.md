@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -23,6 +23,16 @@ It was rewritten on 10/13/2026. The previous version recommended practices the s
 | Not yet | 13 Spaces | Upcoming, not documented as available |
 For environments where SVG doesn't render
 -->
+
+**Reading paths** — take the lane for the job your zones do (MZ2POL-01 §6):
+
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ---
 

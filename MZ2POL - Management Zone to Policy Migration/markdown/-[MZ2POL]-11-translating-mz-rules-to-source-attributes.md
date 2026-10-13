@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 12 of 14 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 14 | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 

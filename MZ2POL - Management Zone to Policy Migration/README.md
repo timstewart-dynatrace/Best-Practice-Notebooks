@@ -1,12 +1,25 @@
-# MZ2POL - Management Zone to Policy Migration
+# MZ2POL - Management Zone Migration: Segments, Policies, Workflows
 
 Tools and guidance for migrating off Management Zones in Dynatrace.
 
-Management Zones do three different jobs, and they migrate to three different places. **Access control** — who is allowed to read what — becomes IAM policies and boundaries (notebooks 01–04, 06–08). **Filtering** — what a user sees in apps and dashboards — becomes Segments (notebook 05). **Alerting** — who gets paged — becomes problem-triggered workflows (notebook 09), *not* Segments. Most estates use Management Zones more for filtering than for permissions, and notebooks 05 and 09 each read on their own if that is your situation.
+Management Zones do three different jobs, and they migrate to three different places. **Access control** — who is allowed to read what — becomes IAM policies and boundaries (notebooks 04, 08 and 12). **Filtering** — what a user sees in apps and dashboards — becomes Segments (notebook 05). **Alerting** — who gets paged — becomes problem-triggered workflows (notebook 09), *not* Segments. Most estates use Management Zones more for filtering than for permissions, and notebooks 05 and 09 each read on their own if that is your situation.
 
 There is no automatic conversion in either direction: every policy and every segment is authored by hand. Notebook 00 inventories and classifies the estate so you know how much work each zone represents.
 
 > **Recommended:** Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.
+
+
+## Reading Paths
+
+You do not need every notebook — take the lane for the job your zones do. Notebooks 10 and 11 are on every working path.
+
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ## Structure
 - notebooks/ — Dynatrace notebook JSON files

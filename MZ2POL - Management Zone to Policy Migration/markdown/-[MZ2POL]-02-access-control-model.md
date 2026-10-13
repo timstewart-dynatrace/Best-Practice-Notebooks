@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 3 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 3 of 14 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 

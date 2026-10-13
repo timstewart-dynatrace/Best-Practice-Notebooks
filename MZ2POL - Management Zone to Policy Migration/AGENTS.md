@@ -1,4 +1,4 @@
-# AGENTS.md — MZ2POL: Management Zone to Policy Migration
+# AGENTS.md — MZ2POL: Management Zone Migration: Segments, Policies, Workflows
 
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
@@ -29,6 +29,17 @@ templated policies for bulk migration. There is **no automatic MZ-to-Segment
 conversion** — every segment is hand-authored. For greenfield IAM (no MZs to
 migrate), use the IAM series instead; for segment mechanics in general, use
 ORGNZ.
+
+
+**Reading paths** (route a question to the lane first):
+
+| Path | Use it when | Read in this order |
+|---|---|---|
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ## Routing table
 

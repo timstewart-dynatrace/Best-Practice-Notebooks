@@ -1,6 +1,6 @@
 # MZ2POL-08: Templated Policies for MZ Migration
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** 9 of 14 | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 9 of 14 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 

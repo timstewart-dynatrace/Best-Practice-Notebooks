@@ -1,6 +1,6 @@
 # MZ2POL-14: Zone Disposition Workshop
 
-> **Series:** MZ2POL — Management Zone to Policy Migration | **Notebook:** Bonus Workshop | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** Bonus Workshop | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
