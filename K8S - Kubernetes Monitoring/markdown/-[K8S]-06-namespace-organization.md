@@ -1,6 +1,6 @@
 # K8S-06: Namespace Organization and Boundaries
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 6 of 14 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Organizing Kubernetes Monitoring with Namespaces
 Namespaces provide logical boundaries in Kubernetes for resource isolation, access control, and organizational structure. This notebook covers namespace strategies and how to leverage them in Dynatrace for filtered views, access control, and cost allocation.
@@ -240,9 +240,16 @@ Grail record permissions take a `WHERE` condition on `storage:k8s.namespace.name
 ```text
 ALLOW storage:logs:read, storage:spans:read, storage:events:read, storage:metrics:read
   WHERE storage:k8s.namespace.name = "checkout";
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "events", "metrics");
 ```
 
 The condition supports `=`, `IN`, `startsWith` and `MATCH`. To reuse one policy across teams, keep the permission in the policy and move the condition into a **boundary** bound with the group (IAM series).
+
+Two details decide whether this grants anything:
+
+- **The bucket permission.** `storage:buckets:read` is *"Required additionally to a table permission"* — without the second statement the first reads nothing.
+- **Arrays on events.** *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."* On the validation tenant (10/13/2026) about 7% of events that carried `k8s.namespace.name` held it as an array, so an `=` condition silently hides those events. Where events matter, use `MATCH ("checkout")` instead.
 
 ### Segment by Namespace
 
@@ -266,7 +273,7 @@ Mirror the Kubernetes roles you already bind per namespace:
 | `view` ClusterRole bound in a namespace | Read policy with that namespace's condition |
 | `cluster-admin` | Read policy without a namespace condition |
 
-> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"ALLOW storage:events:read WHERE storage:k8s.namespace.name = "production""*.</sub>
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"ALLOW storage:events:read WHERE storage:k8s.namespace.name = "production""*, and `storage:buckets:read` *"Required additionally to a table permission"*; [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail).</sub>
 
 <a id="multi-tenant-clusters"></a>
 ## 5. Multi-Tenant Clusters

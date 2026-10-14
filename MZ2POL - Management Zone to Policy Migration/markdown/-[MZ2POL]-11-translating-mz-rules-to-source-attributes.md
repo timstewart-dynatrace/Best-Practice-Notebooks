@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 15 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -63,6 +63,7 @@ The settings schema `builtin:management-zones` defines exactly what a zone can c
 | caseSensitive | true / false | Grail field filters compare values exactly — normalize values instead |
 | tag value format | [CONTEXT]key:value | — |
 | Propagation flags | 8 | Nothing: propagation is built into primary tags (MZ2POL-10 §7) |
+| Evaluation | Conditions in a rule are ANDed; rules are executed periodically in the background, for a limited timeframe | Enrichment is applied as data is ingested, from the time the rule is active |
 For environments where SVG doesn't render
 -->
 
@@ -94,7 +95,7 @@ That maps cleanly onto segments — **conditions in one include are ANDed, inclu
 
 Per environment the classic model allows 5,000 management zones by default, 300 UI-based entity rules, 300 dimensional-data rules, 300 entity-selector rules and 100,000 conditions across all rules, with any one entity in at most 200 zones. Estates near these limits are almost always encoding **values** as zones — the pattern MZ2POL-05 §2 replaces with one segment per **dimension**.
 
-> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones), [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026.</sub>
+> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026.</sub>
 
 <a id="decision-path"></a>
 ## 2. The Decision Path for One Rule
@@ -134,7 +135,7 @@ The 198 property keys fall into a dozen families. For each family, the table nam
 | **Kubernetes** — `KUBERNETES_CLUSTER_NAME`, `CLOUD_APPLICATION_NAMESPACE_NAME` | Built in | `k8s.cluster.name`, `k8s.namespace.name` | **Yes** (permission) |
 | **Kubernetes labels** — `CLOUD_APPLICATION_NAMESPACE_LABELS`, `CLOUD_APPLICATION_LABELS`, `HOST_KUBERNETES_LABELS` | Promote namespace labels/annotations via K8s enrichment (K8S-10) | `primary_tags.<key>` (+ `dt.security_context`) | Via `dt.security_context` only |
 | **Cloud account** — `AWS_ACCOUNT_ID`, `AZURE_SUBSCRIPTION_UUID`, `GOOGLE_COMPUTE_INSTANCE_PROJECT_ID` | Built in | `aws.account.id`, `azure.subscription`, `gcp.project.id` | **Yes** (permission) |
-| **Cloud tags** — `EC2_INSTANCE_TAGS`, `AZURE_ENTITY_TAGS`, `AWS_*_TAGS` | Central cloud enrichment (new cloud connections, 1.348+; staged rollout) or an OpenPipeline tag rule | `primary_tags.<key>` or `dt.security_context` | Via `dt.security_context` only |
+| **Cloud tags** — `EC2_INSTANCE_TAGS`, `AZURE_ENTITY_TAGS`, `AWS_*_TAGS` | Central cloud-tag enrichment (new cloud connections, Dynatrace 1.348+; staged rollout) maps a tag to `dt.security_context` or a cost field, or forwards it as `aws.tags.<key>`; mapping straight to a primary tag is *coming soon*, so promote the forwarded field with an OpenPipeline primary Grail tag rule (FAQ-26 §5.4). These rules tag only cloud-connection data. For OneAgent data on the same VM (the usual case for `EC2_INSTANCE_TAGS`), enable instance tags in instance metadata and map the `aws.tags.<key>` host properties with a Host/Process property rule (FAQ-26 §5.1) | `dt.security_context`, or `primary_tags.<key>` via OpenPipeline | Via `dt.security_context` only |
 | **Host name** — `HOST_NAME`, `HOST_DETECTED_NAME`, `HOST_ONEAGENT_CUSTOM_HOST_NAME` | Central enrichment rule on `host.name` (condition or DPL extraction) | `primary_tags.<key>` | `storage:host.name` is a documented condition, but the dictionary marks `host.name` `experimental` and names change — prefer `dt.security_context` |
 | **Host tags** — `HOST_TAGS` | Central enrichment rule on `host.tags.<key>`, or re-set with a `primary_tags.` prefix | `primary_tags.<key>` | Via `dt.security_context` only |
 | **Host metadata** — `HOST_CUSTOM_METADATA` | Move to host tags, then promote (OneAgent 1.345 derives host `primary_tags` from host tags, not host properties) | `primary_tags.<key>` | Via `dt.security_context` only |
@@ -156,6 +157,8 @@ The 198 property keys fall into a dozen families. For each family, the table nam
 > <sub>**Sources:**</sub>
 > - <sub>[Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — property-key enum</sub>
 > - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Enriching all data from a host based on a process or service property is not supported."* and *"Cloud tags are not yet available as input fields for OneAgent."*</sub>
+> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags (coming soon): This option is not yet directly available as Target and will be added in one of the next releases."*</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* and *"OneAgent reads them through the instance metadata service and exposes them as host properties named aws.tags.<key>."*</sub>
 > - <sub>[What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — record-level conditions on `storage:logs:read` and `storage:metrics:read` include `storage:dt.host_group.id`, `storage:k8s.namespace.name`, `storage:host.name`, `storage:aws.account.id` and `storage:dt.security_context`; no `primary_tags` condition is listed.</sub>
 > - <sub>**Dictionary:** `dt.host_group.id`, `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription`, `gcp.project.id` (`stable`, tagged `permission`, `primary-field`); `frontend.name` (`stable`, `permission`); `host.name` (`experimental`, `permission`); `primary_tags.__key__` (`experimental`, no tags), read 10/13/2026.</sub>
@@ -172,8 +175,8 @@ The MZ operator set is richer than any single Grail surface. The useful observat
 | MZ operator | Central enrichment rule | Segment filter | IAM storage condition (record fields) |
 |---|---|---|---|
 | EQUALS | matchesValue | = / in() | = / IN |
-| BEGINS_WITH | matchesPhrase | "x*" (classic entities: entity.name only) | startsWith |
-| CONTAINS / ENDS_WITH | matchesPhrase | "*x*" — not on classic entities | MATCH pattern |
+| BEGINS_WITH | matchesValue(field, "x*") | "x*" (classic entities: entity.name only) | startsWith |
+| CONTAINS / ENDS_WITH | matchesValue(field, "*x*") / ("*x") | "*x*" — not on classic entities | MATCH pattern |
 | NOT_* (exclusion) | NOT operator | No exclusions | Only on storage:bucket-name |
 | EXISTS / NOT_EXISTS | isNotNull / isNull | Not expressible | Not expressible |
 | REGEX_MATCHES | Regex not supported | No regex | No regex |
@@ -186,15 +189,16 @@ For environments where SVG doesn't render
 
 ### Notes on the hard cases
 
-- **`REGEX_MATCHES`.** The central rule's limitations list regular expressions and nested condition functions as unsupported. Rewrite the regex as one or more `matchesPhrase` conditions where you can, as a DPL extraction where the value is structured (FAQ-15 has a regex-to-DPL translation table), or fall back to an explicit membership tag.
+- **`REGEX_MATCHES`.** The central rule's limitations list regular expressions and nested condition functions as unsupported. Rewrite the regex as one or more wildcard `matchesValue` conditions where you can, as a DPL extraction where the value is structured (FAQ-15 has a regex-to-DPL translation table), or fall back to an explicit membership tag.
 - **`NOT_*` and exclusions.** Segments and record-level IAM conditions cannot exclude, but an enrichment condition can carry `NOT`. §5 works the pattern.
 - **`EXISTS` / `NOT_EXISTS`.** Becomes `isNotNull` / `isNull` in the rule condition. The resulting tag is then a positive value that every surface can test.
 - **Case-insensitive conditions.** An MZ condition with case sensitivity off matched `Prod`, `PROD` and `prod`. A segment filter or boundary will not. Normalize the value where it is set (an allowlist, MZ2POL-10 §4) rather than adding every spelling to every filter. MZ2POL-10 §9 Step 7 finds the spellings that already exist.
-- **`matchesPhrase` is a token matcher.** Dynatrace describes it in the enrichment rule as *contains, begins/ends with*, and its own example is `matchesPhrase(host.name, "prod-host-")`. The DQL reference describes `matchesPhrase` as matching a phrase *"using token matchers"*, not as a raw substring search. Test the condition against your real names — §9 shows how — before relying on it to split a naming convention in the middle of a token.
+- **Prefer wildcard `matchesValue` for begins-with, contains and ends-with.** The enrichment page describes `matchesPhrase` as *contains, begins/ends with*, but the DQL reference describes it as matching a phrase *"using token matchers"*, not as a raw prefix or substring test. On the validation tenant (10/13/2026) `matchesPhrase("eu-prod-pay", "prod-")` returned **true** — not a begins-with — and `matchesPhrase("web-legacy01", "legacy")` returned **false** — not a contains. `matchesValue`, the other function the rule condition accepts, takes `*` wildcards: `matchesValue(dt.host_group.id, "prod-*")` is a true begins-with and `matchesValue(host.name, "*legacy*")` a true contains. `matchesValue` is case-insensitive by default, which matches the classic default; a case-sensitive MZ condition needs normalized values. Test any condition against your real names — §9 shows how.
 - **IAM record-level conditions are positive only.** The policy syntax lists `=`, `!=`, `<`, `>`, `IN`, `startsWith`, `NOT IN`, `NOT startsWith` and `MATCH`, and adds *"Not every operator applies to every service attribute."* The IAM policy reference shows what that means for Grail data: on `storage:logs:read`, record fields such as `storage:dt.host_group.id`, `storage:k8s.namespace.name`, `storage:log.source` and `storage:dt.security_context` take `=`, `IN`, `startsWith` and `MATCH`. The negative forms appear only on `storage:bucket-name`. So a boundary cannot say "everything except legacy" on a record field either — the exclusion has to become a value (§5). MZ2POL-04 covers boundary syntax.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — conditions support *"matchesValue (equals), matchesPhrase (contains, begins/ends with), isNull , isNotNull , and the AND , OR , NOT operators."*</sub>
+> - <sub>[String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `matchesValue`: *"Values are matched case-insensitive by default"*</sub>
 > - <sub>[IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax) — *"Not every operator applies to every service attribute."*</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:logs:read`: *"storage:dt.host_group.id - Id of the host group."* with operators `=`, `IN`, `startsWith`, `MATCH`; the negative operators are listed only for `storage:bucket-name`.</sub>
 > - <sub>[Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — classic entities: *"Other properties only support equals"*</sub>
@@ -214,7 +218,7 @@ The cleaner translation evaluates the exclusion **once**, in the central enrichm
 |---|---|
 | MZ rule today | HOST_GROUP_NAME BEGINS_WITH "prod-" AND HOST_NAME NOT_CONTAINS "legacy" ("all production except legacy boxes") |
 | Direct segment translation (wrong) | dt.host_group.id = "prod-*" — no way to say "except"; the segment shows the legacy hosts too |
-| Central ingest enrichment rule | condition: matchesPhrase(dt.host_group.id, "prod-") AND NOT matchesPhrase(host.name, "legacy"); enrichment: primary_tags.tier = core-prod |
+| Central ingest enrichment rule | condition: matchesValue(dt.host_group.id, "prod-*") AND NOT matchesValue(host.name, "*legacy*"); enrichment: primary_tags.tier = core-prod |
 | Every matching record | primary_tags.tier = core-prod; legacy hosts never receive the value |
 | Segment (positive only) | Data (all types): primary_tags.tier = core-prod — also reusable by workflows, bucket rules, dashboards |
 For environments where SVG doesn't render
@@ -280,7 +284,7 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | **MZ rule** | `ME` on `HOST`: `HOST_GROUP_NAME` `BEGINS_WITH` `"pay-prod-"` |
 | **Value** | None needed — `dt.host_group.id` is built in |
 | **Segment** | `Data (all types)`: `dt.host_group.id = "pay-prod-*"` |
-| **Boundary** | `storage:dt.host_group.id startsWith "pay-prod-"` — a documented condition on `storage:logs:read`, `storage:metrics:read` and other record-level permissions |
+| **Boundary** | `storage:dt.host_group.id MATCH ("pay-prod-*")`. `startsWith` is also a documented condition on `storage:logs:read` and `storage:metrics:read`, but it is always false on an array, and problem records hold `dt.host_group.id` as one (on the validation tenant, 10/13/2026, 77 `DAVIS_PROBLEM` records in 24 h) |
 | **Retire** | The auto-tags that only copied the host group |
 
 ### 8.2 Process-group name contains, propagated to hosts and services
@@ -290,7 +294,7 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | **MZ rule** | `ME` on `PROCESS_GROUP`: `PROCESS_GROUP_DETECTED_NAME` `CONTAINS` `"billing"`, with `pgToHostPropagation` and `pgToServicePropagation` on |
 | **Value** | `DT_TAGS="primary_tags.team=billing dt.security_context=billing"` on the billing processes — or a central rule conditioned on the process group |
 | **Segment** | `Data (all types)`: `primary_tags.team = "billing"` |
-| **Boundary** | `storage:dt.security_context = "billing"` |
+| **Boundary** | `storage:dt.security_context MATCH ("billing")` — `MATCH`, because events hold the field as an array (MZ2POL-12 §6) |
 | **Watch** | `pgToHostPropagation` put the whole host in the zone. If other teams share the host, the process-level value is **more accurate**: the host's own metrics are no longer labelled billing (MZ2POL-10 §7) |
 
 ### 8.3 Production except legacy
@@ -298,7 +302,7 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | | |
 |---|---|
 | **MZ rule** | `ME` on `HOST`: `HOST_GROUP_NAME` `BEGINS_WITH` `"prod-"` AND `HOST_NAME` `NOT_CONTAINS` `"legacy"` |
-| **Value** | Central rule — condition `matchesPhrase(dt.host_group.id, "prod-") AND NOT matchesPhrase(host.name, "legacy")`, enrichment `primary_tags.tier = core-prod` (§5) |
+| **Value** | Central rule — condition `matchesValue(dt.host_group.id, "prod-*") AND NOT matchesValue(host.name, "*legacy*")`, enrichment `primary_tags.tier = core-prod` (§5; wildcard `matchesValue`, not `matchesPhrase` — §4) |
 | **Segment** | `Data (all types)`: `primary_tags.tier = "core-prod"` |
 | **Boundary** | If needed, write `dt.security_context` in the same rule |
 
@@ -309,7 +313,7 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | **MZ rule** | `ME` on `CLOUD_APPLICATION_NAMESPACE`: `CLOUD_APPLICATION_NAMESPACE_LABELS` equals `team:checkout` |
 | **Value** | Promote the namespace label to `primary_tags.team` and `dt.security_context` via Kubernetes enrichment (K8S-10). Dynatrace's baseline: *"For most production environments, use Namespace annotations and labels as the baseline."* |
 | **Segment** | `Data (all types)`: `primary_tags.team = "checkout"` |
-| **Boundary** | `storage:dt.security_context = "checkout"` — or `storage:k8s.namespace.name` directly if one namespace is one team |
+| **Boundary** | `storage:dt.security_context MATCH ("checkout")` — or `storage:k8s.namespace.name MATCH ("<namespace>")` directly if one namespace is one team |
 | **Watch** | Set it at **namespace** level: pod-level annotations do not reach Kubernetes metrics or events (FAQ-26 §5.2) |
 
 ### 8.5 Dimensional log rule
@@ -330,12 +334,12 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | **Data scope** | Tag the calling services' processes `primary_tags.consumer_of = journey` at deploy time, owned by the API team; filter on it |
 | **Watch** | New callers no longer join automatically (§7) |
 
-> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — examples 4 and 5, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"For most production environments, use Namespace annotations and labels as the baseline."*, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent). **Derived:** each worked example combines the rule-type and operator mappings in §3–§7.</sub>
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — examples 4 and 5, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"For most production environments, use Namespace annotations and labels as the baseline."*, — for shared hosts: *"Set DT_TAGS and OTEL_RESOURCE_ATTRIBUTES on each process with the same metadata fields used for dedicated infrastructure"*, listing `dt.security_context=<value>` among them, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using = , STARTSWITH or IN when the field holds an array will always return false ."* **Derived:** each worked example combines the rule-type and operator mappings in §3–§7.</sub>
 
 <a id="verifying"></a>
 ## 9. Verifying Translations with DQL
 
-Three checks, from cheapest to most specific. The first two scan **zero bytes**. Every query was executed against the validation tenant on 10/13/2026.
+Three checks, from cheapest to most specific. The first scans **zero bytes**; the other two read an hour of logs. Every query was executed against the validation tenant on 10/13/2026 — the counts quoted below are that tenant on that day, and yours will differ.
 
 **Check 1 — which zones are really host-group zones?** If every host in a zone shares one host group, the zone translates to `dt.host_group.id` with no tagging work (decision path step 1). Hosts with no host group at all push the zone down to a tag.
 
@@ -360,7 +364,7 @@ fetch dt.entity.host
 | limit 100
 ```
 
-On the validation tenant, five of nine zones translated directly to `dt.host_group.id` — four to a single group, one to a two-group `in()` list. The four largest zones each had 15 of their 17 hosts with no host group at all (application-only monitored workloads), so those zones need a tag.
+On the validation tenant (10/13/2026), four of eight zones translated directly to `dt.host_group.id`, each to a single group. The four largest zones each had 18 of their 20 hosts with no host group at all (application-only monitored workloads), so those zones need a tag. Earlier the same day the split was five of nine — zone membership on a live tenant moves, which is why the check is re-run per wave rather than once.
 
 **Check 2 — does a dimensional rule's field carry the boundary value?** Before using `log.source` (or any `DIMENSION` field) in a segment or boundary, see what it actually contains and whether a security context travels with it.
 
@@ -374,7 +378,7 @@ fetch logs, from:-1h
 | limit 20
 ```
 
-On the validation tenant the prefix matched Dynatrace's own agent logs alongside the operating-system logs — a broad prefix selects more than the zone's owners probably intended — and none of the matching records carried a security context.
+On the validation tenant (10/13/2026) the prefix matched Dynatrace's own agent logs alongside the operating-system logs — a broad prefix selects more than the zone's owners probably intended — and none of the matching records carried a security context.
 
 **Check 3 — does the translated value select the zone's hosts?** This is MZ2POL-10 §9 Step 5, the acceptance test, run once per zone after its enrichment goes live. A zone is translated when the result has no `in zone, tag missing` rows, and every `tagged, not in zone` row has been decided on purpose.
 
@@ -406,7 +410,7 @@ One row per rule — not per zone. A zone with three rules needs three rows, bec
 
 | Zone | Rule # | Type | Property · operator · value | Job (access / filter / alert) | Decision-path step (§2) | Target field and value | Set where, by whom | Segment filter | Boundary condition | Verified (§9) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Payments - Prod | 1 | ME | HOST_GROUP_NAME · BEGINS_WITH · pay-prod- | access + filter | 1 — built in | `dt.host_group.id` | — | `dt.host_group.id = "pay-prod-*"` | `storage:dt.host_group.id startsWith "pay-prod-"` | Check 1, 3 |
+| Payments - Prod | 1 | ME | HOST_GROUP_NAME · BEGINS_WITH · pay-prod- | access + filter | 1 — built in | `dt.host_group.id` | — | `dt.host_group.id = "pay-prod-*"` | `storage:dt.host_group.id MATCH ("pay-prod-*")` | Check 1, 3 |
 | Payments - Prod | 2 | ME | PROCESS_GROUP_DETECTED_NAME · CONTAINS · billing (+pgToHost) | filter | 2 — at source | `primary_tags.team = billing` | `DT_TAGS`, billing release pipeline | `primary_tags.team = "billing"` | — | Check 3 |
 | Prod excl. legacy | 1 | ME | HOST_GROUP_NAME BEGINS_WITH prod- AND HOST_NAME NOT_CONTAINS legacy | filter | 3 — central rule | `primary_tags.tier = core-prod` | Ingest enrichment, environment scope | `primary_tags.tier = "core-prod"` | — | Check 3 |
 | … | | | | | | | | | | |

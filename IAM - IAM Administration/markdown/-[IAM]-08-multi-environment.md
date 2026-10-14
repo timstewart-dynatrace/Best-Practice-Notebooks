@@ -1,6 +1,6 @@
 # IAM-08: Multi-Environment IAM
 
-> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 8 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Scaling IAM Across Multiple Environments
 Enterprise organizations typically have multiple Dynatrace environments (development, staging, production). This notebook covers strategies for managing IAM consistently across environments while maintaining security boundaries.
@@ -85,8 +85,22 @@ Scoped to specific environments:
 |------------|-------------|
 | `storage:logs:read` | Read logs in environment |
 | `storage:metrics:read` | Read metrics |
+| `storage:buckets:read` | Read records from Grail buckets — needed in addition to every table read above |
 | `settings:objects:read` | Read configuration |
 | `settings:objects:write` | Modify configuration |
+
+### Policy Binding Scope: Account or Environment
+
+Where a policy is **bound** decides how far it reaches, independent of what the policy says:
+
+| Binding level | Reach |
+|---------------|-------|
+| **Account-level** | Applies to all environments under the account |
+| **Environment-level** | Applies only to a single environment |
+
+So a read-only policy bound at account level grants read in production too. For per-environment access (the matrix below), bind each group's policies at the environment level. Dynatrace suggests defining one policy at the account level and binding it to environment levels rather than creating identical environment-level policies — the policy text is shared, the reach is set per binding.
+
+> <sub>**Sources:** [Manage IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt) — account-level policies *"apply to all environments under that account (customer)"*; environment-level policies *"apply only to a single customer environment"*; *"defining one policy on the account level and binding it to environment levels"*.</sub>
 
 ### Permission Assignment Matrix
 
@@ -217,13 +231,13 @@ Emergency access mechanism for critical incidents when:
 ### Break-Glass Setup
 
 1. **Create emergency account**
-   - Local Dynatrace account (not SSO-dependent)
-   - Strong, complex password
-   - MFA with hardware token
+   - A **non-federated** user (not SSO-dependent), invited to the environment
+   - Long, randomly generated password held only in the vault
+   - Dynatrace does not configure MFA itself — MFA is enforced in your IdP — so a non-federated account relies on the vault, split knowledge and use alerts below as its compensating controls
 
 2. **Assign minimal necessary permissions**
-   - Typically `account-user-management` + the Admin User default policy
-   - Or scoped to specific emergency needs
+   - Dynatrace recommends Account manager permissions for this account, so it can repair federation and group settings while the IdP is unavailable
+   - Add environment access (for example the Admin User default policy) only if your emergency procedures need it
 
 3. **Secure the credentials**
    - Store in enterprise vault (CyberArk, HashiCorp)
@@ -321,7 +335,7 @@ Special considerations for MSPs and multi-tenant deployments.
 | **Separate Accounts** | Highest | Different legal entities |
 | **Separate Environments** | High | Business unit isolation |
 | **Boundaries within Environment** | Medium | Team isolation |
-| **Segments only** | Lower | Data filtering only |
+| **Segments only** | None — a segment adds filter conditions to a query; what a user may read is set by policies and boundaries | Data filtering only |
 
 ### Tenant Isolation Checklist
 
@@ -457,6 +471,9 @@ In this notebook, you learned:
 
 - [Account Management (DT docs)](https://docs.dynatrace.com/docs/manage/account-management)
 - [Dynatrace Terraform Provider](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs)
+- [Manage IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt)
+- [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*
+- [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace."*; for emergency access, *"we recommend that you invite a non-federated user to the environment with Account manager permissions"*
 
 ---
 

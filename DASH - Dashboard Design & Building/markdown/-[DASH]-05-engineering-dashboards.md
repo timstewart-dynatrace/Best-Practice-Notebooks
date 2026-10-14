@@ -1,6 +1,6 @@
 # DASH-05: Engineering Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -47,7 +47,7 @@ Every query in this section selects a transaction kind by hand, with `filter spa
 // Service throughput and latency — engineering overview
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize request_count = count(), avg_ms = avg(duration) / 1ms, p50_ms = percentile(duration, 50) / 1ms, p95_ms = percentile(duration, 95) / 1ms, p99_ms = percentile(duration, 99) / 1ms, error_count = countIf(span.status_code == "error"), by:{dt.entity.service}
+| summarize {request_count = count(), avg_ms = avg(duration) / 1ms, p50_ms = percentile(duration, 50) / 1ms, p95_ms = percentile(duration, 95) / 1ms, p99_ms = percentile(duration, 99) / 1ms, error_count = countIf(span.status_code == "error")}, by:{dt.entity.service}
 | fieldsAdd error_rate_pct = round(100.0 * error_count / request_count, decimals: 2)
 | sort p95_ms desc
 ```
@@ -93,7 +93,7 @@ Database spans reveal query performance, connection issues, and which databases 
 // Database response time by system and namespace
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
-| summarize avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), errors = countIf(span.status_code == "error"), by:{db.system, db.namespace}
+| summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), errors = countIf(span.status_code == "error")}, by:{db.system, db.namespace}
 | fieldsAdd error_rate = round(100.0 * errors / query_count, decimals: 2)
 | sort p95_ms desc
 ```
@@ -114,7 +114,7 @@ fetch spans, from:-1h
 // Slowest database operations — engineering deep-dive
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
-| summarize avg_ms = avg(duration) / 1ms, max_ms = max(duration) / 1ms, call_count = count(), by:{db.system, db.query.text}
+| summarize {avg_ms = avg(duration) / 1ms, max_ms = max(duration) / 1ms, call_count = count()}, by:{db.system, db.query.text}
 | sort max_ms desc
 | limit 15
 ```
@@ -148,7 +148,7 @@ Endpoint-level analysis lets engineers identify which specific API routes are pr
 // Endpoint performance breakdown — engineering detail table
 fetch spans, from:-1h
 | filter span.kind == "server" and isNotNull(http.route)
-| summarize requests = count(), avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, errors = countIf(span.status_code == "error"), by:{http.route, http.request.method}
+| summarize {requests = count(), avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, errors = countIf(span.status_code == "error")}, by:{http.route, http.request.method}
 | fieldsAdd error_rate = round(100.0 * errors / requests, decimals: 2)
 | sort p95_ms desc
 | limit 20
@@ -207,7 +207,7 @@ When services are instrumented with custom spans, engineers can see method-level
 // Code-level performance by namespace and function
 fetch spans, from:-1h
 | filter isNotNull(code.namespace)
-| summarize avg_ms = avg(duration) / 1ms, call_count = count(), by:{code.namespace, code.function}
+| summarize {avg_ms = avg(duration) / 1ms, call_count = count()}, by:{code.namespace, code.function}
 | sort avg_ms desc
 | limit 20
 ```
@@ -217,7 +217,7 @@ fetch spans, from:-1h
 ```dql
 // Span breakdown by kind — understanding the call chain
 fetch spans, from:-1h
-| summarize span_count = count(), avg_ms = avg(duration) / 1ms, by:{span.kind}
+| summarize {span_count = count(), avg_ms = avg(duration) / 1ms}, by:{span.kind}
 | sort span_count desc
 ```
 

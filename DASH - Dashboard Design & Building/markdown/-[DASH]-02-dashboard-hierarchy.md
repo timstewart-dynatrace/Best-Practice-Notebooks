@@ -1,6 +1,6 @@
 # DASH-02: Dashboard Hierarchy
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -134,7 +134,7 @@ Operations dashboards answer: **"What needs attention right now?"**
 // Error rate by service — operations bar chart
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(span.status_code == "error"), by:{dt.entity.service}
+| summarize {total = count(), errors = countIf(span.status_code == "error")}, by:{dt.entity.service}
 | fieldsAdd error_rate = 100.0 * errors / total
 | sort error_rate desc
 | limit 10
@@ -179,7 +179,7 @@ Engineering dashboards answer: **"Why is this happening and where exactly?"**
 fetch spans, from:-1h
 | filter span.kind == "server"
 | filter isNotNull(http.route)
-| summarize p95_ms = percentile(duration, 95) / 1ms, request_count = count(), by:{http.route, dt.entity.service}
+| summarize {p95_ms = percentile(duration, 95) / 1ms, request_count = count()}, by:{http.route, dt.entity.service}
 | sort p95_ms desc
 | limit 10
 ```
@@ -190,7 +190,7 @@ fetch spans, from:-1h
 // Database response time by system — engineering detail table
 fetch spans, from:-1h
 | filter span.kind == "client" and isNotNull(db.system)
-| summarize avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count(), by:{db.system, db.namespace}
+| summarize {avg_ms = avg(duration) / 1ms, p95_ms = percentile(duration, 95) / 1ms, query_count = count()}, by:{db.system, db.namespace}
 | sort p95_ms desc
 ```
 

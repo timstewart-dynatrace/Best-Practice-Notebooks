@@ -1,6 +1,6 @@
 # MZ2POL-13: Spaces — What Is Coming and How to Prepare
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 14 of 15 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 14 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 

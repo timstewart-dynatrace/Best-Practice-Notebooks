@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -72,7 +72,7 @@ Pub/Sub carries **logs only**. Metrics are polled, never pushed through Pub/Sub 
 
 > <sub>**Sources:**</sub>
 > - <sub>[Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform)</sub>
-> - <sub>[Create your first GCP connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding)</sub>
+> - <sub>[GCP Cloud Platform Monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding) — page title *"GCP Cloud Platform Monitoring (Preview)"*</sub>
 > - <sub>[dynatrace-gcp-monitor README (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor) — *"This integration is in maintenance mode. A new GCP poller is under active development."*</sub>
 > - <sub>[dynatrace-gcp-monitor Helm values (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml) — *"Metrics polling interval in minutes. Allowed values: 1 - 10"*</sub>
 
@@ -85,7 +85,7 @@ Both models avoid long-lived service account keys. Do not create or upload JSON 
 ### Clouds-app Connection — Service Account Impersonation
 
 1. **Create a service account** in the project that will host the connection.
-2. **Grant it read roles** on everything it should see. The Clouds-app onboarding flow generates the grants for your scope; at project level the Dynatrace CLI tooling uses `roles/browser`, `roles/monitoring.viewer`, `roles/compute.viewer` and `roles/cloudasset.viewer`. To cover folders or an organization, grant at that level — the onboarding docs describe viewer roles on each listed project, folder and organization.
+2. **Grant it read roles** on everything it should see. The Terraform path in *Create your first GCP connection* grants `roles/viewer` on each listed project, `roles/resourcemanager.folderViewer` on each listed folder and `roles/resourcemanager.organizationViewer` on each listed organization. In manual mode you *"Grant permissions to the service account at project, folder, or organization level"*; the page's manual onboarding reference lists the roles.
 3. **Allow Dynatrace to impersonate it.** Grant the Dynatrace principal for your environment (shown in the connection wizard) `roles/iam.serviceAccountTokenCreator` **on that service account** — not on the project.
 4. **Create the connection and its monitoring configuration** in the Clouds app, choosing locations and feature sets.
 
@@ -105,7 +105,7 @@ The monitor's deployment script creates **custom IAM roles** holding only what i
 > **Best Practice:** Host the service account, Pub/Sub topics and the monitor in a **dedicated monitoring project**, so monitoring IAM and cost are separate from workload projects.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Create your first GCP connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding)</sub>
+> - <sub>[Create your first GCP connection (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-a-gcp-connection) — *"Grant `roles/viewer` on each listed project"*; *"Grant the Dynatrace principal `roles/iam.serviceAccountTokenCreator` on the new service account (impersonation trust)."*</sub>
 > - <sub>[dynatrace_gcp_connection (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/gcp_connection.md) — *"This resource uses service account impersonation, which requires the Dynatrace GCP Principal to be granted the `roles/iam.serviceAccountTokenCreator` role on the impersonated service account."*</sub>
 > - <sub>[dynatrace-gcp-monitor on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8)</sub>
 > - <sub>[dynatrace-gcp-monitor Helm values (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml)</sub>
@@ -220,6 +220,8 @@ fetch dt.entity.cloud_application, from:-7d
 
 Cloud Monitoring metrics land in Grail under `cloud.gcp.*`. For `dynatrace-gcp-monitor`, the key is built from the Google metric type: `compute.googleapis.com/instance/cpu/utilization` becomes `cloud.gcp.compute_googleapis_com.instance.cpu.utilization` (dots in the service domain become underscores; `/` becomes `.`). Discover what your tenant actually holds before building on a key — a `timeseries` against a key that does not exist returns an empty result, not an error.
 
+> <sub>**Sources:** [dynatrace-gcp-monitor HACKING.md (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/HACKING.md) — *"timeseries avg(cloud.gcp.compute_googleapis_com.instance.cpu.utilization)"*; [Compute Engine monitoring (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/google-compute-engine/compute-engine-monitoring) lists the source metric `compute.googleapis.com/instance/cpu/utilization`. **Derived:** the naming rule follows from the two forms side by side.</sub>
+
 ```dql
 // Discover the GCP metric keys present in this tenant (note: no comma before from:)
 metrics from:now()-2h
@@ -256,7 +258,7 @@ For the Clouds-app connection (Preview), follow the log setup in the connection'
 | Organization and folder sinks export child projects only when `includeChildren` is set: *"If the field is true, then log entries from all the projects, folders, and billing accounts contained in the sink's parent resource are also available for export."* | One **aggregated sink** at the organization or folder replaces a sink per project — and one change point for filters |
 | *"If a log entry is matched by both `filter` and one of `exclusion_filters` it will not be exported."* | Exclusions are the cheapest volume control: they act before Pub/Sub bills a byte |
 | *"You cannot modify the _Required sink or exclude logs from it."* | Admin Activity audit logs always stay in Cloud Logging; your Dynatrace sink is an additional copy |
-| Data Access audit logs are off by default for most services (BigQuery is the exception) | Enable them deliberately per service — they are high volume, and a sink cannot export what is never written |
+| *"Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data."* | Enable them deliberately per service — they are high volume, and a sink cannot export what is never written |
 
 > **Pub/Sub cost.** *"Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes)."* Every byte your sink admits is metered by Pub/Sub on the way through, before Dynatrace ingest is counted.
 
@@ -264,9 +266,15 @@ For the Clouds-app connection (Preview), follow the log setup in the connection'
 
 The monitor's default logs container (1.25 vCPU, 1 GiB) handles about **8 GB of logs per hour**. Above that, messages accumulate in the Pub/Sub subscription rather than failing — back-pressure is silent until you watch the subscription backlog.
 
-- **Scale horizontally** (more replicas). Dynatrace advises against vertical scaling, because each larger machine needs its process-count setting re-tuned to its cores.
+- **Scale horizontally** (more replicas). Dynatrace advises against vertical scaling, because each larger machine needs its process-count setting re-tuned to its cores — but not from the base 1.25 vCPU / 1 GiB size: move the container to 4 vCPU / 4 GiB first, then add replicas.
 - **Autoscaling** is recommended only from about **450 MB/min** of throughput, on 4 vCPU / 4 GiB nodes.
-- The logs-only setup page publishes a table of tested replica/throughput configurations — size from it, from your **post-filter** volume.
+- Size from the tested configurations on the logs-only setup page, using your **post-filter** volume. Each row is a 4 vCPU / 4 GiB machine with `PARALLEL_PROCESSES=4`, `NUMBER_OF_CONCURRENT_MESSAGE_PULL_COROUTINES=30` and `NUMBER_OF_CONCURRENT_PUSH_COROUTINES=20`:
+
+| Achieved throughput | Replicas |
+|---|---:|
+| ~8 MB/s (~480 MB/min) | 1 |
+| ~25 MB/s (~1.5 GB/min, ~2 TB/day) | 4 |
+| ~46 MB/s (~2.7 GB/min, ~4 TB/day) | 6 |
 
 ### Find GCP Logs in Grail
 
@@ -296,7 +304,8 @@ If these return nothing, check in order: the sink's writer identity has `roles/p
 
 > <sub>**Sources:**</sub>
 > - <sub>[dynatrace-gcp-monitor architecture (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/docs/k8s.md) — *"Pub/Sub messages with log entries are polled by containerized `dynatrace-gcp-monitor`, processed, batched and sent to Dynatrace Log Ingest API."*</sub>
-> - <sub>[Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only)</sub>
+> - <sub>[Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only) — *"Autoscaling is recommended only when you have a minimum of 450 MB/min throughput and can provide a 4vCPU 4Gi RAM machine."* The sizing table above is reproduced from this page.</sub>
+> - <sub>[Cloud Audit Logs overview (Google Cloud)](https://docs.cloud.google.com/logging/docs/audit) — *"Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data."*</sub>
 > - <sub>[logging_config.proto (Google GitHub)](https://github.com/googleapis/googleapis/blob/master/google/logging/v2/logging_config.proto) — *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*</sub>
 > - <sub>[Pub/Sub pricing (Google Cloud)](https://cloud.google.com/pubsub/pricing) — *"Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes)."*</sub>
 > - <sub>**Derived:** the log-field list and the audit attributes come from the monitor's log-processing configuration (`src/config_logs`) in the repository above.</sub>
@@ -312,10 +321,10 @@ GKE runs the same Dynatrace Operator and DynaKube as EKS (CLOUD-03) and AKS (CLO
 | Feature | Monitoring Impact |
 |---|---|
 | **GKE Standard** | No GKE-specific DynaKube configuration is needed for the Operator's deployment modes |
-| **GKE Autopilot** | Autopilot admits privileged partner workloads only through a GKE **allowlist**. The Operator's Helm chart creates the `AllowlistSynchronizer` (`auto.gke.io/v1`) automatically when the cluster offers it; the allowlisted Dynatrace workloads are the **CSI driver**, **log monitoring** and the **CSI job**. Confirm which DynaKube modes your Autopilot version supports on the Kubernetes supported-technologies page before choosing one |
+| **GKE Autopilot** | Autopilot admits privileged partner workloads only through a GKE **allowlist**. The Operator's Helm chart creates the `AllowlistSynchronizer` (`auto.gke.io/v1`) automatically when the cluster offers it; the allowlisted Dynatrace workloads are the **CSI driver**, **log monitoring** and the **CSI job**. On Autopilot the supported mode is App Observability: *"For GKE Autopilot, you can install Dynatrace for App Observability."* |
 | **Helm `platform: gke-autopilot`** | Marked **deprecated** in the Operator chart — the platform is detected automatically; remove the override from existing values files |
 | **Workload Identity Federation for GKE** | Google's recommended way for pods to reach Google Cloud APIs — use it for anything in-cluster that calls GCP (including `dynatrace-gcp-monitor`) instead of mounting keys |
-| **Control plane** | GKE's API server, scheduler and controller-manager metrics are sent to **Cloud Monitoring** when you enable them on the cluster; GKE audit logs are in Cloud Logging and reach Dynatrace through a sink (§6) |
+| **Control plane** | GKE's API server, scheduler and controller-manager metrics are sent to **Cloud Monitoring** when you enable them on the cluster (which must also have system metrics enabled); GKE audit logs are in Cloud Logging and reach Dynatrace through a sink (§6) |
 
 ### GKE Container Metrics
 
@@ -372,7 +381,8 @@ fetch events, from:-6h
 ```
 
 > <sub>**Sources:**</sub>
-> - <sub>[Kubernetes supported technologies (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/supported-technologies)</sub>
+> - <sub>[Kubernetes supported technologies (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/supported-technologies) — *"For GKE Autopilot, you can install Dynatrace for App Observability."*</sub>
+> - <sub>[Control plane metrics (Google Cloud)](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/control-plane-metrics) — *"The cluster must have system metrics enabled."*</sub>
 > - <sub>[AllowlistSynchronizer template (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/templates/Common/operator/allowlistsynchronizer.yaml)</sub>
 
 <a id="cloud-run"></a>
@@ -398,10 +408,15 @@ Cloud Run is GCP's serverless container platform. It shares some monitoring patt
 |---|---|---|
 | **Unit** | Container | Function |
 | **Runtime** | Any Docker image | Managed runtimes + custom |
-| **Max duration** | Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days | 15 minutes |
+| **Max duration** | Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days (1 hour for tasks using GPUs) | 15 minutes |
 | **Concurrency** | Multiple requests per instance (configurable, up to 1,000) | One per execution (default) |
 | **Monitoring** | OneAgent (Java/Node.js only) or OTLP — an OpenTelemetry Collector can run as a sidecar container | Lambda Layer |
 | **Cold start** | Container pull + startup | Runtime initialization |
+
+> <sub>**Sources:**</sub>
+> - <sub>[Request timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/request-timeout) — *"The timeout is set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds)."*</sub>
+> - <sub>[Task timeout (Google Cloud)](https://docs.cloud.google.com/run/docs/configuring/task-timeout) — *"For tasks using GPUs, the maximum available timeout is 1 hour."*</sub>
+> - <sub>[About concurrency (Google Cloud)](https://docs.cloud.google.com/run/docs/about-concurrency) — *"You can increase this to a maximum of 1,000."*</sub>
 
 ### Cloud Run Monitoring: OneAgent Coverage and Caveats
 

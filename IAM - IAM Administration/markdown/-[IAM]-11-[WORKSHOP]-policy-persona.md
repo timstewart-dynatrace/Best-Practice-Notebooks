@@ -1,6 +1,6 @@
 # IAM-11: Policy Persona Workshop
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -274,10 +274,11 @@ Gen3 UI policies use three services together:
 
 - `app-engine:apps:run` — Controls whether a persona can **see** an app in the navigation. Works for both Gen3 apps and Gen2 classic screens. Use `shared:app-id` to target specific apps.
 - `document:` — Controls what the persona can **do** with dashboards and notebooks (read, write, create, delete, share)
-- `environment:roles:viewer` — Grants baseline read access to the environment
+- `environment:roles:viewer` — Grants baseline read access to the environment. For a persona whose classic entity view is limited by a management-zone boundary, grant it **only** in that boundary-scoped policy (see *Writing Policies*) — an unbounded grant here would undo the boundary
 
 ```
-// Grant baseline environment viewer role
+// Grant baseline environment viewer role — unscoped personas only;
+// MZ-scoped personas get it from their boundary-scoped Data-Classic policy instead
 ALLOW environment:roles:viewer;
 
 // Make specific Gen3 apps visible — apps not listed here are implicitly hidden
@@ -337,7 +338,7 @@ Consider five dimensions:
 | Power User | All | All | All | All | None (env-wide) | None (env-wide) | No |
 | SRE - Scoped | All | Own org | Own org | All | `storage:dt.security_context IN ("org")` | `environment:management-zone IN ("Org-MZ")` | Yes |
 | SRE - Platform | All | All | All | All | None (env-wide) | None (env-wide) | Yes |
-| Security Viewer | None | None | None | Audit + security events | `storage:event.kind IN ("AUDIT_EVENT")` (audit records live in the `dt_system_events` bucket) | None | No |
+| Security Viewer | None | None | None | Audit + security events | None — the data policy scopes itself (below) | None | No |
 | Admin | All | All | All | All | None (env-wide) | None (env-wide) | Yes |
 
 > **Security Viewer data policy.** Platform audit records are `AUDIT_EVENT` records in `dt.system.events`, stored in the `dt_system_events` bucket — there is no separate audit-log bucket. Grant:
@@ -348,7 +349,9 @@ Consider five dimensions:
 > ALLOW storage:security.events:read;
 > ```
 >
-> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT""*.</sub>
+> **Scope the audit read inside the policy, not with a boundary.** A `storage:event.kind` boundary does not do this job: `storage:buckets:read` accepts only `storage:bucket-name`, `storage:table-name` and `storage:query-consumption`, so the boundary leaves it unconditional, and on `storage:security.events:read` it would narrow security events to kind `AUDIT_EVENT` rather than leave them readable. The `WHERE` clauses above already limit the persona to audit records plus security events.
+>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT""*, [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*, [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only conditions added to service configuration will be applied to relative permissions."*</sub>
 
 #### Deliverable
 
@@ -407,7 +410,7 @@ ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
 
 A policy statement (or template reference from **IAM-10**) for each persona covering configuration access.
 
-> **Binding count:** Scoped personas (Standard User, SRE-Scoped, Security Viewer) need **4 policy bindings**: UI + Gen3-Data + Gen2-Data (Classic entity) + Config. Unscoped personas (Power User, SRE-Platform, Admin) need **3 bindings**: UI + Data + Config. Budget 18-24 policy bindings for a typical 6-persona deployment. See **Writing Policies** for the complete Standard User example showing all four bindings.
+> **Binding count:** Scoped personas (Standard User, SRE-Scoped) need **4 policy bindings**: UI + Gen3-Data + Gen2-Data (Classic entity) + Config. Unscoped personas (Power User, SRE-Platform, Admin) and Security Viewer — whose data policy scopes itself — need **3 bindings**: UI + Data + Config. Budget 18-24 policy bindings for a typical 6-persona deployment. See **Writing Policies** for the complete Standard User example showing all four bindings.
 
 <a id="writing-policies"></a>
 
@@ -419,7 +422,7 @@ Now that you have deliverables from all six goals, assemble the actual policies.
 
 Every persona needs at least one policy in each domain:
 
-**UI Policy** — Controls which Dynatrace apps the persona can see in the navigation (`app-engine:apps:run` service with `shared:app-id`), baseline environment access (`environment:roles:viewer`), and what they can do with documents like dashboards and notebooks (`document:` service).
+**UI Policy** — Controls which Dynatrace apps the persona can see in the navigation (`app-engine:apps:run` service with `shared:app-id`), baseline environment access (`environment:roles:viewer` — for unscoped personas only; scoped personas get it from their boundary-scoped Data-Classic policy), and what they can do with documents like dashboards and notebooks (`document:` service).
 
 **Data Policy** — Controls which data (metrics, logs, traces, events) is returned when the persona queries the platform. Scoped by boundaries, buckets, or security context.
 
@@ -462,8 +465,9 @@ For each persona, compose three policy documents using your deliverables from Go
 
 ```
 // GLOBAL-Standard-UI
-// Baseline environment access
-ALLOW environment:roles:viewer;
+// No environment:roles:viewer here — Standard Users are MZ-scoped, so the role is granted
+// only in GLOBAL-Standard-Data-Classic, under the MZ boundary. An unbounded grant in this
+// policy would give the same role environment-wide and undo that boundary.
 // App visibility — only these apps appear in the navigation
 // All other apps (Settings, Account Management, etc.) are implicitly hidden
 ALLOW app-engine:apps:run WHERE shared:app-id IN ("dynatrace.dashboards", "dynatrace.notebooks");
@@ -474,6 +478,8 @@ ALLOW document:documents:read;
 ```
 // GLOBAL-Standard-Data (Gen3 Grail data — pair with a Gen3 boundary)
 // Gen3 boundary: storage:dt.security_context IN ("team"); settings:dt.security_context IN ("team");
+// storage:buckets:read is required in addition to every table permission
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read WHERE storage:dt.security_context IN ("${bindParam:team}");
 ALLOW storage:spans:read WHERE storage:dt.security_context IN ("${bindParam:team}");
 ALLOW storage:metrics:read;
@@ -483,7 +489,8 @@ ALLOW storage:events:read;
 ```
 // GLOBAL-Standard-Data-Classic (Gen2 Classic entity access — pair with a Gen2 boundary)
 // Gen2 boundary: environment:management-zone IN ("Team-MZ");
-// Attach this binding SEPARATELY from the Gen3 binding above — never merge boundary conditions.
+// Attach this binding SEPARATELY from the Gen3 binding above, with its own boundary. Never attach
+// two boundaries to one binding: each is evaluated separately, so each leaves the other's domain unscoped.
 // Remove this binding when Management Zone retirement is complete.
 ALLOW environment:roles:viewer;
 ```
@@ -493,6 +500,10 @@ ALLOW environment:roles:viewer;
 // Read-only access to all settings — write is implicitly denied
 ALLOW settings:objects:read, settings:schemas:read;
 ```
+
+> **Why the viewer role lives only in Data-Classic.** A boundary narrows only the binding it is attached to. If the UI policy also granted `environment:roles:viewer` unbounded, the user would hold the role environment-wide through that binding and the MZ boundary on Data-Classic would restrict nothing.
+>
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"*. **Derived:** the unbounded-grant conclusion combines per-binding boundaries with additive ALLOWs.</sub>
 
 > **Why no DENY?** These policies rely on **implicit deny** — if a permission is not ALLOWed, it is denied by default. This is critical for composability: a Standard User who is *also* added to a Power User or SRE group will correctly inherit the additional ALLOWs from those groups. If this policy contained `DENY settings:objects:write`, that DENY would **override** the Power User's `ALLOW settings:objects:write` and the user would be locked out of configuration — even though the intent was to grant them elevated access.
 >
@@ -541,7 +552,7 @@ DT-<SCOPE>-<PERSONA>
 
 ### Boundary Naming Convention
 
-Gen3 (Grail data) and Gen2 (Classic entities) boundaries are **separate named entities** — never merged into one boundary block. Use a suffix to distinguish them:
+This workshop keeps Gen3 (Grail data) and Gen2 (Classic entities) conditions in **separate named boundaries**, one per binding, and uses a suffix to distinguish them. That is a design choice, not a platform rule: a single boundary that mixes `environment:management-zone` and `storage:` conditions is documented and works. The rule that matters is the opposite one — **never attach two boundaries to one binding**, because effective statements are calculated for each boundary separately and each leaves the other's domain unscoped:
 
 ```
 bnd-gen3-<ISOLATION-TYPE>-<SCOPE>   ← storage:/settings: domain conditions
@@ -554,9 +565,10 @@ bnd-gen2-<ISOLATION-TYPE>-<SCOPE>   ← environment: domain conditions
 | `bnd-gen2-team-checkout` | Gen2 (Classic) | `environment:management-zone IN ("Checkout-Team");` |
 | `bnd-gen3-env-production` | Gen3 (Grail) | `storage:dt.security_context IN ("production");` |
 | `bnd-gen2-env-production` | Gen2 (Classic) | `environment:management-zone IN ("Production-MZ");` |
-| `bnd-gen3-audit-security` | Gen3 (Grail) | `storage:event.kind IN ("AUDIT_EVENT");` |
 
-> **Two bindings per scoped group:** attach `bnd-gen3-team-*` to the Gen3 data policy binding, and `bnd-gen2-team-*` to the Gen2 Classic entity policy binding. See **IAM-05: Boundary Design Patterns** for the full two-binding pattern.
+> **Two bindings per scoped group:** attach `bnd-gen3-team-*` to the Gen3 data policy binding, and `bnd-gen2-team-*` to the Gen2 Classic entity policy binding. See **IAM-05: Boundary Design Patterns** for the full two-binding pattern. (Security Viewer needs no boundary — its data policy scopes the audit read itself; see Goal 5.)
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"*; the page's own `Kubernetes` example boundary combines `environment:management-zone startsWith "[Kubernetes]";` with `storage:k8s.namespace.name IN ("DEV","PREPROD");`.</sub>
 
 <a id="policy-flow"></a>
 
@@ -661,7 +673,7 @@ The RUM fieldset is in no default policy — grant it explicitly: `ALLOW storage
 
 ### Fieldset Permissions
 
-To read sensitive fieldsets, a user needs an explicit `storage:fieldsets:read` permission. Without it, queries against those fields return `null` (not a 403 error — the query still runs, but sensitive values are masked).
+To read sensitive fieldsets, a user needs an explicit `storage:fieldsets:read` permission. Without it, the query still runs (no 403), but *"sensitive fields won't be shown in the result."*
 
 **Unconditional** (access to all fieldsets):
 ```
@@ -683,7 +695,9 @@ ALLOW storage:fieldsets:read
   WHERE storage:fieldset-name = "builtin-sensitive-spans";
 ```
 
-> **Note:** An unconditional fieldset permission overrides any conditional ones (same precedence logic as bucket/table permissions).
+> **Note:** In community practice, an unconditional fieldset permission is treated as overriding conditional ones, by analogy with table permissions — for those the page states *"If there is an unconditional table permission in any other policy available for a user, the `WHERE` clause is irrelevant"*. Verify for fieldsets in your tenant.
+>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"If you don't have sufficient permissions, sensitive fields won't be shown in the result."*</sub>
 
 ### References
 

@@ -1,6 +1,6 @@
 # IAM-95 LAB: Terraform IAM Provisioning — Groups, Policies, Boundaries, Bindings
 
-> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 08/24/2026
+> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -55,7 +55,7 @@ Team groups — driven entirely by ONE `teams` variable
 | **Project** | None to fetch — Step 1 builds the whole tree from this notebook |
 | **Account UUID** | Account Management → Account settings |
 | **OAuth client** | Account Management → Identity & access management → OAuth clients |
-| **OAuth scopes** | `account-idm-read account-idm-write iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write account-env-read` |
+| **OAuth scopes** | `account-idm-read account-idm-write` (groups) and `iam-policies-management account-env-read` (policies, boundaries, bindings) — the scopes the provider docs list for each resource. Earlier revisions of this lab listed the granular `iam:policies:*`, `iam:bindings:*` and `iam:boundaries:*` scopes instead of `iam-policies-management`; the provider docs name only the four above. |
 | **Prior reading** | IAM-04 (policy authoring), IAM-05 (boundary design), IAM-10 (templated policies) |
 
 > ⚠️ **Safety rails (do not skip):**
@@ -136,6 +136,7 @@ locals {
     ALLOW storage:logs:read;
     ALLOW storage:events:read;
     ALLOW storage:entities:read;
+    ALLOW storage:buckets:read;
     ALLOW settings:objects:read, settings:schemas:read;
   EOT
 
@@ -183,6 +184,9 @@ locals {
   # Parameterized team template (Gen3 — Grail security context)
   # One policy for ALL teams; bind per group with parameters = { team = "..." }
   # and attach the team's standalone boundary for defense-in-depth (IAM-05).
+  # storage:buckets:read is "Required additionally to a table permission"
+  # (IAM policy reference) — the table reads below are not enough on their own.
+  # The security-context conditions still decide which records match.
   # ----------------------------------------------------------------------------
   team_data_access_template = <<-EOT
     ALLOW environment:roles:viewer;
@@ -193,6 +197,7 @@ locals {
     ALLOW storage:metrics:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
     ALLOW storage:events:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
     ALLOW storage:bizevents:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
+    ALLOW storage:buckets:read;
     ALLOW settings:objects:read WHERE settings:dt.security_context IN ("$${bindParam:team}");
     ALLOW settings:schemas:read;
   EOT
@@ -544,6 +549,10 @@ output "bindings" {
 EOF
 ```
 
+> **Provider caveat — a binding update replaces the group's whole policy set.** The provider docs for `dynatrace_iam_policy_bindings_v2` say the resource *"re-assigns all policies bound to a group, so every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound."* During that update *"there is a brief window where the group has no policies assigned, which may temporarily cause permission issues for users in that group."* Apply binding changes to production groups in a change window, and manage each group's bindings from one place only.
+>
+> <sub>**Sources:** [dynatrace_iam_policy_bindings_v2 (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_policy_bindings_v2.md).</sub>
+
 **`examples/complete/variables.tf`** — Inputs for the composition.
 
 ```bash
@@ -820,10 +829,9 @@ cat > examples/complete/terraform.tfvars.example <<'EOF'
 #
 # The OAuth client is created in Account Management > Identity & access
 # management > OAuth clients. Required scopes:
-#   account-idm-read account-idm-write
-#   iam:policies:read iam:policies:write
-#   iam:bindings:read iam:bindings:write
-#   iam:boundaries:read iam:boundaries:write
+#   account-idm-read account-idm-write      (dynatrace_iam_group)
+#   iam-policies-management account-env-read (dynatrace_iam_policy,
+#     dynatrace_iam_policy_boundary, dynatrace_iam_policy_bindings_v2)
 
 dynatrace_account_id    = "00000000-0000-0000-0000-000000000000"
 dynatrace_client_id     = "dt0s02.XXXXXXXX"
@@ -856,7 +864,10 @@ You should see 12 `.tf` files (five modules x `main.tf` + `versions.tf`, plus th
 <a id="step-2-configure"></a>
 ## Step 2 — Configure Credentials and Teams
 
+The files you run Terraform against live in `examples/complete` — the composition is the root module. Change into it first; Steps 2–7 all run from there:
+
 ```bash
+cd examples/complete
 cp terraform.tfvars.example terraform.tfvars
 ```
 

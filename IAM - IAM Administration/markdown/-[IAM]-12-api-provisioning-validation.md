@@ -1,6 +1,6 @@
 # IAM-12: API Provisioning & Validation Scripts
 
-> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -136,7 +136,10 @@ The following shell script demonstrates the complete provisioning workflow — f
 #
 # Reference: IAM-10 (Templated Policy Assignments), IAM-04 (Policy Authoring)
 # =============================================================================
-set -euo pipefail
+# No `set -e`: each API error is handled below so that a re-run converges —
+# existing groups and policies are reused, "already exists" bindings count as done,
+# and any real failure is counted and reported at the end (exit 1).
+set -uo pipefail
 
 # #############################################################################
 #                         CONFIGURATION
@@ -172,6 +175,10 @@ GROUP_DESCRIPTIONS=(
 # --- UI Policies (one statementQuery per persona) ----------------------------
 # Controls which apps each persona sees and what they can do with documents.
 # Uses implicit deny — apps/actions not listed are hidden/blocked.
+# environment:roles:viewer is granted here UNBOUNDED, so classic entity views are
+# environment-wide for every persona. This script scopes Grail data only. If a persona
+# must also be management-zone scoped (IAM-11 Data-Classic), remove the viewer role
+# from its entry and grant it in a separate policy bound with an MZ boundary.
 STANDARD_APPS='"dynatrace.dashboards", "dynatrace.notebooks"'
 POWER_APPS='"dynatrace.dashboards", "dynatrace.notebooks", "dynatrace.automations"'
 
@@ -231,12 +238,12 @@ CONFIG_POLICIES=(
 # Templated policy: one template, bound per-team with ${bindParam:team}
 TPL_DATA_NAME="tpl-team-data-reader"
 TPL_DATA_DESC="Parameterized: team-scoped read access to logs, spans, metrics, and events"
-TPL_DATA_STATEMENT='ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}"; ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}"; ALLOW storage:metrics:read; ALLOW storage:events:read;'
+TPL_DATA_STATEMENT='ALLOW storage:buckets:read; ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}"; ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}"; ALLOW storage:metrics:read; ALLOW storage:events:read;'
 
 # Admin data policy: unrestricted (no security context filter)
 ADMIN_DATA_NAME="GLOBAL-Admin-Data"
 ADMIN_DATA_DESC="Admins: unrestricted data access across all buckets and security contexts"
-ADMIN_DATA_STATEMENT="ALLOW storage:logs:read; ALLOW storage:spans:read; ALLOW storage:metrics:read; ALLOW storage:events:read; ALLOW storage:fieldsets:read;"
+ADMIN_DATA_STATEMENT="ALLOW storage:buckets:read; ALLOW storage:logs:read; ALLOW storage:spans:read; ALLOW storage:metrics:read; ALLOW storage:events:read; ALLOW storage:fieldsets:read;"
 
 # --- Team Bindings -----------------------------------------------------------
 # Teams for SRE templated data policy (SREs get all teams)
@@ -271,6 +278,9 @@ api_post() {
   if [[ "${HTTP_CODE}" =~ ^2 ]]; then
     echo "    OK (HTTP ${HTTP_CODE})" >&2
     echo "${BODY}"
+  elif [[ "${HTTP_CODE}" == "400" && "${BODY}" == *"already exists"* ]]; then
+    # Re-run: the binding is already in the desired state — converged, not failed
+    echo "    Already exists — converged (HTTP 400)" >&2
   else
     echo "    FAILED (HTTP ${HTTP_CODE}): ${BODY}" >&2
     return 1
@@ -288,6 +298,37 @@ extract_uuid() {
   echo "$1" | jq -r '.uuid // .id // empty' 2>/dev/null
 }
 
+FAILURES=0
+note_failure() { FAILURES=$((FAILURES + 1)); }
+
+# Look up an existing object by exact name, so a re-run reuses it instead of failing
+# on "Duplicate entry" or creating a second policy with the same name.
+# GET groups returns {"count": N, "items": [...]}; GET policies returns {"policies": [...]}.
+group_uuid_by_name() {
+  echo "${EXISTING_GROUPS}" | jq -r --arg n "$1" \
+    '(.items // [])[] | select(.name == $n) | .uuid' 2>/dev/null | head -n 1
+}
+policy_uuid_by_name() {
+  echo "${EXISTING_POLICIES}" | jq -r --arg n "$1" \
+    '(.policies // [])[] | select(.name == $n) | .uuid' 2>/dev/null | head -n 1
+}
+
+# Create a policy unless one with this name exists; print its UUID either way.
+# An existing policy is reused as-is: its statement is NOT updated.
+ensure_policy() {
+  local name="$1" desc="$2" stmt="$3" uuid payload result
+  uuid=$(policy_uuid_by_name "${name}")
+  if [[ -n "${uuid}" ]]; then
+    echo "  Exists: ${name} — reusing ${uuid} (statement not updated)" >&2
+    echo "${uuid}"
+    return 0
+  fi
+  payload=$(jq -n --arg name "${name}" --arg desc "${desc}" --arg stmt "${stmt}" \
+    '{name: $name, description: $desc, statementQuery: $stmt}')
+  result=$(api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" "${payload}" "${name}") || return 1
+  extract_uuid "${result}"
+}
+
 PERSONA_COUNT=${#PERSONA_LABELS[@]}
 
 # ---------------------------------------------------------------------------
@@ -300,26 +341,40 @@ echo "=============================="
 
 declare -a GROUP_UUIDS
 
-# The groups API expects an array payload, not a single object
+EXISTING_GROUPS=$(api_get "/iam/v1/accounts/${ACCOUNT_UUID}/groups")
+
+# The groups API expects an array payload, not a single object.
+# Only groups that do not exist yet are sent, so a re-run never hits "Duplicate entry".
 GROUPS_PAYLOAD=$(jq -n '[]')
 for i in $(seq 0 $((PERSONA_COUNT - 1))); do
+  if [[ -n "$(group_uuid_by_name "${GROUP_NAMES[$i]}")" ]]; then
+    echo "  Exists: ${GROUP_NAMES[$i]} — reusing" >&2
+    continue
+  fi
   GROUPS_PAYLOAD=$(echo "${GROUPS_PAYLOAD}" | jq \
     --arg name "${GROUP_NAMES[$i]}" \
     --arg desc "${GROUP_DESCRIPTIONS[$i]}" \
     '. + [{name: $name, description: $desc}]')
 done
 
-RESULT=$(api_post \
-  "/iam/v1/accounts/${ACCOUNT_UUID}/groups" \
-  "${GROUPS_PAYLOAD}" \
-  "All ${PERSONA_COUNT} groups")
+NEW_GROUP_COUNT=$(echo "${GROUPS_PAYLOAD}" | jq 'length')
+if [[ "${NEW_GROUP_COUNT}" -gt 0 ]]; then
+  api_post "/iam/v1/accounts/${ACCOUNT_UUID}/groups" "${GROUPS_PAYLOAD}" \
+    "${NEW_GROUP_COUNT} new group(s)" >/dev/null || note_failure
+  EXISTING_GROUPS=$(api_get "/iam/v1/accounts/${ACCOUNT_UUID}/groups")
+fi
 
+# Resolve every persona's group UUID by name — new and pre-existing alike
 for i in $(seq 0 $((PERSONA_COUNT - 1))); do
-  GROUP_UUIDS[$i]=$(echo "${RESULT}" | jq -r ".[$i].uuid // empty" 2>/dev/null)
+  GROUP_UUIDS[$i]=$(group_uuid_by_name "${GROUP_NAMES[$i]}")
+  if [[ -z "${GROUP_UUIDS[$i]}" ]]; then
+    echo "ERROR: group ${GROUP_NAMES[$i]} not found — cannot bind policies to it. Stopping." >&2
+    exit 1
+  fi
 done
 
 echo ""
-echo "Groups created:"
+echo "Groups (created or reused):"
 for i in $(seq 0 $((PERSONA_COUNT - 1))); do
   printf "  %-12s %s\n" "${PERSONA_LABELS[$i]}:" "${GROUP_UUIDS[$i]}"
 done
@@ -334,63 +389,23 @@ echo "=============================="
 
 declare -a UI_UUIDS CONFIG_UUIDS
 
+EXISTING_POLICIES=$(api_get "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies")
+
 for i in $(seq 0 $((PERSONA_COUNT - 1))); do
   SCOPE="${PERSONA_SCOPES[$i]}"
   LABEL="${PERSONA_LABELS[$i]}"
-
-  # UI policy
-  POLICY_NAME="${SCOPE}-${LABEL}-UI"
-  PAYLOAD=$(jq -n \
-    --arg name "${POLICY_NAME}" \
-    --arg desc "${LABEL} UI policy" \
-    --arg stmt "${UI_POLICIES[$i]}" \
-    '{name: $name, description: $desc, statementQuery: $stmt}')
-  RESULT=$(api_post \
-    "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" \
-    "${PAYLOAD}" \
-    "${POLICY_NAME}")
-  UI_UUIDS[$i]=$(extract_uuid "${RESULT}")
-
-  # Config policy
-  POLICY_NAME="${SCOPE}-${LABEL}-Config"
-  PAYLOAD=$(jq -n \
-    --arg name "${POLICY_NAME}" \
-    --arg desc "${LABEL} Config policy" \
-    --arg stmt "${CONFIG_POLICIES[$i]}" \
-    '{name: $name, description: $desc, statementQuery: $stmt}')
-  RESULT=$(api_post \
-    "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" \
-    "${PAYLOAD}" \
-    "${POLICY_NAME}")
-  CONFIG_UUIDS[$i]=$(extract_uuid "${RESULT}")
+  UI_UUIDS[$i]=$(ensure_policy "${SCOPE}-${LABEL}-UI" "${LABEL} UI policy" "${UI_POLICIES[$i]}") || note_failure
+  CONFIG_UUIDS[$i]=$(ensure_policy "${SCOPE}-${LABEL}-Config" "${LABEL} Config policy" "${CONFIG_POLICIES[$i]}") || note_failure
 done
 
 # Templated data policy
-PAYLOAD=$(jq -n \
-  --arg name "${TPL_DATA_NAME}" \
-  --arg desc "${TPL_DATA_DESC}" \
-  --arg stmt "${TPL_DATA_STATEMENT}" \
-  '{name: $name, description: $desc, statementQuery: $stmt}')
-RESULT=$(api_post \
-  "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" \
-  "${PAYLOAD}" \
-  "${TPL_DATA_NAME} (templated)")
-TPL_DATA_UUID=$(extract_uuid "${RESULT}")
+TPL_DATA_UUID=$(ensure_policy "${TPL_DATA_NAME}" "${TPL_DATA_DESC}" "${TPL_DATA_STATEMENT}") || note_failure
 
 # Admin data policy (unrestricted)
-PAYLOAD=$(jq -n \
-  --arg name "${ADMIN_DATA_NAME}" \
-  --arg desc "${ADMIN_DATA_DESC}" \
-  --arg stmt "${ADMIN_DATA_STATEMENT}" \
-  '{name: $name, description: $desc, statementQuery: $stmt}')
-RESULT=$(api_post \
-  "/iam/v1/repo/environment/${ENVIRONMENT_ID}/policies" \
-  "${PAYLOAD}" \
-  "${ADMIN_DATA_NAME}")
-ADMIN_DATA_UUID=$(extract_uuid "${RESULT}")
+ADMIN_DATA_UUID=$(ensure_policy "${ADMIN_DATA_NAME}" "${ADMIN_DATA_DESC}" "${ADMIN_DATA_STATEMENT}") || note_failure
 
 echo ""
-echo "Policies created:"
+echo "Policies (created or reused):"
 for i in $(seq 0 $((PERSONA_COUNT - 1))); do
   printf "  %-12s UI=%s  Config=%s\n" "${PERSONA_LABELS[$i]}:" "${UI_UUIDS[$i]}" "${CONFIG_UUIDS[$i]}"
 done
@@ -410,19 +425,19 @@ for i in $(seq 0 $((PERSONA_COUNT - 1))); do
   # Bind UI
   api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${UI_UUIDS[$i]}" \
     "{\"groups\":[\"${GROUP_UUIDS[$i]}\"]}" \
-    "${LABEL}-UI → ${GROUP_NAMES[$i]}"
+    "${LABEL}-UI → ${GROUP_NAMES[$i]}" || note_failure
 
   # Bind Config
   api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${CONFIG_UUIDS[$i]}" \
     "{\"groups\":[\"${GROUP_UUIDS[$i]}\"]}" \
-    "${LABEL}-Config → ${GROUP_NAMES[$i]}"
+    "${LABEL}-Config → ${GROUP_NAMES[$i]}" || note_failure
 done
 
 # Bind Admin data policy (unrestricted — last persona is Admin)
 ADMIN_IDX=$((PERSONA_COUNT - 1))
 api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${ADMIN_DATA_UUID}" \
   "{\"groups\":[\"${GROUP_UUIDS[$ADMIN_IDX]}\"]}" \
-  "Admin-Data → ${GROUP_NAMES[$ADMIN_IDX]}"
+  "Admin-Data → ${GROUP_NAMES[$ADMIN_IDX]}" || note_failure
 
 # ---------------------------------------------------------------------------
 # PHASE 4: BIND TEMPLATED DATA POLICY PER TEAM
@@ -437,18 +452,18 @@ SRE_IDX=2
 for team in "${TEAMS[@]}"; do
   api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}" \
     "{\"groups\":[\"${GROUP_UUIDS[$SRE_IDX]}\"],\"parameters\":{\"team\":\"${team}\"}}" \
-    "${TPL_DATA_NAME} (team=${team}) → ${GROUP_NAMES[$SRE_IDX]}"
+    "${TPL_DATA_NAME} (team=${team}) → ${GROUP_NAMES[$SRE_IDX]}" || note_failure
 done
 
 # Standard Users get their default team (index 0 = Standard)
 api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}" \
   "{\"groups\":[\"${GROUP_UUIDS[0]}\"],\"parameters\":{\"team\":\"${STANDARD_DEFAULT_TEAM}\"}}" \
-  "${TPL_DATA_NAME} (team=${STANDARD_DEFAULT_TEAM}) → ${GROUP_NAMES[0]}"
+  "${TPL_DATA_NAME} (team=${STANDARD_DEFAULT_TEAM}) → ${GROUP_NAMES[0]}" || note_failure
 
 # Power Users get their default team (index 1 = PowerUser)
 api_post "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}" \
   "{\"groups\":[\"${GROUP_UUIDS[1]}\"],\"parameters\":{\"team\":\"${POWER_DEFAULT_TEAM}\"}}" \
-  "${TPL_DATA_NAME} (team=${POWER_DEFAULT_TEAM}) → ${GROUP_NAMES[1]}"
+  "${TPL_DATA_NAME} (team=${POWER_DEFAULT_TEAM}) → ${GROUP_NAMES[1]}" || note_failure
 
 # ---------------------------------------------------------------------------
 # PHASE 5: VERIFY
@@ -471,7 +486,7 @@ api_get "/iam/v1/repo/environment/${ENVIRONMENT_ID}/bindings/${TPL_DATA_UUID}" \
 echo ""
 echo "--- All Groups ---"
 api_get "/iam/v1/accounts/${ACCOUNT_UUID}/groups" | jq -r \
-  '.[] | select(.name | startswith("DT-")) | "  \(.uuid)  \(.name)"' 2>/dev/null
+  '.items[] | select(.name | startswith("DT-")) | "  \(.uuid)  \(.name)"' 2>/dev/null
 
 # ---------------------------------------------------------------------------
 # SUMMARY
@@ -481,13 +496,18 @@ echo "=============================="
 echo "PROVISIONING COMPLETE"
 echo "=============================="
 echo ""
-echo "Resources created:"
+echo "Resources in place (created now or reused from an earlier run):"
 echo "  Groups:            ${PERSONA_COUNT}"
 echo "  Static policies:   $((PERSONA_COUNT * 2 + 1))  (${PERSONA_COUNT} UI + ${PERSONA_COUNT} Config + 1 Admin-Data)"
 echo "  Template policies: 1  (${TPL_DATA_NAME})"
 BINDING_COUNT=$((PERSONA_COUNT * 2 + 1 + ${#TEAMS[@]} + 2))
 echo "  Bindings:         ${BINDING_COUNT}"
 echo ""
+if [[ ${FAILURES} -gt 0 ]]; then
+  echo "Finished with ${FAILURES} failed step(s) — fix the FAILED lines above and re-run."
+  echo "Re-running is safe: existing groups and policies are reused, existing bindings count as done."
+  exit 1
+fi
 echo "Next steps:"
 echo "  1. Add users to groups via SCIM sync or manual assignment"
 echo "  2. Verify access by logging in as each persona"
@@ -527,13 +547,21 @@ All customizable values live in the **CONFIGURATION** block at the top of the sc
 
 **Why one templated data policy?** Rather than creating separate data policies for Standard, Power, and SRE personas, they all share `tpl-team-data-reader`. The difference is in the **binding** — each group is bound with a different `team` parameter value. Admin uses a separate unrestricted policy because it needs access to all security contexts.
 
+**Why `storage:buckets:read` in both data policies?** It is *"Required additionally to a table permission"* — without it, `storage:logs:read` and the rest return no records. It takes no `dt.security_context` condition, so it is granted unconditionally and the table permissions carry the team scope.
+
+**Why the viewer role is unbounded here.** Every UI policy grants `environment:roles:viewer` with no boundary, so classic entity views are environment-wide for all four personas — the script scopes Grail data only. For a persona that must also be management-zone scoped, follow **IAM-11** *Writing Policies*: take the viewer role out of that persona's `UI_POLICIES` entry and grant it only in a separate policy bound with a management-zone boundary. Leaving it in the UI policy as well would give the role environment-wide and undo the boundary.
+
+**Re-running is safe.** The script looks up groups and policies by name before creating them and reuses any that exist, so a second run does not fail on *"Duplicate entry"*. A binding that already exists returns HTTP 400 *"Policy binding cannot be created, such binding already exists"*, which the script reports as converged. Real failures are counted and the script exits 1 at the end. A reused policy keeps its existing statement — edit it in place (or delete it) when you change a statement here.
+
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*, [List all groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups) — response `GroupListDto` with `count` and `items`.</sub>
+
 **Adapting for your organization:**
 - **Add a persona** — append to all parallel arrays (`PERSONA_LABELS`, `GROUP_NAMES`, `GROUP_DESCRIPTIONS`, `UI_POLICIES`, `CONFIG_POLICIES`) and the execution loop handles it automatically
 - **Change visible apps** — edit `STANDARD_APPS` or `POWER_APPS`, or modify `UI_POLICIES` entries directly
 - **Change writable schemas** — edit `POWER_SCHEMAS` or `SRE_SCHEMAS` arrays; the `_build_config_policy` function generates the policy statement
 - **Add teams** — append to the `TEAMS` array
 - **Per-team SRE groups** — create separate groups (`DT-SRE-Checkout`, `DT-SRE-Payments`) and adjust the Phase 4 loop to bind each team to its own group
-- **Bucket isolation** — add `AND storage:bucket-name = "${bindParam:bucket}"` to `TPL_DATA_STATEMENT` (see **IAM-10** Pattern 3)
+- **Bucket isolation** — add `AND storage:bucket-name = "${bindParam:bucket}"` to `TPL_DATA_STATEMENT` and change its `ALLOW storage:buckets:read;` to `ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:bucket}";` (see **IAM-10** Pattern 4)
 
 <a id="report"></a>
 
@@ -669,13 +697,15 @@ echo "Report complete."
   UUID:       a1b2c3d4-...
   Templated:  YES
   Statement:
+    ALLOW storage:buckets:read
     ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}"
     ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}"
     ALLOW storage:metrics:read
     ALLOW storage:events:read
-  Bindings:   4
+  Bindings:   5
     → DT-GLOBAL-SREs          params: team=checkout
     → DT-GLOBAL-SREs          params: team=payments
+    → DT-GLOBAL-SREs          params: team=catalog
     → DT-GLOBAL-StandardUsers params: team=checkout
     → DT-GLOBAL-PowerUsers    params: team=checkout
 ```
@@ -871,7 +901,7 @@ echo -e "${GREEN}Cleanup complete.${NC}"
 
 These DQL queries let you audit your IAM configuration directly from a Dynatrace Notebook — no shell scripts needed.
 
-> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). *"To view the **Audit logs** page, you need the `account-company-info` role"*; API access needs an OAuth client with the `account-audit-logs-read` scope as well. The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
 >
 > <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 
@@ -899,7 +929,7 @@ fetch dt.system.events, from:-7d
 
 ### Audit: Who Changed Policies Recently?
 
-Policy, group and binding changes are account-level: answer this question from the account audit log (Account Management > Settings > Audit log), which records each change with its previous and current state. The query above complements it by showing which users and automation called the IAM API **through this environment** — look for:
+Policy, group and binding changes are account-level: answer this question from the account audit log (Account Management > Settings > Audit log — requires the `account-company-info` role), which records each change with its previous and current state. The query above complements it by showing which users and automation called the IAM API **through this environment** — look for:
 - **POST / PUT / DELETE** calls against `/platform/iam/…` paths from users or clients you do not expect
 - Calls with a non-2xx `event.outcome`, which point at failing provisioning scripts
 
@@ -942,13 +972,15 @@ fetch logs, from:-1h
 
 ### Verify Bucket-Level Access
 
-If your data policies include bucket restrictions, verify which buckets exist and their retention settings.
+If your data policies include bucket restrictions, verify which buckets exist, which table each belongs to, and their retention. `dt.system.buckets` lists every bucket across all tables and reads zero billable bytes. It also carries a `has_access` column; in community practice, running the query as a member of each persona group and comparing that column is a quick check of bucket grants — confirm with a record query before relying on it.
 
 ```dql
-// List all Grail buckets with record counts
-fetch logs, from:-1h
-| summarize record_count = count(), by:{dt.system.bucket}
-| sort record_count desc
+// List all Grail buckets with their table, retention, and record counts (corrected 10/13/2026:
+// this cell used `fetch logs ... by:{dt.system.bucket}`, which lists only log buckets that
+// received data in the last hour and shows no retention)
+fetch dt.system.buckets
+| fields name, dt.system.table, retention_days, records, has_access
+| sort dt.system.table asc, name asc
 ```
 
 <a id="api-reference"></a>
@@ -960,7 +992,7 @@ fetch logs, from:-1h
 | Operation | Method | Endpoint | Notes |
 |-----------|--------|----------|-------|
 | **Groups** | | | |
-| List groups | GET | `/iam/v1/accounts/{accountUuid}/groups` | Returns array of group objects |
+| List groups | GET | `/iam/v1/accounts/{accountUuid}/groups` | Returns an object `{"count": N, "items": [...]}` — read groups from `.items[]` |
 | Create groups | POST | `/iam/v1/accounts/{accountUuid}/groups` | **Payload must be an array** `[{...}]` |
 | Delete group | DELETE | `/iam/v1/accounts/{accountUuid}/groups/{groupUuid}` | Returns 200 |
 | **Policies** | | | |
@@ -1016,7 +1048,7 @@ fetch logs, from:-1h
 | 400 | "Invalid condition name ... storage:bucket.name" | Dotted condition field | The field is `storage:bucket-name` (hyphen) |
 | 400 | "Policy binding cannot be created, such binding already exists" (also on the per-group update endpoint) | Binding already in desired state | Treat as success — the binding is converged (idempotent re-run) |
 | 400 | "There is no policy binding to be deleted" | Deleting bindings from unbound policy | Safe to ignore during cleanup |
-| 400 | "Duplicate entry" | Group with same name already exists | Delete existing group first or use different name |
+| 400 | "Duplicate entry" | Group with same name already exists | Reuse the existing group — look it up by name in `GET .../groups` (`.items[]`), as Script 1 does — or choose a different name |
 | 401 | Unauthorized | Token is invalid or expired | Re-acquire OAuth token (they expire in ~5 min) |
 | 403 | Forbidden | Token lacks required scopes | Add missing scopes to OAuth client |
 | 404 | "Cannot get requested resource" | Wrong endpoint path or UUID | Check `/accounts/` vs `/repo/account/` for groups |
@@ -1027,7 +1059,7 @@ fetch logs, from:-1h
 If your script creates groups but then silently stops:
 
 1. **Check JSON escaping** — Policy `statementQuery` fields have nested quotes. Use `jq -n --arg` instead of string interpolation
-2. **Check `set -e`** — With `set -e`, any non-zero exit stops the script silently. Use `set -uo pipefail` and handle errors explicitly
+2. **Check `set -e`** — With `set -e`, any non-zero exit stops the script silently. Use `set -uo pipefail` and handle errors explicitly, as Script 1 does: it counts failures, treats "already exists" as converged, and exits 1 at the end
 3. **Check token expiry** — If group creation took time, the OAuth token may have expired before policy creation starts
 4. **Test one policy manually** — Run the curl for a single policy creation and inspect the full response body
 

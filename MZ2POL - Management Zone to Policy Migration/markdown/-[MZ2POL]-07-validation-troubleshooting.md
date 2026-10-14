@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 8 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 8 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -27,9 +27,9 @@ This notebook provides comprehensive validation procedures and troubleshooting g
 
 ## Prerequisites
 
-- Completed migration (MZ2POL-06)
-- Admin access to Dynatrace
-- Test user accounts for validation
+- Completed migration (MZ2POL-06), including the tag readiness gate (MZ2POL-10 §9–§10) and, if zones scoped alerting, the workflow cutover (MZ2POL-09)
+- Admin access to Dynatrace — to confirm data exists, never to judge access
+- Pilot user accounts for validation, one per persona (MZ2POL-12 §7)
 
 ## Learning Objectives
 
@@ -50,10 +50,11 @@ By the end of this notebook, you will:
 | User Groups | All groups created and populated | ☐ |
 | Policies | Policies bound to all groups | ☐ |
 | Boundaries | Boundaries applied where needed | ☐ |
-| Security Context | All entities have security context | ☐ |
+| Tag readiness | MZ2POL-10 readiness gate passed | ☐ |
+| Security Context | Records (logs, spans, events) carry it at the agreed coverage — measured per table, not on entities (§2) | ☐ |
 | Segments | Segments created for all filtering needs | ☐ |
 | Dashboards | Updated to use segments | ☐ |
-| Alerts | Updated (when segment support available) | ☐ |
+| Alerts | Zone-scoped alerting profiles rebuilt as problem-triggered workflows; alert parity confirmed by the receiving teams (MZ2POL-09) — segments do not scope alerting | ☐ |
 
 ### Access Validation Matrix
 
@@ -69,76 +70,61 @@ For each user type, verify:
 
 <a id="security-context-validation"></a>
 ## 2. Security Context Validation
-### Check Coverage
+### Check Coverage on Records, Not Entities
+
+Measure security context on the **data** — logs, spans, events — the same way as MZ2POL-06 §3 and MZ2POL-12 §10. Entity coverage proves nothing: the classic *Grail Security Context* mapping can copy zone names onto entities, and the records those entities send *"do not inherit the management zones of that entity."* On the validation tenant on 10/13/2026, all 35 services and all 24 hosts carried a security context, while 41.1% of logs and 75.3% of events in the same hour carried none.
+
+`dt.security_context` is an **array** on classic entities, Smartscape nodes, events and problem records alike, and a string on logs and spans on the validation tenant. Count events with `arraySize()`, not `isNull()`; check the type per table with MZ2POL-12 §10 Check 1.
+
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."* Counts executed against the validation tenant, 10/13/2026.</sub>
 
 ```dql
-// Validate: All services have security context
-fetch dt.entity.service
-| summarize 
-    total = count(),
-    withContext = countIf(isNotNull(dt.security_context)),
-    missingContext = countIf(isNull(dt.security_context))
-| fields total, withContext, missingContext,
-         coveragePercent = round(100.0 * withContext / total, decimals: 2)
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Validate: security-context coverage on the DATA, per table (same pattern as MZ2POL-06 §3).
+// Records without it are invisible to users scoped only by dt.security_context.
+// Executed 10/13/2026: logs 58.9% / spans 100% / events 24.7% covered (last hour).
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd coverage_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, records, without_sc, coverage_pct
 ```
 
 ```dql
-// Find services missing security context
-// These need to be addressed for complete migration
-fetch dt.entity.service
+// Find the PRODUCERS whose records lack a security context.
+// Fix these at the source (MZ2POL-10 §5) — not on the entity.
+// Executed 10/13/2026: the top rows were Kubernetes namespaces (log collectors, platform namespaces).
+fetch logs, from:-1h
 | filter isNull(dt.security_context)
-| fields entity.name, tags, managementZones
-| sort entity.name asc
-| limit 50
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - management zones have NO Smartscape node equivalent; they are what this migration
-//     replaces with segments and policies.
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+| summarize {records = count()}, by:{dt.entity.host, k8s.namespace.name}
+| sort records desc
+| limit 20
 ```
 
 ```dql
-// Validate: Host security context coverage
-fetch dt.entity.host
-| summarize 
-    total = count(),
-    withContext = countIf(isNotNull(dt.security_context)),
-    missingContext = countIf(isNull(dt.security_context))
-| fields total, withContext, missingContext,
-         coveragePercent = round(100.0 * withContext / total, decimals: 2)
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Validate: event coverage per event kind. dt.security_context is an ARRAY on events.
+// Executed 10/13/2026 over 24 h: DAVIS_EVENT 79.1%, DAVIS_PROBLEM 77.7%, FLEET_EVENT 77.5%,
+// SYNTHETIC_EVENT 14.6% without a security context.
+fetch events, from:-24h
+| summarize {records = count(),
+             without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)},
+  by:{event.kind}
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| sort without_sc desc
 ```
 
 ### Verify Security Context Distribution
 
 ```dql
-// Distribution of security context values
-// Verify expected teams/environments are represented
-fetch dt.entity.service
+// Distribution of security-context values on the DATA.
+// Verify expected teams/environments are represented — and nothing unexpected.
+// On logs the field is a string on the validation tenant; for events, expand the array first.
+fetch logs, from:-1h
 | filter isNotNull(dt.security_context)
-| summarize count = count(), by:{dt.security_context}
-| sort count desc
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+| summarize {records = count()}, by:{dt.security_context}
+| sort records desc
+| limit 20
 ```
 
 ---
@@ -147,43 +133,44 @@ fetch dt.entity.service
 ## 3. Access Control Validation
 ### Test User Access Scenarios
 
+Test **permissions**, not views. A segment narrows what a query returns whether or not the user is allowed to see more, so a scenario that selects a segment and then sees "only frontend services" proves nothing about access. Run every scenario **with no segment selected**, signed in as a **pilot user** who holds only the persona's groups — never an admin, whose grants hide boundary problems (§5, step 5).
+
 For each test scenario:
-1. Log in as test user
-2. Navigate to target app/data
-3. Verify expected access
-4. Document results
+1. Resolve the pilot user's effective permissions first (MZ2POL-12 §10) — look for any `storage:*:read` without a condition
+2. Sign in as the pilot user, with no segment selected
+3. Run the same DQL query the persona will use, and an equivalent query for data outside its scope
+4. Document results, including record counts
 
 ### Scenario 1: Team-Based Access
 
-**Test User**: Member of `frontend-team` group
-**Expected**: Access to frontend services only
+**Test User**: Pilot user holding only the `frontend-team` group
+**Expected**: Records carrying the frontend security context only
 
 **Validation Steps**:
-1. Open Services app
-2. Select "Frontend Team" segment
-3. Verify only frontend services visible
-4. Try accessing backend service directly → Should fail
+1. With no segment selected, run `fetch logs, from:-1h | summarize {records = count()}, by:{dt.security_context}` → only the frontend value(s) should appear
+2. Open the Services app with no segment selected → only frontend services visible
+3. Open a backend service directly by link → should fail or show no data
+4. Compare the record count with an admin run of the same query filtered to the frontend value — they should match; a lower count means records without the field (§2)
 
 ### Scenario 2: Environment Restriction
 
-**Test User**: Member of `prod-viewers` group
-**Expected**: View production data only, no edit
+**Test User**: Pilot user holding only the `prod-viewers` group
+**Expected**: Production data only, no edit
 
 **Validation Steps**:
-1. Open Logs app
-2. Select "Production" segment
-3. Query logs → Should succeed
-4. Try editing settings → Should fail
-5. Select different segment → Should show no data (if boundary restricts)
+1. With no segment selected, query logs → only production security-context values appear
+2. Query for a non-production value explicitly (`filter dt.security_context == "<non-prod value>"`) → zero records; confirm with an admin that such records exist, so the zero is the boundary and not an empty table
+3. Try editing settings → should fail
+4. Only then select the "Production" segment and confirm it changes the **view**, not the access — the results should be a subset of step 1
 
 ### Scenario 3: Full Access (SRE)
 
-**Test User**: Member of `sre-team` group
+**Test User**: Pilot user holding only the `sre-team` group
 **Expected**: Full access to production environment
 
 **Validation Steps**:
-1. Open any app
-2. Verify data visible across all services
+1. Open any app with no segment selected
+2. Verify data visible across all services, including records **without** a security context (an unscoped grant is the only way to see those)
 3. Verify edit capabilities work
 4. Verify settings access
 
@@ -209,7 +196,8 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ```dql
@@ -224,7 +212,8 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ```dql
@@ -239,7 +228,8 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ---
@@ -292,14 +282,14 @@ For environments where SVG doesn't render
 |-------|--------|
 | Boundary conditions | Verify boundary is correctly restrictive |
 | Multiple group membership | User may be in multiple groups |
-| Security context | Verify entities have correct context |
+| Security context | Verify the **records** carry the correct value (§2) — entity contexts may be copied from zone names |
 | Policy conditions | Check for overly broad conditions |
 
 **Resolution Steps**:
 1. Review all groups user belongs to
 2. Check all policy bindings for those groups
 3. Verify boundary conditions are correct
-4. Check security context on visible entities
+4. Check the security-context values on the visible records (§2, distribution query)
 
 ### Issue 3: Segment Filter Not Working
 
@@ -328,12 +318,15 @@ For environments where SVG doesn't render
 - Legacy UI shows expected data
 - New apps (Services, Logs) show no/wrong data
 
-**Cause**: MZ-based access works for classic, but new apps need segments
+**Causes** (the diagram's *Classic OK, Grail wrong* row; MZ2POL-12 §4):
+- **The boundary has only the zone line.** It scopes classic pages; the Grail permissions bound with it get no condition from it. On a default policy they come out **unscoped** (MZ2POL-12 §4.2), so the Grail app shows the team more than the classic page did
+- **The data lacks the field.** Records the team needs carry no `dt.security_context` value it is granted — typically because the value lived in an auto-tag or a zone, neither of which reaches Grail records (§2, MZ2POL-10 §2)
+- **Entities are scoped only by `dt.security_context`.** `storage:entities:read` accepts `dt.security_context` and `entity.type`; zone membership does not scope entity reads in Grail apps, so an entity whose context is missing or zone-derived behaves differently from the classic page
 
 **Resolution**:
-1. Create corresponding segment for MZ filter
-2. Ensure user selects segment in new apps
-3. Consider setting default segment for user/group
+1. Resolve the user's effective permissions (MZ2POL-12 §10) and confirm the boundary has a `storage:` line as well as the zone line
+2. Run the §2 record-coverage queries for the team's producers; set the value at the source (MZ2POL-10 §5)
+3. Retest as the pilot user with **no segment selected** — a segment changes the view, never the access, so it cannot fix this
 
 ---
 
@@ -352,7 +345,8 @@ fetch dt.entity.service
 
 // Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
 // the classic constructs this migration replaces, so keep the classic query above:
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ```dql
@@ -366,17 +360,20 @@ fetch dt.entity.service
 
 // Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
 // the classic constructs this migration replaces, so keep the classic query above:
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ### Check MZ Assignment Health
 
 ```dql
-// Entities with MZ but no security context
-// These need security context for boundary-based access
+// Entities with MZ but no security context.
+// dt.security_context is an ARRAY on classic entities (and on Smartscape nodes): test arraySize(), not isNull().
+// A pass here proves little — an MZ-derived context counts as present (MZ2POL-12 §10, Check 3).
+// Executed 10/13/2026: 0 rows; control: all 35 services carry a one-element array.
 fetch dt.entity.service
 | filter arraySize(managementZones) > 0
-| filter isNull(dt.security_context)
+| filter isNull(dt.security_context) or arraySize(dt.security_context) == 0
 | fields entity.name, managementZones, tags
 | limit 50
 
@@ -384,10 +381,6 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
@@ -406,7 +399,8 @@ fetch dt.entity.service
 // the classic constructs this migration replaces, so keep the classic query above:
 //   - management zones have NO Smartscape node equivalent; they are what this migration
 //     replaces with segments and policies.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+//   - on Smartscape nodes `tags` is a record read as tags[<key>], and it carries no classic
+//     auto-tags (MZ2POL-10 §2) — this check reads the classic tag array on purpose.
 ```
 
 ---
@@ -417,7 +411,7 @@ fetch dt.entity.service
 
 | Task | Frequency | Purpose |
 |------|-----------|----------|
-| Security context audit | Weekly | Ensure new entities have context |
+| Security context audit | Weekly | Ensure new producers' records carry it (§2) |
 | Segment effectiveness | Monthly | Verify segments return expected data |
 | Access review | Quarterly | Verify user access is appropriate |
 | Policy review | Quarterly | Ensure policies match requirements |
@@ -426,8 +420,8 @@ fetch dt.entity.service
 
 When new services/hosts are deployed:
 
-1. **Auto-tagging**: Ensure auto-tagging rules apply correct tags
-2. **Security context**: Verify security context is set
+1. **Enrichment at source**: Ensure the deployment sets the team and environment values — `--set-host-tag`, `DT_TAGS`, Kubernetes annotations, OTel resource attributes or the central ingest enrichment configuration (MZ2POL-10 §5). Auto-tagging rules do not reach Grail data
+2. **Security context**: Verify the new producer's **records** carry it (§2)
 3. **Segment inclusion**: Verify entity appears in appropriate segments
 4. **Access verification**: Test user access to new entity
 
@@ -449,48 +443,36 @@ When new users join:
 Use these queries for an access health dashboard:
 
 ```dql
-// KPI: Security Context Coverage
-fetch dt.entity.service
-| summarize 
-    total = count(),
-    covered = countIf(isNotNull(dt.security_context))
-| fields coveragePercent = round(100.0 * covered / total, decimals: 1)
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// KPI: security-context coverage on the DATA, per table (one bar per table).
+// Same pattern as §2 and MZ2POL-06 §3.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd coverage_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, coverage_pct
 ```
 
 ```dql
-// KPI: Entities per Security Context
-// Monitor for unexpected growth/decline
-fetch dt.entity.service
-| summarize count = count(), by:{dt.security_context}
-| sort count desc
+// KPI: log records per security-context value.
+// Monitor for unexpected growth/decline, and for values no boundary grants.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize {records = count()}, by:{dt.security_context}
+| sort records desc
 | limit 10
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
 ```
 
 ```dql
-// KPI: Untagged Entities (migration gaps)
-fetch dt.entity.service
-| filter isNull(dt.security_context)
-| filter NOT matchesValue(tags, "team:*")
-| summarize untaggedCount = count()
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// KPI: log records no scope can reach — no security context, no team tag,
+// and no built-in field a boundary or segment could use (migration gaps).
+// Executed 10/13/2026: 15,432 of 796,892 log records (1.9%) in the last hour.
+fetch logs, from:-1h
+| summarize {records = count(),
+             no_scope = countIf(isNull(dt.security_context) and isNull(primary_tags.team)
+                                and isNull(k8s.namespace.name) and isNull(dt.host_group.id))}
+| fieldsAdd no_scope_pct = round(100.0 * no_scope / records, decimals: 1)
 ```
 
 ---
@@ -549,6 +531,12 @@ Congratulations on completing the MZ2POL migration series. You have:
 - ✅ Executed the migration (MZ2POL-06)
 - ✅ Validated and can troubleshoot (MZ2POL-07)
 - ✅ Templated policies for scale (MZ2POL-08)
+- ✅ Rebuilt zone-scoped alerting as problem-triggered workflows (MZ2POL-09)
+- ✅ Put the context on the data and passed the readiness gate (MZ2POL-10)
+- ✅ Translated zone rules to values at the source (MZ2POL-11)
+- ✅ Checked the access design against the IAM reference architecture (MZ2POL-12)
+- ✅ Know what is and is not documented about Spaces (MZ2POL-13)
+- ✅ Ran the zone-disposition workshop (MZ2POL-14)
 
 <a id="additional-resources"></a>
 ## Additional Resources

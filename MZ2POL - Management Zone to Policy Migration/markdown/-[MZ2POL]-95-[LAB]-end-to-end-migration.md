@@ -186,14 +186,14 @@ metadata:
 | Field | Value |
 |---|---|
 | Scope | Environment |
-| Condition | `matchesPhrase(dt.host_group.id, "prod-") AND NOT matchesPhrase(host.name, "legacy")` |
+| Condition | `matchesValue(dt.host_group.id, "prod-*") AND NOT matchesValue(host.name, "*legacy*")` |
 | Enrichments | Primary tag `tier` = `core-prod` |
 
 **Payments logs** — nothing to set: `log.source` is on every log record.
 
 **API-ingested logs** — no host, so none of the above reaches them. The integration owner adds `dt.security_context` and `primary_tags.team` to the payload, or an OpenPipeline primary Grail tag rule fills them with an `isNull(primary_tags.team)` guard (FAQ-26 §5.8).
 
-> <sub>**Sources:** [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Ingest enrichment configuration requires OneAgent version 1.343+ ."*, [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` and `metadata.dynatrace.com/dt.security_context` annotation format.</sub>
+> <sub>**Sources:** [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Ingest enrichment configuration requires OneAgent version 1.343+ ."*; its conditions accept `matchesValue`, which takes `*` wildcards — MZ2POL-11 §4 explains why the begins-with and contains here are not `matchesPhrase`, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — for processes on shared hosts: *"Set DT_TAGS and OTEL_RESOURCE_ATTRIBUTES on each process with the same metadata fields used for dedicated infrastructure"*, a list that starts with `dt.security_context=<value>`, [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — `metadata.dynatrace.com/primary_tags.<key>` and `metadata.dynatrace.com/dt.security_context` annotation format.</sub>
 
 <a id="step-4"></a>
 ## 5. Step 4 — Run the Readiness Gate
@@ -243,14 +243,18 @@ data record(`primary_tags.team` = "payments"), record(`primary_tags.team` = "Pay
 <a id="step-5"></a>
 ## 6. Step 5 — Design IAM and Test Who Sees What
 
-The access design, following MZ2POL-12 §6 — one group per team and role, default policies, one boundary per team covering every domain:
+The access design, following MZ2POL-12 §6 — one group per team and role, current default policies plus one custom settings policy, one boundary per team covering every domain:
 
 | Group | Policies | Boundary |
 |---|---|---|
 | `nw-payments-dev` | Standard User, Read Logs, Read Spans, Read Metrics, Read Events | `team-payments` |
-| `nw-payments-lead` | Pro User, Settings Writer, the same data reads | `team-payments` |
+| `nw-payments-lead` | Pro User, the same data reads, and a custom policy `ALLOW settings:objects:read, settings:objects:write, settings:schemas:read;` | `team-payments` (its `settings:dt.security_context` line scopes the settings writes) |
 | `nw-checkout-dev` | Standard User, Read Logs, Read Spans, Read Metrics, Read Events | `team-checkout` |
-| `nw-platform-sre` | Pro User, Storage Default Monitoring Read | none |
+| `nw-platform-sre` | Pro User, All Grail data read access | none |
+
+*Settings Writer* and *Storage Default Monitoring Read* would once have filled the last two rows. Both are now legacy default policies, which are *"not accessible for new policy assignments"*, so a new design uses a custom settings policy and the current data-access policies instead.
+
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — legacy default policies: *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."*, [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `settings:objects:write` accepts `settings:dt.security_context`, *"applicable to any settings object that is allowed on the scope of an entity that can have a security context assigned"*.</sub>
 
 ```text
 // Boundary "team-payments" — parallel-run version
@@ -316,14 +320,14 @@ Segments for the estate, one per dimension (MZ2POL-05 §2):
 The *Production (excl. legacy)* zone becomes the `tier` segment. The exclusion is decided by the Step 3 central rule, not by the segment. The query below applies that rule's logic to the hosts and shows who ends up in the segment.
 
 ```dql
-// Step 6 — the enrichment rule's logic (startsWith stands in for matchesPhrase here), then the segment filter.
+// Step 6 — the Step 3 enrichment condition exactly as shipped (host stands for host.name), then the segment filter.
 // Zero bytes scanned.
 data record(host = "pay-prod-01", `dt.host_group.id` = "prod-pay", `primary_tags.team` = "payments"),
      record(host = "pay-prod-02", `dt.host_group.id` = "prod-pay", `primary_tags.team` = "Payments"),
      record(host = "shared-prod-03", `dt.host_group.id` = "prod-shared", `primary_tags.team` = "checkout"),
      record(host = "shared-prod-03", `dt.host_group.id` = "prod-shared", `primary_tags.team` = "platform"),
      record(host = "legacy-prod-07", `dt.host_group.id` = "prod-legacy")
-| fieldsAdd `primary_tags.tier` = if(startsWith(dt.host_group.id, "prod-") and not(contains(host, "legacy")), "core-prod")
+| fieldsAdd `primary_tags.tier` = if(matchesValue(dt.host_group.id, "prod-*") and not(matchesValue(host, "*legacy*")), "core-prod")
 | fieldsAdd in_core_prod_segment = coalesce(primary_tags.tier == "core-prod", false)
 | fields host, dt.host_group.id, primary_tags.tier, in_core_prod_segment
 ```
@@ -357,6 +361,8 @@ Everything above used simulated records. These two checks run against your own d
 
 **8a — which tables hold `dt.security_context` as an array?** (MZ2POL-12 §10, Check 1)
 
+> **These two checks read real data and are billed.** On the validation tenant (10/13/2026), 8a scanned about 1.6 GB and 8b about 3.3 GB, each over one hour. Keep the window at `-1h`; widening the events leg to `-24h` alone scanned about 1.4 GB there. Run them once per wave, not on a loop.
+
 ```dql
 // Step 8a — real data: security-context type per table.
 fetch logs, from:-1h
@@ -364,7 +370,7 @@ fetch logs, from:-1h
 | fieldsAdd sc_type = type(dt.security_context)
 | summarize {records = count()}, by:{sc_type}
 | fieldsAdd table = "logs"
-| append [fetch events, from:-24h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize {records = count()}, by:{sc_type} | fieldsAdd table = "events"]
+| append [fetch events, from:-1h | filter isNotNull(dt.security_context) | fieldsAdd sc_type = type(dt.security_context) | summarize {records = count()}, by:{sc_type} | fieldsAdd table = "events"]
 | fields table, sc_type, records
 ```
 
@@ -381,7 +387,7 @@ fetch logs, from:-1h
 | fields table, records, without_sc, without_pct
 ```
 
-On the validation tenant (10/13/2026), 8a showed logs as `string` and events as `array`; 8b showed about 44% of logs and 67% of events without a security context. Compare your own numbers with the simulated estate: the same three findings usually appear, just larger.
+On the validation tenant (10/13/2026), 8a showed logs as `string` and events as `array`; 8b showed about 41% of logs, no spans and 75% of events without a security context. Compare your own numbers with the simulated estate: the same three findings usually appear, just larger.
 
 For the full set — parity, per-zone acceptance, drift and derived-data reach — continue with MZ2POL-10 §9.
 

@@ -1,6 +1,6 @@
 # ALERT-02: Choosing and Building Detection
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 02 of 05 | **Created:** June 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -97,6 +97,8 @@ The query type matters because the Anomaly Detection app's transformation only c
 
 Events built on a plain metric key (`METRIC_KEY`) cannot go through the transformation and have to be rebuilt by hand. When a transformation does run, *"the metric event we selected for transformations is automatically disabled, and the newly created configuration is active instead."* Before you transform an event, decide whether you still want it.
 
+**A zone-scoped metric event loses its zone on transform.** The custom-alert page says *"Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events."* and *"The converted metric event is automatically disabled, and the newly created configuration is active instead."* Taken together, one click swaps a detector that watched one zone for an active detector that evaluates its metric selector across the whole environment — expect it to fire for entities the zone used to exclude. Before you rely on the transformed alert, set its **segment** scope (*"Segment filters are automatically applied to your query during execution."*) and preview the result. MZ2POL-05 builds the segments; MZ2POL-15 finds which metric events name a zone.
+
 **Then, what actually fires.** Every alert a metric event raises lands in `dt.davis.events` carrying the settings object it came from, so the history joins back to the configuration on `dt.settings.object_id`:
 
 ```dql
@@ -120,7 +122,7 @@ Compare the two lists. An enabled metric event that does not appear in the histo
 
 For each event you keep, run it through [the decision](#decision) above. A static threshold is where the classic event started, and it is not necessarily where it should end up.
 
-> <sub>**Sources:** [Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — both quotes above. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), `event.provider` (`stable`), read 09/29/2026. Tenant counts from `dtctl get settings` and the query above, both run 09/29/2026, with the `builtin:davis.anomaly-detectors` run as the control. Re-run 10/06/2026 as shown: zero rows and no notifications, while the control returned 2,434 events from 8 detectors.</sub>
+> <sub>**Sources:** [Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — both quotes above; [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events."*, *"The converted metric event is automatically disabled, and the newly created configuration is active instead."*; [Use segments with Anomaly Detection custom alerts (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — *"Segment filters are automatically applied to your query during execution."* **Derived:** a zone-scoped metric event widens to the whole environment on transform unless a segment is set — combines the two custom-alert quotes. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), `event.provider` (`stable`), read 09/29/2026. Tenant counts from `dtctl get settings` and the query above, both run 09/29/2026, with the `builtin:davis.anomaly-detectors` run as the control. Re-run 10/06/2026 as shown: zero rows and no notifications, while the control returned 2,434 events from 8 detectors.</sub>
 
 <a id="prototype"></a>
 ## 5. Prototype Before You Commit

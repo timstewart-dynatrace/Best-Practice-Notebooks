@@ -1,6 +1,6 @@
 # S2S-05: Step 5 — Execute: Configuration Import and Agent Cutover
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -209,7 +209,7 @@ terraform apply iam-tighten.plan
 resource "dynatrace_iam_policy" "sre_access" {
   name            = "SRE Team Access"
   environment     = var.dynatrace_environment_id
-  statement_query = "ALLOW storage:logs:read, storage:spans:read, storage:metrics:read;"
+  statement_query = "ALLOW storage:logs:read, storage:spans:read, storage:metrics:read; ALLOW storage:buckets:read;"
 }
 
 # After (Step 5 — scoped to specific buckets)
@@ -222,9 +222,15 @@ resource "dynatrace_iam_policy" "sre_access" {
     ALLOW storage:spans:read
       WHERE storage:bucket-name = "default_spans";
     ALLOW storage:metrics:read;
+    ALLOW storage:buckets:read
+      WHERE storage:bucket-name IN ("app_logs", "infra_logs", "default_spans");
+    ALLOW storage:buckets:read
+      WHERE storage:table-name = "metrics";
   EOT
 }
 ```
+
+> **Bucket permission.** Each table read is paired with `storage:buckets:read`, which the [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) describes as *"Required additionally to a table permission"*. Scoping that permission by `storage:bucket-name` is what limits a team to specific buckets.
 
 > **Deploy IAM last** (Phase 5 in the deployment order). If you tighten IAM too early, it may block subsequent Monaco deploys or agent registrations.
 

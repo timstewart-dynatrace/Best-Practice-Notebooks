@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -179,7 +179,7 @@ fetch dt.davis.problems, from:-7d
 // Problem summary by category — executive table tile
 fetch dt.davis.problems, from:-7d
 | filter dt.davis.is_duplicate == false
-| summarize total = count(), active = countIf(event.status == "ACTIVE"), closed = countIf(event.status == "CLOSED"), by:{event.category}
+| summarize {total = count(), active = countIf(event.status == "ACTIVE"), closed = countIf(event.status == "CLOSED")}, by:{event.category}
 | sort total desc
 ```
 
@@ -204,7 +204,7 @@ Health = 100 - (error_rate_penalty + latency_penalty)
 // Service health score — composite metric for executive dashboard
 fetch spans, from:-1h
 | filter span.kind == "server"
-| summarize total = count(), errors = countIf(span.status_code == "error"), p95_ns = percentile(duration, 95), by:{dt.entity.service}
+| summarize {total = count(), errors = countIf(span.status_code == "error"), p95_ns = percentile(duration, 95)}, by:{dt.entity.service}
 | fieldsAdd error_rate = 100.0 * errors / total
 | fieldsAdd p95_ms = p95_ns / 1ms
 | fieldsAdd error_penalty = if(error_rate > 5, then: 50, else: if(error_rate > 1, then: 20, else: 0))

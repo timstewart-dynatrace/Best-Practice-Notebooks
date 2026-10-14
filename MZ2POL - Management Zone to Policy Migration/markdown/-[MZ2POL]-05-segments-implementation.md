@@ -1,6 +1,6 @@
 # MZ2POL-05: Migrating Management Zone Filtering to Segments
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 6 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -78,7 +78,7 @@ This matters for planning. A 200-zone estate is 200 hand-authored segment defini
 |---|---|---|
 | MZ2POL-00 SDK analysis tool | Exports `builtin:management-zones`, classifies each rule (tag-based / name-based / SELECTOR / host-group / complex-nested), scores migration readiness | Emits no segments — it is an inventory and triage aid |
 | Filter Segments API (`POST /platform/storage/filter-segments/v1/filter-segments`, `storage:filter-segments:write`; SDK: [client-filter-segment-management (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-filter-segment-management/)) | Creates segments programmatically once you have written the definition | Does not derive the definition from an MZ. Segments are not a Settings 2.0 object — there is no `builtin:filter-segments` schema (the Settings API returns 404 for it) |
-| Terraform `dynatrace_segment` / Monaco `segments` | Manages segment definitions as code | Same — you supply the DQL |
+| Terraform `dynatrace_segment` / Monaco `type: segment` (Monaco CLI 2.19.0+) | Manages segment definitions as code | Same — you write the include filters yourself, in segment filter syntax (not DQL; only variable definitions are DQL) |
 
 The practical sequence is therefore: **inventory (MZ2POL-00) → consolidate → hand-author the definitions using the scenarios below → deploy as code (ORGNZ-10 §10, AUTOM-04)**.
 
@@ -119,7 +119,7 @@ This rule is canonical in **ORGNZ-10** (§ *Best Practice: One Segment Per Dimen
 - Zones with no query activity in the last 90 days: delete rather than convert.
 - Zones that duplicate a dimension already carried by a Primary Grail field (host group, K8s namespace, cloud tags) — those come nearly free via §4.2 and §4.4.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments).</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments), [Monaco configuration type fields (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields) — *"the segment type is supported"* (Monaco CLI 2.19.0+), [dynatrace_segment (Dynatrace Terraform provider)](https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/segment).</sub>
 
 ---
 
@@ -158,7 +158,7 @@ What you need to carry into the migration from those notebooks is a short list o
 |---|---|
 | Include: Data (all types) — recommended start | primary_tags.team = "payments" AND primary_tags.stage = $stage |
 | Include: events — scopes the problem feed | event.kind = "DAVIS_PROBLEM" AND primary_tags.team = "payments" |
-| Include: classic entity — backward compatibility | entity.name = "payment*" (starts-with only); other properties equals only |
+| Include: Entities — Smartscape nodes | type = "SERVICE" AND id in ($dt.smartscape.service) |
 | Logic | Includes are ORed; conditions inside one include are ANDed |
 | Limits | 20 includes; 1 include block per data type; 10 expressions per condition; 10 segments per query; = and in() only; wildcard inside the value; no exclusions; no * in variable names or values; anyone with storage:filter-segments:read can apply any segment |
 For environments where SVG doesn't render
@@ -168,11 +168,11 @@ For environments where SVG doesn't render
 
 Segments offer a **`Data (all types)`** include block alongside the type-specific ones, and it is the **recommended** starting point. It applies your filter conditions across signals *and* Smartscape entities in one rule, which means a single include often replaces what would otherwise be several — and it keeps you well clear of the 20-include ceiling.
 
-Reach for a type-specific include only when a dimension genuinely differs by data type, or when you need one of the cases `Data (all types)` does not cover: the `events` include for Davis problems (§5.4), or a **classic entity** include.
+Reach for a type-specific include only when a dimension genuinely differs by data type, or when you need one of the cases `Data (all types)` does not cover: the `events` include for Davis problems (§5.4), or an `Entities` include for Smartscape service nodes (§8).
 
-> **Classic entity includes are a backward-compatibility path, not the default.** Dynatrace states that entity relationships in segments "are only supported for backward compatibility with classic entities." They remain useful for higher-cardinality classic entities — Kubernetes workloads filtered by their related clusters, for example — but a migration should not reach for them first. See §8 for what this changed about the Services app.
+> **Classic entity includes are a backward-compatibility path, not the default.** Dynatrace states that entity relationships in segments "are only supported for backward compatibility with classic entities." The includes page describes them for higher-cardinality classic entities (Kubernetes workloads filtered by their related clusters, for example), but the later Services and Smartscape tutorial says *"Do not use legacy dt.entity.* attributes in include blocks in your segments."* A migration should not build on them. For services in particular, §8 has the documented replacement.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — verbatim: entity relationships in segments *"are only supported for backward compatibility with classic entities"*, [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes) — the `Data (all types)` include block is the recommended form.</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits), [Include data in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes) — verbatim: entity relationships in segments *"are only supported for backward compatibility with classic entities"*, [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes) — the `Data (all types)` include block is the recommended form, [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted.</sub>
 
 ---
 
@@ -187,8 +187,8 @@ Dynatrace documents a set of fully supported upgrade scenarios, organized by **h
 | 4.2 | **Host group** membership | Filter on `dt.host_group.id` | No — enriched automatically |
 | 4.3 | **Systematic host-group naming** (`<CMDBID>-<app>-<component>-<stage>`) | Parse the name with DPL in a variable definition | No |
 | 4.4 | **Kubernetes** cluster or namespace | Filter on the K8s enrichment fields | No — enriched automatically |
-| 4.5 | **Host tags / properties** set at OneAgent install | Filter on the tag, allowing for the `[Environment]` prefix | No |
-| 4.6 | Anything else (rules that do not fit above) | Introduce a **`Segment` tag** whose value is the MZ name | Yes — the guide gives this for zones built on names or metadata without auto-tags; this notebook uses it as the general fallback |
+| 4.5 | **Host tags / properties** set at OneAgent install | Re-set the tag with a `primary_tags.` prefix and filter a `Data (all types)` include on it | Yes — a plain host tag stays on the host's Smartscape node and does not reach logs, spans or metrics |
+| 4.6 | Anything else (rules that do not fit above) | Introduce a **membership tag** whose value is the MZ name, set as `primary_tags.segment` | Yes — the guide gives this for zones built on names or metadata without auto-tags, on host OneAgents; this notebook uses it as the general fallback |
 | 4.7 | **Extension** data | Filter on the extension enrichment attributes | No |
 | 4.8 | **Cloud-native / application-only injection** | Set `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` on the process | Yes — environment variables |
 
@@ -251,6 +251,10 @@ If your host groups are *not* systematically named, this scenario is unavailable
 
 That is enough for simple setups. For production the guide recommends a richer baseline: *"For most production environments, use Namespace annotations and labels as the baseline."* Map the namespace labels or annotations your teams already maintain through Kubernetes telemetry enrichment, and filter segments on those ([upgrade guide (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments)).
 
+> **Version gate.** The Kubernetes enrichment page is labelled *"Dynatrace Operator version 1.10+"*, *"OneAgent version 1.333+"* and *"ActiveGate version 1.343+"*; annotations on the workload object itself (`Deployment`, `StatefulSet`, `DaemonSet`) additionally carry *"Dynatrace Operator version 1.11.0+"* and *"ActiveGate version 1.349+"*. Operators, OneAgents and ActiveGates are upgraded cluster by cluster, so verify the versions in each cluster before relying on primary tags there. Until they are in place, the built-in `k8s.cluster.name` and `k8s.namespace.name` fields remain the working path, and namespace-level annotations are the level to use where workload-level ones are not yet supported.
+>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — version labels as quoted; *"Annotations on the workload object itself"* apply *"to every pod created by that workload."*</sub>
+
 ```dql
 // Segment variable definition — Kubernetes namespaces.
 // Live-verified 07/21/2026: K8S_NAMESPACE is a real Smartscape node type; 0 bytes scanned.
@@ -273,7 +277,11 @@ For the filter conditions themselves, the Primary Grail Fields are `k8s.cluster.
 
 **The MZ pattern:** the zone selects on tags set during OneAgent installation.
 
-**The move:** filter on the tag directly — but account for the prefix. Host tags added via OneAgent appear **with an `[Environment]` prefix**, so a tag whose key is `App` must be matched as `[Environment]App`.
+**The move:** re-set the value as a primary Grail tag and filter on that. Don't build a classic `dt.entity.host` include on the existing tag, because Dynatrace advises against `dt.entity.*` attributes in include blocks (§8). If you inventory the old tag in classic DQL, note that host tags added via OneAgent appear **with an `[Environment]` prefix**, so a tag whose key is `App` reads as `[Environment]App`.
+
+A plain host tag does not reach signals (logs, spans, metrics, problems) either. The primary Grail fields and tags page classes tags *"defined at the host or process level"* as standard tags: *"These tags are available only on the respective Smartscape node. Dynatrace doesn't automatically enrich them on raw telemetry signals."* Re-set the value with a `primary_tags.` prefix (`--set-host-tag="primary_tags.app=checkout"`, §4.1) and filter on `primary_tags.app` in a `Data (all types)` include. The upgrade guide's host-tag procedure says the key-value lands *"on every signal as a field value combination"*; the reference page says the opposite for unprefixed tags, so check a log record from a tagged host before relying on an unprefixed key.
+
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — as quoted, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"the tag is visible on the host level with the [Environment] prefix"*.</sub>
 
 ```dql
 // Segment variable definition — distinct values of a primary tag.
@@ -297,7 +305,12 @@ smartscapeNodes "HOST"
 
 **The MZ pattern:** any zone whose definition does not reduce to one of the patterns above — hand-maintained entity lists, complex nested rules, SELECTOR-based rules.
 
-**The move:** introduce a **new tag with a key such as `Segment`, whose value is the name of the Management Zone**. Apply it to the entities the zone covered, then define a segment that filters on that tag. The guide gives this move for its non-auto-tagging scenario — zones defined by process name, host name, service name, or metadata; using it for every zone that fits no other scenario is this notebook's extension of it.
+**The move:** introduce a **new tag with a key such as `Segment`, whose value is the name of the Management Zone**, and filter a `Data (all types)` include on it. The guide gives this move for its non-auto-tagging scenario — zones defined by process name, host name, service name, or metadata; using it for every zone that fits no other scenario is this notebook's extension of it.
+
+Two details decide whether the tag actually scopes data:
+
+- **Give it the `primary_tags.` prefix** — `primary_tags.segment=<zone name>`, the same key MZ2POL-11 uses. A plain `Segment` host tag is a standard tag, which stays on the host's Smartscape node and does not reach logs, spans or service metrics (§4.5, §5.2). The prefixed form also reaches derived data.
+- **Know where it applies.** The guide scopes this move to *"data coming from OneAgents not running in cloud-native environments, where the OneAgent is injected into the application only"* — it is set as a host tag on full-stack hosts. Application-only workloads have no host tag to carry it; set the same key through `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` (§4.8), and for Kubernetes through a namespace annotation (§4.4).
 
 This is deliberately low-cleverness. It reproduces the zone's membership without trying to re-derive its logic, which is exactly what you want for zones whose rules have accumulated exceptions nobody can explain. The tag becomes the explicit, greppable statement of membership that the MZ rule was only implying.
 
@@ -318,9 +331,9 @@ Two consequences worth accepting up front:
 
 **The move:** set the enrichment on the process itself, via environment variables — `dt.security_context`, **`DT_TAGS`**, and **`OTEL_RESOURCE_ATTRIBUTES`**.
 
-> **They are not interchangeable.** `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` look similar but differ semantically — most visibly, `OTEL_RESOURCE_ATTRIBUTES` uses a **colon** where `DT_TAGS` uses a **space** as separator. Setting one and assuming the other is covered is a reliable way to produce a segment that half-works.
+> **They are not interchangeable.** `DT_TAGS` and `OTEL_RESOURCE_ATTRIBUTES` look similar but separate their key-value pairs differently. The OneAgent enrichment page's `DT_TAGS` example is **space**-separated — `DT_TAGS="primary_tags.environment=production primary_tags.team=bravo"` — while the OpenTelemetry enrichment page's `OTEL_RESOURCE_ATTRIBUTES` example is **comma**-separated — `primary_tags.team=alpha,primary_tags.app=myapp`. Both use `=` between key and value. (The upgrade guide describes the difference as *"a colon instead of a space as a separator"*; follow the two enrichment pages' examples.) Setting one and assuming the other is covered is a reliable way to produce a segment that half-works.
 
-> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — for non-auto-tagging zones, a new tag *"with the value set to the name of the management zone"*; extensions: *"you can configure the enrichment attributes Security context, Product, and Cost center for every extension configuration"*, [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters).</sub>
+> <sub>**Sources:** [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — for non-auto-tagging zones, a new tag *"with the value set to the name of the management zone"*; extensions: *"you can configure the enrichment attributes Security context, Product, and Cost center for every extension configuration"*, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — `DT_TAGS` example, [Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — `OTEL_RESOURCE_ATTRIBUTES` example, [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters).</sub>
 
 ### 4.9 Shortcut: reuse `dt.security_context` as a segment dimension
 
@@ -408,19 +421,19 @@ These restrictions are specific to classic-entity includes. The *Segment limits*
 Tag conditions are a separate case: a tag filter tests **membership in the tag set** rather than a substring of a string field, so verify tag-based entity includes against your own tenant before assuming wildcard behavior.
 
 
-So a *service name starts with payment* rule converts (`entity.name = "payment*"`), but a *service name contains payment* rule does **not**, on a classic-entity include — nor does `host property X contains Y`. For a contains rule, or for the equals-only properties, the options are, in order of preference: rely on an exact value or an `in()` set, use a Smartscape include, move the condition onto a signal include on a field that carries the same value, or fall back to the `Segment` tag (§4.6).
+So on a classic-entity include a *service name starts with payment* rule converts (`entity.name = "payment*"`), but a *service name contains payment* rule does **not**, and nor does `host property X contains Y`. For a new segment, don't use the classic include at all: Dynatrace advises against `dt.entity.*` attributes in include blocks (§3, §8). For a contains rule, or for the equals-only properties, the options are, in order of preference: rely on an exact value or an `in()` set, use a Smartscape include, move the condition onto a signal include on a field that carries the same value, or fall back to the `Segment` tag (§4.6).
 
 Wildcards may also follow a variable name in a starts-with condition — `foo = $bar*` — which is what makes the variable-driven consolidation in §2 practical. Variable *values* themselves may never contain `*`.
 
-> **Put wildcards next to a separator.** Dynatrace's guidance for wildcard matching is to place the `*` immediately before or after a word separator — `-`, `_`, `.`, or `/` — because `MATCH("db-tech-*")` evaluates more efficiently than `MATCH("db-tech*")`. This is a performance rule, not a correctness one, but it is a good reason to design host-group and security-context values with explicit separators between dimensions rather than running them together. The same rule applies to IAM boundary conditions — see MZ2POL-04.
+> **Design values with separators.** The *Permissions in Grail* page advises placing the `*` of an IAM `MATCH` condition immediately before or after a word separator — `-`, `_`, `.`, or `/` — because `storage:dt.host_group.id MATCH ("db-tech-*")` is more efficient than `MATCH ("db-tech*")`. That is IAM guidance, not a documented segment rule, and a performance point rather than a correctness one. It is still a good reason to design host-group and security-context values with explicit separators between dimensions: the same values feed both the segment and the boundary (MZ2POL-04).
 
 ### 5.4 Davis problems need an events include
 
-Entity includes alone do **not** filter the problem feed. To scope problems, the segment needs an `events` include with `event.kind = "DAVIS_PROBLEM"` plus the scoping condition. Entity includes then additionally scope the affected-hosts and affected-services lists shown inside a problem.
+Entity includes alone do **not** filter the problem feed. To scope problems, the segment needs an `events` include with `event.kind = "DAVIS_PROBLEM"` plus the scoping condition.
 
 If the Management Zone was used to give a team a filtered problem view — a very common use — this is the include that does the work. ORGNZ-10 §12 has the full include shape and a worked example.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*, *"Only selected properties (suggested in the filter field) are allowed"*, *"these limits don't apply to Smartscape on Grail"*, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — classic entities: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*, *"Only selected properties (suggested in the filter field) are allowed"*, *"These limits don't apply to Smartscape on Grail."*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"This is because matchesValue used in DQL queries, performs better when word separators are present."*, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments), [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app).</sub>
 
 ---
 
@@ -431,40 +444,38 @@ Rule-level mapping, once you have chosen a scenario from §4. The **Include type
 
 | MZ rule | Segment filter | Include type | Notes |
 |---|---|---|---|
-| Host group equals | `dt.host_group.id = "<group>"` | Signal + entity | Cheapest mapping (§4.2) |
-| Host group starts with | `dt.host_group.id = "<prefix>*"` | Signal | Wildcard inside the value |
-| Host tag equals | `tags = "[Environment]<key>:<value>"` | Entity | Mind the `[Environment]` prefix (§4.5) |
-| Kubernetes namespace | `k8s.namespace.name = "<namespace>"` | Signal | Auto-enriched (§4.4) |
-| Kubernetes cluster | `k8s.cluster.name = "<cluster>"` | Signal | Auto-enriched |
-| Service name equals | `entity.name = "<name>"` | Entity | Use `in()` for a set |
-| Service name starts with | `entity.name = "<text>*"` | Entity | Works — `entity.name` supports starts-with (§5.3) |
-| Service name contains | — | — | **Not expressible on classic entities** — starts-with only (§5.3); use a Smartscape or signal include, or the fallback tag |
+| Host group equals | `dt.host_group.id = "<group>"` | Data (all types) | Cheapest mapping (§4.2) |
+| Host group starts with | `dt.host_group.id = "<prefix>*"` | Data (all types) | Wildcard inside the value |
+| Host tag equals | `primary_tags.<key> = "<value>"` | Data (all types) | Re-set the tag with the `primary_tags.` prefix first (§4.5) |
+| Kubernetes namespace | `k8s.namespace.name = "<namespace>"` | Data (all types) | Auto-enriched (§4.4) |
+| Kubernetes cluster | `k8s.cluster.name = "<cluster>"` | Data (all types) | Auto-enriched |
+| Service name (equals, starts with, contains) | `primary_tags.<key> = "<value>"`, after tagging the services at the source | Data (all types) + variable + Entities | Don't use a `dt.entity.service` include: Dynatrace advises against it (§8). Tag the processes that provide the services (§4.1, §4.6) and use the §8 build |
 | Other entity property contains | — | — | **Not expressible** — equals-only (§5.3) |
-| Cloud provider / arbitrary tag | `tags = "<key>:<value>"` | Entity | Requires the tag to be set at source (§4.1) |
-| Anything else | `tags = "Segment:<MZ name>"` | Entity | The fallback (§4.6) |
+| Cloud provider / arbitrary tag | `primary_tags.<key> = "<value>"` | Data (all types) | Cloud tags stay on their Smartscape node unless promoted; set the value as a primary tag at the source (§4.1, FAQ-02) |
+| Anything else | `primary_tags.segment = "<MZ name>"` | Data (all types) | The fallback (§4.6) — the tag must carry the `primary_tags.` prefix to reach signals |
 | Broad rule **minus** exceptions | — | — | **Not expressible** — invert to positive (§5.1) |
 | Problem feed scoping | `event.kind = "DAVIS_PROBLEM" and <condition>` | Events | Required for problem filtering (§5.4) |
 
 ### Worked conversions
 
 **MZ:** hosts with tag `env` = `production`
-**Segment:** entity include on `dt.entity.host` with `tags = "[Environment]env:production"`, plus signal includes on logs and spans with the corresponding field condition if the segment must scope those too.
+**Segment:** re-set the tag as `primary_tags.env=production` (§4.5) and filter one `Data (all types)` include on `primary_tags.env = "production"`. One include covers logs, spans and the hosts' Smartscape nodes; no `dt.entity.host` include is needed.
 
 **MZ:** all hosts in host groups beginning `PROD-`
-**Segment:** signal include with `dt.host_group.id = "PROD-*"` — wildcard inside the value, one include, no tagging work.
+**Segment:** `Data (all types)` include with `dt.host_group.id = "PROD-*"` — wildcard inside the value, one include, no tagging work.
 
 **MZ:** production Kubernetes namespace, and its problems
-**Segment:** three includes — `k8s.namespace.name = "production"` on logs, the same on spans, and an `events` include with `event.kind = "DAVIS_PROBLEM" and k8s.namespace.name = "production"`.
+**Segment:** two includes — `Data (all types)` with `k8s.namespace.name = "production"`, and an `events` include with `event.kind = "DAVIS_PROBLEM" and k8s.namespace.name = "production"`.
 
 **MZ:** "Payments platform" — a hand-maintained list of 40 services
-**Segment:** tag those 40 services `Segment:Payments platform` and filter on it. Do not attempt to re-derive the list from naming.
+**Segment:** set `primary_tags.segment=payments-platform` on the processes that provide those 40 services (`DT_TAGS`, or a host tag where a host runs only them) and filter a `Data (all types)` include on `primary_tags.segment = "payments-platform"`. Service metrics inherit it from the spans. Add the metrics variable and the `Entities` include (§8) so Smartscape shows the same 40 services. Do not attempt to re-derive the list from naming.
 
 ---
 
 <a id="testing-mapping"></a>
 ## 7. Testing Your Mapping with DQL
 
-Validate the scope **before** creating the segment. Every query below is ad-hoc validation DQL — it uses the modern `smartscapeNodes` form, unlike the segment-variable definitions in §4, which must use the classic entity model.
+Validate the scope **before** creating the segment. Every query below is ad-hoc validation DQL — it uses the modern `smartscapeNodes` form, the same form as the segment-variable definitions in §4 (the published upgrade-guide examples use `fetch dt.entity.*`, which also works).
 
 The question each answers: *does this filter select the same entities the Management Zone did?*
 
@@ -480,7 +491,7 @@ smartscapeNodes "HOST"
 
 ```dql
 // Validate a prefix-wildcard host-group mapping.
-// Entity includes support prefix wildcards only -- verify the prefix is selective enough.
+// Verify the prefix is selective enough before using it in a segment.
 smartscapeNodes "HOST"
 | filter startsWith(dt.host_group.id, "PROD-")
 | summarize hosts = count(), by:{dt.host_group.id}
@@ -547,12 +558,27 @@ Segments and Management Zones coexist, which makes a staged migration practical.
 | Surface | Scoping mechanism during migration |
 |---|---|
 | Grail-based apps (Logs, Distributed Traces, Problems, Dashboards, Notebooks, SLOs) | Segments |
-| Services app — **Explorer** tab | Segments. The tab is built on time-series queries and **Smartscape 2.0 entities**, and ships ready-made segments that join service entities to their metric data — so you can filter by AWS region, Kubernetes namespace, or host group without authoring a join |
-| Services app — **Explorer (Deprecated)** tab | The classic-entity surface; a classic entity include is what scopes it |
+| Services app | Segments: a `Data (all types)` include on a primary Grail field or tag, which reaches service metrics. No `dt.entity.service` include |
+| Smartscape | Segments: a `metrics` variable that collects `dt.smartscape.service` IDs, plus an `Entities` include, `type = "SERVICE" AND id in ($dt.smartscape.service)` |
 | Classic apps | Management Zones — segments do not apply |
 | Alerting profiles | Management Zones, for as long as you keep the profiles. Segment support for alerting profiles is **not** pending — the exit is a problem-triggered workflow, not a segment |
 
-> **Guidance you may encounter that is now out of date.** Workshop material from earlier in the segment rollout instructed teams to extend every segment with a hand-built classic-entity include — typically an `application:$app` tag filter — on the grounds that the Services app could not otherwise be filtered. That is no longer the general case: the current Explorer tab uses Smartscape 2.0 entities, and a `Data (all types)` include covers it. Build the classic entity include when you specifically need the deprecated tab or a high-cardinality classic entity relationship, not as a routine step for every segment.
+> **Corrected 10/14/2026: no classic include for services.** Earlier versions of this section said to keep a hand-built classic-entity include (typically an `application:$app` tag filter) so that the Services app's default Explorer could be filtered. Dynatrace's Services and Smartscape segment tutorial says the opposite: *"Do not use dt.entity.service in your segments. Instead, use dt.smartscape.service."* Legacy `dt.entity.*` attributes *"might incorrectly filter the service list"*, and the segment editor shows a warning on them.
+>
+> Build the service part of a migrated zone in three parts instead:
+>
+> 1. A `Data (all types)` include for the service list
+> 2. A `metrics` variable that collects `dt.smartscape.service` IDs
+> 3. An `Entities` include for Smartscape
+>
+> ORGNZ-08 § *Scoping Services and Smartscape* has the worked build and a validated variable query. Two points from the tutorial:
+>
+> - *"A segment that covers only metrics filters the service list but leaves the topology view unfiltered."*
+> - The variable *"works reliably for up to 10,000 services"*, so split broad zones by cluster or region.
+>
+> The tutorial checks the result in **Services > Explorer (Early Access)** and does not mention the default Explorer.
+
+> <sub>**Sources:** [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — published 10/07/2026; all quotes above.</sub>
 
 The practical consequence: **do not delete the Management Zones when the segments go live.** Keep both running until the classic surfaces that depend on MZs are themselves retired or migrated. MZ2POL-06 covers the parallel-running period, cutover sequencing, and rollback; MZ2POL-07 covers post-cutover validation.
 
@@ -594,12 +620,12 @@ The common team pattern that follows from this: application teams keep their seg
 | `storage:filter-segments:read` | View and use segments |
 | `storage:filter-segments:write` | Create and edit segments |
 | `storage:filter-segments:share` | Share with others |
-| `storage:filter-segments:delete` | Delete segments |
-| `storage:filter-segments:admin` | Manage segment permissions |
+| `storage:filter-segments:delete` | Delete your own segments |
+| `storage:filter-segments:admin` | Write and delete all segments in the environment, not only your own |
 
 ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the governance model; ORGNZ-10 §10 covers restricting write scope when segments are managed as code.
 
-> <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility) — verbatim: any segment can be accessed with `storage:filter-segments:read` regardless of configured visibility, [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
+> <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility) — verbatim: any segment can be accessed with `storage:filter-segments:read` regardless of configured visibility, [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:filter-segments:delete`: *"Delete own filter-segments in grail"*; `storage:filter-segments:admin`: *"Write and delete all filter-segments in grail"*.</sub>
 
 ---
 
@@ -615,18 +641,19 @@ ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the go
 **Per zone**
 - [ ] Matched the zone to a §4 scenario, or explicitly assigned it the §4.6 fallback
 - [ ] Checked it against all four §5 blockers — especially exclusions
-- [ ] Confirmed the required enrichment exists (host tag, host group, K8s field, `Segment` tag)
+- [ ] Confirmed the required enrichment exists on the **records** (`primary_tags.*` key, host group, K8s field, `primary_tags.segment`)
 - [ ] Verified the scope with DQL (§7) at both entity **and** signal level
 - [ ] Confirmed the segment fits within the §3 limits
 - [ ] Added the `events` include if the zone was used for problem filtering
-- [ ] Used `Data (all types)` unless a type-specific or classic-entity include is genuinely required
+- [ ] Used `Data (all types)`; no legacy `dt.entity.*` include blocks
+- [ ] Segments used in Services or Smartscape have the `metrics` variable and `Entities` include (§8)
 
 **Rollout**
 - [ ] Segment created, named per convention, visibility set deliberately
 - [ ] Dashboards and notebooks repointed from MZ filtering to the segment
 - [ ] Users know the segment exists and how to select it
 - [ ] MZ left in place for classic apps and alerting profiles
-- [ ] Segment promoted to code (Settings API / Terraform / Monaco) if it is long-lived
+- [ ] Segment promoted to code (Filter Segments API / Terraform `dynatrace_segment` / Monaco `type: segment`) if it is long-lived
 - [ ] MZ retired only after confirming no classic surface depends on it
 
 ---
@@ -636,9 +663,9 @@ ORGNZ-10 §6 maps these to the default Dynatrace user policies and covers the go
 1. **Classify first** — Management Zones do three jobs: access control, filtering, and alerting. Only the filtering job becomes a segment; access control becomes IAM policy and boundary (MZ2POL-04), and alerting becomes routing dimensions on a problem-triggered workflow (MZ2POL-09).
 2. **There is no automatic conversion** — every segment is hand-authored. Consolidate the estate before converting it.
 3. **Match the zone to a scenario** — how the MZ was *defined* determines the approach, from free (host group, Kubernetes) to tagging work (name-based auto-tagging) to the `Segment` tag fallback.
-4. **Check the blockers** — exclusions cannot be expressed, non-primary tags do not reach derived data, entity includes lack `contains`, and problems need an `events` include.
+4. **Check the blockers** — exclusions cannot be expressed, non-primary tags do not reach derived data, classic entity includes lack `contains` and are legacy, and problems need an `events` include.
 5. **Validate both surfaces** — entity-level and signal-level, before cutover.
-6. **Coexist deliberately** — classic apps and alerting profiles still need the Management Zone. Retire it last. The Services app's current Explorer tab, though, is Smartscape-backed and needs no classic-entity include.
+6. **Coexist deliberately** — classic apps and alerting profiles still need the Management Zone. Retire it last. For Services and Smartscape, use the three-part service build (§8), not a classic `dt.entity.service` include.
 
 ## Next Steps
 
@@ -655,6 +682,7 @@ Continue to **MZ2POL-06: Migration Execution** for the phased rollout, parallel-
 - [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters)
 - [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes)
 - [Services app (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-app)
+- [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services)
 - [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies)
 
 ---

@@ -1,6 +1,6 @@
 # AIOPS-02: Anomaly Detection
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 2 of 8 | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -190,7 +190,7 @@ The tuning parameters that control noise:
 
 | Layer | Decides | Configured in |
 |-------|---------|---------------|
-| **Analyzer parameters** (`violatingSamples`, `slidingWindow`, `dealertingSamples`, tolerance) | Whether *this series* is anomalous — i.e. whether a Davis event fires at all | Per detector, in the Anomaly Detection app or `builtin:davis.anomaly-detectors` |
+| **Analyzer parameters** (`violatingSamples`, `slidingWindow`, `dealertingSamples`, tolerance) | Whether *this series* is anomalous — i.e. whether a Davis event fires at all | Per detector, in Settings (the Anomaly Detection app before SaaS 1.344) or `builtin:davis.anomaly-detectors` |
 | **Workflow problem-trigger delay** | Whether *this workflow* acts on a problem that has already opened — short-lived problems close before it fires | Per workflow, on the problem trigger |
 
 So the trigger delay **complements** `violatingSamples` / `slidingWindow` rather than replacing it. Its distinct value is reach: it suppresses paging for short-lived problems from detectors **you do not own** — built-in detections, and detectors configured by other teams — which no amount of analyzer tuning on your own detectors can touch. But it acts only for the workflow you set it on: the problem count does not change, and any notifying workflow without the delay keeps paging.
@@ -205,11 +205,13 @@ Alongside the analyzer, the Anomaly Detection app offers **Set scope** (Simple o
 
 **This is the only place segments touch alerting.** Segments scope *detection* — which signals get evaluated — and they scope *queries*. They do **not** scope workflow triggers, notification routing, or problem visibility. If you are migrating off Management Zones and expecting segments to carry your alert routing, see MZ2POL-09: routing moves to problem-triggered workflows filtered on affected-entity tags, not to segments.
 
+**A detector transformed from a zone-scoped metric event arrives here unscoped.** The zone does not carry over (§6), so this Segments field is where its scope has to be restored before the alert is relied on.
+
 ### Step 3 — The event template (this is what makes routing possible)
 
-When the detector fires it emits a Davis event whose shape *you* define: an event **name** and **description** (both support `{dims:...}` placeholders that interpolate the breaching dimensions), an event **type** (`CUSTOM_ALERT`, `ERROR_EVENT`, `PERFORMANCE_EVENT`, …), and **properties** — key/value pairs such as team, zone, or service.
+When the detector fires it emits a Davis event whose shape *you* define: an event **name** and **description** (both support `{dims:...}` placeholders that interpolate the breaching dimensions), an event **type** (`CUSTOM_ALERT`, `ERROR_EVENT`, `PERFORMANCE_EVENT`, …), and **properties** — key/value pairs such as team, area, or service.
 
-Those properties are the metadata a downstream workflow filters on. **Enrich here or you cannot route later** — a detector that fires a bare event with no team/zone property forces every workflow to re-derive ownership from the affected entity. Spend the effort in the template.
+Those properties are the metadata a downstream workflow filters on. **Enrich here or you cannot route later** — a detector that fires a bare event with no team/area property forces every workflow to re-derive ownership from the affected entity. Spend the effort in the template. Prefer primary Grail tags, which are copied onto the problem record, and ownership tags on the affected entity over free-form properties (ALERT-01 §4, FAQ-21).
 
 **Attribute the event to a real entity, or it correlates against the wrong one.** Alongside name, description, type and properties, a Davis event carries `dt.smartscape_source.id` — the Smartscape entity ID of whatever the signal is *about*. Davis's universal correlation rule merges every event naming the same entity into a single problem (AIOPS-03 §1). Set it to an actual host, service, or workload ID, normally interpolated from a `by:{}` dimension the query already groups on.
 
@@ -291,6 +293,8 @@ Not every alert needs the DQL-based detector. **Metric events** are the classic 
 
 **Prefer the Davis anomaly detector for anything new.** `builtin:anomaly-detection.metric-events` is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace, and none of the schemas on that list are visible there — so once the tenant moves to the latest Dynatrace, every metric event has to be recreated as a DQL-based detector, and any configuration-as-code that references the schema by ID has to be updated first. (On a tenant observed 07/31/2026, the ready-made *Check your upgrade readiness* dashboard flagged the same schema **Blocked at upgrade**.) Dynatrace publishes a transformation path, with the important limitation that **only metric *selectors* can be transformed**: metric *key* events, which put a static threshold on a single metric, have no automated conversion. The transformer also cannot tell whether the metric's data or its tags actually exist in the target, so every converted detector needs validating by hand afterwards.
 
+**A zone-scoped metric event loses its zone on transform.** The custom-alert page says *"Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events."* and *"The converted metric event is automatically disabled, and the newly created configuration is active instead."* So a metric event that watched one zone is replaced, in the same step, by an active detector that evaluates the whole environment. Set its segment scope (Step 2b) before you rely on the transformed alert.
+
 That reverses the older advice in this section. A metric event is still the lighter-weight mechanism, and one you already own is fine to leave running for now — but it is a construct with an expiry, so new work should not be authored against it, and a static threshold ported as-is is in any case the main source of Gen3 alert noise (ALERT-02).
 
 The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-03 (Monaco) / AUTOM-04 (Terraform)**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
@@ -300,6 +304,8 @@ The Davis detector remains a first-class config-as-code target: provision it wit
 > - <sub>[Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)</sub>
 > - <sub>[Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — *"Only metric selectors are available to transform."* and *"the check can't detect whether the data from the metric is available or the necessary tags are present"*</sub>
 > - <sub>[Settings 2.0 schemas removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — lists `builtin:anomaly-detection.metric-events`; *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
+> - <sub>[Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events."*, *"The converted metric event is automatically disabled, and the newly created configuration is active instead."*</sub>
+> - <sub>**Derived:** a zone-scoped metric event widens to the whole environment on transform unless a segment is set — combines the two custom-alert quotes</sub>
 
 <a id="analyzers"></a>
 ## 7. Testing Detectors with Davis Analyzers (MCP)

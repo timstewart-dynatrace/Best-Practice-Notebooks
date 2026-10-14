@@ -1,6 +1,6 @@
 # IAM-09: Troubleshooting Access Issues
 
-> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 9 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Systematic Diagnosis of IAM Problems
 Access issues are among the most common support requests. This notebook provides a systematic methodology for diagnosing and resolving IAM-related problems including permission denials, policy conflicts, and boundary issues.
@@ -39,24 +39,30 @@ Follow a systematic approach to diagnose access issues.
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Question | If Yes | If No |
 |------|----------|--------|-------|
+| 0 | (Start) Open Account Management → Identity & access management → Effective policies for the user | Go to step 1 | — |
 | 1 | Can user login? | Go to step 2 | Check SSO/auth |
 | 2 | Is user in correct groups? | Go to step 3 | Add to group |
 | 3 | Do policies grant access? | Go to step 4 | Modify policy |
-| 4 | Do boundaries allow access? | Check other issues | Adjust boundary |
+| 4 | Does the boundary on the granting binding include the data? | Access should work | Adjust the boundary's conditions (for example security-context values) |
 -->
 
 ### Step-by-Step Methodology
 
 | Step | Check | Tools |
 |------|-------|-------|
+| 0 | See which permissions the user actually holds | Account Management → Identity & access management → **Effective policies** |
 | 1 | User can authenticate | SSO logs, IdP logs |
 | 2 | User exists in Dynatrace | Account Management → Users |
 | 3 | User is in correct groups | Account Management → Groups |
 | 4 | Groups have correct policies | Account Management → Policies |
-| 5 | Policies grant required permissions | Policy viewer |
-| 6 | Boundaries don't restrict access | Boundary configuration |
+| 5 | Policies grant required permissions | Effective policies |
+| 6 | Boundaries on the granting bindings don't exclude the data | Boundary configuration on each binding |
 | 7 | No conflicting policies | Policy evaluation |
 | 8 | Data exists and is accessible | DQL query |
+
+**Start with Effective policies.** Account Management lists it under Identity & access management as the place to *learn which permissions are assigned to users through policies and groups*. It answers steps 3–5 in one view before you open individual groups and policies.
+
+> <sub>**Sources:** [Manage users, groups, and permissions (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/identity-access-management) — *"Effective policies" to learn which permissions are assigned to users through policies and groups*.</sub>
 
 ### Information Gathering
 
@@ -134,9 +140,10 @@ When users receive "Access Denied" or "Forbidden" errors.
 ```
 1. User authenticated? → No = Auth failure
 2. User in any groups? → No = No permissions
-3. Any policy grants permission? → No = Access denied
-4. Any boundary restricts? → Yes = Check boundary scope
-5. Access granted
+3. Any DENY statement matches? → Yes = Access denied (boundaries never apply to DENY)
+4. Any policy grants permission? → No = Access denied
+5. Boundary on the granting binding excludes the data? → Yes = Check boundary scope
+6. Access granted
 ```
 
 ### Common Permission Issues
@@ -194,28 +201,36 @@ For each policy, check:
 
 <a id="boundary-troubleshooting"></a>
 ## 5. Boundary Troubleshooting
-Boundaries restrict what data users can access within their permissions.
+Boundaries restrict what data users can access within their permissions. A boundary is attached to a **policy binding** — the assignment of a policy to a group — not to a user or a group as a whole. The same user can therefore hold one permission through a bounded binding and the same permission through an unbounded one.
 
 ### Boundary Evaluation
 
 ```
 User wants to access data
   ↓
-Policy grants permission? → No = Access denied
+A DENY statement matches? → Yes = Access denied (boundaries don't apply to DENY)
+  ↓ No
+Any binding grants the permission? → No = Access denied
   ↓ Yes
-User has boundary assigned? → No = Access all data
+Is any granting binding unbounded? → Yes = That binding's policy applies without boundary conditions
+  ↓ No (every granting binding has a boundary)
+Does the boundary have conditions for this permission's service? → No = Unconditional for that binding
   ↓ Yes
-Data within boundary scope? → No = Data hidden
+Data within the boundary conditions? → No = Data hidden
   ↓ Yes
 Data returned
 ```
+
+Two consequences catch most teams out. A service (domain) left out of a boundary is **unscoped, not blocked**: only conditions added for a service are applied to that service's permissions. And when more than one boundary applies to a policy, effective statements are calculated for each boundary separately, so two narrow boundaries on one binding can each leave the other's domain unconditional.
+
+> <sub>**Sources:** [IAM policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Boundaries don't apply to DENY statements."*; *"Only conditions added to service configuration will be applied to relative permissions."*; *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately."*</sub>
 
 ### Common Boundary Issues
 
 | Issue | Symptom | Cause | Resolution |
 |-------|---------|-------|------------|
 | Too restrictive | See no data | Boundary too narrow | Expand boundary |
-| Not restrictive enough | See too much | Boundary too broad | Narrow boundary |
+| Not restrictive enough | See too much | Boundary too broad, a service missing from the boundary (unscoped), or another binding grants the same permission without a boundary | Narrow the boundary, add conditions for every service the policy uses, and check Effective policies for unbounded bindings |
 | Segment applied | Some data missing | A segment the user selected hides data they are allowed to see | Clear the segment selector before debugging access |
 | Environment excluded | No env access | Env not in boundary | Add environment |
 
@@ -224,7 +239,7 @@ Data returned
 **Step 1: Identify Boundary**
 
 1. Find user's groups
-2. Check boundaries assigned to groups
+2. Check the boundary attached to each policy binding of those groups (boundaries are per binding)
 3. Note boundary scope (environment, storage, settings)
 
 **Step 2: Verify Boundary Scope**
@@ -259,8 +274,8 @@ When users can't login at all.
 |---------|-------|------------|
 | Redirect loop | IdP configuration | Verify ACS URL |
 | SAML error | SAML response | Check attribute mapping |
-| User not found | JIT provisioning | Enable auto-provisioning |
-| MFA failure | MFA configuration | Verify MFA setup |
+| Signs in but has no access | Group claims vs. each group's SAML Group Attribute Value | Users are created automatically at SAML sign-in; fix the group mapping so a claim matches |
+| MFA failure | Your IdP's MFA policy | Dynatrace does not configure MFA; fix it in the IdP |
 | Session expired | Session settings | Extend session duration |
 
 ### SAML Debugging
@@ -335,7 +350,7 @@ curl -H "Authorization: Api-Token <TOKEN>" \
 |-------|-------|------------|
 | Can't get token | Client credentials | Verify client ID/secret |
 | Wrong permissions | Client scopes | Add required scopes |
-| Token expired | Token lifetime | Request new token |
+| Token expired | OAuth token expiry is not configurable | Request a new token from the client |
 
 <a id="diagnostic-queries"></a>
 ## 8. Diagnostic Queries
@@ -429,7 +444,11 @@ fetch dt.system.events, from:-7d
 ```
 
 ```dql
-// Token-related events
+// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Corrected 10/13/2026: token lifecycle events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN,
+// and their resource is the token ID. The previous filter (authentication.type == "TOKEN" or
+// contains(resource, "token")) matched every API call made with a token instead, plus scheduled
+// /lookups/iam_tokens uploads. Same filter as IAM-06 and IAM-07.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -443,8 +462,8 @@ fetch dt.system.events, from:-7d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| filter authentication.type == "TOKEN" or contains(resource, "token")
-| fields timestamp, user.id, event.type, resource, event.outcome
+| filter in(event.provider, {"API_TOKEN", "ACTIVE_GATE_TOKEN"})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 25
 ```
@@ -550,7 +569,7 @@ Congratulations! You've completed the IAM series.
 | **12: API Provisioning & Validation** | Provisioning scripts, binding reports, cleanup, validation DQL |
 | **95: Terraform IAM Provisioning (LAB)** | Groups, policies, boundaries and bindings as Terraform |
 | **96: Python IAM Provisioning (LAB)** | Step-by-step Account Management API provisioning in Python |
-| **99: Best Practice Summary** | 72 best practices with priorities and settings |
+| **99: Best Practice Summary** | 74 best practices with priorities and settings |
 
 ### Ongoing Maintenance
 
@@ -585,6 +604,8 @@ In this notebook, you learned:
 - [IAM Troubleshooting](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [SAML Configuration](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [API Authentication](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients)
+- [IAM policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries)
+- [Token concepts (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts) — the IAM token types table lists *"Expiry configurable?"* as *"No"* for OAuth tokens
 
 ---
 

@@ -1,6 +1,6 @@
 # MZ2POL-02: Understanding the New Access Control Model
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 3 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 3 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -13,7 +13,7 @@ This notebook provides a deep dive into the **ABAC (Attribute-Based Access Contr
 1. [ABAC Framework Architecture](#abac-framework-architecture)
 2. [Policies Deep Dive](#policies-deep-dive)
 3. [Boundaries Deep Dive](#boundaries-deep-dive)
-4. [Buckets: Data Partitioning for Access Control](#buckets-data-partitioning-for-access-control)
+4. [Buckets: Data Partitioning, Not the Access Mechanism](#buckets-data-partitioning)
 5. [Segments Deep Dive](#segments-deep-dive)
 6. [Querying Current Access Configuration](#querying-current-access-configuration)
 7. [Mapping MZ Concepts to New Model](#mapping-mz-concepts-to-new-model)
@@ -54,6 +54,7 @@ By the end of this notebook, you will:
 | Policies | Permission definitions | Policy Management |
 | Boundaries | Scope restrictions | Policy Boundaries |
 | Segments | Data filtering | Segments app |
+| Example boundary condition | storage:dt.security_context MATCH ("a"); — a bare condition, no WHERE | — |
 | Example statement | ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("payments"); — service prefixes are required | — |
 -->
 
@@ -100,8 +101,11 @@ Policies are the core of ABAC - they define **WHAT** users can do.
 
 **Data access policies** (monitored data):
 - `All Grail data read access` - Unrestricted Grail read
-- `Read Logs` / `Read Spans` / `Read Metrics` / `Read Events` / `Read Entities` - Granular per-signal read
-- `Settings Reader` / `Settings Writer` - Read / read-write Settings 2.0 objects
+- `Read Logs` / `Read Spans` / `Read Metrics` / `Read Events` / `Read Entities` / `Read BizEvents` / `Read System Events` - Granular per-table read
+
+> **`Settings Reader` / `Settings Writer` are legacy.** The default-policies reference lists them, with *Storage Default Monitoring Read* and *Storage All System Data Read*, under **Legacy default policies**: *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."* For settings access, write a custom policy with `settings:objects:read` or `settings:objects:write` (plus `settings:schemas:read`), scoped by `settings:schemaId`, `settings:schemaGroup` or `settings:dt.security_context`.
+>
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `settings:objects:write`: *"Enables writing of settings objects belonging to the schema"*.</sub>
 
 ### Policy Statement Structure
 
@@ -152,7 +156,7 @@ A boundary query is a **bare condition expression** — no `WHERE` keyword (that
 - `storage:dt.security_context` - Security context filtering
 - `storage:bucket-name` - Bucket-based restrictions
 
-> **Note:** `MATCH` provides wildcard pattern matching on Grail record fields (and on `environment:management-zone`) — `storage:dt.security_context MATCH("team-*")` — and supports `*` at any position (unlike `startsWith`). It is also the documented workaround for the known `startsWith` bug on Smartscape / Classic-entity conditions (e.g. `storage:smartscape:read`). For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
+> **Note:** `MATCH` provides wildcard pattern matching on Grail record fields (and on `environment:management-zone`) — `storage:dt.security_context MATCH("team-*")` — and supports `*` at any position (unlike `startsWith`). It is also the operator to use whenever a record field can hold an **array**: *"Using =, STARTSWITH or IN when the field holds an array will always return false."* Events carry `dt.security_context` as an array (MZ2POL-00 §5), so write `MATCH` for it in every policy and boundary ([Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)). For boundary design using structured multi-dimensional context values (`comp/bu/app` for transversal team access), see **MZ2POL-04: Policies and Boundaries** and **IAM-05: Boundary Design**.
 
 ### Boundary Examples
 
@@ -171,9 +175,9 @@ environment:management-zone startsWith "mgmt_na"
 storage:dt.security_context = "team-frontend"
 ```
 
-**Restrict by Bucket (data partitioning):**
+**Restrict by Bucket (compliance case only — §4):**
 ```
-storage:bucket-name IN ("frontend_logs", "frontend_spans")
+storage:bucket-name IN ("pci_logs", "pci_spans")
 ```
 
 ### Boundary Limitations
@@ -186,21 +190,24 @@ storage:bucket-name IN ("frontend_logs", "frontend_spans")
 
 ---
 
-<a id="buckets-data-partitioning-for-access-control"></a>
-## 4. Buckets: Data Partitioning for Access Control
+<a id="buckets-data-partitioning"></a>
+## 4. Buckets: Data Partitioning, Not the Access Mechanism
 ### What Are Buckets?
 
-**Buckets** are Grail storage containers that physically partition your data. Unlike boundaries (which filter at query time), buckets provide **hard data separation** - data in one bucket is completely isolated from other buckets.
+**Buckets** are Grail storage containers that partition your data. A management zone that restricted access does **not** translate into a bucket by default: Dynatrace states that buckets are *"not intended as the primary mechanism for securing or segmenting data access."* Access is a record-level boundary on `dt.security_context` (**MZ2POL-12: IAM Reference Architecture**; **ORGNZ-06: Security Context**).
 
-### Why Use Buckets for Access Control?
+### What Buckets Are For
 
-| Benefit | Description |
-|---------|-------------|
-| **Physical isolation** | Data is stored separately, not just filtered |
-| **Performance** | Smaller, team-specific data sets query faster |
-| **Compliance** | Meet regulatory requirements for data separation |
-| **Retention control** | Different retention policies per bucket |
-| **Cost allocation** | Track storage costs by team/project |
+| Use | Description |
+|-----|-------------|
+| **Retention control** | Different retention periods need different buckets |
+| **Cost allocation** | Storage and query consumption attributable per bucket |
+| **Query optimization** | A query scoped to a smaller bucket scans less data |
+| **Specific compliance cases** | A hard exclusion — for example a `DENY` on one bucket — that record-level conditions cannot express |
+
+The partition-data page says buckets are *"best used for organizing data by retention time, cost allocation, or query optimization"*, and recommends starting from IAM policies, with buckets *"to play a supporting role for very high-level separation."* The one access job only a bucket can do is a `DENY`: *"Such access control is only possible with buckets."* **ORGNZ-05: Bucket-Level Access Control** covers when that scenario fits.
+
+> <sub>**Sources:** [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"not intended as the primary mechanism for securing or segmenting data access."*</sub>
 
 ### Buckets vs Boundaries vs Segments
 
@@ -210,7 +217,7 @@ storage:bucket-name IN ("frontend_logs", "frontend_spans")
 | **Reversible** | ❌ No (data can't move) | ✅ Yes | ✅ Yes |
 | **Performance** | Best (smaller data sets) | Good | Good |
 | **Flexibility** | Low (plan carefully) | High | High |
-| **Use case** | Team data isolation | Permission scoping | Data filtering |
+| **Use case** | Retention, cost, query scope; specific compliance exclusions | Permission scoping (team access) | Data filtering |
 
 ### Bucket Limitations
 
@@ -227,72 +234,60 @@ storage:bucket-name IN ("frontend_logs", "frontend_spans")
 | **Acceptable ingest** | 1-3 TB/day per bucket (limited query window) |
 | **Maximum ingest** | No hard per-bucket cap is documented — Dynatrace describes ingesting *"well over 15 TB per day into a single bucket"* when queries stay within narrow timeframes. A larger bucket costs queryable window per scan, and Dynatrace pages give different split points ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
 
-### Query Constraints
+### Default Query Setting That Affects Bucket Sizing
 
-| Limit | Value | Impact |
-|-------|-------|--------|
-| **Maximum data scanned** | 500 GB | Limits queryable time window |
-| **Maximum records returned** | 1,000 | Use aggregations for larger datasets |
-| **Maximum response payload** | 1 MB | Large result sets may be truncated |
+| Setting | Default | Impact |
+|---------|---------|--------|
+| **`scanLimitGBytes`** on `fetch` | 500 GB of uncompressed data (`-1` reads everything in the timeframe) | A larger bucket covers a shorter time window per default scan |
+
+> <sub>**Sources:** [Data source commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands) — *"The default value is 500GB unless specified otherwise."*</sub>
 
 ### Using Buckets in Policies
 
-Grant team access to their specific buckets:
+Only where one of the scenarios above applies — for example, a compliance bucket that only one group may read. A bucket permission is needed on top of the table permission: `storage:buckets:read` is *"Required additionally to a table permission."*
 
 ```
-// Policy: Grant team access to their buckets
-ALLOW storage:logs:read WHERE storage:bucket-name = "frontend_logs"
-ALLOW storage:spans:read WHERE storage:bucket-name = "frontend_spans"
-ALLOW storage:metrics:read WHERE storage:bucket-name = "frontend_metrics"
+// Policy: a compliance case — access to dedicated buckets
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("pci_logs", "pci_spans");
+ALLOW storage:logs:read WHERE storage:bucket-name = "pci_logs";
+ALLOW storage:spans:read WHERE storage:bucket-name = "pci_spans";
 ```
 
-### Using Buckets in Boundaries
+### Team Access Uses a Boundary, Not a Bucket
 
-Combine buckets with security context for layered control:
-
-**One boundary can cover every domain the bound policies grant** — Grail lines and, while classic pages are used, the zone line (MZ2POL-04 §6). The two-binding form below also works, provided each binding's policies stay inside its boundary's domain:
+The team boundary scopes records by security context, not by bucket. A boundary is **bare condition lines, each ending in `;`** — no `ALLOW`, no `WHERE`. **One boundary can cover every domain the bound policies grant** — Grail lines and, while classic pages are used, the zone line (MZ2POL-04 §6, MZ2POL-12 §6):
 
 ```
-// Gen3 binding: storage policies + Gen3 boundary
-ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
-WHERE storage:bucket-name IN ("frontend_logs", "frontend_spans", "frontend_metrics")
-  AND storage:dt.security_context IN ("team-frontend");
-```
-
-```
-// Gen2 policy (transitional)
-ALLOW environment:roles:viewer;
-```
-
-```
-// Gen2 boundary
+// Boundary "team-frontend", bound with Standard User + Read Logs / Read Spans / Read Metrics / Read Events
+storage:dt.security_context MATCH ("frontend", "shared");
 environment:management-zone IN ("Frontend-Team");
 ```
 
+The second line is transitional: it scopes the classic `environment:roles:viewer` permission inside Standard User while classic pages are still in use. Add a `storage:bucket-name` line only in a compliance case from the table above.
+
 > **`MATCH` is not Gen3-only** — the IAM policy reference lists it for `environment:management-zone` too. `storage:entities:read` is a Grail permission that accepts only `storage:dt.security_context` and `storage:entity.type`; `MATCH("*")` on any attribute matches everything.
 >
-> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:viewer`: *"Grants user the Access environment permission."*</sub>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:viewer`: *"Grants user the Access environment permission."*; `storage:buckets:read`: *"Required additionally to a table permission."*</sub>
 
 ### When to Use Buckets vs Other Options
 
 | Scenario | Recommended Approach |
 |----------|---------------------|
-| Strict team data isolation | **Buckets** + Policies |
-| Compliance/regulatory requirements | **Buckets** for physical separation |
-| Flexible team access | **Boundaries** with security context |
+| Team data access (the usual access-control zone) | **Boundary** on `dt.security_context` (MZ2POL-12) |
+| Different retention periods or cost attribution | **Buckets** |
+| Compliance case that needs a hard exclusion (`DENY` on a bucket) | **Bucket** + bucket condition, on top of the security-context boundary (ORGNZ-05) |
 | Ad-hoc data filtering | **Segments** |
-| Combination (defense in depth) | **Buckets** + **Boundaries** |
 
 ### MZ to Bucket Mapping
 
 | MZ Pattern | Bucket Strategy |
 |------------|-----------------|
-| Team MZs | Team-specific buckets: `teamA_logs`, `teamA_spans` |
-| Environment MZs | Environment buckets: `prod_logs`, `dev_logs` |
-| Regional MZs | Region buckets: `useast_logs`, `euwest_logs` |
-| Compliance MZs | Compliance buckets: `pci_logs`, `hipaa_logs` |
+| Team MZs | No bucket by default — a security-context value per team |
+| Environment MZs | A bucket only if the environments need different retention |
+| Regional MZs | Usually none — a segment, or a security-context value if access differs |
+| Compliance MZs | A compliance bucket where retention or a hard exclusion requires it |
 
-> **For comprehensive bucket guidance**, see **ORGNZ-03: Bucket Strategy and Design**.
+> **For comprehensive bucket guidance**, see **ORGNZ-03: Bucket Strategy and Design**; for record-level access, **ORGNZ-06: Security Context** and **MZ2POL-12**.
 
 ---
 
@@ -304,8 +299,8 @@ Segments are **DQL-based filter conditions** that control what data users see - 
 
 ### Key Characteristics
 
-- **Query-time evaluation** (not precalculated)
-- **Multi-dimensional** - can layer multiple segments
+- **Query-time evaluation** — conditions are injected into the query
+- **Layerable** - several segments can be applied together
 - **DQL-powered** - full query language flexibility
 - Support **variables** for dynamic filtering
 - **Independent of permissions** - filtering only
@@ -321,11 +316,11 @@ When a segment is applied, Grail:
 
 | Aspect | Management Zone | Segment |
 |--------|-----------------|----------|
-| Evaluation | Precalculated | Query-time |
-| Performance | Bottleneck at scale | Highly scalable |
-| Flexibility | Fixed rules | Dynamic DQL |
+| Evaluation | Rules assign entities to the zone; dimension rules match logs and metrics | Conditions injected into each query |
+| Grail data | Not evaluated | Native |
+| Flexibility | Rule conditions | DQL filter conditions |
 | Variables | No | Yes |
-| Multi-dimensional | No | Yes |
+| Combining dimensions | Within one zone's rules | Layer several segments |
 
 ---
 
@@ -404,7 +399,7 @@ fetch dt.entity.kubernetes_cluster
 | MZ Pattern | New Approach |
 |------------|-------------|
 | **Team-based MZs** | Security Context + Policies |
-| **Environment MZs** (Dev/Prod) | Boundaries with environment filters |
+| **Environment MZs** (Dev/Prod) | Boundaries on a record field that carries the environment — a `dt.security_context` value such as `prod/payments`, or a built-in field |
 | **Region MZs** | Segments with cloud region filters |
 | **Application MZs** | Segments with service/app filters |
 | **Multi-tenant MZs** | Boundaries + Security Context |
@@ -415,10 +410,17 @@ fetch dt.entity.kubernetes_cluster
 - MZ: "Team-Frontend" with rules for frontend services
 - Users assigned to MZ get filtered view
 
-**New (Policies + Boundaries + Segments):**
-1. **Policy**: `Standard User` (or a custom policy)
-2. **Boundary**: `storage:dt.security_context = "team-frontend"`
-3. **Segment**: DQL filter for frontend services
+**New (Policies + Boundaries + Segments)** — the MZ2POL-12 §6 shape:
+1. **Policies**: `Standard User` + `Read Logs` / `Read Spans` / `Read Metrics` / `Read Events`. Standard User alone grants no table read — its Grail lines cover bucket and fieldset definitions and segments, not `storage:logs:read`.
+2. **Boundary** `team-frontend`, the only boundary on the binding:
+   ```
+   storage:dt.security_context MATCH ("frontend", "shared");
+   environment:management-zone IN ("Team-Frontend");
+   ```
+   The zone line is transitional. Standard User also grants the classic `environment:roles:viewer`, and without that line the classic permission would be unscoped.
+3. **Segment**: `primary_tags.team = "frontend"` as a convenience filter — it changes the view, not the permission.
+
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — Standard User: *"ALLOW environment:roles:viewer, environment:roles:view-security-problems;"*</sub>
 
 ### Example: Environment Separation
 
@@ -461,8 +463,8 @@ The permission path follows a handful of documented rules — implicit deny, a u
 | MZ Behavior | New Behavior |
 |-------------|-------------|
 | Single construct for access + filtering | Separate concerns (Policies vs Segments) |
-| Precalculated membership | Runtime evaluation |
-| Limited to entity types | Any DQL-queryable attribute |
+| Zone membership assigned to entities by rules | Conditions evaluated on each record at query time |
+| Entity rules, plus dimension rules for logs and metrics | Any field on the record |
 | Flat structure | Hierarchical (groups → policies → boundaries) |
 
 ---

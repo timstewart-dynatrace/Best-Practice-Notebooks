@@ -1,6 +1,6 @@
 # IAM-02: SSO and Authentication Configuration
 
-> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 2 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Setting Up Enterprise Authentication
 Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.
@@ -100,14 +100,18 @@ Configure your Identity Provider to work with Dynatrace.
 
 ### Supported Identity Providers
 
-| IdP | SSO Support | SCIM Support | Notes |
+| IdP | SSO Support | SCIM Setup Documented by Dynatrace | Notes |
 |-----|-------------|--------------|-------|
-| **Okta** | Full | Full | Native integration |
-| **Azure AD (Entra ID)** | Full | Full | Enterprise app |
-| **OneLogin** | Full | Full | App catalog |
-| **PingFederate** | Full | Full | Federation server |
-| **Google Workspace** | Full | Partial | Custom SAML app |
-| **ADFS** | Full | Manual | On-premises |
+| **Okta** | Full | Yes | Native integration |
+| **Azure AD (Entra ID)** | Full | Yes | Enterprise app |
+| **OneLogin** | Full | No | App catalog |
+| **PingFederate** | Full | No | Federation server |
+| **Google Workspace** | Full | No | Custom SAML app |
+| **ADFS** | Full | No | On-premises |
+
+Dynatrace's SCIM page documents setup procedures for Azure and Okta only. In community practice, other IdPs with a generic SCIM 2.0 client are configured against the same endpoint — verify with your IdP vendor and test before relying on it; otherwise provision those users through SAML just-in-time creation.
+
+> <sub>**Sources:** [SCIM (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim) — *"To continue integrating Dynatrace SCIM with your IdP, select the procedure appropriate for your IdP:"* (Azure, Okta); [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Just-in-Time provisioning is supported."*</sub>
 
 ### IdP Setup Steps (Generic)
 
@@ -217,10 +221,12 @@ Configure Dynatrace to accept SAML assertions from your IdP.
 
 | Option | Recommendation | Notes |
 |--------|----------------|-------|
-| **Sign assertions** | Required | Validate IdP signatures |
-| **Encrypt assertions** | Optional | Additional security |
+| **Sign the whole SAML response** | Required | Signing only the assertion is not enough — the IdP must sign the entire message |
+| **Encrypt assertions** | Not supported | Leave assertion encryption off in the IdP |
 | **Sign requests** | Optional | SP signs auth requests |
-| **Allow IdP-initiated** | Optional | Direct IdP login |
+| **Allow IdP-initiated** | Optional | Supported, with RelayState |
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"The entire SAML message must be signed"*, *"No assertion encryption."*, *"Yes, both IdP-initiated sign-in and RelayState are supported."*</sub>
 
 <a id="attribute-mapping"></a>
 ## 5. Attribute Mapping
@@ -237,7 +243,7 @@ Map SAML attributes to Dynatrace user properties.
 
 ### Group Attribute Mapping
 
-Groups from SAML assertions map to Dynatrace groups:
+Group values from SAML assertions map to Dynatrace groups:
 
 ```
 IdP Group (in assertion)  →  Dynatrace Group
@@ -248,26 +254,21 @@ IT-DT-Security-Audit      →  dt-security-viewers
 
 ### Configuring Group Mapping
 
-1. **In Dynatrace Account Management**
-   - Identity providers → Select your IdP
-   - Group mapping section
+Mapping is configured on each Dynatrace group, not on the SAML configuration:
 
-2. **Add Mappings**
-   - IdP group name (exact match)
-   - Dynatrace group to assign
+1. **Open the group** — Account Management → **Identity & access management** → **Group management**, then the group's **Edit** pane. Test with a new group first.
+2. **Set the SAML Group Attribute Value** — one or more federated group values your IdP sends in the groups attribute. This is the value in the assertion, which is typically an identifier such as an LDAP ID rather than the group's display name.
+3. **Save, then test** — sign in from a new incognito window before signing out of your current session.
 
-3. **Options**
-   | Option | Description |
-   |--------|-------------|
-   | Auto-create groups | Create DT group if not exists |
-   | Default group | Assign all users to a base group |
-   | Strict mapping | Only mapped groups, ignore others |
+> **⚠️ Converting an existing group wipes its members.** Adding SAML Group Attribute Values to a LOCAL group turns it into a SAML group and removes every user currently assigned to it. Plan the switch for each group, and make sure the users' IdP groups are sending the right values first.
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"This typically isn't a group display name."*, *"Switching a LOCAL group to SAML removes all user assignments to that group."*</sub>
 
 ### Group Naming Strategy
 
 | Approach | IdP Group | DT Group | Pros/Cons |
 |----------|-----------|----------|------------|
-| **Exact match** | `dt-admins` | `dt-admins` | Simple, but IdP naming restricted |
+| **Exact match** | `dt-admins` | `dt-admins` | Simple, but only where the IdP sends group names rather than IDs |
 | **Prefixed** | `IT-DT-Admins` | `dt-admins` | Explicit mapping needed |
 | **Descriptive** | `Dynatrace Platform Admins` | `dt-platform-admins` | Clear in IdP, mapping required |
 
@@ -320,14 +321,15 @@ Verify SSO works correctly before rolling out.
 
 <a id="multi-factor-authentication"></a>
 ## 7. Multi-Factor Authentication
-MFA should be enforced at the IdP level for Dynatrace access.
+MFA must be enforced at the IdP for Dynatrace access — Dynatrace does not support configuring MFA itself.
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace."*</sub>
 
 ### MFA Strategy
 
 | Approach | Description | Recommendation |
 |----------|-------------|----------------|
 | **IdP MFA** | MFA at IdP login | Recommended |
-| **Dynatrace MFA** | Additional MFA in Dynatrace | For sensitive actions |
 | **Conditional** | MFA based on risk | For adaptive security |
 
 ### IdP MFA Configuration
@@ -442,9 +444,9 @@ With SSO configured, proceed to group architecture:
 Before moving on, ensure you have:
 
 - [ ] IdP SAML application configured
-- [ ] Dynatrace identity provider added
+- [ ] Dynatrace SAML configuration created
 - [ ] Attribute mapping configured
-- [ ] Group mapping planned
+- [ ] SAML Group Attribute Values planned per group
 - [ ] SSO login tested successfully
 - [ ] MFA enabled at IdP
 

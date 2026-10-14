@@ -1,6 +1,6 @@
 # IAM-03: Group Architecture and Design
 
-> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 3 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Designing Scalable Group Structures
 Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.
@@ -10,7 +10,7 @@ Groups are the foundation of access management. A well-designed group architectu
 ## Table of Contents
 
 1. [Group Fundamentals](#group-fundamentals)
-2. [Group Hierarchy Patterns](#group-hierarchy-patterns)
+2. [Group Design Patterns](#group-hierarchy-patterns)
 3. [Naming Conventions](#naming-conventions)
 4. [SAML Group Mapping](#saml-group-mapping)
 5. [Group Lifecycle Management](#group-lifecycle-management)
@@ -36,44 +36,43 @@ Groups in Dynatrace Gen3 IAM are collections of users that share access permissi
 
 | Property | Description | Required |
 |----------|-------------|----------|
-| **Name** | Unique identifier for the group | Yes |
-| **Description** | Purpose and ownership information | Recommended |
-| **Owner** | Person responsible for membership | Recommended |
-| **Federated ID** | SAML group mapping (if SSO) | Optional |
+| **Group name** | Unique identifier for the group | Yes |
+| **Description** | Purpose and ownership information (max 255 characters) — groups have no separate owner field, so record the owner here | Recommended |
+| **Security claims** (SAML Group Attribute Value) | Federated group values that map IdP users into the group | Optional — only with an active SAML federation |
 
 ### What Groups Control
 
 Groups are assigned:
 - **Account-level policies** (apply to all environments)
 - **Environment-level policies** (scoped to specific environments)
-- **Boundaries** (what entities they can see)
+- **Boundaries** (attached to each policy binding, narrowing what that policy grants)
 
-### Group vs User Assignment
+### Permissions Come Only Through Groups
 
-| Approach | Use When | Maintenance |
-|----------|----------|-------------|
-| Group-based | Standard case for all users | Low - manage membership only |
-| Direct user | Break-glass, temporary access | High - track individual grants |
+Users get their Dynatrace permissions from the groups they belong to — there is no direct policy assignment to a user. Temporary or break-glass access is therefore a **group membership** change (see the break-glass group in Section 6), which keeps every grant visible in group membership and the account audit log.
 
-> **Best Practice:** Always prefer group-based access. Direct user assignment should be rare and time-limited.
+> <sub>**Sources:** [Group management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management) — *"users inherit the Dynatrace access permissions that are assigned to the Dynatrace groups they belong to."*</sub>
 
 <a id="group-hierarchy-patterns"></a>
-## 2. Group Hierarchy Patterns
-Choose a structure that matches your organization and scales appropriately.
+## 2. Group Design Patterns
+Choose a structure that matches your organization and scales appropriately. Dynatrace groups are **flat** — the group documentation describes no nesting and no inheritance between groups — so every pattern below is a naming and membership convention over peer groups. A user who belongs to several groups gets the permissions of each.
 
-![Group Hierarchy Patterns](images/03-group-hierarchy-patterns.png)
+> <sub>**Sources:** [Group management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management) — *"users inherit the Dynatrace access permissions that are assigned to the Dynatrace groups they belong to."*</sub>
+
+![Group Design Patterns](images/03-group-hierarchy-patterns.png)
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Pattern | Structure | Best For |
-|---------|-----------|----------|
-| Flat | All groups at same level | Small orgs (< 50 groups) |
-| Role-Based | Groups by function (viewers, editors, admins) | Simple permission models |
-| Team-Based | Groups by team/app ownership | DevOps models |
-| Matrix | Role x Team combinations | Large enterprises |
+| Pattern | Example groups | Best For |
+|---------|----------------|----------|
+| Ad hoc | platform-admins, team-a-users, auditors | Small orgs (< 50 users) |
+| Role-Based | dt-admins, dt-editors, dt-viewers | Simple permission models |
+| Team-Based | checkout-team, payments-team, platform-team | Ownership (DevOps) models |
+| Matrix | checkout-admins, checkout-viewers, payments-admins, payments-viewers | Large enterprises |
+All groups are peers: no nesting, no inheritance between groups. A user in several groups gets the permissions of each.
 -->
 
-### Pattern 1: Flat Structure
+### Pattern 1: Ad Hoc
 
-All groups exist at the same level with no hierarchy.
+Groups created as needs arise, with no role or team convention.
 
 ```
 Groups:
@@ -85,7 +84,7 @@ Groups:
 ```
 
 **Pros:** Simple, easy to understand  
-**Cons:** Doesn't scale, no inheritance
+**Cons:** Doesn't scale — no role or team convention to keep group names and grants consistent
 
 ### Pattern 2: Role-Based
 
@@ -140,7 +139,7 @@ Groups:
 
 | Organization Size | Recommended Pattern |
 |-------------------|---------------------|
-| < 50 users | Flat or Role-Based |
+| < 50 users | Ad hoc or Role-Based |
 | 50-500 users | Team-Based or Matrix |
 | > 500 users | Matrix |
 
@@ -200,7 +199,7 @@ Federating groups from your Identity Provider (IdP) automates user provisioning 
 
 1. User authenticates via SAML SSO
 2. IdP includes group memberships in SAML assertion
-3. Dynatrace maps IdP groups to Dynatrace groups
+3. Dynatrace adds the user to every Dynatrace group whose SAML Group Attribute Value matches a value in the assertion
 4. User receives permissions from mapped groups
 
 ### Mapping Strategies
@@ -235,10 +234,7 @@ Value: Member Of (filtered)
 
 ### Mapping Configuration in Dynatrace
 
-In Account Management → Identity providers → Your IdP:
-
-1. **Group claim name**: The attribute name from your IdP (e.g., `groups`)
-2. **Group mappings**: Map each IdP group to a Dynatrace group
+Mapping is set **on each Dynatrace group**: Account Management → **Identity & access management** → **Group management** → the group's **Edit** pane → **SAML Group Attribute Value**. Enter the value(s) your IdP sends in the groups attribute — typically an identifier such as an LDAP ID, not the group's display name. One group can list several values (many-to-one), and the same value can be entered on several groups (one-to-many).
 
 **Example Mappings:**
 
@@ -248,7 +244,9 @@ In Account Management → Identity providers → Your IdP:
 | `App-Checkout-Team` | `dt-checkout-editors` |
 | `All-Employees` | `dt-all-viewers` |
 
-> **Best Practice:** Use explicit mappings rather than auto-create. This prevents unauthorized groups from being provisioned.
+> **⚠️ Converting a LOCAL group to SAML removes all its members.** Adding a SAML Group Attribute Value to an existing local group switches it to SAML and drops every current user assignment — plan the cutover per group and confirm the IdP sends the value first.
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"This typically isn't a group display name."*, *"Switching a LOCAL group to SAML removes all user assignments to that group."*</sub>
 
 <a id="group-lifecycle-management"></a>
 ## 5. Group Lifecycle Management
@@ -477,7 +475,7 @@ With your group architecture defined, proceed to configure access controls:
 
 Before moving on, ensure you have:
 
-- [ ] Chosen a group hierarchy pattern
+- [ ] Chosen a group design pattern
 - [ ] Defined naming conventions
 - [ ] Configured SAML group mappings (if using SSO)
 - [ ] Documented group ownership
@@ -491,7 +489,7 @@ Before moving on, ensure you have:
 In this notebook, you learned:
 
 - Group fundamentals and properties
-- Four hierarchy patterns: flat, role-based, team-based, and matrix
+- Four flat group design patterns: ad hoc, role-based, team-based, and matrix
 - Naming conventions for scalable group management
 - SAML group mapping strategies
 - Group lifecycle management and ownership

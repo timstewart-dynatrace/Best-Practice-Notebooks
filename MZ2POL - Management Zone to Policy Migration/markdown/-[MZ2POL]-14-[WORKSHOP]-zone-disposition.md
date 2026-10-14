@@ -128,7 +128,7 @@ Every session ends with its table filled in. If it cannot be, the open items go 
 | Delete | No queries, role assignments, alerting profiles or dashboards in 90 days | Archive the export first |
 | Access job | Removing it would let someone see data they must not | Tags at source (10, 11) → boundary per team (12, 04) → templates if many (08) |
 | Filtering job | Removing it only adds noise | Tags or built-in fields → one segment per dimension (05) |
-| Alerting job | It decides who is paged | Routing tags on entities → problem-triggered workflow (09) |
+| Alerting job | It decides who is paged | Routing tags on the data → problem-triggered workflow (09) |
 | All paths | The value has to be on the data first; one translation (MZ2POL-11) feeds three consumers | dt.security_context for the boundary; primary_tags.* for the segment and the trigger |
 For environments where SVG doesn't render
 -->
@@ -136,6 +136,8 @@ For environments where SVG doesn't render
 | Zone | Owner | Used in 90 days? (evidence) | Decision |
 |---|---|---|---|
 | | | queries / roles / profiles / dashboards | keep / delete / park |
+
+Collect the evidence column with MZ2POL-15 (consumers) and MZ2POL-00 §3 (query usage).
 
 Delete aggressively. A zone nobody uses is a zone nobody needs translated, tagged, tested or explained. MZ2POL-05 §2 makes the same point for filtering zones.
 
@@ -148,7 +150,7 @@ Delete aggressively. A zone nobody uses is a zone nobody needs translated, tagge
 |---|---|---|---|---|---|
 | | removing it exposes data | removing it adds noise | it decides who is paged | P1 – P3 | |
 
-Use the series' test word for word: *if removing it would let someone see data they must not, it is access; if it would only make dashboards noisy, it is filtering; if it decides who is paged, it is alerting.* Teams routinely overestimate the access share — most estates are mostly filtering (MZ2POL-05 §1).
+Use the series' test word for word: *if removing it would let someone see data they must not, it is access; if it would only make dashboards noisy, it is filtering; if it decides who is paged, it is alerting.* In community practice, teams tend to overestimate the access share, and many estates turn out to be mostly filtering (MZ2POL-05 §1) — verify against your own inventory rather than assuming it.
 
 <a id="session-3"></a>
 ## 6. Session 3 — Dimensions and Tags

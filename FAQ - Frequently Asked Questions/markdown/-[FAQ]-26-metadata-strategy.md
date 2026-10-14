@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/06/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -52,7 +52,7 @@ It is the strategy layer over three existing references, which it routes to rath
 Five rules carry most of the weight:
 
 1. **Use what is already there.** Host group, Kubernetes cluster and namespace, and cloud account fields are populated automatically. If they answer the question, add nothing.
-2. **Only three kinds of value reach everything.** Primary Grail fields, the three special fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and `primary_tags.<key>` are enriched on every signal, on Smartscape nodes, and on derived data such as service metrics and Davis events. Cloud tags, Kubernetes labels and plain host tags, on their own, are not.
+2. **Only three kinds of value reach everything.** Primary Grail fields, the three special fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and `primary_tags.<key>` are enriched on every signal, on Smartscape nodes, and on derived data such as service metrics and Davis events. Cloud tags, Kubernetes labels and plain host tags, on their own, are not. One node type is the exception: `SERVICE` Smartscape nodes carry no primary Grail tags, although the spans and service metrics a service produces do (§4).
 3. **Access control needs `dt.security_context` or a permission field — not a primary tag.** The semantic dictionary marks which fields an IAM policy can use. `primary_tags.*` is not one of them.
 4. **Set it at source when routing depends on it.** A value written by an OpenPipeline processor arrives after the pipeline was chosen. Source enrichment, central rules, and OpenPipeline *primary Grail tag rules* all apply before routing.
 5. **Check the producers that inherit nothing.** Remote extensions, synthetic monitors and RUM do not pick up host or namespace metadata. Each needs its own configuration, and they are where coverage audits find gaps.
@@ -125,9 +125,11 @@ The six jobs read different surfaces — raw signals, Smartscape nodes, derived 
 For environments where SVG doesn't render
 -->
 
-Two rows deserve a closer look.
+Two rows deserve a closer look, and one node type is an exception.
 
 **Derived data.** Primary tags and special fields carry through to service metrics, Davis events and problems. This was confirmed on the validation tenant: `dt.service.request.count` split cleanly by `dt.security_context`, by `dt.host_group.id` and by two different `primary_tags.*` keys set through central enrichment rules. That is what lets a segment, an alert filter and a dashboard tile all use one value. Signal-local fields do not carry through — Dynatrace says non-convention OpenTelemetry attributes *"aren't automatically propagated across signal types or to Davis events and problems."*
+
+**`SERVICE` nodes are the exception.** Dynatrace's AWS end-to-end example states that *"SERVICE nodes don't carry primary Grail tags."* The tags are on the spans and service metrics a service produces, and on the process, container, pod and host it runs on. So a segment that filters on `primary_tags.team` matches a team's data but not its service nodes. To include them, the segment needs a variable that looks up the team's service IDs from service metrics, and an Entities include on those IDs. ORGNZ-08 covers how to build it. The same page notes that *"A tag set at a narrower level isn't inherited by broader levels: a workload label never tags the namespace node."*
 
 **Before routing.** Two OpenPipeline features look alike and behave differently. *Primary Grail tag rules* (Dynatrace 1.342) are evaluated before routing and apply to any record type. A DQL or *Set security context* processor inside a pipeline runs after routing. Use the first when the value has to pick a pipeline or bucket; the second is fine for values that only filter or restrict access.
 
@@ -136,6 +138,7 @@ Two rows deserve a closer look.
 > - <sub>[Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags) — *"All rules are evaluated before ingest-preprocessing time, before routing, and apply globally, to any incoming record of any type."*</sub>
 > - <sub>[Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline runs after pipeline routing, so tags derived here can't influence which pipeline a record enters."*</sub>
 > - <sub>[Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel)</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"SERVICE nodes don't carry primary Grail tags."*</sub>
 > - <sub>**Derived:** the derived-data claim was also checked on `dt.service.request.count` on the validation tenant, 10/06/2026 (§7, last query).</sub>
 
 <a id="producer-by-producer"></a>
@@ -170,7 +173,18 @@ Three surfaces, from broadest to narrowest: **central ingest enrichment rules** 
 
 **The 1.345 trap.** From OneAgent 1.345, host `primary_tags` come only from host tags, not from `hostcustomproperties.conf`. A host that set them as properties stops sending them on upgrade, and nothing errors. FAQ-02 §3 has the audit.
 
-> <sub>**Sources:** [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."*, [Best practices for metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment) — *"OneAgent version 1.337 or later is required for primary_tags.* and dt.security_context enrichment."*, [What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
+**Cloud tags on a VM that runs OneAgent.** Cloud tag rules don't reach this data. In Dynatrace's words, *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* OneAgent 1.343+ has its own route instead. It reads EC2 instance tags *"through the instance metadata service and exposes them as host properties named aws.tags.<key>"*. A Host/Process property rule at the host-group scope then maps each one to a primary tag, a security context or a cost field. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* Azure VMs work the same way with `azure.tags.<key>`.
+
+The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are not yet available as input fields for OneAgent."* The AWS enrichment page (09/17/2026) and the AWS end-to-end example (10/06/2026) both document the route above, so follow them, and check one host's data before rolling it out (§7).
+
+**Scope precedence.** *"When rules at several scopes target the same field, the narrower-scope rule takes precedence."* A host-group rule overrides an environment-wide default for that host group.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."* and *"Cloud tags are not yet available as input fields for OneAgent."*</sub>
+> - <sub>[Best practices for metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment) — *"OneAgent version 1.337 or later is required for primary_tags.* and dt.security_context enrichment."*</sub>
+> - <sub>[What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
+> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"OneAgent reads those tags from the AWS instance metadata and enriches them as Security context, Cost center, or Cost product, or directly as a Primary tag on all telemetry."*</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."*</sub>
 
 ### 5.2 Kubernetes
 
@@ -192,11 +206,13 @@ Built-in fields such as `dt.host_group.id` arrive automatically only when the OT
 
 ### 5.4 Cloud connections (AWS, Azure, Google Cloud)
 
-Account and region fields are populated automatically on telemetry from a cloud connection. To use your own cloud tags, central configuration maps a cloud tag to `dt.security_context`, `dt.cost.costcenter` or `dt.cost.product`, or forwards it as `aws.tags.<key>`, which is not yet a primary tag. Mapping a cloud tag straight to a **primary tag** is marked *coming soon*. Dynatrace gave September 2026 as the expected availability of this central configuration for cloud tags, so check that it has reached your tenant; until it has, the page points to the cloud connection settings. In the meantime, an OpenPipeline primary Grail tag rule promotes the forwarded field. List two sources in that rule: one for telemetry (`aws.tags.team`) and one for Smartscape nodes (`` `tags:aws`[team] ``).
+Account and region fields are populated automatically on telemetry from a cloud connection. To use your own cloud tags, central configuration maps a cloud tag to `dt.security_context`, `dt.cost.costcenter` or `dt.cost.product`, or forwards it as `aws.tags.<key>`, which is not yet a primary tag. Mapping a cloud tag straight to a **primary tag** is still marked *coming soon*. The AWS end-to-end example, published 10/06/2026, says *"Primary tag isn't yet available as a Target for AWS tag rules"*, and adds that once it is, *"you no longer need the OpenPipeline rule."* Until then, an OpenPipeline primary Grail tag rule promotes the forwarded field. List two sources in that rule: one for telemetry (`aws.tags.team`) and one for Smartscape nodes (`` `tags:aws`[team] ``). Set its matching condition to `isNull(primary_tags.team)`. *"The default condition is true, which overwrites values other sources already set"*, such as a Kubernetes team tag or a Lambda function's `DT_TAGS`.
+
+**What these rules reach.** Cloud tag rules tag only the data that comes through the cloud connection: cloud metrics, cloud logs and the cloud Smartscape nodes (`AWS_EC2_INSTANCE`, `AWS_LAMBDA_FUNCTION`, `AWS_RDS_DB_INSTANCE` in the example). OneAgent data from the same VM needs the Host/Process property rule in §5.1. A Lambda function *"doesn't load the ingest enrichment configuration"*, so its telemetry is tagged by `DT_TAGS` only.
 
 **Version gate.** These pages apply to **new cloud connections only** and to Dynatrace **1.348+**. SaaS releases reach tenants in a staged rollout, so check that your tenant has the release before you design around it. Classic cloud connections are not covered. FAQ-02 §4 covers naming drift between cloud providers, which is the main reason to normalize in one rule.
 
-> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags (coming soon): This option is not yet directly available as Target and will be added in one of the next releases."*</sub>
+> <sub>**Sources:** [Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."* and *"Primary Grail tags (coming soon): This option is not yet directly available as Target and will be added in one of the next releases."*, [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*</sub>
 
 ### 5.5 Extensions (Extensions 2.0)
 
@@ -236,17 +252,18 @@ RUM is different from every other producer because nothing about it can be confi
 
 **The anchor field is `frontend.name`.** It is on every user event and user session, it comes from the frontend definitions, and it is the one RUM field tagged `permission`. Map frontend names to `primary_tags.team` (or `app`) with a DQL processor. Check the name first: Dynatrace notes that `frontend.name` can differ from the display name in Experience Vitals, and a policy written against the display name matches nothing.
 
-**Repeat the rule in every scope.** OpenPipeline keeps one configuration scope per signal type. The RUM enrichment page lists seven where RUM data appears: Smartscape events, User events, User sessions, Events, Davis events, Business events and Timeseries. A rule in *User events* alone leaves RUM-derived metrics, problems and the `FRONTEND` nodes untagged. Dynatrace recommends a **base pipeline** in each scope, set up with pipeline groups, so the tag exists before any team pipeline runs. Use the condition `isNull(primary_tags.team)` so a value set earlier is not overwritten.
+**Repeat the rule in every scope.** OpenPipeline keeps one configuration scope per signal type. The RUM enrichment page lists seven where RUM data appears: Smartscape events, User events, User sessions, Events, Davis events, Business events and Timeseries. A rule in *User events* alone leaves RUM-derived metrics, problems and the `FRONTEND` nodes untagged. Dynatrace recommends a **base pipeline** in each scope, set up with pipeline groups, so the tag exists before any team pipeline runs. Use the condition `isNull(primary_tags.team)` so a value set earlier is not overwritten. The AWS end-to-end example uses the same scopes, with one difference for *User sessions*: `frontend.name` is an array there, so the matching condition becomes `arrayContains(frontend.name, "<frontend>") and isNull(primary_tags.team)`. The example also writes `dt.security_context` and `dt.cost.costcenter` in the same processor, *"because the fixed-value rules from Plan the rules don't apply to RUM."*
 
 **User sessions are arrays.** A web session can span several frontends, so `frontend.name` on `user.sessions` is an array, and the derived `primary_tags.team` becomes an array too. Filter with `matchesValue(...)` or `in(...)`. Any `==` comparison on that array returns no rows and raises no error.
 
 **Access.** `frontend.name` on its own handles per-application access for user events, sessions and RUM metrics. For anything finer, such as specific pages, Dynatrace says to write `dt.security_context` with DQL processors in the same scopes. The only fields you can mask from display are the four built-in sensitive fields (client IP, user tag, latitude, longitude). Nothing you add in OpenPipeline can be marked sensitive.
 
-**Two things the pages leave open.** Cost fields on RUM data aren't mentioned on either RUM page, so treat them as unverified and test with the §7 audit. The two pages also contradict each other on retention: the enrichment page lists *bucket assignment* by `primary_tags.*` as a use, and the access-controls page says *"You cannot currently modify these buckets or create custom RUM buckets."* Until that is settled, don't put RUM retention into your tag design.
+**Two things the pages leave open.** Neither RUM page mentions cost fields on RUM data. The AWS end-to-end example writes `dt.cost.costcenter` in its RUM processor, but no page says what reads that field on RUM data, so test it with the §7 audit. The two pages also contradict each other on retention: the enrichment page lists *bucket assignment* by `primary_tags.*` as a use, and the access-controls page says *"You cannot currently modify these buckets or create custom RUM buckets."* Until that is settled, don't put RUM retention into your tag design.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"To configure security context (dt.security_context) for RUM data, use DQL processors in the relevant OpenPipeline configuration scopes."*</sub>
 > - <sub>[Best practices for RUM data access controls (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/rum-data-access-controls) — *"You cannot currently modify these buckets or create custom RUM buckets."*</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"For User sessions, repeat the same steps with a different matching condition, because frontend.name is an array in that scope"*</sub>
 > - <sub>**Dictionary:** `frontend.name` (`stable`, tagged `permission`), read 10/06/2026.</sub>
 
 ### 5.8 Everything else: APIs, log shippers and CMDBs

@@ -1,13 +1,13 @@
 # MZ2POL-00: SDK Management Zone Analysis Tool
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 1 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 1 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 > **Purpose:** Export every management-zone rule, measure how each zone is used, and check whether the **data** — not just the entities — carries the context the replacements need. The output feeds MZ2POL-03 (classification), MZ2POL-11 (rule translation) and the MZ2POL-14 workshop.
 
 ## What This Notebook Does
 1. **Export all zone rules** — every `ME`, `DIMENSION` and `SELECTOR` rule, one row per condition, with all eight propagation flags
 2. **Analyze rule patterns** — rule types, entity types, condition keys, and which conditions need special translation
-3. **Measure zone usage** — query activity per zone over 30 days, the evidence for deleting unused zones
+3. **Measure zone usage** — query activity per zone over 90 days, the evidence for deleting unused zones
 4. **Count entities per zone** — how much each zone covers
 5. **Check security context on the data** — per table, type (string or array), and whether entity contexts are only copied from zone names
 6. **Find tag patterns** — the classic tag vocabulary the zones were built from
@@ -268,18 +268,22 @@ export default async function () {
 <a id="zone-usage"></a>
 ## 3. Zone Usage
 
-Dynatrace self-monitoring records how often each zone is used in queries. A zone with no activity over 30 days is a delete candidate, not a translation job (MZ2POL-14, Session 1). Combine this with role assignments, alerting profiles and dashboards before deciding — a zone can be unqueried and still scope a role or a profile.
+Dynatrace self-monitoring records how often each zone is used in queries. A zone with no activity over 90 days — the same window the MZ2POL-14 workshop uses in Session 1 — is a delete candidate, not a translation job. Combine this with role assignments, alerting profiles and dashboards before deciding — a zone can be unqueried and still scope a role or a profile.
 
 ```dql
-// Query activity per management zone over 30 days. Zones absent from the result had none.
-timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-30d, by:{dt.management_zone.name}
-| fieldsAdd queries_30d = arraySum(q)
+// Query activity per management zone over 90 days. Zones absent from the result had none.
+timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-90d, by:{dt.management_zone.name}
+| fieldsAdd queries_90d = arraySum(q)
 | fieldsRemove q, timeframe, interval
-| sort queries_30d desc
+| sort queries_90d desc
 | limit 200
 ```
 
-On the validation tenant (10/13/2026) this returned per-zone counts ranging from about 128,000 queries down to a single query in 30 days. The metric is a self-monitoring metric observed on that tenant rather than a documented API; if it returns nothing on yours, check it exists with `metrics | filter metric.key == "dt.sfm.server.management_zones.queries_counter"` before treating the result as "no usage".
+On the validation tenant (10/13/2026) this returned per-zone counts ranging from about 504,000 queries down to 3 in 90 days.
+
+**A non-zero count does not prove that people need the zone.** The counter records queries, not who sent them — dashboards on auto-refresh, API scripts and scheduled reports count too. On the validation tenant three zones showed almost identical 90-day counts (about 297,700 each), the pattern of one automated caller rather than of people. Find the caller before treating a zone as in use.
+
+The metric is a self-monitoring metric observed on that tenant rather than a documented API; if it returns nothing on yours, check it exists with `metrics | filter metric.key == "dt.sfm.server.management_zones.queries_counter"` before treating the result as "no usage".
 
 ---
 
@@ -380,16 +384,18 @@ fetch dt.entity.host
 
 ### Tag Key Frequency
 
-Extract the key from the `key:value` format to see which tag keys are most common.
+Extract the key from the `key:value` format to see which tag keys are most common. Classic tags can also be value-less (`Purpose`); those are kept as keys with no value.
 
 ```dql
 // Classic tag keys and how many distinct values each has.
+// Value-less tags (no ":") are kept: the whole tag is the key, withValue counts the ones that have a value.
 fetch dt.entity.host
 | expand tag = tags
 | filter isNotNull(tag)
-| filter contains(tag, ":")
-| parse tag, "LD:tagKey ':' LD:tagValue"
-| summarize {count = count(), uniqueValues = countDistinct(tagValue)}, by: {tagKey}
+| fieldsAdd sep = indexOf(tag, ":")
+| fieldsAdd tagKey = if(sep >= 0, substring(tag, to: sep), else: tag),
+            tagValue = if(sep >= 0, substring(tag, from: sep + 1))
+| summarize {count = count(), withValue = countIf(isNotNull(tagValue)), uniqueValues = countDistinct(tagValue)}, by: {tagKey}
 | sort count desc
 | limit 30
 
@@ -444,7 +450,7 @@ fetch dt.entity.host_group
 <a id="migration-readiness-summary"></a>
 ## 9. Migration Readiness Summary
 
-One table: how many zones exist, how many were queried in the last 30 days, and how much of each table lacks a security context. It reads the zone count from the response's `totalCount` — the `fields` parameter selects object fields (`objectId`, `value`, …) and does not accept `totalCount`.
+One table: how many zones exist, how many were queried in the last 90 days, and how much of each table lacks a security context. It reads the zone count from the response's `totalCount` — the `fields` parameter selects object fields (`objectId`, `value`, …) and does not accept `totalCount`.
 
 ```python
 import { settingsObjectsClient } from "@dynatrace-sdk/client-classic-environment-v2";
@@ -487,17 +493,17 @@ export default async function () {
     | append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
   `);
 
-  // Zones with no query activity in 30 days — delete candidates (MZ2POL-14, Session 1).
+  // Zones with no query activity in 90 days — delete candidates (MZ2POL-14, Session 1).
   const usage = await runDQL(`
-    timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-30d, by:{dt.management_zone.name}
-    | fieldsAdd queries_30d = arraySum(q)
-    | summarize {zones_with_queries = countIf(queries_30d > 0)}
+    timeseries q = sum(dt.sfm.server.management_zones.queries_counter), from:-90d, by:{dt.management_zone.name}
+    | fieldsAdd queries_90d = arraySum(q)
+    | summarize {zones_with_queries = countIf(queries_90d > 0)}
   `);
 
   const rows: { category: string; metric: string; value: number | string; status: string }[] = [
     { category: "Zones", metric: "Management zones configured", value: zones, status: "INFO" },
     {
-      category: "Zones", metric: "Zones queried in the last 30 days",
+      category: "Zones", metric: "Zones queried in the last 90 days",
       value: Number(usage[0]?.zones_with_queries ?? 0),
       status: Number(usage[0]?.zones_with_queries ?? 0) < zones ? "DELETE CANDIDATES EXIST" : "OK",
     },
@@ -519,7 +525,9 @@ export default async function () {
 
 ## Next Steps
 
-> **This tool is an inventory aid, not a converter.** There is **no automatic Management Zone to Segment conversion** in Dynatrace — no button, no API, no wizard. Unlike Metric Events, which have a supported automatic upgrade path to Anomaly Detectors, every Management Zone must be re-expressed by hand as a segment or an IAM policy. The analysis tells you *how much work each zone is*; it does not perform the migration.
+> **This tool is an inventory aid, not a converter.** There is **no automatic Management Zone to Segment conversion** in Dynatrace — no button, no API, no wizard. Metric events have an assisted path — the Anomaly Detection app converts metric selectors with a **Transform** action, after which you check by hand that the data and tags are present. Management zones have no such path: every zone must be re-expressed by hand as a segment, an IAM policy or a workflow. The analysis tells you *how much work each zone is*; it does not perform the migration.
+
+> <sub>**Sources:** [Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — *"the check can't detect whether the data from the metric is available or the necessary tags are present."*</sub>
 
 ### Based on the analysis above
 

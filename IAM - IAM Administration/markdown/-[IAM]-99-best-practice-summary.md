@@ -1,6 +1,6 @@
 # IAM-99: Best Practice Summary
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -46,15 +46,17 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 1 | Configure SSO before creating groups or policies | SAML 2.0 IdP integration in Account Management > Identity providers | **Critical** | Auth |
-| 2 | Use SAML 2.0 with signed assertions | IdP configuration: Sign assertions = Required | **Critical** | Auth |
+| 1 | Configure SSO before creating groups or policies | SAML 2.0 IdP integration in Account Management > Identity & access management > SAML configuration | **Critical** | Auth |
+| 2 | Sign the entire SAML response, not just the assertion | IdP configuration: sign the whole SAML message. Dynatrace: *"It isn't sufficient to sign just the assertion part."* | **Critical** | Auth |
 | 3 | Set NameID format to email | IdP SAML app: Name ID format = EmailAddress | **Critical** | Auth |
 | 4 | Include groups attribute in SAML assertion | IdP attribute statement: name = `groups`, value = user group memberships | **Critical** | Auth |
 | 5 | Enforce MFA at the IdP level for all Dynatrace users | IdP sign-on policy: Require MFA for the Dynatrace SAML application | **Critical** | Auth |
 | 6 | Use phishing-resistant MFA factors | Factor priority: WebAuthn > TOTP > Push > SMS. Disable SMS if possible | **Recommended** | Auth |
 | 7 | Maintain at least one local admin account | Local Dynatrace account (not SSO-dependent) with `account-user-management`, stored in enterprise vault | **Critical** | Auth |
 | 8 | Test both SP-initiated and IdP-initiated login | Verify: Dynatrace login redirects to IdP AND IdP portal tile lands in Dynatrace | **Recommended** | Auth |
-| 9 | Enable encrypted assertions for sensitive environments | IdP SAML configuration: Encrypt assertions = Enabled | **Optional** | Auth |
+| 9 | Do not enable assertion encryption | Dynatrace's IdP requirements list *"No assertion encryption"* — protect the assertion with signing (#2) and TLS instead | **Recommended** | Auth |
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml).</sub>
 
 <a id="group-architecture"></a>
 
@@ -66,7 +68,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 |---|--------------|----------------|----------|----------|
 | 10 | Use the Matrix group pattern for enterprises (>50 users) | Groups = `<scope>-<team>-<role>` (e.g., `dt-checkout-admins`, `dt-checkout-viewers`) | **Recommended** | Groups |
 | 11 | Prefix all Dynatrace groups with `dt-` | Naming: `dt-<team>-<role>`, lowercase, hyphens only, under 50 characters | **Critical** | Groups |
-| 12 | Use explicit SAML group mappings, not auto-create | Account Management > Identity providers > Group mapping: do NOT enable auto-create groups | **Critical** | Groups |
+| 12 | Map IdP groups explicitly to Dynatrace groups you created | Create the group in Account Management first, then add the IdP group names as its SAML group attribute values. Adding SAML values to an existing LOCAL group removes its current members — plan the switch | **Critical** | Groups |
 | 13 | Assign all access via groups, never directly to users | Direct user assignment only for break-glass, time-limited scenarios | **Critical** | Groups |
 | 14 | Designate an owner for every group | Group description must include owner name/team and purpose | **Recommended** | Groups |
 | 15 | Create a default viewer group for all authenticated users | Group `dt-all-viewers` with the Standard User default policy, mapped to IdP all-employees group | **Recommended** | Groups |
@@ -84,13 +86,15 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 |---|--------------|----------------|----------|----------|
 | 19 | Start with default policies, add custom only when needed | Use the Standard User, Pro User and Admin User default policies as baseline. Create custom policies for team-scoped or capability-scoped access | **Recommended** | Policies |
 | 20 | Layer default + custom policies per group | Group gets Standard User (base access) + custom policy (scoped write). Never rely on custom policy alone for read access | **Recommended** | Policies |
-| 21 | Use `${bindParam:...}` templated policies for multi-team scoping | One template policy + N bindings instead of N identical policies. Naming: `tpl-<scope>-<permission>` | **Recommended** | Policies |
+| 21 | Use `${bindParam:...}` templated policies for multi-team scoping | One template policy + N bindings instead of N identical policies. Naming: `tpl-<scope>-<permission>`. Bind them through the API or Terraform: *"Currently, group management does not support binding policies with parameters."* | **Recommended** | Policies |
 | 22 | Apply least privilege: grant minimum required service:resource:action | Each policy statement = `ALLOW <service>:<resource>:<action>`. No wildcards unless role genuinely needs broad access | **Critical** | Policies |
 | 23 | Use WHERE conditions to scope storage access by security context | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-name"` | **Critical** | Policies |
-| 24 | Use `storage:bucket-name` conditions for hard data isolation | `ALLOW storage:logs:read WHERE storage:bucket-name = "team_logs"` for compliance-grade team isolation | **Critical** | Policies |
-| 25 | Combine bucket + security context for defense in depth | `WHERE storage:bucket-name = "team_logs" AND storage:dt.security_context = "team"` | **Optional** | Policies |
+| 24 | Add `storage:bucket-name` conditions only where a bucket already exists for another reason | Lead with `dt.security_context` (#23). Buckets are *"not intended as the primary mechanism for securing or segmenting data access"*; where a bucket exists for retention, cost or compliance, `ALLOW storage:logs:read WHERE storage:bucket-name = "team_logs"` can narrow access to it | **Optional** | Policies |
+| 25 | Combine bucket + security context for defense in depth where #24 applies | `WHERE storage:bucket-name = "team_logs" AND storage:dt.security_context = "team"` | **Optional** | Policies |
 | 26 | Version-control all policies via GitOps (Monaco or Terraform) | Store policy YAML in git. PR review before apply. CI/CD deploys to environments | **Recommended** | Policies |
 | 27 | Test every custom policy in a non-production environment first | Create test group + test user, verify intended access works AND unintended access is blocked | **Critical** | Policies |
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating), [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
 
 <a id="boundaries-and-data-partitioning"></a>
 
@@ -100,14 +104,18 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 28 | Split Gen2 + Gen3 into separate policies and bindings, each with its own boundary | Gen3 policy + boundary (`storage:dt.security_context IN (...)`, `settings:dt.security_context IN (...)`); Gen2 transitional policy + boundary (`environment:management-zone IN (...)`). Never attach two boundaries to one policy that mixes `storage:`/`settings:` and `environment:` permissions — Dynatrace evaluates each boundary separately, which can leave permissions unconditional. The split also lets MZ retirement remove the Gen2 binding cleanly | **Critical** | **Boundaries** |
+| 28 | Attach one boundary per policy binding, covering every domain the policy grants | One boundary may combine `storage:dt.security_context IN (...)`, `settings:dt.security_context IN (...)` and `environment:management-zone IN (...)` lines — Dynatrace's own *Kubernetes* boundary example mixes a management-zone and a Grail condition. Do not attach a second boundary to the same binding: *"effective statements are calculated for each boundary separately"*, so a domain one boundary does not mention is left unconditional under it. Splitting Gen2 and Gen3 permissions into separate policies, each bound with its own boundary, is also valid and lets MZ retirement remove the Gen2 binding cleanly | **Critical** | **Boundaries** |
 | 29 | Include "shared" context in team boundaries | `storage:dt.security_context IN ("team-a", "shared", "infrastructure")` for infrastructure visibility | **Recommended** | Boundaries |
-| 30 | Achieve >95% security context coverage on entities | Query: `fetch dt.entity.service` and check `countIf(isNotNull(dt.security_context)) / count()`. Target: >95% | **Critical** | Boundaries |
-| 31 | Use Entity Enrichment rules (not auto-tags) for security context | Settings > Entity Enrichment: assign `dt.security_context` based on host group, K8s namespace, or host property | **Recommended** | Boundaries |
-| 32 | Plan Grail buckets carefully: names are immutable, data cannot move | Naming: `<org>_<datatype>_<retention>` (e.g., `team_a_logs_90d`). Max 80 buckets per environment. 1 data type per bucket | **Critical** | Boundaries |
+| 30 | Measure security context coverage on the data records, not on entities | Count records without `dt.security_context` per table (logs, spans, events) — query in MZ2POL-06 §3. Entity coverage can read 100% while a large share of logs and events carry none, and records without it are invisible to users scoped only by it. Target: >95% per table | **Critical** | Boundaries |
+| 31 | Set security context at the source, not with auto-tags | OneAgent `--set-host-tag="dt.security_context=<value>"`, `DT_TAGS` per process, Kubernetes labels/annotations, OTel resource attributes; OpenPipeline enrichment last. Auto-tagging rules *"have no effect on Smartscape on Grail"* | **Recommended** | Boundaries |
+| 32 | Plan Grail buckets carefully: names are immutable, data cannot move | Naming: `<org>_<datatype>_<retention>` (e.g., `team_a_logs_90d`). Up to 80 custom buckets per environment by default. 1 data type per bucket | **Critical** | Boundaries |
 | 33 | Set bucket ingest target at ~1 TB/day per bucket | Optimal: ~1 TB/day. Acceptable: 1-3 TB/day. No per-bucket cap is documented, but the 500 GB scan limit shrinks the queryable window as a bucket grows; Dynatrace's split guidance varies between pages (IAM-05) | **Recommended** | Boundaries |
 | 34 | Use Primary Grail Fields for pipeline routing | Route to buckets based on `k8s.cluster.name`, `k8s.namespace.name`, `aws.account.id`, `azure.subscription.id`, `dt.host_group.id` | **Recommended** | Boundaries |
 | 35 | Give broad access by leaving bindings unbounded, not by wildcards | Leave admin/platform bindings **unbounded** rather than writing a wildcard; `IN ("*")` matches a zone literally named `*` | **Critical** | Boundaries |
+| 35a | Scope lookup files by folder, not by security context | `storage:files:*` accept only `storage:file-path`. Give every team a folder `/lookups/<team>/`. Bind one central read/write policy per team group with a boundary `storage:file-path startsWith "/lookups/<team>/";`. Put shared read on `/lookups/global/` in a separate unbounded policy. Keep both slashes in every prefix (IAM-05 Pattern 8) | **Recommended** | Boundaries |
+| 35b | Keep file-path-bounded policies to `storage:files:*` only | A file-path boundary does not restrict any other permission in the same policy. Add `storage:logs:read` there and it becomes unrestricted. Check *Boundary assignments per policy* (10) before sharing one policy across more than 10 teams | **Critical** | Boundaries |
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries), [Tags difference (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic), [OneAgent primary tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent), [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Lookup data in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/lookup-data). **Derived:** #28 "left unconditional" combines the per-boundary evaluation quote with *"Only conditions added to service configuration will be applied to relative permissions."*</sub>
 
 <a id="user-lifecycle-and-provisioning"></a>
 
@@ -118,12 +126,14 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 36 | Use SCIM for automated user/group sync (>50 users) | IdP SCIM endpoint to Dynatrace. Enable: Create Users, Update Attributes, Deactivate Users, Push Groups | **Recommended** | Lifecycle |
-| 37 | Use JIT provisioning only if SCIM is unavailable | Account Management > Identity providers > Enable auto-provision on login. Always configure a default group | **Optional** | Lifecycle |
+| 37 | Know that SAML provisions users just in time | Dynatrace creates users on their first SAML login (*"you don't have to invite users to Dynatrace"*); group membership comes from the SAML group mapping (#12). Use SCIM (#36) when you also need automatic deprovisioning | **Optional** | Lifecycle |
 | 38 | Immediately revoke all access on employee termination | Same-day: disable in IdP (SCIM auto-deactivates), revoke all API tokens, deactivate OAuth clients, transfer dashboard ownership | **Critical** | Lifecycle |
-| 39 | Revoke user-created tokens on offboarding | Account Management > API tokens > Filter by created-by user > Revoke all. Tokens persist after user deactivation until explicitly revoked | **Critical** | Lifecycle |
+| 39 | Revoke user-created tokens on offboarding | Platform tokens: account admins *"can disable or delete platform tokens created by all users under their account"* (Account Management). Classic access tokens are environment-level — revoke them in each environment's **Access Tokens** page. In community practice, do not assume user deactivation revokes them | **Critical** | Lifecycle |
 | 40 | Create dedicated groups for external users | Group `external-<company>-<role>` (e.g., `external-acme-consultants`). Apply least-privilege policies with WHERE clauses. Set time-bound access | **Recommended** | Lifecycle |
-| 41 | Enforce MFA for all external accounts | External users authenticating via local Dynatrace account must have MFA enabled | **Critical** | Lifecycle |
+| 41 | Enforce MFA for all external accounts in the IdP | *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace"* — federate external users through an IdP that enforces MFA (#5) | **Critical** | Lifecycle |
 | 42 | Conduct quarterly access reviews for external users | Review all external user access quarterly. Revoke immediately when engagement ends | **Recommended** | Lifecycle |
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens).</sub>
 
 <a id="tokens-and-service-accounts"></a>
 
@@ -135,12 +145,14 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 |---|--------------|----------------|----------|----------|
 | 43 | One OAuth client per application | Never share clients across apps. Naming: `<app>-<environment>-<purpose>` | **Critical** | Tokens |
 | 44 | Grant minimum OAuth scopes | Only grant scopes the integration needs. Common: `storage:logs:read`, `storage:metrics:read`, `settings:objects:read` | **Critical** | Tokens |
-| 45 | Set short OAuth token lifetimes | Token lifetime: hours to days, not weeks. Rotate client secrets every 90 days | **Recommended** | Tokens |
+| 45 | Rotate OAuth client secrets; do not plan around token lifetime | Client-credentials access tokens expire in 300 s (`expires_in: 300`) and OAuth token expiry is not configurable — fetch a fresh token per run. In community practice, rotate client secrets every 90 days | **Recommended** | Tokens |
 | 46 | Use descriptive token names | Naming: `<purpose>-<scope>-<owner>` (e.g., `cicd-pipeline-metrics-reader`). Never use generic names | **Recommended** | Tokens |
 | 47 | Set expiration dates on all API tokens | Every token must have a defined expiry. Default rotation schedule: 90 days | **Critical** | Tokens |
 | 48 | Store tokens in a secrets manager | Use CyberArk, HashiCorp Vault, AWS Secrets Manager. Never in code, shared environment variables, or wiki pages | **Critical** | Tokens |
 | 49 | Maintain a service account inventory | Document: owner, purpose, scopes, expiry date, rotation schedule for every OAuth client and API token. Review quarterly | **Recommended** | Tokens |
 | 50 | Use OAuth2 client credentials for new integrations | Prefer OAuth over API tokens for all new automation. API tokens only for legacy compatibility. Required in Phase 3 environments, where classic API token creation is disabled; the `/apiTokens` endpoints are deprecated in API 1.348 (pre-release) | **Recommended** | Tokens |
+
+> <sub>**Sources:** [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients), [Token concepts (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts).</sub>
 
 <a id="audit-and-compliance"></a>
 
@@ -150,7 +162,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 51 | Set audit log retention to match compliance framework | SOC2: 1 year. SOX: 7 years. HIPAA: 6 years. PCI-DSS: 1 year online + archive | **Critical** | Audit |
+| 51 | Know each audit trail's retention and export what your framework needs beyond it | Environment audit events on Grail *"are stored for one year"*; account audit log data *"is stored for up to 10 years"*. Retention is not a setting you choose — where a framework requires more (SOX: 7 years, HIPAA: 6 years), export the events to your archive | **Critical** | Audit |
 | 52 | Monitor failed logins and alert on brute-force patterns | Alert: >5 failed logins from same user in 10 min = Warning. >20 failed logins any user in 10 min = Critical | **Critical** | Audit |
 | 53 | Alert on all admin actions outside business hours | Alert: any audit event matching admin activity where hour < 8 or hour > 18 = Warning | **Recommended** | Audit |
 | 54 | Alert on all policy creation, modification, and deletion | Alert: audit events with policy created/modified/deleted = Info severity | **Recommended** | Audit |
@@ -158,6 +170,8 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 56 | Conduct access reviews at defined frequency by role | Admin groups: quarterly. Editor groups: semi-annually. Viewer groups: annually. Account Admins: monthly | **Critical** | Audit |
 | 57 | Remove users inactive for 90+ days | Query users with last login >90 days ago. Disable accounts. Transfer asset ownership. Revoke tokens | **Recommended** | Audit |
 | 58 | Alert on bulk data access patterns | Alert: >1000 queries/hour from a single user or token = Warning (potential exfiltration) | **Optional** | Audit |
+
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail), [Account audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 
 <a id="multi-environment-and-governance"></a>
 
@@ -189,13 +203,13 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 69 | Use SAML tracer browser extension for SSO debugging | Check: NameID format = email, groups attribute present, assertion not expired, signature valid | **Recommended** | Operations |
 | 70 | Define a 4-level escalation path | L1: Team lead. L2: IAM admin (policy/boundary changes). L3: Platform team (IdP/infrastructure). L4: Dynatrace support (product issues) | **Recommended** | Operations |
 | 71 | Use the IAM API to programmatically validate bindings | GET `/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}` to dump and compare parameter values | **Optional** | Operations |
-| 72 | Verify security context values match templated policy parameters | DQL: `fetch dt.entity.service` and check `dt.security_context` values match `${bindParam:...}` binding values exactly | **Critical** | Operations |
+| 72 | Verify security context values match templated policy parameters | DQL: `fetch logs, from:-1h` (and spans, events) summarized `by:{dt.security_context}` — check the record values match `${bindParam:...}` binding values exactly | **Critical** | Operations |
 
 ---
 
 ## Summary
 
-This notebook consolidates **72 best practices** across 9 categories from the IAM series (IAM-01 through IAM-12). Use it as:
+This notebook consolidates **74 best practices** across 9 categories from the IAM series (IAM-01 through IAM-12). Use it as:
 
 - **Pre-deployment checklist** -- work through all Critical items before production
 - **Quarterly audit sheet** -- verify Recommended items are in place
@@ -206,7 +220,7 @@ This notebook consolidates **72 best practices** across 9 categories from the IA
 | Priority | Count | Action |
 |----------|-------|--------|
 | **Critical** | 34 | Must implement before production |
-| **Recommended** | 33 | Implement for enterprise-grade operations |
+| **Recommended** | 35 | Implement for enterprise-grade operations |
 | **Optional** | 5 | Beneficial for mature or compliance-heavy organizations |
 
 ### Cross-References
