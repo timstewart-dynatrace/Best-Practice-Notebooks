@@ -1,6 +1,6 @@
 # MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 10 of 15 | **Created:** July 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 10 of 17 | **Created:** July 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -36,7 +36,7 @@ An alerting profile scoped to a Management Zone decides who gets paged. When the
 | **Non-prod tenant** | **Required** for §8 — the deletion test must not be run first in production |
 | **Prior reading** | **MZ2POL-01** §5 (the MZ-job-to-successor mapping) · **MZ2POL-03** (assessment) · **MZ2POL-05** (the filtering job, for contrast) |
 | **Companion series** | **WFLOW-02** (trigger configuration) · **WFLOW-04** (routing patterns) · **ALERT-01** (alerting architecture) · **ALERT-03** (destinations and cost) |
-| **Tagging prerequisite** | The routing dimensions must exist as **entity tags** before any workflow can filter on them — see §4 |
+| **Tagging prerequisite** | The routing dimensions must reach the **problem record** — as primary Grail fields or `primary_tags.*` set on the data, not auto-tags — before any workflow can filter on them. See §4 and MZ2POL-10 |
 
 <a id="the-third-job"></a>
 ## 1. The Third Job
@@ -54,13 +54,13 @@ Routing and visibility are related but distinct, and §7 explains why conflating
 
 ### Why the alerting job is the hard one
 
-Filtering and access both migrate to constructs that can evaluate a **condition**. A segment can filter on a field condition such as `entity.name = "payment*"` or `dt.host_group.id = "PROD-*"`; a boundary can test a `dt.security_context` prefix.
+Filtering and access both migrate to constructs that can evaluate a **condition**. A segment can filter on a field condition such as `primary_tags.team = "payments"` or `dt.host_group.id = "PROD-*"`; a boundary can test a `dt.security_context` prefix.
 
-A workflow trigger cannot. It matches **tags carried by the affected entity**, plus an optional DQL matcher on the problem record. That is a narrower surface, and it means a Management Zone whose rules are *computed* — name patterns, entity selectors — has nothing for a trigger to filter on until equivalent tags exist.
+A workflow trigger cannot. It evaluates the **problem record** — an affected-entity tag filter plus an optional DQL matcher, compiled into one expression *"limited to 1,000 characters across all trigger fields."* It can only test fields the problem carries, so a Management Zone whose rules are *computed* — name patterns, entity selectors — has nothing for a trigger to filter on until the value is set on the data as a primary field or tag.
 
 That asymmetry is the single biggest source of surprise in this part of the migration, and §4 is devoted to it.
 
-> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"Only operators `=`, and `in()` are supported."*; *"You can use wildcards `*` for `starts-with`, `contains`, and `ends-with` matches."*</sub>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — *"Only operators `=`, and `in()` are supported."*; *"You can use wildcards `*` for `starts-with`, `contains`, and `ends-with` matches."* [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — *"limited to 1,000 characters across all trigger fields."*</sub>
 
 <a id="what-replaces-a-profile"></a>
 ## 2. What Actually Replaces an Alerting Profile
@@ -90,14 +90,14 @@ An alerting profile scoped to MZ *X*, routing to team *X*'s channel, becomes:
 |---|---|
 | Management zone: Team X | Trigger: Problem trigger |
 | Severity rules | Severity: as the profile's rules (see the SaaS 1.348 note in §5) |
-| Event filters | Affected entities: include entities with tag team:X |
-| — | Custom filter query: optional DQL matcher, e.g. maintenance.is_under_maintenance == false |
+| Event filters | Affected entities: include all entities |
+| — | Custom filter query: matchesValue(primary_tags.team, "X") — the zone's job lands here (§4) |
 | Delay | Minimum duration (§6.1) |
 | Problem notification | Action: Slack / ServiceNow / email / PagerDuty → team X's destination |
 For environments where SVG doesn't render
 -->
 
-No separate profile object exists in this shape. **The filter *is* the trigger.** Dynatrace notes that *"a single workflow trigger can encapsulate the combined filter logic of multiple alerting profiles"*, and that the filter *"can use DQL matchers on the incoming problem record, which is much more flexible and powerful than alerting profiles."*
+No separate profile object exists in this shape. **The filter *is* the trigger.** Dynatrace notes that *"a single workflow trigger can encapsulate the combined filter logic of multiple alerting profiles."*
 
 ### Status of the classic surfaces
 
@@ -120,7 +120,7 @@ Collect these five columns for every profile. Each one drives a decision later, 
 | **Severity rules** (level + tag filters) | Carries forward directly onto the workflow trigger | §5 |
 | **`delayInMinutes`** per severity rule | Maps onto the trigger's **Minimum duration** option, which accepts fixed values only (§6.1). Every non-zero value needs a recorded disposition | §6 |
 | **Event filters** (predefined / custom title / description) | Becomes the DQL matcher on the trigger | §5 |
-| **Notification destinations** consuming this profile | Four destination types have no native connector | §6 |
+| **Notification destinations** consuming this profile | Three destination types (Trello, VictorOps, xMatters) have no native connector; Opsgenie moves to the Jira Service Management connector | §6 |
 
 ### The three questions the inventory must answer
 
@@ -135,59 +135,77 @@ Collect these five columns for every profile. Each one drives a decision later, 
 
 This is the actual work, and it is enrichment work, not alerting work.
 
+### Route on what the problem record carries
+
+A problem trigger evaluates the **problem record**. Dynatrace's tagging guidance draws the line between the two models in one row: classic setups *"Route alerts based on tags applied to entities"*; on Latest Dynatrace you *"Route alerts on the primary fields and tags carried by the alert events themselves."* The alert-notification upgrade guide confirms what reaches the problem: *"Primary Grail fields and tags ( `primary_tags.*` ), `dt.security_context`, and the Cost Allocation fields are automatically propagated from the alerting events into the problem record."* It also lists the classic `entity_tags` field as *"still exists but is deprecated"*.
+
+Auto-tags are not a route. *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app."* A dimension that exists only as an auto-tag today has to be set on the data — at the source or centrally — before a workflow can route on it.
+
+> **What the docs do not say.** The event-trigger page describes the *Affected entities* tag filter's three modes but not which tag source it evaluates — classic entity tags, `entity_tags` on the problem, or `primary_tags.*`. Until that is documented, put routing conditions in the **Additional custom filter query**, where the field is explicit, and confirm any tag filter against real problems with *Query past events* before relying on it.
+
 ### The conversion table
 
-Classify every MZ rule by whether its dimension is already carried as a **tag on the entity**. The right-hand column is your prerequisite backlog.
+Classify every MZ rule by whether its dimension already reaches the problem record. The right-hand column is your prerequisite backlog.
 
-| MZ rule shape | Tag-carried today? | What to do |
+| MZ rule shape | On the problem record today? | What to do |
 |---|---|---|
-| Host tag equals `team:checkout` | ✅ Yes | Direct mapping — use the tag on the trigger |
-| Host group membership | ⚠️ Derivable | Auto-tag from host group, then verify propagation |
-| Kubernetes namespace / cluster | ⚠️ Derivable | Auto-tag from the namespace, then verify |
-| `dt.security_context` already set | ✅ Yes | Usable directly; also the visibility field (§7) |
-| Service name **contains** `payment` | ❌ Computed | **Must** become an auto-tag before routing can use it |
-| Entity selector expression | ❌ Computed | **Must** become an auto-tag |
-| Process/host **name pattern** | ❌ Computed | **Must** become an auto-tag |
+| Host group membership | ✅ Primary field `dt.host_group.id` | Route on it directly |
+| Kubernetes namespace / cluster | ✅ Primary fields `k8s.namespace.name`, `k8s.cluster.name` | Route on them directly |
+| `dt.security_context` already set at the source | ✅ Yes | Usable directly; also the visibility field (§7) |
+| Host or process tag `team:checkout` | ⚠️ Only as a classic tag | Set it as `primary_tags.team` at the source or through central enrichment (MZ2POL-10 §5) |
+| Service name **contains** `payment` | ❌ Computed | Set a value at the source, or with a central / OpenPipeline enrichment rule (MZ2POL-10 §5, MZ2POL-11) |
+| Entity selector expression | ❌ Computed | Same — translate the rule to a value on the data (MZ2POL-11 §7) |
+| Process/host **name pattern** | ❌ Computed | Same |
 
-A trigger cannot evaluate *"service name contains payment"*. It can only ask whether the affected entity carries a tag. Every ❌ row is work that must complete — **and propagate** — before the corresponding workflow can be built.
+Every ⚠️ and ❌ row is work that must complete — **and reach new problems** — before the corresponding workflow can be built. Enrichment is forward-only: problems opened before the value existed never carry it.
 
-### Auditing tag coverage
+### Auditing routing coverage on problem records
 
-Run these before building anything. Both are cheap: Smartscape queries scan **0 bytes**.
+Measure on the problems themselves, not on entities. Entity-side tags tell you nothing about what a trigger can see: on the validation tenant on 10/13/2026, classic tags carried a `Team:` value on 28 of 35 services, while `smartscapeNodes "SERVICE"` returned `tags[team]` on **0 of 35** — and neither number says what reached a problem.
 
-Replace `team` with whichever tag key carries your routing dimension.
+Replace `team` / `Team:` with whichever key carries your routing dimension.
 
-```dql
-// Routing-tag coverage on services.
-// Live-verified 07/21/2026 — scans 0 bytes.
-// On Smartscape nodes `tags` is a RECORD: use unquoted bracket access, not matchesValue().
-smartscapeNodes "SERVICE"
-| fieldsAdd team = tags[team]
-| summarize total = count(), tagged = countIf(isNotNull(team))
-| fieldsAdd coverage_pct = round(tagged * 100.0 / total, decimals: 1)
-```
-
-A `coverage_pct` below 100 is the size of your §4 backlog. Routing cannot be correct while it is below 100 — untagged entities produce problems that match no workflow and page nobody.
-
-The same audit across two dimensions at once, on hosts:
+> <sub>**Sources:** [Differences between classic auto-tagging and primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-difference-classic) — *"Route alerts on the primary fields and tags carried by the alert events themselves."*; *"Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app."* [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Primary Grail fields and tags ( `primary_tags.*` ), `dt.security_context`, and the Cost Allocation fields are automatically propagated from the alerting events into the problem record."* [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the *Affected entities* tag-filter modes.</sub>
 
 ```dql
-// Multi-dimension routing-tag coverage on hosts.
-// Live-verified 07/21/2026 — scans 0 bytes.
-smartscapeNodes "HOST"
-| fieldsAdd team = tags[team], env = tags[environment]
-| summarize hosts = count(),
-            with_team = countIf(isNotNull(team)),
-            with_env = countIf(isNotNull(env))
-| fieldsAdd team_pct = round(with_team * 100.0 / hosts, decimals: 1),
-            env_pct = round(with_env * 100.0 / hosts, decimals: 1)
+// Routing-tag coverage on PROBLEM RECORDS: the classic tag vs the primary tag that replaces it.
+// Executed 10/13/2026 over 7 days: 5,293 problems / classic Team: tag on 514 (9.7%) / primary_tags.team on 0.
+// entity_tags is the deprecated classic field; primary_tags.<key> is what a Latest Dynatrace route reads.
+fetch dt.davis.problems, from:-7d
+| fieldsAdd classic_team = iAny(startsWith(entity_tags[], "Team:")),
+            primary_team = isNotNull(primary_tags.team)
+| summarize {problems = count(),
+             classic_team_tag = countIf(classic_team == true),
+             primary_team_tag = countIf(primary_team)}
+| fieldsAdd classic_pct = round(classic_team_tag * 100.0 / problems, decimals: 1),
+            primary_pct = round(primary_team_tag * 100.0 / problems, decimals: 1)
 ```
 
-> ⚠️ **`tags` behaves differently on Smartscape nodes than on classic entities.** On a Smartscape node it is a **record** — access it with unquoted bracket syntax, `tags[team]`. On a classic entity it is an **array of `"key:value"` strings**, where OneAgent host tags additionally carry an `[Environment]` prefix. Using `matchesValue(tags, "team:checkout")` against `smartscapeNodes` does not merely underperform — Grail returns a `SEVERE` notification that the query `will always return an empty result as the condition can't be true`. MZ2POL-05 §4.5 documents this trap in full.
+`primary_pct` is the number that matters. Below 100, the gap is your §4 backlog: problems without the value match no workflow that routes on it and page nobody. On the validation tenant the classic tag reached 9.7% of problems and the primary tag none — a tenant that would route nothing if it cut over on `primary_tags.team` today.
 
-### Propagation is not instant
+The built-in primary fields need no enrichment, so audit them the same way — they are often the fastest route to coverage:
 
-Creating an auto-tag rule does not retroactively tag existing entities at once. Re-run the coverage queries until they reach 100% before building the workflow that depends on them — a trigger filtering on a tag that has only half propagated will silently under-route.
+```dql
+// Primary-field coverage on problem records. On dt.davis.problems these fields are ARRAYS
+// (values accumulate across the events grouped into the problem) — hence arraySize().
+// Executed 10/13/2026 over 7 days: 5,293 problems / namespace 31.3% / host group 2.4% / security context 26.3%.
+fetch dt.davis.problems, from:-7d
+| summarize {problems = count(),
+             with_namespace = countIf(arraySize(k8s.namespace.name) > 0),
+             with_host_group = countIf(arraySize(dt.host_group.id) > 0),
+             with_context = countIf(arraySize(dt.security_context) > 0)}
+| fieldsAdd namespace_pct = round(with_namespace * 100.0 / problems, decimals: 1),
+            host_group_pct = round(with_host_group * 100.0 / problems, decimals: 1),
+            context_pct = round(with_context * 100.0 / problems, decimals: 1)
+```
+
+> ⚠️ **On a problem record these fields are arrays, and `==` silently matches nothing.** The upgrade guide: *"Values accumulate across every event grouped under the problem."* On the validation tenant over 7 days, `k8s.namespace.name == "otel-demo"` matched **0** problems while `matchesValue(k8s.namespace.name, "otel-demo")` and `in("otel-demo", k8s.namespace.name)` each matched **1,202** — with no notification on the `==` form (10/13/2026). Write the trigger's custom filter as `matchesValue(primary_tags.team, "checkout")`, and confirm it with *Query past events* before saving.
+
+> <sub>**Sources:** [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Values accumulate across every event grouped under the problem."* Counts executed against the validation tenant, 10/13/2026.</sub>
+
+### New values reach new problems only
+
+Setting a value at the source or in a central enrichment rule does not rewrite problems that already exist. Re-run the coverage queries over a window that starts after the change, and wait until `primary_pct` reaches 100 before building the workflow that depends on it — a trigger filtering on a value that only some problems carry will silently under-route.
 
 <a id="building-the-workflow"></a>
 ## 5. Building the Replacement Workflow
@@ -201,15 +219,19 @@ These are all the controls a problem trigger offers:
 | **Problem state** | *Active*, *Active or closed*, or *Closed* |
 | **Categories** | Davis problem categories |
 | **Severity** | Minimum severity threshold |
-| **Affected entities — tags** | Three modes: include all / all defined tags / any defined tag. Evaluated over the union of `affected_entity_ids` and `smartscape.affected_entities` |
+| **Affected entities** | Filter by entity tags — three modes: include all / all defined tags / any defined tag. The page does not say which tag source it evaluates (§4) |
 | **Additional custom filter query** | A DQL **matcher** on the problem record — a *subset* of DQL: no aggregation, no querying across a set of events |
-| **Updates** | Re-trigger when selected fields change |
+| **Minimum duration** | Postpones the trigger until the problem has been open for a fixed duration (§6.1) |
+| **Updates** | Re-trigger when selected fields change; the *affected entities* field tracks the union of `affected_entity_ids` and `smartscape.affected_entities` |
+| **Wait for root cause analysis** | The trigger *"starts only after Dynatrace Intelligence has completed root cause analysis for the problem"* — the page recommends enabling it |
 
 No management-zone filter. No segment filter. No entity-selector filter.
 
+All of these compile into one matching expression, *"limited to 1,000 characters across all trigger fields"*; a trigger that exceeds it fails validation on save. A long list of tag values or entity conditions is the usual way to hit it — route on one primary tag instead (§4).
+
 > **SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026):** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter carried over from a profile that never set severity explicitly may stop matching once 1.348 reaches your tenant. The release note's action plan: *"If it was relying on the default, change the filter to Any severity so the workflow continues to fire after the upgrade."* For each converted trigger, decide whether its severity filter is intentional. Until 1.348 arrives, the current defaulting still applies — verify your tenant's version.
 
-> <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the problem-state options. [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Davis events and problems no longer default `event.severity` to `3`."*</sub>
+> <sub>**Sources:** [Event trigger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger) — the problem-state options; *"When enabled, the trigger starts only after Dynatrace Intelligence has completed root cause analysis for the problem."*; *"limited to 1,000 characters across all trigger fields."* [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Davis events and problems no longer default `event.severity` to `3`."*</sub>
 
 ### Granularity: one simple workflow per destination
 
@@ -223,7 +245,7 @@ A **simple** workflow — one trigger, one notification action — avoids the wo
 
 ### Do not route on the management-zone payload field
 
-`event()["management_zones"]` looks like a natural routing key, but on a Gen3 problem record it is not there to read. On the validation tenant, **0 of 15,875** problems over 30 days carried a `management_zones` field (10/05/2026) while management zones still existed, and the semantic dictionary has no such field. An expression built on it has nothing to match today — before any zone is deleted — so a workflow that depends on it either never notifies or fails at evaluation. Route on entity tags and the DQL matcher instead (§4–§5).
+`event()["management_zones"]` looks like a natural routing key, but on a Gen3 problem record it is not there to read. On the validation tenant, **0 of 15,875** problems over 30 days carried a `management_zones` field (10/05/2026) while management zones still existed, and the semantic dictionary has no such field. An expression built on it has nothing to match today — before any zone is deleted — so a workflow that depends on it either never notifies or fails at evaluation. Route on primary fields and `primary_tags.*` in the DQL matcher instead (§4–§5).
 
 > <sub>**Dictionary:** no row for `management_zone` / `managementzone` under `filter contains(name, …)`, read 10/05/2026 (control: `dt.security_context` (`stable`) returned by the same query). Field-presence counts from `fetch dt.davis.problems, from:-30d` with `affected_entity_ids` as the positive control (15,875 of 15,875).</sub>
 
@@ -302,7 +324,7 @@ If a Management Zone was doing double duty — restricting which problems a team
 | | Routing | Visibility |
 |---|---|---|
 | Mechanism | Workflow trigger filter | IAM record-level policy |
-| Field | Entity tags + DQL matcher | `dt.security_context` |
+| Field | Primary fields / `primary_tags.*` in the DQL matcher | `dt.security_context` |
 | Failure if wrong | Wrong team paged | Wrong team **sees data they should not** |
 
 ![Routing and visibility are separate axes](images/09-routing-vs-visibility.png)
@@ -310,7 +332,7 @@ If a Management Zone was doing double duty — restricting which problems a team
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Axis | Mechanism | Field | Wrong → |
 |---|---|---|---|
-| Routing — who gets paged | Workflow trigger filter | Entity tags + DQL matcher | The wrong team is paged |
+| Routing — who gets paged | Workflow trigger filter | Primary fields / primary_tags.* in the DQL matcher | The wrong team is paged |
 | Visibility — who may see it | IAM record-level policy | dt.security_context only | A team sees data it must not |
 | Constraint | Problem field values aggregate into arrays; only dt.security_context supports filtering array values; use MATCH, not = | | |
 For environments where SVG doesn't render
@@ -340,7 +362,7 @@ This is the same field the access-control half of the migration uses, which is c
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Step | Action |
 |---|---|
-| 1 | Build workflows — with tags verified at 100% coverage (§4) |
+| 1 | Build workflows — with routing values on problem records verified (§4) |
 | 2 | Run in parallel — classic profiles AND new workflows both active |
 | 3 | Prove alert parity — per-team volume matches, for an agreed window |
 | 4 | DISABLE classic profiles — not delete; disable, so rollback is one click |
@@ -437,24 +459,25 @@ Note also the shape of that top row: the largest bucket by far is the one with *
 
 ```dql
 // Security-context coverage across the problem-event stream.
-// Executed 07/31/2026 over 7 days: total 2,480,695 / with_context 161,361 / 6.5%.
+// dt.security_context is an ARRAY here: count non-empty arrays, not non-null values.
+// Executed 10/13/2026 over 7 days: total 66,803 / with_context 15,813 / 23.7%.
 fetch events, from: -7d
 | filter event.kind == "DAVIS_PROBLEM"
-| summarize total = count(), with_context = countIf(isNotNull(dt.security_context))
+| summarize {total = count(), with_context = countIf(arraySize(dt.security_context) > 0)}
 | fieldsAdd coverage_pct = round(with_context * 100.0 / total, decimals: 1)
 ```
 
-On the validation tenant, 07/31/2026, over 7 days:
+On the validation tenant, 10/13/2026, over 7 days:
 
 | `total` | `with_context` | `coverage_pct` |
 |---:|---:|---:|
-| 2,480,695 | 161,361 | **6.5** |
+| 66,803 | 15,813 | **23.7** |
 
-**93.5% of the problem-event stream carries no security context at all.** That number is the argument of this notebook in a single figure.
+**76.3% of the problem-event stream carries no security context at all.** (The 07/31/2026 run of the earlier form of this query read 6.5%; the tenant's event volume and enrichment have both changed since, so compare runs on your own tenant, not against these figures.) That number is the argument of this notebook in a single figure.
 
-The migration story people reach for is that MZ-scoped alerting will be rebuilt on a field like `dt.security_context` — swap one scoping dimension for another and the routing follows. This measurement is what that plan collides with. A field populated on 6.5% of records is not a scoping dimension yet; it is an enrichment project that has not happened. Build routing on it today and 93.5% of the stream falls through to whatever the default is — which, for alerting, means either everyone is paged or nobody is.
+The migration story people reach for is that MZ-scoped alerting will be rebuilt on a field like `dt.security_context` — swap one scoping dimension for another and the routing follows. This measurement is what that plan collides with. A field populated on under a quarter of records is not a scoping dimension yet; it is an enrichment project that has not happened. Build routing on it today and three quarters of the stream falls through to whatever the default is — which, for alerting, means either everyone is paged or nobody is.
 
-That is why §4 puts enrichment first and treats it as the prerequisite rather than a parallel workstream. **Run this query before you commit to a cutover date, not after.** A tenant at 6.5% has months of tagging and propagation work in front of it; a tenant already near 100% can move quickly. The number is cheap to obtain and it is the difference between a schedule and a guess.
+That is why §4 puts enrichment first and treats it as the prerequisite rather than a parallel workstream. **Run this query before you commit to a cutover date, not after.** A tenant at a quarter coverage has substantial enrichment work in front of it; a tenant already near 100% can move quickly. The number is cheap to obtain and it is the difference between a schedule and a guess.
 
 A coverage figure this low is also worth a second look before you treat it as pure bad news: check whether the contexts that *are* populated cover the entities that actually page people. Coverage weighted by alert-carrying entities is the number that matters operationally, and it is often better than the raw record-level figure — the null bucket is inflated by high-frequency events on unenriched infrastructure.
 
@@ -462,7 +485,7 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 | Check | Pass condition |
 |-------|---------------|
-| Routing-tag coverage (§4) | 100% on every entity type in scope |
+| Routing coverage on problem records (§4) | `primary_pct` at 100 for every routing key, measured over a window that starts after enrichment |
 | Workflow per destination exists | Every inventoried destination has a live workflow |
 | Alert parity per team | Within agreed tolerance across the parallel window, **confirmed by the receiving team** |
 | No workflow reads `management_zones` | Zero matches across all workflow definitions |
@@ -483,15 +506,16 @@ A coverage figure this low is also worth a second look before you treat it as pu
 
 **Enrichment (prerequisite)**
 
-- [ ] Classify every MZ rule as tag-carried / derivable / computed (§4)
-- [ ] Create auto-tags for every computed dimension
-- [ ] Run the coverage queries until they reach 100%
-- [ ] Confirm propagation has completed, not just that rules exist
+- [ ] Classify every MZ rule by whether its dimension reaches the problem record (§4)
+- [ ] Set every missing dimension on the data — at the source or with central enrichment (MZ2POL-10 §5), not with auto-tags
+- [ ] Run the problem-record coverage queries until they reach 100%
+- [ ] Measure over a window that starts after enrichment — existing problems are not rewritten
 
 **Build**
 
 - [ ] One simple workflow per team/channel — not per Management Zone
-- [ ] Trigger filters on affected-entity tags, refined by DQL matcher if needed
+- [ ] Trigger routes with a custom filter query on primary fields or `primary_tags.*` — `matchesValue()`, never `==` (problem fields are arrays)
+- [ ] *Wait for root cause analysis* decided per trigger (the docs recommend enabling it); each trigger under the 1,000-character limit
 - [ ] Carry severity rules across from the old profile
 - [ ] Rebuild the three destinations with no dedicated connector (Trello, VictorOps, xMatters) as HTTP Request actions; move Opsgenie to the Jira Service Management connector
 - [ ] Template and manage as code (AUTOM-03 / AUTOM-04)
@@ -521,13 +545,14 @@ A coverage figure this low is also worth a second look before you treat it as pu
 ## Summary
 
 1. **Alerting is the third job a Management Zone does**, and it migrates to problem-triggered workflows — not to Segments. Segments scope queries and anomaly detectors; they never scope triggers, notifications, or visibility.
-2. **The real work is enrichment.** Triggers match tags carried by entities; MZ rules are computed conditions. Every computed dimension must become an auto-tag, and must propagate, before its workflow can exist.
+2. **The real work is enrichment.** Triggers evaluate the problem record; MZ rules are computed conditions on entities. Every routing dimension must be set on the data as a primary field or `primary_tags.*` — auto-tags do not reach Grail — and must reach new problems before its workflow can exist.
 3. **One confirmed capability regression:** three notification destinations have no native connector (Opsgenie moves to the JSM connector). Duration-based suppression maps onto the trigger's **Minimum duration** option, and since its 09/07/2026 rewrite the upgrade guide agrees.
 4. **Visibility is a separate axis** and works only on `dt.security_context`, because it is the only field that filters correctly once events aggregate into a problem.
 5. **The deletion failure mode is undocumented.** Test it in non-prod before touching production, and never delete zones and profiles in the same change window.
 
 ## Next Steps
 
+- **MZ2POL-16** — the other zone-scoped alerting artifacts: metric events (the transform drops the zone), maintenance windows, classic SLOs, notification payloads, and proving parity
 - **MZ2POL-06** — migration execution, phasing, and rollback for the migration as a whole
 - **MZ2POL-07** — validation and troubleshooting
 - **MZ2POL-99** — the consolidated best-practice checklist across the series

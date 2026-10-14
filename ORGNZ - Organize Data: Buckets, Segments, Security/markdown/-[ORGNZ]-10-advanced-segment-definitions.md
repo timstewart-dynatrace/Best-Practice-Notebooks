@@ -1,6 +1,6 @@
 # ORGNZ-10: Advanced Segment Definitions
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 10 of 10 | **Created:** February 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -57,15 +57,15 @@ Segment filter conditions define which data a segment includes. Understanding th
 | Operator | Example | Notes |
 |----------|---------|-------|
 | `=` (equals) | `k8s.namespace.name = "production"` | Exact match, best performance |
-| `!=` (not equals) | `k8s.namespace.name != "kube-system"` | Exclude specific values |
 | `starts-with` | `dt.host_group.id = $platform*` | Prefix match with wildcard `*` |
 | `IN` | `k8s.namespace.name IN ("prod", "staging")` | Match any value in list |
-| `NOT IN` | `k8s.namespace.name NOT IN ("kube-system")` | Exclude list of values |
 
+> **No exclusions.** The [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) page states *"Only operators `=`, and `in()` are supported."* — there is no not-equals or `NOT IN`, so a segment cannot exclude values. Name what to include instead, or push the exclusion into ingest enrichment so the data carries a field you can include on.
+>
 > **Important — operator availability depends on data type:**
 > - The underlying operator set is **`=` and `in()`** only. `starts-with`, `contains`, and `ends-with` are not separate operators — they are expressed by placing a **wildcard `*` inside the value** (`"prefix*"`, `"*text*"`, `"*suffix"`).
 > - **Signal data includes** (logs, spans, events, metrics) accept wildcards freely, so all three matching modes are available.
-> - **Classic entity includes** (`dt.entity.*`): `entity.name` supports **starts-with only** (`entity.name = "payment*"`); contains and ends-with are not supported on any classic-entity property, and other entity *properties* support exact `equals` only. The [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) page: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. Tag conditions test **membership in the tag set** rather than a substring, so verify tag-based entity includes against your own tenant.
+> - **Classic entity includes** (`dt.entity.*`; legacy, avoid in new segments, §2): `entity.name` supports **starts-with only** (`entity.name = "payment*"`); contains and ends-with are not supported on any classic-entity property, and other entity *properties* support exact `equals` only. The [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) page: *"starts-with, contains, and ends-with are not supported"*, *"entity.name supports starts-with"*, *"Other properties only support equals"*. Tag conditions test **membership in the tag set** rather than a substring, so verify tag-based entity includes against your own tenant.
 > - An asterisk may follow a variable name in a starts-with condition — `foo = $bar*`.
 >
 > For cross-signal consistency, prefer prefix-based naming conventions (e.g., `prod-web-tier` not `web-tier-prod`) so `starts-with` works everywhere.
@@ -75,8 +75,8 @@ Segment filter conditions define which data a segment includes. Understanding th
 | Pattern | Example | Use Case |
 |---------|---------|----------|
 | Direct field | `k8s.namespace.name = "production"` | Primary Grail Fields |
-| Tag matching | `matchesValue(tags, "env:production")` | Entity tags |
-| Entity name | `entity.name = "my-service"` | Specific entity |
+| Primary Grail tag | `primary_tags.env = "production"` | Tags set at the source; reach signals and service metrics |
+| Smartscape node ID | `type = "SERVICE" AND id in ($dt.smartscape.service)` | `Entities` include; the IDs come from a variable (ORGNZ-08) |
 | Host group | `dt.host_group.id = "prod-web"` | Host group filtering (signal data) |
 | JSON field | `content$.uri = "/health"` | Nested JSON in log content |
 
@@ -109,22 +109,25 @@ A segment can have **only one include block per data type**. You cannot define t
 
 | Data Type | Category | Example Filter |
 |-----------|----------|----------------|
+| **Data (all types)** | Signals and Smartscape nodes | `k8s.namespace.name = $k8s.namespace.name` — the recommended starting point |
 | `logs` | Signal data | `k8s.namespace.name = "prod"` |
-| `spans` | Signal data | `service.name starts-with "checkout"` |
+| `spans` | Signal data | `service.name = "checkout*"` |
 | `events` | Signal data | `event.type = "CUSTOM_INFO"` |
 | `bizevents` | Signal data | `event.provider = "my-app"` |
-| `dt.entity.host` | Classic entity | `tags contains "env:prod"` |
-| `dt.entity.service` | Classic entity | `entity.name starts-with "payment"` |
-| `dt.entity.process_group` | Classic entity | `relationship: runsOn dt.entity.host` |
-| `dt.entity.kubernetes_cluster` | Classic entity | `entity.name = "main-cluster"` |
+| **Entities** (*More > Entities*) | Smartscape nodes | `type = "SERVICE" AND id in ($dt.smartscape.service)` |
+| `dt.entity.*` (*Classic entities (by type)*) | Classic entity — legacy | Avoid in new segments (below) |
+
+> **Legacy classic-entity includes.** The Services and Smartscape segment tutorial says *"Do not use legacy dt.entity.* attributes in include blocks in your segments"* and to replace them with `dt.smartscape.*` attributes; the segment editor shows a warning on existing ones. For services, *"Do not use dt.entity.service in your segments. Instead, use dt.smartscape.service."* ORGNZ-08 § *Scoping Services and Smartscape* has the replacement build.
+>
+> <sub>**Sources:** [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted, [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes) — *"the recommended Data (all types) include block or the type-specific include block for entities"*.</sub>
 
 ### How Conditions Apply Per Data Type
 
 When a segment is active and a user queries a specific data type, **only the matching include rule is injected**:
 
 - Running `fetch logs` → only the `logs` include condition applies
-- Running `fetch dt.entity.host` → only the `dt.entity.host` include condition applies
-- Entity include rules do **NOT** filter signal data (and vice versa)
+- A `Data (all types)` include applies to every data object, Smartscape nodes included
+- An `Entities` include applies only to Smartscape nodes and does **NOT** filter signal data (and signal includes do not filter nodes)
 
 > **Critical:** Not all metadata is available on all data types. For example, `java.jar.file` exists only on spans. If you filter a segment by `java.jar.file`, it will only apply to spans — not to logs, metrics, or events. **Always use Primary Grail Fields for cross-signal segment filtering.**
 
@@ -187,6 +190,10 @@ Derived data — service metrics, Davis events and problems — carries primary 
 | Signal-local attributes (e.g. OpenTelemetry attributes without the `primary_tags.` convention) | **No** |
 
 The Management Zones → Segments upgrade guide still lists only the three special fields as reaching derived data; the primary Grail fields and tags page is broader, and on the validation tenant on 10/06/2026 `dt.service.request.count` split cleanly by two different `primary_tags.*` keys. MZ2POL-05 §5.2 and FAQ-26 §4 cover the conflict and the full reach-by-kind matrix.
+
+> **Host group: the docs disagree with the tenant.** The Services and Smartscape segment tutorial says *"a host group is not automatically propagated to service metrics."* On the validation tenant on 10/14/2026, `dt.service.request.count` did carry `dt.host_group.id`: 143,402 requests in 2 h were attributed to one host group, and 92,604 had none. The practical answer doesn't depend on which is right. For a service segment on a host group, build all three parts the tutorial lists (ORGNZ-08 § *Scoping Services and Smartscape*) rather than relying on the `Data (all types)` include alone.
+>
+> <sub>**Sources:** [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted; tenant check 10/14/2026.</sub>
 
 > <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."*, [Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel) — non-convention attributes *"aren't automatically propagated across signal types or to Davis events and problems."*, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"Currently, only keys will be carried over to derived data: dt.security_context, dt.cost.costcenter, and dt.cost.product."*</sub>
 
@@ -269,9 +276,9 @@ The variable definition is a DQL query. The columns in the result set determine 
 
 The following queries demonstrate how to create variable definitions for common use cases.
 
-### Multi-Include Segment Pattern: Tag-Based Variables
+### Legacy Multi-Include Pattern: Tag-Based Variables on Classic Process Groups
 
-The CloudFoundry query above creates three variables from process group tags:
+This pattern is kept for segments that already use it. It is legacy (see the note at the end), so don't use it for new segments. A variable query over classic process-group tags, CloudFoundry organizations in this example, can return three variables:
 
 | Variable | Example Value | Use |
 |----------|---------------|-----|
@@ -307,15 +314,20 @@ For environments where SVG doesn't render
 
 > **Key Insight:** This pattern bridges entity and signal data in a single segment. Entity includes use tag matching and relationship traversal to cascade across the topology, while signal includes use the entity ID variable to filter spans, logs, and metrics directly. This is especially powerful when Primary Grail Fields are not available for your use case and you need to segment by application-level metadata like CloudFoundry organizations or custom tags.
 
+> **This is a legacy pattern.** Its relationship rows are classic-entity traversal, which applies *"to legacy dt.entity.* attributes only and don't work with Smartscape entities."* Dynatrace also advises against `dt.entity.*` attributes in include blocks. Its `$id` variable is an entity-ID lookup, and the AWS end-to-end example says *"Don't use segment variables to look up entity IDs. The exception is services, because SERVICE nodes don't carry primary Grail tags and the segment needs the lookup to include them."* Keep it only for segments that already depend on it. For new segments, set a primary Grail tag at the source (FAQ-02, MZ2POL-10) and filter a `Data (all types)` include on it. If services must appear in Smartscape, derive their IDs with a variable rather than a `runs_on` traversal (ORGNZ-08 § *Scoping Services and Smartscape*).
+>
+> <sub>**Sources:** [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — as quoted, [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Don't use segment variables to look up entity IDs."*</sub>
+
 ### Using Variables in Filter Conditions
 
 After defining a variable query, reference the columns in your segment filter:
 
-```
-Filter: dt.host_group.id = $host_group OR dt.entity.host_group = $id
+```text
+Data (all types):  k8s.namespace.name = $k8s.namespace.name
+Entities:          type = "SERVICE" AND id in ($dt.smartscape.service)
 ```
 
-Where `$host_group` references the primary variable (first column) and `$id` references the secondary variable (second column).
+Where `$k8s.namespace.name` references the primary variable (first column) and `$dt.smartscape.service` references the secondary variable (second column). This is the service build from ORGNZ-08.
 
 **Wildcard with variables** — Use `$variable*` to match prefixes:
 
@@ -354,37 +366,47 @@ Use DQL to parse the host group name and extract each dimension as a variable:
 
 **Platform variable:**
 ```dql
-fetch dt.entity.host_group
-| parse entity.name, """LD:platform '_' LD:app '_' LD:stage"""
-| dedup platform
+smartscapeNodes "HOST"
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, """LD:platform '_' LD:app '_' LD:stage"""
+| filter isNotNull(platform)
 | fields platform
+| dedup platform
 ```
 
 **App variable:**
 ```dql
-fetch dt.entity.host_group
-| parse entity.name, """LD:platform '_' LD:app '_' LD:stage"""
-| dedup app
+smartscapeNodes "HOST"
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, """LD:platform '_' LD:app '_' LD:stage"""
+| filter isNotNull(app)
 | fields app
+| dedup app
 ```
 
 **Stage variable:**
 ```dql
-fetch dt.entity.host_group
-| parse entity.name, """LD:platform '_' LD:app '_' LD:stage"""
-| dedup stage
+smartscapeNodes "HOST"
+| filter isNotNull(dt.host_group.id)
+| parse dt.host_group.id, """LD:platform '_' LD:app '_' LD:stage"""
+| filter isNotNull(stage)
 | fields stage
+| dedup stage
 ```
+
+There is no `HOST_GROUP` Smartscape node type. The host group is the `dt.host_group.id` field on `HOST` nodes, so these queries start from hosts and dedup. Validated 10/14/2026 against host groups named with a `-` separator; 0 bytes scanned.
 
 ### Step 3: Define Filter Conditions
 
 | Segment | Filter Condition | Notes |
 |---------|-----------------|-------|
 | Platform | `dt.host_group.id = $platform*` | Matches host groups starting with selected platform |
-| App | `dt.host_group.id contains $app` | Matches host groups containing selected app (signal includes only) |
-| Stage | `dt.host_group.id ends-with _$stage` | Matches host groups ending with selected stage (signal includes only) |
+| App | `primary_tags.app = $app` | Tag app at the source (see note) |
+| Stage | `primary_tags.stage = $stage` | Tag stage at the source (see note) |
 
-> **Note:** contains and ends-with matching (wildcards anywhere in the value) works on signal data includes. On classic entity includes, `entity.name` supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other entity properties are exact-equals only, so prefix-based naming conventions are the reliable pattern there. Always test with the segment preview before deploying.
+> **Note:** the documented way to use a variable with a wildcard is a trailing one, `$var*` (*"Asterisks are allowed to follow variable names in conditions for starts-with"*). That works for the dimension at the front of the name, here platform. A variable inside or at the end of a value (`contains` / `ends-with`) is not a documented form. For app and stage, set them as primary Grail tags at the source and build those variables from the tags, or order the name so the dimension you filter on comes first. Always test with the segment preview before deploying.
+>
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — as quoted.</sub>
 
 ### Step 4: Validate Across Signal Types
 
@@ -397,6 +419,10 @@ After creating the segments, validate they filter correctly across:
 > **Tip:** The host group is a Primary Grail Field, so it propagates across all signal types. This makes it an excellent candidate for segment filtering.
 
 > **K8s analog.** For Kubernetes-heavy tenants, the equivalent Primary Grail Fields are `k8s.cluster.name` (cluster-scoped segment) and `k8s.namespace.name` (namespace-scoped segment). The canonical [Segment Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters) walkthrough uses exactly this pattern — one filter condition (e.g. `k8s.cluster.name = "gke-klu"`) applied across signals and entities. The Kubernetes-namespace entity type is `dt.entity.cloud_application_namespace` (not the more intuitive-sounding `dt.entity.kubernetes_namespace` — which does not exist).
+
+> **Docs disagree.** The Kubernetes use case suggests selecting *"all related entities of Kubernetes namespaces (dt.entity.cloud_application_namespace)"*, while the later Services and Smartscape tutorial (published 10/07/2026) says not to use `dt.entity.*` attributes in include blocks. You don't need the classic type for this. On the validation tenant on 10/14/2026, all 23 `K8S_NAMESPACE` Smartscape nodes carried both `k8s.namespace.name` and `k8s.cluster.name`, so a `Data (all types)` include on either field also reaches the namespace nodes.
+>
+> <sub>**Sources:** [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters) — as quoted, [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services), [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes).</sub>
 
 <a id="segment-visibility-and-sharing"></a>
 
@@ -436,23 +462,26 @@ After creating the segments, validate they filter correctly across:
 
 ## 7. Cross-App Integration
 
-### Cross-App Persistence
+### Selections across apps
 
-When you select a segment in one Dynatrace app (e.g., Logs), the selection **persists** as you navigate to other apps (e.g., Distributed Traces, Problems). This means you don't need to reapply filters when drilling into different data types during an investigation.
+The segment docs say segments filter data *"across apps"*. They do not document whether a selection carries over when you move from one app to the next, and **pinned** selections are per app: *"Pinned segment selections are unique per app"*. In community practice, teams check how each app they use handles the active selection before building an investigation flow that depends on it.
 
 ### App Support Matrix
 
-| App | Segment Support | Notes |
-|-----|----------------|-------|
-| **Dashboards** | Full | Dashboard-level and tile-level segments |
-| **Notebooks** | Full | Segment selector at top of notebook |
-| **Logs** | Full | Filters all log queries |
-| **Distributed Traces** | Full | Filters span queries |
-| **Problems** | Full | Requires events include with `event.kind = "DAVIS_PROBLEM"` |
-| **SLOs** | Full | Filters SLO evaluation scope |
-| **Site Reliability Guardian** | Full | Filters validation scope |
-| **Workflows** | Full | Available in workflow DQL steps |
-| **Smartscape** | Full | Filters topology view |
+| App | Documented | Notes |
+|-----|-----------|-------|
+| **Dashboards** | Yes | Dashboard-level and tile-level segments |
+| **Notebooks** | Yes | Segment selector at top of notebook |
+| **Problems** | Yes | Requires events include with `event.kind = "DAVIS_PROBLEM"` (§12) |
+| **Workflows** | Yes | Available in workflow DQL steps |
+| **Distributed Tracing** | Yes | Filters span queries |
+| **Discovery & Coverage** | Yes | — |
+| **Services** (Explorer) | Yes | Needs a `Data (all types)` include on a field service metrics carry |
+| **Smartscape** | Yes | Needs an `Entities` include; a metrics-only segment leaves the topology unfiltered |
+| **Kubernetes** (Explorer) | Yes | Segment selector in the Explorer |
+| **Logs, SLOs, Site Reliability Guardian** | Not on the documented list | The getting-started pages say *"Support for segments in further apps will follow."* Check the app's segment selector in your tenant |
+
+> <sub>**Sources:** [Analyze monitoring data with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data) — app list (Dashboards, Notebooks, Problems, Workflows, Distributed Tracing, Discovery & Coverage) and pins as quoted, [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services) — Services and Smartscape, [Segment data by Kubernetes clusters (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters) — Kubernetes Explorer, Problems and Services.</sub>
 
 ### Dashboard Segment Behavior
 
@@ -467,9 +496,10 @@ When you select a segment in one Dynatrace app (e.g., Logs), the selection **per
 | Limitation | Detail | Workaround |
 |------------|--------|------------|
 | **detected problems require event includes** | To filter problems with segments, define an events include with `event.kind = "DAVIS_PROBLEM"`; entity includes alone do not filter problem records | Add event-type includes alongside entity includes |
-| **Single relationship traversal** | Entity relationships can only traverse one hop | Target specific entity types directly in includes |
+| **Single relationship traversal** | Entity relationships can only traverse one hop, and work only on legacy `dt.entity.*` attributes | Don't build on traversal; use a `Data (all types)` include, and a variable plus `Entities` include for services (ORGNZ-08) |
+| **Service variable ceiling** | The metrics-based service-ID variable *"works reliably for up to 10,000 services"* | Split a broad segment — one per cluster or region |
 | **Inclusions only, no exclusions** | Cannot say "everything EXCEPT team-X" | Explicitly include what you want (MZ supported exclusions; segments do not) |
-| **Entity properties are equals-only** | On classic entity includes, `entity.name` supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other properties support exact `equals` only | Use prefix-based naming conventions; put the broader condition on a signal include |
+| **Entity properties are equals-only** | Legacy classic entity includes only: on them, `entity.name` supports starts-with only; contains and ends-with are not supported on any classic-entity property, and other properties support exact `equals` only | Use prefix-based naming conventions; put the broader condition on a signal include |
 | **1 include per data type** | Cannot have two `logs` include blocks | Combine conditions with `OR` within a single include |
 | **Max 20 includes per segment** | Hard limit on rule count | Consolidate rules; use variables for flexibility |
 | **Max 10 expressions per filter** | Limits filter complexity | Use OpenPipeline to pre-enrich data with simpler filter fields |
@@ -486,7 +516,7 @@ When you select a segment in one Dynatrace app (e.g., Logs), the selection **per
 |---------|-------------|-----|
 | Empty variable dropdown | Missing read permissions for the data the variable DQL queries | Grant `storage:entities:read` (and `storage:<table>:read` for any other data object the variable DQL reads). Once SaaS 1.347 reaches your tenant, also `app-engine:apps:run` on `dynatrace.segments.management` (§4) |
 | Segment shows no data | Filter field not enriched on signal data | Verify enrichment with audit queries from Section 3 |
-| Segment filters entities but not logs | Entity includes don't apply to signals | Add separate signal-type includes (logs, spans) |
+| Segment filters entities but not logs | An `Entities` include doesn't apply to signals | Use a `Data (all types)` include, which applies to signals and nodes |
 | Unexpected data included | OR logic combining values | Review filter condition logic within the include |
 | Segment missing in app | Segment set to unlisted and not shared | Share segment or set visibility to public |
 | Segment works for logs but not spans | Field exists on logs but not spans | Use Primary Grail Fields for cross-signal consistency |
@@ -673,15 +703,14 @@ Because segments are query context, **a segment's effective behavior depends on 
 
 ## 12. Davis Problem Segment Include Shape
 
-The Problems app shows up as "Full" support in the cross-app integration table in §7, but with a critical asterisk noted in §8: **entity includes alone do not filter problem records**. The Problems app documentation is explicit: *"Since problems are stored as events in Grail, segments created for filtering problems must define an event filter."* Its own example is `cloud.region = "us-east-1c" AND event.kind = "DAVIS_PROBLEM"`.
+The Problems app is listed as supported in §7, but with a critical asterisk noted in §8: **entity includes alone do not filter problem records**. The Problems app documentation is explicit: *"Since problems are stored as events in Grail, segments created for filtering problems must define an event filter."* Its own example is `cloud.region = "us-east-1c" AND event.kind = "DAVIS_PROBLEM"`.
 
 ### Include shape
 
 | Data type | Filter | Effect |
 |-----------|--------|--------|
 | `events` | `event.kind = "DAVIS_PROBLEM"` AND your scoping condition | Filters problem records to the team / env / app scope |
-| `dt.entity.host` (optional) | scoping condition on the same dimension | Not applied to problems — scopes host data when the same segment is used in other apps |
-| `dt.entity.service` (optional) | scoping condition on the same dimension | Not applied to problems — scopes service data when the same segment is used in other apps |
+| `Data (all types)`, variable and `Entities` (optional) | scoping condition on the same dimension (ORGNZ-08 § *Scoping Services and Smartscape*) | Not applied to problems; scopes signals, Services and Smartscape when the same segment is used in other apps |
 
 ### Worked example — production problems only
 
@@ -692,18 +721,12 @@ visibility: PUBLIC
 
 includes:
   - dataType: events
-    filter: 'event.kind = "DAVIS_PROBLEM" AND dt.host_group.id starts-with "prod-"'
-
-  - dataType: dt.entity.host
-    filter: 'tags = "environment:production"'
-
-  - dataType: dt.entity.service
-    filter: 'tags = "environment:production"'
+    filter: 'event.kind = "DAVIS_PROBLEM" AND dt.host_group.id = "prod-*"'
 ```
 
-In the Problems app, only the `events` include does any work: *"Segment filters are directly applied to the problem Grail records. Consequently, no entity filters are applied to the problem unless the entity ID is chosen as a primary field of the filtered problem."* Drop the `events` include and the problem feed stops filtering — entity includes alone are not enough.
+In the Problems app, only the `events` include does any work: *"Segment filters are directly applied to the problem Grail records. Consequently, no entity filters are applied to the problem unless the entity ID is chosen as a primary field of the filtered problem."* Drop the `events` include and the problem feed stops filtering. Entity includes alone are not enough.
 
-The entity includes are optional and earn their place outside the Problems app. Because a segment selection carries across apps (§7), in community practice teams add them so that one "production" segment also scopes the host and service views an investigation moves into next — verify the behavior in the apps your teams actually use.
+The other includes are optional and matter outside the Problems app. In community practice, teams add them so that one "production" segment also scopes the Services and Smartscape views an investigation moves into next. Build them as ORGNZ-08 describes, not as `dt.entity.host` or `dt.entity.service` includes, which Dynatrace now advises against (§2). Verify the behavior in the apps your teams use (§7).
 
 ### Why this works
 
@@ -729,7 +752,7 @@ If the count is zero, the underlying scoping field probably isn't enriched on pr
 
 In this notebook you learned:
 
-1. **Filter condition syntax** — Operators (`=`, `!=`, `starts-with`, `contains`), field access, AND/OR logic
+1. **Filter condition syntax** — Operators (`=` and `in()`, with `*` wildcards for starts-with/contains/ends-with; no exclusions), field access, AND/OR logic
 2. **Data type include rules** — One include per type, conditions scoped to queried data type
 3. **Primary Grail Fields** — Which metadata propagates across all signals (and which doesn't)
 4. **Enrichment approaches** — Dedicated vs shared infrastructure, host tags vs DT_TAGS
@@ -772,6 +795,10 @@ In this notebook you learned:
 - [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/)
 - [Grail service overview (Dynatrace Developer)](https://developer.dynatrace.com/develop/platform-services/services/grail-service/)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
+- [Use segments to scope Services and Smartscape apps (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/segment-services)
+- [Filter Smartscape nodes with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-filter-smartscape-nodes)
+- [Analyze monitoring data with segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/getting-started/segments-getting-started-analyze-monitoring-data)
+- [Segment logs by bucket (DT docs)](https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-logs-by-bucket)
 
 ---
 

@@ -1,6 +1,6 @@
 # MZ2POL-01: Introduction - Why Migrate from Management Zones
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 2 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -45,17 +45,17 @@ By the end of this notebook, you will:
 4. Distinguish the three jobs a Management Zone conflates — access control, filtering, and alerting — and see how each fans out to a different construct (Policies + Boundaries, Segments, and problem-triggered workflows, respectively)
 5. Identify your current MZ usage patterns for migration planning
 
-### Sprint 1.337 (April 2026): Migration Urgency Confirmed by API
+### API 1.337 (April 2026): Zone and Tag Placeholder Properties Deprecated
 
-Sprint 1.337 of the **Dynatrace API** explicitly deprecated `managementZone` and `serviceTag` properties on the calculated-metrics service-configuration endpoints. This is the strongest signal yet that the Management Zone-based access control model is on the legacy path — the calculated-metrics surface, one of the most-used Configuration API touch points, is now actively pruning MZ references.
+Dynatrace API 1.337 marked the `managementZone` and `serviceTag` properties as deprecated on the Configuration API v2 `/calculatedMetrics/service` and `/service/requestNaming` endpoints — plus `managementZones` on request naming — and changed their `placeholders` property. Each entry reads *"Deprecated changed to true"*. The notes deprecate these properties, not calculated service metrics or request naming as such, and do not change how existing objects behave.
 
-What this means for the MZ → Policies migration program:
+What this means for the migration program:
 
-- **Argument for prioritization:** existing calculated metrics scoped by Management Zone keep working, but new calculated metrics should not be authored against `managementZone`. This forces MZ-dependent automation onto the Policies + Boundaries model sooner rather than later.
-- **Audit angle:** as part of the assessment in MZ2POL-03, query for any custom calculated metrics that reference `managementZone` or `serviceTag` — they're now flagged-for-rewrite by the API itself.
-- **Tagging story aligns:** sprint 1.337 also added OneAgent primary fields and primary tags at the source (top-level `dt.security_context`, `primary_tags.team`, etc.) on Latest Dynatrace tenants. These are the Gen3-native carriers of the same signals MZs used to encode — making the policy-and-boundary model more powerful and reducing the residual reasons to keep MZs around.
+- **Audit angle:** in the MZ2POL-03 assessment, list custom calculated service metrics and request-naming rules that set `managementZone` or `serviceTag`, and plan to rewrite them.
+- **New automation:** in community practice, new configuration avoids deprecated properties — author new calculated metrics and naming rules without the zone property.
+- **A related OneAgent change:** OneAgent 1.337 made `DT_TAGS` primary fields reach Lambda data — *"Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent."* The general tagging-at-source model is in MZ2POL-10.
 
-The migration narrative documented below is unchanged but now has direct API-level support behind it.
+> <sub>**Sources:** [Dynatrace API 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337) — `managementZone`: *"Deprecated changed to true"*, [OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337).</sub>
 
 ---
 
@@ -76,10 +76,11 @@ Management Zones were designed for **classic Dynatrace** and have fundamental li
 
 | Limitation | Impact |
 |------------|--------|
-| Precalculated attributes | Performance bottleneck at scale |
+| Rule-based assignment to entities | Rules referencing other zones *"can greatly delay management-zone assignment"*; all rules share a limit of *"100,000 conditions"* per environment |
 | Not compatible with Grail | Cannot filter Grail-stored data |
-| Limited flexibility | Complex multi-dimensional filtering difficult |
-| Tight coupling | Mixing "what" and "where" in a single construct |
+| Tight coupling | Access, filtering and alerting scope in a single construct |
+
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"100,000 conditions for all management-zone rules taken together."*</sub>
 
 ### The New Platform Architecture
 
@@ -130,7 +131,7 @@ For environments where SVG doesn't render
 
 - Reusable, pre-defined filter conditions using DQL
 - Support variables for dynamic filtering
-- Multi-dimensional - can be layered for precise filtering
+- Layerable - several segments can be applied together
 - Replace MZ filtering for cross-app data segmentation
 
 ### Comparison: Management Zones vs. New Model
@@ -138,8 +139,8 @@ For environments where SVG doesn't render
 | Aspect | Management Zones | Policies + Boundaries + Segments |
 |--------|------------------|----------------------------------|
 | Scope | Classic apps only | All apps including Grail-based |
-| Performance | Precalculated (bottleneck) | Query-time evaluation (scalable) |
-| Flexibility | Single dimension | Multi-dimensional |
+| Evaluation | Rules assign entities (and match logs and metrics by dimension) | Query-time conditions on each record |
+| Combining dimensions | Within one zone's rules | Layer several segments |
 | Reusability | Limited | High (components are decoupled) |
 | Data filtering | Built into MZ | Segments (separate concern) |
 | Access control | Built into MZ | Policies + Boundaries (separate) |
@@ -181,13 +182,12 @@ fetch dt.entity.service
 ## 4. Benefits of Migration
 ### Scalability
 
-- **Query-time filtering** instead of precalculated attributes
-- Handle orders of magnitude higher data volumes
-- No performance degradation with complex filtering
+- **Query-time filtering** on the fields of each record
+- Dynatrace describes segments as providing *"real-time filtering on huge data sets without the need to define thousands of individual rules."*
 
 ### Flexibility
 
-- **Multi-dimensional segments** - layer multiple filters
+- **Layered segments** - apply several filters together
 - **Dynamic variables** - adapt to user context
 - **DQL-powered** - full query language for conditions
 
@@ -199,9 +199,11 @@ fetch dt.entity.service
 
 ### Future-Proof
 
-- Management Zones will be **retired** with classic apps
-- All new Dynatrace apps use Grail and Segments
+- In Latest Dynatrace, management zones *"have been replaced by three new concepts"* — data partitioning, data access and data segmentation. No retirement date is published; zones keep working on classic pages
+- In community practice, the Latest Dynatrace apps are where new capability lands, and they filter with segments
 - Alerting profiles give way to **problem-triggered workflows** — not to Segments (see §5)
+
+> <sub>**Sources:** [Upgrade guide: management zones to segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"Segments do not replace this aspect of management zones."* (access control, which policies take over).</sub>
 
 > **Segments do not scope alerting.** A common misreading of this migration is that alerting profiles will eventually accept a segment the way a dashboard does. They will not. Alerting profiles are scoped by Management Zone plus severity-rule tag matching; their Gen3 successor is a problem-triggered workflow whose trigger filters on affected-entity tags and an optional DQL matcher. Segments touch alerting in exactly one place — scoping an *anomaly detector* — and never scope triggers, notifications, or problem visibility. §5 gives the full mapping.
 
@@ -209,10 +211,10 @@ fetch dt.entity.service
 
 <a id="migration-timeline-considerations"></a>
 ## 5. Migration Timeline Considerations
-### Current State (2025)
+### Current State
 
-- Management Zones **still work** for classic apps
-- New apps (Dashboards, Services app, etc.) require Segments
+- Management Zones **still work** on classic pages
+- They are not evaluated for Grail data, so Latest Dynatrace apps filter with segments instead — in community practice, that is where teams first notice the gap
 - Hybrid approach possible during transition
 
 ### What to Migrate
@@ -241,9 +243,9 @@ The single most common planning error is collapsing these into one:
 
 Segments are not an access-control mechanism and are not a routing mechanism. Anyone holding `storage:filter-segments:read` can apply any segment.
 
-> ⚠️ **The Management Zone filter does not carry over into the alerting model.** Dynatrace's upgrade guide moves filtering into the workflow trigger: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* Its own best practice is that *"Tagging entities with meaningful metadata and filtering on primary_tags.* is more maintainable than chaining entity conditions"*. This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-05 §4 for the rule-to-dimension classification.
+> ⚠️ **The Management Zone filter does not carry over into the alerting model.** Dynatrace's upgrade guide moves filtering into the workflow trigger: *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* Its own best practice is that *"Tagging entities with meaningful metadata and filtering on primary_tags.* is more maintainable than chaining entity conditions"*. This means the routing dimension must be carried by something the workflow trigger can actually match on — entity **tags**, or `dt.security_context`. If your MZ rules are computed from name patterns or entity selectors rather than tags, that enrichment work is a **prerequisite**, not a follow-up. See MZ2POL-09 §4 for converting zone rules into routing dimensions, and MZ2POL-11 for the rule-by-rule translation.
 
-> **Duration-based suppression has a successor.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). The problem trigger's **Minimum duration** option (renamed from **Delay** in 08/2026) postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. Since its 09/07/2026 rewrite the alert-notification upgrade guide agrees: *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* Inventory `delayInMinutes` across every profile and map each value onto a Minimum duration setting. See MZ2POL-09 §6.1.
+> **Duration-based suppression has a successor.** An alerting profile can delay notification until a problem has been open longer than *N* minutes (`delayInMinutes`). The problem trigger's **Minimum duration** option postpones *"the trigger until the problem has been open for at least the configured duration"* — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on `dt.duration_marker`. Since its 09/07/2026 rewrite the alert-notification upgrade guide agrees: *"The delay, update, and severity capabilities described in this guide exist only on the workflow trigger."* Inventory `delayInMinutes` across every profile and map each value onto a Minimum duration setting. See MZ2POL-09 §6.1.
 
 ### Migration Phases
 
@@ -266,10 +268,10 @@ The series is long because a management zone does up to three jobs, and each job
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Path | Use it when | Read in this order |
 |---|---|---|
-| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
-| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
-| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
-| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
 | **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 Notebooks 10 (tagging at source) and 11 (rule translation) are on every working path.
 For environments where SVG doesn't render
@@ -277,10 +279,10 @@ For environments where SVG doesn't render
 
 | Path | Use it when | Read in this order |
 |---|---|---|
-| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
-| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
-| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
-| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
 | **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 Two notebooks are on every working path: **MZ2POL-10** (tagging at source) and **MZ2POL-11** (rule translation). Every replacement — segment, boundary or workflow — reads a field on the data, so those two come before anything is built.

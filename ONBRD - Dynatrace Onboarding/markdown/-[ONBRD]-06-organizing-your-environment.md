@@ -1,6 +1,6 @@
 # ONBRD-06: Organizing Your Environment
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 6 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Tags, Segments, and Naming Conventions
 As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.
@@ -173,7 +173,7 @@ The `hostcustomproperties.conf` file applies only to OneAgent 1.187 and earlier.
 
 ### Cloud Provider Tags
 
-Cloud tags reach your telemetry through **ingest enrichment rules** (OneAgent / ActiveGate 1.343+). Cloud rule types are rolling out and may not yet be visible in your tenant — until a rule exists, the raw provider tags are visible on the HOST node (for example a `tags:azure` record on an Azure VM) but are not fields on logs, spans, or metrics.
+Cloud tags reach your telemetry through **ingest enrichment rules**. Cloud tag rules need a new cloud connection and Dynatrace 1.348+; the OneAgent route below needs OneAgent 1.343+. Cloud rule types are rolling out and may not yet be visible in your tenant — until a rule exists, the raw provider tags are visible on the HOST node (for example a `tags:azure` record on an Azure VM) but are not fields on logs, spans, or metrics.
 
 | Cloud | Tag Source | Attribute Written to Telemetry by a Rule |
 |-------|-----------|-----------|
@@ -181,8 +181,15 @@ Cloud tags reach your telemetry through **ingest enrichment rules** (OneAgent / 
 | **Azure** | Azure resource tags | `azure.tags.<key>` |
 | **GCP** | Google Cloud labels / tags | `gcp.labels.<key>` / `gcp.tags.<key>` |
 
+**Which data a cloud tag rule reaches.** A cloud tag rule such as an AWS tag rule tags only the data that arrives through the cloud connection. That means cloud metrics, cloud logs and the cloud Smartscape nodes. In Dynatrace's words, *"OneAgent on a cloud VM doesn't evaluate them."* A VM that runs OneAgent therefore needs a second rule for its OneAgent data:
+
+| Data from an EC2 instance | Rule | Notes |
+|---|---|---|
+| Cloud metrics, cloud logs, the `AWS_EC2_INSTANCE` node | AWS tag rule at the AWS account scope | Writes `aws.tags.<key>`, or a security context or cost field. Primary tag isn't a target yet, so promote `aws.tags.<key>` with an OpenPipeline primary Grail tag rule (FAQ-26 §5.4) |
+| Logs, spans and metrics from OneAgent on the instance | Host/Process property rule at the host-group scope, with source `aws.tags.<key>` | OneAgent reads instance tags from instance metadata. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* |
+
 **AWS Tag Example:**
-With an AWS tag rule for the key `Environment`, an EC2 instance tagged `Environment=Production` contributes `aws.tags.Environment` to its telemetry. A rule can instead write the value straight to a primary field such as Security context or Cost center.
+An EC2 instance is tagged `team=checkout`. An AWS tag rule for `team` adds `aws.tags.team` to the instance's cloud metrics and logs. A Host/Process property rule with source `aws.tags.team` and target Primary tag `team` writes `primary_tags.team` on everything OneAgent sends from that instance. Either rule can instead write the value to a primary field such as Security context or Cost center. Worked end to end in [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws).
 
 ### Kubernetes Labels
 

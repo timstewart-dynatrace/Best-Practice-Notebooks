@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -97,17 +97,17 @@ Every policy contains one or more **statements** that define allowed actions.
 ### Basic Statement Structure
 
 ```
-ALLOW <service>:<resource>:<action>
+ALLOW <service>:<resource>:<action>;
 ```
 
 **Examples:**
 
 | Statement | Meaning |
 |-----------|----------|
-| `ALLOW storage:logs:read` | Read all logs |
-| `ALLOW storage:spans:read` | Read all spans |
-| `ALLOW settings:objects:write` | Modify settings |
-| `ALLOW document:documents:read` | Read dashboards/notebooks |
+| `ALLOW storage:logs:read;` | Read log records (plus `storage:buckets:read` — see below) |
+| `ALLOW storage:spans:read;` | Read span records (plus `storage:buckets:read`) |
+| `ALLOW settings:objects:write;` | Modify settings |
+| `ALLOW document:documents:read;` | Read dashboards/notebooks |
 
 ### Wildcards Are NOT Supported
 
@@ -128,6 +128,7 @@ Enumerate permissions explicitly — comma-separated lists keep statements compa
 Combine statements to build complete policies:
 
 ```
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read;
 ALLOW storage:spans:read;
 ALLOW storage:metrics:read;
@@ -135,6 +136,12 @@ ALLOW document:documents:read;
 ```
 
 > **Note:** Statements are additive. Multiple ALLOW statements combine to grant broader access.
+
+> **Grail reads take two permissions.** A table permission (`storage:logs:read`, `storage:spans:read` …) is not enough on its own: `storage:buckets:read` is *"Required additionally to a table permission."* Grant it unconditionally when the table permissions carry the scoping (`dt.security_context`), or with `WHERE storage:bucket-name …` / `WHERE storage:table-name …` when the scope *is* the bucket. Every pattern below includes it.
+>
+> **DENY statements behave differently.** *"Boundaries don't apply to DENY statements"*, and in Grail *"Conditional DENY statements are supported only for the buckets:read permission. All other table-level storage permissions do not support conditional DENY."* — so express an exclusion on a table permission by narrowing the `ALLOW`, or as a `DENY storage:buckets:read WHERE storage:bucket-name …`.
+>
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read` and the Grail DENY rule quoted above; [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Boundaries don't apply to DENY statements"*.</sub>
 
 <a id="services-and-actions-reference"></a>
 ## 3. Services and Actions Reference
@@ -211,7 +218,7 @@ ALLOW storage:logs:read, storage:events:read, storage:metrics:read,
 
 ### Environment Roles (`environment:roles:*`)
 
-Classic environment roles are expressed as IAM permissions. This is how RBAC folds into the one policy language (see §1). All are scoped by the `environment:management-zone` attribute **except** `agent-install` and `configure-request-capture-data` (management-zone not applicable).
+Classic environment roles are expressed as IAM permissions. This is how RBAC folds into the one policy language (see §1). All are scoped by the `environment:management-zone` attribute **except** `agent-install` and `configure-request-capture-data` (management-zone not applicable). Those two are broader than their names suggest: for each, Dynatrace states *"Users who have this permission assigned are also able to view monitoring data for all management zones."* Grant them only to groups that may see every zone.
 
 | Permission | Classic role meaning |
 |------------|----------------------|
@@ -225,6 +232,8 @@ Classic environment roles are expressed as IAM permissions. This is how RBAC fol
 | `environment:roles:replay-sessions-without-masking` | Replay session data (unmasked) |
 | `environment:roles:view-security-problems` | View security problems |
 | `environment:roles:manage-security-problems` | Manage security problems |
+
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:agent-install` and `environment:roles:configure-request-capture-data`.</sub>
 
 > **Privacy / compliance note.** The session-replay pair and `view-sensitive-request-data` are the load-bearing least-privilege controls here — `replay-sessions-without-masking` and `view-sensitive-request-data` expose unmasked end-user data and should be granted narrowly (specific groups, specific management zones), never bundled into a broad editor policy.
 
@@ -273,7 +282,7 @@ Conditions add fine-grained control to policy statements.
 ### Condition Syntax
 
 ```
-ALLOW <service>:<resource>:<action> WHERE <condition>
+ALLOW <service>:<resource>:<action> WHERE <condition>;
 ```
 
 ### Condition Operators
@@ -281,7 +290,7 @@ ALLOW <service>:<resource>:<action> WHERE <condition>
 | Operator | Description | Example |
 |----------|-------------|----------|
 | `=` | Equals | `storage:dt.security_context = "team-a"` |
-| `!=` | Not equals | `storage:dt.security_context != "restricted"` |
+| `!=` | Not equals — only on conditions that list it (e.g. `storage:bucket-name`, `settings:schemaId`); `storage:dt.security_context` does **not** accept `!=` or `NOT IN` | `storage:bucket-name != "restricted_logs"` |
 | `IN` | In list | `storage:dt.security_context IN ("team-a", "team-b")` |
 | `startsWith` | Prefix match | `settings:schemaId startsWith "builtin:alerting"` |
 | `MATCH` | Wildcard pattern match | `storage:dt.security_context MATCH('*/app:easytrade')` |
@@ -298,6 +307,7 @@ ALLOW <service>:<resource>:<action> WHERE <condition>
 |--------|-------|-------------|
 | Storage | `storage:dt.security_context` | Security context on data |
 | Storage | `storage:bucket-name` | Bucket name (for team isolation) |
+| Storage | `storage:file-path` | Lookup file path. The only condition `storage:files:read` / `write` / `delete` accept, so scope files by folder (IAM-05 Pattern 8) |
 | Settings | `settings:schemaId` | Settings schema |
 | Settings | `settings:dt.security_context` | Security context on settings |
 
@@ -307,41 +317,52 @@ ALLOW <service>:<resource>:<action> WHERE <condition>
 
 | Condition Type | Use Case | Example |
 |----------------|----------|----------|
-| **Security Context** | Flexible, changeable access | `storage:dt.security_context = "team-a"` |
-| **Bucket** | Hard data isolation | `storage:bucket-name = "team-a-logs"` |
-| **Both** | Defense in depth | Both conditions in policy + boundary |
+| **Security Context** | Team- and app-scoped access — the primary mechanism | `storage:dt.security_context = "team-a"` |
+| **Bucket** | Data already separated for retention, cost or compliance (e.g. a PCI bucket) | `storage:bucket-name = "team-a-logs"` |
+| **Both** | Defense in depth where a compliance bucket exists | Both conditions in policy + boundary |
+
+> <sub>**Sources:** [Partition data with Grail buckets (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — buckets are *"not intended as the primary mechanism for securing or segmenting data access."*</sub>
 
 ### Condition Examples
 
 **Scope to security context (exact):**
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context = "checkout"
+ALLOW storage:buckets:read;
+ALLOW storage:logs:read WHERE storage:dt.security_context = "checkout";
 ```
 
-**Scope to specific bucket (team isolation):**
+**Scope to specific bucket:**
 ```
-ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs"
+ALLOW storage:buckets:read WHERE storage:bucket-name = "checkout_logs";
+ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs";
 ```
+
+**Scope to a lookup-file folder (read and upload):**
+```
+ALLOW storage:files:read, storage:files:write WHERE storage:file-path startsWith "/lookups/team_payments/";
+```
+Keep the leading and trailing slashes. Without the trailing slash, the prefix also matches `/lookups/team_payments2/`.
 
 **Scope to settings schema:**
 ```
-ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:alerting"
+ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:alerting";
 ```
 
 **Multiple conditions (AND):**
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a" AND storage:bucket-name = "team-a-logs"
+ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a" AND storage:bucket-name = "team-a-logs";
 ```
 
 **Multiple values (IN):**
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context IN ("team-a", "team-b", "shared")
+ALLOW storage:logs:read WHERE storage:dt.security_context IN ("team-a", "team-b", "shared");
 ```
 
 **Multiple buckets (team access):**
 ```
-ALLOW storage:logs:read WHERE storage:bucket-name IN ("checkout_logs", "shared_logs")
-ALLOW storage:spans:read WHERE storage:bucket-name IN ("checkout_spans", "shared_spans")
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("checkout_logs", "shared_logs", "checkout_spans", "shared_spans");
+ALLOW storage:logs:read WHERE storage:bucket-name IN ("checkout_logs", "shared_logs");
+ALLOW storage:spans:read WHERE storage:bucket-name IN ("checkout_spans", "shared_spans");
 ```
 
 **Parameterizing the boundary (recommended for production):**
@@ -409,7 +430,7 @@ ALLOW storage:smartscape:read WHERE storage:dt.security_context MATCH('comp:db*'
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Need | Policy Type | Recommendation |
 |------|-------------|----------------|
-| Simple read-only | Default | Use the Standard User default policy |
+| Standard app and data access, unscoped | Default | Standard User (environment and app access — no Grail table reads) plus All Grail data read access or the per-table Read Logs / Read Spans … policies |
 | Read + limited write | Custom | Create scoped policy |
 | Full access | Default | Use the Admin User default policy |
 | Specific capability | Custom | Create targeted policy |
@@ -435,6 +456,7 @@ ALLOW settings:objects:read, settings:schemas:read;
 // Parameterized — one policy template, bound per team via binding parameters.
 // Reads are condition-scoped; storage writes cannot take WHERE conditions
 // (live-verified) — grant them separately and unscoped only where justified.
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context = "${bindParam:team}";
@@ -445,6 +467,7 @@ ALLOW settings:objects:read, settings:objects:write
 **Resolved when bound with `{"parameters": {"team": "checkout-team"}}`:**
 
 ```
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context = "checkout-team";
@@ -454,19 +477,25 @@ ALLOW settings:objects:read, settings:objects:write
 
 Bind the same template to each team with a different `team` value rather than duplicating the policy. See **IAM-10** for binding mechanics.
 
-### Pattern 3: Bucket-Based Team Isolation (Recommended for Strict Isolation)
+### Pattern 3: Bucket-Scoped Team Access (When the Bucket Already Exists)
 
-> **Use this pattern** when teams must have physically separated data with no cross-team visibility.
+> **Not the primary isolation mechanism.** Dynatrace: buckets are *"not intended as the primary mechanism for securing or segmenting data access"*; they are *"best used for organizing data by retention time, cost allocation, or query optimization."* Isolate teams with `dt.security_context` (Pattern 2); add bucket conditions when a team's data already sits in its own bucket for one of those reasons.
+>
+> <sub>**Sources:** [Partition data with Grail buckets (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data).</sub>
 
 > **When this pattern fits:** bucket boundaries are well-suited to scenarios where the bucket already exists for a specific reason — compliance separation (PCI/HIPAA), retention isolation, or hard cost attribution. For general team-scoped access without one of those reasons, **Pattern 2 (`dt.security_context`) is usually the simpler choice**. When the bucket-based scenario does apply, parameterize per-team bucket names via binding parameters (shared bucket statements stay as literals — "shared" is a singleton, not a per-team scope). See **IAM REFERENCE.md § Bucket-Match Overlay** for scenario gating, and **§ Policy Parameterization and Boundary Standardization** for the full pattern.
 
 ```
 // Parameterized — per-team data permissions (one policy template, bound per team)
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:log-bucket}";
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:span-bucket}";
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:metric-bucket}";
 ALLOW storage:logs:read    WHERE storage:bucket-name = "${bindParam:log-bucket}";
 ALLOW storage:spans:read   WHERE storage:bucket-name = "${bindParam:span-bucket}";
 ALLOW storage:metrics:read WHERE storage:bucket-name = "${bindParam:metric-bucket}";
 
 // Shared buckets — literal (Class C: shared is a singleton, not per-team)
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("shared_logs", "shared_spans");
 ALLOW storage:logs:read  WHERE storage:bucket-name = "shared_logs";
 ALLOW storage:spans:read WHERE storage:bucket-name = "shared_spans";
 ```
@@ -476,6 +505,8 @@ ALLOW storage:spans:read WHERE storage:bucket-name = "shared_spans";
 **Resolved when bound with `{"parameters": {"log-bucket": "checkout_logs", "span-bucket": "checkout_spans", "metric-bucket": "checkout_metrics"}}`:**
 
 ```
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("checkout_logs", "checkout_spans", "checkout_metrics");
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("shared_logs", "shared_spans");
 ALLOW storage:logs:read    WHERE storage:bucket-name = "checkout_logs";
 ALLOW storage:spans:read   WHERE storage:bucket-name = "checkout_spans";
 ALLOW storage:metrics:read WHERE storage:bucket-name = "checkout_metrics";
@@ -489,6 +520,7 @@ ALLOW storage:spans:read WHERE storage:bucket-name = "shared_spans";
 
 ```
 // Parameterized defense-in-depth
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:log-bucket}";
 ALLOW storage:logs:read WHERE storage:bucket-name = "${bindParam:log-bucket}"
   AND storage:dt.security_context = "${bindParam:team}";
 ```
@@ -496,6 +528,7 @@ ALLOW storage:logs:read WHERE storage:bucket-name = "${bindParam:log-bucket}"
 **Resolved when bound with `{"parameters": {"log-bucket": "checkout_logs", "team": "checkout"}}`:**
 
 ```
+ALLOW storage:buckets:read WHERE storage:bucket-name = "checkout_logs";
 ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs"
   AND storage:dt.security_context = "checkout";
 ```
@@ -504,6 +537,7 @@ ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs"
 
 ```
 // Read all logs, manage log pipelines
+ALLOW storage:buckets:read WHERE storage:table-name = "logs";
 ALLOW storage:logs:read;
 ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:logmonitoring";
@@ -515,6 +549,7 @@ ALLOW settings:objects:read, settings:objects:write
 // Create and share dashboards (documents:share does not exist — sharing is direct-shares)
 ALLOW document:documents:read, document:documents:write, document:documents:delete;
 ALLOW document:direct-shares:read, document:direct-shares:write;
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read;
 ```
@@ -535,6 +570,7 @@ ALLOW automation:workflows:read, automation:workflows:write, automation:workflow
 ```
 // Broad read access + problem/event visibility
 // (state:problems does not exist — Davis problems are events in Grail)
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read, storage:entities:read;
 ALLOW document:documents:read;
@@ -557,6 +593,7 @@ ALLOW state:app-states:read, state:user-app-states:read;
 
 ```
 // Access only to PCI-compliant data bucket
+ALLOW storage:buckets:read WHERE storage:bucket-name IN ("pci_logs", "pci_spans");
 ALLOW storage:logs:read WHERE storage:bucket-name = "pci_logs";
 ALLOW storage:spans:read WHERE storage:bucket-name = "pci_spans";
 // No access to non-PCI buckets
@@ -583,10 +620,10 @@ This is the canonical app-developer shape: iterate freely in non-prod, observe-o
 | Requirement | Recommended Pattern |
 |-------------|---------------------|
 | Teams can share data flexibly | Pattern 2 (Security Context) |
-| Teams must never see each other's data | **Pattern 3 (Buckets)** |
+| Teams must never see each other's data | **Pattern 2 (Security Context)**, enforced by enrichment coverage on every signal |
 | Compliance/regulatory data separation | **Pattern 9 (Bucket-Based)** |
 | Temporary project access | Pattern 2 (Security Context) |
-| Cost allocation by team | **Pattern 3 (Buckets)** |
+| Data already split into per-team buckets for cost allocation | **Pattern 3 (Buckets)** |
 | Full in non-prod, read-only in prod | **Pattern 10 (Management Zones)** |
 
 <a id="default-vs-custom-policies"></a>
@@ -615,7 +652,7 @@ Commonly used managed policies for Grail and AppEngine onboarding:
 | **Read `<table>`** | Per-table read (e.g. *Read Logs*, *Read Metrics*, *Read Spans*, *Read System Events*) |
 | **Standard User / Pro User / Admin User** | App use, app and workflow building, administration (see the table above) |
 
-**Legacy default policies.** *AppEngine - User*, *AppEngine - Admin*, *AppEngine - Developer access*, *AutomationEngine - User access*, *AutomationEngine - Admin access*, *Storage All System Data Read* and *Storage Default Monitoring Read* are now listed as legacy: Dynatrace states they *"are not accessible for new policy assignments, but existing assignments of these policies remain until removed."* Use the role policies and the *Read `<table>`* policies for new bindings, and verify the current catalog in your tenant's Account Management — it evolves.
+**Legacy default policies.** *AppEngine - User*, *AppEngine - Admin*, *AppEngine - Developer access*, *AppEngine - Manage EdgeConnect*, *AutomationEngine - User access*, *AutomationEngine - Admin access*, every *Environment role - …* policy (*Access environment*, *Change monitoring settings*, *View logs*, *Download/install OneAgent*, *Configure capture of sensitive data*, …), *Extensions - Admin access*, *Extensions - User access*, *Settings Reader*, *Settings Writer*, *Storage All System Data Read*, *Storage Default Monitoring Read* and others are now listed as legacy: Dynatrace states they *"are not accessible for new policy assignments, but existing assignments of these policies remain until removed."* Use the role policies and the *Read `<table>`* policies for new bindings; where a legacy policy such as *Settings Writer* has no direct successor, write a custom policy (for example `settings:objects:read`, `settings:objects:write` and `settings:schemas:read`, scoped by `settings:schemaId` or `settings:dt.security_context`). Verify the current catalog in your tenant's Account Management — it evolves.
 
 > <sub>**Sources:** [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
 
@@ -642,11 +679,14 @@ Groups can have both:
 
 ```
 Group: dt-checkout-editors
-├── Default Policy: Standard User (base access)
+├── Default Policy: Standard User (environment and app access)
+├── Default Policy: Read Logs / Read Spans … (data access — Standard User has no Grail table reads)
 └── Custom Policy: checkout-write-access (team-specific writes)
 ```
 
-This provides base read access plus targeted write permissions.
+This provides base access plus targeted write permissions. *Standard User* grants app, document, workflow and settings-read access but no `storage:logs:read`-style table reads, so pair it with a data-access policy.
+
+> <sub>**Sources:** [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *Standard User*, *All Grail data read access* and legacy-policy statements, read 10/13/2026.</sub>
 
 <a id="policy-testing-and-validation"></a>
 ## 7. Policy Testing and Validation
@@ -713,6 +753,7 @@ policies:
       type: account
     description: Read logs and spans — scoped per team by the boundary on each binding
     policy: |-
+      ALLOW storage:buckets:read;
       ALLOW storage:logs:read;
       ALLOW storage:spans:read;
 

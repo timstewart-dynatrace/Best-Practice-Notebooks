@@ -1,6 +1,6 @@
 # IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API
 
-> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 08/24/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
+> **Series:** IAM — IAM Administration | **Reference:** 96 — Python IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 10/13/2026 | **Verified live:** 07/16/2026 — every sample response below is a real API response
 
 ## Overview
 
@@ -58,7 +58,7 @@ This is one of **three provisioning flavors**:
 > ⚠️ **Safety rails (do not skip):**
 > 1. Run only against a **sanctioned test tenant** — confirm the environment ID before executing.
 > 2. Keep the `PYLAB-` name prefix so lab objects are unmistakable.
-> 3. The binding is created at **environment level**. Groups/policies/boundaries are account-level objects by API design; the binding is what grants access, and environment-scoping it confines the lab to one environment.
+> 3. The binding is created at **environment level**. Groups and boundaries are account-level objects. Policies can be created at account **or** environment level (IAM-12 creates environment-level ones); this lab creates the policy at account level so one template can serve every environment. The binding is what grants access, and environment-scoping it confines the lab to one environment.
 
 <a id="step-0-setup"></a>
 ## Step 0 — Setup
@@ -164,7 +164,7 @@ GROUP_UUID = resp.json()[0]["uuid"]
 <a id="step-3-create-the-parameterized-policy"></a>
 ## Step 3 — Create the parameterized policy
 
-One policy for ALL teams: the `${bindParam:team}` placeholders get resolved per binding (Step 5). Statement rules that matter (all live-verified — see IAM-04): **no wildcards**, comma-lists allowed, **reads** can be condition-scoped, storage **writes** cannot.
+One policy for ALL teams: the `${bindParam:team}` placeholders get resolved per binding (Step 5). Statement rules that matter (all live-verified — see IAM-04): **no wildcards**, comma-lists allowed, **reads** can be condition-scoped, storage **writes** cannot. `storage:buckets:read` is its own line because the policy reference says it is *"Required additionally to a table permission"* — the table reads alone are not enough, and the security-context condition still decides which records match.
 
 ```python
 statement = """\
@@ -174,6 +174,7 @@ ALLOW document:documents:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context IN ("${bindParam:team}");
+ALLOW storage:buckets:read;
 ALLOW settings:objects:read WHERE settings:dt.security_context IN ("${bindParam:team}");
 ALLOW settings:schemas:read;
 """

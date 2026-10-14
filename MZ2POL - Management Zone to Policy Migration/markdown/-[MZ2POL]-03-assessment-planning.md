@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -82,7 +82,7 @@ Group your MZs by their primary purpose:
 
 #### Category 2: Environment Based
 - **Pattern**: MZs for environments (e.g., "Production", "Staging", "Development")
-- **Migration**: → Boundaries with environment conditions
+- **Migration**: → A record field that carries the environment. Boundaries have no environment attribute of their own: for access, put the stage into the `dt.security_context` value (`prod/payments`) or use a built-in field the stage already maps to (`dt.host_group.id`, `k8s.namespace.name`); for filtering only, a primary tag such as `primary_tags.stage` in a segment
 - **Priority**: High (critical for access separation)
 
 #### Category 3: Geographic/Region Based
@@ -106,25 +106,30 @@ Group your MZs by their primary purpose:
 ## 3. Security Context and Bucket Planning
 ### Design Your Security Context Strategy
 
-Security Context enables entity-level access control. Plan how to tag your entities:
+Security context drives record-level access control. It is **one field**, read by every IAM record condition, so design **one value per owner** and write it onto every record that owner produces — not a different dimension per entity type. If services carried `team-*` and hosts `env-*`, a team boundary would miss the host's logs and an environment boundary would miss the service's spans.
 
-| Entity Type | Security Context Value | Purpose |
-|-------------|----------------------|----------|
-| Services | `team-{teamname}` | Team ownership |
-| Hosts | `env-{environment}` | Environment separation |
-| Applications | `app-{appname}` | Application isolation |
+| Dimension | Where it is written | Example value |
+|-----------|---------------------|---------------|
+| Access (team, plus stage where access depends on it) | `dt.security_context` on every record the team produces | `payments`, or `prod/payments` |
+| Filtering and routing | `primary_tags.*`, in the same enrichment step from the same source | `primary_tags.team = payments`, `primary_tags.stage = prod` |
+
+Write both together so they cannot drift apart — **MZ2POL-10 §4** (*One Value, Every Job*). Structured values such as `prod/payments` are covered in **MZ2POL-04 §4**.
 
 ### Design Your Bucket Strategy
 
 > **⚠️ Critical:** Plan buckets carefully - names are immutable and data cannot be moved between buckets.
 
+A zone that restricted access does **not** become a bucket by default. Buckets are *"not intended as the primary mechanism for securing or segmenting data access"*; team access is a boundary on `dt.security_context` (**MZ2POL-12: IAM Reference Architecture**, **ORGNZ-06: Security Context**). Create buckets for what they are for — retention, cost allocation and query optimization — and for a specific compliance case that needs a hard exclusion (**ORGNZ-05: Bucket-Level Access Control**).
+
 **Bucket Decisions:**
 
 | Decision | Options | Considerations |
 |----------|---------|----------------|
-| **Partitioning dimension** | Team, Environment, Region, Compliance | What drives access control? |
-| **Naming convention** | `{team}_{datatype}_{retention}` | Include org, type, and retention |
-| **Number of buckets** | Per team? Per environment? Both? | Balance isolation vs management overhead |
+| **Partitioning dimension** | Retention period, cost owner, query scope, compliance case | What differs in how the data must be stored or billed? |
+| **Naming convention** | `{purpose}_{datatype}_{retention}` | Name the reason the bucket exists, plus type and retention |
+| **Number of buckets** | One per distinct retention / cost / compliance need | Fewer is simpler — access does not need one per team |
+
+> <sub>**Sources:** [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — buckets are *"best used for organizing data by retention time, cost allocation, or query optimization."*</sub>
 
 **Bucket Limitations to Consider:**
 
@@ -133,70 +138,54 @@ Security Context enables entity-level access control. Plan how to tag your entit
 | One data type per bucket | Need separate buckets for logs, spans, metrics |
 | Maximum 80 buckets per environment | Plan for scale within this limit |
 | ~1 TB/day optimal per bucket | Best query performance |
-| 1-3 TB/day acceptable | Limited query window due to 500 GB scan limit |
+| 1-3 TB/day acceptable | Shorter query window per default 500 GB scan |
 | No documented hard cap per bucket | Dynatrace sizing guidance on where to split differs between pages ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
 | Names immutable | Choose naming convention carefully upfront |
 | No data migration | Cannot consolidate or split buckets later |
 
-**Query Constraints (affects bucket sizing):**
-
-| Constraint | Value |
-|------------|-------|
-| Maximum data scanned per query | 500 GB |
-| Maximum records returned | 1,000 |
-| Maximum response payload | 1 MB |
+**Default query setting (affects bucket sizing):** `fetch` reads at most 500 GB of uncompressed data unless the query sets `scanLimitGBytes` — *"The default value is 500GB unless specified otherwise."* ([Data source commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands))
 
 ### Mapping MZs to Buckets
 
-For each MZ, determine if bucket partitioning is needed:
+For each MZ, determine if bucket partitioning is needed — usually it is not:
 
 | MZ Pattern | Bucket Recommendation |
 |------------|----------------------|
-| Team-based MZ with strict isolation needs | Create team-specific buckets |
-| Environment MZ (Prod/Dev separation) | Consider environment buckets |
-| Compliance MZ (PCI, HIPAA) | **Strongly recommended** - physical separation |
+| Team-based MZ, including strict team isolation | **Not needed** — a security-context value per team and one boundary per team (MZ2POL-12) |
+| Environment MZ (Prod/Dev separation) | Only if the environments need different retention; access uses the stage in the security-context value |
+| Compliance MZ (PCI, HIPAA) | Consider a compliance bucket where retention or a hard exclusion (`DENY` on the bucket) is required (ORGNZ-05) |
 | Regional MZ (filtering only) | Usually **not needed** - use Segments instead |
 | Application MZ (informational) | Usually **not needed** - use Segments instead |
 
 > **For comprehensive bucket guidance**, see **ORGNZ-03: Bucket Strategy and Design**.
 
-### Query Entities Without Security Context
+### Measure Security Context on the Data
 
-Identify entities that need security context assignment:
+IAM record conditions test the **record**, so measure coverage on logs, spans and events — not on entities. Entity coverage misleads: the classic *Grail Security Context* mapping can copy zone names onto entities, while records *"do not inherit the management zones of that entity."* On the validation tenant (10/13/2026) every service and host carried a zone-derived security context, while 41% of logs and 75% of events in the last hour carried none.
+
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."*</sub>
+
+First, where the uncovered records come from — grouped by the producer fields an enrichment rule can key on (MZ2POL-10). Then the per-table share.
 
 ```dql
-// Find services without security context
-// These need to be tagged before migration
-fetch dt.entity.service
+// Logs without a security context, by producer — the tagging targets.
+fetch logs, from:-1h
 | filter isNull(dt.security_context)
-| fields entity.name,
-         managementZones,
-         tags
+| summarize {records = count()}, by:{dt.host_group.id, k8s.namespace.name, host.name}
+| sort records desc
 | limit 50
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - management zones have NO Smartscape node equivalent; they are what this migration
-//     replaces with segments and policies.
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 ```dql
-// Count entities by security context presence
-// Helps estimate security context tagging effort
-fetch dt.entity.service
-| summarize 
-    withContext = countIf(isNotNull(dt.security_context)),
-    withoutContext = countIf(isNull(dt.security_context))
-
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Security-context coverage on the DATA, per table (same check as MZ2POL-00 §5 and MZ2POL-06 §3).
+// Events carry dt.security_context as an array, so an empty array also counts as missing.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd without_pct = round(100.0 * without_sc / records, decimals: 1)
+| fields table, records, without_sc, without_pct
 ```
 
 ---
@@ -246,13 +235,13 @@ For environments where SVG doesn't render
 - [ ] Document current user access patterns
 - [ ] Create migration mapping for all MZs
 - [ ] Design security context strategy
-- [ ] **Design bucket strategy** (if using buckets for isolation)
+- [ ] **Design bucket strategy** (only for retention, cost or a compliance case)
 - [ ] Identify dependencies (alerts, dashboards, APIs)
 
 #### Phase 2: Foundation - Buckets and Security Context
 - [ ] **Create Grail buckets** (if applicable)
 - [ ] **Configure OpenPipeline routing** to buckets
-- [ ] Apply security context to entities
+- [ ] Write security context onto the data at the source (MZ2POL-10) and re-run the coverage check in §3
 - [ ] Create user groups in Account Management
 - [ ] Set up IAM policy structure
 - [ ] Create boundary definitions
@@ -266,7 +255,7 @@ For environments where SVG doesn't render
 - [ ] Validate filtering behavior
 
 #### Phase 4: Policy Assignment
-- [ ] Create bucket-based policies (if using buckets)
+- [ ] Create bucket-based policies (compliance cases only)
 - [ ] Bind policies to groups
 - [ ] Apply boundaries to policy bindings
 - [ ] Test user access (parallel with MZs)
@@ -286,7 +275,7 @@ For environments where SVG doesn't render
 
 ### Bucket Migration Checklist
 
-If using buckets for team/compliance isolation:
+If a retention, cost or compliance case needs dedicated buckets:
 
 - [ ] Bucket naming convention finalized
 - [ ] Buckets created for each data type (logs, spans, metrics)
@@ -302,7 +291,7 @@ If using buckets for team/compliance isolation:
 ## 6. Dependencies Checklist
 ### What References Management Zones?
 
-Before migrating, identify all MZ dependencies:
+Before migrating, identify all MZ dependencies. This checklist names the categories; MZ2POL-15 finds the actual objects in settings, classic configuration, the account and code, and builds the dependency matrix:
 
 #### Alerting
 - [ ] Alerting profiles using MZ filters

@@ -1,6 +1,6 @@
 # OPMIG-09: Troubleshooting & Validation
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 9 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 > **Level:** Intermediate  
 > **Prerequisites:** OPMIG-01 through OPMIG-08  
 > **Estimated Time:** 45 minutes  
@@ -675,10 +675,10 @@ parse content, """complex pattern"""
 ```dql
 // 1. Identify high-volume sources (by record count — dt.system.log_size_bytes is not a Grail field)
 fetch logs, from: now() - 1h
-| summarize
+| summarize {
     log_count = count(),
-    logs_per_second = count() / 3600,
-    by: {log.source}
+    logs_per_second = count() / 3600
+}, by: {log.source}
 | sort log_count desc
 | limit 20
 ```
@@ -696,12 +696,12 @@ fetch logs, from: now() - 6h
 // 3. Analyze droppable logs
 // toDouble() matters: long / long is integer division in DQL, so without it the percentage is 0
 fetch logs, from: now() - 1h
-| summarize 
+| summarize {
     total = count(),
     debug = countIf(loglevel == "DEBUG"),
     trace = countIf(loglevel == "TRACE"),
-    health = countIf(contains(content, "/health")),
-    by: {log.source}
+    health = countIf(contains(content, "/health"))
+}, by: {log.source}
 | fieldsAdd droppable_pct = toDouble(debug + trace + health) / toDouble(total) * 100
 | filter droppable_pct > 30
 | sort droppable_pct desc
@@ -779,13 +779,15 @@ fetch logs, from: now() - 24h
 
 ```dql
 // 3. Find high-cardinality fields
+// user_id, request_id, session_id and request_path are example names: replace them with
+// attributes your logs actually carry, or every count reads 0
 fetch logs, from: now() - 1h
-| summarize 
+| summarize {
     user_ids = countDistinct(user_id),
     request_ids = countDistinct(request_id),
     session_ids = countDistinct(session_id),
-    paths = countDistinct(request_path),
-    by: {service.name}
+    paths = countDistinct(request_path)
+}, by: {service.name}
 | sort user_ids desc
 ```
 

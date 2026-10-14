@@ -1,6 +1,6 @@
 # MZ2POL-10: Tagging at Source — The Foundation Under Every MZ Replacement
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 15 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -234,7 +234,7 @@ On serverless code modules (AWS Lambda, Azure Functions) `DT_TAGS` is the only o
 
 Most MZ estates already encode the zone's logic in host tags, host groups or names. *Ingest enrichment configuration* (Settings > Collect and capture > Ingest enrichment configuration) turns that into primary tags **without touching the hosts**. A rule has:
 
-- **A condition** on input fields such as `dt.host_group.id`, `host.name`, `host.tags.<key>`, `k8s.namespace.name` or `aws.account.id`, using `matchesValue` (equals), `matchesPhrase` (contains, begins with, ends with), `isNull`, `isNotNull`, and `AND` / `OR` / `NOT`.
+- **A condition** on input fields such as `dt.host_group.id`, `host.name`, `host.tags.<key>`, `k8s.namespace.name` or `aws.account.id`, using `matchesValue` (equals), `matchesPhrase` (contains, begins with, ends with), `isNull`, `isNotNull`, and `AND` / `OR` / `NOT`. `matchesPhrase` matches tokens, so for a true begins-with or contains use `matchesValue` with `*` wildcards (`"prod-*"`, `"*legacy*"`) — MZ2POL-11 §4.
 - **An enrichment**: a static value, or a DPL extraction from an input field. Dynatrace's example splits `prod-payments-eu-web-01` into five primary tags with one rule per part. *"If the pattern doesn't match, no tag is applied."*
 - **A scope**: environment, or host group — the host-group rule wins.
 
@@ -365,7 +365,7 @@ For environments where SVG doesn't render
 
 These queries answer the questions the readiness gate asks. Run them in order. Steps 1–3 read the dictionary and the topology and scan **zero bytes**. Steps 4–8 read one hour of logs or metrics; keep the window short on a large tenant.
 
-Replace `primary_tags.team`, the classic tag key `Team:` and the zone name with your own. Every query below was executed against the validation tenant on 10/13/2026, using that tenant's own keys in place of the placeholders.
+Replace `primary_tags.team`, the classic tag key `Team:` and the zone name with your own. Every query below was executed against the validation tenant on 10/13/2026, using that tenant's own keys in place of the placeholders. The counts quoted after each step are that tenant on that day; expect yours to differ, and expect a live tenant's counts to move between runs.
 
 **Step 1 — which fields can carry access control on this tenant?** The dictionary changes with the platform version, so read it from your own tenant.
 
@@ -393,7 +393,7 @@ fetch dt.entity.host
 | limit 50
 ```
 
-On the validation tenant this returned the auto-tag keys `Team`, `Org` and `Host Group` on all 23 hosts, plus cloud-provider keys on a handful. None of the three auto-tags was available on signals as a `primary_tags.*` field — the gap Step 4 measures.
+On the validation tenant (10/13/2026) this returned the auto-tag keys `Team`, `Org` and `Host Group` on all 23 hosts, plus cloud-provider keys on a handful. None of the three auto-tags was available on signals as a `primary_tags.*` field — the gap Step 4 measures.
 
 **Step 3 — how much of the topology carries any primary tag or security context?**
 
@@ -473,7 +473,7 @@ fetch logs, from:-1h
 | sort hosts desc
 ```
 
-`in zone, tag missing` hosts would disappear from the replacement; `tagged, not in zone` hosts would appear in it for the first time. On the validation tenant, the stand-in zone and tag gave **4 matches and 11 hosts tagged but not in the zone** — a tag broader than the zone it was meant to replace. Either can be correct, but each needs a decision before cutover, not after.
+`in zone, tag missing` hosts would disappear from the replacement; `tagged, not in zone` hosts would appear in it for the first time. On the validation tenant (10/13/2026), the stand-in zone and tag gave **4 matches and 11 hosts tagged but not in the zone** — a tag broader than the zone it was meant to replace. Either can be correct, but each needs a decision before cutover, not after.
 
 **Step 6 — coverage by host group, including data with no host at all.**
 
@@ -491,7 +491,7 @@ fetch logs, from:-1h
 | limit 30
 ```
 
-On the validation tenant the largest host group was 100% tagged, while the **null host-group row — about 40% of all logs — was only 55% tagged**. Host-based enrichment cannot reach data that has no host: API ingest, log shippers, remote extensions, cloud logs. Those producers need their own enrichment (FAQ-26 §5).
+On the validation tenant (10/13/2026) the largest host group was 100% tagged, while the **null host-group row — about 40% of all logs — was only 55% tagged**. Host-based enrichment cannot reach data that has no host: API ingest, log shippers, remote extensions, cloud logs. Those producers need their own enrichment (FAQ-26 §5).
 
 **Step 7 — value drift: one meaning, several spellings.**
 

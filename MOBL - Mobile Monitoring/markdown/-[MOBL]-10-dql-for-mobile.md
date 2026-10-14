@@ -1,6 +1,6 @@
 # MOBL-10: DQL for Mobile Analytics
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -122,7 +122,7 @@ The query below calculates **total actions**, **unique sessions**, and **actions
 // User engagement summary -- actions per session, per app
 fetch user.events, from:-24h
 | filter dt.rum.application.type == "mobile" and characteristics.has_user_action
-| summarize total_actions = count(), unique_sessions = countDistinct(dt.rum.session.id), by:{frontend.name}
+| summarize {total_actions = count(), unique_sessions = countDistinct(dt.rum.session.id)}, by:{frontend.name}
 | fieldsAdd actions_per_session = toDouble(total_actions) / toDouble(unique_sessions)
 | sort total_actions desc
 | limit 20

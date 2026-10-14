@@ -1,10 +1,10 @@
 # AIOPS-04: Davis CoPilot — Dynatrace Assist for Investigation
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 10/05/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 4 of 8 | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
-**Davis CoPilot** (the older brand) and **Dynatrace Assist** (the current UI surface) are the same Generative AI capability — the chat interface that translates natural language to DQL, explains existing queries, summarizes problems, and suggests next steps.
+**Davis CoPilot** (the older brand) and **Dynatrace Assist** (the current UI surface) are the same Generative AI capability — the chat interface that translates natural language to DQL, explains existing queries, summarizes problems, and suggests next steps. Since SaaS 1.346 its embedded conversation starters also run as **agentic AI**, working over tools and your live environment data (§1).
 
 This notebook covers the surfaces, the supported tasks, the data privacy posture, and the practical patterns for using Generative AI inside Dynatrace without burning hours wrestling with prompts.
 
@@ -63,6 +63,20 @@ Six capability buckets, in roughly the order you'll use them:
 
 The first two are the daily-driver uses. Problem summarization is high-value during incidents. Documentation and troubleshooting retrieval are most useful via MCP from your IDE (covered in AIOPS-06).
 
+### Agentic Mode, Personalization and QuickStart (SaaS 1.344–1.347)
+
+Three releases since this notebook was first written change what Assist does:
+
+| Release | Change | What it means for you |
+|---|---|---|
+| **SaaS 1.344** (rollout from 07/29/2026) | **Personalization.** *"Dynatrace Assist can now tailor every response to your role, expertise, and preferences."* The profile takes your role, Dynatrace expertise level and tech stack; custom instructions set language, tone and detail level | Set a profile once. *"This context is applied automatically to all future conversations, and you can update, clear, or disable it at any time."* |
+| **SaaS 1.346** (rollout from 08/25/2026) | **Agentic mode for embedded conversation starters.** They *"can reason over tools and your live environment data to investigate and analyze"*, and existing starters *"are upgraded from generative to agentic AI out of the box."* | A starter opened inside an app now investigates your data rather than only summarizing. It needs Agentic AI enabled — *"ensure that you have Agentic AI activated in the environment settings"* — and brings the PII-blocking setting in §7 into play |
+| **SaaS 1.347** (rollout from 09/16/2026) | **Assist on QuickStart findings.** *"Select Dynatrace Assist on any of the findings to get deep insights and answers."* | A second way into an investigation, from a finding rather than a blank chat. Verify the release has reached your tenant |
+
+The capabilities above remain the baseline: on a tenant that has not reached a release, Assist behaves as described before this table.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.344 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-344), [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346), [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347).</sub>
+
 <a id="surfaces"></a>
 ## 2. Where It Surfaces in the Product
 
@@ -70,7 +84,8 @@ Multiple surfaces, same engine:
 
 | Surface | What it does | When to use |
 |---------|--------------|-------------|
-| **Dynatrace Assist (chat side panel)** | Free-form chat: DQL, explanations, conversation starters | Investigations, learning, exploration |
+| **Dynatrace Assist (chat side panel)** | Free-form chat: DQL, explanations, conversation starters (agentic from SaaS 1.346) | Investigations, learning, exploration |
+| **QuickStart findings (SaaS 1.347)** | *Dynatrace Assist* on a finding: explanation and answers for that finding | Starting from something already flagged |
 | **Notebook DQL2NL** | Right-click on a query: explain in English | Reviewing inherited notebooks; teaching |
 | **Problems app summary** | Auto-generated problem narrative + root cause explanation | First minutes of an incident |
 | **Kubernetes app explanations** | Warning-signal explanations | K8s troubleshooting |
@@ -78,6 +93,8 @@ Multiple surfaces, same engine:
 | **MCP `ask-dynatrace-docs`** | Doc retrieval from your IDE / agent | When you need an authoritative answer; works offline of the UI |
 
 **One mental model — many entry points.** All surfaces feed a single underlying assistant that's grounded in the platform's data and docs.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346), [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — *"Select Dynatrace Assist on any of the findings to get deep insights and answers."*</sub>
 
 <a id="dql-gen"></a>
 ## 3. DQL Generation Patterns That Work
@@ -112,7 +129,8 @@ Try it below — open this notebook in the Dynatrace UI, select the query, and u
 
 ```dql
 // A non-trivial query worth explaining
-fetch logs, from:-24h
+// For explanation, not execution — running it scans your ERROR logs; expect 0 rows unless your logs carry user_id= / request_id=
+fetch logs, from:-1h
 // status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
 | filter status == "ERROR"
 | parse content,

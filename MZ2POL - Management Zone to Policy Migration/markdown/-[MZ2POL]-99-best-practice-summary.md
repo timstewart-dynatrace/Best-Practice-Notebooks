@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -17,7 +17,7 @@ It was rewritten on 10/13/2026. The previous version recommended practices the s
 | Tag + translate | 10 tagging at source, 11 rule translation | Readiness gate before anything is built |
 | Access | 12 architecture, 04 syntax, 08 templates | One boundary per team covering every domain; MATCH on arrays |
 | Filtering | 05 segments | One segment per dimension; exclusions pushed into tags |
-| Alerting | 09 workflows | Routing tags; visibility via dt.security_context |
+| Alerting | 09 workflows | Primary tags on problems; visibility via dt.security_context |
 | Run + cut over | 06 phases and states, 07 validation, 95 LAB rehearsal | Exit on evidence; delete zones last |
 | Traps | Zone-only boundary on a default policy; a second boundary on one binding; an unscoped data policy in another group | All widen access silently |
 | Not yet | 13 Spaces | Upcoming, not documented as available |
@@ -28,10 +28,10 @@ For environments where SVG doesn't render
 
 | Path | Use it when | Read in this order |
 |---|---|---|
-| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
-| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
-| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
-| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
 | **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ---
@@ -85,7 +85,7 @@ For environments where SVG doesn't render
 | Guard OpenPipeline tag rules | Condition `isNull(primary_tags.<key>)` — rules overwrite existing values by default | Critical | 10 §5 |
 | Set routing-critical values at source or centrally | Docs disagree on whether OpenPipeline tag rules run before routing | Recommended | 10 §5 |
 | Constrain values | Allowlists for stage, region, classification; Grail compares exactly | Critical | 10 §4 |
-| Stay under the tag cap | Fewer than 20 primary tags per host or process — extras are dropped silently | Critical | 10 §8 |
+| Stay within the tag cap | Up to 20 primary tags per host or process — extras are dropped silently | Critical | 10 §8 |
 | Move host properties to host tags | From OneAgent 1.345 host `primary_tags` come from host tags | Recommended | 11 §3 |
 | Pass the readiness gate | Parity by value, per-zone acceptance, coverage by host group (incl. no-host data), drift, derived-data reach | Critical | 10 §9–§10 |
 
@@ -108,7 +108,7 @@ For environments where SVG doesn't render
 | Practice | Setting / value | Priority | Notebook |
 |---|---|---|---|
 | Scope Grail data by record fields | Grail does not evaluate zones; `dt.security_context` is the only field every table accepts | Critical | 12 §1 |
-| Default policies for "what", boundaries for "where" | Standard / Pro / Admin User + Read Logs, Read Spans, Read Metrics, Read Events, Settings Reader/Writer | Critical | 04 §3, 12 §6 |
+| Default policies for "what", boundaries for "where" | Standard / Pro / Admin User + Read Logs, Read Spans, Read Metrics, Read Events. Settings Reader / Settings Writer are **legacy** — not assignable to new bindings; use a custom policy with `settings:objects:read` / `settings:objects:write` + `settings:schemas:read`, scoped by `settings:schemaId`, `settings:schemaGroup` or `settings:dt.security_context` | Critical | 04 §3, 12 §6 |
 | **One boundary covers every domain its policies grant** | `storage:` line, `settings:` line, and `environment:management-zone` while classic pages are used. *Corrects the earlier "never mix, two bindings" rule* — mixing is documented; a missing domain is unscoped | **Critical** | 04 §6, 12 §4 |
 | Never attach a zone-only boundary to a default policy | Default policies carry classic and Grail statements; the Grail ones come out unscoped | **Critical** | 12 §4.2 |
 | Don't add a second boundary for shared data | Boundaries are computed separately; add the shared value to the same condition | Critical | 12 §4.1, §6 |
@@ -139,7 +139,7 @@ For environments where SVG doesn't render
 |---|---|---|---|
 | Segments are views, never access | Anyone with `storage:filter-segments:read` can apply any segment | Critical | 05 §1, §9 |
 | One segment per dimension | Variables from live queries; usually three to eight segments | Critical | 05 §2 |
-| Start with `Data (all types)` | Classic-entity includes only for backward compatibility | Recommended | 05 §3 |
+| Start with `Data (all types)` | No `dt.entity.*` include blocks in new segments; for services add the `metrics` variable and `Entities` include | Recommended | 05 §3, §8 |
 | Use only `=` and `in()` | Wildcard `*` inside the value; no exclusions | Critical | 05 §3 |
 | Add an events include for problems | `event.kind = "DAVIS_PROBLEM"` AND the condition | Critical | 05 §5.4 |
 | Filter derived data on primary fields or tags | Standard tags do not reach service metrics | Critical | 05 §5.2 |
@@ -159,8 +159,8 @@ For environments where SVG doesn't render
 
 | Practice | Setting / value | Priority | Notebook |
 |---|---|---|---|
-| Replace zone-scoped profiles with problem-triggered workflows | Trigger filters on affected-entity tags plus an optional DQL matcher; segments do not scope alerting | Critical | 09 §2 |
-| Tag entities before building workflows | Routing tags at full coverage | Critical | 09 §4 |
+| Replace zone-scoped profiles with problem-triggered workflows | Route on the primary fields and `primary_tags.*` the problem record carries, in the trigger's DQL matcher; segments do not scope alerting | Critical | 09 §2, §4 |
+| Put routing values on the data before building workflows | Measure coverage on problem records, not entities; auto-tags never reach them; use `matchesValue()` — problem fields are arrays | Critical | 09 §4 |
 | Map delay to Minimum duration | Fixed values; decide rounding per profile | Recommended | 09 §6.1 |
 | Keep visibility on `dt.security_context` | With `MATCH` — problem records hold it as an array | Critical | 09 §7 |
 | Prove parity, disable, soak, then delete zones | Disable and delete in separate change windows | Critical | 09 §8 |

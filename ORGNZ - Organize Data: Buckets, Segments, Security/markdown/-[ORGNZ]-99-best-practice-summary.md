@@ -1,6 +1,6 @@
 # ORGNZ-99: Best Practice Summary & DQL Reference
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -251,15 +251,14 @@ fetch logs, from:-1h
 ```
 
 ```dql
-// Simulate tag-based segment filter on services
-fetch dt.entity.service
-| expand tags
-| filter contains(tags, "team:platform")
-| fields entity.name, tags
-| limit 20
-
-// Smartscape: tags is a record, not an array — this classic query has no drop-in
-// Smartscape equivalent (expand/contains on it match nothing); see FAQ-16 for the migration pattern.
+// Simulate a primary-tag segment filter on the service list: what a Data (all types) include sees.
+// Service metrics carry primary Grail tags, not classic entity tags. Replace primary_tags.app
+// with your key. Validated 10/14/2026 with a tenant-specific key: 3 values, 4-17 services each.
+timeseries requests = sum(dt.service.request.count), from:-2h, by:{primary_tags.app, dt.smartscape.service}
+| filter isNotNull(primary_tags.app)
+| fieldsAdd total = arraySum(requests)
+| summarize {services = countDistinct(dt.smartscape.service), requests = sum(total)}, by:{primary_tags.app}
+| sort requests desc
 ```
 
 ```dql
@@ -313,7 +312,7 @@ fetch spans, from:-1h
     with_namespace = countIf(isNotNull(k8s.namespace.name)),
     with_cluster = countIf(isNotNull(k8s.cluster.name)),
     with_host_group = countIf(isNotNull(dt.host_group.id)),
-    with_service = countIf(isNotNull(dt.entity.service))
+    with_service = countIf(isNotNull(dt.smartscape.service))
 | fieldsAdd
     ns_pct = round(toDouble(with_namespace) / toDouble(total) * 100, decimals: 1),
     cluster_pct = round(toDouble(with_cluster) / toDouble(total) * 100, decimals: 1),
@@ -322,30 +321,23 @@ fetch spans, from:-1h
 ```
 
 ```dql
-// Variable DQL: list host groups — use as segment variable for host-group-scoped filters
-fetch dt.entity.host_group
-| fields host_group = entity.name, id
+// Variable DQL: list host groups. Use as a segment variable for host-group-scoped filters.
+// There is no HOST_GROUP Smartscape node type; the host group is the dt.host_group.id field
+// on HOST nodes. Validated 10/14/2026; 0 bytes scanned.
+smartscapeNodes "HOST"
+| filter isNotNull(dt.host_group.id)
+| fields host_group = dt.host_group.id
+| dedup host_group
 | sort host_group asc
-
-// Note: dt.entity.* is deprecated. There is no Smartscape "HOST_GROUP" node type; host-group
-// membership is exposed as the dt.host_group.id field on HOST nodes. Keep the classic query above.
 ```
 
 ```dql
-// Variable DQL: list Kubernetes namespaces — use as segment variable for namespace-scoped filters
-fetch dt.entity.cloud_application_namespace
-| fields namespace = entity.name
-| fieldsAdd tag = concat("Namespace:", namespace)
+// Variable DQL: list Kubernetes namespaces. Use as a segment variable for namespace-scoped filters.
+// Validated 10/14/2026: 12 namespace names across 23 K8S_NAMESPACE nodes; 0 bytes scanned.
+smartscapeNodes "K8S_NAMESPACE"
+| fields namespace = name
+| dedup namespace
 | sort namespace asc
-
-// Smartscape equivalent (dt.entity.* is deprecated but still functional):
-//   smartscapeNodes "K8S_NAMESPACE"
-//   | fields namespace = name
-//   | fieldsAdd tag = concat("Namespace:", namespace)
-//   | sort namespace asc
-// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
-// the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
 ```
 
 <a id="query-performance"></a>

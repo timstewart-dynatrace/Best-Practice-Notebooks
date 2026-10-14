@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -99,6 +99,12 @@ Enable **Wait for root cause analysis** unless you need the earliest possible si
 > **Validate the filter before you save it.** The trigger configuration offers **Query past events**, which estimates how many matching events occurred in your environment over recent windows. Use it on every non-trivial trigger.
 >
 > The result to distrust is **zero across every window in an environment you know is busy**. A trigger can be syntactically valid, save without error, and still never fire — nothing surfaces an error to tell you, because an over-constrained filter is not a malformed one. Check in particular that the **categories selected above and any category named in the custom filter query agree**: a matcher narrowing to a category you did not select leaves nothing that can ever match. Reading the estimate at authoring time costs seconds and is the only signal you get.
+
+> **The maintenance flag can be null on Davis events.** Dynatrace documents the filter two ways — `maintenance.is_under_maintenance == false` in the upgrade guide and `maintenance.is_under_maintenance != true` on the maintenance-window data page — and in DQL both drop a record whose flag is null. On problems that did not matter on a validation tenant (10/14/2026): over 30 days, all 17,573 records in `dt.davis.problems` carried the flag (6,260 true, 11,313 false, 0 null). On Davis events it did: 15,411 of 993,339 records in `dt.davis.events` (about 1.6%) had no value, and `== false` and `!= true` each matched 960,808 — neither kept them. `coalesce(maintenance.is_under_maintenance, false) == false` matched 976,219, keeping them.
+>
+> Use the `coalesce` form in DQL queries that report on Davis events. For a **trigger** matcher, how `==` and `!=` treat a null field is not documented, and neither is `coalesce`: the DQL matcher reference lists `isNull` (*"Tests if a value is NULL."*) but not `coalesce`. So this notebook makes no claim either way for the trigger — if null-flag Davis events matter to a Davis event trigger, test the matcher with **Query past events** before relying on it.
+
+> <sub>**Sources:** [Upgrade from Classic maintenance windows to Latest maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows) — *"add maintenance.is_under_maintenance == false as a filter to exclude problems that occur during a maintenance window."*; [Use maintenance window data in Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail) — the `!= true` form; [DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — *"Tests if a value is NULL."* Tenant counts: MCP `execute-dql`, 30 days to 10/14/2026, empty `notifications` arrays; the `dt.davis.problems` run is the control.</sub>
 
 ### Problem Event Data
 

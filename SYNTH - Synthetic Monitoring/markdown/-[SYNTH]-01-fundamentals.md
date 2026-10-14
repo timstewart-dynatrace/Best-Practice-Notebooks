@@ -1,6 +1,6 @@
 # SYNTH-01: Synthetic Monitoring Fundamentals
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/06/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Understanding Proactive Availability and Performance Testing
 This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.
@@ -226,14 +226,16 @@ Synthetic access in Latest Dynatrace is scoped by **security context** values se
 
 ```text
 ALLOW synthetic:monitors:read, synthetic:monitors:write, synthetic:monitors:execute WHERE synthetic:dt.security_context IN ("team-a");
-ALLOW storage:metrics:read, storage:events:read, storage:user.events:read, storage:smartscape:read WHERE storage:dt.security_context IN ("team-a");
+ALLOW storage:metrics:read, storage:events:read, storage:user.events:read, storage:smartscape:read WHERE storage:dt.security_context MATCH ("team-a");
+ALLOW storage:buckets:read WHERE storage:table-name IN ("metrics", "events", "user.events");
 ```
 
-Three things to know:
+Four things to know:
 
 - **Classic permissions are not scoped by it.** *"Classic permissions remain functional, but they always apply tenant-wide. You can't scope classic permissions to a subset of monitors, and security contexts don't affect users who have only classic permissions."*
+- **Table reads need the bucket permission.** `storage:buckets:read` is *"Required additionally to a table permission"* ([IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements)), hence the third statement.
 - **Private locations need ActiveGate 1.331+** for execution data to carry the monitor's security context (SYNTH-04 § 3).
-- **`dt.security_context` is an array.** `dt.security_context == "team-a"` matches nothing; use `in("team-a", dt.security_context)` (next cell). On the validation tenant (10/02/2026) the `==` form matched 0 of 9,311 executions and the `in()` form matched 4,703.
+- **`dt.security_context` is an array.** `dt.security_context == "team-a"` matches nothing; use `in("team-a", dt.security_context)` (next cell). The same applies in IAM — [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail): *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*, so the storage statement above uses `MATCH`. On the validation tenant (10/13/2026) every synthetic event that carried a security context held it as an array. On the validation tenant (10/02/2026) the `==` form matched 0 of 9,311 executions and the `in()` form matched 4,703.
 
 SaaS 1.343 migrated each monitor's management zones to security-context values once; later MZ changes are not synchronized (SYNTH-04 § 3).
 

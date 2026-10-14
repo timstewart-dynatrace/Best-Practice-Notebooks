@@ -1,6 +1,6 @@
 # IAM-10: Templated Policy-Group Assignments
 
-> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -29,7 +29,7 @@ This notebook walks you through the complete lifecycle: template syntax, UI crea
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM enabled |
 | **Permissions** | `account-user-management` to create/modify policies and bindings |
-| **API Access** | OAuth client or API token with IAM management scopes |
+| **API Access** | OAuth client (bearer token) with IAM management scopes — the Account Management API is secured by OAuth 2.0 tokens |
 | **Prior Knowledge** | **IAM-04: Policy Authoring and Management** (policy syntax, conditions) |
 | **Optional** | Monaco CLI installed (for policy-as-code section) |
 
@@ -73,9 +73,8 @@ Bind parameters are placeholders in the **WHERE condition** of a policy statemen
 **Syntax:** `${bindParam:parameter-name}`
 
 **Rules:**
-- Parameters appear **only** in WHERE condition values
-- Parameter names are **case-sensitive**
-- Names should use alphanumeric characters and hyphens
+- Parameters appear **only** in WHERE condition values — *"Parameters can be used in a policy similarly to how regular condition values are used."*
+- In community practice, teams treat parameter names as case-sensitive and keep them to alphanumeric characters and hyphens — the templating page states no naming rules, so verify a new name with a test binding
 
 ### Single Parameter Example
 
@@ -104,23 +103,30 @@ Binding: `{"parameters": {"team": "checkout", "bucket": "checkout_logs"}}`
 A single template can grant access across multiple data types using the same parameter:
 
 ```
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
 ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
 ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
 ALLOW settings:objects:read WHERE settings:dt.security_context = "${bindParam:team}";
 ```
 
-All four statements resolve using the **same** `team` parameter value from the binding.
+All four scoped statements resolve using the **same** `team` parameter value from the binding.
 
-### Parameter Scope Reference
+> **Every Grail read also needs `storage:buckets:read`.** It is *"Required additionally to a table permission"* — a policy that grants `storage:logs:read` alone returns no records. It is shown unconditional here because it does not take `dt.security_context`; it accepts only `storage:bucket-name`, `storage:table-name` and `storage:query-consumption`, so the record-level scope still comes from the table permissions below it. The templates in this notebook all include it.
 
-| Field | Supports bindParam | Domain |
-|-------|-------------------|--------|
-| `storage:dt.security_context` | Yes | Storage (logs, spans, metrics) |
-| `storage:bucket-name` | Yes | Storage (bucket-level) |
-| `settings:dt.security_context` | Yes | Settings objects |
-| `settings:schemaId` | Yes | Settings schema |
-| `environment:management-zone` | Yes | Entity access |
+### Where Parameters Can Be Used
+
+The templating page does not publish a per-field support list. It says a parameter goes wherever a regular condition value goes, so the conditions each permission accepts — and the operators each condition supports — are the ones in the IAM policy statement reference. The fields this notebook parameterizes:
+
+| Field | Domain | Operators to watch |
+|-------|--------|--------------------|
+| `storage:dt.security_context` | Storage (logs, spans, metrics, events) | Use `MATCH` where the field can hold an array — `=`, `STARTSWITH` and `IN` on an array always return false |
+| `storage:bucket-name` | Storage (bucket-level) | The only storage condition that supports negation |
+| `settings:dt.security_context` | Settings objects | `=`, `IN`, `startsWith` |
+| `settings:schemaId` | Settings schema | |
+| `environment:management-zone` | Classic entity access | |
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — *"Parameters can be used in a policy similarly to how regular condition values are used."*, [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*</sub>
 
 <a id="creating-via-ui"></a>
 ## 3. Creating a Parameterized Policy via UI
@@ -134,7 +140,7 @@ All four statements resolve using the **same** `team` parameter value from the b
 5. Paste the parameterized policy statement with `${bindParam:...}` placeholders
 6. Click **Save**
 
-Dynatrace automatically recognizes the bind parameters and will prompt for their values when the policy is bound to a group.
+Dynatrace recognizes the bind parameters in the saved policy, but parameter **values** cannot be supplied from the group screens: *"Currently, group management does not support binding policies with parameters."* Create the binding through the Account Management API (Section 4) or Terraform (**IAM-95**).
 
 ### Naming Convention for Template Policies
 
@@ -148,12 +154,14 @@ Dynatrace automatically recognizes the bind parameters and will prompt for their
 
 ### Verification
 
-After saving, the policy should appear in the policy list. When you bind it to a group, the UI will display input fields for each `${bindParam:...}` parameter.
+After saving, the policy should appear in the policy list. Bind it with the API calls in Section 4 — group management in the UI cannot bind a parameterized policy.
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — *"Currently, group management does not support binding policies with parameters."*</sub>
 
 <a id="binding-via-api"></a>
 ## 4. Binding with Parameters via IAM API
 
-The UI supports binding, but the **IAM API** enables automation at scale — essential when binding the same template to dozens of groups.
+Binding a parameterized policy is an **API** operation — *"Currently, group management does not support binding policies with parameters"* — so the IAM API (or Terraform, **IAM-95**) is the only path, at any scale.
 
 ### API Endpoints
 
@@ -164,7 +172,7 @@ The UI supports binding, but the **IAM API** enables automation at scale — ess
 | Create binding | POST | `/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}/{groupUuid}` |
 | Delete binding | DELETE | `/iam/v1/repo/{levelType}/{levelId}/bindings/{policyUuid}/{groupUuid}` |
 
-**Authentication:** OAuth2 bearer token or API token with IAM management scopes.
+**Authentication:** OAuth 2.0 bearer token issued to an OAuth client with IAM management scopes. The Account Management API documents OAuth tokens only — classic API tokens are not an option.
 
 ### Step 1: Find Policy UUID
 
@@ -266,6 +274,7 @@ policies:
       type: account
     description: "Parameterized: read access scoped to ${bindParam:team}"
     policy: |-
+      ALLOW storage:buckets:read;
       ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
       ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
       ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
@@ -273,14 +282,14 @@ policies:
 
 The bindings that give `team` its value — `checkout` for one group, `payments` for another — are then created with the IAM API calls in Section 4 or the `dynatrace_iam_policy_bindings_v2` resource in **IAM-95**, both of which accept `parameters`.
 
-> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."*</sub>
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files."* and *"existing commands like `monaco deploy` ignore any account configuration that may be defined in a manifest file."*, [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas) — `account` with `deploy`: *"Deploy Account Management resources."*</sub>
 
 ### GitOps Workflow
 
 1. **Branch** — Create feature branch for IAM change
 2. **Edit** — Modify policy or binding YAML
 3. **Review** — Submit PR, get peer review from IAM admin
-4. **Test** — Deploy to test environment with `monaco deploy`
+4. **Test** — Deploy to a test account with `monaco account deploy` — *"existing commands like `monaco deploy` ignore any account configuration"*
 5. **Approve** — Merge after validation
 6. **Deploy** — CI/CD applies to production
 
@@ -294,6 +303,7 @@ See **AUTOM-03: Monaco** for the full automation workflow.
 The most common pattern — scope all data access by team security context.
 
 ```
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
 ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
 ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
@@ -306,6 +316,7 @@ ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team
 Scope access by environment (prod, staging, dev).
 
 ```
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context = "${bindParam:environment}";
@@ -319,6 +330,9 @@ ALLOW settings:objects:read WHERE settings:dt.security_context = "${bindParam:en
 Hard data isolation using dedicated buckets per team.
 
 ```
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:log-bucket}";
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:span-bucket}";
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:metric-bucket}";
 ALLOW storage:logs:read WHERE storage:bucket-name = "${bindParam:log-bucket}";
 ALLOW storage:spans:read WHERE storage:bucket-name = "${bindParam:span-bucket}";
 ALLOW storage:metrics:read WHERE storage:bucket-name = "${bindParam:metric-bucket}";
@@ -331,6 +345,7 @@ ALLOW storage:metrics:read WHERE storage:bucket-name = "${bindParam:metric-bucke
 Defense-in-depth: require both team and bucket match.
 
 ```
+ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:bucket}";
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context = "${bindParam:team}"
@@ -355,6 +370,8 @@ ALLOW settings:objects:read, settings:objects:write
 Complete replacement of a Management Zone — covers entity, data, and settings access.
 
 ```
+ALLOW storage:buckets:read;
+ALLOW storage:entities:read WHERE storage:dt.security_context = "${bindParam:scope}";
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read
   WHERE storage:dt.security_context = "${bindParam:scope}";
@@ -364,7 +381,11 @@ ALLOW settings:objects:read, settings:objects:write
 
 > **Storage writes cannot be condition-scoped (live-verified 07/2026)** — `storage:*` wildcards are rejected, and `storage:logs:write WHERE ...` fails with `Invalid condition name`. Grant `storage:logs:write, storage:metrics:write, storage:events:write` unscoped in a separate policy only where genuinely needed.
 
-Combined with a **boundary** using the same security context for entity-level restriction.
+> **`storage:entities:read` takes no `MATCH`.** Its conditions are `storage:entity.type` and `storage:dt.security_context`, each with `=`, `IN` and `startsWith` only — and *"entity permissions only allow filtering for the `dt.security_context` field."* Because `=` on an array-valued field always returns false, confirm the entities you need carry a single-valued security context (the coverage queries in Section 7) before relying on this line.
+
+For classic entity-level restriction through management zones, combine it with a **boundary** using the same scope.
+
+> <sub>**Sources:** [IAM policy statements (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"In contrast to monitoring data, entity permissions only allow filtering for the `dt.security_context` field."* and *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*</sub>
 
 **Binding:** `{"parameters": {"scope": "LOB5"}}` or `{"parameters": {"scope": "team-frontend"}}`
 
@@ -376,10 +397,12 @@ Combined with a **boundary** using the same security context for entity-level re
 |---------|------------|----------|
 | Team-Scoped | `team` | Team data isolation via security context |
 | Environment-Scoped | `environment` | Environment-based access control |
-| Bucket-Scoped | `log-bucket`, `span-bucket`, `metric-bucket` | Hard data isolation via buckets |
+| Bucket-Scoped | `log-bucket`, `span-bucket`, `metric-bucket` | Bucket-level isolation for retention, cost or compliance — buckets are *"not intended as the primary mechanism for securing or segmenting data access"* |
 | Combined | `team`, `bucket` | Defense-in-depth (team + bucket) |
 | Settings Schema | `schema-prefix` | Capability-based settings access |
 | Three-Domain | `scope` | Full MZ replacement |
+
+> <sub>**Sources:** [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"They are not intended as the primary mechanism for securing or segmenting data access."*</sub>
 
 <a id="dql-audit-queries"></a>
 ## 7. DQL Audit Queries
@@ -472,7 +495,8 @@ fetch dt.entity.service
 | Parameter not resolved | Access denied despite binding | Parameter name mismatch (case-sensitive) | Verify parameter name matches exactly between policy and binding |
 | Binding not applied | No access at all | Missing binding POST call | Verify binding exists via GET bindings endpoint |
 | Wrong scope | User sees too much or too little | Parameter value incorrect | Check binding parameter values via API |
-| Template change not reflected | Old behavior persists | Caching / eventual consistency | Wait 5 minutes, then re-verify |
+| Template edit rejected | Saving a bound policy fails | The edit adds, removes or renames a parameter | *"Modification of bound policies is allowed only if the parameter set doesn't change."* Keep the parameter names, or create a new template and re-bind |
+| One group needs several scopes | Separate bindings per scope pile up | Each binding carries one value per parameter | Use a **list parameter**: write the condition with `IN ("${bindParam:teams}")` and bind *"a comma-separated list within a single string value"* — e.g. `{"parameters": {"teams": "checkout,payments"}}` |
 | Multiple parameters misaligned | Partial access | One parameter correct, another wrong | Check all parameter values in binding response |
 
 ### Debugging Checklist
@@ -484,6 +508,8 @@ fetch dt.entity.service
 5. **Verify security context** on target entities matches the parameter value
 6. **Test with admin account** to confirm the data exists
 7. **Check audit logs** for denied events (use DQL queries above)
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — *"Modification of bound policies is allowed only if the parameter set doesn't change"*; list values are assigned by *"providing a comma-separated list within a single string value."*</sub>
 
 > **Tip:** Use the GET bindings endpoint to dump all bindings for a policy and programmatically compare parameter values against expected values. This catches typos and mismatches quickly.
 

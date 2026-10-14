@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -98,13 +98,15 @@ For environments where SVG doesn't render
 ### Policy Statement Structure
 
 ```
-<effect> <service>:<resource>:<action> [WHERE <condition>]
+<effect> <service>:<resource>:<action> [WHERE <condition>];
 ```
+
+Every statement ends with a semicolon — the syntax page's form is `ALLOW <permissions> WHERE <conditions>;`.
 
 | Component | Description | Examples |
 |-----------|-------------|----------|
 | **Effect** | Permission type | `ALLOW` or `DENY` (a `DENY` always overrules a matching `ALLOW`) |
-| **Service** | Dynatrace service | `storage`, `settings`, `app` |
+| **Service** | Dynatrace service | `storage`, `settings`, `app-engine` |
 | **Resource** | Resource type | `logs`, `buckets`, `objects` |
 | **Action** | Operation | `read`, `write`, `delete` |
 | **Condition** | Optional filter | `WHERE field = "value"` |
@@ -132,17 +134,17 @@ For environments where SVG doesn't render
 ### Basic Policy Statements
 
 ```
-// Grant read access to all logs
-ALLOW storage:logs:read
+// Grant read access to all logs. A table permission needs a bucket permission
+// alongside it — storage:buckets:read is "Required additionally to a table permission".
+ALLOW storage:buckets:read WHERE storage:table-name = "logs";
+ALLOW storage:logs:read;
 
-// Grant read access to bucket metadata
-// (storage:buckets:write does not exist — buckets are managed via the
-//  Grail bucket-management API, not an IAM storage permission)
-ALLOW storage:buckets:read
+// (storage:buckets:write does not exist — bucket definitions are managed with
+//  storage:bucket-definitions:* permissions, not storage:buckets:*)
 
 // Grant read AND write on logs — enumerate both actions.
 // Wildcards (storage:logs:*) are rejected by the API (live-verified 07/2026).
-ALLOW storage:logs:read, storage:logs:write
+ALLOW storage:logs:read, storage:logs:write;
 ```
 
 ### Common Services and Resources
@@ -151,9 +153,11 @@ ALLOW storage:logs:read, storage:logs:write
 |---------|-----------|----------------|
 | `storage` | `logs`, `spans`, `events`, `metrics`, `bizevents`, `entities`, `system`, `buckets`, `smartscape` | `read` on all; `write` ONLY on `logs`, `metrics`, `events` (never condition-scoped) |
 | `settings` | `objects`, `schemas` | `read`, `write` (objects only) |
-| `app` | `apps`, `functions` | `run`, `install` |
+| `app-engine` | `apps`, `functions`, `edge-connects` | `apps:run`, `apps:install`, `apps:delete`, `functions:run` |
 | `automation` | `workflows` | `read`, `write`, `run` |
-| `document` | `documents` | `read`, `write`, `delete`, `share` |
+| `document` | `documents`, `direct-shares`, `environment-shares` | `read`, `write`, `delete` on documents; sharing is the separate `document:direct-shares:*` and `document:environment-shares:*` permissions |
+
+> <sub>**Sources:** [IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Grants permission to read records from Grail buckets. Required additionally to a table permission."*</sub>
 
 ---
 
@@ -178,16 +182,17 @@ There is **no built-in "Viewer" policy** — compose read-only access from a pla
 | Policy | Use Case |
 |--------|----------|
 | **All Grail data read access** | Unrestricted read across all Grail tables and buckets |
-| **Storage Default Monitoring Read** | Read on the default monitoring buckets; auto-extends as new tables are added |
-| **Read Logs** / **Read Spans** / **Read Metrics** / **Read Events** / **Read Entities** | Granular read, one policy per signal type |
-| **Settings Reader** / **Settings Writer** | Read / read-write of Settings 2.0 objects |
+| **Read Logs** / **Read Spans** / **Read Metrics** / **Read Events** / **Read BizEvents** / **Read Entities** | Granular read, one policy per table (each includes the matching `storage:buckets:read`) |
+| **Read System Events** | The `dt.system.events` table — audit, billing and other system events |
+| **Read Security Events** / **Read Sensitive Data** / **Read User Replays** | Security events, sensitive fieldsets, session replays |
 
-### Environment Role Policies (Classic surface)
+### Settings access
 
-| Policy | Use Case |
-|--------|----------|
-| **Environment role - Access environment** | Viewer-level Classic environment access |
-| **Environment role - Change monitoring settings** | Edit Classic monitoring settings |
+There is no current default policy for writing settings. *Standard User* and *Pro User* already include `settings:objects:read` and `settings:schemas:read`; *Admin User* includes `settings:objects:write`. For a team that edits its own settings, write a small custom policy (§10) and bind it under the team boundary.
+
+### Legacy default policies
+
+*Settings Reader*, *Settings Writer*, *Storage Default Monitoring Read*, *Storage All System Data Read* and every *Environment role - …* policy (*Access environment*, *Change monitoring settings*, *View logs* …) are **legacy default policies**. Dynatrace: *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."* Do not design a migration around them. The classic `environment:roles:*` permissions themselves are still current: *Standard User*, *Pro User* and *Admin User* include `environment:roles:viewer`, and a custom policy can grant any other classic role.
 
 ### Choosing the Right Built-in Policies
 
@@ -196,16 +201,16 @@ There is **no built-in "Viewer" policy** — compose read-only access from a pla
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Persona | Platform policy | Data / settings policies |
 |---|---|---|
-| Viewer / executive | Standard User | Read Logs, Read Metrics (or Storage Default Monitoring Read) |
+| Viewer / executive | Standard User | Read Logs, Read Metrics |
 | Developer | Standard User | Read Logs, Read Spans, Read Metrics, Read Events |
-| Team lead | Pro User | Data reads above, Settings Writer |
-| SRE / operations | Pro User | Storage Default Monitoring Read, Settings Writer |
+| Team lead | Pro User | Data reads above, custom settings-write policy (§10) |
+| SRE / operations | Pro User | All Grail data read access, custom settings-write policy |
 | Platform admin | Admin User | As needed — no boundary, audited |
 | Note | Every default policy also carries classic statements (Standard/Pro/Admin User: environment:roles:viewer; Read Logs: environment:roles:logviewer) | The boundary must scope both domains — §6 and MZ2POL-12 §4 |
 For environments where SVG doesn't render
 -->
 
-> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *"Read Logs Grants unconditional access to the logs table and all log buckets, including all custom log buckets."*</sub>
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *"Read Logs Grants unconditional access to the logs table and all log buckets, including all custom log buckets."* and, for the legacy policies, *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."*</sub>
 
 ---
 
@@ -222,18 +227,20 @@ Policies and boundaries share the same condition syntax.
 | `startsWith` | Prefix match | `field startsWith "prefix"` |
 | `in` | Value in list | `field in ("a", "b", "c")` |
 | `IN` | Value in list (alternative) | `field IN ("a", "b")` |
-| `MATCH` | Wildcard pattern match, any value of a list (only where the attribute lists it) | `field MATCH ('team-*')` |
+| `MATCH` | Wildcard pattern match, any value of a list (only where the attribute lists it — not on `storage:entities:read` or `settings:dt.security_context`) | `field MATCH ("team-*")` |
 
 Not every operator applies to every attribute — the syntax page says so directly: *"Not every operator applies to every service attribute."* The IAM policy reference lists, per attribute:
 
 | Attribute | Operators |
 |---|---|
 | Grail record fields — `storage:dt.security_context`, `storage:dt.host_group.id`, `storage:k8s.namespace.name`, `storage:log.source` … | `=`, `IN`, `startsWith`, `MATCH` — **no negation** |
+| `storage:dt.security_context` on `storage:entities:read` | `=`, `IN`, `startsWith` — **no `MATCH`**. The entity page says the field *"Can be a multi-value field and startsWith will evaluate for any matching value"*; whether `=` and `IN` also match any value of a multi-value entity context is not stated — prefer `startsWith`, and test entity access with a pilot user |
+| `settings:dt.security_context` | `IN`, `=`, `startsWith` — **no `MATCH`** |
 | `storage:bucket-name` | `=`, `!=`, `IN`, `NOT IN`, `startsWith`, `NOT startsWith`, `MATCH` |
 | `environment:management-zone` (on `environment:roles:*`) | `IN`, `startsWith`, `NOT startsWith`, `=`, `!=`, `MATCH` |
 | `settings:schemaId` | `IN`, `=`, `!=`, `startsWith`, `NOT startsWith` |
 
-> <sub>**Sources:** [IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:logs:read`: *"storage:dt.security_context - Custom field for security context."*</sub>
+> <sub>**Sources:** [IAM policy statement syntax and examples (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:logs:read`: *"storage:dt.security_context - Custom field for security context."*, [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Can be a multi-value field and startsWith will evaluate for any matching value."*</sub>
 
 > **Place wildcards next to a word separator.** Dynatrace's guidance is to put the `*` immediately before or after a separator character — `-`, `_`, `.`, or `/` — because `MATCH("db-tech-*")` evaluates more efficiently than `MATCH("db-tech*")`. This is a performance rule rather than a correctness one, but it has a design consequence worth acting on: **build your `dt.security_context` values with explicit separators between dimensions** rather than running them together. A structured value such as `plat:k8s/comp:db/bu:digital/app:easytrade` gives every transversal team a boundary that lands cleanly on a separator, while a concatenated value like `k8sdbdigitaleasytrade` does not.
 >
@@ -243,32 +250,32 @@ Not every operator applies to every attribute — the syntax page says so direct
 
 | Field | Description | Used In |
 |-------|-------------|----------|
-| `environment` | Environment restrictions | Boundaries |
-| `environment:name` | Environment by name | Boundaries |
-| `environment:management-zone` | MZ-based (transitional) | Boundaries |
+| `environment:management-zone` | MZ-based (transitional) | Both |
 | `storage:dt.security_context` | Security context | Both |
 | `storage:bucket-name` | Grail bucket | Both |
-| `settings:schemaId` | Settings schema ID | Policies |
-| `settings:dt.security_context` | Settings security context | Boundaries |
+| `settings:schemaId` / `settings:schemaGroup` | Settings schema, or a group of schemas | Both |
+| `settings:dt.security_context` | Settings security context (edge-set only — MZ2POL-12 §5) | Both |
+
+Boundaries *"support all conditions that are available in the IAM reference"*, so every field above works in a policy `WHERE` and in a boundary line. There is no environment-name condition: to confine a policy to one environment, bind it at that environment's level instead of the account level (§10).
 
 ### Combining Conditions
 
 **AND logic** (all conditions must match):
 ```
-ALLOW storage:logs:read 
+ALLOW storage:logs:read
   WHERE storage:dt.security_context = "team-a"
-  AND storage:bucket-name = "production_logs"
+  AND storage:bucket-name = "production_logs";
 ```
 
 **OR logic** (multiple statements or lines):
 ```
 // In policies: Multiple statements
-ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a"
-ALLOW storage:logs:read WHERE storage:dt.security_context = "team-b"
+ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a";
+ALLOW storage:logs:read WHERE storage:dt.security_context = "team-b";
 
 // In boundaries: repeated lines on the SAME condition multiply the statement (OR)
-storage:dt.security_context = "team-a"
-storage:dt.security_context = "team-b"
+storage:dt.security_context = "team-a";
+storage:dt.security_context = "team-b";
 ```
 
 ---
@@ -277,9 +284,9 @@ storage:dt.security_context = "team-b"
 ## 5. Creating Boundaries
 ### Via UI
 
-1. Navigate to **Account Management** → **Identity & Access Management**
-2. Select **Policy Boundaries** → **Boundaries** tab
-3. Click **Create boundary**
+1. Go to **Account Management** → **Identity & access management** → **Policy management**
+2. Select the **Boundaries** tab
+3. Select **Boundary** to create one
 4. Enter:
    - **Boundary name**: Descriptive name
    - **Boundary query**: Restriction conditions
@@ -290,22 +297,24 @@ storage:dt.security_context = "team-b"
 **Team-Based Boundary:**
 ```
 Name: Frontend Team Scope
-Query: storage:dt.security_context = "team-frontend"
+Query: storage:dt.security_context = "team-frontend";
 ```
 
 **Environment Boundary:**
 ```
 Name: Production Only
-Query: storage:dt.security_context startsWith "prod-"
+Query: storage:dt.security_context MATCH ("prod-*");
 ```
+
+`MATCH` rather than `startsWith`, because event records hold `dt.security_context` as an array and `startsWith` never matches an array (§6).
 
 **Multi-Team Boundary (OR logic):**
 ```
 Name: Platform Teams
 Query:
-storage:dt.security_context = "team-infra"
-storage:dt.security_context = "team-sre"
-storage:dt.security_context = "team-platform"
+storage:dt.security_context = "team-infra";
+storage:dt.security_context = "team-sre";
+storage:dt.security_context = "team-platform";
 ```
 
 ### Boundary Limitations
@@ -323,7 +332,7 @@ storage:dt.security_context = "team-platform"
 A boundary condition scopes only the permissions of its own service. Dynatrace's boundary rules: *"Only conditions added to service configuration will be applied to relative permissions."* The default policies bundle Grail, settings **and** classic statements — *Standard User* includes `environment:roles:viewer`, *Read Logs* includes `environment:roles:logviewer` — so a boundary that replicates a zone needs one line for **every domain the bound policies grant**. During the parallel run that is the zone line and the Grail lines, in the same boundary:
 
 ```text
-// Boundary "LOB5-Scope", bound with Standard User, Read Logs, Read Spans, Read Metrics, Settings Reader
+// Boundary "LOB5-Scope", bound with Standard User, Read Logs, Read Spans, Read Metrics
 storage:dt.security_context MATCH ("LOB5");
 settings:dt.security_context IN ("LOB5");
 environment:management-zone IN ("LOB5");
@@ -352,7 +361,7 @@ For environments where SVG doesn't render
 
 ### Two bindings instead of one boundary
 
-An earlier version of this notebook recommended the opposite: never mix, and split into two parallel bindings — custom storage/settings policies under a Grail-only boundary, plus the classic *Environment role - Access environment* policy under a zone-only boundary. That design also works, and retirement becomes deleting one binding. Two corrections to how it was described:
+An earlier version of this notebook recommended the opposite: never mix, and split into two parallel bindings — custom storage/settings policies under a Grail-only boundary, plus a classic `environment:roles:viewer` statement under a zone-only boundary. (The *Environment role - Access environment* default policy that once carried it is now a legacy policy and cannot be newly assigned — §3.) That design also works, and retirement becomes deleting one binding. Two corrections to how it was described:
 
 - **Bindings combine as a union, not an intersection.** Each binding adds access; neither narrows the other. Dynatrace: *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"*.
 - **It is only safe if each binding's policies stay inside its boundary's domain.** Bind *Standard User* or *Read Logs* under the Grail-only boundary and their classic statements come out unscoped; bind them under the zone-only boundary and their Grail statements do (MZ2POL-12 §4.2 walks through it).
@@ -361,6 +370,8 @@ If you split, use custom storage and settings statements in the Grail binding �
 
 ```text
 // Grail binding — custom policy, bound under a Grail-only boundary
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "metrics", "events");
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:events:read
   WHERE storage:dt.security_context MATCH ("LOB5");
 ALLOW settings:objects:read, settings:objects:write
@@ -370,6 +381,8 @@ ALLOW settings:objects:read, settings:objects:write
 ALLOW environment:roles:viewer
   WHERE environment:management-zone IN ("LOB5");
 ```
+
+`storage:buckets:read` is *"Required additionally to a table permission"* — without it the table permission returns nothing. It accepts only `storage:table-name`, `storage:bucket-name` and `storage:query-consumption` as conditions, never `storage:dt.security_context`, so scope it by table or bucket; the record condition on the table permission does the team scoping.
 
 > <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only conditions added to service configuration will be applied to relative permissions."* and *"Be aware that the management zones referenced in your boundaries only apply to policy statements that support management zones."*, [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — classic statements inside *Standard User* and *Read Logs*.</sub>
 ---
@@ -382,8 +395,10 @@ For organizations using SAML/SSO with Active Directory, bind the group to defaul
 
 | Group (from AD) | Policies | Boundary |
 |---|---|---|
-| `LOB5-Team` | Standard User, Read Logs, Read Spans, Read Metrics, Read Events, Settings Reader | `LOB5-Scope` — the three lines in §6 |
-| `LOB5-Leads` | Pro User, Settings Writer, the same data reads | `LOB5-Scope` |
+| `LOB5-Team` | Standard User, Read Logs, Read Spans, Read Metrics, Read Events | `LOB5-Scope` — the three lines in §6 |
+| `LOB5-Leads` | Pro User, the custom settings-write policy (§10), the same data reads | `LOB5-Scope` |
+
+No settings-read policy is needed: *Standard User* and *Pro User* already grant `settings:objects:read`, and the boundary's `settings:` line scopes it.
 
 ### Key Benefits
 
@@ -435,7 +450,7 @@ For environments where SVG doesn't render
 | MZ Permission | Equivalent Policy + Boundary |
 |---------------|-----------------------------|
 | View only | `Standard User` + data-read policies + Boundary |
-| View + Edit | `Pro User` + `Settings Writer` + Boundary |
+| View + Edit | `Pro User` + data-read policies + custom settings-write policy (§10) + Boundary |
 | Full access to MZ | `Pro User` + `All Grail data read access` + Boundary |
 | Admin in MZ | `Admin User` (or a custom policy) + Boundary |
 
@@ -448,26 +463,22 @@ For environments where SVG doesn't render
 
 **After (Policy + Boundary):**
 ```
-1. Set security context on entities:
-   - Services get dt.security_context = "team-frontend"
+1. Set dt.security_context = "team-frontend" at the source (MZ2POL-10) —
+   on the logs, spans, metrics and events, not only on the service entities.
 
-2. Create two parallel policy bindings — Gen3 with Gen3 boundary, Gen2 with Gen2 boundary:
+2. Create ONE boundary that covers every domain (§6):
+   Boundary "Frontend-Scope":
+     storage:dt.security_context MATCH ("team-frontend");
+     settings:dt.security_context IN ("team-frontend");
+     environment:management-zone IN ("Frontend-Team");   // transitional
 
-   Binding 1 — Gen3 (canonical):
-     ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-           settings:objects:read, settings:objects:write
-     WHERE storage:dt.security_context IN ("team-frontend")
-       AND settings:dt.security_context IN ("team-frontend");
-     (policy WHERE uses AND, not OR — each condition scopes its own service)
-
-   Binding 2 — Gen2 (transitional, until MZ retirement):
-     ALLOW environment:roles:viewer
-     WHERE environment:management-zone IN ("Frontend-Team");
-
-3. Attach both bindings to the group:
+3. Bind the group under that boundary:
    Group: Frontend Developers (SAML)
-   Bindings: Gen3 binding + Gen2 binding (both active during migration window)
+   Policies: Standard User, Read Logs, Read Spans, Read Metrics, Read Events
+   Leads group: Pro User, the same data reads, the custom settings-write policy (§10)
 ```
+
+If you write a custom policy instead of using default ones, give each service its own statement — `ALLOW storage:… WHERE storage:dt.security_context MATCH (…);` and a separate `ALLOW settings:… WHERE settings:dt.security_context IN (…);`. How one `WHERE storage:… AND settings:…` evaluates across two services is not documented, so do not rely on it.
 
 ### Migration Example: Environment MZ
 
@@ -478,21 +489,21 @@ For environments where SVG doesn't render
 
 **After (Policy + Boundary):**
 ```
-1. Set security context on entities:
-   - Hosts get dt.security_context = "prod-{region}"
+1. Set dt.security_context = "prod-{region}" at the source (MZ2POL-10) —
+   on the hosts' logs, spans, metrics and events, not only on the host entities.
 
-2. Create two boundaries (don't mix Gen2 and Gen3 in one):
-   Gen3 boundary "Production - Grail":
-     storage:dt.security_context startsWith "prod-";
+2. Create ONE boundary that covers every domain (§6):
+   Boundary "Production-Scope":
+     storage:dt.security_context MATCH ("prod-*");
      settings:dt.security_context startsWith "prod-";
-   Gen2 boundary "Production - Classic":
-     environment:management-zone IN ("Production");
+     environment:management-zone IN ("Production");     // transitional
 
-3. Bind to group with two parallel bindings:
+3. Bind the group under that boundary:
    Group: Production Operators (SAML)
-   Binding 1 (Gen3): Pro User + data-read policies, Boundary "Production - Grail"
-   Binding 2 (Gen2): Environment role - Access environment, Boundary "Production - Classic"
+   Policies: Pro User, Read Logs, Read Spans, Read Metrics, Read Events
 ```
+
+Why one boundary and not a Grail-only boundary plus a zone-only one: *Pro User* contains `environment:roles:viewer`. Under a Grail-only boundary that statement has no condition that applies to it, so the group would view **every** classic zone (§6, MZ2POL-12 §4.2).
 
 ---
 
@@ -556,18 +567,19 @@ When replacing team-based MZs, use buckets in **both policies AND boundaries**:
 **Either one boundary covering every domain (§6), or two bindings whose policies stay inside their boundary's domain.** The two-binding form, with buckets added:
 
 ```
-// Gen3 policy
+// Gen3 policy — bucket and table permissions, one statement per service
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read,
       storage:spans:read,
-      storage:metrics:read,
-      settings:objects:read,
+      storage:metrics:read;
+ALLOW settings:objects:read,
       settings:objects:write;
 ```
 
 ```
 // Gen3 boundary — scoped by bucket + security context
 storage:bucket-name          IN ("frontend_logs", "frontend_spans", "frontend_metrics");
-storage:dt.security_context  IN ("team-frontend");
+storage:dt.security_context  MATCH ("team-frontend");
 settings:dt.security_context IN ("team-frontend");
 ```
 
@@ -602,14 +614,17 @@ environment:management-zone IN ("Frontend-Team");
 ```
 Group: Checkout-Team (SAML from AD)
 ├── Policy: Checkout Data Access
-│   ├── ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs"
-│   ├── ALLOW storage:spans:read WHERE storage:bucket-name = "checkout_spans"
-│   └── ALLOW storage:metrics:read WHERE storage:bucket-name = "checkout_metrics"
+│   ├── ALLOW storage:buckets:read WHERE storage:bucket-name IN ("checkout_logs", "checkout_spans", "checkout_metrics");
+│   ├── ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs";
+│   ├── ALLOW storage:spans:read WHERE storage:bucket-name = "checkout_spans";
+│   └── ALLOW storage:metrics:read WHERE storage:bucket-name = "checkout_metrics";
 └── Boundary:
     storage:bucket-name IN ("checkout_logs", "checkout_spans", "checkout_metrics");
-    storage:dt.security_context IN ("checkout");
+    storage:dt.security_context MATCH ("checkout");
     environment:management-zone IN ("Checkout-Team");
 ```
+
+The `storage:buckets:read` line is not optional: it is *"Required additionally to a table permission"*, and a table permission on its own reads nothing.
 
 > **For detailed bucket design guidance**, see **ORGNZ-03: Bucket Strategy and Design** which covers naming conventions, retention planning, and cost attribution patterns in depth.
 
@@ -693,46 +708,55 @@ fetch dt.entity.service
 // Policy Name: Frontend Team Log Access
 // Description: Read-only access to frontend service logs
 
-ALLOW storage:logs:read 
-  WHERE storage:dt.security_context = "team-frontend"
-
-ALLOW storage:spans:read 
-  WHERE storage:dt.security_context = "team-frontend"
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans");
+ALLOW storage:logs:read
+  WHERE storage:dt.security_context = "team-frontend";
+ALLOW storage:spans:read
+  WHERE storage:dt.security_context = "team-frontend";
 ```
+
+**Team Settings Editor** (replaces the legacy *Settings Writer* default policy):
+```
+// Policy Name: Team Settings Editor
+// Description: Edit settings, bound under the team boundary
+// The boundary's settings:dt.security_context line scopes the objects;
+// the WHERE below limits which kinds of settings may be edited.
+ALLOW settings:schemas:read;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId IN ("<schema-id>", "<schema-id>");
+```
+
+`settings:objects:write` accepts `settings:schemaId` and `settings:schemaGroup` (a group of schemas), `settings:scope`, `settings:entity.hostGroup` and `settings:dt.security_context`. Drop the `WHERE` to let the team edit every schema inside its boundary.
 
 **Environment-Restricted Admin:**
 ```
 // Policy Name: Development Admin
-// Description: Full access to development environment only
-
-// Reads are condition-scoped; storage writes cannot take WHERE conditions
-// (live-verified) — grant them unscoped only where justified.
-// Caution: event records hold dt.security_context as an ARRAY, and startsWith never
-// matches an array — test that this grants storage:events:read before relying on it.
+// Description: Full data and settings access. Bind it at the ENVIRONMENT level of
+// the development environment — the binding level is what confines it there.
+ALLOW storage:buckets:read;
 ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
       storage:events:read, storage:bizevents:read,
-      storage:entities:read, storage:system:read, storage:buckets:read
-  WHERE storage:dt.security_context startsWith "dev-"
-
-ALLOW settings:objects:read, settings:objects:write
-  WHERE settings:scope startsWith "environment:dev"
+      storage:entities:read, storage:smartscape:read, storage:system:read;
+ALLOW settings:schemas:read, settings:objects:read, settings:objects:write;
 ```
+
+Environment separation comes from **where the policy is bound**, not from a condition: a binding is made at account level (all environments) or at one environment's level. Two conditions an earlier version of this example used do not do what they look like: `settings:scope` holds an exact scope identifier such as an entity ID (`HOST-…`), so `startsWith "environment:dev"` matches nothing; and `storage:buckets:read` accepts only `storage:table-name`, `storage:bucket-name` and `storage:query-consumption`, so a `storage:dt.security_context` condition on it is not valid.
 
 **Dashboard and Notebook Creator:**
 ```
 // Policy Name: Dashboard Creator
 // Description: Create and manage dashboards and notebooks
 
-ALLOW document:documents:read
-ALLOW document:documents:write
-ALLOW document:documents:delete
-ALLOW document:direct-shares:write
+ALLOW document:documents:read, document:documents:write, document:documents:delete;
+ALLOW document:direct-shares:read, document:direct-shares:write;
 
-// Read data for dashboards
-ALLOW storage:logs:read
-ALLOW storage:metrics:read
-ALLOW storage:spans:read
+// Read data for dashboards — bucket permission plus table permissions
+ALLOW storage:buckets:read WHERE storage:table-name IN ("logs", "metrics", "spans");
+ALLOW storage:logs:read, storage:metrics:read, storage:spans:read;
 ```
+
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `settings:scope`: *"The exact scope identifier a setting object has or will have."*; `storage:buckets:read` conditions `storage:table-name`, `storage:bucket-name`, `storage:query-consumption`; [Policy management API - POST bindings of a policy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/bindings/post-policy-binding) — *"An environment policy applies to a specific environment."*</sub>
 
 ---
 

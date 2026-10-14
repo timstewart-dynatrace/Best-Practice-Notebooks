@@ -1,6 +1,6 @@
 # IAM-01: IAM Governance Foundations
 
-> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 1 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Building a Strong Foundation for Identity Management
 Effective IAM governance is the cornerstone of enterprise security. This notebook establishes the framework for managing identities, groups, policies, and access controls in Dynatrace's Gen3 IAM system.
@@ -37,8 +37,9 @@ Dynatrace Gen3 IAM replaces the legacy Management Zone-based access control with
 | Component | Purpose | Scope |
 |-----------|---------|-------|
 | **Policies** | Define what actions users can perform | Account or Environment |
-| **Boundaries** | Filter which entities users can see | Account (applied per binding) |
-| **Buckets** | Physically partition data for team isolation | Environment |
+| **Boundaries** | Narrow what a bound policy grants | Account (applied per binding) |
+| **Record fields** (e.g. `dt.security_context`) | Carry the attribute that policy conditions and boundaries match on | Set at the data source or in OpenPipeline |
+| **Buckets** | Organize data by retention time, cost allocation or query optimization | Environment |
 | **Segments** | Reusable DQL-based data filters | Environment |
 | **Groups** | Collections of users with shared access | Account |
 | **Users** | Individual identities (local or federated) | Account |
@@ -47,13 +48,15 @@ Dynatrace Gen3 IAM replaces the legacy Management Zone-based access control with
 
 Choose the right isolation mechanism for your needs:
 
-| Mechanism | Isolation Type | Reversible | Best For |
+| Mechanism | What It Does | Reversible | Best For |
 |-----------|---------------|------------|----------|
-| **Buckets** | Physical separation | ❌ No | Strict team isolation, compliance |
-| **Boundaries** | Query-time filtering | ✅ Yes | Flexible access scoping |
-| **Segments** | Query-time filtering | ✅ Yes | Ad-hoc data views |
+| **Record-level permissions** (`dt.security_context` in policy conditions or boundaries) | Grants access per record | ✅ Yes | Team access separation — the primary mechanism |
+| **Buckets** | Physical storage partition | ❌ No | Retention time, cost allocation, query optimization |
+| **Segments** | Query-time view filter — never restricts access | ✅ Yes | Ad-hoc data views |
 
-> **⚠️ Key Decision:** If you need **hard data isolation** between teams (e.g., Team A can never see Team B's data), use **Buckets**. If you need flexible, changeable access controls, use **Boundaries**.
+> **⚠️ Key Decision:** If you need **hard data isolation** between teams (e.g., Team A can never see Team B's data), start with **record-level permissions**: set `dt.security_context` on the data and scope each team's policy binding to its value. Partition into **buckets** when the data also needs its own retention time, cost allocation or query scope — Dynatrace states buckets are not the primary access mechanism.
+>
+> <sub>**Sources:** [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"They are not intended as the primary mechanism for securing or segmenting data access."*, *"Buckets are best used for organizing data by retention time, cost allocation, or query optimization."*; [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"set the `dt.security_context` field either at the data source or in the processing pipeline."*</sub>
 
 ### Why Gen3?
 
@@ -63,7 +66,7 @@ The Gen3 model provides several advantages over legacy Management Zones:
 - **Flexibility**: Attribute-based rules adapt as your environment changes
 - **Separation of Concerns**: Policies (actions) separate from boundaries (visibility)
 - **Grail Integration**: Native support for Grail data lakehouse permissions
-- **Bucket Partitioning**: Physical data isolation for compliance and team separation
+- **Record-level Permissions**: Grail access scoped per record, e.g. by `dt.security_context`
 
 > **Note:** If you're migrating from Management Zones, see the **MZ2POL** series for migration guidance. This series assumes you're using Gen3 IAM.
 
@@ -77,7 +80,7 @@ Attribute-Based Access Control (ABAC) evaluates access requests based on attribu
 |-------|-----------|----------|
 | Identity | Users, Groups | Who is requesting access |
 | Policy | Permissions | What actions are allowed |
-| Boundary | Conditions | Which entities are visible |
+| Boundary | Conditions | Narrows the permissions of the policy binding it is attached to |
 | Data view | Segments | Filters what a user chooses to view — never restricts access |
 -->
 
@@ -87,28 +90,39 @@ When a user attempts an action, Dynatrace evaluates:
 
 1. **Identity**: Who is the user? What groups do they belong to?
 2. **Policy**: Does any assigned policy grant this action?
-3. **Boundary**: Is the target entity within their boundary conditions?
+3. **Boundary**: If the policy binding carries a boundary, does the record or object meet that boundary's condition for this permission?
 
-Access is granted only if a policy allows the action and every attached boundary condition is met. Segments then filter what the user *chooses* to view; they never restrict access.
+Access is granted only if a policy allows the action — and, where a boundary is attached to that policy binding, the boundary's conditions for that permission are met. A boundary narrows only the permissions its conditions apply to: a domain the boundary has no condition for is **left unrestricted**, not blocked. When more than one boundary applies to a policy, Dynatrace evaluates each boundary separately, so two boundaries on one binding (one per domain) each leave the other domain unconditional and **widen** access — put every domain's condition in one boundary. Boundaries don't apply to `DENY` statements. Segments then filter what the user *chooses* to view; they never restrict access.
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only conditions added to service configuration will be applied to relative permissions."*, *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"*, *"Boundaries don't apply to `DENY` statements"*. **Derived:** the widening effect of two single-domain boundaries combines the first two quotes.</sub>
 
 ### Policy Statement Structure
 
 ```
-ALLOW <service>:<resource>:<action> [WHERE <condition>]
+ALLOW <service>:<resource>:<action> [WHERE <condition>];
 ```
 
 Example:
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a"
+ALLOW storage:buckets:read;
+ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a";
 ```
+
+Every statement ends with `;`. A Grail table permission such as `storage:logs:read` also needs `storage:buckets:read`.
+
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*</sub>
 
 ### Three Permission Domains
 
 | Domain | Controls | Examples |
 |--------|----------|----------|
-| **Environment** | Smartscape entities (hosts, services) | View hosts, see topology |
-| **Storage** | Grail data (logs, spans, metrics) | Read logs, query spans |
+| **Environment** | Classic environment permissions (`environment:roles:*`), scoped by `environment:management-zone` | Access environment, view data in a management zone |
+| **Storage** | Grail records (logs, spans, metrics, events, entities), scoped by record fields such as `storage:dt.security_context` | Read logs, query spans |
 | **Settings** | Configuration objects | Edit alerting rules |
+
+A boundary that has no condition for one of these domains leaves that domain **unrestricted** for the policy it is bound with.
+
+> <sub>**Sources:** [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:management-zone`: *"Applies the permission on the management zone level for the specified management zone."*; [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only conditions added to service configuration will be applied to relative permissions."*</sub>
 
 <a id="governance-roles-and-responsibilities"></a>
 ## 3. Governance Roles and Responsibilities
@@ -167,7 +181,8 @@ Environment access is granted by binding policies — Dynatrace's default polici
 
 | Policy | Grants |
 |------------|--------|
-| **Standard User** (default policy) | Access the environment and run Dynatrace apps |
+| **Standard User** (default policy) | Access the environment and run Dynatrace apps — **no Grail table reads**, and it does include document write and delete |
+| **All Grail data read access** / **Read Logs**, **Read Spans**, … (default data-access policies) | Unconditional read of all Grail tables, or of one table and its buckets — pair with Standard User |
 | **Pro User** (default policy) | Standard, plus build, deploy and run apps and workflows |
 | **Admin User** (default policy) | Administrative access across all platform services |
 | Custom policies | Fine-grained access per your design |
@@ -185,10 +200,12 @@ Environment Level → Scoped to team/function need
 |-----------|-------------------|------------------------|
 | Platform Admin | account-user-management | Admin User (all) |
 | App Team Lead | account-viewer | Pro User (their env) |
-| Developer | None | Custom policy (read + limited write) |
-| Auditor | account-viewer | Standard User (all) |
+| Developer | None | Standard User + custom policy (scoped reads + limited write) |
+| Auditor | account-viewer | Standard User + a data-access policy (e.g. Read Logs, or All Grail data read access) |
 
-> <sub>**Sources:** [dynatrace_iam_group (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md) — *"Possible values: `account-company-info`, `account-user-management`, `account-viewer`"*; [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies).</sub>
+> **Standard User is not a read-only policy.** It grants no Grail table reads, so on its own it shows no logs, spans or metrics; and it does grant `document:documents:write` and `document:documents:delete`. Pair it with a data-access policy (or a custom `storage:*:read` policy) for read access.
+
+> <sub>**Sources:** [dynatrace_iam_group (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md) — *"Possible values: `account-company-info`, `account-user-management`, `account-viewer`"*; [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — Standard User: *"Grants access to Dynatrace environment and run Dynatrace Apps."*; All Grail data read access: *"Grants unconditional access to ALL Grail tables and to ALL Grail buckets."*</sub>
 
 <a id="centralized-vs-federated-models"></a>
 ## 5. Centralized vs Federated Models
@@ -277,17 +294,21 @@ All IAM changes should follow a controlled process:
 Consider version-controlling your IAM configuration:
 
 ```yaml
-# policies/team-a-readonly.yaml
-name: team-a-readonly
-description: Read-only access for Team A
-statements:
-  - effect: ALLOW
-    service: storage
-    resource: logs
-    action: read
-    conditions:
-      - storage:dt.security_context = "team-a"
+# account/iam.yaml — Monaco account configuration
+policies:
+  - name: team-a-log-reader
+    id: team-a-log-reader
+    level:
+      type: account
+    description: Read Team A logs
+    policy: |-
+      ALLOW storage:buckets:read;
+      ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a";
 ```
+
+Monaco deploys account resources with its dedicated account commands — `monaco deploy` ignores them. See **IAM-04** for the full policy, boundary and group format.
+
+> <sub>**Sources:** [Monaco account configuration (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration) — *"existing commands like `monaco deploy` ignore any account configuration that may be defined in a manifest file"*.</sub>
 
 Benefits:
 - Full audit trail via git history

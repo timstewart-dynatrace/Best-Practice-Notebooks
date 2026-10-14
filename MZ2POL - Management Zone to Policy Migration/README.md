@@ -15,10 +15,10 @@ You do not need every notebook — take the lane for the job your zones do. Note
 
 | Path | Use it when | Read in this order |
 |---|---|---|
-| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
-| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
-| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
-| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
 | **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ## Structure
@@ -42,6 +42,8 @@ You do not need every notebook — take the lane for the job your zones do. Note
 12. [IAM Reference Architecture](markdown/-[MZ2POL]-12-iam-reference-architecture.md) — IAM reference architecture for a former MZ estate — the access model, how a request is evaluated, the boundary pitfalls that widen access, the scoped-settings change, persona walkthrough and classic-role mapping
 13. [Spaces — What Is Coming](markdown/-[MZ2POL]-13-spaces-what-is-coming.md) — Spaces (`dt.space`) — upcoming, not yet documented as available: what is published, what is not, where it would fit, and the no-regret preparation to do now
 14. [Zone Disposition Workshop](markdown/-[MZ2POL]-14-[WORKSHOP]-zone-disposition.md) — Zone disposition workshop — six sessions with the zone owners (triage, jobs, dimensions and tags, rule translation, personas and boundaries, alerting and cutover), pre-work queries, stop conditions and facilitator traps
+15. [Finding Every Zone Consumer](markdown/-[MZ2POL]-15-finding-every-zone-consumer.md) — find every object, script and permission that still references a zone, in all three identifier formats, and build the dependency matrix that gates deletion
+16. [Migrating the Rest of Zone-Scoped Alerting](markdown/-[MZ2POL]-16-migrating-zone-scoped-alerting-artifacts.md) — metric events, maintenance windows, classic SLOs and notification payloads that zones scope, how each migrates, and how to prove parity before cutover
 95. [LAB: End-to-End Migration](markdown/-[MZ2POL]-95-[LAB]-end-to-end-migration.md) — End-to-end LAB — a fictional eight-zone estate migrated from inventory to cutover on simulated records (zero bytes, any tenant), then the same checks on your own data
 99. [Best Practice Summary](markdown/-[MZ2POL]-99-best-practice-summary.md) — Consolidated checklist across notebooks 00–13, the workshop and the LAB — every row names its source notebook
 

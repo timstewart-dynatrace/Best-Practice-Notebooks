@@ -1,6 +1,6 @@
 # MZ2POL-12: IAM Reference Architecture for a Former Management-Zone Estate
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 15 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -239,9 +239,9 @@ The design below is this series' recommendation for an estate leaving management
 | Group (from IdP) | Policies | Boundary |
 |---|---|---|
 | Team developer | Standard User + Read Logs / Read Spans / Read Metrics / Read Events | team-payments |
-| Team lead | Pro User + Settings Writer + data reads | team-payments |
-| Platform / SRE | Pro User + Storage Default Monitoring Read | none — whole estate |
-| Auditor | Standard User + Storage All System Data Read | none |
+| Team lead | Pro User + custom settings-write policy + data reads | team-payments |
+| Platform / SRE | Pro User + All Grail data read access | none — whole estate |
+| Auditor | Standard User + Read System Events | none |
 | Break-glass admin | Admin User | none — few members, audited |
 | Boundary team-payments | storage:dt.security_context MATCH ("payments", "shared"); settings:dt.security_context IN ("payments"); environment:management-zone IN ("Payments"); (transitional) | one condition name per domain |
 | Not recommended | A second "shared" boundary on the same binding — boundaries apply separately, so Standard User's classic viewer comes out unscoped | |
@@ -252,27 +252,32 @@ For environments where SVG doesn't render
 ### Design principles
 
 1. **Groups by team × role, not by zone.** A zone estate typically has many more zones than teams. Consolidate first (MZ2POL-05 §2's "one per dimension" applies to boundaries too).
-2. **Default policies for the "what", boundaries for the "where".** Custom policies only for `DENY` carve-outs or permissions no default covers.
+2. **Default policies for the "what", boundaries for the "where".** Custom policies only for `DENY` carve-outs or permissions no default covers — settings write is one: *Settings Writer*, *Settings Reader*, *Storage Default Monitoring Read*, *Storage All System Data Read* and the *Environment role - …* policies are legacy defaults that *"are not accessible for new policy assignments"*. A team lead's settings-write policy is a few lines (MZ2POL-04 §10).
 3. **One boundary per team, covering every domain the bound policies grant.** `storage:` for Grail, `settings:` for settings, `environment:management-zone` only while classic pages are in use.
 4. **Shared data is a security-context value, not a second boundary.** Give shared infrastructure its own value (`shared`) and add it to the team's `MATCH` list. A list on one condition multiplies the statement (OR) inside one boundary; a second boundary is evaluated separately and can leak (§4.1).
-5. **`MATCH` for `storage:dt.security_context`.** Events carry the field as an array (§10); `MATCH` is the only operator with *"for any value"* semantics.
+5. **`MATCH` for `storage:dt.security_context` wherever the permission accepts it.** Events carry the field as an array (§10); `MATCH` is the only operator with *"for any value"* semantics on records. Two exceptions have no `MATCH`: `settings:dt.security_context` (`IN`, `=`, `startsWith`) and `storage:entities:read` (`=`, `IN`, `startsWith`). For entities, Dynatrace says the context *"Can be a multi-value field and startsWith will evaluate for any matching value"* — it does not say the same for `=` or `IN`, nor what a boundary's `MATCH` line does when it lands on `storage:entities:read` (as it does under *Read Entities* or *All Grail data read access*). That combination is unverified: test entity access with a pilot user before relying on it.
 6. **No broad unscoped data policy for team groups.** One unscoped *Read Logs* in any of the user's groups defeats every boundary (§3).
 7. **Templates when teams exceed a handful.** The same boundary shape becomes one parameterized policy bound per team (MZ2POL-08) — managed via REST API.
 
-> <sub>**Sources:** [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Build your own custom policies only when provided default policies don't fit your requirements or when you want to further limit default policies."*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"you must use the MATCH operator to get "for any value" set semantic."* **Derived:** principles 3, 4 and 6 apply the evaluation rules in §3 and §4 to the default policies.</sub>
+> <sub>**Sources:**</sub>
+> - <sub>[Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Build your own custom policies only when provided default policies don't fit your requirements or when you want to further limit default policies."*</sub>
+> - <sub>[Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"you must use the MATCH operator to get "for any value" set semantic."*</sub>
+> - <sub>[Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — legacy default policies: *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."*</sub>
+> - <sub>[Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Can be a multi-value field and startsWith will evaluate for any matching value."*; [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — operators per permission</sub>
+> - <sub>**Derived:** principles 3, 4 and 6 apply the evaluation rules in §3 and §4 to the default policies.</sub>
 
 <a id="personas"></a>
 ## 7. Persona Walkthrough
 
-Six personas, each traced from the zone setup they had to the bindings that replace it. Policy names are Dynatrace default policies.
+Six personas, each traced from the zone setup they had to the bindings that replace it. Policy names are current Dynatrace default policies, except the team lead's custom settings-write policy — no current default grants settings write below *Admin User*.
 
 | Persona | Classic setup (zone-scoped roles) | Group and policies | Boundary | Sees in Grail | Convenience layer |
 |---|---|---|---|---|---|
 | **Payments developer** | Access environment + View logs on zone *Payments* | Standard User, Read Logs, Read Spans, Read Metrics, Read Events | team-payments | Records with `dt.security_context` *payments* or *shared* | Segment `team = payments` as default (MZ2POL-05) |
-| **Payments team lead** | + Change monitoring settings on *Payments* | Pro User, Settings Writer, data reads | team-payments | Same data; edits settings objects with an edge-set *payments* context | Same segment |
-| **Platform SRE** | Access environment on every zone | Pro User, Storage Default Monitoring Read | none | All default buckets | Segments per team for focus |
+| **Payments team lead** | + Change monitoring settings on *Payments* | Pro User, custom settings-write policy (MZ2POL-04 §10), data reads | team-payments | Same data; edits settings objects with an edge-set *payments* context | Same segment |
+| **Platform SRE** | Access environment on every zone | Pro User, All Grail data read access | none | Every Grail table and bucket | Segments per team for focus |
 | **NOC operator** | Access environment on a *Production* zone | Standard User, Read Events, Read Logs | `storage:dt.security_context MATCH ("prod/*")` — only works if context values carry the stage, e.g. `prod/payments` | Production records of every team | Segment `stage = prod`; problem notifications via MZ2POL-09 |
-| **Auditor** | Viewer on audit dashboards | Standard User, Storage All System Data Read | none | System buckets (`dt_*`): audit, billing, query events | — |
+| **Auditor** | Viewer on audit dashboards | Standard User, Read System Events | none | The `dt.system.events` table — audit and billing events, among others | — |
 | **Support engineer needing request data** | View sensitive request data on *Payments* | Read Sensitive Data, under the team boundary | team-payments | Unmasked sensitive fieldsets — note *Read Sensitive Data* grants `storage:fieldsets:read` unconditionally | — |
 
 Three things the table makes visible:
@@ -281,7 +286,7 @@ Three things the table makes visible:
 - **The support-engineer row is a real gap.** Fieldset access is not record-scoped in the default policy, so the zone that limited *View sensitive request data* to one team has no exact equivalent. Decide per case whether the data-access boundary is sufficient, or grant a custom `storage:fieldsets:read WHERE storage:fieldset-name = "…"` statement.
 - **Segments are on every row as convenience, never as control.** They change the view, not the permission.
 
-> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *"Read Sensitive Data Grants unconditional permissions to read sensitive data in Dynatrace."*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail). **Derived:** each row combines the default-policy contents with the boundary rules in §3–§4.</sub>
+> <sub>**Sources:** [Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *"Read Sensitive Data Grants unconditional permissions to read sensitive data in Dynatrace."* and *"Read System Events Grants read access to all Dynatrace system events data."*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail). **Derived:** each row combines the default-policy contents with the boundary rules in §3–§4.</sub>
 
 <a id="mapping-classic-permissions"></a>
 ## 8. Mapping Classic Zone Permissions
@@ -292,7 +297,7 @@ Dynatrace's role-migration guide maps each classic RBAC role to an `environment:
 |---|---|---|
 | Access environment | `environment:roles:viewer` | Standard User + per-table read policies, under a record-scoped boundary |
 | View logs | `environment:roles:logviewer` | Read Logs, under `storage:dt.security_context` (or `storage:log.source` / `storage:dt.host_group.id`) |
-| Change monitoring settings | `environment:roles:manage-settings` | Settings Writer, under `settings:dt.security_context` (edge-set context only) or `settings:schemaId` |
+| Change monitoring settings | `environment:roles:manage-settings` | A custom policy with `settings:objects:write` (+ `settings:schemas:read`), under `settings:dt.security_context` (edge-set context only) and/or narrowed by `settings:schemaId` / `settings:schemaGroup` |
 | View sensitive request data | `environment:roles:view-sensitive-request-data` | Read Sensitive Data (`storage:fieldsets:read`) — see the §7 gap |
 | Replay sessions (with / without masking) | `environment:roles:replay-sessions-with-masking` / `-without-masking` | Read User Replays (`storage:user.replays:read`); RUM data access via `storage:frontend.name` |
 | View / manage security problems | `environment:roles:view-security-problems` / `manage-security-problems` | Read Security Events; vulnerability service permissions (APPSEC series) |
@@ -420,7 +425,8 @@ On the validation tenant: containers 53%, Kubernetes pods 42%, processes 14%, an
 
 **Boundaries**
 - [ ] Each boundary holds a condition for **every domain** its policies grant — `storage:`, `settings:`, and `environment:management-zone` while classic pages are used
-- [ ] `storage:dt.security_context` conditions use `MATCH` (events are arrays)
+- [ ] `storage:dt.security_context` conditions use `MATCH` where the permission accepts it (events are arrays); `storage:entities:read` and `settings:dt.security_context` have no `MATCH` — entity access tested with a pilot user
+- [ ] No legacy default policy (*Settings Reader/Writer*, *Storage … Read*, *Environment role - …*) in the design
 - [ ] Shared data reached by an extra value on the same condition, not a second boundary
 - [ ] No boundary relies on a host-group or namespace line to scope entities
 

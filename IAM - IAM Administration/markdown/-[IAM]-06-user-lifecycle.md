@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -36,7 +36,7 @@ Users have a lifecycle from creation to deactivation. Effective management requi
 | Stage | Trigger | Actions |
 |-------|---------|----------|
 | Provision | New hire, role change | Create user, assign groups |
-| Activate | First login | MFA setup, accept terms |
+| Activate | First login | IdP sign-in (MFA enforced by the IdP), accept terms |
 | Operate | Ongoing | Access resources, membership changes |
 | Review | Periodic | Verify access still needed |
 | Offboard | Termination, role change | Revoke access, disable account |
@@ -48,7 +48,7 @@ Users have a lifecycle from creation to deactivation. Effective management requi
 |-------|-------------|------------|
 | **Provision** | Create user identity | SCIM, JIT |
 | **Assign** | Add to groups, grant access | SCIM group sync |
-| **Activate** | First login, MFA setup | SSO integration |
+| **Activate** | First login through the IdP | SSO integration |
 | **Operate** | Normal access and usage | N/A |
 | **Review** | Periodic access review | Audit queries |
 | **Modify** | Change groups/access | SCIM update |
@@ -90,24 +90,22 @@ SCIM (System for Cross-domain Identity Management) automatically syncs users and
 3. Users are automatically created, updated, or deactivated
 4. Group memberships stay in sync
 
-### Supported IdPs
+### Documented IdPs
 
-| IdP | SCIM Support | Notes |
-|-----|--------------|-------|
-| Okta | Full | Native integration |
-| Azure AD (Entra ID) | Full | Enterprise app provisioning |
-| OneLogin | Full | Directory provisioning |
-| PingFederate | Full | Provisioning connector |
-| Google Workspace | Partial | Requires adapter |
+| IdP | Dynatrace documentation |
+|-----|-------------------------|
+| Microsoft Entra ID (Azure) | IdP-specific example instructions |
+| Okta | IdP-specific example instructions |
+
+Dynatrace documents example instructions for Azure and Okta only. In community practice, other SCIM 2.0 clients (OneLogin, PingFederate and similar) are connected with the same endpoint and token — verify the behavior against your IdP before relying on it.
 
 ### SCIM Configuration Steps
 
 **In Dynatrace:**
 
-1. Navigate to Account Management → Identity providers
-2. Select your IdP configuration
-3. Enable SCIM provisioning
-4. Copy the SCIM endpoint URL and token
+1. **Verify your domain.** Verification is a DNS TXT record check, and an account needs to verify a domain only once. DNS propagation can take from a few minutes up to 24 hours.
+2. Navigate to **Account Management** → **Identity & access management** → **SCIM configuration**
+3. Copy the SCIM endpoint URL and create a token
 
 **In Your IdP (Example: Okta):**
 
@@ -132,25 +130,29 @@ SCIM (System for Cross-domain Identity Management) automatically syncs users and
 | active | IdP status | Account status |
 | groups | IdP group membership | Group membership |
 
+### SCIM Groups and Permissions
+
+Every group SCIM creates appears in Account Management as a group of type `SCIM`. Those groups are managed by SCIM only: they cannot be removed or modified through Account Management, so change them in the IdP. **SCIM syncs membership, not access.** Permissions for SCIM groups still have to be assigned manually in Dynatrace, so a newly pushed group grants nothing until you bind policies to it.
+
 ### Best Practices
 
 - **Test in sandbox** before production
-- **Map groups explicitly** - don't auto-create
+- **Push only the groups you intend to bind** — each pushed group needs its policy bindings added in Dynatrace
 - **Use consistent naming** between IdP and Dynatrace
 - **Monitor sync status** for failures
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the SCIM `GET /Users` `startIndex` change quoted above.</sub>
+> <sub>**Sources:** [SCIM (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim) — *"Verification is based on a DNS TXT Record check."*; *"Groups of type `SCIM` are managed by SCIM only and cannot be removed or modified through Account Management"*; *"Permissions to SCIM groups still have to be assigned manually in Dynatrace"*. [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the SCIM `GET /Users` `startIndex` change quoted above.</sub>
 
 <a id="just-in-time-provisioning"></a>
 ## 3. Just-in-Time Provisioning
-JIT provisioning creates users automatically on first login via SSO.
+With SAML federation, Dynatrace creates users just in time: a federated user who doesn't yet exist is created automatically at sign-in. There is no setting to switch this on and no default group to configure — it is how SAML federation behaves.
 
 ### How JIT Works
 
 1. User authenticates via SAML SSO
-2. If user doesn't exist, Dynatrace creates them
-3. Group memberships assigned based on SAML assertion
-4. User accesses Dynatrace immediately
+2. If the user doesn't exist, Dynatrace creates them (existing users are updated)
+3. At each successful login, Dynatrace checks the incoming group claims against each group's **SAML Group Attribute Value** and adds the user to every matching group
+4. User accesses Dynatrace with the permissions bound to those groups
 
 ### JIT vs SCIM
 
@@ -164,11 +166,13 @@ JIT provisioning creates users automatically on first login via SSO.
 
 ### Configuring JIT
 
-1. Navigate to Account Management → Identity providers
-2. Select your SAML configuration
-3. Enable "Auto-provision users on login"
-4. Configure default group for new users
-5. Map SAML groups to Dynatrace groups
+JIT needs no separate switch. Configure SAML federation, then map groups:
+
+1. Configure SAML federation for your domain
+2. On each Dynatrace group that should be driven by the IdP, set the **SAML Group Attribute Value** to the IdP group claim it should match
+3. Bind policies to those groups — a user whose claims match no group gets no permissions
+
+> **Caution:** switching an existing `LOCAL` group to SAML removes all of its current user assignments. Membership is then driven by the group claims at each login.
 
 ### JIT Group Mapping
 
@@ -188,6 +192,8 @@ SAML assertion includes groups, which are mapped to Dynatrace groups:
 | No pre-provisioning needed | Group sync only at login |
 | Self-service access | Harder to audit who has access |
 
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"During sign-in, a user that doesn't already exist in Dynatrace is created automatically."*; *"Upon a federated user's successful login, Dynatrace checks incoming group claims against SAML Group Attribute Values"*.</sub>
+
 <a id="user-onboarding-workflows"></a>
 ## 4. User Onboarding Workflows
 ### Standard Onboarding Process
@@ -198,7 +204,7 @@ SAML assertion includes groups, which are mapped to Dynatrace groups:
 | 2 | SCIM syncs user to Dynatrace | Automatic |
 | 3 | User receives welcome email | IT |
 | 4 | User logs in via SSO | User |
-| 5 | User completes MFA setup | User |
+| 5 | User completes MFA enrollment in the identity provider | User |
 | 6 | Access verified | User/Manager |
 
 ### New Employee Checklist
@@ -208,7 +214,7 @@ SAML assertion includes groups, which are mapped to Dynatrace groups:
 □ Employee assigned to appropriate IdP groups
 □ SCIM sync verified (user appears in Dynatrace)
 □ Employee logs in successfully
-□ Employee completes MFA enrollment
+□ Employee completes MFA enrollment in the IdP
 □ Employee confirms access to required data
 ```
 
@@ -230,7 +236,6 @@ For contractors or short-term access:
 |--------|----------|------------|
 | IdP time-limited group | Days to months | IdP policy |
 | Manual group removal | Any | Calendar reminder |
-| OAuth client expiry | Hours to days | Token config |
 
 <a id="user-offboarding"></a>
 ## 5. User Offboarding
@@ -250,7 +255,7 @@ Proper offboarding is critical for security.
 1. User disabled/removed in IdP
 2. SCIM syncs deactivation to Dynatrace
 3. User cannot login
-4. Existing sessions invalidated
+4. In community practice, also confirm that sessions opened before the deactivation have ended — verify the behavior in your own tenant
 
 ### Manual Offboarding Checklist
 
@@ -302,7 +307,6 @@ Non-human identities require special handling.
    - Name and description
    - Grant type (client credentials)
    - Scopes (permissions)
-   - Token lifetime
 4. Save client ID and secret securely
 
 ### OAuth Client Best Practices
@@ -311,7 +315,7 @@ Non-human identities require special handling.
 |----------|------------|
 | One client per application | Isolation, easy revocation |
 | Minimum scopes | Least privilege |
-| Short token lifetime | Reduce exposure |
+| Store the client secret in a secrets manager | The secret mints tokens; OAuth token expiry itself is not configurable |
 | Rotate secrets regularly | Security hygiene |
 | Document ownership | Accountability |
 
@@ -503,7 +507,7 @@ External users can be assigned to any Dynatrace group — the same groups and po
 | **Apply least-privilege policies** | External users should only see what they need |
 | **Use WHERE clauses** to scope access | Restrict to specific environments, schemas, or data boundaries |
 | **Set time-bound access** | Use IdP group expiration or calendar reminders for contractor end dates |
-| **Enforce MFA** | Require multi-factor authentication for all external accounts |
+| **Enforce MFA at the identity provider** | Dynatrace does not configure MFA itself; require it in the IdP that authenticates external users (or in yours, for guest accounts) |
 
 ### Example: Granting a Consultant Read-Only Access
 
@@ -514,6 +518,8 @@ External users can be assigned to any Dynatrace group — the same groups and po
 ALLOW environment:roles:viewer;
 ALLOW settings:objects:read
   WHERE settings:schemaId startsWith "builtin:alerting";
+ALLOW storage:buckets:read
+  WHERE storage:table-name = "logs";
 ALLOW storage:logs:read
   WHERE storage:dt.security_context = "checkout-team";
 ```
@@ -530,8 +536,8 @@ The Account Management API supports programmatic user invitation:
 |-----------|-------------|--------|
 | Invite user | `/iam/v1/accounts/{accountUuid}/users` | POST |
 | List users | `/iam/v1/accounts/{accountUuid}/users` | GET |
-| Add user to group | `/iam/v1/accounts/{accountUuid}/groups/{groupUuid}/users` | POST |
-| Remove user from group | `/iam/v1/accounts/{accountUuid}/groups/{groupUuid}/users/{userUuid}` | DELETE |
+| Add user to groups (body: JSON array of group UUIDs) | `/iam/v1/accounts/{accountUuid}/users/{email}` | POST |
+| Remove user from groups | `/iam/v1/accounts/{accountUuid}/users/{email}/groups?group-uuid={groupUuid}` | DELETE |
 
 ### Security Considerations
 
@@ -542,7 +548,7 @@ The Account Management API supports programmatic user invitation:
 | **Token creation** | External users with appropriate permissions can create API tokens — monitor via audit logs |
 | **Offboarding** | External users must be explicitly removed; they are not deactivated by your corporate IdP offboarding flow |
 | **Regular access reviews** | Review external user access quarterly (or more frequently for privileged access) |
-| **Fallback admin** | Maintain at least one local admin account to prevent lockout during SSO or federation changes |
+| **Fallback admin** | Keep a non-federated user with Account manager permissions as the break-glass account, so an IdP or federation problem cannot lock you out |
 
 ### External User Offboarding Checklist
 
@@ -603,6 +609,10 @@ In this notebook, you learned:
 - [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; pre-release)
 - [Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints) — *"For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens."*
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)
+- [Add a user to groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/post-user-groups) — *"Add user to user groups. Existing memberships are unaffected."*
+- [Remove a user from groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/delete-user-groups)
+- [Token concepts (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts) — the IAM token types table lists *"Expiry configurable?"* as *"No"* for OAuth tokens
+- [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace."*; break-glass: *"we recommend that you invite a non-federated user to the environment with Account manager permissions"*
 
 ---
 

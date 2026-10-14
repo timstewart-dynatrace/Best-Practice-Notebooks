@@ -1,6 +1,6 @@
 # MOBL-06: Crash Reporting & ANR Detection
 
-> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** MOBL — Mobile Monitoring | **Notebook:** 6 of 12 | **Created:** February 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -234,7 +234,7 @@ See which applications and platforms have the highest crash volume over the last
 // Crash count by application over last 7 days
 fetch user.events, from:-7d
 | filter characteristics.has_crash
-| summarize crash_count = count(), affected_sessions = countDistinct(dt.rum.session.id), by:{frontend.name, os.name}
+| summarize {crash_count = count(), affected_sessions = countDistinct(dt.rum.session.id)}, by:{frontend.name, os.name}
 | sort crash_count desc
 ```
 

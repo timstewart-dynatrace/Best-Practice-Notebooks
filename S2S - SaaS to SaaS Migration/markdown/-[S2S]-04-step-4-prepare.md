@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -464,7 +464,7 @@ fetch dt.system.events, from:-24h
 | filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS"
 | filter in(event.type, {"CREATE", "UPDATE", "DELETE"})
 | filter user.id != "system"
-| summarize changes = count(), last_change = takeMax(timestamp), by:{user.id, details.dt.settings.schema_id}
+| summarize {changes = count(), last_change = takeMax(timestamp)}, by:{user.id, details.dt.settings.schema_id}
 | sort changes desc
 | limit 20
 ```

@@ -1,6 +1,6 @@
 # MZ2POL-08: Templated Policies for MZ Migration
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 9 of 15 | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 9 of 17 | **Created:** February 2026 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -26,8 +26,8 @@ This notebook shows how to convert common MZ access patterns into parameterized 
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM and Grail enabled |
-| **Permissions** | Account permission **View and manage users and groups** (`account-user-management`) for group and binding management — there is no `account-iam-admin` permission ([Role-based permissions (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/role-based-permissions)) |
-| **API Access** | OAuth client or API token with IAM management scopes |
+| **Permissions** | Account permission **View and manage users and groups** for group management in Account Management ([Role-based permissions (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/role-based-permissions)) |
+| **API Access** | An **OAuth client** — the Account Management API authenticates with OAuth tokens — with `account-idm-read` to list groups ([GET groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups)) and `iam-policies-management` to create policies and bindings ([POST bindings of a policy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/bindings/post-policy-binding) — *"Allow IAM policy configuration for environments"*) |
 | **Prior Knowledge** | **MZ2POL-04: Policies and Boundaries** (G-P-B pattern, policy syntax) |
 | **Migration Status** | MZ assessment complete (**MZ2POL-03**), security context assigned |
 
@@ -36,30 +36,34 @@ This notebook shows how to convert common MZ access patterns into parameterized 
 
 ### The Scale Problem
 
-The average Dynatrace customer has **92 Management Zones** with **1,700 conditions**. Each MZ needs a policy equivalent. Without templates, that means creating and maintaining 92 individual policies.
+In community practice, large estates run to dozens of management zones. Not every zone does an access job — some only filter or route alerts (MZ2POL-03) — but every zone that does would need its own policy if each were translated one-to-one.
 
 | Approach | Policies to Create | Maintenance Effort | Audit Complexity |
 |----------|-------------------|-------------------|------------------|
-| **One policy per MZ** | 92 | High — each permission change requires 92 edits | 92 policies to review |
-| **Templated policies** | 3-5 templates | Low — edit template once, all bindings updated | 3-5 templates + bindings |
+| **One policy per MZ** | One per access zone | High — each permission change is repeated in every policy | One policy per zone to review |
+| **Templated policies** | A few templates | Low — edit template once, all bindings updated | A few templates + bindings |
 
-### Where Templates Fit in the 6-Phase Migration
+### Where Templates Fit in the Migration Phases
 
-Templates are most impactful in Phases 3-5 of the migration (from **MZ2POL-06**):
+Templates matter most in Phases 3 and 5 of **MZ2POL-06**:
 
-| Phase | Activity | Template Role |
+| Phase (MZ2POL-06) | Activity | Template Role |
 |-------|----------|---------------|
-| Phase 1: Assessment | Inventory MZs | Classify MZ types → identify which template to use |
-| Phase 2: Tagging | Set security context | Values become template parameter values |
-| **Phase 3: Access Management** | Create policies | **Create 3-5 templates instead of 92 policies** |
-| **Phase 4: Implementation** | Bind to groups | **Bulk bind via IAM API script** |
-| **Phase 5: Validation** | Verify access | **DQL queries to validate bindings** |
-| Phase 6: Cutover | Remove MZs | No template impact |
+| Phase 1: Foundation Setup | Create groups, map zones to groups | Classify each zone → pick the template it uses |
+| Phase 2: Security Context Assignment | Set security context at the source | Values become template parameter values |
+| **Phase 3: Policy & Boundary Configuration** | Create policies and bindings | **Create a few templates instead of one policy per zone; bulk bind via the IAM API** |
+| Phase 4: Segment Creation | Segments | No template impact |
+| **Phase 5: Parallel Running** | Verify access | **Effective permissions + DQL to validate bindings** |
+| Phases 6–7: Cutover, Cleanup | Remove zones | No template impact |
 
 <a id="converting-mz-patterns"></a>
 ## 2. Converting MZ Patterns to Parameterized Policies
 
-Each MZ type (from the **MZ2POL REFERENCE**) maps to a specific template pattern.
+Each MZ type maps to a specific template pattern. Every template below follows three rules:
+
+- **A bucket permission for every table permission.** `storage:buckets:read` is *"Required additionally to a table permission"*. It does not accept `storage:dt.security_context`, so it is scoped by table name; the record condition on the table permission does the team scoping.
+- **`IN` with a list-valued parameter** for `logs`, `spans`, `metrics` and `bizevents` — documented for templates, and one binding can then carry several values (Pattern C).
+- **Events in their own statement with `MATCH`.** Event records hold `dt.security_context` as an array, which `=`, `IN` and `startsWith` never match (warning below).
 
 ### Vertical MZ (Environment-Based)
 
@@ -67,10 +71,14 @@ Each MZ type (from the **MZ2POL REFERENCE**) maps to a specific template pattern
 
 **Template:**
 ```
-ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-      storage:events:read, storage:bizevents:read
-  WHERE storage:dt.security_context = "${bindParam:environment}";
-ALLOW settings:objects:read WHERE settings:dt.security_context = "${bindParam:environment}";
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "metrics", "events", "bizevents");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN ("${bindParam:environment}");
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH ("${bindParam:environment}");
+ALLOW settings:objects:read
+  WHERE settings:dt.security_context IN ("${bindParam:environment}");
 ```
 
 **Bindings:**
@@ -83,9 +91,9 @@ ALLOW settings:objects:read WHERE settings:dt.security_context = "${bindParam:en
 
 **Template:**
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
-ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
-ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
+ALLOW storage:buckets:read WHERE storage:table-name IN ("logs", "spans", "metrics");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
+  WHERE storage:dt.security_context IN ("${bindParam:team}");
 ```
 
 **Binding:** `{"parameters": {"team": "team-frontend"}}`
@@ -94,35 +102,36 @@ ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team
 
 **Before:** MZ "LOB5" with combined host group + service tag rules.
 
-**Template (three-domain, matching MZ2POL-04 best practice):**
+**Template (Grail and settings — the classic domain is covered below):**
 ```
-ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-      storage:events:read, storage:bizevents:read
-  WHERE storage:dt.security_context = "${bindParam:lob}";
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "metrics", "events", "bizevents");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN ("${bindParam:lob}");
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH ("${bindParam:lob}");
 ALLOW settings:objects:read, settings:objects:write
-  WHERE settings:dt.security_context = "${bindParam:lob}";
+  WHERE settings:dt.security_context IN ("${bindParam:lob}");
 ```
 
 > **Storage writes cannot be condition-scoped (live-verified 07/2026):** wildcards are rejected and `storage:logs:write WHERE ...` fails with `Invalid condition name`. Where a LOB genuinely needs ingest/write access, grant `storage:logs:write, storage:metrics:write, storage:events:write` unscoped in a separate policy.
 
-> ⚠️ **`storage:events:read` with `=` or `startsWith` may match none of a team's events — test before rollout.** Grail's permission docs: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`. If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* On the validation tenant (10/05/2026, 24 h), **every** `events` record that carried `dt.security_context` carried it as an array — `DAVIS_EVENT` 72,235, `SYNTHETIC_EVENT` 27,032, `FLEET_EVENT` 4,576, `DAVIS_PROBLEM` 460, no string-typed record — while logs carried it as a string. A template that bundles `storage:events:read` into a `= "${bindParam:…}"` or `startsWith` statement can therefore give the bound group none of its own Davis events, problems or synthetic events, and nothing errors. The policy reference lists `match` as an operator for `storage:dt.security_context` on `storage:events:read`, but the templating docs show bound parameters only with `=` and `IN`, so whether `MATCH ("${bindParam:team}")` is accepted is not documented. Before rolling these templates out, bind one to a test group and confirm a member can `fetch events` for the team's context; if not, grant events in a separate, non-templated statement that uses `MATCH`.
+> ⚠️ **Events need `MATCH`, and `MATCH` with a parameter is not documented — test before rollout.** Grail's permission docs: *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`. If you expect your record filters might contain an array, use the `MATCH` operator in your IAM statements."* On the validation tenant (10/05/2026, 24 h), **every** `events` record that carried `dt.security_context` carried it as an array — `DAVIS_EVENT` 72,235, `SYNTHETIC_EVENT` 27,032, `FLEET_EVENT` 4,576, `DAVIS_PROBLEM` 460, no string-typed record — while logs carried it as a string. A template that puts `storage:events:read` in a `= "${bindParam:…}"`, `IN` or `startsWith` statement therefore gives the bound group none of its own Davis events, problems or synthetic events, and nothing errors — which is why the templates here put events in a separate `MATCH` statement. The policy reference lists `MATCH` for `storage:dt.security_context` on `storage:events:read`, but the templating docs show bound parameters only with `=` and `IN`, so whether `MATCH ("${bindParam:team}")` is accepted — and whether a comma-separated list value expands inside it — is not documented. Before rolling these templates out, bind one to a test group and confirm a member can `fetch events` for the team's context; if not, grant events in a separate, non-templated statement that uses `MATCH` with literal values.
 
-> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*, [IAM policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements).</sub>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*, [IAM policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating), [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:buckets:read`: *"Required additionally to a table permission."*</sub>
 
-Combined with **two parallel boundaries** using the same scope (Gen2 boundary attaches to Gen2 policy, Gen3 boundary attaches to Gen3 policy):
+**Binding:** `{"parameters": {"lob": "LOB5"}}`
+
+The template holds only `storage:` and `settings:` statements and its parameter already scopes them, so it needs no boundary. The classic surface is a separate grant: the group still needs a platform policy — *Standard User* or *Pro User* — to use the environment at all, and both contain `environment:roles:viewer`. Bind that platform policy under **one** boundary that covers every domain, as in MZ2POL-04 §6:
 
 ```
-// Gen3 boundary — pairs with Gen3 policies (storage:* / settings:*)
-storage:dt.security_context IN ("LOB5");
+// Boundary "LOB5-Scope" — for the platform policy binding
+storage:dt.security_context MATCH ("LOB5");
 settings:dt.security_context IN ("LOB5");
+environment:management-zone IN ("LOB5");   // transitional — delete at retirement
 ```
 
-```
-// Gen2 boundary — pairs with Gen2 policies (environment:*), transitional
-environment:management-zone IN ("LOB5");
-```
-
-**Binding:** `{"parameters": {"lob": "LOB5"}}` — applied to both bindings on the group.
+Never bind the platform policy under a Grail-only boundary: `environment:roles:viewer` has no condition there that applies to it, so the group would view every classic zone (MZ2POL-12 §4.2).
 
 ### Conversion Decision Table
 
@@ -130,8 +139,7 @@ environment:management-zone IN ("LOB5");
 |---------|--------------|------------|------------------|
 | Vertical (environment) | Environment-scoped | `environment` | Yes — restrict to environment |
 | Horizontal (team) | Team-scoped | `team` | Yes — restrict to security context |
-| LOB | Full three-domain | `lob` | Yes — three-domain boundary |
-
+| LOB | Full three-domain | `lob` | On the platform-policy binding — three-domain boundary |
 | Bucket-based | Bucket-scoped | `log-bucket`, `span-bucket` | Optional |
 
 > **Transversal access tip:** For organisations where some teams need cross-application access by component type (database, networking, OS), consider a structured `comp:<component>/bu:<business-unit>/app:<application>` context format. A single template with `MATCH('comp:db*')` then covers all database-layer data across every application — no per-app policy per team needed. See **IAM-04: Policy Authoring** for the full pattern.
@@ -167,9 +175,9 @@ These patterns map directly from MZ permission levels to template bindings.
 
 **Template:** `tpl-team-data-reader`
 ```
-ALLOW storage:logs:read WHERE storage:dt.security_context = "${bindParam:team}";
-ALLOW storage:spans:read WHERE storage:dt.security_context = "${bindParam:team}";
-ALLOW storage:metrics:read WHERE storage:dt.security_context = "${bindParam:team}";
+ALLOW storage:buckets:read WHERE storage:table-name IN ("logs", "spans", "metrics");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read
+  WHERE storage:dt.security_context IN ("${bindParam:team}");
 ALLOW document:documents:read;
 ```
 
@@ -181,11 +189,14 @@ ALLOW document:documents:read;
 
 **Template:** `tpl-team-data-editor`
 ```
-ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-      storage:events:read, storage:bizevents:read
-  WHERE storage:dt.security_context = "${bindParam:team}";
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "metrics", "events", "bizevents");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN ("${bindParam:team}");
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH ("${bindParam:team}");
 ALLOW settings:objects:read, settings:objects:write
-  WHERE settings:dt.security_context = "${bindParam:team}";
+  WHERE settings:dt.security_context IN ("${bindParam:team}");
 ALLOW document:documents:read, document:documents:write, document:documents:delete;
 ```
 
@@ -195,19 +206,19 @@ ALLOW document:documents:read, document:documents:write, document:documents:dele
 
 **Replaces:** User assigned to multiple MZs (e.g., "Checkout" AND "Shared-Services").
 
-**Solution:** Create **two bindings** of the same template with different parameter values to the same group:
+**Solution:** Bind the template **once**, with a list value. The templates above use `IN ("${bindParam:team}")`, and the templating docs state that *"A list of values can be assigned to a parameter while binding the policy to a group by providing a comma-separated list within a single string value."*
 
 ```bash
-// Binding 1: Checkout access
+# One binding, two scopes
 curl -X POST "${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}" \
-  -d '{"parameters": {"team": "checkout"}}'
-
-// Binding 2: Shared services access
-curl -X POST "${API_BASE}/bindings/${POLICY_UUID}/${GROUP_UUID}" \
-  -d '{"parameters": {"team": "shared-services"}}'
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H 'Content-Type: application/json' \
+  -d '{"parameters": {"team": "checkout,shared-services"}}'
 ```
 
-Both bindings are additive — the user gets access to both scopes.
+Whether a second POST of the same policy to the same group with a different value adds a second binding or replaces the first is not documented — use the list value. The list does **not** reach the events statement unless your test binding shows that `MATCH` expands it (§2).
+
+> <sub>**Sources:** [Policy templating (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policy-templating) — *"A list of values can be assigned to a parameter while binding the policy to a group by providing a comma-separated list within a single string value."*</sub>
 
 ### Pattern D: Regional MZ Replacement
 
@@ -215,15 +226,19 @@ Both bindings are additive — the user gets access to both scopes.
 
 **Template:** `tpl-region-reader`
 ```
-ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
-      storage:events:read, storage:bizevents:read
+ALLOW storage:buckets:read
+  WHERE storage:table-name IN ("logs", "spans", "metrics", "events", "bizevents");
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read, storage:bizevents:read
   WHERE storage:dt.security_context startsWith "${bindParam:region-prefix}";
-ALLOW settings:objects:read WHERE settings:dt.security_context startsWith "${bindParam:region-prefix}";
+ALLOW storage:events:read
+  WHERE storage:dt.security_context MATCH ("${bindParam:region-prefix}*");
+ALLOW settings:objects:read
+  WHERE settings:dt.security_context startsWith "${bindParam:region-prefix}";
 ```
 
 **Binding:** `{"parameters": {"region-prefix": "us-east"}}`
 
-> **Patterns B and D grant `storage:events:read` with `=` / `startsWith`.** Event records hold `dt.security_context` as an array, which those operators never match — read the warning in §2 and test a binding before rollout.
+> **Patterns B and D grant `storage:events:read` with `MATCH` and a parameter** — the one combination here the templating docs do not show. Read the warning in §2 and test a binding before rollout. The templating docs likewise show parameters only with `=` and `IN`, so test Pattern D's `startsWith` the same way.
 
 ### Pattern Summary
 
@@ -231,13 +246,13 @@ ALLOW settings:objects:read WHERE settings:dt.security_context startsWith "${bin
 |---------|-------------------|----------|----------------|
 | A | Viewer in MZ | `tpl-team-data-reader` | Read only |
 | B | Editor in MZ | `tpl-team-data-editor` | Read + write |
-| C | Multiple MZs | Same template, multiple bindings | Additive access |
+| C | Multiple MZs | Same template, one binding with a list value | Comma-separated parameter |
 | D | Regional MZ | `tpl-region-reader` | Prefix match |
 
 <a id="bulk-binding"></a>
 ## 4. Bulk Binding via IAM API
 
-Organizations with 92 MZs cannot bind one at a time via the UI. Use the IAM API for bulk operations — templated bindings cannot be made in the UI at all.
+An estate with dozens of zones is impractical to bind one at a time — and templated bindings cannot be made in the UI at all. Use the IAM API for bulk operations.
 
 ![From zone inventory to verified bindings](images/08-bulk-binding-pipeline.png)
 
@@ -293,10 +308,10 @@ for team in "${!TEAM_GROUPS[@]}"; do
     -H 'Content-Type: application/json' \
     -d "{\"parameters\": {\"team\": \"${team}\"}}" \
     -o /dev/null -w "%{http_code}")
-  if [ "$HTTP_CODE" == "201" ]; then
-    echo "Created"
-  elif [ "$HTTP_CODE" == "409" ]; then
-    echo "Already exists"
+  if [[ "$HTTP_CODE" == 2* ]]; then
+    echo "Bound (HTTP ${HTTP_CODE})"
+  elif [ "$HTTP_CODE" == "400" ]; then
+    echo "HTTP 400: parameter mismatch, or binding may already exist; check with the GET below"
   else
     echo "ERROR (HTTP ${HTTP_CODE})"
   fi
@@ -319,11 +334,10 @@ curl -s -X GET \
 
 | HTTP Code | Meaning | Action |
 |-----------|---------|--------|
-| 201 | Binding created | Success |
-| 400 | Bad request | Check parameter names match policy template |
+| 2xx | Binding created | Success (the exact code is not stated on the templating page; treat any 2xx as success) |
+| 400 | Bad request | The policy templating page documents a 400 when the supplied parameters do not match the template, listing the expected and supplied sets. Check the names, then check whether the binding already exists |
 | 401 | Unauthorized | Refresh token |
 | 404 | Policy/group not found | Verify UUIDs |
-| 409 | Binding already exists | Skip or update |
 
 <a id="validating-access"></a>
 ## 5. Validating Migrated Access with DQL
@@ -331,20 +345,20 @@ curl -s -X GET \
 After binding templated policies, validate that migrated access matches the original MZ-based access.
 
 ```dql
-// Validate: All services have security context for migration
-fetch dt.entity.service
-| summarize
-    total = count(),
-    withContext = countIf(isNotNull(dt.security_context)),
-    missingContext = countIf(isNull(dt.security_context))
-| fields total, withContext, missingContext,
-         coveragePercent = round(100.0 * withContext / total, decimals: 2)
+// Validate: what share of the RECORDS carry a security context?
+// Templates scope records, not entities. Entity coverage misleads: on the validation tenant
+// every service carried an MZ-derived context while many logs and events carried none.
+// Records without the field are invisible to every group scoped by dt.security_context.
+fetch logs, from:-1h
+| summarize {records = count(), without_sc = countIf(isNull(dt.security_context))}
+| fieldsAdd table = "logs"
+| append [fetch spans, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context))} | fieldsAdd table = "spans"]
+| append [fetch events, from:-1h | summarize {records = count(), without_sc = countIf(isNull(dt.security_context) or arraySize(dt.security_context) == 0)} | fieldsAdd table = "events"]
+| fieldsAdd covered_pct = round(100.0 * (records - without_sc) / records, decimals: 1)
+| fields table, records, without_sc, covered_pct
 
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
-//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
-//     would miscount coverage.
+// Validation tenant, 10/13/2026: logs 58.9% covered, spans 100%, events 24.6%.
+// events holds dt.security_context as an array, so an empty [] counts as missing too.
 ```
 
 ```dql
@@ -356,7 +370,12 @@ fetch dt.entity.service
     hasContext = countIf(matchesValue(dt.security_context, "team-frontend")),
     inBoth = countIf(in(managementZones, {"Frontend-Team"}) and matchesValue(dt.security_context, "team-frontend"))
 | fields inMZ, hasContext, inBoth,
-         match = if(inMZ == inBoth, then: "ALIGNED", else: "GAPS EXIST")
+         match = if(inMZ == 0, then: "ZONE NOT FOUND - check the zone name",
+                 else: if(inMZ == inBoth, then: "ALIGNED", else: "GAPS EXIST"))
+
+// A misspelled or deleted zone has no members, so inMZ == inBoth == 0 — without the first
+// branch that reads as "ALIGNED". Executed 10/13/2026: a non-existent zone returns
+// "ZONE NOT FOUND"; a real zone with no matching context returns "GAPS EXIST".
 
 // Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
 // the classic constructs this migration replaces, so keep the classic query above:
@@ -438,7 +457,7 @@ During validation, keep both access models active:
 
 ### Migration Completion Checklist (Per MZ)
 
-- [ ] Security context set on all entities that were in this MZ
+- [ ] Security context set at the source on the records (logs, spans, metrics, events) this MZ scoped — not only on its entities
 - [ ] Template policy created (or existing template identified)
 - [ ] Binding created with correct parameter value
 - [ ] Boundary created with matching scope (all three domains)
@@ -457,7 +476,7 @@ For comprehensive template syntax and patterns, see **IAM-10: Templated Policy-G
 
 In this notebook, you learned:
 
-1. Why policy templates are essential for large-scale MZ migration (3-5 templates vs 92 policies)
+1. Why policy templates are essential for large-scale MZ migration (a few templates instead of one policy per zone)
 2. How to convert vertical, horizontal, and LOB MZ patterns to parameterized policies
 3. Four template patterns for common MZ replacement scenarios
 4. Bulk binding automation via the IAM API

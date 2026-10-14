@@ -1,6 +1,6 @@
 # MZ2POL-06: Migration Execution
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 7 of 15 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 7 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
 
 ## Overview
 
@@ -27,10 +27,12 @@ This notebook provides a step-by-step guide for executing your migration from Ma
 
 ## Prerequisites
 
-- Completed MZ2POL-01 through MZ2POL-05
+- Completed MZ2POL-01 through MZ2POL-05, and the zone-disposition workshop (MZ2POL-14) if you ran one
 - Migration plan document (from MZ2POL-03)
-- Policies and boundaries configured (from MZ2POL-04)
+- Tag readiness gate passed — context on the data, rules translated (MZ2POL-10, MZ2POL-11)
+- Policies and boundaries configured (MZ2POL-04, checked against MZ2POL-12; templated per MZ2POL-08 if teams are many)
 - Segments created (from MZ2POL-05)
+- If zones scope alerting: replacement workflows built and running in parallel (MZ2POL-09)
 
 ## Learning Objectives
 
@@ -231,12 +233,14 @@ For dashboards currently using MZ filtering:
 
 ### Segment Rollout Strategy
 
-| Phase | Action |
-|-------|--------|
-| Week 1 | Create all segments, test internally |
-| Week 2 | Share segments with pilot users |
-| Week 3 | Update key dashboards to use segments |
-| Week 4 | Communicate segment availability to all users |
+There is no documented schedule. In community practice teams roll segments out in four steps, moving to the next when the previous one is confirmed rather than on a fixed week:
+
+| Step | Action | Move on when |
+|-------|--------|--------|
+| 1 | Create all segments, test internally | Each segment's filter returns the expected records (MZ2POL-05 §7) |
+| 2 | Share segments with pilot users | Pilot users confirm the views |
+| 3 | Update key dashboards to use segments | Dashboard owners sign off |
+| 4 | Communicate segment availability to all users | — |
 
 ---
 
@@ -268,31 +272,44 @@ For environments where SVG doesn't render
 
 ### Validation Queries
 
-Compare data visibility between systems:
+Compare each zone with its replacement **on the data**, not by counting entities — an entity's security context can be copied from its zone name and match 100% while its records carry nothing (§3). The first query sizes the gap; the second lists where to fix it.
 
 ```dql
-// Compare: Services visible via MZ
-// Run as user with MZ access
-fetch dt.entity.service
-| filter in(managementZones, {"Frontend-Team"})
-| summarize mzServiceCount = count()
+// Compare, on the DATA: records from the zone's hosts vs records carrying the replacement security context.
+// Run as an unscoped (admin) user. Classic zone roles do not scope Grail reads — only record
+// fields such as dt.security_context do (MZ2POL-12 §1) — so this is a coverage check, not an access test.
+// Replace the zone name and the security-context value. Executed 10/13/2026 against a real zone/value pair.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| lookup [fetch dt.entity.host | fields id, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {managementZones}
+| fieldsAdd in_zone = in("Frontend-Team", managementZones),
+            has_context = dt.security_context == "team-frontend"
+| summarize {zone_records = countIf(in_zone),
+             context_records = countIf(has_context),
+             zone_missing_context = countIf(in_zone and not(coalesce(has_context, false))),
+             context_outside_zone = countIf(coalesce(has_context, false) and not(in_zone))}
 
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - management zones have NO Smartscape node equivalent; they are what this migration
-//     replaces with segments and policies.
+// zone_missing_context: records the team sees today through the zone and would lose.
+// context_outside_zone: records the new value grants that the zone never did — confirm they are intended.
+// dt.security_context is a string on logs on the validation tenant; on events it is an array (MZ2POL-12 §10).
 ```
 
 ```dql
-// Compare: Services visible via Segment
-// Should match MZ count
-fetch dt.entity.service
-| filter matchesValue(tags, "team:frontend")
-| summarize segmentServiceCount = count()
+// Where the zone's records lack the replacement value: per host, with the value they carry instead.
+// Fix each row at the source (MZ2POL-10 §5) — not on the entity.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| lookup [fetch dt.entity.host | fields id, entity.name, managementZones],
+    sourceField: dt.entity.host, lookupField: id, fields: {entity.name, managementZones}
+| filter in("Frontend-Team", managementZones)
+| filter not(coalesce(dt.security_context == "team-frontend", false))
+| summarize {records = count()}, by:{entity.name, dt.security_context}
+| sort records desc
+| limit 20
 
-// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
-// the classic constructs this migration replaces, so keep the classic query above:
-//   - entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Note: dt.entity.host is read only to resolve zone membership — management zones have
+// NO Smartscape node equivalent; they are what this migration replaces.
 ```
 
 ### Parallel Running Checklist
@@ -310,7 +327,7 @@ Track issues during parallel running:
 
 | Issue | MZ Behavior | New Model Behavior | Resolution |
 |-------|-------------|-------------------|-------------|
-| Example | Users see 100 services | Users see 95 services | Missing security context on 5 services |
+| Example | Team reads its zone's records through the zone | `zone_missing_context` is 63% of the zone's log records (one zone on the validation tenant, 10/13/2026) | Set the value at the source for the hosts the second query lists (MZ2POL-10 §5) |
 
 ---
 
@@ -330,7 +347,7 @@ Track issues during parallel running:
 
 Before removing MZ access:
 
-- [ ] Alerting profiles: rebuild as problem-triggered workflows. The MZ filter has **no successor** inside the alerting model — route on affected-entity tags plus an optional DQL matcher on the problem record. Segments do not scope alerting
+- [ ] Alerting profiles: rebuild as problem-triggered workflows. The MZ filter has **no successor** inside the alerting model — route on the primary fields and `primary_tags.*` the problem record carries, in the trigger's DQL matcher (MZ2POL-09 §4). Segments do not scope alerting
 - [ ] API integrations: Update to use new access model
 - [ ] Automation workflows: Verify still functional
 
@@ -346,14 +363,14 @@ For each user/group:
 
 For each user type:
 
-1. Log in as test user
+1. Log in as a pilot user (never an admin) with no segment selected
 2. Verify expected data access
 3. Verify restricted data not accessible
 4. Document verification result
 
 #### Step 4: Monitor
 
-For 24-48 hours after cutover:
+There is no documented monitoring window. In community practice teams watch closely for the first day or two after cutover, and longer for teams with infrequent workloads:
 
 - Monitor for access issues
 - Check support tickets
@@ -389,7 +406,7 @@ Questions? Contact [team/channel]
 ## 8. Phase 7: Cleanup
 ### Post-Cutover Cleanup
 
-After successful cutover (recommended: wait 2+ weeks):
+After a successful cutover. There is no documented waiting period; in community practice teams wait until each team has been through its normal cycle — releases, on-call rotations, month-end jobs — on the new model, the same *evidence, not weeks* rule as §6:
 
 #### Step 1: Archive MZ Configuration
 
@@ -399,12 +416,16 @@ After successful cutover (recommended: wait 2+ weeks):
 
 #### Step 2: Remove Unused MZs
 
-**Caution**: Only remove MZs no longer referenced anywhere
+**Caution**: Only remove MZs no longer referenced anywhere — the MZ2POL-15 dependency matrix (§9) is the evidence that a zone has no remaining consumer
 
 - [ ] Verify no alerting profiles use MZ (and that each has a live workflow replacement running in parallel)
+- [ ] **Disable** the MZ-scoped alerting profiles first, in their own change window, and let them soak (MZ2POL-09 §8)
+- [ ] Run the MZ2POL-09 §8 deletion test in non-prod and record the result — what a profile does when its zone is deleted is undocumented
 - [ ] Verify no API integrations use MZ
 - [ ] Verify no dashboards rely on MZ filtering
-- [ ] Delete MZ via Settings
+- [ ] Delete MZ via Settings, in a separate change window from the profile disable
+
+> **Treat deletion as irreversible.** The Step 1 export restores a zone's *rules*, not the zone. In community practice, teams report that a deleted zone cannot be recreated under its old ID, so anything that referenced the ID — profiles, dashboards, API calls — does not reconnect to a re-created zone.
 
 #### Step 3: Update Documentation
 
@@ -435,15 +456,17 @@ After successful cutover (recommended: wait 2+ weeks):
 #### Full Rollback (After Cutover)
 
 1. Re-enable RBAC MZ assignments, or re-add the `environment:management-zone` line to the team boundary
-2. Communicate to users
-3. Document what went wrong
-4. Create remediation plan
-5. Schedule new cutover date
+2. If the alerting cutover is part of the rollback: re-enable the disabled classic alerting profiles, then disable or pause the replacement workflows so teams are not paged twice (MZ2POL-09 §8). This only works while the zones still exist — another reason to delete them last
+3. Communicate to users
+4. Document what went wrong
+5. Create remediation plan
+6. Schedule new cutover date
 
 ### Rollback Checklist
 
 - [ ] Identify affected users/groups
 - [ ] Re-apply MZ-based RBAC
+- [ ] Re-enable classic alerting profiles (if disabled)
 - [ ] Verify access restored
 - [ ] Communicate status
 - [ ] Document root cause

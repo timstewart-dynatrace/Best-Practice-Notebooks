@@ -3,7 +3,7 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-15 numbered notebooks (00–14), a LAB and a summary — 17 in all — on migrating off Management Zones. All three replacements below
+17 numbered notebooks (00–16), a LAB and a summary — 19 in all — on migrating off Management Zones. All three replacements below
 read a field on the data, so the series starts from **tagging at source**:
 notebook 10 (the model change, enrichment ladder and readiness gate) and
 notebook 11 (translating each MZ rule into a target field); notebook 12 is the
@@ -35,10 +35,10 @@ ORGNZ.
 
 | Path | Use it when | Read in this order |
 |---|---|---|
-| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 10 → 11 → 05 → 06 → 07 |
-| **Access control** | Your zones restrict who may read what | 00 → 03 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
-| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 10 → 11 → 09 → 06 |
-| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 06 → 07 → 95 → 99 |
+| **Filtering only** | Your zones only scope views and dashboards | 00 → 03 → 15 → 10 → 11 → 05 → 06 → 07 |
+| **Access control** | Your zones restrict who may read what | 00 → 03 → 15 → 10 → 11 → 12 → 04 → 08 → 06 → 07 |
+| **Alerting** | Your zones scope alerting profiles | 00 → 03 → 15 → 10 → 11 → 09 → 16 → 06 |
+| **Full migration** | Your zones do several of these jobs | 01 → 02 → 00 → 03 → 15 → 14 → 10 → 11 → 12 → 04 → 08 → 05 → 09 → 16 → 06 → 07 → 95 → 99 |
 | **Decision makers** | You need scope, approach and what is not ready yet | 01 → 02 → 13 → 99 |
 
 ## Routing table
@@ -62,6 +62,8 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Designing IAM to replace MZ-based access: groups × default policies × one boundary per team covering every domain (storage, settings, and `environment:management-zone` while classic pages remain), the documented evaluation rules (union across bindings, conditions apply only to their own service, boundaries computed separately, one unscoped grant wins, `MATCH` for arrays), the zone-only-boundary-on-a-default-policy trap that grants all Grail data, the scoped-settings breaking change (MZ conditions and MZ-derived contexts stop matching), six personas, classic `environment:roles:*` → Grail mapping, transition states, the effective-permissions API, and DQL checks for array-typed and missing security contexts | `-[MZ2POL]-12-iam-reference-architecture.md` |
 | Whether to wait for Spaces when leaving management zones: the one published source (`dt.space`, `experimental`, tagged `permission` + `primary-field`), what is not documented (no docs page, no IAM condition, dropped from the SaaS 1.348 notes, absent from the validation tenant), where a record-level permission field would fit beside `dt.security_context` / segments / workflows, no-regret preparation (team values at source, one boundary per team, segments per dimension, ownership tags, an inventory of delegated responsibility), a zero-byte tenant check, and the triggers that would change the guidance | `-[MZ2POL]-13-spaces-what-is-coming.md` |
 | Running the decisions of an MZ migration with the people who own them: attendees and what each decides, two zero-byte pre-work queries (classic tag keys; zones vs host groups), six sessions each ending in a table (triage keep/delete, jobs, dimension and allowed-value list, per-rule translation worksheet, group × policy × boundary with every domain covered, alerting routing table and batch plan), stop conditions, and the traps to name out loud (zone-only boundaries, second boundaries, unguarded OpenPipeline backstops, admin testing, waiting for Spaces) | `-[MZ2POL]-14-[WORKSHOP]-zone-disposition.md` |
+| Finding everything that still uses a zone before deleting it: the three zone identifiers (name, numeric ID, settings objectId) and which consumer stores which, second-hop consumers (notification → alerting profile, report → dashboard), Settings objects in the five zone-aware schemas, classic dashboards / reports / calculated metrics / request naming / synthetic monitors, classic SLOs, account group permissions and policy/boundary text, `mzName()`/`mzId()`/`mzSelector` in API clients, Terraform and Monaco, the settings audit log as a change log, renamed zones, the dependency matrix that gates deletion, and the documented replacement per consumer | `-[MZ2POL]-15-finding-every-zone-consumer.md` |
+| Migrating the zone-scoped alerting artifacts other than alerting profiles: metric events (the Anomaly Detection transform drops the zone and disables the original, so set a segment first), maintenance windows (zones → DQL matcher filters, 100-window limit, no retroactive windows, `maintenance.is_under_maintenance` workflow filter and its null trap, SaaS 1.341 Early Access), classic SLOs (zones become segments; burn-rate alerts are metric events), notification payload placeholders and what replaces zone names, proving parity with final-record workflow-execution counts and a per-problem join, measuring duplicate pages, and rollback/cutover order | `-[MZ2POL]-16-migrating-zone-scoped-alerting-artifacts.md` |
 | A worked end-to-end migration of a fictional estate (eight zones, three teams, shared platform): job classification and MZ2POL-11 rule translation as runnable `data record` DQL, the actual enrichment config (central rules, `DT_TAGS`, namespace annotations, the exclusion pushed into enrichment), readiness checks that catch planted traps (unenriched host and API integration, team-value drift, array security context), a who-sees-what simulation contrasting `MATCH` with `IN`, segments, the replacement workflow, real-tenant checks, and a batch cutover plan | `-[MZ2POL]-95-[LAB]-end-to-end-migration.md` |
 | Consolidated checklist across the whole series — assessment, tagging at source, rule translation, policies and boundaries (one boundary covering every domain, `MATCH` on arrays, no zone-only boundaries), settings access, segments, buckets, alerting, execution states and record-level validation, and Spaces — with each row pointing to its source notebook | `-[MZ2POL]-99-best-practice-summary.md` |
 

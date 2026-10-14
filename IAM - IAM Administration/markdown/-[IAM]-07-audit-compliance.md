@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -24,7 +24,7 @@ Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and securi
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Grail — Grail-based audit logging is on by default and cannot be turned off |
-| **Permissions** | `ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT";` and `ALLOW storage:buckets:read WHERE storage:bucket-name = "dt_system_events";` |
+| **Permissions** | `ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT";` and `ALLOW storage:buckets:read WHERE storage:bucket-name = "dt_system_events";` — plus `ALLOW iam:users:read;` to resolve the `user.id` UUIDs in audit records to user details through the IAM API |
 | **Account audit log** | The `account-company-info` account permission, to review account-level IAM changes in Account Management |
 | **Data Retention** | Environment audit events are kept for one year; plan exports if a framework needs longer |
 
@@ -36,7 +36,7 @@ Dynatrace audit logs capture all security-relevant events in your environment.
 
 | Category | Events |
 |----------|--------|
-| **Authentication** | Logins, logouts, MFA events, SSO |
+| **Authentication** | Sign-ins (`event.type == "LOGIN"`), including SSO sign-ins — MFA itself happens in your IdP |
 | **Authorization** | Access attempts, permission checks |
 | **User Management** | User creation, modification, deletion |
 | **Group Management** | Group changes, membership updates |
@@ -62,16 +62,18 @@ Dynatrace audit logs capture all security-relevant events in your environment.
 
 > **Two audit records, two places.** Activity *inside this environment* — sign-ins, API calls, settings and token changes — is recorded as `AUDIT_EVENT` records in `dt.system.events`, which every query in this notebook reads. **Account-level IAM changes** — groups, memberships, policies, boundaries — are recorded in the account audit log (Account Management > Settings > Audit log), not here.
 >
-> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is enabled by default and can't be turned off."*, [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*.</sub>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is enabled by default and can't be turned off."*; *"These events are stored for one year."*; the page lists `ALLOW iam:users:read;` for looking up user details from the user ID. [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*.</sub>
 
 ### Retention Requirements
 
-| Compliance | Minimum Retention |
+Environment audit events are kept for one year. Whether that is enough depends on the framework and on how your auditors read it. In community practice, teams commonly plan around figures like the ones below — confirm the period that applies to you with your compliance or legal team before sizing an export.
+
+| Compliance | Commonly planned retention (community practice) |
 |------------|-------------------|
 | SOC2 | 1 year |
 | SOX | 7 years |
 | HIPAA | 6 years |
-| PCI-DSS | 1 year online, 1+ archive |
+| PCI-DSS | 1 year, with recent months immediately available |
 | GDPR | As long as necessary |
 
 <a id="authentication-event-monitoring"></a>
@@ -155,7 +157,9 @@ fetch dt.system.events, from:-7d
 | Login after offboarding | Process failure | User status check |
 
 ```dql
-// Off-hours activity detection (outside 08:00-18:00 UTC)
+// Off-hours activity detection (outside 08:00-18:00)
+// formatTimestamp renders the hour in the query's timezone (the notebook or user timezone setting), not
+// necessarily UTC: set the timezone to the one your business hours are defined in before reading the result.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -481,7 +485,12 @@ fetch dt.system.events, from:-30d
 ```
 
 ```dql
-// HIPAA: Access anomalies - bulk access detection
+// HIPAA: Access anomalies - bulk query detection against each caller's own baseline
+// Corrected 10/13/2026: this cell flagged any user with more than 1,000 audit events in 7 days, which
+// is every regular browser user (10 users on the validation tenant). A dashboard load alone runs many
+// queries. This version counts Grail query executions per hour and flags callers whose busiest hour
+// was at least 5x their typical (median) hour and above 100 queries; it returned 4 browser users on
+// the validation tenant, peaks of 389-1,463 queries/hour against medians of 4-109. Tune both numbers.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -495,9 +504,13 @@ fetch dt.system.events, from:-30d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-7d
 | filter event.kind == "AUDIT_EVENT"
-| summarize requests = count(), by:{user.id}
-| filter requests > 1000
-| sort requests desc
+| filter contains(resource, "/query:execute")
+| fieldsAdd hour = bin(timestamp, 1h)
+| summarize queries = count(), by:{user.id, request.source, hour}
+| summarize {peak_per_hour = max(queries), typical_per_hour = median(queries), active_hours = count()}, by:{user.id, request.source}
+| fieldsAdd peak_vs_typical = round(toDouble(peak_per_hour) / typical_per_hour, decimals: 1)
+| filter peak_per_hour > 100 and peak_vs_typical >= 5
+| sort peak_vs_typical desc
 | limit 25
 ```
 
@@ -507,8 +520,10 @@ PCI-DSS requires tracking access to cardholder data.
 
 ```dql
 // PCI-DSS: Failed access attempts (potential attack indicator)
-// Corrected 09/24/2026: failures are "failure" or an HTTP status of 400 or above. The previous
-// "not 2xx" predicate also counted 304 Not Modified, which is a success.
+// Corrected 10/13/2026: access failures are 401 (not authenticated), 403 (not authorized) and failed
+// sign-ins. The previous "failure or any status >= 400" predicate was mostly 404 Not Found, 400 Bad
+// Request and 5xx server errors: over 30 days on the validation tenant 3,034 of its events were 404s,
+// against 43 401s, 411 403s and 3 failed sign-ins. Those are not access attempts.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -522,8 +537,9 @@ PCI-DSS requires tracking access to cardholder data.
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.outcome == "failure" or toLong(event.outcome) >= 400
-| summarize failures = count(), by:{user.id, origin.address, event.outcome}
+| filter in(event.outcome, {"401", "403"}) or (event.type == "LOGIN" and event.outcome == "failure")
+| fieldsAdd failure_kind = if(event.outcome == "401", "unauthenticated (401)", else: if(event.outcome == "403", "forbidden (403)", else: "failed sign-in"))
+| summarize failures = count(), by:{user.id, origin.address, failure_kind}
 | sort failures desc
 | limit 50
 ```
@@ -631,7 +647,8 @@ fetch dt.system.events, from:-30d
 ```
 
 ```dql
-// Dashboard: Failed access by day (for bar chart) — "failure" or HTTP 400 and above
+// Dashboard: Failed access by day (for bar chart) — 401, 403 and failed sign-ins
+// Corrected 10/13/2026: "any status >= 400" was mostly 404s and server errors, not access failures.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -645,8 +662,9 @@ fetch dt.system.events, from:-30d
 //   fetch dt.system.events, from:-24h | filter event.kind == "AUDIT_EVENT" | limit 1
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
-| filter event.outcome == "failure" or toLong(event.outcome) >= 400
-| makeTimeseries failures = count(), interval:24h
+| filter in(event.outcome, {"401", "403"}) or (event.type == "LOGIN" and event.outcome == "failure")
+| fieldsAdd failure_kind = if(event.type == "LOGIN", "failed sign-in", else: event.outcome)
+| makeTimeseries failures = count(), by:{failure_kind}, interval:24h
 ```
 
 ```dql
@@ -691,7 +709,7 @@ Configure alerts based on audit log patterns:
 | Admin action | Any outside business hours | Warning |
 | Policy change | Any | Info |
 | User deletion | Any | Info |
-| Bulk data access | > 1000 queries/hour | Warning |
+| Bulk data access | Busiest hour ≥ 5× the caller's typical hour (see the HIPAA bulk-query cell) | Warning |
 
 ## Next Steps
 

@@ -1,6 +1,6 @@
 # S2S-03: Step 3 — Design: Target Tenant Architecture
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -95,11 +95,12 @@ resource "dynatrace_iam_policy" "sre_settings" {
     ALLOW settings:objects:read, settings:objects:write
       WHERE settings:schemaId startsWith "builtin:anomaly-detection";
     ALLOW storage:logs:read, storage:spans:read, storage:metrics:read;
+    ALLOW storage:buckets:read WHERE storage:table-name IN ("logs", "spans", "metrics");
   EOT
 }
 ```
 
-> **Warning:** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket-name = "app_logs"`). Design buckets and segments **before** writing policies — the `WHERE` clauses must reference resources that will exist in the target tenant.
+> **Warning:** IAM policies use `WHERE` clauses that reference schemas, buckets, and security contexts (e.g., `WHERE storage:bucket-name = "app_logs"`). Every table read also needs `storage:buckets:read`, which the [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) describes as *"Required additionally to a table permission"* — without it the table permissions read nothing. Design buckets and segments **before** writing policies — the `WHERE` clauses must reference resources that will exist in the target tenant.
 
 ### Audit Source IAM Structure
 
@@ -116,7 +117,7 @@ Before designing target IAM, understand the current access model. Groups, polici
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter event.type == "LOGIN" and event.outcome == "success"
-| summarize logins = count(), last_login = takeMax(timestamp), by:{user.id}
+| summarize {logins = count(), last_login = takeMax(timestamp)}, by:{user.id}
 | sort logins desc
 | limit 20
 ```

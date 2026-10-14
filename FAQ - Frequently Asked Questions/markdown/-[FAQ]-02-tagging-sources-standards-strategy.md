@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -356,7 +356,7 @@ The exact strings `target` expects for a primary tag versus a reserved field are
 - **Refresh delay:** *"typically one refresh cycle, around five minutes"* before agents pick up a change.
 - **UI lag, not data lag:** a new key *"can take up to 24 hours to appear in the filter dropdowns of Dynatrace apps"*; the data is enriched and filterable in DQL straight away. Verify on data ingested *after* the change — earlier records keep the value they were ingested with.
 - **Tag budget:** *"Up to 20 primary tags per host or process; excess tags are silently dropped without a warning."*
-- **Inputs:** *"Cloud tags are not yet available as input fields for OneAgent"*, and *"Enriching all data from a host based on a process or service property is not supported."*
+- **Inputs:** *"Cloud tags are not yet available as input fields for OneAgent"*, and *"Enriching all data from a host based on a process or service property is not supported."* The AWS enrichment page and the AWS end-to-end example nonetheless document a route for EC2 instance tags: OneAgent reads them from instance metadata as host properties `aws.tags.<key>`, and a Host/Process property rule promotes them. See § 4 *AWS*.
 - **Where it does not apply:** serverless code modules (AWS Lambda, Azure Functions) and mainframe — the documentation routes both to process-level enrichment instead (`DT_TAGS`; on mainframe, `zremoteagentuserconfig.conf`).
 - **Kubernetes via ActiveGate:** rules with conditions are ignored on that path — see **K8S-10**.
 
@@ -386,12 +386,14 @@ Cloud-provider tags are the source of record for cost-allocation, compliance, an
 
 | AWS surface | Field in Dynatrace | Notes |
 |-------------|--------------------|-------|
-| EC2 / RDS / Lambda / ECS / EKS resource tags | `tags[<TagKey>]` on the Smartscape node; `aws.tags.<TagKey>` on signals when promoted | AWS tag keys are case-sensitive, so `CostCenter` and `costcenter` are different keys |
+| EC2 / RDS / Lambda / ECS / EKS resource tags | `tags[<TagKey>]` on the Smartscape node; `aws.tags.<key>` on signals when promoted, with the key **lowercased** | AWS tag keys are case-sensitive, so `CostCenter` and `costcenter` are different tags in AWS. An AWS tag rule transforms the key when it forwards it: lowercased, whitespace to underscores, other characters stripped (`My TEAM` → `aws.tags.my_team`). Both of those tags would therefore forward to `aws.tags.costcenter`. Values keep their case |
 | Account ID | `aws.account.id` | Primary Grail field and permission field |
 | Region | `aws.region` | Primary Grail field; programmatic region code (e.g., `us-east-1`) |
 | Resource ARN | `aws.arn` | Available on resources with discoverable ARNs |
 
-**AWS Lambda and other serverless code modules:** OneAgent cannot read the account or region there, so you pass them in. The OneAgent tag-setup page: *"On serverless platforms, OneAgent can't auto-detect certain primary fields. Provide them via DT_TAGS at deploy time"* — `aws.account.id` and `aws.region` on AWS. Customer primary tags go in the same `DT_TAGS` variable.
+**EC2 and other VMs running OneAgent:** cloud tag rules don't tag this data. *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* OneAgent 1.343+ reads the instance's tags itself, *"through the instance metadata service"*, and *"exposes them as host properties named aws.tags.<key>"*. Map each one with a Host/Process property rule at the host-group scope. *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."* Azure VMs work the same way with `azure.tags.<key>`. To tag both the cloud node and the OneAgent data from one VM, you need both rules: the AWS tag rule for the cloud data and the Host/Process property rule for the OneAgent data.
+
+**AWS Lambda and other serverless code modules:** a Lambda function *"doesn't load the ingest enrichment configuration"*, so central rules don't apply. OneAgent also cannot read the account or region there, so you pass them in. The OneAgent tag-setup page: *"On serverless platforms, OneAgent can't auto-detect certain primary fields. Provide them via DT_TAGS at deploy time"* — `aws.account.id` and `aws.region` on AWS. Customer primary tags go in the same `DT_TAGS` variable.
 
 **AWS integration path:** prefer the **Clouds app** new connection for new tenants — a direct cloud connection without ActiveGate. The legacy CloudWatch monitor remains supported but does not benefit from continued enhancement.
 
@@ -422,18 +424,20 @@ The same conceptual dimension lands with different keys across providers:
 
 | Concept | AWS | Azure | GCP |
 |---------|-----|-------|-----|
-| Cost center | `aws.tags.CostCenter` | `azure.tags.costCenter` | `gcp.labels.cost_center` |
-| Environment | `aws.tags.Environment` | `azure.tags.environment` | `gcp.labels.environment` |
-| Team / owner | `aws.tags.Owner` | `azure.tags.owner` | `gcp.labels.team` |
-| Application | `aws.tags.Application` | `azure.tags.app` | `gcp.labels.application` |
+| Cost center | `aws.tags.costcenter` (tag `CostCenter`) | `azure.tags.costCenter` | `gcp.labels.cost_center` |
+| Environment | `aws.tags.environment` (tag `Environment`) | `azure.tags.environment` | `gcp.labels.environment` |
+| Team / owner | `aws.tags.owner` (tag `Owner`) | `azure.tags.owner` | `gcp.labels.team` |
+| Application | `aws.tags.application` (tag `Application`) | `azure.tags.app` | `gcp.labels.application` |
 
-The casing alone (`CostCenter` vs `costCenter` vs `cost_center`) means a naive query has to enumerate every variant. Most teams discover this when they try to build a single "cost by team" dashboard that has to span clouds — and the dashboard is full of `coalesce(...)` that papers over the inconsistency.
+The tag keys differ by provider (`CostCenter`, `costCenter`, `cost_center`). The AWS key is lowercased on the way in, but the Azure and Google Cloud enrichment pages describe no such transform, so the fields still differ (`aws.tags.costcenter`, `azure.tags.costCenter`, `gcp.labels.cost_center`). A naive query has to enumerate every variant. Most teams discover this when they try to build a single "cost by team" dashboard that has to span clouds — and the dashboard is full of `coalesce(...)` that papers over the inconsistency.
 
 **The recommended fix is to normalize at ingest, not at query time.** An Ingest enrichment rule per provider (`AWS_TAG` / `AZURE_TAG` / `GCP_LABEL` → Cost center) or an OpenPipeline enrichment processor can map the AWS `CostCenter`, Azure `costCenter` and GCP `cost_center` tags into a single canonical `dt.cost.costcenter` field, so DQL queries and IAM policies see one consistent surface regardless of cloud provenance. See OPIPE topic series for the worked enrichment-processor examples.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Clouds app (DT docs)](https://docs.dynatrace.com/docs/shortlink/clouds-app) — *"New cloud connections (AWS/Azure)"*; *"Support for GCP will follow soon."*</sub>
 > - <sub>[Central enrichment rules (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment) — the `AWS tag` / `GCP label` / `GCP tag` / `Azure tag` rule types and the `aws.tags.<key>`, `gcp.labels.<key>`, `gcp.tags.<key>`, `azure.tags.<key>` attributes they write</sub>
+> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"OneAgent reads those tags from the AWS instance metadata and enriches them as Security context, Cost center, or Cost product, or directly as a Primary tag on all telemetry."* and *"AWS tag key names are transformed when forwarded: lowercased, whitespace converted to underscores, and characters that aren't digits, ASCII letters, dots, or underscores stripped."*</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* and *"A Lambda function doesn't load the ingest enrichment configuration"*</sub>
 > - <sub>[OneAgent tag setup (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — the serverless `DT_TAGS` sentence quoted above</sub>
 > - <sub>**Dictionary:** `aws.account.id`, `azure.resource.group`, `azure.subscription`, `gcp.project.id` (`stable`, `permission`, `primary-field`); `aws.region`, `azure.location`, `gcp.region` (`stable`, `primary-field`); `aws.arn`, `gcp.zone` (`stable`); `aws.tags.__tag_key__`, `azure.tags.__tag_key__`, `gcp.labels.__label__`, `gcp.tags.__tag__` (`experimental`); no row for `aws.account.alias`, `azure.subscription_name`, `azure.region`, `gcp.project_id`, read 10/02/2026. Live check the same day: AWS and Azure Smartscape nodes carry their resource tags in the `tags` record.</sub>
 > - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/shortlink/openpipeline)</sub>
@@ -484,7 +488,7 @@ Some keys are reserved by Dynatrace. Don't redefine these — use them as-is, or
 
 Why underscores in keys: `filter primary_tags.cost-center == "cc-1"` is valid DQL that Grail reads as `primary_tags.cost - center == "cc-1"` — it returns nothing, and the only signal is a notification that the filter is always empty (checked on a live tenant 10/02/2026). Dynatrace's own multi-word example key is `primary_tags.business_unit`.
 | Reserved values | avoid `null`, `none`, `default`, empty string | `none-set` if you must | `null`, `""` |
-| Cross-cloud normalization | one canonical key per dimension, regardless of provider | All cost-center tags resolve to `dt.cost.costcenter` | `aws.tags.CostCenter` and `azure.tags.costCenter` both queried separately forever |
+| Cross-cloud normalization | one canonical key per dimension, regardless of provider | All cost-center tags resolve to `dt.cost.costcenter` | `aws.tags.costcenter` and `azure.tags.costCenter` both queried separately forever |
 
 ### Industry Frameworks Worth Reading
 
@@ -589,7 +593,7 @@ Patterns that work in the short term and create rework in the long term. Each is
 
 ### 7.3 Inconsistent Casing Across Clouds Without Normalization
 
-**Symptom:** dashboards and DQL queries paper over `aws.tags.CostCenter` vs `azure.tags.costCenter` vs `gcp.labels.cost_center` with `coalesce(...)`. The same dimension is queried differently in every report.
+**Symptom:** dashboards and DQL queries paper over `aws.tags.costcenter` vs `azure.tags.costCenter` vs `gcp.labels.cost_center` with `coalesce(...)`. The same dimension is queried differently in every report.
 
 **Why it's a problem:** every new dashboard re-derives the normalization logic. Inconsistencies multiply. New team members don't know which key to query.
 
