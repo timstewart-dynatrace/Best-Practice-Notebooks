@@ -1,12 +1,12 @@
 # NRLC-05: Synthetic Monitor Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 5 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
 New Relic offers four synthetic monitor types plus two specialized types: Ping, Simple Browser, API (multi-step), Step (Scripted Browser), Certificate Check, and Broken Links. Dynatrace offers HTTP, Browser, and Multi-step HTTP monitors. This deep dive maps the NR types to their DT equivalents, covers the location mapping (NR public/private → DT public/private), and flags the scripted-browser caveat that drives most of the manual migration effort.
 
-**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with `certificateExpiryDate` validation rule, and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser + API continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted Browser remains manual.
+**Phase 24 specialized synthetics (post-2026-04-15):** `synthetic_specialized_transformer` now auto-converts **Certificate Check** monitors → DT HTTP Monitor with a certificate-expiry validation rule (the documented rule type is `certificateExpiryDateConstraint`; see §1 — the transformer emits `certificateExpiryDate`), and **Broken Links** monitors → DT Multi-step HTTP Monitor (capped at 50 links). Ping + Simple Browser + API continue to auto-convert via `synthetic_transformer` (Phase 11). Scripted Browser remains manual.
 
 ---
 
@@ -42,14 +42,15 @@ Synthetic monitors don't contain NRQL queries, so there's no translation context
 
 ```bash
 # Cache DT public location IDs into the transformer's lookup table.
-# Match the Authorization scheme to your token prefix:
-#   dt0s16.* / dt0s01.* (Platform Token) → Bearer
-#   dt0c01.*             (Classic token) → Api-Token
-curl -H "Authorization: Bearer $DT_TOKEN" \
+# Classic Environment API v2 endpoint: access token (dt0c01.*) with
+# the syntheticLocations.read scope, sent as Api-Token — not a platform token.
+curl -H "Authorization: Api-Token $DT_API_TOKEN" \
   https://<tenant>.live.dynatrace.com/api/v2/synthetic/locations
 ```
 
-Public location IDs are tenant-specific; the transformer queries on first run and caches. The Dynatrace-NewRelic `migrate.py` tool auto-selects the correct scheme based on the token prefix — the scheme only matters when you run raw `curl` as above.
+Public location IDs are tenant-specific; the transformer queries on first run and caches.
+
+> <sub>**Sources:** [GET all locations (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/get-all-locations) — *"To execute this request, you need an access token with `syntheticLocations.read` scope."*</sub>
 
 ### Credential migration checklist
 
@@ -72,7 +73,7 @@ The transformer captures the *shape* of the auth (which header, which step) but 
 | Ping | HTTP Monitor | `synthetic_transformer` (Phase 11) | None |
 | Simple Browser | Browser Monitor | `synthetic_transformer` (Phase 11) | None |
 | API (Multi-step) | Multi-step HTTP Monitor | `synthetic_transformer` (Phase 11) | Low — verify chained variable extraction |
-| **Certificate Check** | HTTP Monitor w/ `certificateExpiryDate` rule | `synthetic_specialized_transformer` (Phase 24) | None |
+| **Certificate Check** | HTTP Monitor w/ `certificateExpiryDateConstraint` rule | `synthetic_specialized_transformer` (Phase 24) | Rename the rule type: the transformer emits `certificateExpiryDate` (`main` branch, read 10/14/2026), which is not one of the documented values (`patternConstraint`, `regexConstraint`, `httpStatusesList`, `certificateExpiryDateConstraint`) — [http_monitor resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md) |
 | **Broken Links** | Multi-step HTTP Monitor (50-link cap) | `synthetic_specialized_transformer` (Phase 24) | Low — verify link list discovery |
 | Step (Scripted Browser) | Browser Monitor (clickpath) | Stub + manual | **High — 30–60 min per script** |
 

@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -140,9 +140,11 @@ Run this before you build anything:
 
 ```dql
 // Signal 1 — your own services calling Box. Requires no Box integration at all.
-// Note the field names: server.address and url.full are the stable fields.
-// http.url does NOT exist in the semantic dictionary and returns zero rows
-// silently — see § 17. Same shape, different field: span.status_code values are
+// Key on server.address: stable, and on every HTTP client span on the validation tenant.
+// Do not assume a URL field is populated. url.full is stable in the semantic dictionary
+// but was on 0 of 9.4M spans over 24 h on the validation tenant (10/15/2026); http.url is
+// not in the dictionary but was on 76,531 of them. Check countIf(isNotNull(...)) on your
+// own tenant before using either — see § 17. Same shape, different field: span.status_code values are
 // LOWERCASE, so `== "ERROR"` reports a 0% failure rate for every address.
 // Divide a duration by 1ms to get a number — dividing by 1000000 still yields a duration.
 fetch spans, from:-24h
@@ -167,7 +169,7 @@ If that returns rows, you already have Box performance telemetry and can build a
 
 The common mistake is expecting audit events to answer performance questions. They are an access record, not a latency record. Box does not publish per-request timing for its own service; if you need Box performance, it comes from signal 1 (your calls) or signal 4 (synthetics), never from the audit feed.
 
-> <sub>**Sources:** [Global field reference (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/fields), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events). **Tenant observation (08/25/2026):** § 3.1's field-name caution comes from executing both forms against a live tenant — `http.url` returned zero rows while scanning 9.8M records.</sub>
+> <sub>**Sources:** [Global field reference (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/fields), [List user and enterprise events (Box Dev Docs)](https://developer.box.com/reference/get-events). **Dictionary:** `server.address`, `url.full`, `url.path` (`stable`); no row for `http.url`, read 10/15/2026 (control: the same filter returned the other three). **Tenant observation (10/15/2026):** over 24 h, `url.full` was on 0 of 9.4M spans and `http.url` on 76,531; over 1 h, `server.address` and `url.path` were on all 57,594 HTTP client spans. An 08/25/2026 note here said `http.url` returned zero rows; that query was also filtered on Box addresses on a tenant with no Box traffic, so the filter produced the zero, not the field.</sub>
 
 ---
 
@@ -1129,7 +1131,7 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 | 4 | **TTL on the cursor** | Collector silently resets weeks later | `stateClient` TTL caps at 90 days. Omit `validUntilTime` |
 | 5 | **Cursor written before ingest** | Events vanish on a failed ingest | Write the cursor only after ingest succeeds (§ 7.3) |
 | 6 | **Not deduplicating** | Inflated counts and ingest cost | `admin_logs_streaming` repeats events. Dedupe on `event_id` (§ 12.2) |
-| 7 | **`http.url` in span queries** | Zero rows, reads as "no Box traffic" | The field does not exist. Use `server.address` / `url.full` (§ 3.1) |
+| 7 | **Assuming a URL field is populated** | Zero rows, reads as "no Box traffic" | `url.full` (`stable`) and `http.url` (not in the dictionary) can each be empty on a tenant. Key on `server.address`; check `countIf(isNotNull(…))` before relying on a URL field (§ 3.1) |
 | 8 | **Staleness check returns "OK" with no data** | Dead collector reports healthy | `null > 15` is false. Test `events == 0` explicitly (§ 13.1) |
 | 9 | **`Drop record` in the Processing stage** | Raw discarded *and* metrics never built | Use `No storage assignment` in the Bucket assignment stage (§ 9.2) |
 | 10 | **`box-sdk-gen` instead of `boxsdk` — or `from boxsdk import …`** | Building on a deprecated SDK, or `ModuleNotFoundError` on v10 | Install `boxsdk` v10+, import from `box_sdk_gen` (§ 8.1) |

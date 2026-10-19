@@ -163,7 +163,9 @@ The foundation of effective segment definitions is **metadata enrichment**. In D
 
 ### Primary Grail Fields
 
-Primary Grail Fields are infrastructure-related fields that are **automatically propagated across ALL data types** (spans, logs, metrics, topology). These are the ideal fields for segment filter conditions because they guarantee cross-signal consistency.
+Primary Grail Fields are infrastructure-related fields. Dynatrace says it *"automatically enriches them on all signals (logs, metrics, spans, events, and problems) and on all relevant Smartscape nodes"*, and adds that *"Not every primary Grail field exists in every situation"* — `dt.host_group.id`, for example, *"is only present when you configure a host group for a host."* So a record carries a field only when its source does. Within that limit they are the ideal fields for segment filter conditions, because one condition reaches every signal from the same source.
+
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — updated 10/06/2026, as quoted.</sub>
 
 | Primary Grail Field | DQL Field Name | Source |
 |---------------------|----------------|--------|
@@ -178,16 +180,18 @@ Primary Grail Fields are infrastructure-related fields that are **automatically 
 
 ### What Propagates to Service Metrics
 
-Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields and primary Grail tags. Standard tags and signal-local attributes do not:
+Derived data — service metrics, Davis events and problems — carries primary Grail fields, the special fields and primary Grail tags **when the entities behind it carry them**. Standard tags and signal-local attributes do not:
 
 | Field | Propagates to Service Metrics |
 |-------|------------------------------|
-| Primary Grail Fields (`dt.host_group.id`, `k8s.namespace.name`, …) | Yes |
+| Primary Grail Fields (`dt.host_group.id`, `k8s.namespace.name`, …) | Yes, where the source carries them — coverage on problems can be low (below) |
 | `dt.security_context` | Yes |
 | `dt.cost.costcenter`, `dt.cost.product` | Yes |
 | Primary Grail Tags (`primary_tags.<key>`) | Yes |
 | Host tags without the `primary_tags.` prefix, Kubernetes labels, cloud tags | **No** |
 | Signal-local attributes (e.g. OpenTelemetry attributes without the `primary_tags.` convention) | **No** |
+
+> **Coverage on problems is not coverage on logs.** On the validation tenant on 10/14/2026, 10 of 519 problems in 24 hours carried `dt.host_group.id`, against 57.2% of logs. On problem records `k8s.namespace.name` is an array, so a DQL check needs `matchesValue()`. Run the coverage query in §12 before keying a problem segment on any field.
 
 The Management Zones → Segments upgrade guide still lists only the three special fields as reaching derived data; the primary Grail fields and tags page is broader, and on the validation tenant on 10/06/2026 `dt.service.request.count` split cleanly by two different `primary_tags.*` keys. MZ2POL-05 §5.2 and FAQ-26 §4 cover the conflict and the full reach-by-kind matrix.
 
@@ -275,6 +279,25 @@ The variable definition is a DQL query. The columns in the result set determine 
 ### Variable DQL Examples
 
 The following queries demonstrate how to create variable definitions for common use cases.
+
+**All Kubernetes namespaces (primary variable only):**
+```dql
+smartscapeNodes "K8S_NAMESPACE"
+| fields k8s.namespace.name
+| dedup k8s.namespace.name
+| sort lower(k8s.namespace.name)
+```
+
+**All host groups (primary variable only):**
+```dql
+smartscapeNodes "HOST"
+| filter isNotNull(dt.host_group.id)
+| fields dt.host_group.id
+| dedup dt.host_group.id
+| sort lower(dt.host_group.id)
+```
+
+Both validated 10/14/2026 on the validation tenant (12 namespaces, 3 host groups; 0 bytes scanned). The single column becomes the primary variable, `$k8s.namespace.name` or `$dt.host_group.id`. For a variable with a secondary column — namespaces with the IDs of their services — use the `metrics` query in ORGNZ-08 § *Scoping Services and Smartscape*.
 
 ### Legacy Multi-Include Pattern: Tag-Based Variables on Classic Process Groups
 
@@ -551,6 +574,21 @@ Every segment filter condition is injected into every query the user runs. Keep 
 
 ### Discover Available Filter Candidates
 
+Before choosing a filter field, see how many distinct values each candidate has on the data the segment will filter. A field with one value can't separate anything, and a field with none isn't enriched yet:
+
+```dql
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    host_groups = countDistinctExact(dt.host_group.id),
+    namespaces = countDistinctExact(k8s.namespace.name),
+    clusters = countDistinctExact(k8s.cluster.name),
+    security_contexts = countDistinctExact(dt.security_context),
+    cost_centers = countDistinctExact(dt.cost.costcenter)
+```
+
+Validated 10/14/2026: 795,225 log records in an hour carried 1 host group, 9 namespaces, 4 clusters, 3 security contexts and 1 cost center. Pair it with the coverage audit below, which shows what share of records carries each field.
+
 ### DQL: Enrichment Coverage Audit
 
 Audit primary Grail field population before building segment definitions:
@@ -712,17 +750,15 @@ The Problems app is listed as supported in §7, but with a critical asterisk not
 | `events` | `event.kind = "DAVIS_PROBLEM"` AND your scoping condition | Filters problem records to the team / env / app scope |
 | `Data (all types)`, variable and `Entities` (optional) | scoping condition on the same dimension (ORGNZ-08 § *Scoping Services and Smartscape*) | Not applied to problems; scopes signals, Services and Smartscape when the same segment is used in other apps |
 
-### Worked example — production problems only
+### Worked example — problems for one namespace
 
-```yaml
-name: env-production-problems
-description: "Production-scoped Davis problems and the affected entities"
-visibility: PUBLIC
+Build it in the Segments app with one include:
 
-includes:
-  - dataType: events
-    filter: 'event.kind = "DAVIS_PROBLEM" AND dt.host_group.id = "prod-*"'
-```
+| Include (data object) | Filter |
+|-----------------------|--------|
+| `events` | `event.kind = "DAVIS_PROBLEM" AND k8s.namespace.name = "checkout-prod"` |
+
+Name it `ns-checkout-prod-problems` and set visibility to *Anyone in the environment* (`isPublic: true` in the Filter Segments API, §10). The scoping field is chosen by coverage on problem records, not by what logs carry — see *Validating the include* below; the docs' own example scopes on `cloud.region`. In the segment filter `=` is fine even though `k8s.namespace.name` is an array on problems: segment conditions support *"fields and values of type `STRING`, and `ARRAY_OR_STRINGS`"*. It is DQL `==` in a validation query that misses arrays.
 
 In the Problems app, only the `events` include does any work: *"Segment filters are directly applied to the problem Grail records. Consequently, no entity filters are applied to the problem unless the entity ID is chosen as a primary field of the filtered problem."* Drop the `events` include and the problem feed stops filtering. Entity includes alone are not enough.
 
@@ -734,19 +770,36 @@ Davis problems live in the `events` data object with `event.kind = "DAVIS_PROBLE
 
 ### Validating the include
 
-Before saving the segment, run the equivalent DQL to make sure the filter produces the problem set you expect. Count problems on `dt.davis.problems`, which holds one record per problem. The `events` data object holds one record per problem *update*, so `count()` there over-reports — 15,735 records for 465 problems over 24 hours on a live tenant (10/05/2026).
+Before saving the segment, check two things with DQL. Count problems on `dt.davis.problems`, which holds one record per problem. The `events` data object holds one record per problem *update*, so `count()` there over-reports — 15,735 records for 465 problems over 24 hours on a live tenant (10/05/2026).
+
+**1. Which scoping fields do your problems carry?** A problem carries a primary Grail field only when the entities behind it do:
 
 ```dql
-// One record per problem (dt.davis.problems), so count() counts problems
-fetch dt.davis.problems, from:-24h
-| filter event.kind == "DAVIS_PROBLEM"
-| filter startsWith(dt.host_group.id, "prod-")
-| summarize problems = count(), by:{event.status}
+// Coverage of candidate scoping fields on problem records (one record per problem)
+fetch dt.davis.problems, from:-7d
+| summarize
+    problems = count(),
+    host_group = countIf(isNotNull(dt.host_group.id)),
+    namespace = countIf(isNotNull(k8s.namespace.name)),
+    cluster = countIf(isNotNull(k8s.cluster.name)),
+    security_context = countIf(isNotNull(dt.security_context)),
+    region = countIf(isNotNull(cloud.region))
 ```
 
-If the count is zero, the underlying scoping field probably isn't enriched on problem events in your tenant — fall back to a Primary Grail Field that is (§3 audit query).
+On the validation tenant on 10/14/2026: 5,026 problems; `cloud.region` on 1,924, `k8s.cluster.name` on 1,495, `k8s.namespace.name` on 1,488, `dt.security_context` on 1,268 and `dt.host_group.id` on 111. A host-group-keyed problem segment would have shown about 2% of the problems.
 
-> <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app), [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries).</sub>
+**2. Which problems does the include keep?**
+
+```dql
+// k8s.namespace.name is an array on problem records: matchesValue() matches any element; == matches nothing
+fetch dt.davis.problems, from:-24h
+| filter matchesValue(k8s.namespace.name, "checkout-prod")
+| summarize problems = count()
+```
+
+`summarize` without `by:` returns a row even when nothing matches, so a 0 here is a real zero for this filter. On the validation tenant on 10/14/2026 the same query with `k8s.namespace.name == "easytrade"` returned 0 problems, and with `matchesValue(k8s.namespace.name, "easytrade")` returned 6.
+
+> <sub>**Sources:** [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app), [Segments in DQL queries (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries), [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — as quoted, [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Not every primary Grail field exists in every situation."*</sub>
 
 ## Summary
 

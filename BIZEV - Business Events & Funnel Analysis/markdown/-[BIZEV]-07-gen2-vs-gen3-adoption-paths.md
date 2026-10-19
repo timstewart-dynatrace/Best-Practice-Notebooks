@@ -1,6 +1,6 @@
 # BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 09/28/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 7 of 7 | **Created:** July 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -47,7 +47,7 @@ Three situations, three answers:
 | Your situation | Can you use business events? | What to do |
 |----------------|------------------------------|------------|
 | **Dynatrace Managed** | No — not in any form | Use the classic business-analytics toolchain (Section 6) with migration-friendly naming, and put the SaaS migration on the roadmap (see the M2S — Managed to SaaS Migration series) |
-| **SaaS tenant, Grail available, operated classic** | **Yes — today** | Adopt business events with a minimal Gen3 footprint: capture via settings, report in the new Dashboards/Notebooks apps only, keep everything else classic (Section 4). Bridge KPIs back into classic dashboards via metric extraction (Section 5) |
+| **SaaS tenant, Grail available, operated classic** | **Yes — today** | Adopt business events with a minimal Gen3 footprint: capture via settings, report in the new Dashboards/Notebooks apps only, keep everything else classic (Section 4); add **OpenPipeline** only if you need custom buckets or new `bizevents.*` metrics (mandatory for accounts created from September 2026). Bridge KPIs back into classic dashboards via metric extraction (Section 5) |
 | **SaaS on latest Dynatrace** | Yes — fully | This notebook is background reading; BIZEV-01 through BIZEV-06 apply as written |
 
 The most under-communicated fact for delaying customers: **a "move to new dashboards only for business-event reporting" is a real, supported adoption shape.** Classic and new dashboards run side by side on the same tenant, capture configuration lives in Settings (not in a Gen3 app), and extracted `bizevents.*` metrics are readable from Data Explorer and classic dashboards — so even the executive KPI tiles can stay where they are.
@@ -58,13 +58,13 @@ The most under-communicated fact for delaying customers: **a "move to new dashbo
 | Path | Tenant situation | Business events? | Approach |
 |------|------------------|------------------|----------|
 | B | Dynatrace Managed (no Grail) | Not available | Classic toolchain: request attributes + calculated service metrics, session/action properties + USQL FUNNEL + conversion goals, log metrics, custom metric ingest. Metrics and sessions, not raw events. Plan SaaS migration (M2S series). |
-| A | SaaS classic-operated, Grail available | Yes, today | Hybrid adoption: capture via OneAgent rules / RUM API / ingest API; report in new Dashboards + Notebooks only; everything else stays classic. Smallest Gen3 footprint: two apps + one IAM permission. |
+| A | SaaS classic-operated, Grail available | Yes, today | Hybrid adoption: capture via OneAgent rules / RUM API / ingest API; report in new Dashboards + Notebooks only; everything else stays classic. Smallest Gen3 footprint: two apps + one IAM permission, plus OpenPipeline only if you need custom buckets or new bizevents.* metrics (the classic pipeline is not available to accounts created from September 2026). |
 | Full | SaaS on latest Dynatrace | Yes, fully | Full series applies: DQL funnels (BIZEV-03), revenue impact (BIZEV-04), OpenPipeline metrics (BIZEV-05), Workflows (BIZEV-06), Business Flow app. |
 | Bridge | Paths A and Full | — | Business-event metric extraction produces bizevents.* metrics readable in Data Explorer, classic dashboards, and classic metric-event alerting. |
 | Licensing | All | — | Classic DDU licensing covers business events (100 DDUs/GB ingest) — no DPS contract required; under DPS they bill via Events powered by Grail. |
 -->
 
-> <sub>**Sources:** [Business Observability (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability) — "You need to migrate to Grail before using business events.", [Business events (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/business-events/) — "Business events are supported on Dynatrace SaaS. … Grail is a prerequisite for business events.", [Upgrade Dashboards Classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards) — "You can use Dashboards Classic and the Dashboards app side by side."</sub>
+> <sub>**Sources:** [Business Observability (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability) — "You need to migrate to Grail before using business events.", [Business events (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/business-events/) — "Business events are supported on Dynatrace SaaS. … Grail is a prerequisite for business events.", [Upgrade Dashboards Classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards) — "You can use Dashboards Classic and the Dashboards app side by side.", [Bucket assignment via classic pipeline (DT docs)](https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment) — "For new accounts created from September 2026, classic pipeline is not available."</sub>
 
 <a id="terminology-gen2-gen3-and-the-hybrid-state"></a>
 ## 2. Terminology: Gen2, Gen3, and the Hybrid State
@@ -252,10 +252,10 @@ It answers the same headline question (step-to-step conversion) with real constr
 | Business KPI alerting | Metric events | Metric events on extracted metrics; Davis anomaly detection on metrics | + Workflows, Business Flow KPI alerting (BIZEV-06) |
 | Revenue ↔ problem correlation at record grain (BIZEV-04) | ✗ (charts side by side only) | ✓ | ✓ |
 | OpenPipeline processing / enrichment / routing | ✗ | ✓ | ✓ |
-| Configuration surface | Classic Settings only | Classic Settings + IAM policy + two Gen3 apps | Full Gen3 |
+| Configuration surface | Classic Settings only | Classic Settings + IAM policy + two Gen3 apps (+ OpenPipeline for custom buckets or new `bizevents.*` metrics) | Full Gen3 |
 | License model | Classic DDU (or DPS) | Classic DDU **or** DPS — both cover business events | Either |
 
-The middle column is the point of this notebook: **the hybrid column is almost the full-Gen3 column**, at the cost of using exactly two new apps for one workload.
+The middle column is the point of this notebook: **the hybrid column is almost the full-Gen3 column**, at the cost of using two new apps for one workload — plus OpenPipeline if that workload needs custom buckets or new `bizevents.*` metrics.
 
 > <sub>**Sources:** consolidated from the per-section sources in Sections 3–6. **Derived:** the three-column rollup itself is this notebook's synthesis.</sub>
 
@@ -314,7 +314,7 @@ If you are on Path B today, build it so the eventual move is a translation, not 
 1. **Classify the tenant, not the customer.** Managed → Path B. SaaS with Grail → Path A, regardless of how classic the day-to-day operation is. Check for the Notebooks/Dashboards apps if unsure.
 2. **On SaaS with Grail, stop building new classic business analytics.** Every new request-attribute-based KPI or USQL funnel built today is migration debt; new customers can no longer even create calculated service metrics. Point new business-analytics asks at business events.
 3. **Start capture with OneAgent rules on one or two KPIs** (an order-completion endpoint, a payment endpoint). It's a Settings change — no redeploy, no Gen3 UI involved — and gives you real data to evaluate with.
-4. **Report where the audience already looks.** Deep analysis in Notebooks; recurring views in the new Dashboards app; executive KPI tiles that must stay on classic dashboards get `bizevents.*` extracted metrics (Section 5). Create extraction rules early — they are forward-only.
+4. **Report where the audience already looks.** Deep analysis in Notebooks; recurring views in the new Dashboards app; executive KPI tiles that must stay on classic dashboards get `bizevents.*` extracted metrics (Section 5). Build new extraction rules in OpenPipeline — the classic pipeline is not available to accounts created from September 2026 — and create them early: they are forward-only.
 5. **Grant read access deliberately.** `storage:bizevents:read` is IAM-policy-scoped, not management-zone-scoped — for many teams this is their first contact with Grail IAM; keep the first policy simple (see the IAM series for the policy model).
 6. **Watch consumption for the first month.** DDU shops: business events draw on the 200k free tier first, then billable; check ingest volume against expectation. DPS shops: Events powered by Grail line items.
 7. **On Managed, run Path B with migration-friendly naming** (Section 9) and treat the business-analytics gap as one of the concrete drivers in the SaaS migration case (M2S — Managed to SaaS Migration series).
@@ -341,7 +341,7 @@ If you are on Path B today, build it so the eventual move is a translation, not 
 <a id="summary-and-next-steps"></a>
 ## 12. Summary and Next Steps
 
-**The one-sentence version:** business events are hard-gated on Grail (SaaS-only, never Managed) — but a SaaS tenant that has Grail can adopt them *today* with a footprint of exactly two new apps and one IAM permission, bridge the resulting KPIs back onto classic dashboards via `bizevents.*` metric extraction, and leave every other part of the classic operation untouched; only Managed customers must approximate with the classic toolchain until they migrate.
+**The one-sentence version:** business events are hard-gated on Grail (SaaS-only, never Managed) — but a SaaS tenant that has Grail can adopt them *today* with a footprint of two new apps and one IAM permission (plus OpenPipeline only if it needs custom buckets or new `bizevents.*` metrics), bridge the resulting KPIs back onto classic dashboards via `bizevents.*` metric extraction, and leave every other part of the classic operation untouched; only Managed customers must approximate with the classic toolchain until they migrate.
 
 Key takeaways:
 

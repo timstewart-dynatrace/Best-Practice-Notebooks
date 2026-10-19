@@ -1,6 +1,6 @@
 # WEBRUM-08: Dashboards and Alerting
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 8 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -52,7 +52,8 @@ Executive dashboards should be simple, business-focused, and actionable. Key met
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
@@ -66,13 +67,14 @@ Executive dashboards should be simple, business-focused, and actionable. Key met
 // Executive KPI summary — single-query dashboard tile
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize
     {total_sessions = count(),
     error_sessions = countIf(error.count > 0),
     bounce_sessions = countIf(user_action_count == 1),
     avg_actions = avg(user_action_count),
     avg_duration_min = avg(duration / 1m)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
     bounce_rate_pct = round(toDouble(bounce_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
     avg_duration_min = round(avg_duration_min, decimals: 1)
@@ -83,7 +85,8 @@ fetch user.sessions, from:-24h
 // Session volume trend — 7-day daily session counts
 fetch user.sessions, from:-7d
 | filter dt.rum.user_type == "real_user"
-| makeTimeseries session_count = count(), interval:24h, by:{primary_tags.application}
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| makeTimeseries session_count = count(), interval:24h, by:{frontend.name}
 ```
 
 <a id="apdex"></a>
@@ -127,7 +130,7 @@ fetch user.events, from:-24h
     satisfied = countIf(load_sec <= 3),
     tolerating = countIf(load_sec > 3 and load_sec <= 12),
     frustrated = countIf(load_sec > 12)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
 | sort apdex asc
 ```
@@ -210,7 +213,7 @@ fetch user.events, from:-1h
 | filter characteristics.has_error == true
 | summarize {error_count = count(),
     affected_sessions = countDistinct(dt.rum.session.id)},
-    by:{error.reason, error.type, primary_tags.application}
+    by:{error.reason, error.type, frontend.name}
 | sort affected_sessions desc
 | limit 10
 ```
@@ -224,7 +227,7 @@ fetch user.events, from:-1h
 | fieldsAdd load_sec = performance.load_event_end / 1s
 | summarize {total = count(),
     under_3s = countIf(load_sec <= 3)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd sla_pct = round(toDouble(under_3s) / toDouble(total) * 100.0, decimals: 1)
 | sort sla_pct asc
 ```
@@ -276,12 +279,13 @@ The following queries provide the data foundation for error rate alerting. Use t
 // Error rate per 15-minute window — alert threshold data
 fetch user.sessions, from:-6h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | fieldsAdd has_error = if(error.count > 0, 1.0, else: 0.0)
 | makeTimeseries
     {total_sessions = count(),
     error_sessions = sum(has_error)},
     interval:15m,
-    by:{primary_tags.application}
+    by:{frontend.name}
 ```
 
 ```dql
@@ -312,7 +316,7 @@ Detect when page load performance degrades beyond acceptable thresholds.
 fetch user.events, from:-6h
 | filter characteristics.has_w3c_navigation_timings == true
 | fieldsAdd load_ms = performance.load_event_end / 1ms
-| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:15m, by:{primary_tags.application}
+| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:15m, by:{frontend.name}
 ```
 
 ```dql
@@ -325,7 +329,7 @@ fetch user.events, from:-6h
 | fieldsAdd apdex_score = if(load_sec <= 3, 1.0,
     else: if(load_sec <= 12, 0.5,
     else: 0.0))
-| makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{primary_tags.application}
+| makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{frontend.name}
 ```
 
 > **Tip:** For production alerting, use Dynatrace Intelligence anomaly detection rather than static thresholds. Dynatrace Intelligence automatically baselines normal behavior and detects deviations, reducing false positives from seasonal traffic patterns.
@@ -352,10 +356,11 @@ Use `append` to compare RUM and synthetic performance for the same application:
 // RUM session summary — real user experience
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {rum_sessions = count(),
     rum_error_sessions = countIf(error.count > 0),
     rum_avg_actions = avg(user_action_count)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd monitoring_type = "RUM",
     error_rate_pct = round(toDouble(rum_error_sessions) / toDouble(rum_sessions) * 100.0, decimals: 1)
 ```
@@ -364,13 +369,14 @@ fetch user.sessions, from:-24h
 // Synthetic vs RUM — compare session types for the same app (user-type values are lowercase:
 // "real_user", "robot", "synthetic"; "SYNTHETIC" matched nothing — corrected 10/05/2026)
 fetch user.sessions, from:-24h
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {session_count = count(),
     avg_duration_sec = avg(duration / 1s),
     error_sessions = countIf(error.count > 0)},
-    by:{primary_tags.application, dt.rum.user_type}
+    by:{frontend.name, dt.rum.user_type}
 | filter dt.rum.user_type == "real_user" or dt.rum.user_type == "synthetic"
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(session_count) * 100.0, decimals: 1)
-| sort primary_tags.application asc, dt.rum.user_type asc
+| sort frontend.name asc, dt.rum.user_type asc
 ```
 
 <a id="summary"></a>
@@ -402,7 +408,7 @@ In this notebook, we covered:
 
 - [Apdex Standard](https://www.apdex.org/)
 - [Dynatrace RUM Dashboards](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/analyze-and-use)
-- [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
+- [Metric Events for Alerting](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)
 - [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"Used for internal optimization when storing the data and not intended for query usage."*
 - [Semantic Dictionary changelog 1.349 (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349)
 

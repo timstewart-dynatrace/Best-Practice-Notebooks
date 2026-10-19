@@ -1,6 +1,6 @@
 # FAQ-25: What Actually Carries Over When We Migrate to a New Tenant?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 25 — What Carries Over to a New Tenant | **Created:** September 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -227,7 +227,7 @@ Reproduced on a second node type: `smartscapeNodes "SERVICE"` with `toString(id)
 
 The general rule this is an instance of: **in DQL, a comparison between two fields of different types is a false negative, not an error.** It belongs with the corpus's other silent-zero traps — an integer compared against a `duration`, or `==` against an array field.
 
-> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Dictionary:** `id` (`stable`), `id_classic` (`deprecated`; its description is quoted in the text above), read from `dt.semantic_dictionary.fields` 10/02/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with `==`, 5 of 5 with `toString`; SERVICE 0 of 22 / 22 of 22), with an empty `notifications` array. `id_classic` population by node type (`summarize countIf(isNotNull(id_classic)), by:{type}`) executed 09/28/2026. [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"This field is now correctly written for all K8S_* entity types as part of the ongoing migration to OpenPipeline-based Smartscape ingest."*</sub>
+> <sub>**Dictionary:** `id` is typed `smartscape_id` and `id_classic` is typed `string` on `dt.smartscape.host` and `dt.smartscape.service`; read from the query result's own type metadata, 09/21/2026. **Dictionary:** `id` (`stable`), `id_classic` (`deprecated`; its description is quoted in the text above), read from `dt.semantic_dictionary.fields` 10/02/2026. **Sources:** behaviour reproduced against a live Dynatrace tenant 09/21/2026 — HOST (7 of 7 nodes) and SERVICE (23 of 23), with the `EQUALITY_COMPARISON_OF_INCOMPATIBLE_TYPES` notification quoted verbatim from the query response. Re-run 09/24/2026: same result (HOST 0 of 5 with `==`, 5 of 5 with `toString`; SERVICE 0 of 22 / 22 of 22), with an empty `notifications` array. `id_classic` population by node type (`summarize countIf(isNotNull(id_classic)), by:{type}`) executed 09/28/2026. [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"This field is now correctly populated for all K8S_* entity types in the OpenPipeline-based ingest path."*</sub>
 
 ### Can your estate even be reconciled by name?
 

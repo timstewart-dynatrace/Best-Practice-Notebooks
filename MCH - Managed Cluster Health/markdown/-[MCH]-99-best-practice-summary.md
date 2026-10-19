@@ -1,6 +1,6 @@
 # MCH-99: Best Practice Summary and Health-Check Checklist
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 8 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 8 of 8 | **Created:** September 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -80,7 +80,7 @@ Across all five, the most important habit is reading CMC **Events**. Many of the
 
 | Check | How | Healthy |
 |-------|-----|---------|
-| Mission Control link | CMC → *Check Mission Control connection* | Connected. A lost link starts the clock: *"If a connection outage to Mission Control lasts longer than 14 days (7 days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* |
+| Mission Control link | CMC → *Check Mission Control connection* | Connected. Under classic licensing a lost link starts the clock: *"If a connection outage to Mission Control lasts longer than 14 days (7 days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages)."* Under DPS, usage is sent once the connection returns |
 | Load balancer | Its health checks | Every node checked at `/rest/health`; targets match the current nodes |
 | Cluster ActiveGates | CMC → Deployment Status → ActiveGates | None *Unknown*; none flagged as behind by more than five versions |
 | Certificates | Your certificate inventory | Expiry tracked outside the cluster |
@@ -91,12 +91,12 @@ Across all five, the most important habit is reading CMC **Events**. Many of the
 |-------|-----|---------|
 | Backups running | CMC **Home** → *Last backup* | Recent; no backup-problem events |
 | Backup mount | `fstab` or your disk tool | Persistent. Otherwise *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."* |
-| Restore readiness | Your restore kit | Exact installer version, node inventory, seed choice, matching UID:GID |
+| Restore readiness | Your restore kit | Exact installer version, node inventory, seed choice, matching UID:GID — and a step to re-enable backups, which a restore turns off |
 | Version | CMC user menu vs. the release table | Inside "Currently supported" |
 
 > <sub>**Sources:**</sub>
 > - <sub>[Get cluster information about known cluster nodes (DT docs)](https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers), [Start/stop/restart a node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node), [Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements)</sub>
-> - <sub>[Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-managed)</sub>
+> - <sub>[Start/stop/restart a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
 > - <sub>[Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support), [Set up load balancer (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
 > - <sub>[Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed)</sub>
 
@@ -120,9 +120,10 @@ Cluster events appear in the CMC **Events** list, and the docs' event table give
 | 4 | *"A cluster node can't receive OneAgent traffic."* | SEVERE |
 | 4 | *"SSL certificate expired."* / *"Your SSL certificate will expire soon."* | SEVERE / WARNING |
 | 4 | *"ActiveGate (host=…) lost connection to cluster."* | INFO |
-| 5 | *"Cassandra backup problem."* / *"ElasticSearch backup problem."* | SEVERE |
+| 5 | *"Cassandra backup problem."* / *"ElasticSearch backup problem."* | SEVERE / WARNING or SEVERE |
+| 5 | *"Dynatrace update %s download failed."* / *"Post-Update data migration failed"* … / the cluster *update failed* event | SEVERE / SEVERE / WARNING or SEVERE |
 
-For contrast, these **do** email: *"Node is down - %s."* (*"if happened outside of the upgrade procedure"*), *"Host is down."*, and *"There is lack of connection to Dynatrace Mission Control."*. The *Configurable* ones also email by default: insufficient disk space, the 4 TB metrics ceiling, retention truncation, and adaptive load reduction.
+For contrast, these **do** email: *"Node is down - %s."* (*"if happened outside of the upgrade procedure"*), *"Host is down."*, and *"There is lack of connection to Dynatrace Mission Control."*. So does *"Your Dynatrace Managed cluster should be scaled-out!"*, and *"Backup has been disabled because the configuration is no longer supported."* The *Configurable* ones are insufficient disk space, the 4 TB metrics ceiling, retention truncation and adaptive load reduction. Whether they email by default is contradicted on the events page itself: its default example sets truncation and adaptive load reduction to `sendEmail: false`. Set all of them explicitly (MCH-01 §6.2).
 
 > <sub>**Sources:** [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications) — Email notification column, read 10/01/2026.</sub>
 
@@ -167,7 +168,7 @@ The "after every change" column is the one teams most often skip. Each item in i
 
 > <sub>**Sources:**</sub>
 > - <sub>[Hardware requirements (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Single-cluster high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability)</sub>
-> - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers), [Multi-data center failover (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management/adaptive-traffic-management-managed)</sub>
+> - <sub>[Multi-data center high availability (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers), [Multi-data center failover (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover), [Adaptive traffic management for Managed (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed)</sub>
 > - <sub>[Remove a cluster node (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node), [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support)</sub>
 
 <a id="anti-patterns"></a>

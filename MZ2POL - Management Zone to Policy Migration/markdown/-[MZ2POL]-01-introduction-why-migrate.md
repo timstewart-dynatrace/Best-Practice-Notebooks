@@ -80,7 +80,7 @@ Management Zones were designed for **classic Dynatrace** and have fundamental li
 | Not compatible with Grail | Cannot filter Grail-stored data |
 | Tight coupling | Access, filtering and alerting scope in a single construct |
 
-> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"100,000 conditions for all management-zone rules taken together."*</sub>
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"100,000 conditions for all management-zone rules taken together."*</sub>
 
 ### The New Platform Architecture
 
@@ -315,7 +315,7 @@ For the alerting side of the migration specifically, see **WFLOW-02** (problem-t
 - [Upgrade from RBAC to ABAC](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles)
 - [Segments Documentation](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-queries)
 - [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — the authoritative old→new mapping, including where filtering goes in a workflow and the connector equivalence table
-- [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — Dynatrace Classic surface; carries the "we recommend using simple workflows" steer
+- [Alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles) — Dynatrace Classic surface; carries the "we recommend using simple workflows" steer
 - [Use segments in anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection) — the one documented intersection of segments and alerting
 
 ---

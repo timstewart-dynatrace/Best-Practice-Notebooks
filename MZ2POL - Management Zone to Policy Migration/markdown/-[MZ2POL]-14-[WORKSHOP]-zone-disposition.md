@@ -1,6 +1,6 @@
 # MZ2POL-14: Zone Disposition Workshop
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** Bonus Workshop | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** Bonus Workshop | **Created:** October 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -205,6 +205,7 @@ The facilitator checks every row against MZ2POL-12 before the session closes:
 - **No unscoped data policy** in any group a team member also belongs to (§3).
 - **`MATCH`** on `storage:dt.security_context` wherever events are in scope.
 - **Settings** scoped by edge-set security context or `settings:schemaId` — not by zones (§5).
+- **Zone line and settings line together are unverified.** Both apply to `settings:objects:read` / `write`, and Dynatrace does not document whether two different condition names on one permission are ANDed. Record the boundary as *to be dry-run*: resolve a pilot user's settings permissions with `effectivepermissions:dry-run` before the boundary is bound to a real group, or put the zone line in a separate classic-only binding (MZ2POL-12 §4.2).
 
 <a id="session-6"></a>
 ## 9. Session 6 — Alerting and Cutover

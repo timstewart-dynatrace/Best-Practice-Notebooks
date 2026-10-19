@@ -1,6 +1,6 @@
 # FINOPS-01: DPS Capability Units and Querying Consumption with DQL
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 01 — DPS Capability Units and Querying Consumption with DQL | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -452,6 +452,10 @@ fetch dt.system.events, from:-7d
 
 Three Grail capabilities bill on **query execution** in addition to ingest and retention: Log Management, Events, and Traces. The query-side records carry rich attribution — which app made the query, which user, even which finer-grained source.
 
+They are not the only query-side event type. The billing usage event model also defines `Digital Experience Monitoring - Query` — *"a billing usage event of a Digital Experience Monitoring query execution"* — with the same `query_id` / `billed_bytes` / `usage.bucket` shape, although the DPS capability list does not name it as a rate-card line. On a validation tenant (10/14/2026) it carried 29 records in 30 days, all reads of the synthetic-event and synthetic-user-session buckets. When you audit query-side consumption, filter on `contains(event.type, "Query")` rather than on the three names, so this type is not missed.
+
+> <sub>**Sources:** [System event models (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-system-events) — *"Model describing a billing usage event of a Digital Experience Monitoring query execution."* [Capabilities (DT docs)](https://docs.dynatrace.com/docs/license/capabilities) — lists Log Management & Analytics, Traces, Events and Metrics - Query, and no Digital Experience Monitoring - Query line.</sub>
+
 | Field | Meaning |
 |-------|---------|
 | `query_start` | When the query ran (use this for time-bucketing, not `timestamp`) |
@@ -544,7 +548,7 @@ Retain is the case where pitfall #6 bites after an `expand`: each record is an h
 
 **Defining cost-center / product labels:** The values come from data ingested with `dt.cost.costcenter` and `dt.cost.product` attributes — typically applied via OneAgent host properties (covered in the FAQ series entry on tagging sources, standards, and strategy) or via OpenPipeline enrichment rules at ingest. Where host-group granularity is enough, Dynatrace names a preferred route: *"If cost attribution at the host group level is sufficient, the preferred approach is to map deployment-level primary Grail fields such as dt.host_group.id or host.name to dt.cost.costcenter and dt.cost.product via the Cost Allocation stage in OpenPipeline."* Use host tags or `DT_TAGS` when you need finer granularity than the host group. Reducing the `unassigned` share is part of the FINOPS-03 optimization framework.
 
-> <sub>**Sources:** [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — the host-group route quoted above. [DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — covers cost-center / product attribution semantics. The `dt.billing.logs.ingest.usage_by_costcenter` and `dt.billing.traces.ingest.usage_by_costcenter` metric series are documented in the same shortlink. Both queries verified live on a SaaS tenant (2026-05-19); the manual-expand query re-executed 10/05/2026 (no notifications) with the results above.</sub>
+> <sub>**Sources:** [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — the host-group route quoted above. [Allocate your DPS costs (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — tags *"flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*. No docs page found documents the `dt.billing.logs.ingest.usage_by_costcenter` and `dt.billing.traces.ingest.usage_by_costcenter` metric series; both keys were observed in the tenant metric catalog (`metrics | filter startsWith(metric.key, "dt.billing")`), read 10/14/2026. Both queries verified live on a SaaS tenant (2026-05-19); the manual-expand query re-executed 10/05/2026 (no notifications) with the results above.</sub>
 
 <a id="pitfalls"></a>
 ## 11. Common Pitfalls

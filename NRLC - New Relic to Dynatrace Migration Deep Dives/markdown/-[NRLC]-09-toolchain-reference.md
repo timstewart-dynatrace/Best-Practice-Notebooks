@@ -1,6 +1,6 @@
 # NRLC-09: Toolchain Reference & End-to-End Runbook
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 9 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -121,12 +121,11 @@ cp .env.example .env
 - `metrics.read`
 - `entities.read`
 - `settings:objects.read` + `settings:objects.write`
-- `slo.read` + `slo.write`
 - `synthetic.read` + `synthetic.write`
 - `notifications.write`
 - `iam-policies.read` (for IAM policy + OpenPipeline configuration validation)
 
-> **Note:** These are Classic API token scopes (the `<area>.<action>` style). **Platform Tokens use policy-based permissions** instead and are the recommended default on Gen3 tenants — see Dynatrace IAM docs for the equivalent policy statements. OAuth clients follow the Classic scope style for programmatic access.
+> **Note:** These are Classic API token scopes (the `<area>.<action>` style). **Platform Tokens use policy-based permissions** instead and are the recommended default on Gen3 tenants — see Dynatrace IAM docs for the equivalent policy statements. OAuth clients use the same platform permissions — not the classic `<area>.<action>` scopes. SLOs are platform-only here: the tool writes them through the SLO Service Public API, so the credential needs `slo:slos:read` (plus `slo:slos:write` for migrate runs), not `slo.read` / `slo.write`; the Terraform `dynatrace_platform_slo` resource takes an OAuth client (`DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`) with those permissions.
 
 ### Configuration File (`.env`)
 
@@ -231,7 +230,7 @@ Migrating one entity type at a time is the safe pattern. The `--components` flag
 | `custom_event_ingest` | NR custom events → bizevent CloudEvent payloads | `custom_event_ingest_transformer` (Phase 17) |
 | `synthetics` | NR Ping / Browser / Scripted API / Scripted Browser → `dynatrace_http_monitor`/`dynatrace_browser_monitor` (Config-v1, `ExternalSyntheticIntegration` scope) | `synthetic_transformer` (Phase 11) |
 | `synthetics_specialized` | CERT_CHECK + BROKEN_LINKS | `synthetic_specialized_transformer` (Phase 24) |
-| `slos` | NR SLOs (v1 / v2) → `builtin:monitoring.slo` | `slo_transformer` (Phase 11) |
+| `slos` | NR SLOs (v1 / v2) → Platform SLOs (SLO Service Public API; `dynatrace_platform_slo`). Classic `builtin:monitoring.slo` is no longer emitted | `slo_transformer` (Phase 11) |
 | `key_transactions` | NR Key Transactions → SLO + OpenPipeline enrichment + Workflow bundle | `key_transaction_transformer` (Phase 23) |
 | `workloads` | NR Workloads → Grail Filter Segment (`dynatrace_segment`) + bucket-scoped IAM | `workload_transformer` (Phase 11, Gen3 default) |
 | `tags` | NR tag rules → OpenPipeline enrichment (`builtin:openpipeline.*`) | `tag_transformer` (Phase 11, Gen3 default) |
@@ -273,7 +272,7 @@ Beyond direct API import, `Dynatrace-NewRelic` can emit **config-as-code** in tw
 python3 migrate.py export-monaco --input ./output --output ./monaco-project
 ```
 
-Output: a Monaco v2 project (`manifest.yaml` + per-config-type directories with `config.yaml` + JSON templates). Suitable for the SaaS Upgrade Assistant tar.gz upload pattern documented in the **M2S** (Managed-to-SaaS) series.
+Output: a Monaco v2 project (`manifest.yaml` + per-config-type directories with `config.yaml` + JSON templates), including Platform SLOs as Monaco `slo-v2` configs. Deploy it with `monaco deploy manifest.yaml`. The SaaS Upgrade Assistant (M2S series) is not a route for this project: it imports a Dynatrace Managed configuration export created in the Cluster Management Console, not a Monaco project.
 
 ### Terraform HCL
 
@@ -281,11 +280,11 @@ Output: a Monaco v2 project (`manifest.yaml` + per-config-type directories with 
 python3 migrate.py export-terraform --input ./output --output ./terraform-project
 ```
 
-Output: HCL files using the `dynatrace-oss/dynatrace` provider. Resources include `dynatrace_document` (Gen3 dashboards), `dynatrace_davis_anomaly_detectors` (Gen3 detection) or `dynatrace_metric_events` (classic metric events), `dynatrace_slo_v2`, and the per-data-type `dynatrace_openpipeline_v2_<type>_*` family (e.g. `dynatrace_openpipeline_v2_logs_pipelines`), etc.
+Output: HCL files using the `dynatrace-oss/dynatrace` provider, plus a `provider.tf` that declares the credential variables (`dynatrace_env_url`, `dynatrace_api_token`, `dynatrace_oauth_client_id`, `dynatrace_oauth_client_secret`). Resources: `dynatrace_document` (dashboards), `dynatrace_automation_workflow`, `dynatrace_segment`, `dynatrace_iam_policy`, `dynatrace_platform_slo` (SLOs), and `dynatrace_generic_setting` for anomaly detectors (`builtin:davis.anomaly-detectors`), synthetic tests and OpenPipeline processors (exporter on the `main` branch, read 10/14/2026). `--legacy` emits classic (Gen2) resource names instead.
 
 ### Why both formats
 
-- **Monaco** is best for one-time bootstrap and bulk upload via SUA
+- **Monaco** is best for one-time bootstrap and bulk deploys (`monaco deploy`)
 - **Terraform** is best for ongoing GitOps-style management
 
 The general guidance is **Terraform as the long-term tool**, with Monaco reserved for export and one-time deploys. The **AUTOM** series covers configuration automation tooling in depth.
@@ -414,15 +413,28 @@ on: [push]
 jobs:
   apply:
     runs-on: ubuntu-latest
+    # Job-level env: plan and apply both need credentials.
+    env:
+      # Variables declared in the exported provider.tf
+      TF_VAR_dynatrace_env_url: ${{ secrets.DT_ENV_URL }}
+      TF_VAR_dynatrace_api_token: ${{ secrets.DT_API_TOKEN }}
+      TF_VAR_dynatrace_oauth_client_id: ${{ secrets.DT_CLIENT_ID }}
+      TF_VAR_dynatrace_oauth_client_secret: ${{ secrets.DT_CLIENT_SECRET }}
+      # dynatrace_platform_slo reads its OAuth client from these
+      DT_CLIENT_ID: ${{ secrets.DT_CLIENT_ID }}
+      DT_CLIENT_SECRET: ${{ secrets.DT_CLIENT_SECRET }}
+      DT_ACCOUNT_ID: ${{ secrets.DT_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
       - run: terraform init
       - run: terraform plan -out=tfplan
       - run: terraform apply tfplan
-        env:
-          DT_TOKEN: ${{ secrets.DT_TOKEN }}
 ```
+
+The `TF_VAR_*` names match the variables in the `provider.tf` that `export-terraform` writes; if you replace that provider block with your own, use the provider's environment variables instead (`DYNATRACE_ENV_URL`, `DYNATRACE_API_TOKEN`, and `DT_CLIENT_ID` / `DT_CLIENT_SECRET` / `DT_ACCOUNT_ID` or `DYNATRACE_PLATFORM_TOKEN`). The secret names on the right are placeholders.
+
+> <sub>**Sources:** [Dynatrace provider — authentication (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"Define `DYNATRACE_ENV_URL` for the Dynatrace environment URL."*, [dynatrace_platform_slo resource (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md) — *"please define the environment variables `DT_CLIENT_ID`, `DT_CLIENT_SECRET`, `DT_ACCOUNT_ID`"*, [Monaco commands (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas), [SaaS Upgrade Assistant (DT docs)](https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant).</sub>
 
 ### Translation in CI
 

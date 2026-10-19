@@ -26,7 +26,7 @@ This notebook shows how to convert common MZ access patterns into parameterized 
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Gen3 IAM and Grail enabled |
-| **Permissions** | Account permission **View and manage users and groups** for group management in Account Management ([Role-based permissions (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/role-based-permissions)) |
+| **Permissions** | Account permission **View and manage users and groups** for group management in Account Management ([Role-based permissions (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/role-based-permissions)) |
 | **API Access** | An **OAuth client** — the Account Management API authenticates with OAuth tokens — with `account-idm-read` to list groups ([GET groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups)) and `iam-policies-management` to create policies and bindings ([POST bindings of a policy (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/bindings/post-policy-binding) — *"Allow IAM policy configuration for environments"*) |
 | **Prior Knowledge** | **MZ2POL-04: Policies and Boundaries** (G-P-B pattern, policy syntax) |
 | **Migration Status** | MZ assessment complete (**MZ2POL-03**), security context assigned |

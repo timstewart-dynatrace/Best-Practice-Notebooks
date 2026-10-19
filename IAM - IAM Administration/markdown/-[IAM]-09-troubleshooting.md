@@ -232,7 +232,7 @@ Two consequences catch most teams out. A service (domain) left out of a boundary
 | Too restrictive | See no data | Boundary too narrow | Expand boundary |
 | Not restrictive enough | See too much | Boundary too broad, a service missing from the boundary (unscoped), or another binding grants the same permission without a boundary | Narrow the boundary, add conditions for every service the policy uses, and check Effective policies for unbounded bindings |
 | Segment applied | Some data missing | A segment the user selected hides data they are allowed to see | Clear the segment selector before debugging access |
-| Environment excluded | No env access | Env not in boundary | Add environment |
+| Wrong environment | Access works in one environment but not another | The policy binding is scoped to a different environment — environment scope is set on the **binding**, not in the boundary | Re-bind the policy at the right environment, or at account level |
 
 ### Boundary Debugging Steps
 
@@ -240,29 +240,28 @@ Two consequences catch most teams out. A service (domain) left out of a boundary
 
 1. Find user's groups
 2. Check the boundary attached to each policy binding of those groups (boundaries are per binding)
-3. Note boundary scope (environment, storage, settings)
+3. Note each binding's scope (account or a single environment) and its boundary's conditions
 
-**Step 2: Verify Boundary Scope**
+**Step 2: Verify Binding Scope and Boundary Conditions**
 
-For each domain:
-- **Environment**: Which environments included?
-- **Storage**: Which data types included?
-- **Settings**: Which settings accessible?
+- **Binding scope**: is the policy bound at account level, or to the environment the user is working in?
+- **Storage conditions**: which security contexts, buckets or data types does the boundary allow?
+- **Settings conditions**: which security contexts or schemas?
+- **Classic (`environment:`) conditions**: which management zones?
 
-**Step 3: Test Without Boundary**
+**Step 3: Check Effective Policies**
 
-Temporarily:
-1. Add user to unbounded admin group
-2. Test if access works
-3. If yes, boundary is the issue
-4. Remove from admin group
+Go to **Account Management > Identity & access management > Effective policies**, enter the user's email address, select the environment, and select **Find permissions**. Dynatrace documents this view for exactly this job: *"Use Effective policies to troubleshoot unexpected access denials. You can see which policy granted or restricted a specific permission and which boundary condition was applied."*
 
-**Step 4: Adjust Boundary**
+Do not add the affected user to an unbounded admin group to test. That grants production admin rights to diagnose a scoping problem, and is itself an access change an auditor will ask about. If you need to reproduce, in community practice teams bind the same policy **without** the boundary to a dedicated test group holding a test user, reproduce, then delete that binding.
 
-Modify boundary to include:
-- Missing environments
-- Missing security-context values
-- Missing data types
+**Step 4: Adjust the Binding or Boundary**
+
+- Missing security-context values or data types → add them to the boundary
+- Wrong environment → re-bind the policy at the right scope
+- A domain with no condition in the boundary → add a condition for it (unscoped, not blocked — see above)
+
+> <sub>**Sources:** [Grant access to Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-platform) — *"Use Effective policies to troubleshoot unexpected access denials."*; [Manage IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt) — *"defining one policy on the account level and binding it to environment levels."*; [IAM policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Boundaries alone don't restrict anything, they are always used together with policies in the process of assigning policies to your user groups."*</sub>
 
 <a id="sso-and-authentication-issues"></a>
 ## 6. SSO and Authentication Issues
@@ -512,7 +511,7 @@ POLICIES
 □ No conflicting policies
 
 BOUNDARIES
-□ Boundary includes target environment
+□ Policy binding scoped to the target environment (or account)
 □ Boundary includes target data type
 □ No overly restrictive boundaries
 

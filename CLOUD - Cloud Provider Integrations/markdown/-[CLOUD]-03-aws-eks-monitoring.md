@@ -1,6 +1,6 @@
 # CLOUD-03: AWS EKS Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 3 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -97,6 +97,17 @@ spec:
 - Consider **resource limits** to prevent OneAgent from consuming excessive node resources
 
 > <sub>**Sources:** [Kubernetes setup (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s) — the Operator/DynaKube deployment model, [DynaKube parameters (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters) — the deployment modes and the API versions (the worked YAML here targets `v1beta6`; K8S-02 § 4 has the served-version table), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."*, [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services) — the EKS side of the connection.</sub>
+
+### Tagging this producer — primary Grail tags on EKS
+
+EKS data comes from two producers, and each needs its own rules:
+
+- **Workloads in the cluster** — Operator and ActiveGate evaluate *Kubernetes* rules at the cluster scope. Enable `metadataEnrichment` in the DynaKube, map namespace labels (for values shared by the whole namespace, such as `app` and `stage`) and workload labels (for values that differ per workload, such as `team`). Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.349+ (a staged rollout — check both have reached you). *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."* K8S-10 covers the rule types in detail.
+- **The EC2 and EBS resources behind the nodes, and their CloudWatch metrics** — these arrive through the AWS connection, so they take the AWS-account rules in CLOUD-02, not the cluster rules.
+
+Configure each tag at the broadest scope where everything underneath shares one value. FAQ-26 § 5.2 has the Kubernetes options beyond central configuration.
+
+> <sub>**Sources:** [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."* and *"Configure each tag at the broadest level where everything underneath shares one value."*</sub>
 
 <a id="node-groups"></a>
 
@@ -245,10 +256,13 @@ timeseries containerMem = sum(dt.kubernetes.container.memory_working_set, rollup
 //      dt.kubernetes.event.important was "true" on every event over 30 days (10/02/2026).
 //   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
 // Each filter was valid syntax that executed cleanly, which is why this survived review.
+// Counted with countDistinctExact(event.id): an open Kubernetes event is re-written about every
+// 5 minutes under the same event.id, so count() counts refresh records (10/15/2026: 1,203
+// distinct events vs 8,259 records in 24 h).
 fetch events, from:-6h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter status == "WARN"
-| summarize event_count = count(), by:{dt.kubernetes.event.reason, k8s.namespace.name}
+| summarize event_count = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, k8s.namespace.name}
 | sort event_count desc
 | limit 20
 ```

@@ -1,6 +1,6 @@
 # MCH-04: Elasticsearch Store Health
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 4 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 4 of 8 | **Created:** September 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -66,7 +66,7 @@ The retention docs name what lives in the store and how many copies each gets:
 |------|-----------------------|--------|
 | **RUM Classic user sessions** | *"Data is stored in Elasticsearch store at DATASTORE_PATH/elasticsearch. Data is replicated across Managed Cluster nodes. Replication factor is set to three."* | 3 |
 | **Log Monitoring events** | *"you already use Elasticsearch store at DATASTORE_PATH/elasticsearch to store log files on your Dynatrace Managed Cluster. Replication factor is set to two."* | 2 |
-| **RUM Classic mobile crashes** | *"Crash data and stack traces of mobile and custom applications are stored for 35 days."* The section ends with the Elasticsearch-store statement, but also says of the crash counts shown on different pages: *"For these pages, it comes from different storage and has a different retention period."* | Not stated for crash data specifically |
+| **RUM Classic mobile crashes** | *"Crash data and stack traces of mobile and custom applications are stored for 35 days."* The section ends *"Data is stored in Elasticsearch store"* … *"Replication factor is set to three."* Crash *counts* shown on some other pages come from elsewhere: *"For these pages, it comes from different storage and has a different retention period."* | 3 |
 
 ![What Lives in the Elasticsearch Store](images/04-elasticsearch-data-map.png)
 
@@ -75,8 +75,8 @@ The retention docs name what lives in the store and how many copies each gets:
 |---|---|---|
 | Share of the store | Up to 99% in heavy-RUM clusters | — |
 | Copies | 3 | 2 — losing two nodes makes some unavailable |
-| Retention | 1–90 days per environment, default 35 | Up to 90 days; custom retention limited by capacity |
-| Adaptive retention | Not covered | Covered — trimmed when disk runs short |
+| Retention | 1–90 days per environment, default 35; custom retention limited by capacity | 1–90 days per environment (Managed 1.340+), optional GiB cap; custom retention limited by capacity |
+| Adaptive retention | Not covered | Covered — trimmed when the disk is full or the environment exceeds its quota |
 | In the backup | Yes, unless excluded (GDPR option) | Only if "Include backup of Log Monitoring events" is selected |
 For environments where SVG doesn't render
 -->
@@ -123,16 +123,16 @@ MCH-03 showed that Cassandra's five-year metric retention has no documented sett
 | Data | Retention | Where to set it |
 |------|-----------|-----------------|
 | RUM Classic user sessions | *"User session data retention is configurable 1–90 days, with a default of 35 days."* | *"Cluster Management Console > Environments > Storage settings"*, per environment |
-| Log Monitoring | *"Configurable, with maximum 90 days of retention time"* | Per environment, within the cluster's capacity (below) |
+| Log Monitoring | *"Configurable, with maximum 90 days of retention time"*. Since Managed 1.340 (every supported release): *"Log retention can be set anywhere from 1 to 90 days"*, and *"storage can be capped at a specific GiB value or left unlimited"* | Per environment in the CMC, within the cluster's capacity (below) |
 | RUM Classic mobile crashes | 35 days, fixed | — |
 
-Custom log retention is rationed by capacity: *"Depending on the number and size of Managed Cluster nodes and the selected log retention times, only a certain number of environments can use custom log retention. The system reports when no more custom log retention settings are possible based on the predicted current usage."*
+Custom log retention is rationed by capacity: *"Depending on the number and size of Managed Cluster nodes and the selected log retention times, only a certain number of environments can use custom log retention. The system reports when no more custom log retention settings are possible based on the predicted current usage."* User sessions are rationed the same way: *"only a certain number of environments can use custom User Session and Session Replay retention."*
 
-**Adaptive retention treats the two differently.** Adaptive data retention shortens retention automatically when disk runs short, and it covers *"transaction storage, Session Replay storage, and Log Monitoring data"*. Logs are covered; **user sessions are not**. When the disk fills, log history is trimmed automatically, while user sessions only shrink if someone lowers their retention.
+**Adaptive retention treats the two differently.** Adaptive data retention shortens retention automatically when *"The disk is full"* or *"The environment uses more disk space than its quota allows"*, and it covers *"transaction storage, Session Replay storage, and Log Monitoring data"*. Logs are covered; **user sessions are not**. When the disk fills or an environment outgrows its quota, log history is trimmed automatically, while user sessions only shrink if someone lowers their retention. The per-environment storage quotas in CMC **Environments** are therefore a second lever.
 
-**The practical rule.** Every environment that raises user-session retention above 35 days, or sets custom log retention, is spending Elasticsearch disk on every node. Review those settings before adding hardware.
+**The practical rule.** Every environment that raises user-session retention above 35 days, or sets custom log retention, is spending Elasticsearch disk on every node. Review those settings before adding hardware. Note that lowering log retention may not free space at once: *"Retention changes apply to new log records going forward."*
 
-> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention). **Derived:** "logs trimmed automatically, sessions only by hand" combines the adaptive-retention scope with the per-environment session setting.</sub>
+> <sub>**Sources:** [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods), [Adaptive data retention (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention), [Managed 1.340 release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-340). **Derived:** "logs trimmed automatically, sessions only by hand" combines the adaptive-retention scope with the per-environment session setting.</sub>
 
 <a id="health-checks"></a>
 ## 5. Health Checks
@@ -201,16 +201,20 @@ In community practice, a rising incoming count is watched as the early warning f
 
 **Where it lives.** `ELASTICSEARCH_DATASTORE_PATH` defaults to `DATASTORE_PATH/elasticsearch`, which is `/var/opt/dynatrace-managed/elasticsearch`. The storage-location table asks for **3 GB** free to install and **1 GB** to upgrade. Those are only install minimums; plan capacity from §3.
 
-**Layout rules** (same as MCH-03 §6): give the store its own local volume, don't nest it inside another store (*"you can't nest datastores within each other"*), and never put it on NFS, CIFS or EFS.
+**Layout rules** (same as MCH-03 §6): give the store its own local volume, keep partition sizes equal on every node (*"Use the same partition size on all Managed Cluster nodes."*), don't nest it inside another store (*"you can't nest datastores within each other"*), and never put it on NFS, CIFS or EFS.
+
+**Grow it in place first.** The storage-location page documents *"Extend the size of the storage volume"*; that is less risky than moving the store.
 
 **Moving it** follows the documented change-storage-location procedure, with the Elasticsearch directory and `ELASTICSEARCH_DATASTORE_PATH` in place of Cassandra's:
 
+0. Back up first: *"Back up your data. An error in this procedure can result in data loss."* The page advises copying all storage files to a safe location and rehearsing on a test deployment
 1. Stop the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop`
 2. Copy the data, keeping permissions: `cp -pR /old_location/elasticsearch/* /new_location/elasticsearch`
 3. Fix ownership: `chown -R dynatrace:dynatrace /new_location`
-4. Point `ELASTICSEARCH_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`
+4. Point `ELASTICSEARCH_DATASTORE_PATH` at the new location in `/etc/dynatrace.conf`. The new path *"must be a directory, and it can't be a symlink"*
 5. Apply it: `nohup <PRODUCT_PATH>/installer/reconfigure.sh --no-start &`
 6. Start the node: `sudo /opt/dynatrace-managed/launcher/dynatrace.sh start`
+7. *"Check the logs to make sure all services started without issues."*
 
 In community practice, the move is done one node at a time, with `_cluster/health` checked before each node — the storage-move page doesn't say either.
 
@@ -250,7 +254,7 @@ sudo /opt/dynatrace-managed/utils/restore-elasticsearch-data.sh <path-to-backup>
 <a id="failover-versions"></a>
 ## 9. Failover and Versions
 
-**Multi-data-center clusters.** Premium High Availability watches this store as closely as Cassandra: *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC."* Elasticsearch logs for that investigation are under `/var/opt/dynatrace-managed/log/elasticsearch/`.
+**Multi-data-center clusters.** Premium High Availability watches this store as closely as Cassandra: *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC."* Elasticsearch logs for that investigation are under `/var/opt/dynatrace-managed/log/elasticsearch/`. Two limits matter for health checks. A *red* `_cluster/health` does not trigger failover: *"Does Elasticsearch in RED status trigger the PHA failover mechanism? No. Dynatrace reacts only to Elasticsearch down status."* — a red store needs manual action. And automatic recovery covers *"outages longer than 15 minutes and shorter than 72 hours"* (MCH-07 §7.3).
 
 **Which Elasticsearch you're running (Managed 1.340+).** Elasticsearch is upgraded with Managed itself: *"The Elasticsearch nodes are upgraded to version 8.19 to provide bug and security fixes and leverage performance improvements introduced by this update."* There's nothing to do by hand: *"No manual user intervention or downtime is required"*. As with Cassandra, staying within the supported Managed releases is how the store stays patched.
 
@@ -270,10 +274,10 @@ Checked against the Managed documentation on 09/28/2026 and **not found**:
 
 **Two conflicts in the docs:**
 
-- **Snapshot interval.** *Backup and restore a cluster* says *"every 2 hours"*. The *UP information* comparison table says *"Elasticsearch snapshots every 2 days"*. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC **Settings > Backup**.
+- **Snapshot interval.** *Backup and restore a cluster* says *"every 2 hours"*. The *Pre-upgrade information* page's Managed-vs-SaaS comparison table says *"Elasticsearch snapshots every 2 days"*. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC **Settings > Backup**.
 - **Copy counts.** The backup page says *"there are two replicas in addition to the primary shard"*, which fits user sessions (three copies) but not log events (two). The retention and HA pages are the more specific source per data type (§2).
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [UP information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods). **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information), [Data retention periods (DT docs)](https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods). **Observed 09/28/2026:** none of the four gaps is filled anywhere in the 2,681 pages under `/managed/` (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and `dsfm:` metric names — the only Elasticsearch-related `dsfm:` metrics found are the two log-ingest counters in §6).</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

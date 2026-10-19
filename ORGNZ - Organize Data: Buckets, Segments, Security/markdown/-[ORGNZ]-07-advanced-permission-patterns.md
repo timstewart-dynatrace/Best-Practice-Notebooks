@@ -1,6 +1,6 @@
 # ORGNZ-07: Advanced Permission Patterns
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 7 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -245,14 +245,14 @@ Boundary: storage:k8s.namespace.name = "production"
            storage:dt.host_group.id STARTSWITH "prod-"
 ```
 
-When assigned together, the user gets read access to logs, metrics, and spans — but only for production namespace data on production host groups.
+When assigned together, the boundary's conditions are added to the permissions they apply to. The Policy boundaries page does not state how two different lines in one boundary combine — it documents that *"Only conditions added to service configuration will be applied to relative permissions"* and that *"When a boundary contains repeated condition names, then each policy statement is multiplied by such conditions."* Check the effective access on a test group before relying on a multi-line boundary. For a guaranteed AND of two conditions, write one policy statement with `AND`, or use policy templating.
 
 ### Boundary Rules
 
 | Rule | Detail |
 |------|--------|
-| No AND operator | Each line is one condition (implicitly AND-combined) |
-| No logical operators | For complex logic, use policy templating |
+| No AND operator | *"Boundaries don't support the AND operator, every line of a boundary can only consist of one condition."* |
+| No logical operators | *"One line per condition, no logical operators allowed."* For complex logic, use policy templating |
 | Reusable | Same boundary can be applied to multiple policies |
 | Max 10 restrictions | Create additional boundaries if more are needed |
 
@@ -272,7 +272,9 @@ storage:bucket-name STARTSWITH "eu_"
 storage:azure.subscription = "eu-subscription-id"
 ```
 
-This boundary can then be applied alongside any policy (logs access, metrics access, etc.) to restrict all data access to the EU region.
+This boundary can then be applied alongside any policy (logs access, metrics access, etc.). Each line restricts only the permissions it applies to, so confirm the effective access on a test group.
+
+> <sub>**Sources:** [Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — all quotes in this section, read 10/14/2026.</sub>
 
 > **Tip:** Use boundaries when you have the same set of conditions (e.g., "production only" or "EU region only") that need to apply to multiple policies. This avoids duplicating conditions across every policy definition.
 

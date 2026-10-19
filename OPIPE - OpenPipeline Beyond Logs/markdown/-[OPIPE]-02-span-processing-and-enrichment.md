@@ -1,6 +1,6 @@
 # OPIPE-02: Span Processing & Enrichment
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 2 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Filtering, Enriching, and Routing Distributed Traces at Ingestion
 
@@ -51,7 +51,7 @@ Before configuring span processing, you need to understand what fields are avail
 | `http.response.status_code` | HTTP response code | Filter or extract metrics |
 | `db.system` | Database type (mysql, postgresql, redis) | Route DB spans |
 | `k8s.namespace.name` | Kubernetes namespace | Route by environment |
-| `dt.smartscape.service` | Dynatrace service ID (`stable`; `dt.entity.service` is `deprecated` in the semantic dictionary) | Route by service entity — `service.name` is usually the simpler key |
+| `dt.smartscape.service` | Dynatrace service ID (`stable`; `dt.entity.service` is `deprecated` in the semantic dictionary) | Route by service entity |
 
 > **Which service field?** On the validation tenant, `service.name` was set on 21,586 of 322,799 spans in an hour (6.7%, the OTel ones) while `dt.service.name` was set on all of them. A query grouped by `service.name` puts every OneAgent span in one null row, so the DQL cells in this series use `dt.service.name`. For a pipeline matcher, check in the pipeline's sample-data preview that the field you match on is present on the records at that point.
 
@@ -84,11 +84,15 @@ Span filtering is usually the highest-impact optimization in the spans scope. In
 
 | Pattern | Filter Condition | Rationale |
 |---------|-----------------|----------|
-| Health check probes | `span.name` matches `"GET /health*"` or `"GET /ready*"` | Kubernetes liveness/readiness probes |
+| Health check probes | `url.path` matches `"*health*"`, `"/ready*"` or `"/livez*"`; `span.name` matches `"grpc.health.v1.Health/*"` | Kubernetes liveness/readiness probes and gRPC health checks |
 | Synthetic monitoring | `span.name` matches `"*synthetic*"` | Internal synthetic test traffic |
 | Internal heartbeats | `span.kind == "internal"` AND `span.name` matches `"*heartbeat*"` | Framework-generated heartbeats |
 | Metrics scraping | `http.route` matches `"/metrics"` or `"/actuator/prometheus"` | Prometheus scrape endpoints |
 | OPTIONS preflight | `http.request.method == "OPTIONS"` | CORS preflight requests |
+
+> **Match on the path, not the span name.** HTTP span names often carry only the method (`GET`), with the path in `url.path` / `http.route`, so a `span.name` pattern such as `"GET /health*"` can match nothing. On the validation tenant (10/15/2026, 1 h), 30% of HTTP server spans were named by method alone, and `GET /health*` / `GET /ready*` on `span.name` matched 0 spans while 2,505 health-check spans existed (`/_healthz` paths and `grpc.health.v1.Health/Check`).
+>
+> <sub>**Dictionary:** `url.path` (`stable`), read 10/15/2026.</sub>
 
 ### Measuring the Impact
 
@@ -98,8 +102,8 @@ Before configuring drop rules, quantify how much volume each noise pattern repre
 // Quantify noise: health checks, synthetic, and OPTIONS requests
 fetch spans, from:-1h
 | summarize total = count(),
-    health_checks = countIf(matchesValue(span.name, "GET /health*") or matchesValue(span.name, "GET /ready*") or matchesValue(span.name, "GET /livez*")),
-    metrics_scrapes = countIf(matchesValue(span.name, "*/metrics*") or matchesValue(span.name, "*/actuator/*")),
+    health_checks = countIf(matchesValue(url.path, {"*health*", "/ready*", "/livez*"}) or matchesValue(span.name, "grpc.health.v1.Health/*")),
+    metrics_scrapes = countIf(matchesValue(url.path, {"/metrics*", "/actuator/*"})),
     options_preflight = countIf(http.request.method == "OPTIONS")
 | fieldsAdd noise_total = health_checks + metrics_scrapes + options_preflight
 | fieldsAdd noise_pct = round(toDouble(noise_total) / toDouble(total) * 100, decimals: 1)
@@ -125,7 +129,7 @@ Add business-meaningful attributes based on technical fields:
 
 | Condition | Enrichment Field | Value | Purpose |
 |-----------|-----------------|-------|--------|
-| `service.name` starts with `"checkout"` | `business.domain` | `"commerce"` | Business domain tagging |
+| `dt.service.name` starts with `"checkout"` | `business.domain` | `"commerce"` | Business domain tagging |
 | `matchesValue(k8s.namespace.name, "*prod*")` | `environment` | `"production"` | Environment classification |
 | `http.response.status_code` >= 500 | `incident.severity` | `"high"` | Severity pre-classification |
 | `db.system` is not null | `span.category` | `"database"` | Span categorization |
@@ -137,7 +141,7 @@ Add `dt.security_context` based on service ownership (see **OPIPE-01** and **ORG
 | Condition | `dt.security_context` Value |
 |-----------|----------------------------|
 | `k8s.namespace.name` matches `"team-alpha-*"` | `"team-alpha"` |
-| `service.name` matches `"payment-*"` | `"payment-team"` |
+| `dt.service.name` matches `"payment-*"` | `"payment-team"` |
 | `db.system` is not null | `"database-team"` |
 
 ### Verifying Enrichment

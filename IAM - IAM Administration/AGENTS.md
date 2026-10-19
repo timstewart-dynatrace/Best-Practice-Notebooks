@@ -3,11 +3,12 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-15 notebooks on enterprise identity and access management in Dynatrace Gen3
+16 notebooks on enterprise identity and access management in Dynatrace Gen3
 IAM: governance, SSO, group architecture, policy authoring, boundaries, user
 lifecycle, audit, multi-environment patterns, troubleshooting, templated
 policies, a persona-design workshop, and three provisioning flavors
-(curl/shell, Terraform, Python) plus a best-practice summary.
+(curl/shell, Terraform, Python), a generated permission reference, and a
+best-practice summary.
 
 ## Routing table
 
@@ -29,6 +30,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | curl/jq provisioning scripts against the Account Management API, OAuth client setup, policy/binding reports, cleanup, validation DQL | `-[IAM]-12-api-provisioning-validation.md` |
 | Hands-on lab: provisioning groups, policies, boundaries, and bindings as code — complete inline module source (policy templates, groups, policies, boundaries, bindings) with schemas verified against `dynatrace-oss/dynatrace` v1.100.0, and onboarding a team by adding one tfvars entry | `-[IAM]-95-[LAB]-terraform-iam-provisioning.md` |
 | Hands-on lab: provisioning a group, parameterized policy, boundary, and binding step by step against the raw Account Management API in Python — OAuth token exchange, per-step verification, idempotent re-runs, and cleanup | `-[IAM]-96-[LAB]-python-iam-provisioning.md` |
+| What a specific permission really grants beyond the reference's one-liner — its scope, risk, whether it is in the *Standard User* default policy, which built-in apps request it, and the Basis (Docs / Tested / Inference / Unknown) for each claim; a five-persona matrix; how to find out yourself (app manifest scopes, platform API specs, 403s, a test user, Effective policies — `iam:effective-permissions:read` vs `platform-management:effective-permissions:resolve`) | `-[IAM]-97-permission-reference.md` |
 | Consolidated checklist: SSO, groups, policies, boundaries, lifecycle, tokens, audit, governance | `-[IAM]-99-best-practice-summary.md` |
 
 If more than three rows match, start with `-[IAM]-99-best-practice-summary.md`

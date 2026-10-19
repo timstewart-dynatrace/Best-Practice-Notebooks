@@ -1,6 +1,6 @@
 # FAQ-02: Tagging — Sources, Standards, and Strategy
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 02 — Tagging Sources, Standards, and Strategy | **Created:** May 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -485,10 +485,10 @@ Some keys are reserved by Dynatrace. Don't redefine these — use them as-is, or
 | Value casing | lowercase, kebab-case (values only — keys use snake_case) | `prod`, `nonprod`, `team-payments` | `Prod`, `NonProd`, `Team-Payments` |
 | Value stability | use values that don't change frequently | `team-payments`, `app-checkout` | `release-2026-q2`, `incident-12345` *(metadata of the day)* |
 | Spaces | never | `team-payments` | `team payments` |
-
-Why underscores in keys: `filter primary_tags.cost-center == "cc-1"` is valid DQL that Grail reads as `primary_tags.cost - center == "cc-1"` — it returns nothing, and the only signal is a notification that the filter is always empty (checked on a live tenant 10/02/2026). Dynatrace's own multi-word example key is `primary_tags.business_unit`.
 | Reserved values | avoid `null`, `none`, `default`, empty string | `none-set` if you must | `null`, `""` |
 | Cross-cloud normalization | one canonical key per dimension, regardless of provider | All cost-center tags resolve to `dt.cost.costcenter` | `aws.tags.costcenter` and `azure.tags.costCenter` both queried separately forever |
+
+Why underscores in keys: `filter primary_tags.cost-center == "cc-1"` is valid DQL that Grail reads as `primary_tags.cost - center == "cc-1"` — it returns nothing, and the only signal is a notification that the filter is always empty (checked on a live tenant 10/02/2026). Dynatrace's own multi-word example key is `primary_tags.business_unit`.
 
 ### Industry Frameworks Worth Reading
 

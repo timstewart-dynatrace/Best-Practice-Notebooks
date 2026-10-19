@@ -1,6 +1,6 @@
 # CLOUD-05: Azure Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 5 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -64,11 +64,16 @@ Constraints worth knowing before you choose it: *"If there's a conflict between 
 
 ### Data Flow
 
-```text
-Azure resources ──► Azure Monitor API ──► Dynatrace SaaS            (metrics + topology, polled)
-Azure resources ──► Diagnostic settings ──► regional Event Hubs ──► Dynatrace   (logs, pulled)
-Your code on Azure ──► OneAgent ──► Dynatrace                       (traces)
-```
+![Azure data flow: three signal classes](images/05-azure-data-flow.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Signal | Flow | Mechanism |
+|--------|------|-----------|
+| Metrics + topology | Azure resources → Azure Monitor API → Dynatrace SaaS | Polled |
+| Logs | Azure resources → Diagnostic settings → regional Event Hubs → Dynatrace | Pulled |
+| Traces | Your code on Azure → OneAgent → Dynatrace | OneAgent |
+For environments where SVG doesn't render
+-->
 
 ### Clouds (Sovereign) and Regions
 
@@ -486,6 +491,16 @@ Azure organizes resources as management groups → subscriptions → resource gr
 - **Use naming conventions** that encode application, environment and region: `rg-myapp-prod-eastus`
 
 > <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility) — *"Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission."*</sub>
+
+### Tagging this producer — primary Grail tags
+
+Azure follows the AWS pattern in CLOUD-02: an **Azure tag** rule at subscription scope forwards the tag as `azure.tags.<key>` (or writes `dt.security_context` / cost fields directly), and an OpenPipeline primary Grail tag rule promotes it with two sources — `azure.tags.<key>` for telemetry and `` `tags:azure`[<key>] `` for Azure Smartscape nodes — under an `isNull(primary_tags.<key>)` condition. `azure.subscription` and `azure.resource.group` are set automatically and need no rule.
+
+- **OneAgent on Azure VMs** needs a host-group **Host/Process property** rule (OneAgent 1.343+), the same as EC2: *"Azure VMs follow the same pattern."* — with `azure.tags.<key>` as source.
+- **Azure Functions** take `DT_TAGS`, like Lambda (CLOUD-04).
+- **Availability.** The Azure page (updated Sep 17, 2026) still reads *"Central configuration for cloud tags is expected to be available in September 2026."* Confirm the *Azure tag* rule type exists in your tenant's Ingest enrichment configuration; until it does, Azure connection settings are the working path, as that page says.
+
+> <sub>**Sources:** [Enrich Azure telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-azure) — *"Central configuration for cloud tags is expected to be available in September 2026."*, [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Azure VMs follow the same pattern."*</sub>
 
 <a id="summary"></a>
 

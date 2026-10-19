@@ -1,6 +1,6 @@
 # ORGNZ-09: Enterprise Data Organization Patterns
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -46,7 +46,7 @@ For comprehensive data governance, use all three mechanisms:
 
 | Mechanism | Purpose | When to Use |
 |-----------|---------|-------------|
-| **Buckets** | Physical storage, retention, cost | Different retention needs, cost attribution |
+| **Buckets** | Physical storage, retention | Different retention or access needs (cost attribution uses `dt.cost.*` fields) |
 | **Segments** | Logical filtering, views | Team-focused data views, cross-signal filtering |
 | **Security Context** | Access enforcement | Fine-grained security requirements |
 
@@ -57,7 +57,7 @@ Finance Team Requirements:
 
 Bucket: finance_logs_365d
   - 1 year retention for compliance
-  - Cost attributed to Finance
+  - Cost attributed with dt.cost.costcenter set at the source (not by the bucket)
 
 Segment: finance-team-view
   - Filtered view of finance data
@@ -191,17 +191,15 @@ Cluster: main-cluster
 
 ### Cross-Namespace Segment
 
-```yaml
-name: checkout-application
-displayName: "Checkout App (All Environments)"
+One application deployed to several namespaces, as one segment. Build it in the Segments app with a single include:
 
-includes:
-  - type: logs
-    filter: "k8s.deployment.name == 'checkout'"
-  
-  - type: spans
-    filter: "service.name == 'checkout'"
-```
+| Include (data object) | Filter |
+|-----------------------|--------|
+| Data (all types) | `k8s.workload.name = "checkout"` |
+
+Segment conditions take only `=` and `in()` — *"Only operators `=`, and `in()` are supported."* — with `*` wildcards inside the value, so write `=` and double quotes, not DQL's `==`. One `Data (all types)` include replaces separate `logs` and `spans` includes. Check coverage first: `k8s.workload.name` is a `stable` semantic-dictionary field, but on the validation tenant on 10/14/2026 it was on 41% of logs in an hour, and records without it fall outside the segment (adapt the coverage audit in ORGNZ-10 §9).
+
+> <sub>**Sources:** [Segment limits (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits) — as quoted, [Supported data types in segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-data-types) — *"We recommend constructing segments with a single Data (all types) include block when possible."* **Dictionary:** `k8s.workload.name` (`stable`), read 10/14/2026.</sub>
 
 <a id="decision-framework"></a>
 ## Decision Framework
@@ -213,7 +211,7 @@ Use this framework to choose your organization strategy:
 | Question | YES → Solution |
 |----------|----------------|
 | Need different retention? | Create custom BUCKETS |
-| Need cost attribution? | Create BUCKETS per cost center |
+| Need cost attribution? | Set dt.cost.* fields (cost allocation) |
 | Need team isolation (simple)? | BUCKET-level IAM policies |
 | Need team isolation (complex)? | SECURITY CONTEXT + record-level policies |
 | Need dynamic data views? | Create SEGMENTS |
@@ -273,7 +271,7 @@ fetch logs, from:-1h
 ## Best Practices Summary
 | Area | Best Practice |
 |------|---------------|
-| **Buckets** | Keep ingest <1 TB/day; use consistent naming |
+| **Buckets** | Target 1–3 TB/day per log bucket, a dedicated bucket per application above 250 GB/day (ORGNZ-02); use consistent naming |
 | **Segments** | Test rules with DQL before deploying |
 | **Security Context** | Use hierarchical encoding for flexibility |
 | **IAM Policies** | Assign to groups, not individuals |
@@ -303,6 +301,7 @@ The ORGNZ series covered:
 - [Permissions in Grail](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)
 - [Advanced permission setup](https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup)
 - [Enhance data management with Grail](https://www.dynatrace.com/news/blog/enhance-data-management-with-grail-ultimate-guide-to-custom-buckets-and-security-policies/)
+- [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up)
 
 ---
 

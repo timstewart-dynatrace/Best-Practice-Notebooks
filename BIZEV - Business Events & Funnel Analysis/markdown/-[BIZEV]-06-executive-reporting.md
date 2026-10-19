@@ -1,6 +1,6 @@
 # BIZEV-06: Executive Reporting
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -82,6 +82,9 @@ fetch dt.davis.problems, from:-24h
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 // total_entity_impact_hours counts overlapping problems separately — it is entity-hours
 // of impact, NOT wall-clock downtime, and can exceed the 168 hours in the week (see BIZEV-04 §6)
@@ -114,16 +117,18 @@ fetch dt.davis.problems, from:-7d
 
 ## 3. SLA and SLO Tracking
 
-SLA (Service Level Agreement) and SLO (Service Level Objective) tracking from a business perspective focuses on business availability and transaction success rates rather than infrastructure uptime.
+SLA (Service Level Agreement) and SLO (Service Level Objective) tracking from a business perspective focuses on transaction success rates rather than infrastructure uptime.
 
 ### Business SLO Definitions
 
 | SLO | Target | Measurement |
 |-----|--------|-------------|
 | Transaction Success Rate | > 99.5% | Successful / Total transactions |
-| Business Availability | > 99.9% | Hours with transactions / Total hours |
-| Mean Time to Resolve | < 2 hours | Avg problem resolution time |
+| Event ingestion continuity | No empty hour while the business transacts | Hours with ≥1 business event — a signal-health check, **not** availability |
+| Mean Time to Resolve | < 2 hours | Avg problem resolution time, excluding maintenance-window problems |
 | Revenue Impact per Incident | < $5,000 | Revenue delta during incidents |
+
+> **Availability comes from the success-rate SLO, not from event counts.** An hour with no business events can be a quiet overnight hour or broken capture — it says nothing about whether customers could transact. Report availability as the Transaction Success Rate (good ÷ total transactions, query below); the SLO series (SLO-02) covers defining it as a managed SLO. The continuity check further down only tells you the signal is flowing.
 
 ```dql
 // Transaction success rate SLO — last 7 days
@@ -138,13 +143,16 @@ fetch bizevents, from:-7d
 ```
 
 ```dql
-// Business availability — count hours with at least 1 business event
+// Event ingestion continuity — NOT availability. Counts the hours in the last 7 days
+// with and without at least one business event. An empty hour is a quiet period or broken
+// capture; check it against the hours the business actually transacts.
+// Add | filter event.type == "<critical event type>" after fetch to watch one stream.
 fetch bizevents, from:-7d
-| fieldsAdd hour_bucket = bin(timestamp, 1h)
-| summarize events_in_hour = count(), by:{hour_bucket}
-| summarize hours_with_data = count()
-| fieldsAdd total_hours = 168,
-           availability_pct = round(toDouble(hours_with_data) / 168.0 * 100, decimals: 2)
+| makeTimeseries events = count(default: 0), interval: 1h
+| fieldsAdd total_hours = arraySize(events),
+            hours_with_events = arraySize(arrayRemoveNulls(iCollectArray(if(events[] > 0, events[]))))
+| fieldsAdd empty_hours = total_hours - hours_with_events
+| fieldsRemove events
 ```
 
 ```dql
@@ -152,6 +160,9 @@ fetch bizevents, from:-7d
 fetch dt.davis.problems, from:-30d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 | summarize {avg_mttr = avg(duration_hours),
            median_mttr = median(duration_hours),

@@ -1,6 +1,6 @@
 # CLOUD-07: CloudWatch Log Ingestion
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 7 of 8 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -226,17 +226,20 @@ Once cloud logs reach Dynatrace, OpenPipeline processes them before storage in G
 
 ### Example Pipeline Logic
 
-```
-Incoming cloud logs
-  │
-  ├─ Parse JSON content (if JSON)
-  ├─ Extract log_group and log_stream from attributes
-  ├─ Add cloud.provider = "aws"
-  ├─ Route /aws/lambda/* → bucket: lambda_logs
-  ├─ Route /ecs/* → bucket: application_logs
-  ├─ Route /aws/rds/* → bucket: database_logs
-  └─ Drop if content matches health check pattern
-```
+![Example OpenPipeline logic for AWS cloud logs](images/07-openpipeline-cloud-log-logic.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Rule |
+|------|------|
+| Processing | Parse JSON content (if JSON) |
+| Processing | Extract `log_group` and `log_stream` from attributes |
+| Processing | Add `cloud.provider = "aws"` |
+| Processing | Drop if content matches the health-check pattern |
+| Bucket assignment | `/aws/lambda/*` → bucket `lambda_logs` |
+| Bucket assignment | `/ecs/*` → bucket `application_logs` |
+| Bucket assignment | `/aws/rds/*` → bucket `database_logs` |
+For environments where SVG doesn't render
+-->
 
 <a id="querying-logs"></a>
 

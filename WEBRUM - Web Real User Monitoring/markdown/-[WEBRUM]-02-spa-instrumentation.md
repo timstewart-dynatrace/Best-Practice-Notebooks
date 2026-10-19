@@ -1,6 +1,6 @@
 # WEBRUM-02: SPA Instrumentation
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 2 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -137,21 +137,25 @@ Let's query route change actions to validate detection:
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
 //   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
+//   LCP / CLS                          -> web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -> frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
 // Route change actions in the last hour — verify SPA detection is working.
 // Route changes are "soft_navigation" (corrected 10/05/2026); "same_view" is an interaction
 // followed by an XHR or fetch request, the New RUM form of a classic Xhr action.
 fetch user.events, from:-1h
 | filter characteristics.has_user_action == true
 | filter user_action.type == "soft_navigation"
-| summarize {route_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, dt.rum.application.id}
+| summarize {route_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, frontend.name}
 | sort route_count desc
 | limit 20
 ```
@@ -203,8 +207,8 @@ Vue applications use Vue Router with `history.pushState` or hash mode:
 // Compare action types across applications — identify SPA vs traditional apps
 fetch user.events, from:-24h
 | filter characteristics.has_user_action == true
-| summarize action_count = count(), by:{dt.rum.application.id, user_action.type}
-| sort dt.rum.application.id asc, action_count desc
+| summarize action_count = count(), by:{frontend.name, user_action.type}
+| sort frontend.name asc, action_count desc
 ```
 
 If an SPA shows only `hard_navigation` actions and no `soft_navigation` or `same_view` actions, SPA instrumentation may not be configured correctly. A traditional multi-page application legitimately shows mostly `hard_navigation`. The classic values `Load`, `RouteChange` and `Xhr` never appear on New RUM data, so a check that looks for them reports a working setup as broken.
@@ -313,8 +317,8 @@ After configuring SPA monitoring, validate that instrumentation is working corre
 // Instrumentation health check — action type distribution per app
 fetch user.events, from:-24h
 | filter characteristics.has_user_action == true
-| summarize total_actions = count(), by:{dt.rum.application.id, user_action.type}
-| sort dt.rum.application.id asc, total_actions desc
+| summarize total_actions = count(), by:{frontend.name, user_action.type}
+| sort frontend.name asc, total_actions desc
 ```
 
 <a id="hybrid-apps"></a>
@@ -469,7 +473,8 @@ After deploying both applications, verify that:
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
@@ -482,13 +487,15 @@ After deploying both applications, verify that:
 //   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
 // Compare user action metrics between mobile WebView and desktop browser apps
 fetch user.events, from:-24h
-| filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
+// Replace the placeholders with your two frontend names (corrected 10/14/2026: dt.rum.application.id
+// is an ID — "an 8-byte HEX string" for web apps — so comparing it with a display name never matched)
+| filter in(frontend.name, {"<your-desktop-frontend>", "<your-mobile-webview-frontend>"})
 | summarize
     {actions = count(),
     avg_duration = avg(duration),
     error_rate = toDouble(countIf(characteristics.has_error == true)) / toDouble(count()) * 100},
-    by:{dt.rum.application.id, user_action.type}
-| sort dt.rum.application.id asc, actions desc
+    by:{frontend.name, user_action.type}
+| sort frontend.name asc, actions desc
 ```
 
 ### WebView Session Analysis
@@ -501,7 +508,9 @@ Identify sessions in the mobile app that include WebView activity — these are 
 // JavaScript) — the classic "UserAction" / "Load" / "RouteChange" / "Xhr" values never appear on
 // New RUM data. Not execution-verified: the validation tenant has no hybrid app.
 fetch user.events, from:-24h
-| filter dt.rum.application.id == "MyApp Mobile"
+// Replace the placeholders with the frontend names of the app's native and WebView parts
+// (corrected 10/14/2026: dt.rum.application.id is an ID and never equals a display name)
+| filter in(frontend.name, {"<your-mobile-frontend>", "<your-mobile-webview-frontend>"})
 | summarize
     {native_events = countIf(in(dt.rum.agent.type, {"android", "ios"})),
     web_events = countIf(dt.rum.agent.type == "javascript")},
@@ -519,13 +528,15 @@ WebView performance typically differs from desktop browsers due to device constr
 // Compare page load performance: mobile WebView vs desktop browser
 fetch user.events, from:-24h
 | filter characteristics.has_navigation == true
-| filter dt.rum.application.id == "MyApp Desktop" or dt.rum.application.id == "MyApp Mobile"
+// Replace the placeholders with your two frontend names (corrected 10/14/2026: dt.rum.application.id
+// is an ID and never equals a display name)
+| filter in(frontend.name, {"<your-desktop-frontend>", "<your-mobile-webview-frontend>"})
 | summarize
     {p50_duration = percentile(duration, 50),
     p95_duration = percentile(duration, 95),
     avg_dom_interactive = avg(performance.dom_interactive),
     actions = count()},
-    by:{dt.rum.application.id}
+    by:{frontend.name}
 ```
 
 <a id="summary"></a>

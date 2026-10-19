@@ -362,7 +362,7 @@ aws s3 cp sumo-final-archive.tar.gz s3://compliance-archive/sumo/
 - [DQL Reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
-- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows)
 
 ### Sumo Logic decommission references (source)
 - [Sumo Logic API (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/api/)

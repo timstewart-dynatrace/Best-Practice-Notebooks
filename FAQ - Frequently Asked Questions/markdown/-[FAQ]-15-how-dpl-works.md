@@ -1,6 +1,6 @@
 # FAQ-15: How Does DPL Work?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 15 — How Does DPL Work? | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -291,7 +291,7 @@ DPL cannot express that failure mode: every quantifier is bounded and look-behin
 > - <sub>[Dynatrace Pattern Language (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language) — character groups described as "Regular Expression compatible"</sub>
 > - <sub>[Regular expressions in Dynatrace (DT docs)](https://docs.dynatrace.com/docs/manage/tags-and-metadata/reference/regular-expressions-in-dynatrace) — the catastrophic-backtracking warning, the `(.*)+b` example, and the no-backreferences / no-repeated-groups restrictions</sub>
 > - <sub>[Sensitive data masking (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking) — *"Search expression: A regular expression to match the string that you want to mask. Use the regular expression format."* The linked words "regular expression" point to [RE2 syntax (Google GitHub)](https://github.com/google/re2/wiki/syntax)</sub>
-> - <sub>[Management zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — regex permitted only in the `contains regex` / `does not contain regex` operators</sub>
+> - <sub>[Management zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — regex permitted only in the `contains regex` / `does not contain regex` operators</sub>
 > - <sub>[DQL matcher in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline) — matching conditions accept neither regex nor DPL</sub>
 > - <sub>[String functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions) — `like` SQL wildcards; `matchesValue` / `matchesPhrase` wildcard scope</sub>
 > - <sub>**Derived:** § 3.5's two-languages contrast and § 3.7's bounded-quantifier observation are both inferences — no page draws either, and Dynatrace publishes no DPL design rationale</sub>
@@ -537,7 +537,9 @@ The documented default quantifier is `{1,4096}`. On long lines — stack traces,
 | `*` | 0 to the cap |
 | `+` | 1 to the cap |
 
-**Every open-ended quantifier is capped — and the documented cap is not the observed one.** The docs define `+` as *"at least 1 times and max 4096 times"*, and the same 4,096 for `*` and `{n,}`. On a live tenant (10/02/2026, zero-byte `data record` tests) the explicit open-ended forms reached **8,192**: on a 4,400-character run, `LD+`, `LD{1,}`, `[a]+` and `ALPHA+` all captured 4,400 characters, while the **unquantified** `LD` returned `null` and `ALPHA` stopped at 4,096; on a 9,600-character run `LD+` returned `null` and `ALPHA+` stopped at 8,192. Plan for the documented 4,096 and do not rely on the higher observed value — either way the cap is real. For long fields set an explicit maximum (`DATA{1,20000}:body` captured all 9,600 characters); the docs allow up to 16,000,000 for `LD` and `DATA`.
+**Every open-ended quantifier is capped — and the documented cap is not the observed one.** The docs define `+` as *"at least 1 times and max 4096 times"*, and the same 4,096 for `*` and `{n,}`. On a live tenant (10/02/2026, zero-byte `data record` tests) the explicit open-ended forms reached **8,192**: on a 4,400-character run, `LD+`, `LD{1,}`, `[a]+` and `ALPHA+` all captured 4,400 characters, while the **unquantified** `LD` and `ALPHA` stopped at 4,096; on a 9,600-character run `LD+` and `ALPHA+` stopped at 8,192. Plan for the documented 4,096 and do not rely on the higher observed value — either way the cap is real.
+
+**What hitting the cap looks like depends on what follows the matcher.** If the pattern must still match something after the capped matcher — a literal or `EOS` — the parse returns `null`. If the capped matcher is the last thing in the pattern, the common `… LD:message` shape, it returns the first 4,096 (or 8,192) characters and **no error**: a silently truncated field. Live-verified 10/15/2026: on 4,400 characters `LD:x` returned 4,096 characters while `LD:x EOS` and `LD:x '|'` returned `null`; on a longer run `LD+:x` returned 8,192 characters and `LD+:x EOS` returned `null`. For long fields set an explicit maximum (`DATA{1,20000}:body` captured all 9,600 characters); the docs allow up to 16,000,000 for `LD` and `DATA`.
 
 > ⚠️ **Which quantifiers you may use depends on the matcher.** Counted forms (`{n}`, `{n,m}`) are not universal:
 >
@@ -712,7 +714,7 @@ Practical uses that have nothing to do with logs:
 
 | Record type | Use |
 |-------------|-----|
-| **Spans** | Extract a tenant or route segment out of `http.url`; pull structure from a custom request attribute |
+| **Spans** | Extract a tenant or route segment out of `url.path`; pull structure from a custom request attribute |
 | **Business events** | Parse a composite order or SKU identifier into its parts |
 | **Events** | Extract a change ticket number from a deployment event's title |
 | **Entity fields** | Decompose a host or service naming convention into environment / region / role — see **FAQ-01** |

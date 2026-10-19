@@ -1,6 +1,6 @@
 # K8S-03: GitOps for DynaKube
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 3 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Managing DynaKube with ArgoCD and Flux
 GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.
@@ -502,7 +502,7 @@ fetch events, from:-24h
 // (Killing, BackOff, FailedScheduling, Unhealthy …) show whether the rollout settled.
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT" and k8s.namespace.name == "dynatrace"
-| summarize {events = count(), last_seen = max(timestamp)},
+| summarize {events = countDistinctExact(event.id), last_seen = max(timestamp)},
     by:{dt.kubernetes.event.involved_object.kind, dt.kubernetes.event.reason}
 | sort last_seen desc
 | limit 20

@@ -1,6 +1,6 @@
 # BIZEV-99: Best Practice Summary
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -158,7 +158,7 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | 70 | Use `==` for exact matches, `~` only for wildcards | `filter event.type == "com.myapp.order.completed"` not `event.type ~ "*order*"` | Critical | Performance |
 | 71 | Use `in()` with curly-brace arrays for multi-value filters | `filter in(event.type, {"type1", "type2"})` — never SQL-style `IN ('a','b')` | Critical | Syntax |
 | 72 | Alias all aggregations used in sort | `summarize c = count()` then `sort c desc` — never `sort count() desc` | Critical | Syntax |
-| 72b | Wrap multiple `summarize` aggregations in `{}` | When summarizing 2+ aggregations, wrap them: `summarize { a = count(), b = avg(x) }, by: {field}`. Tenant emits `PARAMETERS_SHOULD_BE_GROUPED` INFO if not wrapped (query still runs but is non-canonical). | **Recommended** | Syntax |
+| 72b | Wrap multiple `summarize` aggregations in `{}` when using `by:` | With `by:` and 2+ aggregations, wrap them: `summarize { a = count(), b = avg(x) }, by: {field}`. Unwrapped, the tenant emits a `PARAMETERS_SHOULD_BE_GROUPED` INFO (the query still runs). Without `by:`, both forms are canonical and no INFO is emitted. | **Recommended** | Syntax |
 | 73 | Use `round(..., decimals: N)` with named parameter | `round(value, decimals: 2)` — never `round(value, 2)` | Critical | Syntax |
 | 74 | Use `if(cond, then: ..., else: ...)` with named parameters | Named `then:` and `else:` parameters are mandatory | Critical | Syntax |
 | 75 | Cast `amount` fields with `toDouble()` before math | `sum(toDouble(amount))` — payload fields may arrive as strings | Recommended | Data Types |
@@ -173,8 +173,8 @@ This notebook consolidates every actionable best practice from the BIZEV series 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|---------------|-----------------|----------|----------|
 | 79 | Define a Transaction Success Rate SLO | Target: 99.5% — Formula: `successful / total * 100` from payment events | Critical | SLO |
-| 80 | Define a Business Availability SLO | Target: 99.9% — Formula: hours with at least 1 business event / total hours * 100 | Critical | SLO |
-| 81 | Define an MTTR SLO | Target: < 2 hours — Formula: `avg(resolved_problem_duration)` in hours, excluding duplicates | Recommended | SLO |
+| 80 | Monitor business-event ingestion continuity — do not report it as availability | Count empty hours (no business events) in the periods the business transacts; an empty hour means a quiet period or broken capture, not downtime. Availability comes from the success-rate SLO (#79) | Recommended | SLO |
+| 81 | Define an MTTR SLO | Target: < 2 hours — Formula: `avg(resolved_problem_duration)` in hours, excluding duplicates and maintenance-window problems (#44) | Recommended | SLO |
 | 82 | Define a Revenue Impact per Incident SLO | Target: < $5,000 — Formula: baseline revenue minus incident-period revenue | Recommended | SLO |
 | 83 | Do not derive SLA availability from summed problem durations | Problems overlap, so summed durations are entity-hours of impact, not downtime — they can exceed the period many times over (BIZEV-04 §6). Define availability as an SLO on good ÷ total events (SLO-02/03) | Critical | SLA |
 | 84 | Include SLO status indicator in every report | `if(success_rate >= 99.5, then: "MET", else: "MISSED")` | Critical | Reporting |
@@ -189,7 +189,7 @@ Practices from BIZEV-07 for environments that have not (fully) moved to the Gen3
 |---|---------------|---------------------------|----------|----------|
 | 86 | Confirm the platform generation before designing business analytics | Dynatrace Managed = no business events in any form (classic toolchain only); SaaS with Grail = adopt business events, regardless of how classic the day-to-day operation is | Critical | Adoption |
 | 87 | On Grail-enabled SaaS tenants, build new business analytics on business events, not classic mechanisms | Calculated service metrics are closed to new customers and superseded by OpenPipeline metric extraction — new classic investment is migration debt | Critical | Adoption |
-| 88 | Use the minimal Gen3 footprint for hybrid adoption | Capture via Settings (OneAgent rules — Full-Stack mode required), report in Notebooks + the new Dashboards app, grant `storage:bizevents:read` — nothing else has to move | Recommended | Adoption |
+| 88 | Use the minimal Gen3 footprint for hybrid adoption | Capture via Settings (OneAgent rules — Full-Stack mode required), report in Notebooks + the new Dashboards app, grant `storage:bizevents:read`; add OpenPipeline only if you need custom buckets or new `bizevents.*` metrics (the classic pipeline is not available to accounts created from September 2026) — nothing else has to move | Recommended | Adoption |
 | 89 | Bridge business KPIs to classic dashboards with metric extraction | `bizevents.`-prefixed extracted metrics are readable in Data Explorer, classic dashboards, and classic metric-event alerting (classic pipeline: not available to accounts created from September 2026 and to be deactivated in a future release — build new extraction in OpenPipeline) | Recommended | Adoption |
 | 90 | Create metric-extraction rules at capture time, not reporting time | Extraction is forward-only — no backfill; with classic-pipeline extraction, late-timestamped events land in a `.failed`-suffixed key | Critical | Adoption |
 | 91 | Capture must-not-miss events server-side, not (only) via RUM | `sendBizEvent` is dropped for unmonitored sessions (cost and traffic controls) — orders and payments belong on OneAgent capture rules or the ingest API | Critical | Adoption |

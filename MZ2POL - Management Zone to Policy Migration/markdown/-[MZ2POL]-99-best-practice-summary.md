@@ -1,6 +1,6 @@
 # MZ2POL-99: Best Practice Summary
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -83,7 +83,7 @@ For environments where SVG doesn't render
 | Write access dimensions twice, in one step | `primary_tags.team` (filter, route) **and** `dt.security_context` (IAM) from the same source | Critical | 10 §4 |
 | Climb the enrichment ladder from the top | Built-in → source (`--set-host-tag`, `DT_TAGS`, K8s annotations, OTel attributes) → central Ingest enrichment configuration (OneAgent 1.343+) → OpenPipeline primary Grail tag rule | Critical | 10 §5 |
 | Guard OpenPipeline tag rules | Condition `isNull(primary_tags.<key>)` — rules overwrite existing values by default | Critical | 10 §5 |
-| Set routing-critical values at source or centrally | Docs disagree on whether OpenPipeline tag rules run before routing | Recommended | 10 §5 |
+| Set routing-critical values before routing | At source, centrally, or with an OpenPipeline primary Grail tag rule — never with a processor inside a pipeline, which runs after the route is chosen | Recommended | 10 §5 |
 | Constrain values | Allowlists for stage, region, classification; Grail compares exactly | Critical | 10 §4 |
 | Stay within the tag cap | Up to 20 primary tags per host or process — extras are dropped silently | Critical | 10 §8 |
 | Move host properties to host tags | From OneAgent 1.345 host `primary_tags` come from host tags | Recommended | 11 §3 |
@@ -114,7 +114,7 @@ For environments where SVG doesn't render
 | Don't add a second boundary for shared data | Boundaries are computed separately; add the shared value to the same condition | Critical | 12 §4.1, §6 |
 | Use `MATCH` on `storage:dt.security_context` | Events hold it as an array; `=`, `IN`, `startsWith` never match arrays | Critical | 12 §6, 08 §2 |
 | Repeated lines on one condition multiply (OR) | *Corrects "every line is OR-combined"* — lines on different conditions each scope their own permissions | Recommended | 04 §4–§5 |
-| Expect no negation on record fields | Record conditions take `=`, `IN`, `startsWith`, `MATCH`; negation exists only on `storage:bucket-name` | Recommended | 04 §4, 11 §4 |
+| Expect no negation on record fields | Record conditions take `=`, `IN`, `startsWith`, `MATCH`; negation exists only on non-record conditions such as `storage:bucket-name` and `storage:table-name` | Recommended | 04 §4, 11 §4 |
 | Keep team members out of unscoped data groups | One unscoped table permission anywhere wins | Critical | 12 §3 |
 | No record-level conditional `DENY` | It runs as an unconditional DENY on the whole table | Critical | 04 §2, 12 §3 |
 | Entities scope only by security context | `storage:entities:read` accepts `dt.security_context` and `entity.type` | Recommended | 12 §4.1 |

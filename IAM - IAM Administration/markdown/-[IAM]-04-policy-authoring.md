@@ -1,6 +1,6 @@
 # IAM-04: Policy Authoring and Management
 
-> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 4 of 12 | **Created:** January 2026 | **Last Updated:** 10/19/2026
 
 ## Mastering Dynatrace Policy Syntax
 Policies are the heart of Dynatrace Gen3 IAM. They define what actions users can perform. This notebook provides a comprehensive guide to policy authoring, from basic syntax to advanced patterns.
@@ -156,6 +156,8 @@ ALLOW document:documents:read;
 | `state` | App state storage | `app-states`, `user-app-states` |
 | `automation` | Workflows, AutomationEngine | `workflows`, `calendars`, `rules` |
 
+> **What each permission actually does:** **IAM-97: IAM Permission Reference** covers every permission in the *Standard User* default policy and the usual reader-persona additions — what each really grants, its scope and risk, which built-in apps request it, and the basis for each claim. It also covers services this table leaves out, such as `state-management`, `app-settings`, `synthetic`, `credential-vault`, `platform-management` and `unified-analysis`.
+
 ### Common Actions
 
 | Action | Description |
@@ -292,7 +294,7 @@ ALLOW <service>:<resource>:<action> WHERE <condition>;
 | `=` | Equals | `storage:dt.security_context = "team-a"` |
 | `!=` | Not equals — only on conditions that list it (e.g. `storage:bucket-name`, `settings:schemaId`); `storage:dt.security_context` does **not** accept `!=` or `NOT IN` | `storage:bucket-name != "restricted_logs"` |
 | `IN` | In list | `storage:dt.security_context IN ("team-a", "team-b")` |
-| `startsWith` | Prefix match | `settings:schemaId startsWith "builtin:alerting"` |
+| `startsWith` | Prefix match | `settings:schemaId startsWith "builtin:openpipeline.logs."` |
 | `MATCH` | Wildcard pattern match | `storage:dt.security_context MATCH('*/app:easytrade')` |
 
 > **`MATCH()` vs `startsWith`:** Use `MATCH()` for flexible wildcard patterns anywhere in the value (e.g. middle segment). Use `startsWith` when matching a fixed leading prefix. **And use `MATCH()` whenever the field can hold an array** — on an array, `=`, `startsWith` and `IN` *"always return `false`"*, silently. The exception is `storage:entities:read` (classic entities), which offers no `MATCH`; there, `startsWith` is the documented operator for the multi-value field (see below). See **IAM-05** for where that bites in a boundary.
@@ -345,8 +347,10 @@ Keep the leading and trailing slashes. Without the trailing slash, the prefix al
 
 **Scope to settings schema:**
 ```
-ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:alerting";
+ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:openpipeline.logs.";
 ```
+
+Pick schema IDs that exist on your platform generation. Many classic schemas — `builtin:alerting.profile`, `builtin:problem.notifications`, most `builtin:logmonitoring.*` processing rules — are not visible in Latest Dynatrace, so a statement scoped to them grants nothing there (Patterns 4 and 6 below).
 
 **Multiple conditions (AND):**
 ```
@@ -535,10 +539,22 @@ ALLOW storage:logs:read WHERE storage:bucket-name = "checkout_logs"
 
 ### Pattern 4: Log Management
 
+**Latest Dynatrace** — log processing lives in OpenPipeline, whose configuration is stored in Settings 2.0 schemas (`builtin:openpipeline.logs.pipelines`, `.routing`, `.ingest-sources`):
+
 ```
-// Read all logs, manage log pipelines
+// Read all logs, manage log pipelines (OpenPipeline)
 ALLOW storage:buckets:read WHERE storage:table-name = "logs";
 ALLOW storage:logs:read;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId startsWith "builtin:openpipeline.logs.";
+```
+
+Pipelines and ingest sources also have owners, who can read and write the objects they create; routing is admin-only unless a policy grants write on the routing schema, as the statement above does.
+
+**Dynatrace Classic only** — the classic log-processing schemas are removed in Latest Dynatrace (processing, log metrics and log security context are *"Replaced by OpenPipeline"*; log buckets by *"Grail bucket assignment"*). Keep this form only on an environment that has not moved:
+
+```
+// Classic log monitoring settings
 ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:logmonitoring";
 ```
@@ -556,14 +572,26 @@ ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
 
 ### Pattern 6: Alerting Manager
 
+**Latest Dynatrace** — problem notifications and alerting profiles are *"Replaced by Workflows"*, and custom alerts are Davis anomaly detectors (`builtin:davis.anomaly-detectors`):
+
 ```
-// Manage alerting configuration
+// Manage notifications (workflows) and custom alerts (anomaly detectors)
+ALLOW automation:workflows:read, automation:workflows:write, automation:workflows:run;
+ALLOW settings:objects:read, settings:objects:write
+  WHERE settings:schemaId = "builtin:davis.anomaly-detectors";
+```
+
+**Dynatrace Classic only** — `builtin:alerting.profile`, `builtin:alerting.maintenance-window` and `builtin:problem.notifications` are not visible in Latest Dynatrace, so on a Latest environment these two statements grant nothing:
+
+```
+// Classic alerting profiles, maintenance windows and problem notifications
 ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:alerting";
 ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "builtin:problem";
-ALLOW automation:workflows:read, automation:workflows:write, automation:workflows:run;
 ```
+
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*; [Migrate OpenPipeline configurations to Settings API (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/migration-settings) — *"Routing management is restricted to administrators ( settings:objects:admin ). Administrators can grant write access to a configuration scope routing via policies."*; [Anomaly detectors schema table (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors).</sub>
 
 ### Pattern 7: SRE On-Call Access
 
@@ -806,7 +834,7 @@ See **AUTOM-03: Monaco** for full implementation details.
 ## 9. Policy Assessment Queries
 Use these queries to audit policy-related activity.
 
-> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded."* The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
 >
 > <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 

@@ -1,6 +1,6 @@
 # S2S-03: Step 3 — Design: Target Tenant Architecture
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 3 of 9 | **Phase:** Plan | **Step:** Design | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -104,7 +104,7 @@ resource "dynatrace_iam_policy" "sre_settings" {
 
 ### Audit Source IAM Structure
 
-Before designing target IAM, understand the current access model. Groups, policies, boundaries and bindings are **account-level** objects: *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*, which administrators view in Account Management > Settings > Audit log ([Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)). They are not in the source environment's audit events. What the environment can tell you is who actually uses it:
+Before designing target IAM, understand the current access model. Groups, policies, boundaries and bindings are **account-level** objects: *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"*, which administrators view in Account Management > Settings > Audit log ([Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs)). The same page says *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded."* They are not in the source environment's audit events. What the environment can tell you is who actually uses it:
 
 ```dql
 // Who uses the source environment: successful sign-ins per user (last 30 days)

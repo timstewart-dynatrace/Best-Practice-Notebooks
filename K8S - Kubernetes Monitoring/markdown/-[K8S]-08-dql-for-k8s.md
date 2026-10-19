@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -271,13 +271,14 @@ fetch logs, from:-1h
 // Kubernetes events — what your estate actually emits, by reason
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
-| summarize eventCount = count(), by:{dt.kubernetes.event.reason}
+| summarize eventCount = countDistinctExact(event.id), by:{dt.kubernetes.event.reason}
 | sort eventCount desc
 | limit 30
 ```
 
 ```dql
 // Pod crash / restart loops — the BackOff event carries the pod and the reason
+// One open event is re-written about every 5 min under the same event.id, so it can repeat here.
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter dt.kubernetes.event.reason == "BackOff"
@@ -303,11 +304,11 @@ timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
 
 ```dql
 // Log volume trend by namespace
+// makeTimeseries returns one series per namespace with every hourly bucket. The earlier
+// `sort time_bucket asc | limit 200` cut the newest hours first once namespaces x hours passed 200.
 fetch logs, from: now() - 24h
 | filter isNotNull(k8s.namespace.name)
-| summarize log_count = count(), by:{k8s.namespace.name, time_bucket = bin(timestamp, 1h)}
-| sort time_bucket asc
-| limit 200
+| makeTimeseries log_count = count(), by:{k8s.namespace.name}, interval:1h
 ```
 
 <a id="trace-queries"></a>
@@ -468,7 +469,7 @@ timeseries {
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter dt.kubernetes.event.reason == "BackOff"
-| summarize {crashLoopEvents = count(),
+| summarize {crashLoopEvents = countDistinctExact(event.id),
     affectedPods = countDistinctExact(dt.kubernetes.event.involved_object.name)}
 ```
 

@@ -1,6 +1,6 @@
 # NR2DT-03: Step 3 — Design
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 3 of 10 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -51,9 +51,13 @@ Use the recommended pattern from **ORGNZ-02 — Understanding Grail Buckets** (w
 | `<org>_app_logs` | 30 days | Retain w/ Included Queries | Application logs |
 | `<org>_infra_logs` | 14 days | Retain w/ Included Queries | Infrastructure / K8s |
 | `<org>_security_logs` | 365 days | Usage-based | Audit trail / PCI |
-| `<org>_spans` | 14 days | Retain w/ Included Queries | Distributed traces |
-| `<org>_events` | 90 days | Retain w/ Included Queries | Platform events |
-| `<org>_bizevents` | 90 days | Retain w/ Included Queries | Business events |
+| `<org>_spans` | 14 days | Usage-based | Distributed traces |
+| `<org>_events` | 90 days | Usage-based | Platform events |
+| `<org>_bizevents` | 90 days | Usage-based | Business events |
+
+*Retain with Included Queries* is a Log Management & Analytics option — *"Customers can split a log bucket's retention period into two parts"* — and covers only the first 10–35 days (*"Retain with Included Queries is available only for the first 10–35 days of retention."*). The DPS capabilities page lists no included-queries option for Traces or Events — only separate *Retain* and *Query* capabilities — so keep span, event and business-event buckets usage-based.
+
+> <sub>**Sources:** [Log Management & Analytics (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics), [Retain with Included Queries (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-retain-included), [DPS capabilities (DT docs)](https://docs.dynatrace.com/docs/license/capabilities).</sub>
 
 Use `<org>_` as the prefix — it lets IAM policies scope with one `storage:bucket-name startsWith "<org>_"` condition.
 

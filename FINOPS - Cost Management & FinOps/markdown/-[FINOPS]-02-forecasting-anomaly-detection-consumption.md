@@ -1,6 +1,6 @@
 # FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 10/05/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -277,8 +277,8 @@ Both projections exceed budget — act now (see FINOPS-03 for Cut / Tune / Filte
 
 ```dql
 // Month-to-date log ingest GiB — replace the from: range with your billing-month start in the contract time zone
-// Example pattern uses the start of the current calendar month
-fetch dt.system.events, from:now() - 18d
+// @M = start of the current calendar month in the query time zone; for a contract-time-zone billing month, set explicit from:/to:
+fetch dt.system.events, from:@M
 | filter event.kind == "BILLING_USAGE_EVENT"
 | filter event.type == "Log Management & Analytics - Ingest & Process"
 | dedup event.id

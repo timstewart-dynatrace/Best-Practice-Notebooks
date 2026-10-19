@@ -1,6 +1,6 @@
 # WEBRUM-03: Core Web Vitals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 3 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -85,23 +85,28 @@ LCP measures the time from when the user initiates navigation to when the larges
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
 //   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
+//   LCP / CLS                          -> web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -> frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
 // Average LCP across all applications in the last 24 hours
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(lcp.start_time)
-| summarize {avg_lcp = avg(lcp.start_time),
-    p75_lcp = percentile(lcp.start_time, 75),
-    p95_lcp = percentile(lcp.start_time, 95),
+| fieldsAdd lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time)
+| filter isNotNull(lcp_ms)
+| summarize {avg_lcp = avg(lcp_ms),
+    p75_lcp = percentile(lcp_ms, 75),
+    p95_lcp = percentile(lcp_ms, 95),
     sample_size = count()},
-    by:{dt.rum.application.id}
+    by:{frontend.name}
 | sort avg_lcp desc
 ```
 
@@ -114,8 +119,8 @@ fetch user.events, from:-24h
 // array, and expanding back out.
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(lcp.start_time)
-| fieldsAdd lcp_ms = lcp.start_time
+| fieldsAdd lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time)
+| filter isNotNull(lcp_ms)
 | fieldsAdd lcp_category = if(lcp_ms <= 2500, "Good",
     else: if(lcp_ms <= 4000, "Needs Improvement",
     else: "Poor"))
@@ -178,7 +183,7 @@ fetch user.events, from:-24h
     inp_poor       = countIf(web_vitals.interaction_to_next_paint > 500ms),
     below_40ms     = countIf(inp.status == "below_threshold"),
     no_interaction = countIf(inp.status == "not_reported")
-  }, by:{dt.rum.application.id}
+  }, by:{frontend.name}
 | sort page_views desc
 ```
 
@@ -226,9 +231,10 @@ CLS measures unexpected layout shifts during the entire lifespan of a page. A la
 // CLS distribution — classify into Good / Needs Improvement / Poor
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(cls.value)
-| fieldsAdd cls_category = if(cls.value <= 0.1, "Good",
-    else: if(cls.value <= 0.25, "Needs Improvement",
+| fieldsAdd cls_score = coalesce(web_vitals.cumulative_layout_shift, cls.value)
+| filter isNotNull(cls_score)
+| fieldsAdd cls_category = if(cls_score <= 0.1, "Good",
+    else: if(cls_score <= 0.25, "Needs Improvement",
     else: "Poor"))
 | summarize action_count = count(), by:{cls_category}
 ```
@@ -237,9 +243,10 @@ fetch user.events, from:-24h
 // Worst CLS pages — pages with the most layout shifting
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
-| filter isNotNull(cls.value)
-| summarize {avg_cls = avg(cls.value),
-    p75_cls = percentile(cls.value, 75),
+| fieldsAdd cls_score = coalesce(web_vitals.cumulative_layout_shift, cls.value)
+| filter isNotNull(cls_score)
+| summarize {avg_cls = avg(cls_score),
+    p75_cls = percentile(cls_score, 75),
     action_count = count()},
     by:{page.detected_name}
 | filter action_count > 10
@@ -260,9 +267,11 @@ Aggregate Core Web Vitals by page to identify which pages need optimization:
 // if-chain into the worst bucket (corrected 10/05/2026).
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
+| fieldsAdd lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time),
+    cls_score = coalesce(web_vitals.cumulative_layout_shift, cls.value)
 | summarize {
-    p75_lcp_ms   = percentile(lcp.start_time, 75),
-    p75_cls      = percentile(cls.value, 75),
+    p75_lcp_ms   = percentile(lcp_ms, 75),
+    p75_cls      = percentile(cls_score, 75),
     p75_inp_ms   = percentile(web_vitals.interaction_to_next_paint, 75) / 1ms,
     page_views   = count()
   }, by:{page.detected_name}
@@ -284,8 +293,8 @@ Tracking CWV over time helps identify regressions after deployments, seasonal pa
 // LCP trend over the last 7 days — hourly p75
 fetch user.events, from:-7d
 | filter characteristics.has_page_summary == true
-| filter isNotNull(lcp.start_time)
-| fieldsAdd lcp_ms = lcp.start_time
+| fieldsAdd lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time)
+| filter isNotNull(lcp_ms)
 | makeTimeseries p75_lcp = percentile(lcp_ms, 75), interval:1h
 ```
 
@@ -293,8 +302,9 @@ fetch user.events, from:-7d
 // CLS trend over the last 7 days — daily p75
 fetch user.events, from:-7d
 | filter characteristics.has_page_summary == true
-| filter isNotNull(cls.value)
-| makeTimeseries p75_cls = percentile(cls.value, 75), interval:24h
+| fieldsAdd cls_score = coalesce(web_vitals.cumulative_layout_shift, cls.value)
+| filter isNotNull(cls_score)
+| makeTimeseries p75_cls = percentile(cls_score, 75), interval:24h
 ```
 
 <a id="cwv-scoring"></a>
@@ -310,14 +320,16 @@ Create a single-query CWV scorecard showing, for each metric, the percentage of 
 // `web_vitals.interaction_to_next_paint` (≤ 200 ms good, > 500 ms poor), not on inp.status.
 fetch user.events, from:-24h
 | filter characteristics.has_page_summary == true
+| fieldsAdd lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time),
+    cls_score = coalesce(web_vitals.cumulative_layout_shift, cls.value)
 | summarize {
     total     = count(),
-    lcp_n     = countIf(isNotNull(lcp.start_time)),
-    lcp_good  = countIf(lcp.start_time <= 2500),
-    lcp_poor  = countIf(lcp.start_time > 4000),
-    cls_n     = countIf(isNotNull(cls.value)),
-    cls_good  = countIf(cls.value <= 0.1),
-    cls_poor  = countIf(cls.value > 0.25),
+    lcp_n     = countIf(isNotNull(lcp_ms)),
+    lcp_good  = countIf(lcp_ms <= 2500),
+    lcp_poor  = countIf(lcp_ms > 4000),
+    cls_n     = countIf(isNotNull(cls_score)),
+    cls_good  = countIf(cls_score <= 0.1),
+    cls_poor  = countIf(cls_score > 0.25),
     inp_n     = countIf(isNotNull(web_vitals.interaction_to_next_paint)),
     inp_good  = countIf(web_vitals.interaction_to_next_paint <= 200ms),
     inp_poor  = countIf(web_vitals.interaction_to_next_paint > 500ms)

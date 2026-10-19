@@ -1,6 +1,6 @@
 # CLOUD-02: AWS Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 2 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -208,6 +208,30 @@ The Clouds App's **EventBridge** option (Advanced path) registers an [EventBridg
 
 
 > <sub>**Sources:** [Create AWS connection via Settings (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/create-an-aws-connection/aws-connection-app-settings), [Monitor AWS with CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics), [Onboard AWS Organizations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-organizations), [AWS Cost Categories (AWS docs)](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html), [EventBridge API destinations (AWS docs)](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html).</sub>
+
+### Tagging this producer — primary Grail tags
+
+The connection already writes `aws.account.id` and `aws.region` on everything it ingests. Dynatrace: *"If filtering, routing, and access control at the account or region level cover your use case, there's nothing else to do."* For team, stage or cost tags, AWS data needs up to three rules, because each rule type reaches only its own producer:
+
+| Data | Rule | Scope |
+|---|---|---|
+| Cloud metrics, cloud logs and AWS Smartscape nodes from the connection | **AWS tag** rule. Target **Cloud tag** forwards the tag as `aws.tags.<key>`; target *Security context*, *Cost center* or *Cost product* writes that primary field directly | AWS account |
+| The same data, as `primary_tags.<key>` | OpenPipeline **primary Grail tag** rule with two source fields, `aws.tags.<key>` (telemetry) and `` `tags:aws`[<key>] `` (Smartscape nodes), and the matching condition `isNull(primary_tags.<key>)` | OpenPipeline > Primary Grail tags |
+| OneAgent data from an EC2 instance | **Host/Process property** rule with the AWS tag as source (OneAgent 1.343+). Turn on instance tags in instance metadata first | Host group |
+
+Three details decide whether it works:
+
+- **The second step exists because the first can't target a primary tag yet.** *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*
+- **Keep the `isNull` condition.** *"The default condition is true, which overwrites values other sources already set"* — a Lambda function's `DT_TAGS` (CLOUD-04) or the Operator's pod tags (CLOUD-03).
+- **Connection rules never reach OneAgent.** *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."* Without the host-group rule, an EC2 instance's cloud metrics carry the team while its spans and logs do not.
+
+**Version and connection type.** Central configuration for cloud tags arrives with SaaS 1.348, a staged rollout — verify it has reached your tenant. It *"applies to new cloud connections only"*; on an existing connection, *"The toggle for existing connections is available starting with Dynatrace version 1.349."* Until then, tag enrichment configured on the AWS connection itself remains the working path: *"For now, you can configure tag enrichment either on the AWS connection or through central enrichment configuration."*
+
+FAQ-26 § 5 has the producer-by-producer model, and MZ2POL-10 the enrichment ladder these rules sit on.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"This page applies to new cloud connections only."*, *"If filtering, routing, and access control at the account or region level cover your use case, there's nothing else to do."* *"The toggle for existing connections is available starting with Dynatrace version 1.349."* and *"For now, you can configure tag enrichment either on the AWS connection or through central enrichment configuration."*</sub>
+> - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Primary tag isn't yet available as a Target for AWS tag rules, which is why this step needs the OpenPipeline rule."*, *"Cloud rules apply only to data that arrives through the cloud connection, so OneAgent on a cloud VM doesn't evaluate them."*, *"The default condition is true, which overwrites values other sources already set"* and *"Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first."*</sub>
 
 <a id="querying-aws-entities"></a>
 

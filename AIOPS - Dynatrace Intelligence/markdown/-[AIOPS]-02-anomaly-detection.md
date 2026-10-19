@@ -199,7 +199,7 @@ So the trigger delay **complements** `violatingSamples` / `slidingWindow` rather
 
 ### Step 2b — Scoping the detector with Segments
 
-Alongside the analyzer, the Anomaly Detection app offers **Set scope** (Simple or Advanced tab) with a **Segments** field — choose one or more segments to restrict which slice of data the detector evaluates. This lets you alert on a specific subset such as a region, cluster, or environment without rewriting the query.
+Alongside the analyzer, the custom-alert editor offers **Set scope** (Simple or Advanced tab) with a **Segments** field — choose one or more segments to restrict which slice of data the detector evaluates. This lets you alert on a specific subset such as a region, cluster, or environment without rewriting the query. The editor is the same in both places: from SaaS 1.344 (staged tenant rollout) open it under **Settings > Analyze and alert > Alerts > All alerts > Custom alerts**; on earlier versions it is in the **Anomaly Detection** app. *Configure a simple custom alert* documents both paths and says *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*
 
 > **Do not duplicate a filter the segment already applies.** Segment filters are injected into the query at execution time, so re-stating them in the `timeseries` query is redundant and makes the detector harder to reason about.
 
@@ -246,6 +246,7 @@ None of these three are analyzer tuning — they're structural, and a mistuned a
 
 > <sub>**Sources:**</sub>
 > - <sub>[Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)</sub>
+> - <sub>[Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"Go to Settings > Analyze and alert > Alerts > All alerts . Select Custom alerts ."*</sub>
 > - <sub>[Set up anomaly detectors via API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api)</sub>
 > - <sub>[Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — *"make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string"*</sub>
 > - <sub>[Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — *"If not set, the event is associated with the environment"* (scoped to events posted through this API)</sub>
@@ -300,7 +301,7 @@ That reverses the older advice in this section. A metric event is still the ligh
 The Davis detector remains a first-class config-as-code target: provision it with Monaco or Terraform exactly as in **AUTOM-03 (Monaco) / AUTOM-04 (Terraform)**, with the schema name as the `--settings-schema` / resource selector. Check any schema's status in AUTOM-02's catalog before building a long-lived project around it.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)</sub>
+> - <sub>[Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)</sub>
 > - <sub>[Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)</sub>
 > - <sub>[Upgrade metric alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — *"Only metric selectors are available to transform."* and *"the check can't detect whether the data from the metric is available or the necessary tags are present"*</sub>
 > - <sub>[Settings 2.0 schemas removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — lists `builtin:anomaly-detection.metric-events`; *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
@@ -322,7 +323,9 @@ The Dynatrace MCP server exposes Davis analyzers as callable tools. Useful when 
 
 **Workflow pattern:** write a `timeseries` query that returns the metric you care about, then pass the query to the analyzer. The analyzer's output is structured (anomalies, forecast bands, novelty flags) and can be embedded in workflows or notebooks.
 
-All five analyzers also have GUI surfaces in the Anomaly Detection app — the MCP tools are the same engine accessed programmatically.
+**In the UI**, four of the five run from the **Davis AI** panel of a DQL or metrics section in Notebooks or Dashboards — static threshold, auto-adaptive threshold, seasonal baseline and forecast: *"On the Davis AI panel, set Analyzers to the analyzer you want to use, and then configure the analyzer."* The Notebooks page names no GUI surface for novelty detection, so use the MCP tool for it. A detector you want to keep is saved as a custom alert — in Settings from SaaS 1.344 (staged tenant rollout), in the Anomaly Detection app on earlier versions (§ 3). The MCP tools are the same analyzers accessed programmatically.
+
+> <sub>**Sources:** [Notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks) — *"On the Davis AI panel, set Analyzers to the analyzer you want to use, and then configure the analyzer."*</sub>
 
 <a id="volume"></a>
 ## 8. Anomaly Volume in Your Tenant

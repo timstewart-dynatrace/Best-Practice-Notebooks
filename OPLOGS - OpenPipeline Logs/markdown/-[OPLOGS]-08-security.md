@@ -1,6 +1,6 @@
 # OPLOGS-08: Security & Data Protection
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 8 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Sensitive Data Discovery, Masking, and Compliance
 This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.
@@ -210,6 +210,7 @@ IP addresses may require masking depending on your compliance requirements.
 ```dql
 // Find logs containing IP addresses
 // parseAll finds every IP anywhere in the line; parse would only match one at the very start
+// IPADDR also matches IPv4-shaped version strings (rv:1.9.2.20) and IPv6 fragments (::0000); the next cell bounds it
 fetch logs, from: now() - 1h
 | fieldsAdd ip_found = parseAll(content, "IPADDR:ip")
 | filter arraySize(ip_found) > 0
@@ -221,8 +222,11 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Classify IP addresses (internal vs external)
+// IPv4 only (the ipIn ranges are IPv4). The !<< / !>> bounds skip IPv6 fragments (::0000) and
+// IPv4 shapes glued to letters, digits or dots (v1.9.2.20). Version tokens after "/" or ":" still match
+// (Chrome/133.0.0.0, rv:1.9.7.20), so list the top EXTERNAL values before trusting that count.
 fetch logs, from: now() - 1h
-| fieldsAdd ip_found = parseAll(content, "IPADDR:ip")
+| fieldsAdd ip_found = parseAll(content, "!<<[A-Za-z0-9.] IPV4ADDR:ip !>>[A-Za-z0-9.]")
 | filter arraySize(ip_found) > 0
 | expand ip_found
 | fieldsAdd ip_type = if(ipIn(ip_found, {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}), "RFC1918",

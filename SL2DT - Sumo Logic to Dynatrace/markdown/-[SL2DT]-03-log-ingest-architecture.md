@@ -1,6 +1,6 @@
 # SL2DT-03: Log Ingest Architecture
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 3 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -58,14 +58,17 @@ This step uses two distinct credential types — they are **not interchangeable*
 
 ### Platform Token — query/runtime API calls
 
-Platform Token (prefix `dt0s16.`) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline configuration through the Settings API, IAM policy read/write via the platform APIs):
+Platform Token (prefix `dt0s16.`) with these scopes, for runtime/query-time API calls (bucket read/write of data, log/settings read/write, OpenPipeline configuration through the Settings API):
 
 ```
 storage:buckets:read, storage:buckets:write
 storage:logs:read, storage:logs:write
 settings:objects:read, settings:objects:write   (includes OpenPipeline pipelines, ingest sources, routing)
-iam:policies:read, iam:policies:write (for bucket-scoped policies)
 ```
+
+Bucket-scoped IAM policies are **not** in this list: a platform token does not manage IAM. Policies, groups and bindings run on an OAuth client — see SL2DT-07 for the client and SL2DT-08 §4 for the Terraform side.
+
+> <sub>**Sources:** [Dynatrace Terraform provider — argument reference (Dynatrace GitHub)](https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md) — *"Platform tokens can't be used for IAM (Account Management) or classic resources."*</sub>
 
 **OpenPipeline is configured through the Settings API.** Log pipelines, ingest sources and routing are the Settings 2.0 schemas `builtin:openpipeline.logs.pipelines`, `builtin:openpipeline.logs.ingest-sources` and `builtin:openpipeline.logs.routing`, governed by `settings:objects:read` / `settings:objects:write`. Routing is stricter: *"Routing management is restricted to administrators (`settings:objects:admin`). Administrators can grant write access to a configuration scope routing via policies."* If the token's owner is not a settings administrator, an administrator grants write access with a policy such as:
 
@@ -332,18 +335,24 @@ service:
       exporters: [otlphttp]
 ```
 
-**Note on auth:** OTel HTTP exporter pairs with Classic API Token (`dt0c01.`) + `Api-Token` scheme for the `/api/v2/otlp` endpoint. Platform Token is not used for OTel ingest auth as of April 2026.
+**Note on auth:** the exporter above uses a Classic API token (`dt0c01.`, `Api-Token` scheme) with the `logs.ingest` scope, which covers the OpenTelemetry log ingest API. From **SaaS 1.343** (staged tenant rollout from 07/14/2026) platform tokens also authenticate against classic and ingest endpoints: send `Authorization: Bearer dt0s16.…` with the scope that matches the signal — `openpipeline:logs:ingest` for logs, `openpipeline:traces:ingest` for OTLP traces. Confirm 1.343 has reached your tenant before switching; until it has, the `dt0c01` token remains the working path, and it stays supported afterwards.
+
+> <sub>**Sources:**</sub>
+> - <sub>[What's new in Dynatrace SaaS 1.343 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-343) — *"You can now use platform tokens to authenticate against all classic and ingest API endpoints, including logs, metrics, and business events."*, *"Existing API token authentication remains fully supported, so no changes are required for current integrations."*</sub>
+> - <sub>[Dynatrace API authentication (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication) — *"Platform tokens work across ingest endpoints and require a scope that matches the signal type"*; `logs.ingest` *"Grants access to the POST ingest logs request of the Log Monitoring API v2 as well as the OpenTelemetry log ingest API."*</sub>
 
 ### HTTP Source Equivalent
 
 Sumo "Hosted HTTP Source" → OpenPipeline HTTP endpoint (no OTel in between):
 
 ```bash
-curl -X POST "$DT_TENANT/api/v2/logs/ingest" \
+curl -X POST "https://<env-id>.live.dynatrace.com/api/v2/logs/ingest" \
   -H "Authorization: Api-Token dt0c01.XXX" \
   -H "Content-Type: application/json" \
   -d '[{"content": "app log line", "log.source": "prod/api/web"}]'
 ```
+
+The log ingest endpoint is on the environment's `live.dynatrace.com` host, as in the documented example — not the `apps.dynatrace.com` host held in `$DT_TENANT` for platform API calls. With a platform token on SaaS 1.343+, replace the header with `Authorization: Bearer <platform-token>` (scope `openpipeline:logs:ingest`).
 
 Scripted ingestion from CloudWatch, EventHub, Pub/Sub — replace with Dynatrace cloud integrations (AWS Clouds app, Azure, GCP) rather than dual-writing via HTTP.
 

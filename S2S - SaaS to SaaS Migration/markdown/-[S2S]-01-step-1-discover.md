@@ -1,6 +1,6 @@
 # S2S-01: Step 1 — Discover: Migration Scenarios and Inventory
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 The first step in any SaaS-to-SaaS migration is understanding *why* you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.
 
@@ -119,7 +119,7 @@ Understanding portability constraints upfront prevents surprises during executio
 | Workflows and automations | Monaco (automations type), Terraform | Requires OAuth client credentials |
 | OpenPipeline rules | Monaco (openpipeline type), Terraform | Bucket references must match target |
 | Grail bucket configuration | Monaco (bucket type), Terraform | Retention policies may differ |
-| SLO definitions | Monaco (settings/slo-v2 type), Terraform | Metric expressions may reference entity IDs |
+| SLO definitions | Monaco (`slo-v2` type — Grail/DQL SLOs, Monaco 2.22.0+), Terraform (`dynatrace_platform_slo`; classic SLOs: `dynatrace_slo_v2`) | DQL SLIs and classic entity-selector filters may hard-code entity IDs; classic SLOs are rewritten as DQL SLIs, not copied (S2S-07 §3) |
 | Management zones | Monaco, Terraform | Zone rules and entity assignments |
 | Auto-tagging rules | Monaco, Terraform | Tag rules and conditions |
 | Service detection rules | Monaco, Terraform | Custom service naming and merging |

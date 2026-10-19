@@ -1,6 +1,6 @@
 # WFLOW-04: Advanced Notification Routing
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 4 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Intelligent Alert Routing
 Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.
@@ -97,7 +97,7 @@ tasks:
     conditions:
       states: {}
       # One expression: AND, OR and NOT go inside it
-      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in event().get("tags", "") }}'
+      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connectionId: "{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}"
@@ -145,7 +145,7 @@ tasks:
 
 ```jinja
 # AND within one expression
-{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in event().get("tags", "") }}
+{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in (event().get("entity_tags") or []) }}
 
 # Critical or Major (1 or 2)
 {{ (event().get("event.severity") | int(5)) <= 2 }}
@@ -154,11 +154,13 @@ tasks:
 {{ event().get("root_cause_entity_id") is not none }}
 ```
 
-Read any field a problem may lack with `.get()` and a default. The reference documents that reading a missing attribute fails with an *"Undefined variables"* message (shown there for `input()` and `result()`), so the task errors rather than evaluating false. On the problem record `tags` is a single string (a JSON-encoded list on the validation tenant, 10/06/2026), so `in` is a **substring** test: `"env:prod"` also matches `env:production`. Choose tag values that are not prefixes of one another, or filter on tags in the trigger instead (§4).
+Read any field a problem may lack with `.get()` and a default. The reference documents that reading a missing attribute fails with an *"Undefined variables"* message (shown there for `input()` and `result()`), so the task errors rather than evaluating false. Problem records carry tags in `entity_tags`, an array of `key:value` strings, so `in` tests for an exact element. The field is deprecated (*"`entity_tags` still exists but is deprecated (Dynatrace Classic)"*): prefer the trigger's tag filter (§4) or `primary_tags.*`. An earlier `tags` string field stopped appearing on problem records on 10/08/2026 on the validation tenant, so a condition that reads `tags` is always false and its task skips.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Build workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build)</sub>
 > - <sub>[Jinja expressions for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference)</sub>
+> - <sub>[Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — maps `{Tags}` to *"primary_tags.* entity_tags still exists but is deprecated (Dynatrace Classic)"*</sub>
+> - <sub>**Dictionary:** model `davis.problem` (`dt.davis.problems`) lists `entity_tags` and no `tags` field, read 10/15/2026. Tenant: `countIf(isNotNull(tags))` 0 of 4,282 problems over 7 days, `entity_tags` (array) on 2,076.</sub>
 > - <sub>[Slack Connector actions (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions)</sub>
 > - <sub>[threat-detection-notification-sender.yaml (Dynatrace GitHub)](https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml) — parallel first tasks with `states: {}`, a `custom` condition and `else: SKIP`</sub>
 
@@ -178,7 +180,7 @@ Problems carry only the first three levels. *"The problem inherits the highest (
 
 To drop low tiers before any condition runs, set the Problem trigger's **Severity** filter: *"Selecting a severity level triggers the workflow for that level and all higher (more critical) levels."*
 
-> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): severity is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter that was matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Before relying on severity tiers, check which event sources actually **set** a severity. For sources that do not, route on `event.category`, ownership or tags instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies and the conditions below keep working. The `int(5)` in them treats a missing severity as the least severe tier, so an unset severity lands with Minor and never pages. **FAQ-21 §6** carries the same note.
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): severity is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* A severity filter that was matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep being triggered."* Before relying on severity tiers, check which event sources actually **set** a severity. For sources that do not, route on `event.category`, ownership or tags instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies and the conditions below keep working. The `int(5)` in them treats a missing severity as the least severe tier, so an unset severity lands with Minor and never pages. **FAQ-21 §6** carries the same note.
 >
 > <sub>**Sources:** [Standardized event severity (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity), [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release, read 10/06/2026. **Dictionary:** `event.severity` (`experimental`), read 10/06/2026.</sub>
 
@@ -280,7 +282,7 @@ Dynatrace's ownership keys are built in: *"By default, Dynatrace provides two ke
 
 ### Tag Conditions in One Workflow (fallback)
 
-When one workflow must fan out to several teams, test the problem's tags in each task's custom condition. `tags` is a string on the problem record, so these are substring tests (§2): `"owner:cart"` would also match `owner:cart-v2`.
+When one workflow must fan out to several teams, test the problem's tags in each task's custom condition. `entity_tags` is an array, so these are exact matches (§2).
 
 ```yaml
 tasks:
@@ -290,7 +292,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ "owner:checkout" in event().get("tags", "") or "owner:cart" in event().get("tags", "") }}'
+      custom: '{{ "owner:checkout" in (event().get("entity_tags") or []) or "owner:cart" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connection: "{{ connection('app:dynatrace.slack:connection', 'slack-production') }}"
@@ -303,7 +305,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ "owner:payments" in event().get("tags", "") }}'
+      custom: '{{ "owner:payments" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connection: "{{ connection('app:dynatrace.slack:connection', 'slack-production') }}"
@@ -316,7 +318,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ "owner:platform" in event().get("tags", "") }}'
+      custom: '{{ "owner:platform" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connection: "{{ connection('app:dynatrace.slack:connection', 'slack-production') }}"
@@ -543,7 +545,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in event().get("tags", "") }}'
+      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connectionId: "{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}"
@@ -556,7 +558,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in event().get("tags", "") }}'
+      custom: '{{ (event().get("event.severity") | int(5)) <= 1 and "env:prod" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connection: "{{ connection('app:dynatrace.slack:connection', 'slack-production') }}"
@@ -570,7 +572,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ (event().get("event.severity") | int(5)) <= 2 and "env:prod" in event().get("tags", "") }}'
+      custom: '{{ (event().get("event.severity") | int(5)) <= 2 and "env:prod" in (event().get("entity_tags") or []) }}'
       else: SKIP
     input:
       connection: "{{ connection('app:dynatrace.slack:connection', 'slack-production') }}"
@@ -584,7 +586,7 @@ tasks:
     predecessors: []
     conditions:
       states: {}
-      custom: '{{ (event().get("event.severity") | int(5)) <= 1 or ((event().get("event.severity") | int(5)) == 2 and "env:prod" in event().get("tags", "")) }}'
+      custom: '{{ (event().get("event.severity") | int(5)) <= 1 or ((event().get("event.severity") | int(5)) == 2 and "env:prod" in (event().get("entity_tags") or [])) }}'
       else: SKIP
     # input: to, subject, content
 ```

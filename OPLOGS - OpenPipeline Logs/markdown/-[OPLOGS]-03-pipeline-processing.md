@@ -1,6 +1,6 @@
 # OPLOGS-03: OpenPipeline Processing
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 3 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Configuring Pipeline Stages for Log Transformation
 This notebook covers OpenPipeline processing stages: parsing, enrichment, metric extraction, event generation, bucket routing, and filtering.
@@ -261,20 +261,21 @@ fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production",
 |-----------|--------|----------|
 | `environment` | namespace name | Filter prod vs dev |
 | `team_owner` | namespace/labels | Route alerts |
-| `severity_score` | loglevel | Prioritization |
+| `severity_score` | status | Prioritization |
 | `log_category` | content patterns | Classification |
 
 ```dql
-// Preview attribute creation logic
+// Preview attribute creation logic (same expressions as the processor above)
+// severity_score keys on status, so SEVERE, CRITICAL and FATAL score 3 like ERROR
 fetch logs, from: now() - 1h
 | filter isNotNull(k8s.namespace.name)
 | fieldsAdd environment = if(contains(k8s.namespace.name, "prod"), "production",
                           else: if(contains(k8s.namespace.name, "staging"), "staging",
                           else: "development"))
-| fieldsAdd severity_score = if(loglevel == "ERROR", 3,
-                             else: if(loglevel == "WARN", 2,
+| fieldsAdd severity_score = if(status == "ERROR", 3,
+                             else: if(status == "WARN", 2,
                              else: 1))
-| summarize {count = count()}, by: {environment, severity_score, loglevel}
+| summarize {count = count()}, by: {environment, severity_score, status, loglevel}
 | sort environment asc, severity_score desc
 ```
 
@@ -360,16 +361,14 @@ fetch bizevents, from: now() - 24h
 ```
 
 ```dql
-// Preview: Logs that would become critical error events
+// Preview: what the `critical-error` business event processor (§5 table) would extract
+// Same condition as the processor: status == "ERROR" AND matchesValue(content, "*critical*")
+// matchesValue() is case-insensitive, so CRITICAL, Critical and critical all match.
+// would_become_events = 0 means none of your error logs contain the word; change the keyword to one your logs use.
 fetch logs, from: now() - 1h
-// status == "ERROR" also counts SEVERE, CRITICAL and FATAL logs; loglevel == "ERROR" misses them
 | filter status == "ERROR"
-| filter contains(content, "critical") 
-        OR contains(content, "fatal")
-        OR contains(content, "severe")
-| fieldsAdd content_preview = substring(content, from: 0, to: 100)
-| fields timestamp, k8s.namespace.name, content_preview
-| sort timestamp desc
+| summarize {error_records = count(), would_become_events = countIf(matchesValue(content, "*critical*"))}, by: {k8s.namespace.name}
+| sort would_become_events desc, error_records desc
 | limit 20
 ```
 
@@ -417,7 +416,10 @@ fetch logs, from: now() - 1h
 ```
 
 ```dql
-// Estimate storage savings from routing
+// Estimate the retained volume that routing DEBUG/TRACE to a 7-day bucket avoids
+// Log Retain is billed per GiB-day stored; Log Ingest & Process is billed per GiB ingested,
+// so a shorter retention lowers Retain only. The records are still ingested.
+// stringLength(content) approximates stored size; other fields on the record add to it.
 fetch logs, from: now() - 24h
 | fieldsAdd content_bytes = stringLength(content)
 | summarize {
@@ -427,7 +429,9 @@ fetch logs, from: now() - 24h
     debug_mb = sum(if(loglevel == "DEBUG" OR loglevel == "TRACE", content_bytes, else: 0)) / 1048576.0
   }
 | fieldsAdd debug_pct = round((debug_logs * 100.0) / total_logs, decimals: 1)
-| fieldsAdd savings_7d_vs_35d = round(debug_mb * 0.8, decimals: 2)
+| fieldsAdd debug_stored_gib_35d = round(debug_mb * 35 / 1024.0, decimals: 2)
+| fieldsAdd debug_stored_gib_7d = round(debug_mb * 7 / 1024.0, decimals: 2)
+| fieldsAdd retain_gib_days_avoided_per_day = round(debug_mb * (35 - 7) / 1024.0, decimals: 2)
 ```
 
 <a id="filtering-sampling"></a>

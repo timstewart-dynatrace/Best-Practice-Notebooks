@@ -1,6 +1,6 @@
 # ALERT-04: ITSM Integration: ServiceNow
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/06/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 04 of 05 | **Created:** June 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -116,7 +116,7 @@ Everything those pages describe flows from Dynatrace to ServiceNow. Neither desc
 
 This is configured largely on the ServiceNow side and suits shops already running ITOM Event Management. It is the destination of the maturity ladder, not the starting point — reach for it when one-way incident creation is no longer enough and you want ITOM event correlation and CMDB context on every incident.
 
-> <sub>**Sources:** [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration) — *"When a problem is closed in Dynatrace, the incident is marked as Resolved in ServiceNow."*, [Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/) — *"The Incident App will create incidents based on Dynatrace-identified problems"*; *"The Event Management integration accepts Dynatrace problem events and transforms infrastructure events into actionable alerts and incidents"*.</sub>
+> <sub>**Sources:** [Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-integration) — *"When a problem is closed in Dynatrace, the incident is marked as Resolved in ServiceNow."*, [Dynatrace + ServiceNow integrations (Dynatrace News)](https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/) — *"The Incident App will create incidents based on Dynatrace-identified problems"*; *"The Event Management integration accepts Dynatrace problem events and transforms infrastructure events into actionable alerts and incidents"*.</sub>
 
 <a id="fields"></a>
 ## 5. What ServiceNow Needs From the Problem
@@ -132,12 +132,12 @@ Every rung shares one requirement: the Davis problem must already carry the meta
 
 If the problem fires without these, the incident lands in a default queue with no priority — the ITSM equivalent of "everything goes to one channel." Enrich upstream.
 
-> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* The priority row above assumes every problem carries a severity. Once 1.348 reaches your tenant, a problem whose events never set one arrives without it, so decide what the mapping does for a missing severity rather than letting it fall through; and if the trigger also filters on severity: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Until 1.348 reaches your tenant, the defaulting behavior still applies.
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* The priority row above assumes every problem carries a severity. Once 1.348 reaches your tenant, a problem whose events never set one arrives without it, so decide what the mapping does for a missing severity rather than letting it fall through; and if the trigger also filters on severity: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep being triggered."* Until 1.348 reaches your tenant, the defaulting behavior still applies.
 
 > **Harden whichever rung you pick.** One-way creation that silently fails is worse than no integration — problems open in Dynatrace but never reach the queue. Retry transient failures, dead-letter permanent ones (don't retry a 4xx), link the incident number back onto the problem, and monitor the workflow itself. WFLOW-05 §8 has the patterns.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/problem-notifications/servicenow-integration)</sub>
+> - <sub>[Send Dynatrace notifications to ServiceNow (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-integration)</sub>
 > - <sub>[ServiceNow for Workflows action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now) — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026; *Resolve incident* requires *"The number of the incident to resolve."* (re-read 10/06/2026)</sub>
 > - <sub>[ServiceNow for Workflows (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview) — *"Search for available incidents to prevent duplicates from being created."*</sub>
 > - <sub>[HTTP request action for Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action) — *"Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication."*</sub>

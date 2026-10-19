@@ -1,6 +1,6 @@
 # S2D-03: SPL to DQL Translation
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -58,7 +58,7 @@ By the end of this notebook, you will be able to:
 | SPL Command | DQL Command | Description |
 |-------------|-------------|-------------|
 | `search index=...` | `fetch logs` | Select data source |
-| `where field="value"` | `filter field == "value"` | Filter records |
+| `where field="value"` | `filter field == "value"` | Filter records (case-sensitive in both) |
 | `stats count by field` | `summarize count = count(), by:{field}` | Aggregate data |
 | `table field1, field2` | `fields field1, field2` | Select columns |
 | `sort -count` | `sort count desc` | Sort results |
@@ -73,9 +73,13 @@ By the end of this notebook, you will be able to:
 |-------------|-------------|-------------|
 | `field="*error*"` | `contains(field, "error", caseSensitive:false)` | Substring |
 | `"error"` (bare term) | `matchesPhrase(content, "error")` | Whole word or phrase |
-| `field=error` | `field == "error"` | Exact match |
+| `field=error` | `matchesValue(field, "error")` | Whole value, case-insensitive like Splunk search; use `field == "error"` only for a case-sensitive match (Splunk `CASE(error)` or `where`) |
+| `NOT field="v"` | `filterOut matchesValue(field, "v")` | Keeps records that have no `field` |
+| `field!="v"` | `filter not(matchesValue(field, "v"))` | Drops records that have no `field` |
 | `field IN ("a","b")` | `in(field, {"a", "b"})` | Multiple values |
 | `rex field=f "(?<name>...)"` | `parse f, "DATA:name"` | Extract patterns |
+
+Splunk search matches field values case-insensitively. The Search Manual says *"By default, searches are case-insensitive. For example, if you search for `Error`, any case of that term is returned, such as `Error`, `error`, and `ERROR`."* DQL `==` is case-sensitive, while `matchesValue` is not by default: its `caseSensitive` parameter is *"Whether the match should be done case-sensitive (default: false)."* The `where` command is different: Splunk says *"The <eval-expression> is case-sensitive."*, so `where field="value"` translates to `==`.
 
 <a id="basic-query-translation"></a>
 ## Basic Query Translation
@@ -173,12 +177,22 @@ fetch logs, from:-1h
 index=application NOT level="DEBUG"
 ```
 
+Splunk `NOT` and `!=` are not the same filter. The Search Manual: with `!=`, *"Events that do not have a value in the field are not included in the results."* With `NOT`, *"every event is returned except the events that contain the value you specify. This includes events that do not have a value in the field."* DQL draws the same line. `filter level != "DEBUG"` drops a record with no `level` (the comparison is null), and `filterOut` keeps it. So translate `NOT field="v"` with `filterOut` and `field!="v"` with `filter`, and use `matchesValue` to keep Splunk's case-insensitive match:
+
+| SPL | DQL | Record with no `level` |
+|-----|-----|------------------------|
+| `NOT level="DEBUG"` | `filterOut matchesValue(loglevel, "DEBUG")` | kept |
+| `level!="DEBUG"` | `filter not(matchesValue(loglevel, "DEBUG"))` | dropped |
+
+`loglevel` itself is always set on Dynatrace logs (records with no level carry `NONE`), so both forms return the same rows for it. The difference shows on optional fields, such as attributes that only some sources send.
+
 **DQL:**
 
 ```dql
-// Exclude DEBUG level logs
+// Exclude DEBUG level logs - SPL: NOT level="DEBUG"
+// filterOut keeps records without the field (like Splunk NOT); matchesValue is case-insensitive (like Splunk search)
 fetch logs, from:-1h
-| filter loglevel != "DEBUG"
+| filterOut matchesValue(loglevel, "DEBUG")
 | summarize count = count(), by:{loglevel}
 ```
 
@@ -311,7 +325,7 @@ fetch logs, from:-24h
 |--------|-----|-----|
 | String quotes | Single or double | Double only |
 | Array syntax | `("a", "b")` | `{"a", "b"}` |
-| Equality | `=` | `==` |
+| Equality | `=` (case-insensitive in search) | `==` (case-sensitive); `matchesValue()` for case-insensitive |
 | Named params | Positional | Required: `decimals: 2` |
 | Pipe symbol | `\|` | `\|` |
 | Field access | `field_name` | `field.name` (nested) |
@@ -340,6 +354,10 @@ With your queries translated, proceed to **S2D-04: Alert Migration - Anomaly Det
 - [DQL Functions](https://docs.dynatrace.com/docs/shortlink/dql-functions)
 - [Log ingest rules (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-log-ingest-rules)
 - [DQL extraction and parsing commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/extraction-and-parsing-commands)
+- [DQL string functions (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/string-functions)
+- [Use CASE() and TERM() to match phrases (Splunk docs)](https://help.splunk.com/en/splunk-enterprise/search/search-manual/10.6/search-primer/use-case-and-term-to-match-phrases)
+- [Difference between != and NOT (Splunk docs)](https://help.splunk.com/en/splunk-enterprise/search/search-manual/10.6/expressions-and-predicates/difference-between-and-not)
+- [where command (Splunk docs)](https://help.splunk.com/en/splunk-enterprise/search/spl-search-reference/10.6/search-commands/where)
 
 ---
 

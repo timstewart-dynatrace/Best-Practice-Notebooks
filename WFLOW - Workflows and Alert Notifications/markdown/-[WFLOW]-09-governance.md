@@ -1,6 +1,6 @@
 # WFLOW-09: Security, Governance & Monitoring
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 9 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Production Best Practices
 This last core notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.
@@ -186,7 +186,7 @@ PagerDuty exposes two distinct credentials for two distinct surfaces. Picking th
 
 PagerDuty's own integration guidance draws the same boundary — Events API v2 is intended for *machine-generated monitoring and event data*, REST API for *human-generated events, tickets or incidents* requiring richer CRUD. The Dynatrace `dynatrace.pagerduty:*` action set covers both; pick the credential type matching the action's verb (trigger/ack/resolve → Integration Key; query/update incident metadata → REST API key).
 
-**dedup_key (Events API v2):** each Events API payload carries an optional `dedup_key`. PagerDuty correlates subsequent `trigger`, `acknowledge`, and `resolve` events with the same `dedup_key` against the **same open incident**, so a Davis problem can drive the full lifecycle: trigger on `OPEN`, resolve on `CLOSED`, all referencing the same key. WFLOW-05 §6 already recommends `dynatrace-{problem_id}` — keep that pattern: it makes the Dynatrace problem ID the join key on both sides.
+**dedup_key (Events API v2):** each Events API payload carries an optional `dedup_key`. PagerDuty correlates subsequent `trigger`, `acknowledge`, and `resolve` events with the same `dedup_key` against the **same open incident**, so a Davis problem can drive the full lifecycle: trigger on `ACTIVE`, resolve on `CLOSED`, all referencing the same key. WFLOW-05 §7 already recommends `dynatrace-{problem_id}` — keep that pattern: it makes the Dynatrace problem ID the join key on both sides.
 
 > <sub>**PagerDuty docs:** [Services and integrations (PagerDuty Support)](https://support.pagerduty.com/main/docs/services-and-integrations) — *"Events API v2 is designed to handle machine-generated monitoring and event data"* and *"For human-generated events, tickets, or incidents, such as those from ServiceNow or JIRA, use the REST API to enable direct, streamlined creation of PagerDuty incidents."*; [Events API v2 overview (PagerDuty Developer)](https://docs.pagerduty.com/developer/events-api-v2-overview).</sub>
 
@@ -304,7 +304,7 @@ fetch dt.system.events, from:-30d
 ### 3.6 Cross-References
 
 - **WFLOW-03** (§ Setting Up Connections, § Slack Notifications, § Microsoft Teams Notifications) — minimal Connection-creation walkthrough and webhook-vs-OAuth choice for Slack/Teams.
-- **WFLOW-05** (§ PagerDuty Setup, § ServiceNow Setup) — the workflow-task side: how to consume the credentials this section mints. WFLOW-05 §6 covers `dedupKey` and `correlation_id` patterns referenced above.
+- **WFLOW-05** (§ PagerDuty Setup, § ServiceNow Setup) — the workflow-task side: how to consume the credentials this section mints. WFLOW-05 §7 covers `dedupKey` and `correlation_id` patterns referenced above.
 - **WFLOW-06** (§ Slack Block Kit, § Teams Adaptive Cards) — message-template patterns that depend on the OAuth-app credential path (Block Kit interactivity is unavailable through Incoming Webhooks).
 
 <a id="access-control-rbac"></a>
@@ -524,7 +524,7 @@ fetch dt.system.events, from:-24h
 | limit 25
 ```
 
-### 4.1 Deeper debugging patterns
+### 5.1 Deeper debugging patterns
 
 The queries above give a workflow-level health view. The patterns below drill into **per-task execution detail** — what readers actually need when a workflow execution ends in `ERROR` and the high-level dashboard doesn't reveal which task in which step broke.
 
@@ -540,7 +540,7 @@ Workflow executions are recorded in `dt.system.events` with `event.kind == "WORK
 
 > <sub>**Sources:** [Workflows umbrella (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows), [Workflow reference (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference), [Dynatrace Query Language reference (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language).</sub>
 
-### 4.2 Failed executions with task-level detail
+### 5.2 Failed executions with task-level detail
 
 When a workflow ends in `ERROR`, the actionable question is *which task in the run failed and what was the error?* This goes one level below *Recent failures with error details* in §5 (workflow-level failures) by filtering on `TASK_EXECUTION` records and surfacing `dt.automation_engine.state_info`.
 
@@ -574,7 +574,7 @@ fetch dt.system.events, from:-24h
 | limit 25
 ```
 
-### 4.3 Slowest tasks across all workflows (duration percentiles)
+### 5.3 Slowest tasks across all workflows (duration percentiles)
 
 The `avg` in *Task-level performance* (§5) hides long-tail behavior. A task whose p99 is 4× its p50 is a different problem from one with a uniformly high p50 — the first is a tail-latency / external-dependency issue, the second is a structural bottleneck. Percentile aggregations make the distinction visible.
 
@@ -611,7 +611,7 @@ fetch dt.system.events, from:-7d
 | limit 20
 ```
 
-### 4.4 Filter by workflow ID, task name, status
+### 5.4 Filter by workflow ID, task name, status
 
 Targeted lookup for a single workflow + task combination. Adapt the literals to the workflow and task you are debugging — useful when a specific notification keeps failing and you need the error history for just that step.
 
@@ -645,7 +645,7 @@ fetch dt.system.events, from:-24h
 | limit 25
 ```
 
-### 4.5 Workflow failures in the last hour
+### 5.5 Workflow failures in the last hour
 
 A short-window failure list, suitable for a dashboard tile next to Davis problems. To follow a failing run into downstream logs, there is no built-in join key: execution records carry `dt.automation_engine.workflow_execution.id`, but logs do not carry it. Log the execution ID from your JavaScript task (or pass it to the target service) and filter your logs on it.
 
@@ -679,13 +679,13 @@ fetch dt.system.events, from:-1h
 | limit 25
 ```
 
-### 4.6 Promoting these queries to a dashboard
+### 5.6 Promoting these queries to a dashboard
 
 These queries are written as ad-hoc investigation patterns — copy into a Notebook section, change the time range, run. To make them part of standing operations, promote them to a dashboard:
 
-- **Workflow Health overview** — the §5 overall-health success-rate tile + the §4.3 percentile table + the §4.2 failed-task list.
-- **Per-workflow drilldown** — parameterize the §4.4 lookup with a `dt.automation_engine.workflow.title` variable so SREs can pick a workflow from a dropdown.
-- **Cross-signal correlation** — the §4.5 failure list next to a Davis Problems tile filtered to the same time window, so failures and incidents appear side-by-side.
+- **Workflow Health overview** — the §5 overall-health success-rate tile + the §5.3 percentile table + the §5.2 failed-task list.
+- **Per-workflow drilldown** — parameterize the §5.4 lookup with a `dt.automation_engine.workflow.title` variable so SREs can pick a workflow from a dropdown.
+- **Cross-signal correlation** — the §5.5 failure list next to a Davis Problems tile filtered to the same time window, so failures and incidents appear side-by-side.
 
 Dashboard tile selection, variable binding, and layout patterns live in the **DASH** series — see *DASH-02 (tile types)*, *DASH-04 (variables and parameterization)*, and *DASH-06 (operational dashboards)*. The DQL stays the same; only the surface (Notebook section → dashboard tile) changes.
 
@@ -865,7 +865,7 @@ Concurrency and tasks-per-workflow caps are not published; see WFLOW-01 § 5. An
 | Notebook | Key Topics |
 |----------|------------|
 | **WFLOW-01** | Workflow fundamentals, components, first workflow |
-| **WFLOW-02** | Trigger types: detected problem, metric, schedule, event |
+| **WFLOW-02** | Trigger types: Problem, Davis event, schedule, on-demand, event |
 | **WFLOW-03** | Slack, Teams, email notification basics |
 | **WFLOW-04** | Conditional routing, escalation patterns |
 | **WFLOW-05** | PagerDuty and ServiceNow integration |

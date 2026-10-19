@@ -1,6 +1,6 @@
 # S2D-06: ArrayMovingSum for Extended Timeframes
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 6 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -130,6 +130,7 @@ For Anomaly Detectors, you must use `interval:1m` and `window:60`.
 
 ```dql
 // Paste into the custom alert WITHOUT from:/to:
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "checkout-service")
@@ -143,6 +144,7 @@ Notebook preview of the same query:
 ```dql
 // Notebook PREVIEW of the custom-alert query above (60-minute rolling sum)
 // Remove from:-24h when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:-24h
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "checkout-service")
@@ -158,10 +160,16 @@ When creating the Anomaly Detector:
 | Setting | Value | Rationale |
 |---------|-------|-----------|
 | **Threshold** | Total errors in 60 minutes | e.g., 100 |
-| **Sliding Window** | 1 minute | Each point already contains 60m of data |
-| **Violating Samples** | 1 | Rolling sum already aggregates |
+| **Sliding Window** | 60 minutes (the maximum) | The query only sees the data its sliding window fetches (see below) |
+| **Violating Samples** | 1 | A sample above the threshold already means that many errors fell inside 60 minutes |
 
-> **Key Insight:** Since each data point already represents 60 minutes of data, you typically want minimal sliding window and violating samples.
+> **Why not a 1-minute sliding window.** The configuration page says the sliding window *"defines how many one-minute samples must violate the threshold"*, and the DQL writing guide says *"The custom alert retrieves data from Grail based on predefined sliding windows."* `arrayMovingSum` can only add up the points the query returns. With a 1-minute window the query gets about one minute of data, so each "60-minute" sample is really a 1-minute count compared against a 60-minute threshold, and the alert would rarely fire.
+>
+> **The first 59 points are partial sums.** In any query window, point *n* of `arrayMovingSum(…, 60)` adds up only the points up to it. Measured on a validation tenant on 10/14/2026: over `from:-60m` the series had 61 points, the first was 1,868 (one minute of errors) and the last 116,116 (the 60-minute sum); over `from:-1m` the "rolling sum" was 966, a single minute. Preview the query above with `from:-60m` to see what one evaluation receives.
+>
+> **Not tested on a live custom alert.** These settings are derived from the two quoted pages and the measurements, not from a configured detector. Confirm them on a non-production custom alert before relying on them. A 60-minute sliding window is also the most a detector can evaluate, so this recipe cannot cover a longer lookback; for that, see S2D-05.
+
+> <sub>**Sources:** [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration), [Anomaly Detection DQL writing guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice). **Derived:** the 60-minute sliding window combines the sliding-window definition and the data-retrieval sentence with the measured partial sums.</sub>
 
 <a id="dashboardreport-example-longer-timeframes"></a>
 ## Dashboard/Report Example (Longer Timeframes)

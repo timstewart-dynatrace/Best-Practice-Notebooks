@@ -471,7 +471,7 @@ fetch logs, from: now() - 1h
      Route: log.source == "production-api"  →  pipeline: production-api
    
    Pipeline production-api → Bucket assignment stage (first match only):
-     Processor 1: loglevel == "ERROR"  →  bucket prod_error_logs (90 days)
+     Processor 1: status == "ERROR"    →  bucket prod_error_logs (90 days)
      Processor 2: true                 →  bucket prod_logs (35 days)
    
    Then remove the temporary emergency_recovery_logs processor.
@@ -735,11 +735,11 @@ matchesPhrase(content, "/ping") OR
 
 ```dql
 // Sample 10% of INFO logs, keep all ERROR/WARN
-| fieldsAdd sample_hash = hashMd5(toString(timestamp))
+// status == "ERROR" also keeps SEVERE, CRITICAL, FATAL and the rest of the error group
 | filter 
-    loglevel == "ERROR" OR
-    loglevel == "WARN" OR
-    (loglevel == "INFO" AND sample_hash % 10 == 0)
+    status == "ERROR" OR
+    status == "WARN" OR
+    (loglevel == "INFO" AND random() < 0.1)
 
 // Result: ~70% reduction (if 80% are INFO)
 ```
@@ -1123,8 +1123,10 @@ fetch logs, from: now() - 7d
 
 ```dql
 // Find new log sources that may need pipeline configuration
+// (records with no pipeline, or on the default route: the classic pipeline, id "logs:default").
+// dt.openpipeline.pipelines is an array, so compare with in(), never ==.
 fetch logs, from: now() - 24h
-| filter isNull(dt.openpipeline.pipelines) OR dt.openpipeline.pipelines == "default"
+| filter isNull(dt.openpipeline.pipelines) OR in(dt.openpipeline.pipelines, "logs:default")
 | summarize {
     log_count = count(),
     first_seen = min(timestamp)

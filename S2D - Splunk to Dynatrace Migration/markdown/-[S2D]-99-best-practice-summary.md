@@ -1,6 +1,6 @@
 # S2D-99: Best Practice Summary
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -77,7 +77,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 26 | Translate `rex` field extraction to `parse` with DPL | `parse content, "DATA? 'user=' WORD:username"` (lead with `DATA?`: `parse` anchors at the field start) | Recommended | Syntax |
 | 27 | Translate `*value*` wildcard to `contains()` | `contains(field, "value", caseSensitive:false)`; `matchesPhrase()` matches whole words only | Critical | Syntax |
 | 28 | Translate `field IN ("a","b")` to `in()` function | `in(field, {"a", "b"})` | Critical | Syntax |
-| 29 | Translate `NOT field="value"` to `!=` or `filterOut` | `filter field != "value"` or `filterOut field == "value"` | Recommended | Syntax |
+| 29 | Translate `NOT field="value"` to `filterOut` and `field!="value"` to `filter` | `filterOut matchesValue(field, "value")` keeps records without the field, like Splunk `NOT`; `filter not(matchesValue(field, "value"))` drops them, like Splunk `!=`. `matchesValue` is case-insensitive, like Splunk search | Recommended | Syntax |
 | 30 | Always alias aggregation results | `summarize count = count()` not `summarize count()` | Critical | Syntax |
 
 <a id="alert-migration-davis-anomaly-detectors"></a>
@@ -90,7 +90,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 | 33 | Set Anomaly Detector query interval to 1 minute | `interval:1m` in `makeTimeseries` | Critical | Alerting |
 | 34 | Set the sliding window to match Splunk query timeframe | Max: 60 minutes. If Splunk timeframe is 15m, set sliding window to 15 | Critical | Alerting |
 | 35 | Do not map Splunk suppression onto dealerting samples | Dealerting controls when an open event closes; Splunk suppress controls re-notification. Handle re-notification in the routing workflow | Recommended | Alerting |
-| 36 | Use `by:{dt.entity.cloud_application}` for entity association | Ensures alerts are tied to the correct monitored entity | Critical | Alerting |
+| 36 | Use `by:{dt.entity.cloud_application}` for entity association on logs | Ties alerts to the workload entity. The field is `deprecated` in the semantic dictionary, but its Smartscape successors (`dt.smartscape.k8s_deployment` and siblings) are not on log records yet (10/14/2026); switch once they are | Recommended | Alerting |
 | 37 | Prefer Anomaly Detectors over Workflows when timeframe is 60 min or less | Per-minute evaluation and Davis correlation; queries are billed, so use Delay to reduce executions | Critical | Alerting |
 | 38 | If alert timeframe exceeds 60 minutes, use Workflows or ArrayMovingSum | Anomaly Detectors max sliding window = 60 minutes | Critical | Alerting |
 | 39 | Use the data-driven strategy when historical data is available | Analyze per-minute samples (24 h or less per query at 1-minute resolution; repeat for several days) | Recommended | Alerting |
@@ -117,7 +117,7 @@ This notebook consolidates every actionable best practice from the S2D (Splunk t
 |---|---------------|----------------|----------|----------|
 | 49 | Use `arrayMovingSum(array, 60)` with `interval:1m` for 60-minute rolling sum | Each data point = sum of preceding 60 minutes | Critical | DQL |
 | 50 | Max `arrayMovingSum` window = 60 | Cannot exceed 60 data points regardless of interval | Critical | DQL |
-| 51 | With Anomaly Detectors + ArrayMovingSum, set sliding window = 1 and violating samples = 1 | Each data point already contains the full rolling aggregation | Critical | Alerting |
+| 51 | With Anomaly Detectors + ArrayMovingSum, set sliding window = 60 and violating samples = 1 | The query only sees its sliding window: with a 1-minute window each "60-minute" sample is a 1-minute count. The first 59 points of any window are partial sums. Derived, not tested on a live custom alert | Recommended | Alerting |
 | 52 | Set threshold to total count expected in the rolling window | If Splunk threshold = 500 errors in 60 min, set DT threshold = 500 | Critical | Alerting |
 | 53 | Remove the original timeseries field after adding the rolling sum | `fieldsRemove error_count` after `fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)` | Recommended | DQL |
 | 54 | For dashboard visualizations > 60 min, increase the interval | `interval:5m` with `window:48` = 4-hour rolling sum (intervals snap to supported values; check the returned `interval`) | Recommended | DQL |
@@ -189,16 +189,16 @@ This notebook contains **90 best practices** across 10 categories for Splunk to 
 | Category | Count | Priority Breakdown |
 |----------|-------|--------------------|
 | Migration Planning | 6 | 4 Critical, 2 Recommended |
-| Log Discovery and Validation | 7 | 3 Critical, 4 Recommended |
-| Query Translation (SPL to DQL) | 17 | 10 Critical, 7 Recommended |
-| Alert Migration - Anomaly Detectors | 10 | 7 Critical, 3 Recommended |
+| Log Discovery and Validation | 7 | 2 Critical, 5 Recommended |
+| Query Translation (SPL to DQL) | 17 | 11 Critical, 6 Recommended |
+| Alert Migration - Anomaly Detectors | 10 | 6 Critical, 4 Recommended |
 | Alert Migration - Workflows | 8 | 3 Critical, 5 Recommended |
-| Extended Timeframes (ArrayMovingSum) | 7 | 4 Critical, 3 Recommended |
-| Metric Creation from Logs | 7 | 3 Critical, 4 Recommended |
+| Extended Timeframes (ArrayMovingSum) | 7 | 3 Critical, 4 Recommended |
+| Metric Creation from Logs | 7 | 4 Critical, 3 Recommended |
 | Dashboard Migration | 7 | 1 Critical, 6 Recommended |
 | Naming Standards | 11 | 4 Critical, 6 Recommended, 1 Optional |
 | DQL Performance and Syntax | 10 | 4 Critical, 5 Recommended, 1 Optional |
-| **Total** | **90** | **43 Critical, 45 Recommended, 2 Optional** |
+| **Total** | **90** | **42 Critical, 46 Recommended, 2 Optional** |
 
 ## References
 

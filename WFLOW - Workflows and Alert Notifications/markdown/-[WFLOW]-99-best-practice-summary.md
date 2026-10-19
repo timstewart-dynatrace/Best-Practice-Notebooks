@@ -1,6 +1,6 @@
 # WFLOW-99: Best Practice Summary
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -114,12 +114,12 @@ This notebook consolidates every actionable best practice from the WFLOW series 
 | # | Best Practice | Recommended Setting/Value | Priority | Source |
 |---|---------------|-----------------|----------|--------|
 | 1 | Route by severity | `event.severity` 1 Critical: PagerDuty + Slack + Email; 2 Major: Slack + Email; 3 Minor, or unset: Slack. Problems never carry 4 (Warning) or 5 (Informational). Check which sources set severity: SaaS 1.348 stops defaulting it to 3 (pre-release, staged rollout) | Critical | WFLOW-04 |
-| 2 | Route by team ownership tags | Preferred: one workflow per team, whose Problem trigger filters on the built-in ownership tag (`owner` / `dt.owner`) with the *Affected entities* tag filter, so the match is made before any task runs. Fallback in a task condition: on problem records `tags` is a JSON-encoded string, so `"owner:checkout" in event().get("tags", "")` is a substring test (`owner:cart` also matches `owner:cart-v2`). Use tag values that are not prefixes of one another | Critical | WFLOW-04 |
+| 2 | Route by team ownership tags | Preferred: one workflow per team, whose Problem trigger filters on the built-in ownership tag (`owner` / `dt.owner`) with the *Affected entities* tag filter, so the match is made before any task runs. Fallback in a task condition: problem records carry tags in `entity_tags` (an array of `key:value` strings, deprecated), so `"owner:checkout" in (event().get("entity_tags") or [])` is an exact element test. A `tags` field read with `.get("tags", "")` no longer appears on problem records and always evaluates false | Critical | WFLOW-04 |
 | 3 | Do **not** route by management zone | `"Production" in event()["management_zones"]` is legacy, and the field is not present on problem records (0 of 15,878 over 30 days on a live tenant, 10/05/2026, with management zones still in use), so the condition has nothing to match. Route on ownership tags or Smartscape ownership instead | Critical | WFLOW-04 |
 | 4 | Implement time-based routing | Business hours: Slack channel; off-hours Critical: PagerDuty; off-hours non-critical: queue for morning. Pass the team's time zone, `now("America/New_York")`; `now()` is UTC otherwise. Business calendars (`calendars()`) cover holidays | Critical | WFLOW-04 |
 | 5 | Escalate problems that are still active | Task option **Wait before** (`waitBefore: 900`), then re-query `dt.davis.problems` and escalate to PagerDuty if `event.status` is still `ACTIVE`; or a second workflow with Minimum duration 15. Neither sees acknowledgment: leave acknowledgment-aware escalation to the paging tool | Recommended | WFLOW-04 |
 | 6 | Multi-tier escalation | 0 min: Slack; 15 min: Email team lead; 30 min: PagerDuty on-call; 60 min: PagerDuty manager | Recommended | WFLOW-04 |
-| 7 | Combine checks in one custom condition | Each task has one `conditions` block: `states` of its predecessors, one `custom` Jinja expression with `and` / `or` / `not` inside it, and `else: SKIP` on branches that may not run (the default is stop). E.g. `custom: '{{ (event().get("event.severity") \| int(5)) <= 1 and "env:prod" in event().get("tags", "") }}'` | Recommended | WFLOW-04 |
+| 7 | Combine checks in one custom condition | Each task has one `conditions` block: `states` of its predecessors, one `custom` Jinja expression with `and` / `or` / `not` inside it, and `else: SKIP` on branches that may not run (the default is stop). E.g. `custom: '{{ (event().get("event.severity") \| int(5)) <= 1 and "env:prod" in (event().get("entity_tags") or []) }}'` | Recommended | WFLOW-04 |
 | 8 | Use JavaScript for dynamic channel selection | Read the `owner:` tag from `entity_tags` (deprecated; may arrive as an array or a JSON string) to build `#${team}-alerts`, or use the Ownership app's **Get owners** action for each team's Slack channels | Optional | WFLOW-04, WFLOW-08 |
 | 9 | Separate environment routing | Production: immediate notification; Staging: Slack only; Dev: daily digest | Recommended | WFLOW-04 |
 

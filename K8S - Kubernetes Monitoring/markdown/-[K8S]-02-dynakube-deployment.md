@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -69,7 +69,15 @@ For environments where SVG doesn't render
 ## 2. Prerequisites Setup
 ### Required API Tokens
 
-> **Platform tokens — available now (Dynatrace Operator 1.10.0, released 07/15/2026):** the Operator accepts a **platform token** in the `apiToken` field as the successor to the classic access token. Platform tokens carry fine-grained, user-permission-based scoping, can be rotated or temporarily disabled without deletion, and support configurable expiry. Supplying one also makes the Operator default to the **public registry** for ActiveGate, OneAgent, code modules, log monitoring, EEC, and SQL extension executors — no private-registry pull secret needed. Two conditions from [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry): it requires **Dynatrace SaaS 1.343 or later**, and *"All managed component pods restart when the feature is first enabled."* — so moving an existing DynaKube to a platform token restarts its managed component pods (ActiveGate, OneAgent). Schedule it as a change window, not as a routine credential rotation. **Access tokens remain fully supported**; Dynatrace has committed to lead time before platform tokens become mandatory, so the access-token scopes below stay the working path. Separately, `spec.tokens.paasToken` is deprecated in favour of `apiToken` — new deployments should not set it.
+> **Platform tokens — available now (Dynatrace Operator 1.10.0, released 07/15/2026):** the Operator accepts a **platform token** in the `apiToken` field as the successor to the classic access token. Platform tokens carry fine-grained, user-permission-based scoping, can be rotated or temporarily disabled without deletion, and support configurable expiry. Supplying one also turns on **public-registry image resolution** — [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry): *"When your DynaKube uses a platform token, Dynatrace Operator enables public registry resolution automatically. No annotation is required."* Without a platform token, the same feature is opted into with the `feature.dynatrace.com/use-public-registry: "true"` DynaKube annotation. Three points from that page:
+>
+> - It requires **Dynatrace SaaS 1.343 or later**.
+> - *"All managed component pods restart when the feature is first enabled."* — so moving an existing DynaKube to a platform token restarts its managed component pods (ActiveGate, OneAgent). Schedule it as a change window, not as a routine credential rotation.
+> - **Not every component resolves on Operator 1.10.** *"Container images for Extension Execution Controller, Dynatrace Log Module and the SQL Extension Executor are supported from Dynatrace SaaS 1.350 and Dynatrace Operator 1.11. In older versions, these components always require a image specified in the respective spec.templates field."* Operator 1.11.0 was released 10/01/2026, but its notes say this *"requires a newer Dynatrace SaaS version, currently planned for 1.350"* — SaaS releases roll out to tenants in stages, so until both versions reach your estate, keep setting those three images in `spec.templates`; ActiveGate, OneAgent and code-module images resolve from Operator 1.10.0. The Operator 1.10.0 release notes (updated 09/16/2026) still list EEC, the Log Module and SQL Extension Executor among the auto-resolved images — the how-to is the more specific page, so follow it and verify on your versions.
+>
+> Any `image` or `codeModulesImage` field already set on the DynaKube takes precedence over the resolved image — remove them when you want resolution to apply.
+>
+> **Access tokens remain fully supported**; Dynatrace has committed to lead time before platform tokens become mandatory, so the access-token scopes below stay the working path. Separately, `spec.tokens.paasToken` is deprecated in favour of `apiToken` — new deployments should not set it.
 
 Create two tokens. The current documentation describes **platform tokens** assigned to a dedicated service user — the **Operator token** with the *Kubernetes Operator* policy, the **Data Ingest token** with the *Kubernetes Ingest* policy — and the Kubernetes onboarding flow creates both automatically:
 
@@ -171,11 +179,13 @@ tells you which is present. K8S-09 §2 maps each to its failure mode.
 ```bash
 # Create values file
 cat > dt-values.yaml << 'EOF'
-# Operator configuration
-operator:
-  image: ""             # Override only for a private mirror; empty = public registry
-  customPullSecret: ""  # Required only when pulling from a private registry
-  
+# Operator image — top-level chart values, not under "operator:".
+# Leave empty for the chart default; set only for a private mirror.
+imageRef:
+  repository: ""
+  tag: ""
+customPullSecret: ""  # Required only when pulling from a private registry
+
 # Platform-specific settings
 platform: "kubernetes"  # or "openshift"
 
@@ -198,7 +208,7 @@ helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operato
   --atomic
 ```
 
-> **Private mirror vs. public-registry auto-update (Operator 1.10.0+).** Leaving `operator.image` and `customPullSecret` empty pulls from the public registry, which is what enables component **auto-update with multi-architecture image support** — **ARM64, x86-64, s390x, and PPC64le** — so a mixed-architecture node pool resolves the right image per node with no per-arch configuration. Mirroring into a private registry is fully supported, but you then own re-mirroring every architecture you run, and auto-update can only pick up what you have mirrored. Decide this before a mixed-arch rollout, not during one. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — on earlier Operators the pre-1.10 pull behavior remains the working path, unchanged.
+> **Private mirror vs. public-registry auto-update (Operator 1.10.0+).** The chart's top-level `imageRef` (or the older `image`, which the chart's [values.yaml (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/config/helm/chart/default/values.yaml) marks *"OBSOLETE -> use imageref instead!"*) and `customPullSecret` set only the Operator's own image. Component images (ActiveGate, OneAgent, code modules) are resolved from the public registry when the DynaKube uses a **platform token** or carries the `feature.dynatrace.com/use-public-registry: "true"` annotation, and no `image` / `codeModulesImage` field overrides them (see §2 and [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry)). That is what enables component **auto-update with multi-architecture image support** — **ARM64, x86-64, s390x, and PPC64le** — so a mixed-architecture node pool resolves the right image per node with no per-arch configuration. Mirroring into a private registry is fully supported, but you then own re-mirroring every architecture you run, and auto-update can only pick up what you have mirrored. Decide this before a mixed-arch rollout, not during one. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — on earlier Operators the pre-1.10 pull behavior remains the working path, unchanged.
 
 <a id="dynakube-custom-resource"></a>
 ## 4. DynaKube Custom Resource
@@ -547,7 +557,9 @@ fetch dt.entity.kubernetes_cluster
 //   | sort name asc
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
 // the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Note: on Smartscape, `tags` is a record of tag key -> value (dictionary: "Note that rule-based
+// tags do not exist in the new model."). Classic rule-based tags such as dt.owner:... do not appear
+// there, so the legacy query and the Smartscape query above do not return the same tags.
 ```
 
 ```dql
@@ -632,13 +644,12 @@ helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
 
 ### Version Compatibility
 
-| Operator Version | Min K8s | Max K8s | Notes |
-|------------------|---------|---------|-------|
-| 1.7.x | 1.23 | 1.29 | Supported (verify against your environment) |
-| 1.8.x | 1.24 | 1.30 | Supported |
-| 1.9.x | 1.25 | 1.31 | Supported |
-| 1.11.x | — | — | **Newest line: v1.11.0** (released 10/01/2026). Removes `v1beta4` from the CRD; adds image-volume injection, `spec.kubernetesMonitoring` (size the two ActiveGate StatefulSets inside one DynaKube), and workload/pod labels and annotations as enrichment sources. Minimum version for a direct upgrade: 1.6.0. Review the release notes for every minor version you cross before adopting it. |
-| 1.10.x | — | — | **Validated pin in this series: v1.10.2** (July 30, 2026) — fixes a workload/namespace **tagging-precedence regression** (now only the first matching rule per key applies — a behaviour change, see K8S-10), `dynatrace-webhook` `CrashLoopBackOff` on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. **v1.10.1 remains a working pin** until you upgrade — estates adopt on their own schedule — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged `prerelease: true` on the GitHub releases page. Dynatrace does not publish a min/max Kubernetes range for this line; verify in the [release notes](https://github.com/Dynatrace/dynatrace-operator/releases) for your specific tag |
+Dynatrace publishes Kubernetes compatibility per **Kubernetes version**, not per Operator line. [Dynatrace Operator support and known issues (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues) says *"The table below lists the verified and tested release versions"*: for each Kubernetes and OpenShift version it gives a minimum and a recommended Dynatrace Operator version, and no maximum. Look up your Kubernetes version there before choosing an Operator release.
+
+| Operator Version | Notes |
+|------------------|-------|
+| 1.11.x | **Newest line: v1.11.0** (released 10/01/2026). Removes `v1beta4` from the CRD; adds image-volume injection, `spec.kubernetesMonitoring` (size the two ActiveGate StatefulSets inside one DynaKube), and workload/pod labels and annotations as enrichment sources. Minimum version for a direct upgrade: 1.6.0. Review the release notes for every minor version you cross before adopting it. |
+| 1.10.x | **Validated pin in this series: v1.10.2** (July 30, 2026) — fixes a workload/namespace **tagging-precedence regression** (now only the first matching rule per key applies — a behaviour change, see K8S-10), `dynatrace-webhook` `CrashLoopBackOff` on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. **v1.10.1 remains a working pin** until you upgrade — estates adopt on their own schedule — subject to the OpenShift-manifest caveat in K8S-09 §2. **Skip 1.10.0** — its own release notes advise skipping it (auto-update defect) and it is flagged `prerelease: true` on the GitHub releases page. Release notes per tag: [Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) |
 
 > **Operator support window:** the trust-center support table covers OneAgents and ActiveGates (9 / 12 months), not the Operator. For the Operator, the release notes state the upgrade floor — *"Minimum operator version required for direct upgrade: 1.6.0"* in 1.11.0 — so a cluster below 1.6.0 has to upgrade in steps.
 
@@ -688,6 +699,7 @@ In this notebook, you learned:
 - [Dynatrace Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases) — recommended pin is **v1.10.2** (July 30, 2026); v1.10.1 remains a working pin until you upgrade. Skip 1.10.0 (auto-update defect; flagged `prerelease: true`). Check before each install
 - [Operator 1.10.2 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2)
 - [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"Removed DynaKube API version v1beta4"*; image volumes; `spec.kubernetesMonitoring`
+- [Dynatrace Operator support and known issues (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues)
 - [Tokens and permissions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions)
 - [Support policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/) — 9 / 12 months for OneAgents & ActiveGates
 - [Migrate to public registry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry) — prerequisites include SaaS 1.343+; component pods restart when first enabled

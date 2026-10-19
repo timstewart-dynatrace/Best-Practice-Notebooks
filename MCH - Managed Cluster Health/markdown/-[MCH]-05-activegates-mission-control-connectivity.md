@@ -1,6 +1,6 @@
 # MCH-05: Cluster ActiveGates and Mission Control Connectivity
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 5 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 5 of 8 | **Created:** September 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -141,6 +141,7 @@ openssl rsa -in encrypted.ssl.key -out decrypted.ssl.key
 | *"SSL certificate expired."* | SEVERE | **No** |
 | *"Your SSL certificate will expire soon."* | WARNING | **No** |
 | *"Let's Encrypt SSL certificate fetching failure."* | WARNING | **No** |
+| *"SSL certificate ( %s ) refresh failed."* | WARNING | **No** |
 
 The docs don't say what stops working when the certificate expires (§10). Two Dynatrace community threads fill some of it. In 2019 a Dynatrace product manager wrote that an expired certificate shows as a browser warning on the web UI and that monitoring should not be affected, and that the automatically managed certificate is refreshed 14 days before it expires ([SSL certificate of the cluster hosts (Dynatrace community)](https://community.dynatrace.com/t5/Open-Q-A/We-are-seeing-that-the-SSL-certificate-of-the-cluster-hosts/td-p/122772)). In 2021, OneAgent and ActiveGate downloads from Managed clusters failed with *certificate has expired* errors during Let's Encrypt's certificate-chain change ([download fails — certificate expired (Dynatrace community)](https://community.dynatrace.com/t5/Dynatrace-Managed-Q-A/Dynatrace-Managed-OneAgent-and-ActiveGate-download-fails-cannot/td-p/173678)). Both are community sources; treat them as community practice.
 
@@ -254,16 +255,20 @@ ActiveGates report self-monitoring metrics under `dsfm:active_gate.*`. The Manag
 | `dsfm:active_gate.jvm.heap_memory_used` | JVM heap in use, against `dsfm:active_gate.jvm.heap_memory_available` |
 | `dsfm:active_gate.system.cpu_usage` | Host CPU, for the 50% guidance below |
 
-Some keys on that page apply only to SaaS, and the page doesn't say which environment a Cluster ActiveGate reports into. Find them in the metric browser of the environment where your ActiveGates appear.
+The page says these metrics *"are available in every Dynatrace Managed and SaaS environment"*, but some keys describe Grail ingest, which Managed doesn't have. It also doesn't say which environment a Cluster ActiveGate reports into. Find them in the metric browser of the environment where your ActiveGates appear.
 
 ### 9.4 Sizing and currency
 
-The hardware guide for routing/monitoring ActiveGates, which is the role a *Route traffic* Cluster ActiveGate plays, says the machine *"should not exceed 50% CPU and 80% memory"*, and that *"operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates"*.
+The hardware guide for routing/monitoring ActiveGates says the machine *"should not exceed 50% CPU and 80% memory"*, and that *"operating ActiveGates should be able to takeover traffic of the unavailable ActiveGates"*. The guide doesn't mention Cluster ActiveGates, and it sizes by OneAgent count, not by the RUM, mobile and synthetic beacon traffic a Cluster ActiveGate also carries. In community practice, its CPU and memory ceilings are applied to Cluster ActiveGates as well — size beacon load from your own measurements.
 
-Two release changes affect Cluster ActiveGates:
+Release changes that affect Cluster ActiveGates and the agents behind them:
 
 - **Managed 1.332:** *"Removed backward compatibility for ActiveGates older than version 1.172"*. Very old ActiveGates stop working once the cluster reaches 1.332.
-- **Managed 1.344:** *"ActiveGate download links now require a token with the UnattendedInstall or ServiceApiProvider scope."* *"Existing UI workflows are not affected."*, but scripted downloads need such a token from 1.344.
+- **Managed 1.344:** *"ActiveGate download links now require a token with the UnattendedInstall or ServiceApiProvider scope."* *"Existing UI workflows are not affected."*, but scripted downloads need such a token from 1.344. The same release adds *"Configurable update windows and target versions for Environment ActiveGate"* — update control is covered in MCH-07.
+- **Managed 1.342:** *"Dynatrace rejects connections from OneAgent versions 1.141 and earlier."*
+- **Managed 1.346:** *"Dynatrace now rejects connections from OneAgent version 1.215 and earlier."*
+
+All three are currently supported releases, so these cutoffs already apply on a supported cluster. An agent that stops connecting right after a cluster update may simply be too old.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Update Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-dynatrace-managed-activegate)</sub>
@@ -271,7 +276,7 @@ Two release changes affect Cluster ActiveGates:
 > - <sub>[ActiveGate self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/activegate-sfm-metrics)</sub>
 > - <sub>[ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements)</sub>
 > - <sub>[Managed 1.332 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-332), [Managed 1.344 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-344) release notes, [Install a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/install-cluster-activegate)</sub>
-> - <sub>**Derived:** applying the routing/monitoring ActiveGate sizing guide to Cluster ActiveGates combines its scope with the *Route traffic* purpose on the install page</sub>
+> - <sub>[Managed 1.342 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-342), [Managed 1.346 (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed/sprint-346) release notes</sub>
 
 <a id="doc-gaps"></a>
 ## 10. What the Documentation Does Not Say
@@ -290,7 +295,7 @@ Two release changes affect Cluster ActiveGates:
 - **Health-check interval.** The data-exchange table says *"Once every 2 minutes"*; the offline comparison table says *"Health-check is updated every 5 minutes"*. This notebook follows the data-exchange page.
 - **Where the certificate toggle lives.** The cluster certificate page puts it under **Settings > Preferences**; the Cluster ActiveGate certificate page under **Settings > Public endpoints**.
 
-> <sub>**Sources:** [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange), [Dynatrace Managed offline (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/dynatrace-managed-offline), [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate). **Observed 09/29/2026:** the four gaps were searched for across the Managed cluster, ActiveGate and release-note pages (115 pages crawled); none is filled.</sub>
+> <sub>**Sources:** [Self-monitoring metrics (DT docs)](https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics), [Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/managed/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates), [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments), [Mission Control data exchange (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange), [Dynatrace Managed offline (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/dynatrace-managed-offline), [SSL certificate for the Managed Cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-managed-cluster), [SSL certificate for a Cluster ActiveGate (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/installation/ssl-certificate-cluster-activegate). **Observed 09/29/2026:** the four gaps then listed were searched for across the Managed cluster, ActiveGate and release-note pages (115 pages crawled); none was filled at the time. One (the `dsfm:` gap) was filled on 10/02/2026, so three remain.</sub>
 
 <a id="recommendation"></a>
 ## 11. Recommended Approach

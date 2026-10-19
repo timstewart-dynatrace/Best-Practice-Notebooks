@@ -1,6 +1,6 @@
 # WFLOW-01: Workflow Fundamentals
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Introduction to Dynatrace Workflows
 Dynatrace Workflows is the automation engine that enables event-driven automation, scheduled tasks, and integration orchestration. This notebook introduces core concepts, components, and your first workflow.
@@ -128,11 +128,13 @@ There is no `env` object in the expression language. Secrets belong in a **conne
 
 Three more concepts decide whether a workflow runs at all and what it costs.
 
-**Simple or standard.** *"Simple workflows are limited to a single task, with reduced task options and a restricted set of available actions."* They cannot use Run JavaScript or Run workflow, and *"They carry no workflow hours cost."* Standard workflows support multiple tasks, branches, loops and JavaScript, and *"draw from your workflow hours quota."* Billing counts how long a standard workflow exists, not how often it runs: *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."* A one-destination notification is a good fit for a simple workflow; ALERT-03 covers the cost trade-off.
+**Simple or standard.** *"Simple workflows are limited to a single task, with reduced task options and a restricted set of available actions."* They cannot use Run JavaScript or Run workflow, and *"They do not generate any consumption of workflow hours."* Standard workflows support multiple tasks, branches, loops and JavaScript, and *"They consume workflow hours."* Billing counts how long a standard workflow exists, not how often it runs: *"Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation."* A one-destination notification is a good fit for a simple workflow; ALERT-03 covers the cost trade-off.
 
 **Live or draft.** *"Triggers only start on live workflows."* Select **Deploy** to make the draft live. A draft can still be run by hand from the **Run** button, and *"Draft-only workflows do not directly consume workflow hours"*.
 
 **Actor.** *"Every task executes under the actor's permissions, regardless of how the workflow was started."* By default the actor is the user who created or last updated the workflow, and event triggers only see events that user can read. For production workflows Dynatrace recommends a service user: *"We highly recommend using service users as actors for all workflows that are worked on collaboratively and serve a production grade use case."*
+
+> <sub>**Sources:** [Workflows concepts (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/concepts), [Automation Workflow consumption (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/automation/automation), [Workflow triggers (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger), [Workflow security (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security).</sub>
 
 ### Visual: Workflow Execution Flow
 

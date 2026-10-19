@@ -1,6 +1,6 @@
 # OPLOGS-04: Buckets & Data Governance
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 4 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Strategic Storage Management for OpenPipeline Logs
 This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.
@@ -158,14 +158,20 @@ Starting points from community practice — your audit, legal and investigation 
 
 ### Retention Cost Impact
 
-```
-Storage Cost = Log Volume × Retention Days × Cost per GB-day
+Under DPS, Log Management & Analytics has separate **Ingest & Process**, **Retain** and **Query** dimensions (usage-based model; *Retain with Included Queries* is the alternative model). Retention changes only the **Retain** dimension:
 
-Example:
-- 100 GB/day DEBUG logs × 35 days = 3,500 GB stored
-- 100 GB/day DEBUG logs × 7 days  = 700 GB stored
-- Savings: 80% reduction in DEBUG storage
+```text
+Retain consumption per day = GiB stored × Retain GiB-day price
+GiB stored (steady state)  ≈ daily volume × retention days
+
+Example (DEBUG logs):
+- 100 GB/day × 35 days = 3,500 GB stored
+- 100 GB/day ×  7 days =   700 GB stored
+- Result: 80% fewer DEBUG GiB-days retained
+- Ingest & Process is billed per GiB ingested, so it does not change
 ```
+
+> <sub>**Sources:** [Log Analytics overview (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics) — *"In the usage-based model, Log - Retain and Log - Query are charged separately"*, [Log Management & Analytics - Retain (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-retain) — *"consumption per day = (volume of uncompressed logs stored in GiB) x (GiB-day price for Retain on your rate card)"*, [Log Management & Analytics - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest) — *"It is calculated per gibibyte (GiB)."*</sub>
 
 ```dql
 // Estimate storage by log level
@@ -180,15 +186,17 @@ fetch logs, from: now() - 24h
 ```
 
 ```dql
-// Calculate retention cost comparison (DEBUG logs)
+// Retained DEBUG/TRACE volume at 35 vs 7 days (steady state)
+// Retain is billed per GiB-day stored; Ingest & Process (per GiB ingested) does not change with retention
 fetch logs, from: now() - 24h
 | filter loglevel == "DEBUG" OR loglevel == "TRACE"
 | fieldsAdd content_bytes = stringLength(content)
-| summarize {daily_mb = round(sum(content_bytes) / 1048576.0, decimals: 2)}
-| fieldsAdd retention_35d_gb = round(daily_mb * 35 / 1024, decimals: 2)
-| fieldsAdd retention_7d_gb = round(daily_mb * 7 / 1024, decimals: 2)
-| fieldsAdd savings_gb = round(retention_35d_gb - retention_7d_gb, decimals: 2)
-| fieldsAdd savings_pct = round((savings_gb * 100) / retention_35d_gb, decimals: 1)
+| summarize {daily_mb = sum(content_bytes) / 1048576.0}
+| fieldsAdd daily_ingest_gb = round(daily_mb / 1024, decimals: 2)
+| fieldsAdd stored_35d_gb = round(daily_mb * 35 / 1024, decimals: 2)
+| fieldsAdd stored_7d_gb = round(daily_mb * 7 / 1024, decimals: 2)
+| fieldsAdd retain_gib_days_avoided_per_day = round(daily_mb * (35 - 7) / 1024, decimals: 2)
+| fieldsAdd daily_mb = round(daily_mb, decimals: 2)
 ```
 
 ```dql
@@ -378,24 +386,24 @@ Optimized State:
 - 10 GB/day ERROR (90d) = 900 GB
 - Total storage: 3,210 GB
 
-Savings: ~8% immediate, scales with volume
+Stored volume: ~8% lower (Retain); ingest unchanged
 ```
 
 ```dql
-// Calculate potential cost savings
+// Stored volume per log level: everything at 35 days vs tiered retention
+// delta_gb > 0: less stored; delta_gb < 0: more stored (90-day error retention adds Retain cost)
+// Rounding happens only on the outputs, so the products are not distorted
 fetch logs, from: now() - 24h
 | fieldsAdd content_bytes = stringLength(content)
-| summarize {
-    daily_gb = round(sum(content_bytes) / 1073741824.0, decimals: 2),
-    log_count = count()
-  }, by: {loglevel}
-| fieldsAdd current_35d_gb = round(daily_gb * 35, decimals: 1)
-| fieldsAdd optimal_retention = if(loglevel == "DEBUG" OR loglevel == "TRACE", 7,
-                                else: if(in(loglevel, {"ERROR", "SEVERE", "CRITICAL", "FATAL", "ALERT", "EMERGENCY"}), 90,
-                                else: 35))
-| fieldsAdd optimal_storage_gb = round(daily_gb * optimal_retention, decimals: 1)
-| fieldsAdd savings_gb = round(current_35d_gb - optimal_storage_gb, decimals: 1)
-| sort savings_gb desc
+| summarize {daily_gb = sum(content_bytes) / 1073741824.0, log_count = count()}, by: {loglevel}
+| fieldsAdd tiered_retention_days = if(loglevel == "DEBUG" OR loglevel == "TRACE", 7,
+                                    else: if(in(loglevel, {"ERROR", "SEVERE", "CRITICAL", "FATAL", "ALERT", "EMERGENCY"}), 90,
+                                    else: 35))
+| fieldsAdd stored_35d_gb = round(daily_gb * 35, decimals: 1)
+| fieldsAdd stored_tiered_gb = round(daily_gb * tiered_retention_days, decimals: 1)
+| fieldsAdd delta_gb = round(daily_gb * (35 - tiered_retention_days), decimals: 1)
+| fieldsAdd daily_gb = round(daily_gb, decimals: 3)
+| sort delta_gb desc
 ```
 
 ```dql
@@ -482,6 +490,8 @@ Continue to **OPLOGS-05: Querying & Parsing** to learn advanced DQL techniques f
 - [Data retention periods (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [Working with policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
 - [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail)
+- [Log Management & Analytics - Retain (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-retain)
+- [Log Management & Analytics - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest)
 
 ---
 

@@ -1,6 +1,6 @@
 # SL2DT-06: Dashboard Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 6 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -97,7 +97,7 @@ Each Sumo panel becomes one DQL section (with `visualization` field) in the note
   "title": "Error Rate by Service",
   "state": {
     "input": {
-      "value": "fetch logs, from:-1h | filter sumo.source_category == \"prod/api\" | makeTimeseries c = count(), interval:1m, by:{service.name}",
+      "value": "fetch logs, from:-1h | filter sumo.source_category == \"prod/api\" | makeTimeseries c = count(), interval:1m, by:{k8s.workload.name}",
       "timeframe": { "from": "now()-1h", "to": "now()" }
     },
     "visualizationSettings": {
@@ -107,6 +107,8 @@ Each Sumo panel becomes one DQL section (with `visualization` field) in the note
   "visualization": "lineChart"
 }
 ```
+
+**Pick the split field by coverage, not by name.** Sumo's `by service` was usually a field your collectors or FERs set, and Dynatrace has no single field that carries it for every log. `service.name` is an OpenTelemetry resource attribute and is empty on most OneAgent-collected logs: on the validation tenant (1 h, 10/14/2026) it was set on 1.3% of logs, `dt.smartscape.service` on 3.6%, `k8s.workload.name` on 41%, and `log.source` on 80%. The example splits by `k8s.workload.name`; for non-Kubernetes sources use `log.source` or `sumo.source_category`. Count `countIf(isNotNull(<field>))` against `count()` on your own logs first — every log without the field lands in one null row.
 
 ### Mapping Workflow
 
@@ -194,10 +196,14 @@ Sumo dashboards use variables (e.g., `{{environment}}`, `{{host}}`). In Dynatrac
 // Corrected 08/12/2026: `$variable` references resolve only inside a Dashboard tile — executed as a
 // notebook cell they fail at parse time with "`$` isn't allowed here". The literals below make the
 // cell runnable; the commented line above each filter is the form to paste into a dashboard tile.
+//
+// Split by a field your logs carry (see §3). `service.name` was set on 1.3% of logs on the validation
+// tenant (10/14/2026); `k8s.workload.name` on 41%, so ~59% still land in the null row there. Check the
+// null row's share before publishing the tile, and use log.source or sumo.source_category if it dominates.
 fetch logs, from:-1h
 // dashboard tile: | filter startsWith(sumo.source_category, concat($environment, "/"))
 | filter isNotNull(sumo.source_category)
-| summarize c = count(), by:{service.name}
+| summarize c = count(), by:{k8s.workload.name}
 | sort c desc
 | limit 20
 ```

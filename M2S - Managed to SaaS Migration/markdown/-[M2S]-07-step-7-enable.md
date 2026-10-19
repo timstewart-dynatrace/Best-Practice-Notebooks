@@ -1,6 +1,6 @@
 # M2S-07: Step 7 — Enable: User Enablement and Communication
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 7 of 9 | **Phase:** Run | **Step:** Enable | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.
 
@@ -400,7 +400,7 @@ Enablement is not complete when training is delivered — it is complete when us
 
 Monitor platform adoption using audit events. On SaaS these are platform audit events in `dt.system.events` (`event.kind == "AUDIT_EVENT"`), not records in the generic `events` table. Grail-based audit logging is on by default. Reading it needs `storage:system:read` for `AUDIT_EVENT` records and `storage:buckets:read` on the `dt_system_events` bucket:
 
-> <sub>**Sources:** [Audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is enabled by default and can't be turned off."*</sub>
+> <sub>**Sources:** [Audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is active by default in all Dynatrace environments."*</sub>
 
 ```dql
 // Track daily active users over the past 7 days (sign-ins recorded in the platform audit log)

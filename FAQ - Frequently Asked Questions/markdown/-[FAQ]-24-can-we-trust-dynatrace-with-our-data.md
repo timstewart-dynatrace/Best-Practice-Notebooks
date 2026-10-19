@@ -1,6 +1,6 @@
 # FAQ-24: Can We Trust Dynatrace With Our Data?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 24 — Trusting the Platform With Your Data | **Created:** September 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -241,7 +241,7 @@ It returns `array` for the first record and `string` for the second. If it ever 
 
 Controls that held are only half of trust. The other half is being able to show it.
 
-**Changes to access are audited at the account level.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — group permissions and memberships, policies and boundaries among them — and *"Audit log data is stored for up to 10 years (3650 days)."* That answers the question an auditor usually asks first: who changed who can see what, and when.
+**Changes to access are audited at the account level.** *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"* — group permissions and memberships, policies and boundaries among them — and *"Audit log data is stored for up to 10 years (3650 days)."* It is where to look first for who changed who can see what, and when — but not a complete record: *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded. Don't treat it as a complete record of account activity."*
 
 **Activity inside the environment is a separate record.** *"In Latest Dynatrace, audit events are stored in Grail as dt.system.events, queryable with Dynatrace Query Language (DQL)"*. Every audit query filters to `event.kind == "AUDIT_EVENT"`, because the same object also holds non-audit system events — and an audit query against `logs` finds nothing. *"Audit events are retained for one year in Grail, compared to 30 days in the classic API."* The two records do not overlap: *"The Account Management audit log (IAM changes, SSO configuration, budget changes) stays a separate system in both models. Neither v2/auditlogs nor dt.system.events captures it."* Reading environment audit events needs `storage:system:read` scoped to `AUDIT_EVENT` plus `storage:buckets:read` on `dt_system_events`; reading the account audit log needs the `account-company-info` role. **IAM-07** has the queries, and the SOC 2, SOX and HIPAA report patterns built on them; **IAM-09** covers turning a failed-access record into a diagnosis.
 

@@ -1,6 +1,6 @@
 # SLO-06: Site Reliability Guardians
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 10/12/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -141,9 +141,22 @@ Two ways to create a guardian in the app:
 A guardian's objectives don't evaluate themselves — validation is triggered one of two ways:
 
 - **On-demand** — an operator opens the guardian and selects **Validate**. Useful while authoring objectives, or for an ad hoc check.
-- **Automated, via Workflow** — a workflow with an event trigger runs the `dynatrace.site.reliability.guardian:validate-guardian-action` task, which validates a named guardian over a timeframe (e.g. the last 30 minutes) whenever a matching event arrives. A representative trigger filter: `application == "easytrade" and stage == "production"` — scoping validation to the specific deployment that just happened, not every deployment across every service.
+- **Automated, via Workflow** — a workflow with an event trigger runs the `dynatrace.site.reliability.guardian:validate-guardian-action` task, which validates a named guardian over a timeframe whenever a matching event arrives.
+
+Dynatrace's release-validation tutorial *"recommends using SDLC events to implement the release validation use case. Business events are also supported."* Its trigger filter matches finished deployments: `event.kind == "SDLC_EVENT" AND event.type == "deployment" AND event.status == "finished"`. Add `AND cicd.deployment.release_stage == "staging"` (or your stage) to scope validation to the deployment that just happened, not every deployment across every service. The tutorial sets the action's timeframe to *"Last 2 hours"*, to be adjusted to your deployment and stabilization window, and maps guardian variables from the triggering event so the release metadata is stored with the result:
+
+| Guardian variable | Expression |
+|---|---|
+| `deployment.name` | `{{event()['cicd.deployment.name']}}` |
+| `service.id` | `{{event()['cicd.deployment.service.id']}}` |
+| `commit_revision` | `{{event()['vcs.ref.base.revision']}}` |
+| `version` | `{{event()['event.version']}}` |
+
+The Monaco example on the Site Reliability Guardian as code page parameterizes the trigger differently, as `eventFilters` with `application: easytrade` and `stage: production`. Use whichever matches the events your pipeline actually sends.
 
 This is ordinary Workflow mechanics — event trigger, filter condition, action — covered in general by the **WFLOW series**. What's specific to guardians is the action type and the fact that its result (Pass / Warning / Fail) is what a CI/CD pipeline reads back to decide whether to proceed (§6).
+
+> <sub>**Sources:** [Set up automated release validation with Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/quality-gates) — updated Jul 20, 2026, read 10/14/2026. [Site Reliability Guardian as code (DT docs)](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/config-as-code-srg) — the `eventFilters` example; updated Aug 23, 2026, read 10/14/2026.</sub>
 
 <a id="as-code"></a>
 ## 5. Guardians as Code
@@ -222,9 +235,26 @@ The guardian mechanics above only pay off wired into a pipeline. The shape is co
 1. **Deploy** the change to the target environment.
 2. **Emit a deployment event** (an SDLC event, if using a lifecycle guardian) so Dynatrace has something to correlate the validation window against.
 3. **Trigger the guardian workflow** — either directly from the pipeline (call the workflow/guardian API) or let the event trigger from step 2 fire it automatically (§4).
-4. **Read back the result.** A Pass gates the pipeline forward; a Fail blocks promotion; a Warning is a judgment call — treat it like the slow-burn tier in SLO-04, a signal to the team rather than an automatic block.
+4. **Read back the result** with the results query at the end of this section. A Pass gates the pipeline forward; a Fail blocks promotion; a Warning is a judgment call — treat it like the slow-burn tier in SLO-04, a signal to the team rather than an automatic block.
 
 **AUTOM-07** documents the working samples for this: `github_pipeline_observability` / `gitlab_pipeline_observability` / `argocd_observability` (Monaco and Terraform variants) ingest SDLC events via OpenPipeline with pre-built dashboards, and the former [dynatrace-automation-tools](https://github.com/Dynatrace/dynatrace-automation-tools) CLI, which wrapped guardian validation, is now **archived and no longer maintained** (its README points to dtctl). For new pipelines, send the SDLC event through the native CI/CD integrations. AUTOM-07's Community Resources section has the full sample matrix across GitHub Actions, GitLab CI, Azure DevOps, and ArgoCD.
+
+**Results query.** After the guardian completes a validation, *"Dynatrace emits a validation finished SDLC event"*. The release-validation tutorial reads it with the query below: `validation.result` is the guardian's overall result, and `dt.srg.validation.summary` holds the per-objective results. For one row per objective, filter on `event.type == "validation.objective"` instead. Replace `payment-api` with your guardian's tag. This query runs on the validation tenant but returns no rows there, because that tenant has no guardian validations, so it has not been checked against real guardian output.
+
+> <sub>**Sources:** [Set up automated release validation with Site Reliability Guardian (DT docs)](https://docs.dynatrace.com/docs/deliver/quality-gates) — the results query, read 10/14/2026; `from:` added here. Executed 10/14/2026: no error, notifications `[]`, 0 rows; the same tenant held 10.1M events and 0 `SDLC_EVENT` records over 30 days.</sub>
+
+```dql
+// Guardian validation results — the release-validation tutorial's query
+// Executed 10/14/2026: runs, notifications [], 0 rows (no guardian validations on that tenant)
+// Replace "payment-api" with your guardian's tag
+fetch events, from:-24h
+| filter event.kind == "SDLC_EVENT"
+| filter event.provider == "dynatrace.site.reliability.guardian"
+| filter event.type == "validation"
+| filter event.status == "finished"
+| filter contains(dt.srg.tags, "payment-api")
+| fields timestamp, validation.result, version = event.version, guardian_name = dt.srg.name, guardian_id = dt.srg.id, guardian_objective_results = dt.srg.validation.summary, executed_workflow = dt.automation_engine.workflow.id
+```
 
 <a id="decision"></a>
 ## 7. Guardian vs SLO — Which One, or Both

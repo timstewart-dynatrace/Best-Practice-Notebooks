@@ -1,6 +1,6 @@
 # FAQ-20: How Do I Monitor Zscaler With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 20 — Monitoring Zscaler With Dynatrace | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -344,15 +344,15 @@ data record(content = "{\"LogTimestamp\":\"2026-07-31T10:15:02Z\",\"Username\":\
 | fields user, app, connector, edge, setup_time
 ```
 
-While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA extension's records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data.)
+While raw records are still being retained — during build-out, or where compliance requires it — confirm they land in the dedicated bucket rather than the default. This applies to the ZIA extension's records too. (Executed 10/02/2026: valid, no notifications, no rows on a tenant without Zscaler data. Re-run 10/15/2026: no rows, 0.11 GB scanned for the hour against 2.1 GB unfiltered.)
 
 ```dql
 // Where are retained Zscaler records landing? Any row whose bucket is
 // default_logs is a Zscaler record that missed its bucket assignment.
 // ZIA feeds carry sourcetype "zscalernss-*" (the ZIA extension's route key);
 // the log.source match is a placeholder for however your ZPA collector tags
-// its records — adapt it. This is a full log scan and is billed as one
-// (see FAQ-09): keep the window short.
+// its records — adapt it. Every record in the window is evaluated, and the
+// bytes scanned follow what the filter matches (see FAQ-09): keep the window short.
 fetch logs, from:-1h
 | filter matchesPhrase(sourcetype, "zscalernss") or matchesValue(log.source, "*zscaler*")
 | summarize records = count(), by:{dt.system.bucket}

@@ -1,6 +1,6 @@
 # ORGNZ-02: Understanding Grail Buckets
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -62,7 +62,7 @@ Buckets organize data to meet performance, compliance, and retention requirement
 | **Query Performance** | Reduced queried dataset improves query speed |
 | **Retention Management** | Each bucket has its own retention policy |
 | **Access Control** | Bucket-level IAM policies for team isolation |
-| **Cost Attribution** | Enable data cost tracking by organizational unit |
+| **Retention Cost** | Storage cost follows each bucket's retention; attribute cost to teams with `dt.cost.*` fields (ORGNZ-03) |
 
 <a id="built-in-grail-buckets"></a>
 ## Built-in Grail Buckets
@@ -134,7 +134,7 @@ Each bucket is associated with exactly **one data type**. You cannot mix data ty
 | Default | default_logs | Predefined, 35-day retention |
 | Custom | logs_shared | Shared platform logs |
 | Custom | logs_delivery, logs_delivery_90d | Short-term delivery diagnostics |
-| Custom | logs_accounting, logs_infra | Cost tracking and infra signals |
+| Custom | logs_accounting, logs_infra | Team- or retention-specific logs and infra signals |
 -->
 > **Important:** Metrics do not support custom buckets — all metric data routes to `default_metrics`.
 
@@ -159,15 +159,21 @@ System tables are queried with `fetch dt.system.*` — they never need a `bucket
 | Limit | Value | Notes |
 |-------|-------|-------|
 | Maximum custom buckets per environment | 250 (SaaS 1.346+); 80 before | Increase on request: +1 per 10 GB daily ingest; above 1,000 reviewed by Dynatrace support |
-| Typical capacity | Up to 5 TB/day per table | With default bucket limit |
+| Typical capacity | Up to ~2.5 TB/day per tenant with the 250 default | *"This typically satisfies raw ingestion volumes up to 2.5TB a day per tenant"* |
+
+> **Docs differ (read 10/14/2026).** The 250 default follows *How to organize your data stored in Grail* (updated 09/22/2026) — *"The default limit per environment is 250 custom buckets."* — and the SaaS 1.346 release note. *Use Grail buckets to partition data* (updated 06/17/2026) still says *"you can configure up to 80 custom buckets by default"*, and the upgrade *Best practices for data partitioning* page (published 08/24/2026) still says *"The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table."* The two capacity figures are not reconciled; size from your own ingest volume.
 
 ### Bucket Size Guidelines
 
-| Metric | Value | Impact |
+| Metric | Value | Source |
 |--------|-------|--------|
-| Optimal ingest per bucket | ~1 TB/day | Best query performance |
-| Acceptable ingest | 1-2 TB/day | Reduced query window |
-| Split threshold | >2 TB/day | Dynatrace recommends splitting above this |
+| Target ingest per log bucket | 1–3 TB/day | *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."* At the default 500 GB scan this is ~4–12 hours of logs per query |
+| Dedicated bucket per application | Above 250 GB/day | *"Create a dedicated bucket for any application ingesting more than 250 GB/day."* Applications below that can share a bucket |
+| Split point, other tables | Above 2 TB/day | *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* |
+
+> **Docs differ (read 10/14/2026).** *Use Grail buckets to partition data* (updated 06/17/2026) gives the 2 TB split point for all buckets. *Best practices for a logs bucket strategy* (published 08/24/2026) is newer and specific to logs and gives 1–3 TB/day, so this table follows it for logs; for other tables the 2 TB figure is the only one stated.
+
+> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy), [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning), [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data).</sub>
 
 ### Retention Limits
 
@@ -185,8 +191,10 @@ Understanding query limits is critical for bucket planning:
 | Limit | Value | Impact |
 |-------|-------|--------|
 | Default `fetch` scan limit | 500 GB | Default value of the `scanLimitGBytes` parameter — **not** a platform cap. Override per query; `scanLimitGBytes:-1` scans the whole time range |
-| Maximum records returned | 1,000 | Use aggregations for larger datasets |
-| Maximum response payload | 1 MB | Large result sets may be truncated |
+| Default records returned | 1,000 | A default, not a cap: raise `maxResultRecords` on a Query API request, or aggregate for larger datasets |
+| Default result payload | 1 MB | A default (`maxResultBytes`); larger results stop at about this size unless it is raised |
+
+> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — lists *"500 GB scanned per query"*, *"1,000 records returned per result"* and *"1 MB result payload"* as *"default query limits"*, [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/) — `maxResultRecords`: *"The maximum number of query result records to be returned. If this limit is exceeded, a warning notification will be included in the response."*</sub>
 
 ### Queryable Window by Ingest Volume
 
@@ -319,7 +327,7 @@ my logs           # Contains space
 | Need | Solution |
 |------|----------|
 | Different retention periods | Create bucket with specific retention |
-| Cost attribution by team/LOB | Separate buckets per cost center |
+| Cost attribution by team/LOB | Not a reason on its own — use `dt.cost.costcenter` / `dt.cost.product`; add a bucket only where that cost center also needs its own retention or access |
 | Simple team isolation | Bucket-level IAM policies |
 | Regulatory compliance | Dedicated buckets for compliance data |
 | Query performance | Isolate high-volume data sources |
@@ -333,6 +341,9 @@ Continue with the ORGNZ series:
 ## References
 
 - [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data)
+- [How to organize your data stored in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data)
+- [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)
+- [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning)
 - [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [DQL Reference](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language)
 

@@ -87,7 +87,7 @@ Workflows are event-driven automations that can:
 >
 > One caveat does bite: an alerting profile scoped by a **Management Zone** is only as durable as that zone. The MZ filter has no successor in the alerting model, so teams retiring Management Zones must rebuild those profiles as problem-triggered workflows first. See MZ2POL-01 §5.
 
-> <sub>**Sources:** [Problem alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/alerting-profiles) — the two quotes above, [Upgrade guide: alert notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* and *"They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities."*</sub>
+> <sub>**Sources:** [Problem alerting profiles (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles) — the two quotes above, [Upgrade guide: alert notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"A workflow's Problem trigger filters problems directly with DQL matchers on the problem."* and *"They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities."*</sub>
 
 <a id="creating-your-first-workflow"></a>
 ## 3. Creating Your First Workflow

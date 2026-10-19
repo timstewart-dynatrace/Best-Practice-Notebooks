@@ -1,12 +1,12 @@
 # OPIPE-05: Business & Security Event Pipelines
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 5 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Processing Business Transactions and Security Events at Ingestion
 
 Business events and security events are two OpenPipeline scopes with distinct governance requirements. Business events drive revenue analytics, conversion tracking, and SLO calculations. Security events drive compliance reporting, threat detection, and audit trails. Both benefit from ingestion-time processing — enrichment, routing, and metric extraction — but the rules are different.
 
-This notebook covers the Business Events and Security Events scopes in OpenPipeline. For log processing, see **OPLOGS-01: OpenPipeline Fundamentals**. For compliance and masking patterns, see **OPLOGS-08: Security & Data Protection** and **OPMIG-08: Security & Masking**.
+This notebook covers the Business Events and Security Events scopes in OpenPipeline. For log processing, see **OPLOGS-01: OpenPipeline Fundamentals**. For compliance and masking patterns, see **OPLOGS-08: Security & Data Protection** and **OPMIG-08: Security, Masking & Compliance**.
 
 ---
 

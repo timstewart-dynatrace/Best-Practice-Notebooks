@@ -1,6 +1,6 @@
 # OPLOGS-01: OpenPipeline Fundamentals
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 1 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Understanding the Unified Data Ingestion Framework
 This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.
@@ -67,17 +67,31 @@ On Grail, OpenPipeline replaces the **classic log pipeline** — log processing 
 ![OpenPipeline Architecture](images/01-openpipeline-architecture.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Stage | Component | Function |
-|-------|-----------|----------|
-| **Data Sources** *(Ingest)* | OneAgent, Log Ingest API, OTLP, Generic Ingest, custom | Ingestion entry points; source recorded as `dt.openpipeline.source` |
-| **1. Ingest** | Built-in / Ready-made / Custom sources (custom supports optional pre-processing) | Records enter the platform |
-| **2. Routing** | Pipeline Selection | Dynamic (DQL matcher) or static (custom sources only) |
-| **3. Pipeline** | Fixed sequence of stages: **Processing** (DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup) → Smartscape node → Smartscape edge → Permission → Product allocation → Cost allocation → **Bucket assignment** → **Metric extraction** → **Davis** → **Data extraction** | Masking, parsing, transformation and dropping all happen in the first stage (Processing); extraction stages run after bucket assignment |
-| **4. Storage** | Grail bucket chosen by the Bucket assignment stage (or not stored — No storage assignment) | Persist to Grail bucket, or skip retention |
-| **Output** | Grail | Logs, Spans, Metrics, Events storage |
+| Step | Component | Function |
+|------|-----------|----------|
+| **Data sources** | OneAgent, Log ingest API, OTLP, other ingest sources | Ingestion entry points; source recorded as `dt.openpipeline.source` |
+| **Routing** | Picks the pipeline | Dynamic (DQL matcher) or static route |
+| **Stage 1 — Processing** | DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup | Parse, mask, drop, transform; processors run in the order you place them |
+| **Stage 2 — Smartscape node** | Smartscape node | Extract nodes |
+| **Stage 3 — Smartscape edge** | Smartscape edge | Extract edges |
+| **Stage 4 — Permission** *(first match only)* | Set security context | Security context used by permissions |
+| **Stage 5 — Product allocation** *(first match only)* | DPS Cost Allocation - Product | Product or application usage |
+| **Stage 6 — Cost allocation** *(first match only)* | DPS Cost Allocation - Cost Center | Cost-center usage |
+| **Stage 7 — Bucket assignment** *(first match only)* | Bucket assignment, No storage assignment | Picks the bucket (and so the retention), or no storage |
+| **Stage 8 — Metric extraction** | Counter, Histogram, Value metric | Metrics from records |
+| **Stage 9 — Davis** | Davis event | Davis events |
+| **Stage 10 — Data extraction** | Business event, Software development lifecycle event | Business and SDLC events |
+| **Storage** | Grail bucket chosen in stage 7 | Records with No storage assignment still reach stages 8–10, then are not stored |
+
+| Key point | What the diagram says |
+|-----------|-----------------------|
+| Masking | A DQL processor in stage 1; place it before any processor that copies or parses the field |
+| Volume | Drop record (stage 1) removes records you never need; No storage assignment (stage 7) skips storage but the record still reaches stages 8–10 |
+| Extraction | Stages 8–10 create metrics, Davis events, business events and SDLC events, and can read fields stage 1 parsed |
+| Buckets and access | Stage 7 picks one bucket (first match); stage 4 sets the security context |
 -->
 
-> **Stage model (verified 09/24/2026):** data flows Ingest → Routing → pipeline → Storage. Inside a pipeline, per *Processing in OpenPipeline*, "The sequence of stages is fixed for all pipelines and cannot be modified." Masking, dropping, parsing and transformation are processors in the first stage, **Processing**; **Bucket assignment** comes seventh, and **Metric extraction**, **Davis** and **Data extraction** run after it. The diagram's Mask / Filter / Process boxes are all inside that first stage.
+> **Stage model (verified 09/24/2026):** data flows Ingest → Routing → pipeline → Storage. Inside a pipeline, per *Processing in OpenPipeline*, "The sequence of stages is fixed for all pipelines and cannot be modified." Masking, dropping, parsing and transformation are processors in the first stage, **Processing**; **Bucket assignment** comes seventh, and **Metric extraction**, **Davis** and **Data extraction** run after it. The diagram shows all ten stages in that order; stages 4–7 run only the first matching processor.
 >
 > <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
 

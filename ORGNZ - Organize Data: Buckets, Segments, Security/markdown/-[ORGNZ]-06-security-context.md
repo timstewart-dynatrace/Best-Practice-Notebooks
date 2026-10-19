@@ -1,6 +1,6 @@
 # ORGNZ-06: Security Context
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 6 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -164,6 +164,8 @@ ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("crn-70400-*");
 ALLOW storage:logs:read WHERE storage:dt.security_context = "crn-70400-team";
 ```
 
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using =, STARTSWITH or IN when the field holds an array will always return false."*</sub>
+
 <a id="querying-security-context"></a>
 ## Querying Security Context
 
@@ -211,6 +213,16 @@ Team-level access:
 ALLOW ... WHERE storage:dt.security_context = "acme/engineering/platform"
 ```
 
+> **`=` works only while the field holds a single string.** Patterns 1–3 use `=` for exact values. *Permissions in Grail* is explicit: *"Using =, STARTSWITH or IN when the field holds an array will always return false. If you expect your record filters might contain an array, use the MATCH operator in your IAM statements."* Check the shape of your data first (the shape-check query in ORGNZ-99 §5). If any record can carry an array, write the exact value with `MATCH`, which needs no wildcard:
+>
+> ```
+> ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("team:platform");
+> ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("lob:finance");
+> ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("acme/engineering/platform");
+> ```
+>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — as quoted; the page's own team example is `MATCH ("TeamA")`.</sub>
+
 ### Pattern 4: Cloud Account Mapping
 
 ```
@@ -250,7 +262,7 @@ Examples:
 | Transversal DB team | `MATCH('comp:db*')` | Database layer across all applications |
 | Business unit team | `MATCH('*/bu:digital/*')` | All components and apps within digital BU |
 
-**startsWith patterns (Classic entity access):**
+**startsWith patterns** — these are Grail `storage:` statements, so the array caveat under Pattern 3 applies: `STARTSWITH` returns false on an array-valued field. Use them only where every record holds one string; otherwise use the `MATCH()` table above. (Classic entity access uses the same prefix idea; see IAM-05.)
 
 ```
 // App team — enumerate each component explicitly

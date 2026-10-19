@@ -72,7 +72,7 @@ By the end of this notebook, you will:
 
 > <sub>**Sources:**</sub>
 > - <sub>[Dynatrace API changelog 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337) — `/credentials` *"Added enum value: EXTENSION_AUTHENTICATION"*; `/extensions` *"Added properties: agIds"*</sub>
-> - <sub>[Access tokens — token prefixes (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens) — *"dt0s16 Platform Token enabling programmatic access to Dynatrace platform services."*; *"dt0s01 This is an API token. It's used as an authorization method: a valid token allows the user to make changes within the Dynatrace account through SCIM."*</sub>
+> - <sub>[Access tokens — token prefixes (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens) — *"dt0s16 Platform Token enabling programmatic access to Dynatrace platform services."*; *"dt0s01 This is an API token. It's used as an authorization method: a valid token allows the user to make changes within the Dynatrace account through SCIM."*</sub>
 > - <sub>[Upgrade from classic access tokens to platform tokens (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic) — *"Replace Authorization: Api-Token <token> with Authorization: Bearer <platform-token> in every migrated integration."*</sub>
 
 ---
@@ -510,7 +510,7 @@ Consider moving to higher-level tools when:
 - [Settings API Documentation](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings)
 - [Settings API key concepts](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/key-concepts)
 - [Upgrade from classic access tokens to platform tokens](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic)
-- [API Token Management](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [API Token Management](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
 - [Schema Reference](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas)
 
 ---

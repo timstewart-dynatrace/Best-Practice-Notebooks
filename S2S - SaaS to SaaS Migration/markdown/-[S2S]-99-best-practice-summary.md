@@ -1,6 +1,6 @@
 # S2S-99: Best Practice Summary
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -198,8 +198,8 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 75 | Use prefix naming for bucket consolidation | E.g., `us-east_app_logs`, `eu-west_app_logs` to prevent collisions when consolidating tenants | **Recommended** |
 | 76 | Match retention policies exactly for regulated environments | Set to same days as source (e.g., 360 days for PCI); verify compliance requirements before cutover | **Critical** |
 | 77 | Update bucket references in OpenPipeline routing rules | Routing rules from export contain source bucket names; replace with target bucket names | **Critical** |
-| 78 | Convert SLO entity IDs to tag-based filters | Replace `type(SERVICE),entityId(SERVICE-xxx)` with `type(SERVICE),tag(app:checkout),tag(env:production)` | **Critical** |
-| 79 | Set SLO evaluation windows to 30 days initially | Start with `ROLLING_3_DAYS`, expand to `ROLLING_WEEK` after 7 days, then to full window after 30 days | **Critical** |
+| 78 | Rebuild SLOs without source-tenant entity IDs | Entity IDs change in the target tenant. Write each SLI as DQL (`dynatrace_platform_slo` or Monaco `slo-v2`) and scope it with a segment deployed to the target, not `dt.entity.service == "SERVICE-xxx"`; rewrite classic entity-selector SLOs rather than copying them (classic `dynatrace_slo_v2` targets: `tag(...)` filters, see S2S-07 §3 and SLO-05) | **Critical** |
+| 79 | Shorten SLO timeframes while target history fills | The target tenant has no data from before cutover, so a 30-day SLO reads partial data for 30 days. Start with `timeframe_from = "now-7d"` on `dynatrace_platform_slo`, then move to the full window (S2S-07 §3) | **Critical** |
 | 80 | Align SLO cutover with calendar boundaries | If using calendar-based SLOs, switch at the start of a month or quarter to avoid partial evaluation | **Recommended** |
 | 81 | Port alerting profile severity and tag filters as-is | Ensure the referenced tags exist in the target tenant before deploying alerting profiles | **Critical** |
 | 82 | Verify maintenance window timezone settings | Cron expressions are timezone-sensitive; confirm schedules are correct after import | **Recommended** |
@@ -243,7 +243,7 @@ The S2S series follows a **9-step framework** (Discover through Optimize) suppor
 | 104 | Export final audit logs from source before decommission | Compliance requires audit trail retention; export before access is lost | **Critical** |
 | 105 | Update all documentation | Replace source tenant URLs, API endpoints, and dashboard links in runbooks, CI/CD pipelines, and architecture diagrams | **Critical** |
 | 106 | Tune Dynatrace Intelligence anomaly detection after the relearn window | Not during it — thresholds set against a half-learned baseline get baked in (FAQ-25 § 5). Route noise to a staging channel first, then tune what actually fired | **Critical** |
-| 107 | Expand SLO evaluation windows to full duration by week 4 | Move from `ROLLING_3_DAYS` to `ROLLING_WEEK` to `ROLLING_MONTH` as data accumulates | **Recommended** |
+| 107 | Expand SLO timeframes to full duration by week 4 | Move `timeframe_from` from `now-7d` to the full window (e.g. `now-30d`) once 30 days of target data exist | **Recommended** |
 | 108 | Consolidate redundant Synthetic monitors | If consolidating tenants, deduplicate monitors that tested the same endpoints from different tenants | **Optional** |
 | 109 | Replace all remaining entity ID references | Post-migration cleanup ensures configuration is fully portable for future migrations | **Recommended** |
 | 110 | Schedule credential rotation for cloud provider integrations | Rotate within 30 days of cutover for all AWS, Azure, and GCP integrations | **Recommended** |

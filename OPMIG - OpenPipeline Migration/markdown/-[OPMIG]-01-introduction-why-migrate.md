@@ -1,6 +1,6 @@
 # OPMIG-01: OpenPipeline Migration Guide: Part 1
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 1 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Introduction & Why Migrate from Classic to OpenPipeline v2.0
 
@@ -242,8 +242,10 @@ For a built-in API source, `dt.openpipeline.source` holds the endpoint **path**,
 | Scope | Classic | OpenPipeline | Notes |
 |-------|---------|--------------|-------|
 | `logs.ingest` | ✅ Required | ✅ Required | Same permission |
-| `metrics.ingest` | N/A | ⚠️ Optional | Only if using metric extraction |
-| `events.ingest` | N/A | ⚠️ Optional | Only if using event extraction |
+| `metrics.ingest` / `events.ingest` | N/A | Not needed for extraction | Metric and event extraction run as pipeline stages on records already ingested — add these scopes only if a client sends metrics or events to those APIs directly |
+| `settings:read` / `settings:write` | N/A | ✅ Required to configure | Permissions for creating and editing custom pipelines and routes (not a token scope for the log shipper) |
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Metric extraction: *"Extract metrics from the records that match the query."*; custom pipelines: *"OpenPipeline Permissions"* `settings:read`, `settings:write`. **Derived:** extraction acts on records already ingested, so it adds no client-side ingest scope.</sub>
 
 ### Migration Strategy for API Clients
 
@@ -533,10 +535,12 @@ Before migrating, understand these key limits:
 
 OPMIG-02 carries the full list. `dt.entity.host` and `dt.entity.process_group` are **not** on it.
 
+**Metric scope is stricter.** In the metric configuration scope the limits page lists `dt.entity.*` — every entity field, host included — under *"Fields excluded from dynamic route matching conditions and in the Processing stage"*. The list above applies in every configuration scope; in the metric scope, additionally keep all `dt.entity.*` out of routing conditions and Processing-stage processors.
+
 > 💡 **Design Tip:** The listed entity fields are NOT available during routing or processing. They're added automatically by Dynatrace after the Processing stage, so they can be used in the later stages — such as Bucket assignment and the extraction stages — but not in routing conditions or Processing-stage processors.
 
 > <sub>**Sources:**</sub>
-> - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."*; *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The maximum size of a record after processing is 16 MB."*; *"You can extract data on a single record in a maximum of five different pipelines"*</sub>
+> - <sub>[OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."*; *Metric configuration scope*: *"Fields excluded from dynamic route matching conditions and in the Processing stage"* — `dt.entity.*`; *"If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes."*; *"The maximum size of a record after processing is 16 MB."*; *"You can extract data on a single record in a maximum of five different pipelines"*</sub>
 > - <sub>[What's new in SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit."*</sub>
 
 ---

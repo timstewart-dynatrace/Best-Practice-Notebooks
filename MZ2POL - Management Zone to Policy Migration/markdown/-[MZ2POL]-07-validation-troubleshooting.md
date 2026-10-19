@@ -1,6 +1,6 @@
 # MZ2POL-07: Validation and Troubleshooting
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 8 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 8 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -338,6 +338,7 @@ For environments where SVG doesn't render
 // Analyze tag patterns for segment creation
 fetch dt.entity.service
 | expand tag = tags
+| filter contains(tag, ":")   // key-less tags (no ':') would otherwise form a null key row
 | parse tag, "LD:key ':' LD:value"
 | summarize count = count(), by:{key}
 | sort count desc

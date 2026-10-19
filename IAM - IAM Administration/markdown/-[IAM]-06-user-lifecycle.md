@@ -1,6 +1,6 @@
 # IAM-06: User Lifecycle and Provisioning
 
-> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 6 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Automating User Management at Scale
 Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.
@@ -272,12 +272,20 @@ Proper offboarding is critical for security.
 
 Critical: User-created tokens remain active until explicitly revoked.
 
-**Query to find user's tokens:**
-```
-Account Management → API tokens
-Filter by: Created by [user email]
-Action: Revoke all tokens
-```
+Tokens live in two places, so revoke in both:
+
+1. **Classic access tokens — in each environment.** They are generated per environment on the **Access Tokens** page, so check every environment the user could reach. To find them by owner across many environments, the Tokens API v2 lists *"all API tokens available in your environment"* and filters with `apiTokenSelector=owner("<owner>")` (*"The user that owns the token. Case-sensitive."*):
+   ```bash
+   curl -s -H "Authorization: Api-Token $TOKEN" \
+     "https://<env-id>.live.dynatrace.com/api/v2/apiTokens?apiTokenSelector=owner(%22<owner>%22)"
+   ```
+   Then revoke each returned token on the Access Tokens page (or `DELETE /api/v2/apiTokens/{id}`). API 1.348 marks the `/apiTokens` endpoints deprecated; they keep working during the deprecation period (§ 7, *Token Rotation Process*).
+2. **Platform tokens — in Account Management.** *"Account admins can disable or delete platform tokens created by all users under their account."*
+3. **OAuth clients** the user owns — deactivate them (checklist above).
+
+For evidence an auditor can keep, the token-lifecycle query in **IAM-07** (§ 4) lists every token creation and deletion in the environment, with who did it.
+
+> <sub>**Sources:** [Access tokens classic (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens), [Access tokens API - GET all tokens (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/get-all) — *"Lists all API tokens available in your environment."*; [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens) — *"Account admins can disable or delete platform tokens created by all users under their account."*</sub>
 
 ### Verification
 
@@ -516,13 +524,18 @@ External users can be assigned to any Dynatrace group — the same groups and po
 
 ```
 ALLOW environment:roles:viewer;
+ALLOW automation:workflows:read;
 ALLOW settings:objects:read
-  WHERE settings:schemaId startsWith "builtin:alerting";
+  WHERE settings:schemaId = "builtin:davis.anomaly-detectors";
 ALLOW storage:buckets:read
   WHERE storage:table-name = "logs";
 ALLOW storage:logs:read
   WHERE storage:dt.security_context = "checkout-team";
 ```
+
+The two alerting lines give read access to notification workflows and custom alerts (anomaly detectors) in Latest Dynatrace. On a **Dynatrace Classic** environment, read access to alerting profiles and problem notifications is `ALLOW settings:objects:read WHERE settings:schemaId startsWith "builtin:alerting";` (plus `"builtin:problem"`) instead — those schemas are not visible in Latest Dynatrace, so the classic line grants nothing there.
+
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*; `builtin:problem.notifications` and `builtin:alerting.profile` are *"Replaced by Workflows"*.</sub>
 
 3. **Invite user:** consultant@acme.com
 4. **Add to group:** `external-acme-consultants`
@@ -605,7 +618,7 @@ In this notebook, you learned:
 - [SCIM Provisioning](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim)
 - [SAML Federation](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml)
 - [OAuth Clients](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
-- [API Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [API Tokens](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
 - [Dynatrace API 1.348 changelog (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348) — *"The following endpoints are deprecated"* (the `/apiTokens` family; pre-release)
 - [Best practices for upgrading App Observability API endpoints (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints) — *"For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens."*
 - [Account Management API](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api)

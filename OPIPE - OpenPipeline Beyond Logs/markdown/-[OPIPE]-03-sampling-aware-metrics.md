@@ -1,6 +1,6 @@
 # OPIPE-03: Sampling-Aware Metrics
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Extracting Accurate Metrics from Sampled Trace Data
 
@@ -151,18 +151,22 @@ The **RED method** (Rate, Errors, Duration) is the standard framework for servic
 
 Measures how many requests a service handles per unit of time.
 
-- **Source**: Server spans (`span.kind == "server"`)
+- **Source**: Request root spans (`span.kind == "server" and isNotNull(endpoint.name)`)
 - **Aggregation**: Count, weighted by sampling ratio
-- **Dimensions**: `service.name`, `http.route`, `k8s.namespace.name`
+- **Dimensions**: `dt.service.name`, `http.route`, `k8s.namespace.name`
 - **Sampling-aware**: **Yes** — must compensate for sampling to get true request rate
+
+> **Count requests, not server spans.** One request can produce several server spans, so `span.kind == "server"` alone over-counts. The extract-metrics tutorial filters `span.kind == "server" and isNotNull(endpoint.name)`, which *"ensures the span represents a request to an endpoint that Dynatrace considers in its endpoint detection rules"*. On the validation tenant (10/15/2026, 1 h) that reduced 131,455 server spans to 122,517 request roots, against 123,161 requests in `dt.service.request.count`; one service recorded exactly two server spans per request.
+>
+> <sub>**Sources:** [Extract metrics from spans and distributed traces (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans). **Dictionary:** `endpoint.name` (`stable`), read 10/15/2026.</sub>
 
 ### Errors (Failure Rate)
 
 Measures the proportion of requests that fail.
 
-- **Source**: Server spans where `http.response.status_code >= 500` or `span.status_code == "error"`
+- **Source**: Request root spans where `http.response.status_code >= 500` or `span.status_code == "error"`
 - **Aggregation**: Count of errors / count of total requests
-- **Dimensions**: `service.name`, `http.route`, `http.response.status_code`
+- **Dimensions**: `dt.service.name`, `http.route`, `http.response.status_code`
 - **Sampling-aware**: Error rate (ratio) is naturally sampling-tolerant; absolute error count is not
 
 > **The failure field is `span.status_code`, and it is lowercase.** `otel.status_code` does not exist in Grail — it has no row in `dt.semantic_dictionary.fields` — and the value is `"error"`, not the SDK's uppercase `ERROR`. Both mistakes return **zero rows without an error**, which on a sampling notebook is doubly dangerous: a zero error count reads as "sampling is discarding my errors" and sends you tuning the sampler instead of fixing the field name.
@@ -173,15 +177,15 @@ Measures the proportion of requests that fail.
 
 Measures how long requests take to complete.
 
-- **Source**: Server spans, `duration` field
+- **Source**: Request root spans, `duration` field
 - **Aggregation**: Average, P50, P95, P99
-- **Dimensions**: `service.name`, `http.route`
+- **Dimensions**: `dt.service.name`, `http.route`
 - **Sampling-aware**: No — duration distributions from sampled data are statistically representative
 
 ```dql
 // RED: Request rate by service (from stored spans)
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter span.kind == "server" and isNotNull(endpoint.name)
 | makeTimeseries request_count = count(), by:{dt.service.name}, interval:5m
 ```
 
@@ -191,7 +195,7 @@ fetch spans, from:-1h
 // span.status_code is the real field (not otel.status_code) and its value is
 // lowercase "error"; it is null on successful spans, so successes = total - errors.
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter span.kind == "server" and isNotNull(endpoint.name)
 | summarize {
     total = count(),
     errors = countIf(http.response.status_code >= 500 or span.status_code == "error")
@@ -204,7 +208,7 @@ fetch spans, from:-1h
 ```dql
 // RED: Duration percentiles by service
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter span.kind == "server" and isNotNull(endpoint.name)
 | summarize {p50 = percentile(duration, 50), p95 = percentile(duration, 95), p99 = percentile(duration, 99)},
     by:{dt.service.name}
 | sort p95 desc
@@ -222,16 +226,17 @@ Metric extraction from spans is configured in the **Spans scope** of OpenPipelin
 2. **Add a metric extraction processor** with:
    - **Metric key**: The name of the metric to create (e.g., `span.request_count`)
    - **Processor**: *Sampling aware counter metric* (request and error counts), *Sampling aware histogram metric* or *Sampling aware value metric* (duration — set **Measurement: Duration**), or the plain *Counter* / *Histogram* / *Value* metric processors for non-span scopes
-   - **Condition**: Which spans to extract from (e.g., `span.kind == "server"`)
-   - **Dimensions**: Fields to carry as metric dimensions (e.g., `service.name`, `http.route`)
+   - **Condition**: Which spans to extract from (e.g., `span.kind == "server" and isNotNull(endpoint.name)`)
+   - **Dimensions**: Fields to carry as metric dimensions (e.g., `dt.service.name`, `http.route`)
+   - **Sampling aware settings** (counter rows): enable **Account for aggregated spans** and **Extrapolate metrics to account for trace sampling**. The docs advise *"For most production use cases, enable both options"* — *"If disabled, metrics taken from the sampled spans won't represent the total system behavior."*
 
 ### Example: RED Metric Extraction Rules
 
 | Metric Key | Processor | Condition | Dimensions | Sampling-Aware |
 |-----------|-------------|-----------|------------|----------------|
-| `span.request_count` | Sampling aware counter | `span.kind == "server"` | `service.name`, `http.route` | Yes |
-| `span.error_count` | Sampling aware counter | `span.kind == "server"` AND `http.response.status_code >= 500` | `service.name`, `http.route`, `http.response.status_code` | Yes |
-| `span.duration` | Sampling aware histogram | `span.kind == "server"` | `service.name`, `http.route` | Yes (Measurement: Duration) |
+| `span.request_count` | Sampling aware counter | `span.kind == "server"` AND `isNotNull(endpoint.name)` | `dt.service.name`, `http.route` | Yes — enable both sampling options |
+| `span.error_count` | Sampling aware counter | `span.kind == "server"` AND `isNotNull(endpoint.name)` AND `http.response.status_code >= 500` | `dt.service.name`, `http.route`, `http.response.status_code` | Yes — enable both sampling options |
+| `span.duration` | Sampling aware histogram | `span.kind == "server"` AND `isNotNull(endpoint.name)` | `dt.service.name`, `http.route` | Yes (Measurement: Duration) |
 
 Selecting **Duration** as the measurement turns on the sampling options for you: per the docs, *"Duration pre-sets field extraction to the span duration and enables all sampling options automatically."* Percentiles from sampled spans stay representative either way; what the sampling-aware variant adds is correct extrapolated counts and sums.
 
@@ -243,7 +248,7 @@ Every dimension you add multiplies the number of metric data points (cardinality
 
 | Dimension | Cardinality Impact | Include? |
 |-----------|-------------------|----------|
-| `service.name` | Low (tens) | Always |
+| `dt.service.name` | Low (tens) | Always |
 | `http.route` | Medium (hundreds) | Usually |
 | `http.response.status_code` | Low (5-10 values) | For error metrics |
 | `k8s.namespace.name` | Low (tens) | If multi-tenant |
@@ -261,10 +266,10 @@ After configuring metric extraction, validate that sampling-aware metrics produc
 // Compare: stored server spans vs. the extrapolated count, per service.
 // If sampling or aggregation is active, extrapolated_count is larger than stored_spans.
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter span.kind == "server" and isNotNull(endpoint.name)
 | fieldsAdd sampling.probability = (power(2, 56) - coalesce(sampling.threshold, 0)) * power(2, -56)
 | fieldsAdd multiplicity = (1 / sampling.probability) * coalesce(aggregation.count, 1) * dt.system.sampling_ratio
-| summarize {stored_spans = count(), extrapolated_count = sum(multiplicity)}, by:{dt.service.name}
+| summarize {stored_spans = count(), extrapolated_count = sum(multiplicity)}, by:{dt.smartscape.service, dt.service.name}
 | sort extrapolated_count desc
 | limit 10
 ```
@@ -273,7 +278,7 @@ fetch spans, from:-1h
 // Built-in service request count metric, for comparison with the extrapolated count above.
 // It is not a sampling-free ground truth: per the Adaptive Traffic Management FAQ, service
 // metrics "are based on captured traces", and low-frequency requests can be under-captured.
-timeseries request_count = sum(dt.service.request.count), from:-1h, by:{dt.entity.service}
+timeseries request_count = sum(dt.service.request.count), from:-1h, by:{dt.smartscape.service, dt.service.name}
 | fieldsAdd total_requests = arraySum(request_count)
 | sort total_requests desc
 | limit 10
@@ -285,7 +290,7 @@ timeseries request_count = sum(dt.service.request.count), from:-1h, by:{dt.entit
 Metric extraction creates new metric data points. The total number of data points (cardinality) is the product of all dimension values:
 
 ```
-Cardinality = unique(service.name) x unique(http.route) x unique(status_code) x ...
+Cardinality = unique(dt.service.name) x unique(http.route) x unique(status_code) x ...
 ```
 
 **Example**: 50 services x 200 routes x 5 status codes = **50,000 time series**

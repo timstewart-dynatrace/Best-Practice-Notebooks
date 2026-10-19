@@ -1,6 +1,6 @@
 # WEBRUM-99: Best Practice Summary
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -44,6 +44,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 | 5 | Set session timeout to 30 minutes | Keep the default 30-minute inactivity timeout for session boundaries | Recommended | WEBRUM-01 |
 | 6 | Enable Fetch API monitoring | **Settings > Web and mobile monitoring > Async web requests and SPAs > Fetch requests**: **Enabled** | Critical | WEBRUM-02 |
 | 7 | Deploy RUM + Synthetic together | Use synthetic for availability SLAs and baselines; use RUM for real user experience | Critical | WEBRUM-01, WEBRUM-08 |
+| 7a | Tag RUM data with OpenPipeline DQL processors | Processor on `frontend.name` with `isNull(primary_tags.<key>)` in all six RUM scopes; `arrayContains(frontend.name, …)` in User sessions | Recommended | WEBRUM-01 |
 
 <a id="spa-instrumentation"></a>
 
@@ -178,7 +179,7 @@ This notebook consolidates every actionable best practice from the WEBRUM series
 |---|---|---|---|---|
 | 80 | Always include `from:` time range on RUM queries | Use `from:-1h` for real-time, `from:-24h` for daily, `from:-7d` for trends | Critical | WEBRUM-01 |
 | 81 | Always filter `dt.rum.user_type == "real_user"` on session queries | Excludes bots (`robot`) and synthetic monitors (`synthetic`) from real-user analysis | Critical | WEBRUM-01 |
-| 82 | Use `isNotNull()` before aggregating optional fields | Apply `filter isNotNull(lcp.start_time)` (or the metric you aggregate) before CWV aggregations | Critical | WEBRUM-03 |
+| 82 | Use `isNotNull()` before aggregating optional fields | Apply `filter isNotNull(lcp_ms)` on `lcp_ms = coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time)` (or the metric you aggregate) before CWV aggregations | Critical | WEBRUM-03 |
 | 83 | Use `countDistinct(dt.rum.session.id)` for error impact measurement | Never use `count()` alone — it inflates impact from retry loops in single sessions | Critical | WEBRUM-05 |
 | 84 | Require minimum sample size before drawing conclusions | Use `filter page_views > 20` (or similar) to avoid misleading statistics from low-volume pages | Recommended | WEBRUM-03, WEBRUM-06 |
 | 85 | Use nanosecond-to-millisecond conversion: `/ 1ms` | `duration`-typed fields are nanosecond durations — divide by `1ms`/`1s`; `lcp.start_time`, `ttfb.value` and `cls.value` are plain numbers already in ms (CLS unitless) — use them directly | Critical | WEBRUM-03 |

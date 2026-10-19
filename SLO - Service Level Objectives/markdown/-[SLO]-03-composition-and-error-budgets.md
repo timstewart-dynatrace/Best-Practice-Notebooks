@@ -1,6 +1,6 @@
 # SLO-03: Composition and Error Budgets
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 6 | **Created:** June 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -57,15 +57,16 @@ The following computes the current burn rate against a 99.5% target (0.5% budget
 
 ```dql
 // Error-budget burn rate against a 99.5% target
-// Re-validated on a live tenant 08/28/2026: observed_bad 0.045, burn_rate 9.02x
-// Live figures move between runs (06/2026: ~0.041 / ~8.3x) — what should hold
+// Re-validated on a live tenant 10/14/2026: observed_bad 0.0292, burn_rate 5.84x
+// observed_bad divides the window's failures by its requests. Averaging the
+// hourly ratios (arrayAvg) instead weights a quiet hour like a busy one: 0.0291 here
+// Live figures move between runs — what should hold
 // is the relationship: burn_rate = observed_bad / (1 - target)
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
 }, from:-24h, interval:1h
-| fieldsAdd bad_ratio = failures[] / total[]
-| fieldsAdd observed_bad = arrayAvg(bad_ratio)
+| fieldsAdd observed_bad = arraySum(failures) / arraySum(total)
 | fieldsAdd error_budget = 1.0 - 0.995
 | fieldsAdd burn_rate = observed_bad / error_budget
 | fields observed_bad, error_budget, burn_rate
@@ -118,7 +119,7 @@ Rolling windows give smoother, more honest day-to-day signals and avoid the "bud
 
 Whatever you choose, **alert on sustained breach, not on momentary dips** — a single bad interval inside a 30-day window is noise. SLO-04 covers how multiwindow burn-rate alerting encodes exactly that.
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [Site Reliability Engineering — Error Budgets (Google SRE Book)](https://sre.google/sre-book/embracing-risk/). [Create service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives/create-slo). Burn-rate query re-executed against a live tenant 08/28/2026. The §4 caveat is a dated reading of the SLO documentation (09/28/2026: no weighted, composite or global SLO type on the Service-Level Objectives page, Create service-level objectives, Service-level objective templates or Service-level objective examples), not a documented statement.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [Site Reliability Engineering — Error Budgets (Google SRE Book)](https://sre.google/sre-book/embracing-risk/). [Create service-level objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives/create-slo). Burn-rate query re-executed against a live tenant 08/28/2026, and again 10/14/2026 after it switched to window totals. The §4 caveat is a dated reading of the SLO documentation (09/28/2026: no weighted, composite or global SLO type on the Service-Level Objectives page, Create service-level objectives, Service-level objective templates or Service-level objective examples), not a documented statement.</sub>
 
 ---
 

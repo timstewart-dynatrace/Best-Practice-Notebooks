@@ -1,6 +1,6 @@
 # K8S-10: Metadata Telemetry Enrichment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 10 of 14 | **Created:** January 2026 | **Last Updated:** 10/19/2026
 
 ## Enriching All Telemetry with Kubernetes Metadata
 Kubernetes metadata enrichment automatically adds labels and annotations from your Kubernetes resources to all telemetry signals. This is the **recommended approach** for adding context to your observability data because it enriches everything: metrics, logs, traces, events, and entities.
@@ -517,6 +517,18 @@ The schema for Kubernetes telemetry enrichment is: `builtin:kubernetes.generic.m
 > The ready-made *Check your upgrade readiness* dashboard lists clusters whose enrichment rules have not been migrated yet.
 >
 > <sub>**Sources:** [Migrate to central configuration for Kubernetes telemetry enrichment (DT docs)](https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/metadata-automation/k8s-enrichment-migration) — all quotes in this callout.</sub>
+
+### Workload and pod rules in central configuration
+
+The central schema `builtin:ingest.enrichment.config` takes more than namespace rules. Its rule types include `K8S_NAMESPACE_LABEL`, `K8S_NAMESPACE_ANNOTATION`, `K8S_WORKLOAD_LABEL`, `K8S_WORKLOAD_ANNOTATION`, `K8S_POD_LABEL` and `K8S_POD_ANNOTATION`. Dynatrace's AWS end-to-end example uses them the way you would expect: namespace labels for values the whole namespace shares (`app`, `stage`) and a workload label for the value that differs per workload (`team`), all at the cluster scope.
+
+- **Version floors.** Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.349+. ActiveGate 1.349 is a staged rollout, so check it has reached your clusters.
+- **Restart after a label change.** *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*
+- **The two pages disagree.** The Kubernetes enrichment page (updated Oct 05, 2026) still describes `metadata.dynatrace.com` annotations as the way to get granularity *"that central configuration can't provide"*. The schema (published Aug 10, 2026) and the end-to-end example (published Oct 06, 2026) both show workload and pod rule types. Treat the newer pages as current, and keep the annotations for values you want to set in the manifest rather than read from an existing label.
+
+FAQ-26 § 5.2 compares all Kubernetes enrichment options; CLOUD-03 shows the EKS split between cluster rules and AWS-account rules.
+
+> <sub>**Sources:** [Ingest enrichment configuration schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-ingest-enrichment-config) — rule types `K8S_WORKLOAD_LABEL`, `K8S_WORKLOAD_ANNOTATION`, `K8S_POD_LABEL`, `K8S_POD_ANNOTATION`; [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label."*; [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"if you need workload- or pod-level granularity that central configuration can't provide"*.</sub>
 
 ### List Current Rules
 

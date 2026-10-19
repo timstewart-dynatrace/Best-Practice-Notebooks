@@ -1,6 +1,6 @@
 # WEBRUM-07: Session Replay
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 7 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -146,7 +146,8 @@ Use DQL to identify sessions that have replay data available, then navigate to t
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
@@ -161,10 +162,11 @@ Use DQL to identify sessions that have replay data available, then navigate to t
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {replay_sessions = count(),
     avg_actions = avg(user_action_count),
     avg_errors = avg(error.count)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | sort replay_sessions desc
 ```
 
@@ -174,7 +176,7 @@ fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
 | filter error.count > 0
-| fieldsKeep dt.rum.session.id, primary_tags.application, duration, user_action_count, error.count, geo.country.name, browser.name
+| fieldsKeep dt.rum.session.id, frontend.name, duration, user_action_count, error.count, geo.country.name, browser.name
 | sort error.count desc
 | limit 20
 ```
@@ -183,9 +185,10 @@ fetch user.sessions, from:-24h
 // Replay coverage — what percentage of sessions have replay?
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {total_sessions = count(),
     replay_sessions = countIf(isNotNull(characteristics.has_replay) and characteristics.has_replay == true)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd replay_coverage_pct = round(toDouble(replay_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
 | sort total_sessions desc
 ```
@@ -233,7 +236,7 @@ fetch user.sessions, from:-24h
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
 | fieldsAdd duration_sec = duration / 1s
 | filter duration_sec > 120
-| fieldsKeep dt.rum.session.id, primary_tags.application, duration_sec, user_action_count, error.count, geo.country.name
+| fieldsKeep dt.rum.session.id, frontend.name, duration_sec, user_action_count, error.count, geo.country.name
 | sort duration_sec desc
 | limit 10
 ```
@@ -270,7 +273,7 @@ fetch user.sessions, from:-24h
 | filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
 | filter user_action_count >= 3 and user_action_count <= 5
 | filter error.count > 0
-| fieldsKeep dt.rum.session.id, primary_tags.application, user_action_count, error.count, duration, geo.country.name
+| fieldsKeep dt.rum.session.id, frontend.name, user_action_count, error.count, duration, geo.country.name
 | sort error.count desc
 | limit 15
 ```

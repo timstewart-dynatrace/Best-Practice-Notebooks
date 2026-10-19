@@ -1,6 +1,6 @@
 # CLOUD-04: AWS Lambda & Serverless Monitoring
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 4 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -152,6 +152,21 @@ timeseries avgDuration = avg(cloud.aws.lambda.Duration.By.FunctionName), from:-6
 | sort avgDurationValue desc
 | limit 10
 ```
+
+### Tagging this producer — primary Grail tags on Lambda
+
+*"A Lambda function doesn't load the ingest enrichment configuration, so its tags come from the DT_TAGS environment variable that you set in the function configuration"*. Set the keys, space-separated, with their `primary_tags.` prefix:
+
+```text
+DT_TAGS = "primary_tags.team=checkout primary_tags.app=shop primary_tags.stage=prod"
+```
+
+The variable tags the spans, metrics and logs OneAgent emits from the function. Two more things:
+
+- **Account and region are not detected.** *"On serverless platforms, OneAgent can't auto-detect certain primary fields."* Pass `aws.account.id` and `aws.region` in `DT_TAGS` too.
+- **The function's Smartscape node is tagged elsewhere.** It comes from the AWS connection, so the CLOUD-02 AWS-tag rule and OpenPipeline promotion tag it — and the `isNull(primary_tags.<key>)` condition there is what keeps that rule from overwriting the `DT_TAGS` value on the function's own telemetry.
+
+> <sub>**Sources:** [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"A Lambda function doesn't load the ingest enrichment configuration, so its tags come from the DT_TAGS environment variable that you set in the function configuration"*, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"On serverless platforms, OneAgent can't auto-detect certain primary fields."*</sub>
 
 <a id="cold-starts"></a>
 
@@ -359,13 +374,20 @@ AWS API Gateway is a common front-end for Lambda functions. Dynatrace monitors t
 
 With the Dynatrace Lambda Layer, traces propagate through API Gateway into Lambda:
 
-```
-Client → API Gateway → Lambda Function → DynamoDB / SQS / etc.
-   |         |              |                |
-   span      span           span             span
-   \_________\_____________\_________________/
-              Complete distributed trace
-```
+![Tracing a request through API Gateway into Lambda](images/04-api-gateway-trace-path.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Hop | Role in the trace |
+|-----|-------------------|
+| Client (calling service or browser) | Linked as the parent when it is monitored |
+| API Gateway | Forwards `x-dynatrace`, `traceparent`, `tracestate` to Lambda (Lambda proxy integration) |
+| Lambda function | The Dynatrace Lambda Layer creates the function span and links the parent |
+| DynamoDB / SQS / … | Outgoing calls traced where the runtime's sensor supports them |
+| Non-proxy integration | Prevents tracing calls from other monitored applications and RUM detection unless a custom mapping template forwards `x-dynatrace`, `traceparent`, `tracestate`, `x-dtc` and `x-forwarded-for` |
+For environments where SVG doesn't render
+-->
+
+> <sub>**Sources:** [Trace Lambda functions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-into-aws/aws-lambda-integration/trace-lambda-functions).</sub>
 
 ```dql
 // Trace spans from API Gateway and Lambda in the last hour
@@ -442,11 +464,18 @@ fetch spans, from:-6h
 
 A complete serverless application might follow this pattern:
 
-```
-API Gateway → Lambda (auth) → Lambda (business logic) → DynamoDB
-                                        → SQS → Lambda (async processor)
-                                        → SNS → Email notification
-```
+![End-to-end serverless trace](images/04-serverless-trace-flow.png)
+
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| From | To | Hop |
+|------|----|-----|
+| API Gateway | Lambda (auth) | Synchronous |
+| Lambda (auth) | Lambda (business logic) | Synchronous |
+| Lambda (business logic) | DynamoDB | Synchronous |
+| Lambda (business logic) | SQS → Lambda (async processor) | Asynchronous |
+| Lambda (business logic) | SNS → Email notification | Asynchronous |
+For environments where SVG doesn't render
+-->
 
 Dynatrace traces the entire flow as a single distributed trace when the Lambda Layer propagates context headers.
 

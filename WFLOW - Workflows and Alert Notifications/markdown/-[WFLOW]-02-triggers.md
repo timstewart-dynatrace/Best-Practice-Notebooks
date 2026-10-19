@@ -1,6 +1,6 @@
 # WFLOW-02: Triggers & Event Types
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 2 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Event-Driven Workflow Triggers
 Triggers determine when workflows execute. This notebook covers all trigger types, detected problem events, Davis events, schedules, and custom event triggers.
@@ -9,13 +9,14 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 
 ## Table of Contents
 
-1. [Detected Problem Trigger](#davis-problem-trigger)
-2. [Davis Event Trigger](#davis-event-trigger-metrics)
-3. [Schedule Trigger](#schedule-trigger)
-4. [On-Demand Trigger](#on-demand-trigger)
-5. [Event Trigger (Custom/Business Events)](#event-trigger-custombusiness-events)
-6. [Trigger Data and Expressions](#trigger-data-and-expressions)
-7. [Davis Problem Event Payload Reference](#davis-problem-payload-reference)
+1. [Trigger Types Overview](#trigger-types-overview)
+2. [Detected Problem Trigger](#davis-problem-trigger)
+3. [Davis Event Trigger](#davis-event-trigger-metrics)
+4. [Schedule Trigger](#schedule-trigger)
+5. [On-Demand Trigger](#on-demand-trigger)
+6. [Event Trigger (Custom/Business Events)](#event-trigger-custombusiness-events)
+7. [Trigger Data and Expressions](#trigger-data-and-expressions)
+8. [Davis Problem Event Payload Reference](#davis-problem-payload-reference)
 
 ---
 
@@ -27,6 +28,7 @@ Triggers determine when workflows execute. This notebook covers all trigger type
 | **Permissions** | `automation:workflows:write` (and `automation:workflows:run` for API runs, §5). The workflow's **actor** also needs read access to the table each trigger watches (§1) |
 | **Prior Knowledge** | **WFLOW-01: Workflow Fundamentals** |
 
+<a id="trigger-types-overview"></a>
 ## 1. Trigger Types Overview
 
 | Trigger Type | Fires When | Primary Use Case |
@@ -448,7 +450,7 @@ Workflows on a Detected Problem trigger receive one `event` object: the `dt.davi
 | `dt.davis.impact_level` | string[] | Usually | `{ProblemImpact}`: every impact level observed across the problem's events (Application, Environment, Infrastructure, Services, Synthetic). |
 | `dt.davis.event_ids` | string[] | Always | The Davis events grouped into this problem. |
 | `maintenance.is_under_maintenance` | boolean | Always | Whether the problem falls in a maintenance window. |
-| `dt.duration_marker` | string | Usually | Stepped open-duration marker used by the trigger's Minimum duration option. |
+| `dt.duration_marker` | duration (ns) | Usually | Stepped open-duration marker used by the trigger's Minimum duration option. |
 | `resolved_problem_duration` | duration (ns) | Closed only | Final duration once resolved. |
 
 There is no `problem_url` field. Use the `{{ problem_link() }}` expression.

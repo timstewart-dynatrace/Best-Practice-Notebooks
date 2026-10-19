@@ -1,6 +1,6 @@
 # SYNTH-01: Synthetic Monitoring Fundamentals
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 1 of 6 | **Created:** December 2025 | **Last Updated:** 10/19/2026
 
 ## Understanding Proactive Availability and Performance Testing
 This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.
@@ -255,6 +255,18 @@ fetch dt.synthetic.events, from: now() - 24h
 // | filter endsWith(event.type, "_monitor_execution")
 // | summarize {n = count()}, by:{dt.security_context}
 ```
+
+### Primary Grail tags on monitors
+
+Ingest enrichment rules don't apply to Synthetic. *"The enrichment rules from the earlier steps don't reach Synthetic, so a monitor uses only the tags you set on it."* Set them per monitor — **Edit > Primary Grail tags** in the Synthetic app, or `primaryGrailTags` in the monitor's API request body. Every execution then carries them on its events and metrics, and the monitor's Smartscape node carries them too. All three monitor types support them.
+
+- **Nothing is inherited.** *"Tags aren't inherited from the Synthetic location, host group, or any other entity."*
+- **Private locations need ActiveGate 1.331+.** *"Earlier versions don't enrich the metrics and events produced by Synthetic monitor executions with the monitor's primary Grail tags."*
+- **Limits.** *"There is a limit of 10 primary Grail tags per monitor."* One value per key; keys up to 50 characters, values up to 200.
+
+Primary tags filter, group and route Synthetic data. Access stays with the monitor's security context (above). FAQ-26 § 5.6 places monitors in the wider tagging model.
+
+> <sub>**Sources:** [Primary Grail tags for Synthetic (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-synthetic) — *"Tags aren't inherited from the Synthetic location, host group, or any other entity."*, *"Earlier versions don't enrich the metrics and events produced by Synthetic monitor executions with the monitor's primary Grail tags."* and *"There is a limit of 10 primary Grail tags per monitor."*; [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"The enrichment rules from the earlier steps don't reach Synthetic, so a monitor uses only the tags you set on it."*</sub>
 
 <a id="your-first-synthetic-query"></a>
 ## 5. Your First Synthetic Query

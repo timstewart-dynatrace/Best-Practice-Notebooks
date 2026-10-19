@@ -1,6 +1,6 @@
 # MZ2POL-11: Translating Management Zone Rules into Source Attributes
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 12 of 17 | **Created:** October 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -95,7 +95,7 @@ That maps cleanly onto segments — **conditions in one include are ANDed, inclu
 
 Per environment the classic model allows 5,000 management zones by default, 300 UI-based entity rules, 300 dimensional-data rules, 300 entity-selector rules and 100,000 conditions across all rules, with any one entity in at most 200 zones. Estates near these limits are almost always encoding **values** as zones — the pattern MZ2POL-05 §2 replaces with one segment per **dimension**.
 
-> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026.</sub>
+> <sub>**Sources:** [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"Rules are applied using the OR logic—any rule must apply for an entity to be included in a management zone."* **Derived:** the property-key and operator counts were read from the schema's enum lists on 10/13/2026.</sub>
 
 <a id="decision-path"></a>
 ## 2. The Decision Path for One Rule
@@ -177,7 +177,7 @@ The MZ operator set is richer than any single Grail surface. The useful observat
 | EQUALS | matchesValue | = / in() | = / IN |
 | BEGINS_WITH | matchesValue(field, "x*") | "x*" (classic entities: entity.name only) | startsWith |
 | CONTAINS / ENDS_WITH | matchesValue(field, "*x*") / ("*x") | "*x*" — not on classic entities | MATCH pattern |
-| NOT_* (exclusion) | NOT operator | No exclusions | Only on storage:bucket-name |
+| NOT_* (exclusion) | NOT operator | No exclusions | Only on bucket/table-level conditions (storage:bucket-name, storage:table-name) |
 | EXISTS / NOT_EXISTS | isNotNull / isNull | Not expressible | Not expressible |
 | REGEX_MATCHES | Regex not supported | No regex | No regex |
 | Numeric > < ≥ ≤ | No comparison operator | = and in() only | Not on record fields |
@@ -248,7 +248,7 @@ Two cautions:
 - **The classic rule's field may not be the one you want long-term.** The classic page's own example scopes logs by `k8s.deployment.name` *begins with* a value. That still works as a segment filter, but a deployment name is not a team. If the zone is really "team X's logs", promote the team to a primary tag at the namespace (K8S-10) and filter on that.
 - **Access by `log.source` is fragile.** File paths change with releases. Use it where the path is the real boundary (an audit log, a security log), not as a proxy for ownership.
 
-> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"Allowed operators are begins with and equals ."* **Dictionary:** `log.source`, `metric.key` (`stable`, tagged `permission`), read 10/13/2026.</sub>
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"Allowed operators are begins with and equals ."* **Dictionary:** `log.source`, `metric.key` (`stable`, tagged `permission`), read 10/13/2026.</sub>
 
 <a id="selector-rules"></a>
 ## 7. Entity-Selector Rules
@@ -270,7 +270,7 @@ Relationships also **change**. A selector zone re-evaluated its relationships pe
 
 Selector rules also **did not propagate**: implicit propagation *"does not apply to entity-selector-based rules"*. A selector zone that listed services did not include their hosts. Do not widen the replacement by accident when you tag at host level.
 
-> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"with text-based rules, you can explicitly use relationships to filter your entity selection."* and *"This does not apply to entity-selector-based rules."* **Derived:** the list-vs-scope split applies FAQ-16's dimension-first rule to selector zones.</sub>
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"with text-based rules, you can explicitly use relationships to filter your entity selection."* and *"This does not apply to entity-selector-based rules."* **Derived:** the list-vs-scope split applies FAQ-16's dimension-first rule to selector zones.</sub>
 
 <a id="worked-translations"></a>
 ## 8. Worked Translations
@@ -334,7 +334,7 @@ Six common zone shapes, each taken from the MZ rule to the value, the segment fi
 | **Data scope** | Tag the calling services' processes `primary_tags.consumer_of = journey` at deploy time, owned by the API team; filter on it |
 | **Watch** | New callers no longer join automatically (§7) |
 
-> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — examples 4 and 5, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"For most production environments, use Namespace annotations and labels as the baseline."*, — for shared hosts: *"Set DT_TAGS and OTEL_RESOURCE_ATTRIBUTES on each process with the same metadata fields used for dedicated infrastructure"*, listing `dt.security_context=<value>` among them, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using = , STARTSWITH or IN when the field holds an array will always return false ."* **Derived:** each worked example combines the rule-type and operator mappings in §3–§7.</sub>
+> <sub>**Sources:** [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — examples 4 and 5, [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments) — *"For most production environments, use Namespace annotations and labels as the baseline."*, — for shared hosts: *"Set DT_TAGS and OTEL_RESOURCE_ATTRIBUTES on each process with the same metadata fields used for dedicated infrastructure"*, listing `dt.security_context=<value>` among them, [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent), [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"Using = , STARTSWITH or IN when the field holds an array will always return false ."* **Derived:** each worked example combines the rule-type and operator mappings in §3–§7.</sub>
 
 <a id="verifying"></a>
 ## 9. Verifying Translations with DQL
@@ -437,7 +437,7 @@ Keep the worksheet with the migration plan (MZ2POL-03). It is the record that le
 
 ## Additional Resources
 
-- [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules)
+- [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules)
 - [Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones)
 - [Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic)
 - [Best practice examples: from Management Zones to Segments (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/upgrade-guide-segments)

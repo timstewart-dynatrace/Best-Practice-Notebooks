@@ -1,6 +1,6 @@
 # CLOUD-06: GCP Integration
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 6 of 8 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -51,15 +51,17 @@ Dynatrace reads Google Cloud through two different integration models, and they 
 
 ### Data Flow
 
-```text
-Clouds-app connection (Preview)
-  Cloud Asset Inventory ──► Dynatrace SaaS   (topology: hourly scan + change feed)
-  Cloud Monitoring API  ──► Dynatrace SaaS   (metrics)
+![Google Cloud data flow](images/06-gcp-data-flow.png)
 
-dynatrace-gcp-monitor on GKE
-  Cloud Monitoring API ──(polled every 1–10 min, default 3)──► monitor ──► Dynatrace metrics API
-  Cloud Logging ──► Log Router sink ──► Pub/Sub topic ──► subscription ──(pulled)──► monitor ──► Logs Ingest API
-```
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Model | Flow | Signal |
+|-------|------|--------|
+| Clouds-app connection (Preview) | Cloud Asset Inventory → Dynatrace SaaS | Topology (hourly scan + change feed) |
+| Clouds-app connection (Preview) | Cloud Monitoring API → Dynatrace SaaS | Metrics |
+| dynatrace-gcp-monitor on GKE | Cloud Monitoring API → (polled every 1–10 min, default 3) → monitor → Dynatrace metrics API | Metrics |
+| dynatrace-gcp-monitor on GKE | Cloud Logging → Log Router sink → Pub/Sub topic → subscription → (pulled) → monitor → Logs Ingest API | Logs |
+For environments where SVG doesn't render
+-->
 
 Pub/Sub carries **logs only**. Metrics are polled, never pushed through Pub/Sub — the monitor's metrics role grants `monitoring.timeSeries.list`, and its Helm values set the polling interval (*"Allowed values: 1 - 10"*, default `queryInterval: 3`).
 
@@ -306,7 +308,7 @@ If these return nothing, check in order: the sink's writer identity has `roles/p
 > - <sub>[dynatrace-gcp-monitor architecture (Dynatrace GitHub)](https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/docs/k8s.md) — *"Pub/Sub messages with log entries are polled by containerized `dynatrace-gcp-monitor`, processed, batched and sent to Dynatrace Log Ingest API."*</sub>
 > - <sub>[Set up GCP log integration — logs only (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only) — *"Autoscaling is recommended only when you have a minimum of 450 MB/min throughput and can provide a 4vCPU 4Gi RAM machine."* The sizing table above is reproduced from this page.</sub>
 > - <sub>[Cloud Audit Logs overview (Google Cloud)](https://docs.cloud.google.com/logging/docs/audit) — *"Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data."*</sub>
-> - <sub>[logging_config.proto (Google GitHub)](https://github.com/googleapis/googleapis/blob/master/google/logging/v2/logging_config.proto) — *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*</sub>
+> - <sub>[LogSink REST reference (Google Cloud)](https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/projects.sinks) — *"Until you grant this identity write-access to the destination, log entry exports from this sink will fail."*</sub>
 > - <sub>[Pub/Sub pricing (Google Cloud)](https://cloud.google.com/pubsub/pricing) — *"Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes)."*</sub>
 > - <sub>**Derived:** the log-field list and the audit attributes come from the monitor's log-processing configuration (`src/config_logs`) in the repository above.</sub>
 
@@ -372,10 +374,13 @@ timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
 //      dt.kubernetes.event.important was "true" on every event over 30 days (10/02/2026).
 //   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
 // Each filter was valid syntax that executed cleanly, which is why this survived review.
+// Counted with countDistinctExact(event.id): an open Kubernetes event is re-written about every
+// 5 minutes under the same event.id, so count() counts refresh records (10/15/2026: 1,203
+// distinct events vs 8,259 records in 24 h).
 fetch events, from:-6h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter status == "WARN"
-| summarize event_count = count(), by:{dt.kubernetes.event.reason}
+| summarize event_count = countDistinctExact(event.id), by:{dt.kubernetes.event.reason}
 | sort event_count desc
 | limit 10
 ```
@@ -461,7 +466,7 @@ GCP shops frequently place Pub/Sub between services. **Pub/Sub is absent from Op
 
 Without either, producer and consumer spans appear as disconnected traces. See the **SPANS** series for span and trace-context fundamentals.
 
-> <sub>**Sources:** [Span and trace context propagation (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions); [OpenTelemetry Java supported libraries (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md); [java-pubsub CHANGELOG (Google GitHub)](https://github.com/googleapis/java-pubsub/blob/main/CHANGELOG.md) — *"Add OpenTelemetry tracing to the Publisher and Subscriber"*; [OpenTelemetry Collector on Cloud Run (Google Cloud GitHub)](https://github.com/GoogleCloudPlatform/opentelemetry-cloud-run)</sub>
+> <sub>**Sources:** [Span and trace context propagation (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions); [OpenTelemetry Java supported libraries (OpenTelemetry GitHub)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md); [java-pubsub v1.133.0 release (Google GitHub)](https://github.com/googleapis/java-pubsub/releases/tag/v1.133.0) — *"Add OpenTelemetry tracing to the Publisher and Subscriber"*; [OpenTelemetry Collector on Cloud Run (Google Cloud GitHub)](https://github.com/GoogleCloudPlatform/opentelemetry-cloud-run)</sub>
 
 <a id="entity-mapping"></a>
 
@@ -487,6 +492,12 @@ GCP's hierarchy — organization → folders → projects — arrives in Dynatra
 | **Route problems on ownership labels** | Problem-triggered workflows keyed on `team`/`owner`, not on project names alone |
 
 > <sub>**Sources:** [Visibility of segments (DT docs)](https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility) — *"Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission."*</sub>
+
+### Tagging this producer — primary Grail tags
+
+Google Cloud has labels and tags, and *"Both can be promoted to primary Grail fields and tags."* The pattern is the AWS one in CLOUD-02: a **GCP label** or **GCP tag** rule at project scope forwards the value as `gcp.labels.<key>` or `gcp.tags.<tag-id>` (the tag id `payroll/app` becomes `gcp.tags.payroll.app`), and an OpenPipeline primary Grail tag rule promotes it with two sources — `gcp.labels.<key>` for telemetry and `` `tags:gcp_labels`[<key>] `` for Smartscape nodes — under an `isNull(primary_tags.<key>)` condition. `gcp.project.id` is set automatically. Central configuration for cloud tags is a SaaS 1.348+ capability on new cloud connections (staged rollout).
+
+> <sub>**Sources:** [Enrich Google Cloud telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-gcp) — *"Both can be promoted to primary Grail fields and tags."* and *"This page applies to new cloud connections only."*</sub>
 
 <a id="summary"></a>
 
