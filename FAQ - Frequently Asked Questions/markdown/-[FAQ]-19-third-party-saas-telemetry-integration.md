@@ -1,6 +1,6 @@
 # FAQ-19: How Do I Bring a Third-Party SaaS Platform's Telemetry Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 19 — Integrating Third-Party SaaS Telemetry | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -321,14 +321,16 @@ Once the bucket exists, confirm the vendor's records are landing where you inten
 // (or whichever field your route matches on).
 // Expect one row: your dedicated bucket. A default_logs row means the route
 // or the bucket assignment is wrong.
-// The log.source filter does not reduce the bytes scanned — every log in the
-// window is read — so keep the window short (see FAQ-09).
+// Every record in the window is evaluated, but the bytes scanned follow what the
+// filter matches: one hour read 2.1 GB unfiltered and 0.11 GB with a selective
+// log.source filter on the validation tenant (10/15/2026). A high-volume source
+// still reads its full volume, so keep the window short (see FAQ-09).
 fetch logs, from:-1h
 | filter log.source == "<vendor-source>"
 | summarize records = count(), by:{dt.system.bucket}
 ```
 
-> <sub>Executed 10/02/2026 with a real `log.source` from the validation tenant: one row per bucket, including `default_logs` for a source split across four buckets — the shape this check is meant to surface. One hour scanned 2.36 GB, no notifications.</sub>
+> <sub>Executed 10/02/2026 with a real `log.source` from the validation tenant: one row per bucket, including `default_logs` for a source split across four buckets — the shape this check is meant to surface. One hour scanned 2.36 GB, no notifications. Re-run 10/15/2026: with the placeholder source the same hour scanned 0.11 GB against 2.1 GB unfiltered, so the bytes scanned follow the matched volume.</sub>
 
 Complementary controls worth applying in the Processing stage, before storage:
 

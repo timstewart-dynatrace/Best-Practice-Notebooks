@@ -1,6 +1,6 @@
 # S2S-04: Step 4 — Prepare: Export and Pre-Stage
 
-> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** S2S — SaaS to SaaS Migration | **Notebook:** 4 of 9 | **Phase:** Upgrade | **Step:** Prepare | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -171,7 +171,7 @@ IAM is the first configuration deployed to the target tenant. Users need access 
 
 ### Rebuild the IP Allowlist
 
-If the source environment restricts access with an IP allowlist, rebuild it on the target before users and automation cut over. It is configured per environment, and it blocks inbound access to the UI and API: *"If a user's IP is not contained in the IP allowlist, they're effectively blocked from accessing and using the latest Dynatrace web UI and API."* Include the addresses of your CI/CD runners and any automation that calls the target API.
+If the source environment restricts access with an IP allowlist, rebuild it on the target before users and automation cut over. It is configured per environment, and it blocks inbound access to the UI and API: *"If a user's IP isn't contained in the IP allowlist, they're blocked from accessing and using the latest Dynatrace web UI and API."* Include the addresses of your CI/CD runners and any automation that calls the target API.
 
 The reverse direction — **egress** addresses of the new Azure-hosted cluster that your firewalls or webhook receivers may need to admit — is **unverified**: no primary source for them was found for this update. Ask Dynatrace for them rather than reusing the AWS-hosted source's addresses.
 

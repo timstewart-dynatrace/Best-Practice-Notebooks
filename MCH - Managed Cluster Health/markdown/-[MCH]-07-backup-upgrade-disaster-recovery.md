@@ -1,6 +1,6 @@
 # MCH-07: Backup, Upgrade, and Disaster Recovery
 
-> **Series:** MCH — Managed Cluster Health | **Notebook:** 7 of 8 | **Created:** September 2026 | **Last Updated:** 10/02/2026
+> **Series:** MCH — Managed Cluster Health | **Notebook:** 7 of 8 | **Created:** September 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -50,10 +50,10 @@ This notebook covers what a backup protects and what it doesn't, how to set back
 
 - **A backup is not a full copy.** It restores configuration, longer-term metrics and (unless excluded) user sessions. It never restores transaction storage, never restores recent 1-minute and 5-minute metrics, and restores log events only if you opted in.
 - **A missing backup mount can stop a node from starting.** *"If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node."* Make the mount persistent.
-- **Prepare the restore before you need it.** It needs the exact installer version from the backup, the same number of nodes (or at most two fewer), matching user IDs, and the old cluster stopped.
+- **Prepare the restore before you need it.** It needs the exact installer version from the backup, the same number of nodes (*"In exceptional cases"* up to two fewer), matching user IDs, and the old cluster stopped. Afterwards, backups are **off** until you turn them back on.
 - **Upgrades have built-in waits:** 24 hours after a download, and 24 hours between updates. Clusters under three nodes are unavailable while they update.
 - **Three releases are supported**, plus a fourth with Enterprise Success and Support. A new release arrives roughly every four weeks, so falling behind happens quickly.
-- **Premium HA repairs a lost data center automatically for up to 72 hours.** After that, the data center has to be rebuilt.
+- **Premium HA repairs a lost data center automatically for up to 72 hours — through Mission Control.** *"There is no manual or local failover option that bypasses MC."* After 72 hours, the data center has to be rebuilt.
 
 > <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster), [Dynatrace Managed release notes (DT docs)](https://docs.dynatrace.com/managed/whats-new/managed), [Mission Control proactive support (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support), [Multi-data center failover (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover), [Recover from another data center (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-data-center).</sub>
 
@@ -64,7 +64,7 @@ This notebook covers what a backup protects and what it doesn't, how to set back
 
 | Data | In the backup? | Details |
 |------|----------------|---------|
-| Configuration | **Yes** | Daily, with the metrics snapshot |
+| Configuration | **Yes** | Daily, with the metrics snapshot. A configuration-only backup is an option: *"Exclude timeseries metric data from the backup"* |
 | Metrics | **Partly** | Daily; excludes the most frequently changing column families (about 80% of storage) and 1-minute and 5-minute data (MCH-03 §9) |
 | User sessions | **Yes, unless excluded** | *"Exclude user sessions from the backup to remain compliant with GDPR."* (MCH-04 §8) |
 | Log Monitoring events | **Only if included** | *"Include backup of Log Monitoring events."* |
@@ -72,7 +72,9 @@ This notebook covers what a backup protects and what it doesn't, how to set back
 
 The docs' reasoning for leaving transaction storage out: *"By default, transaction storage data is only retained for 10 days. From a long-term perspective, it's not necessary to include transaction storage data in backups."* The consequence is that after a restore, trace history starts again from the restore point.
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster).</sub>
+**Recovery objectives.** The *Pre-upgrade information* page's Managed-vs-SaaS comparison gives Managed backup an *RPO = 24h; RTO = 24h*: up to a day of data lost, and up to a day to restore.
+
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information).</sub>
 
 <a id="backup-setup"></a>
 ## 3. Setting Up Backups
@@ -91,9 +93,11 @@ su - dynatrace -s /bin/bash -c "touch /nfs/dynatrace/backup/$(uname -n)"
 
 So *"The shared file system mount must be available at system restart."* Make it persistent, for example in `fstab`. Then a reboot during an NFS outage won't take Dynatrace down with it.
 
+If it happens anyway, the docs give the way out: *"Edit the <install-dir>/elasticsearch/config/elasticsearch.yml file. Remove the line with the path.repo: parameter."* Then start the node again (MCH-02 §3), and re-enable backups once the mount is back.
+
 **How much space.** Plan for twice 20% of the metrics store plus the full Elasticsearch store (MCH-03 §9, MCH-04 §8).
 
-**Watching it.** Neither *"Cassandra backup problem."* nor *"ElasticSearch backup problem."* is emailed (MCH-01 §7). CMC **Home** has a *Last backup* field, which *"Displays the date and storage location of the last backup."* Check it on a schedule.
+**Watching it.** Neither *"Cassandra backup problem."* nor *"ElasticSearch backup problem."* is emailed (MCH-01 §7). CMC **Home** has a *Last backup* field, which *"Displays the date and storage location of the last backup."* Check it on a schedule. One backup event does email: *"Backup has been disabled because the configuration is no longer supported."*
 
 > <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Estimating cluster backup size (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size), [Cluster Management Console (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console), [Configure Cluster event notifications (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications).</sub>
 
@@ -122,6 +126,7 @@ Before you start, also prepare an inventory: the node IDs (each backup sits in a
 3. **Restore Elasticsearch once, on the seed node:** `restore-elasticsearch-data.sh <path-to-backup>/<UUID>`.
 4. **Restore Cassandra node by node, seed first:** `restore-cassandra-data.sh`, using each node's backup file.
 5. **Optionally repair Cassandra** (MCH-03 §8), then **start Dynatrace** on each node, starting with the seed node.
+6. **Finish the restore.** Turn backups back on: *"the backup is automatically disabled after the restore. Once you have finished restoring, you should enable the backup again."* If you restored to fewer nodes, remove the nodes marked **Offline** in the CMC. If the cluster address changed, point OneAgents and Cluster ActiveGates at it (the page gives the `PUT /api/v1.0/onpremise/endpoint/publicIp/agents/<node-id>` call), or update DNS if they connect by name.
 
 ### 4.3 Rehearse it
 
@@ -146,10 +151,11 @@ The docs don't prescribe a restore test. In community practice, a restore that h
 - **A day between updates.** *"You wait 24 hours between cluster updates to ensure that all post-processing steps are completed before initiating another update."*
 - **Disk.** *"You have at least 5 GB of available disk space on the partition where Dynatrace Managed is installed."*
 - **Downtime below three nodes.** *"If your cluster consists of less than 3 nodes, Dynatrace Managed won't be accessible during the update process."*
+- **Kubernetes workloads.** *"keep the Docker OneAgent installation package for every OneAgent version that's still in use. If you remove it, the cluster cannot build the OneAgent image and your pods fail to pull it."*
 
 ### 5.3 Skipping versions
 
-*"You can skip a Managed version only if its installed version is divisible by 4."* A cluster on 1.300 can skip 1.302 once 1.304 is released; a cluster on 1.302 can't skip. If you would rather never skip, since Managed 1.324 there's a switch for that: *"Turn on Run Dynatrace cluster updates sequentially without skipping a version."* For clusters that can skip, the docs advise *"waiting until the target version is released if you cannot complete the update process within one month."*
+*"You can skip a Managed version only if its installed version is divisible by 4."* A cluster on 1.300 can skip 1.302 once 1.304 is released; a cluster on 1.302 can't skip. And skipping can become the only option: *"once version 1.304 is released, version 1.302 will no longer be available for download"* — which matters most for offline and semi-automatic clusters. If you would rather never skip, since Managed 1.324 there's a switch for that: *"Turn on Run Dynatrace cluster updates sequentially without skipping a version."* For clusters that can skip, the docs advise *"waiting until the target version is released if you cannot complete the update process within one month."*
 
 ### 5.4 Cadence
 
@@ -193,7 +199,7 @@ The table of earlier versions shows the pattern. Standard support for a version 
 
 ### 7.2 How failover works
 
-Mission Control drives it. *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC. MC then marks the DC as unhealthy."* The healthy data center takes over, and a healthy server sends an event and an email. When the failed processes are started again, the servers come back. Where Cassandra was down for three hours or more, Cassandra repairs also run, and responsibility moves back only after they finish: *"Thirty minutes after all Cassandra nodes are repaired, Mission Control requests the Nodekeepers to change the responsibility override"* (MCH-03 §8).
+Mission Control drives it — and nothing else can: *"There is no manual or local failover option that bypasses MC."* *"Without access to MC, the secondary DC doesn't autonomously detect that it needs to take over."* *"If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, it automatically stops the server processes in that DC. MC then marks the DC as unhealthy."* The healthy data center takes over, and a healthy server sends an event and an email. When you start the failed processes again (*"After you start the Elasticsearch processes on the nodes that were down"* …), the servers come back. If Mission Control is unreachable, shut down any nodes still running in the failed data center yourself (§7.3). Where Cassandra was down for three hours or more, Cassandra repairs also run, and responsibility moves back only after they finish: *"Thirty minutes after all Cassandra nodes are repaired, Mission Control requests the Nodekeepers to change the responsibility override"* (MCH-03 §8).
 
 Two conditions apply. *"To transfer responsibility to another DC, it must be healthy at the time of failover."* And the mechanism handles a window: *"PHA automatically repairs network disconnections of up to 72 hours between DCs."*
 
@@ -214,9 +220,9 @@ What was lost decides the path:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | What was lost | What happens | What you do |
 |---------------|--------------|-------------|
-| One node (3+ node cluster) | Cluster keeps running on three copies; that node's transaction share is gone | Remove the node, install a replacement (MCH-02 §5, MCH-03 §7) |
+| One node (3+ node cluster) | Cluster keeps running on three copies; that node's transaction share is gone | Remove the node, install a replacement (MCH-03 §7) |
 | The whole cluster | Restore from backup onto new hosts; recent 1-/5-min metrics and traces are not restored | Same node count (at most two fewer), same installer version, old cluster stopped |
-| One data center, under 72 h (Premium HA) | After 15 minutes the healthy DC takes over; repaired automatically when it returns | Stop the Server service in the affected DC; start it once the network is stable |
+| One data center, under 72 h (Premium HA) | After 15 minutes Mission Control fails over to the healthy DC; repaired when it returns (needs MC) | Stop the Server service in the affected DC; restart its services once the network is stable |
 | One data center, over 72 h (Premium HA) | Marked "not repaired after failover"; the cluster is not reliable | Rebuild the DC from the surviving one, or restore it from backup |
 For environments where SVG doesn't render
 -->
@@ -234,21 +240,21 @@ A single node is the common case, and it needs no restore: *"The Managed Cluster
 |-----|-------------------------------------|
 | A procedure for testing a restore without disturbing production | Rehearse on isolated hosts, kept off Mission Control (§4.3) |
 | Whether Session Replay data is backed up | Assume it isn't. It isn't in the documented scope (§2) |
-| A replacement procedure for a single failed node in a single-DC cluster | Remove the node and add a new one (MCH-02 §5) |
+| A replacement procedure for a single failed node in a single-DC cluster | Remove the node and add a new one (MCH-03 §7) |
 
-**One conflict.** The Elasticsearch snapshot interval: the backup page says *"every 2 hours"*, while the UP information comparison table says *"Elasticsearch snapshots every 2 days"*. This series follows the backup page (MCH-04 §10). Confirm in CMC **Settings > Backup**.
+**One conflict.** The Elasticsearch snapshot interval: the backup page says *"every 2 hours"*, while the *Pre-upgrade information* comparison table says *"Elasticsearch snapshots every 2 days"*. This series follows the backup page (MCH-04 §10). Confirm in CMC **Settings > Backup**.
 
 **One caution.** The backup-and-restore page shows *Published Mar 22, 2018* and no later update date, although its content refers to current features. Read its procedure against your installed version.
 
-> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [UP information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information). **Observed 10/01/2026:** the three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled.</sub>
+> <sub>**Sources:** [Backup and restore a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster), [Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information). **Observed 10/01/2026:** the three gaps were searched for across the Managed cluster operation and high-availability pages; none is filled.</sub>
 
 <a id="recommendation"></a>
 ## 10. Recommended Approach
 
 1. **Enable backups with a deliberate scope.** Decide on user sessions (GDPR) and log events explicitly, and keep an off-site copy.
 2. **Make the backup mount persistent.** A mount that's missing at boot stops Dynatrace starting on that node.
-3. **Check CMC Home's *Last backup* weekly.** Backup failures are never emailed.
-4. **Keep the restore kit ready:** node inventory, seed choice, matching UID:GID, and the installer version taken from the latest backup.
+3. **Check CMC Home's *Last backup* weekly.** Backup *problems* are never emailed; only a backup disabled for an unsupported configuration is.
+4. **Keep the restore kit ready:** node inventory, seed choice, matching UID:GID, and the installer version taken from the latest backup. After any restore, re-enable backups.
 5. **Let automatic updates run** in a weekly maintenance window, and plan around the two 24-hour waits.
 6. **Stay inside the supported releases.** Treat the "Currently supported" column as the deadline.
 7. **On Premium HA, know your 72 hours.** Stop the Server service in a failed data center, bring it back while it's still inside 72 hours, and treat anything longer as a rebuild.

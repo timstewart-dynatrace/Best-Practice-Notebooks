@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/14/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -57,7 +57,7 @@ Five rules carry most of the weight:
 4. **Set it at source when routing depends on it.** A value written by an OpenPipeline processor arrives after the pipeline was chosen. Source enrichment, central rules, and OpenPipeline *primary Grail tag rules* all apply before routing.
 5. **Check the producers that inherit nothing.** Remote extensions, synthetic monitors and RUM do not pick up host or namespace metadata. Each needs its own configuration, and they are where coverage audits find gaps.
 
-> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Together, they form the metadata foundation of the Dynatrace platform."*, [Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline runs after pipeline routing, so tags derived here can't influence which pipeline a record enters."* **Derived:** rules 3 and 5 are argued in §3 and §5.</sub>
+> <sub>**Sources:** [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Together, they form the metadata foundation of the Dynatrace platform."*, [Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route."* **Derived:** rules 3 and 5 are argued in §3 and §5.</sub>
 
 <a id="what-metadata-means"></a>
 ## 2. What "Metadata" Means on the Platform
@@ -136,7 +136,7 @@ Two rows deserve a closer look, and one node type is an exception.
 > <sub>**Sources:**</sub>
 > - <sub>[Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags) — *"Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags."*</sub>
 > - <sub>[Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags) — *"All rules are evaluated before ingest-preprocessing time, before routing, and apply globally, to any incoming record of any type."*</sub>
-> - <sub>[Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline runs after pipeline routing, so tags derived here can't influence which pipeline a record enters."*</sub>
+> - <sub>[Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline primary Grail tag rules derive or assign primary Grail tags from existing signal fields before pipeline routing."* and *"Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route."*</sub>
 > - <sub>[Enrich OpenTelemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel)</sub>
 > - <sub>[Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — *"SERVICE nodes don't carry primary Grail tags."*</sub>
 > - <sub>**Derived:** the derived-data claim was also checked on `dt.service.request.count` on the validation tenant, 10/06/2026 (§7, last query).</sub>
@@ -152,7 +152,7 @@ Every producer has its own enrichment surface, its own precedence rules and its 
 | Producer | Version floor | Inherited automatically | primary_tags at source | Special fields at source | Where you configure it |
 |---|---|---|---|---|---|
 | OneAgent | OneAgent 1.333+ | Host group, Kubernetes, cloud IDs | Host tags, DT_TAGS | Host tags, DT_TAGS | oneagentctl, installer, central rules |
-| Kubernetes | Operator 1.10+ | Cluster, namespace | Labels, annotations | Labels, annotations | Central rules, metadata.dynatrace.com annotations, DynaKube |
+| Kubernetes | Operator 1.10+ (workload-level annotations: Operator 1.11.0+, ActiveGate 1.349+) | Cluster, namespace | Labels, annotations | Labels, annotations | Central rules, metadata.dynatrace.com annotations, DynaKube |
 | OpenTelemetry | SDK or Collector | Only via OneAgent or Operator | Resource attributes | Resource attributes | OTEL_RESOURCE_ATTRIBUTES, Collector processor |
 | Cloud connections | Dynatrace 1.348+ | Account, region | Via OpenPipeline (for now) | Central configuration | Ingest enrichment configuration |
 | Extensions — local | OneAgent / ActiveGate / EEC 1.343+ | Host fields and tags | Per configuration or endpoint | Host only | Monitoring configuration |
@@ -180,7 +180,7 @@ The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are no
 **Scope precedence.** *"When rules at several scopes target the same field, the narrower-scope rule takes precedence."* A host-group rule overrides an environment-wide default for that host group.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."* and *"Cloud tags are not yet available as input fields for OneAgent."*</sub>
+> - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"Primary Grail field and tag enrichment requires OneAgent version 1.333+."*, *"Cloud tags are not yet available as input fields for OneAgent."* and *"Up to 20 primary tags per host or process; excess tags are silently dropped without a warning."*</sub>
 > - <sub>[Best practices for metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment) — *"OneAgent version 1.337 or later is required for primary_tags.* and dt.security_context enrichment."*</sub>
 > - <sub>[What's new in OneAgent 1.345 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — *"Starting with OneAgent version 1.345, the OS Agent derives primary_tags from host tags (hostautotag.conf) rather than from host properties (hostcustomproperties.conf) at the host level."*</sub>
 > - <sub>[Enrich AWS telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-aws) — *"OneAgent reads those tags from the AWS instance metadata and enriches them as Security context, Cost center, or Cost product, or directly as a Primary tag on all telemetry."*</sub>
@@ -188,13 +188,13 @@ The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are no
 
 ### 5.2 Kubernetes
 
-Three methods, set out in full in **K8S-10**: **central rules** that promote namespace labels and annotations you already maintain; **dedicated `metadata.dynatrace.com/` annotations** on a namespace, workload or pod; and **DynaKube resource attributes** for cluster-wide facts. Annotations accept `primary_tags.<key>` and the three special fields. Within annotations, pod beats workload beats namespace.
+Three methods, set out in full in **K8S-10**: **central rules** that promote namespace labels and annotations you already maintain; **dedicated `metadata.dynatrace.com/` annotations** on a namespace, workload or pod (workload-level annotations need Dynatrace Operator 1.11.0+ and ActiveGate 1.349+; ActiveGate 1.349 had no release notes when checked on 10/15/2026, so treat workload-level annotations as forthcoming and check your versions before relying on them — until then, namespace- and pod-level annotations are the working path); and **DynaKube resource attributes** for cluster-wide facts. Annotations accept `primary_tags.<key>` and the three special fields. Within annotations, pod beats workload beats namespace.
 
 **The grain trap.** Pod-level annotations don't reach Kubernetes platform data. Dynatrace says they *"don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics"* — only logs and spans from the annotated pods. A cost center set per pod will therefore never appear on namespace-level CPU or memory metrics. Put anything that platform metrics must carry at **namespace** level.
 
 **The double-injection trap.** When OneAgent injection and OTLP exporter injection are both active on a pod and set the same key, Dynatrace calls the result undefined. Use distinct keys.
 
-> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
+> <sub>**Sources:** [Enrich Kubernetes telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-k8s) — *"Workload-level: Dynatrace Operator version 1.11.0+ ActiveGate version 1.349+"* and *"When the same key is set at multiple levels, the pod-level value wins over the workload-level value, and the workload-level value wins over the namespace-level value."*, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"Pod annotations don't enrich Kubernetes metrics, events, Smartscape entities, or Prometheus metrics."*</sub>
 
 ### 5.3 OpenTelemetry
 
@@ -281,7 +281,7 @@ Metadata rarely fails with an error. In every row below the data still arrives; 
 |---|---|---|
 | **Host properties after OneAgent 1.345** | A host's `primary_tags.*` disappear on upgrade | Audit `hostcustomproperties.conf` before upgrading (FAQ-02 §3); §7 coverage by host group |
 | **Remote extension inherits nothing** | Extension metrics have no team, cost or security context while host data does | §7 audit filtered to the extension's `metric.key` prefix |
-| **More than 20 tags on an extension configuration** | The extra keys are missing; no warning is shown | Count the keys in each monitoring configuration |
+| **More than 20 primary tags on a host, a process, or an extension monitoring configuration** | The extra keys are missing; no warning is shown | Count the keys per host, per process and per monitoring configuration |
 | **Synthetic tags or security context expected from the location** | Monitor data is untagged or open to everyone | §7 audit, *synthetic events* row |
 | **Private location on ActiveGate before 1.331** | Tagged monitors produce untagged results | Same audit, split by location |
 | **RUM rule set in one scope only** | User events are tagged; RUM metrics, problems and `FRONTEND` nodes are not | Run the audit against `user.events` and against problems for the same frontend |

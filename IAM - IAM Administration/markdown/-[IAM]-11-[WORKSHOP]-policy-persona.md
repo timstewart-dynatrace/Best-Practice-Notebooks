@@ -1,6 +1,6 @@
 # IAM-11: Policy Persona Workshop
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Workshop | **Created:** February 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -257,6 +257,8 @@ A completed schema audit table with a permission level in every cell. This drive
 
 Separate from configuration schemas, determine which **Dynatrace apps and views** each persona should see in the navigation. Hiding apps that a persona does not need reduces cognitive load and prevents accidental changes.
 
+> **Which permissions an app needs:** an app works only when the user also holds the permissions its manifest declares. **IAM-97: IAM Permission Reference** § 2.1 has a snippet that lists them for every app in your allow-list, and its persona matrix is a starting point for Goals 5 and 6.
+
 Walk through the Dynatrace left-hand navigation and fill in this matrix:
 
 | App / View | Standard User | Power User | SRE | Admin |
@@ -378,6 +380,11 @@ ALLOW settings:objects:read, settings:schemas:read;
 // GLOBAL-PowerUser-Config
 // Power Users: read all settings, write only alerting and notifications
 ALLOW settings:objects:read, settings:schemas:read;
+// Latest Dynatrace: notifications are workflows, custom alerts are anomaly detectors
+ALLOW automation:workflows:read, automation:workflows:write, automation:workflows:run;
+ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
+  WHERE settings:schemaId = "builtin:davis.anomaly-detectors";
+// Dynatrace Classic only — these two schemas are not visible in Latest Dynatrace
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
   WHERE settings:schemaId startsWith "builtin:alerting.profile";
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
@@ -385,6 +392,10 @@ ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
 ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
   WHERE settings:schemaGroup = "group:preferences";
 ```
+
+> **Classic-only schemas.** `builtin:alerting.profile` and `builtin:problem.notifications` are *"Replaced by Workflows"* in Latest Dynatrace, so on a Latest environment the two classic statements grant nothing and the workflow and anomaly-detector lines carry the persona. Drop the classic lines once no environment you bind this policy to still runs Dynatrace Classic.
+>
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*, [Anomaly detectors schema table (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-davis-anomaly-detectors).</sub>
 
 ```
 // ORG1-SRE-Config (use templated policy from IAM-10 if multiple orgs)

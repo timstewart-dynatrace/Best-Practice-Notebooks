@@ -1,6 +1,6 @@
 # ORGNZ-01: Introduction to Organizing Data in Grail
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 1 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -44,7 +44,7 @@ Effective data organization in Grail enables:
 | Benefit | Description |
 |---------|-------------|
 | **Query Performance** | Reduce query execution time by limiting data scope |
-| **Cost Control** | Transparent GiB/day pricing with bucket-level attribution |
+| **Cost Control** | Cost allocation by field (`dt.cost.costcenter`, `dt.cost.product`) across signals; retention per bucket |
 | **Access Control** | Fine-grained permissions from bucket to field level |
 | **Compliance** | Meet retention and data residency requirements |
 | **Operational Clarity** | Teams see only relevant data for faster troubleshooting |
@@ -85,9 +85,9 @@ Dynatrace states the ordering plainly: *"At-source enrichment is always preferre
 
 > **Spaces — upcoming; not yet documented as an available feature (status 10/13/2026).** `dt.space` is listed in the published semantic dictionary as an `experimental` permission field: *"The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities."* An earlier pre-release version of the SaaS 1.348 release notes announced space-based data access control in Grail (read 09/24/2026); the current version of those notes no longer lists it, and the IAM policy reference has no `dt.space` policy condition. Treat Spaces as **announced and subject to change** — the direction is a data-access control beside `dt.security_context`, deciding which *records* a team may read — and do not design access control around it until Dynatrace documents it as available on your tenant.
 >
-> The gap this column was first drawn for is still open in what Dynatrace documents. Nothing yet delegates which *configuration objects* a team may own — changing an alert, an SLO or a maintenance window still goes through whoever holds the settings permissions, which is how a central team becomes a queue. Whether spaces will also delegate ownership of configuration objects is **not documented**: as of 10/13/2026 there is no docs page for spaces, and `dt.space` was not in this validation tenant's `dt.semantic_dictionary.fields` — check yours. The field description's "delegation of monitoring responsibilities" is not a documented mechanism for owning configuration objects. Until Spaces is documented — and for configuration ownership in any case — design against what the other columns give you today.
+> The gap this column was first drawn for is only partly closed in what Dynatrace documents. Owner-based access control lets a team own individual settings objects where a schema supports it — in OpenPipeline, *"Owner-based control is available for pipelines and ingest sources, and not routing"*, and *"Owners manage settings objects and can share access with other users or transfer ownership at any time, without relying on centralized administrator intervention."* There is no per-team container for all of a team's configuration, though: where a settings schema has no owner-based control, a change still goes through whoever holds the settings permissions, which is how a central team becomes a queue. Whether spaces will also delegate ownership of configuration objects is **not documented**: as of 10/13/2026 there is no docs page for spaces, and `dt.space` was not in this validation tenant's `dt.semantic_dictionary.fields` — check yours. The field description's "delegation of monitoring responsibilities" is not a documented mechanism for owning configuration objects. Until Spaces is documented — and for configuration ownership in any case — design against what the other columns give you today.
 >
-> <sub>**Sources:** [Permission fields — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission) — *"The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities."* (listed `experimental`). [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release; read 09/24/2026 with a Spaces entry and 10/13/2026 without one. [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — no `dt.space` condition, checked 10/13/2026. **Dictionary:** no row for `dt.space` in the validation tenant under `filter contains(name, "space")`, read 10/13/2026 (control: the same filter returned 23 other fields, including `dt.security_context`).</sub>
+> <sub>**Sources:** [Owner-based access control in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control) — published 01/09/2026, as quoted. [Permission fields — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission) — *"The space associated with the record. Spaces enable granular scoping and delegation of monitoring responsibilities."* (listed `experimental`). [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release; read 09/24/2026 with a Spaces entry and 10/13/2026 without one. [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — no `dt.space` condition, checked 10/13/2026. **Dictionary:** no row for `dt.space` in the validation tenant under `filter contains(name, "space")`, read 10/13/2026 (control: the same filter returned 23 other fields, including `dt.security_context`).</sub>
 
 Sources: [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context), [Primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags).
 
@@ -101,7 +101,7 @@ Buckets are logical storage containers where records are stored:
 | **Scope** | One data type per bucket (logs, metrics, etc.) |
 | **Retention** | 1 day to 10 years per bucket |
 | **Access** | IAM policies can grant bucket-level access |
-| **Cost** | Enable precise cost attribution by team/LOB |
+| **Cost** | Retention, and so storage cost, is set per bucket; attributing cost to teams uses `dt.cost.*` fields, not buckets |
 
 ### 2. Segments (Logical Organization)
 
@@ -131,12 +131,14 @@ Security context enables fine-grained permissions:
 | Need | Solution | Rationale |
 |------|----------|-----------|
 | Different retention periods | **Buckets** | Retention is set per bucket |
-| Cost attribution by team | **Buckets** | Direct GiB/day billing visibility |
+| Cost attribution by team | **Cost allocation fields** (`dt.cost.costcenter`, `dt.cost.product`) | Field-based, so it covers logs, traces, metrics and events without a bucket per team; add a bucket only where retention or access also differ |
 | Broad team isolation | **Buckets** | Simple bucket-level IAM policies |
 | Dynamic data views | **Segments** | Filter across data types at query time |
 | Application-centric views | **Segments** | Group related entities and signals |
 | Record-level access control | **Security Context** | Fine-grained ABAC |
 | Multi-team shared buckets | **Security Context** | Filter records within same bucket |
+
+> <sub>**Sources:** [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — *"Tags applied at the OneAgent, Kubernetes, or telemetry-ingest layer flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*; *"Telemetry enrichment with Cost Allocation attributes is possible for all supported ingest methods, whether logs, traces, metrics, or events."*</sub>
 
 <a id="permission-levels-in-grail"></a>
 ## Permission Levels in Grail
@@ -175,7 +177,7 @@ Use this framework to decide how to organize your data:
 | Question | YES Answer |
 |----------|------------|
 | Need different retention? | Create custom BUCKET |
-| Need cost attribution? | Create dedicated BUCKET per team/LOB |
+| Need cost attribution? | Set dt.cost.* fields (cost allocation) |
 | Need team isolation (simple)? | Use BUCKET-level IAM policies |
 | Need dynamic views across data? | Create SEGMENT |
 | Need fine-grained access? | Configure SECURITY CONTEXT |

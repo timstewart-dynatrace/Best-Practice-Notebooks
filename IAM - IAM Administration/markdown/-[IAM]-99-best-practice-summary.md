@@ -1,6 +1,6 @@
 # IAM-99: Best Practice Summary
 
-> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Notebook:** Bonus Summary | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -80,7 +80,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 ## 3. Policy Design
 
-*Source: IAM-04, IAM-10*
+*Source: IAM-04, IAM-10, IAM-97*
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
@@ -88,6 +88,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 20 | Layer default + custom policies per group | Group gets Standard User (base access) + custom policy (scoped write). Never rely on custom policy alone for read access | **Recommended** | Policies |
 | 21 | Use `${bindParam:...}` templated policies for multi-team scoping | One template policy + N bindings instead of N identical policies. Naming: `tpl-<scope>-<permission>`. Bind them through the API or Terraform: *"Currently, group management does not support binding policies with parameters."* | **Recommended** | Policies |
 | 22 | Apply least privilege: grant minimum required service:resource:action | Each policy statement = `ALLOW <service>:<resource>:<action>`. No wildcards unless role genuinely needs broad access | **Critical** | Policies |
+| 22a | Check what a permission does before you grant it | **IAM-97** lists each *Standard User* permission with its scope, risk and basis, and shows how to list the permissions an app's manifest requests. Copies of *Standard User* for readers usually drop `state-management:user-app-states:delete-all` (resets every user's app state) and `email:emails:send` (no condition limits the recipients) | **Recommended** | Policies |
 | 23 | Use WHERE conditions to scope storage access by security context | `ALLOW storage:logs:read WHERE storage:dt.security_context = "team-name"` | **Critical** | Policies |
 | 24 | Add `storage:bucket-name` conditions only where a bucket already exists for another reason | Lead with `dt.security_context` (#23). Buckets are *"not intended as the primary mechanism for securing or segmenting data access"*; where a bucket exists for retention, cost or compliance, `ALLOW storage:logs:read WHERE storage:bucket-name = "team_logs"` can narrow access to it | **Optional** | Policies |
 | 25 | Combine bucket + security context for defense in depth where #24 applies | `WHERE storage:bucket-name = "team_logs" AND storage:dt.security_context = "team"` | **Optional** | Policies |
@@ -104,7 +105,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 28 | Attach one boundary per policy binding, covering every domain the policy grants | One boundary may combine `storage:dt.security_context IN (...)`, `settings:dt.security_context IN (...)` and `environment:management-zone IN (...)` lines — Dynatrace's own *Kubernetes* boundary example mixes a management-zone and a Grail condition. Do not attach a second boundary to the same binding: *"effective statements are calculated for each boundary separately"*, so a domain one boundary does not mention is left unconditional under it. Splitting Gen2 and Gen3 permissions into separate policies, each bound with its own boundary, is also valid and lets MZ retirement remove the Gen2 binding cleanly | **Critical** | **Boundaries** |
+| 28 | Attach one boundary per policy binding, covering every domain the policy grants | One boundary may combine `storage:dt.security_context IN (...)`, `settings:dt.security_context IN (...)` and `environment:management-zone IN (...)` lines — Dynatrace's own *Kubernetes* boundary example mixes a management-zone and a Grail condition. **Unverified:** the zone line and the `settings:` line both apply to `settings:objects:*`, and Dynatrace does not say whether different condition names on one permission are ANDed — dry-run a pilot user's effective permissions (`effectivepermissions:dry-run`) before relying on the combined shape, or use the split-policy option below. Do not attach a second boundary to the same binding: *"effective statements are calculated for each boundary separately"*, so a domain one boundary does not mention is left unconditional under it. Splitting Gen2 and Gen3 permissions into separate policies, each bound with its own boundary, is also valid and lets MZ retirement remove the Gen2 binding cleanly | **Critical** | **Boundaries** |
 | 29 | Include "shared" context in team boundaries | `storage:dt.security_context IN ("team-a", "shared", "infrastructure")` for infrastructure visibility | **Recommended** | Boundaries |
 | 30 | Measure security context coverage on the data records, not on entities | Count records without `dt.security_context` per table (logs, spans, events) — query in MZ2POL-06 §3. Entity coverage can read 100% while a large share of logs and events carry none, and records without it are invisible to users scoped only by it. Target: >95% per table | **Critical** | Boundaries |
 | 31 | Set security context at the source, not with auto-tags | OneAgent `--set-host-tag="dt.security_context=<value>"`, `DT_TAGS` per process, Kubernetes labels/annotations, OTel resource attributes; OpenPipeline enrichment last. Auto-tagging rules *"have no effect on Smartscape on Grail"* | **Recommended** | Boundaries |
@@ -133,7 +134,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 | 41 | Enforce MFA for all external accounts in the IdP | *"Configuring multi-factor authentication (MFA) is not supported by Dynatrace"* — federate external users through an IdP that enforces MFA (#5) | **Critical** | Lifecycle |
 | 42 | Conduct quarterly access reviews for external users | Review all external user access quarterly. Revoke immediately when engagement ends | **Recommended** | Lifecycle |
 
-> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens).</sub>
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml), [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens), [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens).</sub>
 
 <a id="tokens-and-service-accounts"></a>
 
@@ -162,7 +163,7 @@ This notebook distills every actionable best practice from the IAM series (IAM-0
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
-| 51 | Know each audit trail's retention and export what your framework needs beyond it | Environment audit events on Grail *"are stored for one year"*; account audit log data *"is stored for up to 10 years"*. Retention is not a setting you choose — where a framework requires more (SOX: 7 years, HIPAA: 6 years), export the events to your archive | **Critical** | Audit |
+| 51 | Know each audit trail's retention and export what your framework needs beyond it | Environment audit events on Grail are *"retained for one year"*; account audit log data *"is stored for up to 10 years"*. Retention is not a setting you choose — where a framework requires more (SOX: 7 years, HIPAA: 6 years), export the events to your archive | **Critical** | Audit |
 | 52 | Monitor failed logins and alert on brute-force patterns | Alert: >5 failed logins from same user in 10 min = Warning. >20 failed logins any user in 10 min = Critical | **Critical** | Audit |
 | 53 | Alert on all admin actions outside business hours | Alert: any audit event matching admin activity where hour < 8 or hour > 18 = Warning | **Recommended** | Audit |
 | 54 | Alert on all policy creation, modification, and deletion | Alert: audit events with policy created/modified/deleted = Info severity | **Recommended** | Audit |

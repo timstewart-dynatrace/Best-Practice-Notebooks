@@ -1,6 +1,6 @@
 # FAQ-12: Coming from Another Tool — How Partial Enablement Handicaps Your Dynatrace Coverage
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 12 — Coming from Another Tool: How Partial Enablement Handicaps Your Coverage | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -176,11 +176,11 @@ fetch dt.system.events, from:-24h
 | sort hosts desc
 ```
 
-**Query 2 — log coverage.** How many hosts actually ship logs, compared with your host inventory from Query 1. Count `dt.entity.host`, the identifier Query 1 uses — `host.name` is missing on a share of log records and undercounts:
+**Query 2 — log coverage.** How many hosts actually ship logs, compared with your host inventory from Query 1. Count `dt.entity.host` — on log records it is far better populated than `dt.smartscape.host` (15 against 4 hosts over 24 h on the validation tenant, 10/15/2026) — and not `host.name`, which is missing on a share of log records and undercounts:
 
 ```dql
 // Coverage audit — hosts reporting logs in the last 24 h vs. total log volume.
-// Same host identifier as Query 1 (dt.entity.host), not host.name, which many log records lack.
+// dt.entity.host, not dt.smartscape.host (sparse on logs) or host.name (missing on many records).
 fetch logs, from:-24h
 | summarize hosts_reporting_logs = countDistinctExact(dt.entity.host), log_records = count()
 ```

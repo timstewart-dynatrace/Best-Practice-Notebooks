@@ -528,7 +528,7 @@ Continue to **MZ2POL-07: Validation and Troubleshooting** to:
 <a id="additional-resources"></a>
 ## Additional Resources
 - [Upgrade from RBAC to IAM Policies](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles)
-- [Management Zones Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones)
+- [Management Zones Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones)
 - [Grant Access to Dynatrace](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-platform)
 
 ---

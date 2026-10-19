@@ -1,6 +1,6 @@
 # FAQ-16: How Do I Migrate Classic Entity Selectors to Smartscape?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 16 — Migrating Classic Entity Selectors to Smartscape | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -225,18 +225,22 @@ On the validation tenant this returned 12 edge types, led by `belongs_to` (4,075
 Now the traversal itself:
 
 ```dql
-// Walk from a process to the host it runs on.
+// Walk from processes to the hosts they run on.
 // traverse takes NAMED parameters — edgeTypes:, targetTypes:, direction:
 // Edge types unquoted and lowercase; target types unquoted and uppercase.
+// A containerized process runs_on a CONTAINER, not a HOST — narrow after the walk, not before it.
 smartscapeNodes "PROCESS"
-| limit 1
 | traverse edgeTypes: {runs_on}, targetTypes: {HOST}, direction: forward
+| dedup id
 | fields id, name, type
+| limit 5
 ```
+
+A process's `runs_on` target can be a `HOST` or a `CONTAINER`, which is why the query walks every process and narrows afterwards: picking one process first can legitimately return nothing when that process is containerized.
 
 Chain `traverse` commands for multi-hop walks. `direction:` accepts `forward` or `backward` — an edge that returns nothing in one direction may well return results in the other, so check both before concluding the relationship is absent.
 
-> <sub>**Sources:** both queries executed against a Dynatrace tenant, 07/23/2026 — the edge inventory returned the 12 types and counts quoted; the traversal returned the expected HOST node. The named-parameter form is required: a `traverse runs_on { PROCESS }` block form fails with `PARSE_ERROR`.</sub>
+> <sub>**Sources:** the edge inventory executed against a Dynatrace tenant 07/23/2026 and returned the 12 types and counts quoted. The traversal executed 10/15/2026 in the form above and returned 5 HOST nodes with no notification; the earlier `| limit 1` form returned zero rows, because `runs_on` edges from processes on the validation tenant pointed to HOST (157) and CONTAINER (133). The named-parameter form is required: a `traverse runs_on { PROCESS }` block form fails with `PARSE_ERROR`.</sub>
 
 <a id="things-that-are-fields-not-entities"></a>
 ## 6. Things That Are Fields, Not Entities

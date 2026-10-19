@@ -1,6 +1,6 @@
 # WEBRUM-01: Web RUM Fundamentals
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 1 of 10 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -161,6 +161,18 @@ Every session and user event carries `dt.rum.user_type`. Its documented values a
 
 > <sub>**Sources:** [User events — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events) — *"The user event was produced by a real user."* **Dictionary:** `dt.rum.user_type` (`experimental`, example `real_user`), read 10/05/2026.</sub>
 
+### Tagging this producer — primary Grail tags on RUM data
+
+RUM data *"enters Dynatrace through the rumagent ingest source, which offers no at-source tag configuration."* Ingest enrichment rules don't reach it either, so team, app and security-context values are set with an OpenPipeline **DQL processor** keyed on `frontend.name`:
+
+- **Add it in every RUM scope.** User events, Smartscape events, Events, Davis events, Business events and Timeseries — *"Each scope is independent."* Put the processor in a base pipeline (pipeline groups) so the tag exists before any team pipeline runs.
+- **Guard it.** Match on `isNotNull(frontend.name) and isNull(primary_tags.team)`, so a value set earlier is not overwritten.
+- **User sessions are different.** `frontend.name` is an array there, *"because a web session can span multiple web frontends"*. Match with `arrayContains(frontend.name, "<frontend>")`; a session that crossed two teams' frontends carries both team values, so query it with `matchesValue(primary_tags.team, "<team>")`, not `==`.
+
+The same path applies to mobile apps (OneAgent for Mobile). FAQ-26 § 5.7 has the full pattern.
+
+> <sub>**Sources:** [Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"RUM data from web frontends (RUM JavaScript) and mobile apps (OneAgent for Mobile) enters Dynatrace through the rumagent ingest source, which offers no at-source tag configuration."* and *"Each scope is independent."*; [Apply primary Grail tags across an example AWS estate (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws) — RUM step, User sessions matching condition.</sub>
+
 <a id="exploring-user-sessions"></a>
 
 ## 4. Exploring User Sessions
@@ -174,7 +186,8 @@ Let's start by examining what a user session looks like in Grail. A session repr
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
@@ -188,7 +201,7 @@ Let's start by examining what a user session looks like in Grail. A session repr
 // Explore recent user sessions — sample 10 sessions to see available fields
 fetch user.sessions, from:-1h
 | filter dt.rum.user_type == "real_user"
-| fieldsKeep dt.rum.session.id, primary_tags.application, dt.rum.user_type, duration, user_action_count, error.count, geo.city.name, geo.country.name, os.name, browser.name
+| fieldsKeep dt.rum.session.id, frontend.name, dt.rum.user_type, duration, user_action_count, error.count, geo.city.name, geo.country.name, os.name, browser.name
 | sort duration desc
 | limit 10
 ```
@@ -230,12 +243,14 @@ User actions represent individual interactions within a session. In New RUM each
 
 Let's explore the most common user actions:
 
-> **`dt.rum.application.id` is being deprecated (Semantic Dictionary 1.348, released 08/25/2026).** It moves from `stable` to `deprecated` — it is the field this series groups by throughout, so the change is worth knowing before it surprises you.
+> **`dt.rum.application.id` is being deprecated (Semantic Dictionary 1.348, released 08/25/2026).** It moves from `stable` to `deprecated`. This series used to group by it; the per-application queries now group and filter by `frontend.name`, the stable primary field *"present on every user event and user session"* (corrected 10/14/2026). The change is still worth knowing if your own queries use the ID.
 >
 > **Deprecated is not removed.** Every query in this series keeps working; a deprecated field is a signal about where to point *new* work, not a break. Verified 09/09/2026 on the validation tenant, which is still pre-1.348 and returns `stable` for this field — so nothing has changed there yet.
 >
 > The changelog names no successor. Rather than guess one, check the dictionary when 1.348 reaches your tenant:
 > `fetch dt.semantic_dictionary.fields | filter name == "dt.rum.application.id" | fields name, stability, description`
+
+> <sub>**Sources:** [Enrich RUM telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-rum) — *"This primary field is present on every user event and user session; its value comes from the frontend nodes defined in Dynatrace."* **Dictionary:** `frontend.name` (`stable`), `dt.rum.application.id` (`stable`), read 10/14/2026.</sub>
 
 ```dql
 // Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
@@ -245,14 +260,18 @@ Let's explore the most common user actions:
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
 //   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
+//   LCP / CLS                          -> web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -> frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
 // Top 20 user actions by count in the last hour (user-action events only — most user.events
 // records are requests, which carry no user_action.type)
 fetch user.events, from:-1h
@@ -323,11 +342,12 @@ fetch user.events, from:-24h
 // Sessions and actions per application — high-level overview
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {session_count = count(),
     total_actions = sum(user_action_count),
     total_errors = sum(error.count),
     avg_duration = avg(duration)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | sort session_count desc
 ```
 

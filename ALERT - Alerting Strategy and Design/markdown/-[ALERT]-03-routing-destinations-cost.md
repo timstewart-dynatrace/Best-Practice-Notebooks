@@ -1,6 +1,6 @@
 # ALERT-03: Routing, Destinations, and Cost
 
-> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 10/12/2026
+> **Series:** ALERT — Alerting Strategy and Design | **Notebook:** 03 of 05 | **Created:** June 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -60,7 +60,7 @@ This is the cost decision that the field most often gets wrong.
 
 Routing dimensions — severity, team/ownership, service, time of day — and escalation patterns are covered in depth in WFLOW-04. Two documented routes replace a side-table. Primary Grail tags (`primary_tags.*`) are copied from the alerting events onto the problem, so the trigger filters on them directly; a problem that groups several entities holds the deduplicated union of their values. And since SaaS 1.337, ownership is available on Smartscape nodes, so a workflow can look up the owning team with the Ownership `get_owners` action. That is a second task, which makes the workflow a standard one (§1).
 
-> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* If step 2 filters on severity, a filter that was silently matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep the alerts."* Before routing on severity, check which of your event sources actually **set** one. Until 1.348 reaches your tenant, the defaulting behavior still applies and severity filtering works as described above.
+> **Breaking — SaaS 1.348 (pre-release; staged tenant rollout planned from 09/22/2026): `event.severity` is no longer defaulted.** *"Davis events and problems no longer default `event.severity` to `3`."* If step 2 filters on severity, a filter that was silently matching the default stops matching once 1.348 reaches your tenant: *"Workflows with a Davis event/problem trigger that filter on `event.severity=3` expecting it to be defaulted, might need to be changed to filter for `Any` severity to keep being triggered."* Before routing on severity, check which of your event sources actually **set** one. Until 1.348 reaches your tenant, the defaulting behavior still applies and severity filtering works as described above.
 
 > <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"Enable Wait for root cause analysis. Without this option enabled, the workflow can trigger on a problem whose root cause and affected entities are still being assembled."* *"You can filter and template on them directly on the problem"*; *"The problem carries the deduplicated union."* [SaaS 1.337 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-337) — *"Ownership information is now available in Smartscape and for Smartscape nodes."* [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — pre-release, read 09/24/2026.</sub>
 

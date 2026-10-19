@@ -1,6 +1,6 @@
 # SL2DT-99: Summary & Runbook Index
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 11 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -34,18 +34,19 @@ This notebook is intentionally terse. Each section points to the authoritative d
 <a id="framework"></a>
 ## 1. Migration Framework Summary
 
-Sumo-to-Dynatrace in 9 steps + summary:
+Sumo-to-Dynatrace in 9 steps + a parallel metrics track + summary:
 
 ```
 01 Overview         → strategy, mental model, anti-patterns
 02 Inventory        → audit-log-driven cut scope
 03 Ingest           → OneAgent + OTel + OpenPipeline + buckets
 04 Translate        → SumoQL → DQL, confidence-scored
-05 Monitors         → Dynatrace Intelligence / Workflow / Metric Event decisions
+05 Monitors         → custom alert / Workflow / Metric Event decisions
 06 Dashboards       → Notebooks (analytical) + Dashboards (operational)
 07 Governance       → Platform IAM, bucket-scoped policies
 08 Automation       → Terraform + Monaco + CI/CD
 09 Cutover          → 3-tier validation, decommission
+10 Metrics          → Telegraf / metric sources (parallel track with 02–06)
 99 Summary          → this notebook
 ```
 
@@ -67,7 +68,7 @@ Target outcomes:
 | 02 | Assessment & Inventory | Before any hands-on work | `inventory/*.json`, `cut-scope.md`, `taxonomy-map.md` |
 | 03 | Log Ingest Architecture | Wave 1 | Bucket configs, OpenPipeline pipelines, FER conversions |
 | 04 | SumoQL → DQL Translation | Wave 1 / 2 | `translations/all-queries.csv` |
-| 05 | Monitor/Alert Conversion | Wave 2 | Dynatrace Intelligence detectors, Workflows, Metric Events |
+| 05 | Monitor/Alert Conversion | Wave 2 | Custom alerts (anomaly detectors), Workflows, Metric Events |
 | 06 | Dashboard Conversion | Wave 3 / 4 | Notebook + Dashboard JSON |
 | 07 | User Governance & Access | Wave 1 (do early!) | IAM groups/policies/bindings |
 | 08 | Automation & GitOps | Wave 1 ongoing | Terraform + Monaco configs, CI pipelines |
@@ -296,8 +297,8 @@ For environments where SVG doesn't render
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
-- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
-- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows)
 
 **Visualization**
 - [Dashboards and notebooks (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks)
@@ -306,7 +307,7 @@ For environments where SVG doesn't render
 **Access and tokens**
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
 - [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
 - [API authentication (DT docs)](https://docs.dynatrace.com/docs/shortlink/api-authentication)
 

@@ -1,6 +1,6 @@
 # OPLOGS-05: Querying & Parsing Logs
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 5 of 8 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## DQL Fundamentals and DPL Pattern Matching
 This notebook covers DQL query syntax, filtering, string matching, and DPL (Dynatrace Pattern Language) for extracting structured data from logs.
@@ -261,9 +261,12 @@ fetch logs, from: now() - 1h
 ```dql
 // Parse key-value pairs
 // Example: "user=john action=login status=success"
+// parseAll returns every user= value in the line (parse would return only one);
+// the !<< lookbehind stops "superuser=root" or "service_user=x" matching as user=
 fetch logs, from: now() - 1h
-| parse content, "DATA? 'user=' [A-Za-z0-9._@-]+:username"
-| filter isNotNull(username)
+| fieldsAdd usernames = parseAll(content, "!<<[A-Za-z0-9_] 'user=' [A-Za-z0-9._@-]+:username")
+| filter arraySize(usernames) > 0
+| expand username = usernames
 | summarize {count = count()}, by: {username}
 | sort count desc
 | limit 10
@@ -273,6 +276,8 @@ fetch logs, from: now() - 1h
 // Parse IP addresses from logs
 fetch logs, from: now() - 1h
 // parseAll finds every IP anywhere in the line; parse would only match one at the very start
+// IPADDR also matches IPv4-shaped version strings (rv:1.9.2.20) and IPv6 fragments (::0000);
+// OPLOGS-08 §3 shows a bounded IPv4 pattern for classification
 | fieldsAdd client_ip = parseAll(content, "IPADDR:ip")
 | filter arraySize(client_ip) > 0
 | expand client_ip
@@ -342,10 +347,13 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Use coalesce for default values
+// coalesce returns the first non-null argument: the workload name, else the namespace, else "UNKNOWN".
+// (coalesce(loglevel, …) would never fall back: loglevel is never null, and missing levels arrive as "NONE".)
 fetch logs, from: now() - 1h
-| fieldsAdd effective_level = coalesce(loglevel, status, "UNKNOWN")
-| summarize {count = count()}, by: {effective_level}
+| fieldsAdd owner = coalesce(k8s.workload.name, k8s.namespace.name, "UNKNOWN")
+| summarize {count = count()}, by: {owner}
 | sort count desc
+| limit 15
 ```
 
 <a id="advanced-parsing-examples"></a>
@@ -384,12 +392,13 @@ fetch logs, from: now() - 1h
 
 ```dql
 // Parse alternative formats
-// Matches "user=john" or "username=john" anywhere in the line;
+// Matches "user=john" or "username=john" anywhere in the line, every occurrence (parseAll);
 // the character class stops at the first character outside it, so "user=jdoe," yields "jdoe"
-// (a trailing LD would take the rest of the line)
+// (a trailing LD would take the rest of the line), and the !<< lookbehind skips "superuser=root"
 fetch logs, from: now() - 1h
-| parse content, "DATA? ('user='|'username=') [A-Za-z0-9._@-]+:user_value"
-| filter isNotNull(user_value)
+| fieldsAdd user_values = parseAll(content, "!<<[A-Za-z0-9_] ('user='|'username=') [A-Za-z0-9._@-]+:user_value")
+| filter arraySize(user_values) > 0
+| expand user_value = user_values
 | summarize {count = count()}, by: {user_value}
 | sort count desc
 | limit 10

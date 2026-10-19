@@ -1,6 +1,6 @@
 # OPIPE-04: Cardinality Management
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 4 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Controlling Dimension Explosion Across All Scopes
 
@@ -43,7 +43,7 @@ For bucket-level cost controls, see **OPLOGS-04: Buckets & Data Governance**. Fo
 
 ### A Simple Example
 
-A metric with dimensions `service.name` (50 services) and `http.route` (200 routes) produces:
+A metric with dimensions `dt.service.name` (50 services) and `http.route` (200 routes) produces:
 
 ```
 50 x 200 = 10,000 unique time series
@@ -84,7 +84,7 @@ That is far past the 1 million per-metric dimension limit Metrics Classic enforc
 | VERY HIGH | http.url, http.target, user_id, db.statement | user_id, client_ip, request URL | AVOID — normalize to template |
 | HIGH | span.name, db.collection, k8s.pod.name | k8s.pod.name, container_id, log.source (custom) | CAUTION — monitor over time |
 | MEDIUM | http.route, status_code, db.system | dt.entity.host, k8s.deployment.name | OK — good dimension |
-| LOW | service.name, span.kind, deployment.environment | log.source (managed), k8s.namespace.name | IDEAL — always safe |
+| LOW | dt.service.name, span.kind, deployment.environment | log.source (managed), k8s.namespace.name | IDEAL — always safe |
 -->
 
 Different scopes have different cardinality offenders. Know which fields to watch:
@@ -98,7 +98,7 @@ Different scopes have different cardinality offenders. Know which fields to watc
 | `http.url` | Unique per request (includes query params) | **Very High** |
 | `span.name` | Hundreds to thousands | **High** if operations include dynamic segments |
 | `http.route` | Tens to hundreds | **Medium** — usually safe |
-| `service.name` | Tens | **Low** — always safe |
+| `dt.service.name` | Tens | **Low** — always safe |
 
 ### Logs
 
@@ -252,8 +252,8 @@ When you need to track unique entities (users, sessions) without storing identif
 
 | Original Field | Hashed Field | Use Case |
 |---------------|-------------|----------|
-| `user.email` | `sha256(user.email)` | Count unique users without storing the cleartext address |
-| `client.ip` | `sha256(client.ip)` | Track unique clients without storing the cleartext IP |
+| `user.email` | `hashSha256(user.email)` | Count unique users without storing the cleartext address |
+| `client.ip` | `hashSha256(client.ip)` | Track unique clients without storing the cleartext IP |
 
 ### Trade-offs
 
@@ -304,7 +304,7 @@ The upside is real — Dynatrace notes conforming queries *"benefit from improve
 // Estimate cardinality for a proposed metric extraction
 // Example: request count by dt.service.name x http.route x status_code
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter span.kind == "server" and isNotNull(endpoint.name)
 | summarize unique_combos = count(), by:{dt.service.name, http.route, http.response.status_code}
 | summarize total_cardinality = count()
 | fieldsAdd assessment = if(total_cardinality < 1000, then: "OK: Low cardinality",

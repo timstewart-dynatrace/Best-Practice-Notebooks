@@ -1,6 +1,6 @@
 # OPMIG-99: Best Practice Summary
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 10 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 Definitive best practice settings for migrating from classic logs to OpenPipeline. Each entry specifies the exact configuration.
 
@@ -39,7 +39,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Score sources with weighted priority matrix | Volume 25%, Cost Savings 25%, Security Risk 25%, Parsing Complexity 10%, Business Criticality 15% | Critical |
 | Execute migration in 4 waves | Wave 1 (weeks 1-2): critical/security. Wave 2 (3-4): high-volume. Wave 3 (5-6): standard prod. Wave 4 (7+): dev/test | Critical |
 | Keep same API endpoint | `/api/v2/logs/ingest` works identically for Classic and OpenPipeline — no code changes | Recommended |
-| Maintain `logs.ingest` token scope | Add `metrics.ingest` only if using metric extraction | Critical |
+| Maintain `logs.ingest` token scope | Metric and event extraction run inside the pipeline and need no extra ingest scope; configuring pipelines needs `settings:read` / `settings:write` | Critical |
 | Backup pipeline config before every change | Settings API: `GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines` (and `builtin:openpipeline.logs.routing`) — store timestamped JSON backups | Critical |
 
 <a id="pipeline-configuration"></a>
@@ -107,7 +107,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
 | Rate metric | Counter: `log.api.request_rate` with dimensions `method`, `path`, `status_category`, `service.name` | Recommended |
-| Error metric | Counter: `log.api.request_errors` matching `status >= 500 OR loglevel == "ERROR"` | Recommended |
+| Error metric | Counter: `log.api.request_errors` matching `http.response.status_code >= 500 OR status == "ERROR"` (log `status` is the severity group, so it also counts `SEVERE`, `CRITICAL` and `FATAL`) | Recommended |
 | Duration metric | Value: `log.api.response_time_ms` with dimensions `service.name`, `endpoint`, `status_category` | Recommended |
 | Metric naming convention | `<source>.<domain>.<metric>.<unit>` (e.g., `log.api.response_time_ms`) | Recommended |
 | Max 5-7 dimensions per metric | Never use `user_id`, `request_id`, `session_id`, `client_ip` as dimensions | Critical |
@@ -157,7 +157,7 @@ Definitive best practice settings for migrating from classic logs to OpenPipelin
 | Check log source health | `summarize last_seen = max(timestamp), by:{log.source}` — sources silent >30 min need investigation | Recommended |
 | Combine DPL alternatives for performance | One `replacePattern` with `('a'\|'b'\|'c')` instead of chained `replacePattern` calls — fewer passes per record (only when one replacement text fits all) | Recommended |
 | Drop processors before parse processors | Dropped records are never parsed — the saving is your dropped share | Critical |
-| Never drop ERROR/FATAL in production | Safeguard: `loglevel == "DEBUG" AND NOT (loglevel == "ERROR" OR loglevel == "FATAL")` | Critical |
+| Never drop ERROR/FATAL in production | Safeguard: append `AND NOT (status == "ERROR")` to every content- or source-based drop condition — e.g. `matchesValue(content, "*/health*") AND NOT (status == "ERROR")`. `status == "ERROR"` covers `ERROR`, `SEVERE`, `CRITICAL`, `ALERT`, `FATAL` and `EMERGENCY` | Critical |
 | Test changes in staging first | Backup → deploy staging → validate → document → rollback plan → production | Critical |
 
 <a id="data-limits-constraints"></a>

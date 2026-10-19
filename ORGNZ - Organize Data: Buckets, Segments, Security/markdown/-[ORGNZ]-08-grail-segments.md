@@ -222,8 +222,9 @@ Simulate a host-group-based segment filter on log data:
 
 ```dql
 // Filter logs by host group — simulates a segment filter condition on log data.
-// `dt.host_group.id` is a Primary Grail Field that propagates across all signal types,
-// so it is the canonical attribute to anchor a host-group-based segment on.
+// `dt.host_group.id` is a Primary Grail Field: Dynatrace enriches it on every signal from a host
+// that has a host group, so it is the canonical attribute to anchor a host-group-based segment on.
+// Coverage on derived records (problems) can be far lower than on logs (ORGNZ-10 §3).
 // The legacy `host.group` field is not populated on modern OneAgents and returns zero rows.
 fetch logs, from:-1h
 | filter isNotNull(dt.host_group.id)

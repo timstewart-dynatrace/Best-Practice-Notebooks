@@ -1,6 +1,6 @@
 # BIZEV-02: Instrumentation
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 2 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -60,10 +60,11 @@ When a capture rule matches, OneAgent creates a business event with:
 > **Tip:** Start with auto-detection for existing web applications, then add custom instrumentation for backend processes that don't have HTTP endpoints.
 
 ```dql
-// Check which business events are being captured by OneAgent auto-detection
-// Events from OneAgent typically have the application name as event.provider
+// Check which business events your OneAgent capture rules are producing.
+// A capture rule sets event.provider to the value you enter in the rule (for example
+// www.easytrade.com) — list the providers from your own rules here.
 fetch bizevents, from:-24h
-| filter isNotNull(dt.entity.service)
+| filter in(event.provider, {"www.easytrade.com"})
 | summarize event_count = count(), by:{event.type, event.provider}
 | sort event_count desc
 | limit 15

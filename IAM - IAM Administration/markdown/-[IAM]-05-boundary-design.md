@@ -1,6 +1,6 @@
 # IAM-05: Boundary Design Patterns
 
-> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 10/14/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 5 of 12 | **Created:** January 2026 | **Last Updated:** 10/19/2026
 
 ## Controlling Data Visibility with Boundaries
 Boundaries determine **what data** users can see. While policies control actions, boundaries filter visibility. This notebook covers boundary syntax, patterns, and implementation strategies, including how to scope access to lookup files in Grail.
@@ -136,6 +136,8 @@ storage:dt.security_context  IN ("checkout");
 settings:dt.security_context IN ("checkout");
 environment:management-zone  IN ("checkout");
 ```
+
+> **Unverified — dry-run this shape before relying on it.** `settings:objects:read` and `settings:objects:write` accept both `environment:management-zone` and `settings:dt.security_context`, so two lines of this boundary land on the same settings statements. The boundary page defines what *repeated* condition names do — *"each policy statement is multiplied by such conditions"* — but not what two *different* names on one permission do. If they are ANDed, settings access needs the zone and the security context at once, and stops altogether when the scoped-settings change makes zone conditions never match. Resolve a pilot user's settings permissions with `POST /iam/resolution/{level-type}/{level-id}/effectivepermissions:dry-run` (bindings with their boundaries, before you apply them), or use the two-binding shape below, which keeps the zone line away from the settings statements.
 
 The `environment:management-zone` line (and the `environment:roles:viewer` statement it scopes) is transitional: delete both when classic pages are retired, without rebinding anything. `storage:buckets:read` is *"Required additionally to a table permission"*; it takes `storage:bucket-name` / `storage:table-name` conditions rather than `dt.security_context`, so the table permissions carry the record scoping.
 
@@ -423,15 +425,21 @@ These tags become first-class Grail attributes available for:
 
 ### Assigning Security Context
 
-Security context is set via (modern approaches):
+Dynatrace says to *"Set the dt.security_context field as early as possible in the data pipeline, ideally at the source"*, and lists three patterns in order of preference:
 
-1. **Entity Enrichment rules** - Automatic based on entity properties
-2. **Host properties** - Set on hosts and inherited by services
-3. **Primary Grail fields/tags** - First-class tags for Grail data
-4. **OneAgent group** - Inherited from deployment
-5. **Log attributes** - Set during OpenPipeline ingestion
+1. **At the source (preferred)** — where the telemetry is generated:
+   - **OneAgent host tag** `dt.security_context=<value>`, set at installation or via Deployment Status; it applies to all telemetry from that host.
+   - **`DT_TAGS` environment variable** — *"For process-level granularity on shared infrastructure, add DT_TAGS:"dt.security_context=<value>" as an environment variable on the process."*
+   - **Kubernetes namespace labels or annotations**, through Kubernetes metadata enrichment; applies to all telemetry from that namespace.
+   - **OpenTelemetry resource attribute** `dt.security_context`, in `OTEL_RESOURCE_ATTRIBUTES` or the OpenTelemetry Collector.
+2. **Central configuration** — for data collected by OneAgent, cloud integrations or Dynatrace Operator, *"configure the dt.security_context field in the central primary Grail tag configuration under Settings > Collect and capture."* There you can map a cloud or Kubernetes tag or label, pick a host, process, Kubernetes or cloud attribute (with an optional regex extractor), or set a fixed value for a scope such as an environment, Kubernetes cluster or host group, optionally restricted by a filter.
+3. **OpenPipeline** — where the value must be computed, *"define dt.security_context in OpenPipeline using dedicated Set security context processors"* (available for spans, logs and metrics).
 
-> **Note:** Auto-tagging is a legacy approach. Prefer Entity Enrichment and Primary Grail Fields for new implementations.
+Set at the source, the context is there before pipeline routing, and once set on a signal it *"propagates to all derived data, including Davis events and problems."*
+
+> **Note:** Auto-tagging does not set it. *Automatically applied tags* (`builtin:tags.auto-tagging`) are listed as **Removed** in Latest Dynatrace.
+>
+> <sub>**Sources:** [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"Set the dt.security_context field as early as possible in the data pipeline, ideally at the source."*; [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
 
 ### Security Context Design Patterns
 
@@ -815,19 +823,13 @@ settings:dt.security_context IN ("platform", "shared");
 environment:management-zone  IN ("platform", "shared");   # transitional — delete at MZ retirement
 ```
 
-### Entity Enrichment for Multi-Tenancy
+### Assigning Tenant Context
 
-Use Entity Enrichment rules (Settings > Entity Enrichment) to assign tenant context:
+Use the order in Section 4. When each tenant already has its own host group, the central primary Grail tag configuration (**Settings > Collect and capture**) can *"Set a fixed value for all signals within a given scope (environment, Kubernetes cluster, host group)"* — one value per tenant host group, with no per-host work. Where tenants share hosts, set the context per process with `DT_TAGS`, or per Kubernetes namespace with labels or annotations.
 
-```yaml
-# Entity Enrichment rule based on host group
-Rule: Assign security context from host group
-Entity Type: Host
-Condition: Host group name contains "tenant-"
-Action: Set dt.security_context = {hostGroup.name}
-```
+> <sub>**Sources:** [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context) — *"Set a fixed value for all signals within a given scope (environment, Kubernetes cluster, host group)."*</sub>
 
-Alternatively, set the context on the OneAgent at deployment. The June-2026 [tags hub](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) documents the host-tag form for `dt.*` primary fields (the older `--set-host-property` form remains documented in the oneagentctl reference):
+You can also set the context on the OneAgent at deployment. The June-2026 [tags hub](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) documents the host-tag form for `dt.*` primary fields (the older `--set-host-property` form remains documented in the oneagentctl reference):
 
 ```bash
 # Set via OneAgent installer / oneagentctl (tags-hub form)
@@ -930,7 +932,7 @@ Before moving on, ensure you have:
 - [ ] Understood the three-domain model
 - [ ] Designed your security context strategy
 - [ ] Created boundaries for each team/group
-- [ ] Configured entity enrichment for context assignment
+- [ ] Set `dt.security_context` at the source (or via central configuration / OpenPipeline) on every signal
 - [ ] Tested boundaries with real users
 - [ ] Verified no entities are missing context
 - [ ] Scoped lookup files by folder, if teams upload them (Pattern 8)

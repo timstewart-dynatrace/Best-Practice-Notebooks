@@ -1,6 +1,6 @@
 # SYNTH-99: Best Practice Summary
 
-> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** SYNTH — Synthetic Monitoring | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -255,6 +255,7 @@ Set definitive thresholds for synthetic response time.
 | Check the private-location logs when tests fail | `/var/log/dynatrace/synthetic` (synthetic) and `/var/log/dynatrace/gateway` (ActiveGate) | Critical |
 | Test network connectivity from ActiveGate to targets with `curl -v` and `nslookup` before configuring monitors | Pre-check: verify DNS resolution and HTTPS connectivity | Critical |
 | Use `fetch dt.synthetic.events` (event.type `*_monitor_execution`, success via `result.state`) as the primary data source for DQL analysis; use `timeseries dt.synthetic.*` metrics for trends | Data source: `dt.synthetic.events` + synthetic metrics, not `bizevents` | Recommended |
+| Set primary Grail tags on every monitor | Edit > Primary Grail tags (or `primaryGrailTags` in the API); max 10 per monitor; private locations need ActiveGate 1.331+ — nothing is inherited from locations | Recommended |
 
 ---
 

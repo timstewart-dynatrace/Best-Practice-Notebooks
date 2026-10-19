@@ -1,6 +1,6 @@
 # NRLC-04: Alert & Workflow Migration
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 4 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -134,8 +134,8 @@ Metric Event (the detection)
                     │ trigger: detected problem event
                     │ filter: severity, entity attributes, tags, bucket
                     └── Tasks (run in sequence or parallel):
-                          │ send_slack / send_email / send_pagerduty
-                          │ send_webhook / run_javascript
+                          │ Slack Send message / Send email / PagerDuty Send event
+                          │ HTTP Request / Run JavaScript
                           └── trigger downstream automation
 ```
 
@@ -159,7 +159,7 @@ The `AlertTransformer` creates one Workflow per NR policy:
 - **Tasks:** one per original notification channel (e.g., a policy with Email + Slack + PagerDuty becomes one Workflow with three tasks)
 - **Conditional branches:** for `PER_CONDITION` policies, separate trigger filters per condition; for `PER_POLICY` grouping, a single trigger covers all conditions
 
-Delivery targets are deduplicated at the **task** level, not at a separate Notification-object level. Two Workflows that both send to the same Slack channel each reference the channel directly in their respective `send_slack` task.
+Delivery targets are deduplicated at the **task** level, not at a separate Notification-object level. Two Workflows that both send to the same Slack channel each name that channel in their own Slack *Send message* task (`dynatrace.slack:slack-send-message`); the bot token behind it lives once, in the Slack connection both tasks reference (§6).
 
 <a id="nrql-conditions"></a>
 ## 4. NRQL Condition → Metric Event
@@ -184,8 +184,8 @@ NR NRQL Condition
 |----|----|
 | `thresholdType: STATIC` + `operator: ABOVE` | `monitoringStrategy: STATIC_THRESHOLD` + `alertCondition: ABOVE` |
 | `thresholdType: BASELINE` | DT auto-adaptive baseline (recommended; configures Dynatrace Intelligence) |
-| `terms.priority: CRITICAL` | `eventType: ERROR` |
-| `terms.priority: WARNING` | `eventType: INFO` (with severity tag) |
+| `terms.priority: CRITICAL` | The detector's threshold, with event template `event.type: CUSTOM_ALERT` — the engine emits `CUSTOM_ALERT` for every migrated detector (`alert_transformer.py`, `main` branch, read 10/14/2026) |
+| `terms.priority: WARNING` | Used for the threshold **only when the condition has no CRITICAL term**; otherwise the warning term is not migrated. If the NR warning paged someone, add a second detector for it by hand with `CUSTOM_ALERT` and route it in the workflow. Do not give it an info event type to mark it as "lower severity": *"An info event never opens a problem on its own"*, so no problem-triggered workflow ever sees it |
 
 **Duration mapping:**
 
@@ -215,7 +215,7 @@ This lands at exactly one point in the pipeline above: the `by:{}` clause the co
 
 **Audit migrated detectors before the dual-alert window (§7) closes.** An unattributed detector passes NR-parity testing cleanly — the alerts do fire, on time, at the right threshold — and the damage only shows up afterwards, by which point the parallel run is over and the NR side is gone. Watch for the right symptom: **not a problem-count spike, but problems whose blast radius makes no sense** — a single problem naming unrelated services with no usable root cause, because the mis-attributed alerts landed on the same environment entity. Measured on a validation tenant over 7 days on 07/31/2026, **36,763 of 251,792 Davis events (14.6%) carried no correlation key**. Re-measured on the same tenant over 7 days on 08/11/2026, the events that had landed on the environment entity ran at **583 firings per correlation across a single entity** — 28,004 firings collapsed into 48 correlations — against **1.1 firings per correlation** for the 192,199 events that named a real entity, and one migrated detector fired 8,005 times into a **single** correlation. AIOPS-02 §8 carries the query that finds them.
 
-> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — "The same Smartscape entity rule groups all events that share the same `dt.smartscape_source.id` field value.", [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." (Events API v2 only). **Derived:** the three-row attribution table maps the documented same-entity grouping rule onto the `FACET` → `by:{}` compilation step this section already describes; its environment-entity outcome for unattributed detectors is the dated tenant observation above, not a documented contract.</sub>
+> <sub>**Sources:** [Avoid overalerting (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting) — "The same Smartscape entity rule groups all events that share the same `dt.smartscape_source.id` field value.", [Ingest an event — POST /api/v2/events/ingest (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event) — "If not set, the event is associated with the environment (`dt.entity.environment`) entity." (Events API v2 only), [Event categories (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis/event-analysis-and-correlation/event-categories) — *"Informational Davis events aren't sent out as alerts and no problems are opened"*. **Derived:** the three-row attribution table maps the documented same-entity grouping rule onto the `FACET` → `by:{}` compilation step this section already describes; its environment-entity outcome for unattributed detectors is the dated tenant observation above, not a documented contract.</sub>
 
 <a id="apm-conditions"></a>
 ## 5. APM / Non-NRQL Condition → Dynatrace Intelligence Adaptive Baseline
@@ -246,18 +246,20 @@ In Gen3, notifications are not standalone objects — they are **tasks inside a 
 
 | NR Channel | Workflow Task | Migration Notes |
 |-----------|---------------|------------------|
-| Email | `send_email` task | Email addresses copy directly into task config |
-| Slack | `send_slack` task | Webhook URL stored in task; **must be reissued** (NR's URL won't work) |
-| PagerDuty | `send_pagerduty` task | Service Integration Key stored in task; **must be regenerated** |
-| OpsGenie | `send_opsgenie` task | API key in task config; **reissue required** |
-| ServiceNow | `send_servicenow` task or `http_request` | Connector configuration replicated |
-| Webhook | `http_request` task | URL + headers + payload template migrate; **secrets do not** |
-| User (channel) | `send_email` task | Resolved to user's email |
-| xMatters | `http_request` task | xMatters webhook URL |
+| Email | Email: *Send email* (`dynatrace.email:send-email`) | Email addresses copy directly into task config |
+| Slack | Slack Connector: *Send message* (`dynatrace.slack:slack-send-message`) | The task references a Slack **connection** holding a bot OAuth token — not a webhook URL. Create the connection; NR's Slack webhook is not reused |
+| PagerDuty | PagerDuty Connector: *Send event* | The routing (integration) key lives in a PagerDuty **Events connection**, not in the task |
+| OpsGenie | *HTTP Request* (`dynatrace.automations:http-function`), or the Jira Service Management Connector | No dedicated Opsgenie connector; the API key goes into the request — **reissue required** |
+| ServiceNow | ServiceNow Connector (e.g. `dynatrace.servicenow:snow-create-incident`) | Instance credentials live in a ServiceNow connection |
+| Webhook | *HTTP Request* (`dynatrace.automations:http-function`) | URL + headers + payload template migrate; **secrets do not** |
+| User (channel) | Email: *Send email* | Resolved to user's email |
+| xMatters | *HTTP Request* (`dynatrace.automations:http-function`) | No dedicated connector; xMatters webhook URL |
 
-**Critical:** every task that uses a secret (token, webhook URL, API key) **must have its secret rotated and re-entered** in the Workflow task config or in the Dynatrace credentials vault. The transformer can't migrate secrets — it emits placeholder values that must be filled in before the Workflow is enabled.
+**Critical:** every task that uses a secret (token, webhook URL, API key) **must have its secret rotated and re-entered** — in the app's connection for Slack, PagerDuty, ServiceNow and Microsoft Teams, or in the task config / Dynatrace credentials vault for *HTTP Request* tasks. The transformer can't migrate secrets — it emits placeholder values that must be filled in before the Workflow is enabled.
 
 **Workflow task ordering:** tasks within a Workflow run in declared order by default (or in parallel if explicitly configured). Migration places critical tasks (PagerDuty) first so they fire even if a later task (e.g., a downstream automation script) fails.
+
+> <sub>**Sources:** [Upgrade from Classic problem notification to simple workflows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — classic integration → workflow connector mapping, incl. Opsgenie and xMatters, [Slack Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup) — *"Your Dynatrace Slack Connector requires an OAuth token to authorize sending messages to Slack."*, [PagerDuty Connector setup (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup), [Dynatrace workflow samples — AGENTS.md (Dynatrace GitHub)](https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/AGENTS.md) — action identifiers `dynatrace.email:send-email`, `dynatrace.slack:slack-send-message`, `dynatrace.automations:http-function`.</sub>
 
 <a id="dual-alert"></a>
 ## 7. Dual-Alert Window Pattern
@@ -290,9 +292,18 @@ Count distinct problems, not records. `fetch events | filter event.kind == "DAVI
 
 | NR Concept | DT Equivalent | Engine Output |
 |-----------|--------------|---------------|
-| Mute Rule (NRQL-based) | `builtin:deployment.maintenance` with filter expression | Direct translation |
-| Scheduled Maintenance Window | `builtin:deployment.maintenance` (scheduled) | Direct |
-| Recurring Window | Recurrence schedule | Direct |
+| Mute Rule (NRQL-based) | Maintenance window scoped by a DQL filter (`builtin:maintenance-windows`) | Envelope + workflow filter — see the schema note below |
+| Scheduled Maintenance Window | `builtin:maintenance-windows`, one-time (`once`) trigger | Envelope — see the schema note below |
+| Recurring Window | `builtin:maintenance-windows`, recurring (`time`) trigger with a recurrence rule | Envelope — see the schema note below |
+
+> **Schema note — fix the envelope before import.** The transformer writes its envelopes with `schemaId: builtin:deployment.maintenance` (`maintenance_window_transformer.py`, `main` branch, read 10/14/2026). No such schema exists: the Settings schema list names two maintenance-window schemas and neither is that one. Retarget each envelope by hand:
+>
+> - **`builtin:maintenance-windows`** — the Latest Dynatrace maintenance windows. Scope is a DQL filter: *"Window scope uses DQL matcher filter criteria on Grail primary fields and tags."* Problems are still detected — *"Dynatrace always detects problems."* — so the mute happens in the workflow: add `maintenance.is_under_maintenance == false` to the **Problem trigger** filter. The engine's `suppression: DETECT_PROBLEMS_DONT_ALERT` field belongs to the classic schema and has no counterpart here. Windows cannot be back-dated: *"Retroactive maintenance windows are not supported."*
+> - **`builtin:alerting.maintenance-window`** — classic maintenance windows, scoped by entity type, entity, entity tags or management zones, with once / daily / weekly / monthly recurrence. Use it only on a tenant still running classic alerting.
+>
+> **Forthcoming / rolling out (SaaS 1.348, staged tenant rollout from 09/22/2026):** *"During an active Maintenance Window, scheduled executions of selected synthetic monitors are automatically skipped."* That covers NR mute rules written against synthetic conditions — verify the feature has reached your tenant before relying on it; until then, synthetic monitors keep running during a window.
+
+> <sub>**Sources:** [Settings API schemas (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas), [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows), [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window), [Upgrade from Classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows), [SaaS 1.348 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348).</sub>
 
 Mute rules that filter on metric values (e.g., "mute when load < 10") translate — the transformer converts them to `builtin:davis.anomaly-detectors` with an embedded filter expression rather than a separate maintenance window, because DT maintenance windows scope by entity not by signal value.
 
@@ -303,7 +314,7 @@ Alert migration is the highest-risk phase: errors here wake people up. Post-Phas
 1. Auto-convert NRQL + APM + non-NRQL + baseline + outlier conditions (engine handles all via Phase 17 transformers)
 2. Review imported detectors — Dynatrace Intelligence adaptive behavior differs from NR fixed thresholds
 3. Recreate notification channel secrets manually (never auto-migrated)
-4. Auto-convert mute rules + maintenance windows (Phase 17)
+4. Auto-convert mute rules + maintenance windows (Phase 17), then retarget each envelope to a real maintenance-window schema and add the workflow maintenance filter (§8)
 5. Run dual-alert for 1–2 weeks before silencing NR — use `--canary <pct>` for production tenants
 6. Cut over one policy at a time
 

@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -99,7 +99,7 @@ Keep the signal flowing but adjust a parameter. Examples:
 - Narrow a dashboard tile's default time range from 30 days to 24 hours
 - Reduce session retention for a RUM application
 
-Note that the last three examples are **query-side**, not ingest- or storage-side: Logs, Events, and Traces bill on query execution as well as on ingest and retention, so how often a dashboard re-reads its data is a tunable parameter in exactly the same sense as retention. § 4 covers this surface in full. Tune preserves the signal's existence — useful for cases where the signal is load-bearing but at lower fidelity than current. In community practice, Tune is the lever most often over-used because it requires no organizational conversation: the platform team can lower retention without consulting any application team.
+Note that the last three examples are **query-side**, not ingest- or storage-side: Logs, Events, and Traces bill on query execution as well as on ingest and retention (Digital Experience Monitoring data has its own query billing event too — FINOPS-01 §9), so how often a dashboard re-reads its data is a tunable parameter in exactly the same sense as retention. § 4 covers this surface in full. Tune preserves the signal's existence — useful for cases where the signal is load-bearing but at lower fidelity than current. In community practice, Tune is the lever most often over-used because it requires no organizational conversation: the platform team can lower retention without consulting any application team.
 
 ### Filter
 
@@ -183,6 +183,8 @@ Three dials, in the order worth pulling them:
 
 **1. Refresh cadence.** A dashboard on a 1-minute auto-refresh runs every one of its tile queries roughly **1,440 times a day**. Moving it to 5 minutes cuts that by ~5× and changes nothing about what the dashboard *shows* — the same tiles, the same queries, the same data, just re-read less often. It is among the cheapest consumption reductions in the platform because it costs no fidelity at all. DASH-02 §6 has the per-audience cadence table (NOC wall 1-2 min, on-call 2-5 min, executive wall 10-15 min, investigation manual); the FinOps read on that table is that anything faster than its audience needs is pure waste. Start by finding dashboards refreshing faster than their tier warrants.
 
+**Caveat — log buckets on Retain with Included Queries.** Customers who choose that bucket option *"are not charged for those queries executed within the scope of the Included Queries retention period"*; only the logs a query reads outside that period bill under Log - Query. A dashboard whose log tiles read only such a bucket, inside that period, costs the same at any refresh cadence — check which bucket and time range a tile reads before tuning its cadence for cost. Cadence still matters for event and trace tiles, and for log tiles on buckets without the option.
+
 **2. Tile default time ranges.** A tile whose default range is 30 days scans 30 days on every refresh, even when every viewer immediately narrows to the last hour. Multiply by cadence and this dominates. Set each tile default to the range the tile is actually *read* at, and let viewers widen deliberately.
 
 **3. Dashboard count.** Duplicate near-identical dashboards multiply query volume by the number of copies. Consolidating five team-specific clones behind one `$team` variable is a **Cut**, not a Tune — it removes the queries rather than adjusting them — and it belongs in §3 with the other Cut decisions. It appears here because it is usually discovered while auditing cadence.
@@ -203,6 +205,7 @@ Query-side tuning has one property that makes it unusually easy to sell: unlike 
 > - <sub>[Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"For metrics collected at intervals shorter than one minute, Dynatrace aggregates the incoming measurements into fixed one‑minute buckets for efficient storage and querying. Therefore, each timeseries is billed for no more than one data point per minute."*; *"Longer ingest intervals can introduce gaps when you view data at one‑minute resolution. This can impact existing alerting setups."*</sub>
 > - <sub>[Metrics powered by Grail - Query (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/metrics/dps-metrics-query) — *"is always included in your DPS subscription and never results in costs."*; *"Queries involving other data types generally incur usage at each query, even when they output timeseries format."*</sub>
 > - <sub>[Optimize dashboards running log queries (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/lma-log-query-dashboard) — *"If you are using log queries, you are charged per execution."*</sub>
+> - <sub>[Log Analytics overview (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics) — *"Customers who select the Retain with Included Queries option in the bucket configuration are not charged for those queries executed within the scope of the Included Queries retention period."*; *"only these logs outside of the Retain with Included Queries are billed individually with the usage based Log - Query model."*</sub>
 
 <a id="when-to-filter"></a>
 ## 5. When to Filter
@@ -294,10 +297,10 @@ RUM bills **per session** (`billed_sessions` — FINOPS-01 §7), so the unit of 
 
 ### Dashboards and other query volume
 
-Cross-cutting rather than a data type — this is the consumption caused by *reading* logs, events, and traces (see the query-side tuning subsection in §4). Metric queries through `timeseries` are always included and never billed, so metric-only dashboards are out of scope here.
+Cross-cutting rather than a data type — this is the consumption caused by *reading* logs, events, and traces, and Digital Experience Monitoring data, which has its own query billing event (see the query-side tuning subsection in §4). Metric queries through `timeseries` are always included and never billed, so metric-only dashboards are out of scope here.
 
 1. **Cut first?** Duplicate and abandoned dashboards. Five team-specific clones of one dashboard run five times the queries; consolidate them behind a `$team` variable. A dashboard nobody has opened in 90 days that is still auto-refreshing on a wall screen is the pure-waste case.
-2. **Tune next?** Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table.
+2. **Tune next?** Refresh cadence, then tile default time ranges. A 1-minute refresh runs each tile query ~1,440×/day; 5 minutes cuts that ~5× with no change to what the dashboard shows. Match cadence to audience using the DASH-02 §6 table. Log tiles reading a Retain with Included Queries bucket inside its included period are not billed per query, so cadence is not a cost lever for them (§4).
 3. **Filter** — the query equivalent of a filter is scoping the tile query itself: narrow the bucket, add the filter earlier in the pipeline, drop fields you do not render. This is DQL optimization rather than a consumption lever per se, but it reduces bytes scanned on every one of those 1,440 executions.
 
 ### Host monitoring (Full-Stack / Infrastructure)

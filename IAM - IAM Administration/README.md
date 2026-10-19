@@ -24,6 +24,7 @@ Comprehensive guide to identity and access management in Dynatrace.
 12. [API Provisioning & Validation](markdown/-[IAM]-12-api-provisioning-validation.md) — Scripts and DQL for provisioning via Account Management API (curl flavor)
 95. [[LAB] Terraform IAM Provisioning](markdown/-[IAM]-95-[LAB]-terraform-iam-provisioning.md) — Hands-on lab: groups, policies, boundaries and bindings as code — a self-contained Terraform module set included in full (live-verified, with expected output)
 96. [[LAB] Python IAM Provisioning](markdown/-[IAM]-96-[LAB]-python-iam-provisioning.md) — Hands-on lab: one-command team onboarding against the Account Management API in Python (live-verified, with expected output)
+97. [Permission Reference](markdown/-[IAM]-97-permission-reference.md) — What each permission in the Standard User policy (plus reader-persona extras) actually grants, with scope, risk, persona matrix and the basis for every claim
 99. [Best Practice Summary](markdown/-[IAM]-99-best-practice-summary.md) — Consolidated best practices from the IAM series
 
 ## Usage

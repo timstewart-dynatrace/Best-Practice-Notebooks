@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -288,7 +288,7 @@ For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -299,13 +299,15 @@ For managed Kubernetes (EKS, AKS, GKE), control plane metrics are limited. Focus
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-6h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter isNotNull(k8s.node.name)
-| summarize events = count(), by:{k8s.node.name, dt.kubernetes.event.reason}
+| summarize events = countDistinctExact(event.id), by:{k8s.node.name, dt.kubernetes.event.reason}
 | sort events desc
 | limit 25
 ```
@@ -342,13 +344,14 @@ Reasons observed on tenant `yhu28601` over 24 h (08/11/2026) — your distributi
 // Event summary by reason — run this first to see what your estate actually emits
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
-| summarize eventCount = count(), by:{dt.kubernetes.event.reason}
+| summarize eventCount = countDistinctExact(event.id), by:{dt.kubernetes.event.reason}
 | sort eventCount desc
 | limit 25
 ```
 
 ```dql
 // Scheduling and placement failures — the pods that could not be placed
+// One open event is re-written about every 5 min under the same event.id, so it can repeat here.
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter dt.kubernetes.event.reason == "FailedScheduling"
@@ -377,7 +380,7 @@ timeseries oom = sum(dt.kubernetes.container.oom_kills), from:-24h,
 // Which namespaces and workloads generate the most event noise
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
-| summarize eventCount = count(),
+| summarize eventCount = countDistinctExact(event.id),
     by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name, dt.kubernetes.event.reason}
 | sort eventCount desc
 | limit 20
@@ -477,7 +480,7 @@ timeseries by:{k8s.cluster.name}, from:-1h,
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter k8s.namespace.name == "dynatrace"
-| summarize eventCount = count(), by:{k8s.cluster.name, k8s.workload.name, dt.kubernetes.event.reason}
+| summarize eventCount = countDistinctExact(event.id), by:{k8s.cluster.name, k8s.workload.name, dt.kubernetes.event.reason}
 | sort eventCount desc
 | limit 50
 ```

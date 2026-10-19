@@ -1,6 +1,6 @@
 # SL2DT-08: Automation & GitOps
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 8 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -316,6 +316,10 @@ Platform Tokens and API keys live in:
 - **CircleCI:** contexts
 
 Never commit tokens. Every `*.env` file goes in `.gitignore`.
+
+**Workload identity federation (SaaS 1.348, staged rollout from 09/22/2026).** A CI job or other workload that already has its own identity — a GitHub Actions job, an Azure VM with a managed identity, a Kubernetes pod with a projected service account token — can call the Dynatrace API with a short-lived token from its own identity provider, which Dynatrace maps to a service user through a trust policy. That removes the stored Dynatrace secret altogether. Check that 1.348 has reached your tenant; until then, the CI secret stores above remain the working path.
+
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"so no Dynatrace client secret or platform token is ever stored alongside your workload, baked into an image, or saved in a CI secret."*; [Workload identity federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation).</sub>
 
 <a id="import-pipeline"></a>
 ## 6. Automating the Sumo Extract → DT Import Flow

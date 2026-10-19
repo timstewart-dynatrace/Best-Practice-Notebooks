@@ -1,6 +1,6 @@
 # MZ2POL-15: Finding Every Zone Consumer
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 10/14/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 16 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
 
 > **Purpose:** Before a zone can be deleted, everything that still uses it has to be found. A zone has no "used by" view, consumers store it in three different identifier formats, and some consumers reach it only through another object. This notebook finds them — in tenant settings, in classic configuration, in the account, and in code outside Dynatrace — and turns the result into the dependency matrix that gates deletion.
 
@@ -135,7 +135,7 @@ For environments where SVG doesn't render
 
 This cell lists every zone with all three identifiers. The numeric ID comes from the management-zone details endpoint, which exists for exactly this conversion: *"Allows to convert from an objectId to the ID of the management zone"*. Save the result — the scripts in §4 and §6 read it as `zones.tsv` (name, numeric ID, objectId; tab-separated, no header).
 
-> **Execution status:** not yet executed against a tenant — verified against the SDK typings and API docs on 10/13/2026.
+> **Execution status:** executed on the validation tenant (10/19/2026) through `dtctl exec function`: 46 zones, each with a numeric ID and an objectId. 19 of the numeric IDs are negative, and they come back intact as strings. The count matches an independent listing of `builtin:management-zones`.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Classic environment v2 SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/) — `getManagementZoneDetails`: *"Allows to convert from an objectId to the ID of the management zone"*</sub>
@@ -216,7 +216,7 @@ The cell reads every object of the five schemas plus the mapping schema, walks e
 
 > **Read the result as a floor, not a total.** The Settings API answers *"Accessible objects returned."* — an identity that cannot see an object gets no row for it, not an error. Run the cell as a user with read access to every object. If your identity also holds `settings:objects:admin`, `adminAccess: true` on the request makes it *"act as if the user is the owner of all objects"*.
 
-> **Execution status:** not yet executed against a tenant — verified against the SDK typings and API docs on 10/13/2026. The matching logic was exercised against hand-built objects shaped like the validation tenant's audit records (§8).
+> **Execution status:** executed on the validation tenant (10/19/2026): 27 rows across the five schemas — 15 alerting profiles (matched by objectId), 8 problem notifications reached through their alerting profile, 2 maintenance windows (objectId) and 2 metric events (numeric ID). 4 of them point at zones that no longer exist. Every settings object the §8 audit-log query found is in this output, and every match is on a zone-typed property, so objects that only mention a zone in free text add no rows. The security-context mapping added one `(every zone)` row for each of the 323 entity types it copies zone names to.
 
 > <sub>**Sources:**</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — *"or settings objects of the schemas builtin:alerting.maintenance-window, builtin:alerting.profile,"* *"builtin:anomaly-detection.metric-events, builtin:monitoring.slo and builtin:problem.notifications."*</sub>
@@ -387,14 +387,14 @@ ENV_URL="https://<your-environment-id>.live.dynatrace.com"   # classic environme
 API_TOKEN="${DT_CLASSIC_TOKEN:?export DT_CLASSIC_TOKEN first}"
 ZONES_FILE="zones.tsv"
 
-api() { curl -sf --header "Authorization: Api-Token ${API_TOKEN}" "${ENV_URL}$1"; }
+api() { curl -sSf --header "Authorization: Api-Token ${API_TOKEN}" "${ENV_URL}$1"; }   # -S: print the HTTP error
 
 # Map any identifier (name, numeric ID, objectId) to the zone name.
 ZONES_JSON=$(jq -R -s 'split("\n") | map(select(length > 0) | split("\t"))
   | map({key: .[0], value: .[0]}, {key: .[1], value: .[0]}, {key: .[2], value: .[0]}) | from_entries' "${ZONES_FILE}")
 emit() { # consumer id name field reference
   jq -r -n --argjson z "${ZONES_JSON}" --arg c "$1" --arg i "$2" --arg n "$3" --arg f "$4" --arg r "$5" \
-    '[$c, $i, $n, $f, $r, ($z[$r] // "(no current zone)")] | @tsv'
+    '[$c, $i, $n, $f, $r, ($z[$r] // (if $r == "all" then "(all zones)" else "(no current zone)" end))] | @tsv'
 }
 
 printf 'consumer\tid\tname\tfield\treference\tzone\n'
@@ -436,9 +436,9 @@ cut -f1,2 "${ZONES_FILE}" | while IFS=$'\t' read -r zname zid; do
 done
 ```
 
-The script prints one TSV row per reference. `zone` is resolved from any of the three identifiers; `(no current zone)` is a dangling reference.
+The script prints one TSV row per reference. `zone` is resolved from any of the three identifiers; `(no current zone)` is a dangling reference. `(all zones)` is a dashboard or tile filter set to *All* — the API returns it as `{"id": "all", "name": "All"}`, which names no zone.
 
-> **Execution status:** not yet executed against a tenant — verified against the Configuration API docs on 10/13/2026, and dry-run against mocked responses.
+> **Execution status:** executed on the validation tenant (10/19/2026), exit 0: 427 synthetic-monitor memberships, 235 dashboard references (5 dashboard-wide filters, 230 tile filters), 5 reports and 3 calculated metrics; request naming returned none. 150 of the tile filters point at 3 deleted zones, and 34 dashboard references are the *All* setting. With a token the environment rejects, the script stops at the first call and prints curl's HTTP error.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Dashboards Classic API - GET a dashboard (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/dashboards-api/get-dashboard) — `managementZone`: *"The short representation of a Dynatrace entity."*</sub>
@@ -466,7 +466,7 @@ The two views answer different questions, and the docs do not define "related to
 
 The cell flags `filterNamesZone` for each row. A row with `filterNamesZone = false` is an SLO the API relates to the zone without the definition naming it — record it, and confirm what it means on your tenant before relying on it. The zone's numeric ID is passed inside the selector string, so it is never rounded. `enabledSlos: "all"` includes disabled SLOs; `showGlobalSlos: false` leaves out SLOs that would be returned *"regardless of the selected filter"*.
 
-> **Execution status:** not yet executed against a tenant — verified against the SDK typings and API docs on 10/13/2026.
+> **Execution status:** executed in a notebook Code section on the validation tenant (10/19/2026): no rows. The tenant had 52 classic SLOs and none names a zone in its filter, so the empty result is consistent with them — but it does not settle whether *related to* also returns SLOs whose filter does not name the zone. Test that on a tenant with a zone-scoped SLO before relying on it. The cell needs `environment-api:slo:read`, which the Notebooks app declares; `dtctl exec function` could not run it because the dtctl OAuth client does not hold that scope.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Service-level objectives API - GET all SLOs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/service-level-objectives-classic/get-all) — *"Filters for all SLOs that are related to the given management zone ID. Returned SLOs are evaluated against the given management zone."*; `showGlobalSlos`: *"regardless of the selected filter"*</sub>
@@ -561,7 +561,7 @@ TOKEN="${TOKEN:?obtain a bearer token first (IAM-12, section 1)}"
 ZONES_FILE="zones.tsv"
 IAM="https://api.dynatrace.com/iam/v1"
 
-api() { curl -sf --header "Authorization: Bearer ${TOKEN}" "${IAM}$1"; }
+api() { curl -sSf --header "Authorization: Bearer ${TOKEN}" "${IAM}$1"; }   # -S: print the HTTP error
 ZONES_JSON=$(jq -R -s 'split("\n") | map(select(length > 0) | split("\t"))
   | map({key: .[0], value: .[0]}, {key: .[1], value: .[0]}, {key: .[2], value: .[0]}) | from_entries' "${ZONES_FILE}")
 
@@ -586,7 +586,7 @@ policy_refs() { # levelType levelId uuid name
     .statements[]?.conditions[]? | select(.name | test("management-zone|security_context")) as $c
     | $c.values[] | . as $v
     # A zone condition always reports; a security-context value only when it equals a zone name.
-    | ($z[$v] // (if ($c.name | test("management-zone")) then "(no current zone)" else null end)) as $zone
+    | ($z[$v] // (if ($c.name | test("management-zone")) then (if ($v | startswith("${bindParam:")) then "(binding parameter)" elif ($v | test("[*]")) then "(pattern)" else "(no current zone)" end) else null end)) as $zone
     | select($zone != null) | ["policy", $u, $n, $c.name, $v, $zone] | @tsv'
 }
 { api "/repo/account/${ACCOUNT_UUID}/policies/aggregate"
@@ -601,14 +601,14 @@ while :; do
   b=$(api "/repo/account/${ACCOUNT_UUID}/boundaries?page=${page}&size=100")
   jq -r --argjson z "${ZONES_JSON}" '.content[] | . as $b | .boundaryConditions[]?
     | select(.name | test("management-zone|security_context")) as $c | $c.values[]
-    | . as $v | ($z[$v] // (if ($c.name | test("management-zone")) then "(no current zone)" else null end)) as $zone
+    | . as $v | ($z[$v] // (if ($c.name | test("management-zone")) then (if ($v | startswith("${bindParam:")) then "(binding parameter)" elif ($v | test("[*]")) then "(pattern)" else "(no current zone)" end) else null end)) as $zone
     | select($zone != null) | ["boundary", $b.uuid, $b.name, $c.name, $v, $zone] | @tsv' <<<"$b"
   [[ $(jq '.pageNumber * .pageSize < .totalCount' <<<"$b") == "true" ]] || break
   page=$((page + 1))
 done
 ```
 
-> **Execution status:** not run — it needs an account-level OAuth client, which this notebook cannot hold. Verified against the Account Management API docs on 10/13/2026 and dry-run against mocked responses.
+> **Execution status:** executed against the validation tenant's account (10/19/2026) with an OAuth client holding `account-idm-read` and `iam-policies-management`, exit 0: 7 zone-scoped group permissions (the scope is `{environment-id}:{management-zone-id}`, negative IDs included), 30 policy-condition rows and 27 boundary-condition rows. A `${bindParam:…}` value is reported as `(binding parameter)` — the zone is set per binding — and a value containing `*` as `(pattern)`. A value used with `startsWith` is a pattern too, but still shows as `(no current zone)`: check those rows by hand.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Group management API - GET all groups (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups) — scope `account-idm-read`</sub>
@@ -686,7 +686,7 @@ On the validation tenant (10/13/2026), 30 days of classic API audit events held 
 <a id="evidence-from-grail"></a>
 ## 8. Evidence from Grail
 
-Grail holds no consumer list, but its audit log records every settings change with the value before and after. *"These events are stored for one year."* That makes it a **change log** — it finds zone references in objects that were created or changed in the last year, shows the exact identifier each one stored, and records zone renames. It does **not** find an object nobody has touched in a year, so it confirms and dates the §3–§4 results; it never replaces them. All three queries scan zero billable bytes on the validation tenant.
+Grail holds no consumer list, but its audit log records every settings change with the value before and after. *"Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year"*. That makes it a **change log** — it finds zone references in objects that were created or changed in the last year, shows the exact identifier each one stored, and records zone renames. It does **not** find an object nobody has touched in a year, so it confirms and dates the §3–§4 results; it never replaces them. All three queries scan zero billable bytes on the validation tenant.
 
 The fields used — `details.dt.settings.schema_id`, `details.dt.settings.object_id`, `details.json_after` — were observed on the validation tenant's `SETTINGS` audit events. The two `dt.settings.*` names are in the semantic dictionary as `experimental`; `json_after` is not in the dictionary at all, so re-check it on your tenant.
 
@@ -755,7 +755,7 @@ On the validation tenant: 10 zone objects changed in 365 days, and one was renam
 
 > **Proving the surface.** Before reading an empty result as "nothing references zones", run `fetch dt.system.events, from:-90d | filter event.kind == "AUDIT_EVENT" and event.provider == "SETTINGS" | summarize count()`. On the validation tenant it returned 19,787 settings audit events across 132 schemas in 90 days. A zero there is a permission problem, not an empty tenant.
 
-> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"These events are stored for one year."*; required permissions `storage:system:read` and `storage:buckets:read` on `dt_system_events`. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), no row for `json_after` under `filter contains(name, "json_after")`, read 10/13/2026 (control: the same query matched `event.provider` → 1 row).</sub>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year"*; required permissions `storage:system:read` and `storage:buckets:read` on `dt_system_events`. **Dictionary:** `dt.settings.schema_id` (`experimental`), `dt.settings.object_id` (`experimental`), no row for `json_after` under `filter contains(name, "json_after")`, read 10/13/2026 (control: the same query matched `event.provider` → 1 row).</sub>
 
 ---
 

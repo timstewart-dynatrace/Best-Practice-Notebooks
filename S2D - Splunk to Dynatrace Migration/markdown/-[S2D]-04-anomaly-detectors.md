@@ -1,6 +1,6 @@
 # S2D-04: Alert Migration - Anomaly Detectors
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 4 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -108,7 +108,7 @@ The key insight for translation is that both platforms should require roughly th
 - Threshold: 60 error logs
 - Suppress: 15 minutes
 
-**Dynatrace Options (all satisfy 60 total errors):**
+**Dynatrace Options (each needs roughly 60 errors before it can fire):**
 
 | Option | DT Threshold | Violating Samples | Product |
 |--------|--------------|-------------------|----------|
@@ -117,16 +117,18 @@ The key insight for translation is that both platforms should require roughly th
 | C | 30 | 2 | 60 |
 | D | 20 | 3 | 60 |
 
+The product is a floor, not a total. Each violating sample must be above the threshold on its own, so these settings fire only when the errors are concentrated in that many minutes. 60 errors spread evenly across 15 minutes (4 per minute) fire none of them, while the Splunk alert would. The options below handle that trade-off differently, and all of them use this one example: **60 error logs in 15 minutes**.
+
 <a id="migration-strategies"></a>
 ## Migration Strategies
 ### Option 1: Alert Reimagined (Recommended)
 
-**Strategy:** Calculate new threshold and violating samples to most closely replicate Splunk behavior.
+**Strategy:** Pick a threshold × violating-samples pair from the table above that most closely replicates the Splunk behavior. Here, row D: 20 × 3 = 60.
 
 **Parameters:**
-- Threshold: 3
+- Threshold: 20
 - Sliding Window: 15
-- Violating Samples: 2 (triggers at 6 total errors spread across 2 minutes)
+- Violating Samples: 3 (fires when 3 of the 15 one-minute samples each exceed 20 errors, so more than 60 errors concentrated in 3 minutes)
 - Dealerting Samples: 15
 
 **Pros:**
@@ -136,11 +138,13 @@ The key insight for translation is that both platforms should require roughly th
 **Cons:**
 - Requires threshold recalculation
 - Mindset shift for teams used to Splunk
+- Misses errors spread thinly across the window (see the note under the formula)
 
 **Custom-alert query** (paste this version into the alert; it has no `from:`/`to:`, see Step 1 below):
 
 ```dql
 // Paste into the custom alert WITHOUT from:/to: — the alert supplies its own sliding window
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "production")
@@ -153,7 +157,8 @@ The cell below is the same query with `from:-24h`, so you can preview it in a no
 ```dql
 // Option 1: Alert Reimagined - notebook PREVIEW of the custom-alert query above
 // Remove from:-24h when you paste it into the custom alert
-// Threshold: 3, Violating Samples: 2, Sliding Window: 15
+// Threshold: 20, Violating Samples: 3, Sliding Window: 15
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:-24h
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "production")
@@ -161,29 +166,31 @@ fetch logs, from:-24h
 | makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
 ```
 
-### Option 2: Conservative Threshold
+### Option 2: Single-Minute Spike
 
-**Strategy:** Use a 1-minute threshold equal to Splunk threshold, with high violating samples.
+**Strategy:** Use the Splunk total as a per-minute threshold, with a single violating sample.
 
 **Parameters:**
-- Threshold: 6 (same as Splunk total)
+- Threshold: 60 (same as the Splunk total)
 - Sliding Window: 15
-- Violating Samples: 1
+- Violating Samples: 1 (fires when more than 60 errors land in a single minute)
 - Dealerting Samples: 15
 
 **Pros:**
 - Easy to understand and explain
-- Preserves original threshold number
+- Preserves the original threshold number
+- Fires in the minute a burst happens
 
 **Cons:**
-- Very sensitive to brief spikes
-- May alert more frequently than Splunk
+- Misses errors spread across the window, so it fires less often than Splunk: a minute above 60 always puts the 15-minute total above 60, but not the reverse
+- One burst minute is enough to open an event
 
 The custom-alert query is the same as Option 1 (no `from:`/`to:`); only the detector settings change. The cell below is the notebook preview.
 
 ```dql
-// Option 2: Conservative - notebook PREVIEW (remove from:-24h in the custom alert)
-// Threshold: 6, Violating Samples: 1, Sliding Window: 15
+// Option 2: Single-minute spike - notebook PREVIEW (remove from:-24h in the custom alert)
+// Threshold: 60, Violating Samples: 1, Sliding Window: 15
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:-24h
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "production")
@@ -191,23 +198,25 @@ fetch logs, from:-24h
 | makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
 ```
 
-### Option 3: Aggressive Threshold
+### Option 3: Sustained Presence
 
-**Strategy:** Divide Splunk threshold by sliding window for per-minute threshold.
+**Strategy:** Divide the Splunk total by the sliding window for a per-minute threshold, and require every sample to violate it.
 
 **Parameters:**
-- Threshold: 0.4 (6 ÷ 15 = 0.4 per minute)
+- Threshold: 4 (60 ÷ 15 = 4 per minute; counts are whole numbers, so each minute needs at least 5 errors to be above it)
 - Sliding Window: 15
 - Violating Samples: 15 (all samples must violate)
 - Dealerting Samples: 15
 
+This is a sustained-presence rule, not a total. 300 errors in one minute followed by 14 quiet minutes never fires; 5 errors in every one of 15 minutes (75 in total) does.
+
 **Pros:**
-- Very stable, requires sustained issues
-- Less sensitive to spikes
+- Very stable: fires only on errors that persist minute after minute
+- Ignores brief spikes, so the fewest false positives from bursts
 
 **Cons:**
-- May miss short-duration issues
-- Delayed alerting compared to Splunk
+- Misses short bursts, however large
+- Fires only after the full 15 minutes
 
 ### Option 4: Data-Driven
 
@@ -256,10 +265,15 @@ Your query must return timeseries data with a 1-minute interval.
 
 **Do not include `from:` or `to:` in the query you paste into the custom alert.** The DQL writing guide says: *"Don't use from: and to: when creating a DQL query for the custom alert. Otherwise, you'll get failures whenever the custom alert tries to execute your query."* The alert applies its own sliding window. Keep `from:` only in the notebook preview.
 
+**About `dt.entity.cloud_application`.** The semantic dictionary marks this field `deprecated` (*"An entity ID of an entity of type CLOUD_APPLICATION."*). Its Smartscape successors are the `K8S_DEPLOYMENT`, `K8S_STATEFULSET`, `K8S_DAEMONSET`, `K8S_REPLICASET`, `K8S_JOB` and `K8S_CRONJOB` nodes (`dt.smartscape.k8s_deployment` and its siblings, `stable`), but those IDs are not on log records yet. On a validation tenant on 10/14/2026, 0 of 19.4M logs in 24 hours carried `dt.smartscape.k8s_deployment`, while 15.0M carried `dt.entity.cloud_application`. It is still the only workload entity ID on logs, so the templates keep it. Switch to the Smartscape ID once it appears on your log records. `k8s.workload.name` (`stable`) is a name, not an entity ID.
+
+> <sub>**Dictionary:** `dt.entity.cloud_application` (`deprecated`), `dt.smartscape.k8s_deployment` (`stable`), `k8s.workload.name` (`stable`); `dt.semantic_dictionary.models` maps `dt.entity.cloud_application` to the six `K8S_*` node types above; read 10/14/2026.</sub>
+
 **Custom-alert template:**
 
 ```dql
 // Paste into the custom alert WITHOUT from:/to:
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "your-cluster")
@@ -272,6 +286,7 @@ Notebook preview of the same template:
 ```dql
 // Notebook PREVIEW of the custom-alert template above
 // Remove from:-24h when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:-24h
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.cluster.name, "your-cluster")
@@ -315,9 +330,10 @@ Use this decision tree to choose your migration approach:
    - Yes → Use Option 4 (Data-Driven)
    - No → Continue
 
-4. **Is minimizing false positives critical?**
-   - Yes → Use Option 1 (Alert Reimagined) or Option 3 (Aggressive)
-   - No → Use Option 2 (Conservative)
+4. **What should the alert catch?**
+   - Errors that persist minute after minute, ignoring brief spikes (fewest false positives) → Use Option 3 (Sustained Presence)
+   - Sudden bursts, as early as possible → Use Option 2 (Single-Minute Spike)
+   - Otherwise → Use Option 1 (Alert Reimagined)
 
 <a id="validation-query"></a>
 ## Validation Query
@@ -326,6 +342,7 @@ Before creating an Anomaly Detector, validate your query returns expected result
 ```dql
 // Validate alert query returns timeseries data (notebook preview)
 // Remove from:now()-24h and the limit when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:now()-24h
 | filter status == "ERROR"
 | filter matchesPhrase(k8s.deployment.name, "checkout-service")
@@ -341,7 +358,7 @@ fetch logs, from:now()-24h
 ## References
 
 - [anomaly-detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
-- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events)
+- [Anomaly detection metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events)
 - [Anomaly detection configuration (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration)
 - [Anomaly Detection DQL writing guide (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice)
 - [Alerting profiles — classic surface (DT docs)](https://docs.dynatrace.com/docs/shortlink/alerting-profiles)

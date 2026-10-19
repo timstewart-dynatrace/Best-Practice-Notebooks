@@ -1,6 +1,6 @@
 # FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent and OpenTelemetry — Choosing Per Workload | **Created:** May 2026 | **Last Updated:** 10/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 03 — OneAgent and OpenTelemetry — Choosing Per Workload | **Created:** May 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -84,7 +84,7 @@ OpenTelemetry alone can fully instrument an application and ship to Dynatrace vi
 | Process / container correlation | Manual attribute hygiene | Yes — automatic |
 | Smartscape topology and dependency map | Services and service-to-service calls detected from OTel spans; host and process entities via the OpenTelemetry Host Monitoring extension | Automatic for every monitored host, process, container and service |
 | PurePath code-level method tracing on demand | Not available | Yes |
-| Real-User Monitoring ↔ backend trace stitching | Manual wiring | Yes — automatic |
+| Real-User Monitoring ↔ backend trace linking | XHR/Fetch and mobile requests link through W3C trace context; HTML-document and resource requests cannot link | All request types, including HTML-document and resource requests (Server-Timing header) |
 | Auto-instrumentation of frameworks OTel doesn't cover (proprietary middleware, exotic app servers) | Gap | Yes — often covered |
 | Davis AI | Runs on OTel data in Grail, including service topology; results depend on clean semantic-convention attributes | Same Davis AI, with infrastructure topology filled in automatically |
 | Application Security (Runtime Vulnerability Analytics, Runtime Application Protection) | Not from OTel telemetry — both run on OneAgent deep monitoring | Yes |
@@ -102,6 +102,7 @@ OpenTelemetry alone can fully instrument an application and ship to Dynatrace vi
 
 > <sub>**Sources:**</sub>
 > - <sub>[Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel)</sub>
+> - <sub>[Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking) — *"It works for distributed traces captured by OneAgent as well as those captured by OpenTelemetry."*, *"For web frontends with an OTel-instrumented backend, only XHR and Fetch requests can be linked to backend traces."* and *"Requests for the HTML document and its included resources can't be linked, because setting the Server-Timing header is not part of the OpenTelemetry specification."*</sub>
 > - <sub>[Ingest OpenTelemetry — getting started (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started)</sub>
 > - <sub>[Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support)</sub>
 > - <sub>[Unified services (DT docs)](https://docs.dynatrace.com/docs/shortlink/unified-service) — services detected with Service Detection v2 *"were first introduced for OpenTelemetry"*; *"Automatic endpoint detection and monitoring"*</sub>
@@ -109,7 +110,7 @@ OpenTelemetry alone can fully instrument an application and ship to Dynatrace vi
 > - <sub>Verified on a live tenant 10/13/2026: six services sending only OTLP each had a Smartscape `SERVICE` node, with 9 service-to-service `calls` edges between them and no host, process or Kubernetes edges (`smartscapeNodes "SERVICE" | traverse`).</sub>
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
-> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
+> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
 > - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — *"not supported on serverless code modules .. Consider using OpenTelemetry instead"* (a statement about the **SDK**, not about OneAgent itself — see §4)</sub>
 
@@ -247,7 +248,7 @@ The same release also adds OneAgent Azure SDK tracing for **Service Bus** (Java,
 > - <sub>Verified on a live tenant 10/13/2026: six services sending only OTLP each had a Smartscape `SERVICE` node, with 9 service-to-service `calls` edges between them and no host, process or Kubernetes edges (`smartscapeNodes "SERVICE" | traverse`).</sub>
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
-> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
+> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
 > - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel)</sub>
 > - <sub>[OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java) — *"The OneAgent SDK is not supported on serverless code modules, including those for AWS Lambda."* — the SDK, not the agent</sub>
@@ -290,7 +291,7 @@ Coverage is the single biggest factor in whether *adding* OneAgent gets you what
 **Patterns to notice:**
 
 - **Overlap zone** (most teams gain immediate value from OneAgent) — Java, .NET, Node.js, Python, PHP web stacks: standard frameworks + standard SQL drivers + standard message brokers. OneAgent + OTel duplicates effort here, which is why the §8 Span Sensor / OTLP coexistence pattern exists.
-- **OneAgent-only coverage** — on-demand PurePath capture, automatic RUM injection and RUM-to-backend stitching, host/runtime metrics and infrastructure topology without running a Collector, and the runtime-access capabilities (Application Security, Live Debugger). Service topology is not on this list: Dynatrace detects services from OTel spans too.
+- **OneAgent-only coverage** — on-demand PurePath capture, automatic RUM injection, frontend-backend linking for HTML-document and resource requests (the Server-Timing header; XHR/Fetch requests link from OTel-captured traces too), host/runtime metrics and infrastructure topology without running a Collector, and the runtime-access capabilities (Application Security, Live Debugger). Service topology is not on this list: Dynatrace detects services from OTel spans too.
 - **OTel-only coverage** — Ruby application code, Go libraries outside OneAgent's Go support matrix, async-fragmenting runtimes (effect systems, certain coroutine layouts — see §7), GCP Cloud Functions and unsupported Azure Functions plans.
 - **Coverage gaps in both** — exotic frameworks (http4s, Tapir, niche message brokers, custom RPC layers). These need either a community OTel instrumentation library, manual instrumentation, or both.
 
@@ -302,6 +303,7 @@ Coverage is the single biggest factor in whether *adding* OneAgent gets you what
 > - <sub>[@opentelemetry/auto-instrumentations-node (OTel JS contrib)](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/auto-instrumentations-node)</sub>
 > - <sub>[opentelemetry-python-contrib (OTel GitHub)](https://github.com/open-telemetry/opentelemetry-python-contrib)</sub>
 > - <sub>[opentelemetry-go-contrib (OTel GitHub)](https://github.com/open-telemetry/opentelemetry-go-contrib) — `otelhttp`/`otelgin`/`otelmux`/`otelchi`/`otelfiber`/`otelgrpc`/`otelecho`/`otelsql`/`otelpgx`/`otelgorm`/`otelmongo`/`otelredis`/`otelsarama`</sub>
+> - <sub>[Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking) — *"It works for distributed traces captured by OneAgent as well as those captured by OpenTelemetry."*, *"For web frontends with an OTel-instrumented backend, only XHR and Fetch requests can be linked to backend traces."* and *"Requests for the HTML document and its included resources can't be linked, because setting the Server-Timing header is not part of the OpenTelemetry specification."*</sub>
 
 <a id="async-context"></a>
 ## 7. Async Context Propagation Across Runtimes
@@ -477,7 +479,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | Path | Effort | Capability gain | Recommendation |
 |------|--------|-----------------|----------------|
 | A — Stay OTel-only | Zero | Complete path — traces, metrics, logs and service topology; forgo OneAgent's managed collection and runtime-access capabilities | Supported — right when OTel is your strategy |
-| B — Layer (OneAgent + OTel) | Low | High — host/runtime, Smartscape, RUM injection and stitching, Application Security, Live Debugger, plus existing OTel | **Recommended** wherever OneAgent's automation or runtime depth is wanted |
+| B — Layer (OneAgent + OTel) | Low | High — host/runtime, Smartscape, RUM injection and HTML-document linking, Application Security, Live Debugger, plus existing OTel | **Recommended** wherever OneAgent's automation or runtime depth is wanted |
 | C — Replace OTel instrumentation with the OneAgent SDK | High | Low — loses open-standard instrumentation, metrics, logs; rewrites required per service | Avoid; impossible for Go / PHP / Ruby (no OneAgent SDK for custom tracing); possible but not recommended for Python |
 -->
 
@@ -488,7 +490,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | Effort | Zero — keep current state |
 | Code changes | None |
 | What you keep | Open-standard instrumentation, runtime-aware tracing on async-fragmenting stacks, serverless coverage, single instrumentation model across polyglot stacks |
-| What you give up | Infrastructure topology and automatic runtime/host/process metrics without running a Collector, on-demand code-level method tracing, Application Security and Live Debugger, automatic RUM injection and RUM-to-backend stitching unless you wire it manually |
+| What you give up | Infrastructure topology and automatic runtime/host/process metrics without running a Collector, on-demand code-level method tracing, Application Security and Live Debugger, automatic RUM injection, and frontend-backend linking for HTML-document and resource requests (XHR/Fetch requests still link through W3C trace context) |
 | Best for | Organizations that have chosen OTel as their collection strategy; greenfield CNCF-aligned organizations; serverless-heavy estates; multi-cloud/multi-vendor strategies; Go/Ruby-dominant or effect-system-dominant teams |
 
 **Path B: Add OneAgent alongside OTel (the layered pattern — recommended for most)**
@@ -497,7 +499,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 |--------|---------|
 | Effort | Low — install OneAgent on hosts or via Dynatrace Operator, restart the application processes |
 | Code changes | None — keep all existing OTel code |
-| What you gain | Fully managed collection, host/runtime metrics and infrastructure topology without a Collector, Application Security, Live Debugger, automatic framework coverage where it overlaps with OTel, RUM injection and stitching |
+| What you gain | Fully managed collection, host/runtime metrics and infrastructure topology without a Collector, Application Security, Live Debugger, automatic framework coverage where it overlaps with OTel, RUM injection and HTML-document linking |
 | What you must decide | Span Sensor vs OTLP export (pick one per process — see §8 caveat) |
 | Risk | Duplicate spans if both ingestion paths active simultaneously; resolved by configuration |
 | Best for | Teams already on OTel who want OneAgent's automation and runtime depth without giving up their open-standard instrumentation |
@@ -514,7 +516,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 | Risk | High — coordinated multi-service rewrite, regression-prone, must be repeated for every new service |
 | Best for | Almost no one. Defensible only if (a) the engineering org has a strict single-vendor mandate, (b) all workloads are non-serverless and on a runtime where the OneAgent SDK exists, (c) no async-fragmenting runtimes are involved, and (d) the cost of dual maintenance demonstrably exceeds the rewrite cost |
 
-> <sub>**Sources:** [OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java), [OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — *"Removes deprecated APIs"* (v1.8.0); no metrics/logs surface, [OneAgent SDK for Python (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Python), [OneAgent SDK for Go (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Go), [OneAgent SDK for PHP (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-PHP), [Python technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/python) — *"we recommend migrating to enable auto-instrumentation using OneAgent for Python"*, [Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel), [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics), [Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger).</sub>
+> <sub>**Sources:** [OneAgent SDK for Java (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Java), [OneAgent SDK for .NET (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-DotNet) — *"Removes deprecated APIs"* (v1.8.0); no metrics/logs surface, [OneAgent SDK for Python (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Python), [OneAgent SDK for Go (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-Go), [OneAgent SDK for PHP (Dynatrace GitHub)](https://github.com/Dynatrace/OneAgent-SDK-for-PHP), [Python technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/python) — *"we recommend migrating to enable auto-instrumentation using OneAgent for Python"*, [Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel), [Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics), [Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger), [Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking) — *"For web frontends with an OTel-instrumented backend, only XHR and Fetch requests can be linked to backend traces."*</sub>
 
 <a id="pros-cons"></a>
 ## 11. Pros and Cons Side-by-Side
@@ -525,7 +527,7 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 - Host, runtime, process, network, and topology coverage out of the box
 - Smartscape dependency map for hosts, processes, containers and services, filled in automatically
 - Runtime-access capabilities OTel telemetry does not provide: Application Security (Runtime Vulnerability Analytics, Runtime Application Protection), Live Debugger, automatic RUM JavaScript injection
-- RUM-to-backend trace correlation
+- Frontend-backend linking for HTML-document and resource requests, through the Server-Timing header OneAgent adds (XHR/Fetch requests link from OTel-captured traces too)
 - Centrally managed updates — no application redeploy
 - Operations-team-friendly (instrument an environment without engineering involvement)
 
@@ -559,11 +561,12 @@ Dynatrace is explicit that the two are designed to coexist. From the Dynatrace O
 
 > <sub>**Sources:**</sub>
 > - <sub>[Technology support matrix (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — OneAgent framework, host, runtime coverage</sub>
+> - <sub>[Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking) — *"It works for distributed traces captured by OneAgent as well as those captured by OpenTelemetry."*, *"For web frontends with an OTel-instrumented backend, only XHR and Fetch requests can be linked to backend traces."* and *"Requests for the HTML document and its included resources can't be linked, because setting the Server-Timing header is not part of the OpenTelemetry specification."*</sub>
 > - <sub>[Use OneAgent with OpenTelemetry (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-and-opentelemetry/oneagent-otel) </sub>
 > - <sub>**Derived:** Smartscape and PurePath as OneAgent-dependent capabilities combines the §2 capability table with the technology-support matrix; the coexistence page does not state it</sub>
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
-> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
+> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
 > - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 > - <sub>[OpenTelemetry main site (opentelemetry.io)](https://opentelemetry.io/) — vendor neutrality, signal coverage, ecosystem</sub>
 > - <sub>[Unified services (DT docs)](https://docs.dynatrace.com/docs/shortlink/unified-service) — services detected with Service Detection v2 *"were first introduced for OpenTelemetry"*; *"Automatic endpoint detection and monitoring"*</sub>
@@ -713,7 +716,7 @@ This is **where OneAgent adds the most on Windows**, and the reason to run OneAg
 > <sub>**Sources:**</sub>
 > - <sub>[Install OneAgent on Windows (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/windows/installation/install-oneagent-on-windows) — *"Creates entries in the Windows Registry that start OneAgent as a `SYSTEM` service"*; `--unpack-msi` extraction for scripted install</sub>
 > - <sub>[.NET technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/dotnet) — Framework 4.5.2–4.8 + 3.5 SP1 and modern .NET 5–10 + .NET Core 2.1–3.1 supported; IIS application-pools have built-in instrumentation rules</sub>
-> - <sub>[End-of-support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — *"2026-12-31 End of Support .NET Core 3.1 Vendor end of support: 2022-12-13 Last supported OneAgent version: 1.353"*; .NET 5, 6 and 7 are listed under the same date with the same last OneAgent version.</sub>
+> - <sub>[End-of-support news (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news) — listed under *2026-12-31 End of Support*: *".NET Core 3.1 Vendor end of support: 2022-12-13 Last supported OneAgent version: 1.353"*; .NET 5, 6 and 7 are listed under the same date with the same last OneAgent version.</sub>
 > - <sub>[OneAgent platform and capability support matrix (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix)</sub>
 > - <sub>[Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — current supported Windows Server versions; LTSC footnote: *"Support includes Server Core installation (requires OneAgent installed in headless-mode) or monitored in app-only scenario."*; AKS footnote: *"Windows Pods and Nodes unsupported."*; .NET Remoting, WCF and MSMQ Client listed as *"All versions supported"*; container auto-injection rows: *"glibc or musl-libc required"*</sub>
 > - <sub>[OneAgent 1.343 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343) — released 07/28/2026; .NET single-file self-contained app monitoring, gRPC status codes for .NET, and *"The OneAgent NGINX module now supports Kong Gateway Enterprise versions 3.10–3.14."*</sub>
@@ -769,7 +772,7 @@ This is **where OneAgent adds the most on Windows**, and the reason to run OneAg
 - **Application Security** — Runtime Vulnerability Analytics and Runtime Application Protection, both on OneAgent deep monitoring
 - **Live Debugger** — Java and Node.js code modules, OneAgent 1.309+
 - **Automatic RUM injection** — OneAgent in full-stack mode inserts the RUM JavaScript into web pages
-- **Real-User Monitoring ↔ backend** — RUM session-to-trace stitching
+- **Real-User Monitoring ↔ backend** — linking HTML-document and resource requests to backend traces (Server-Timing header); XHR/Fetch and mobile requests link to OTel-captured traces as well
 - **Process / host / log correlation** — automatic by virtue of agent placement
 
 Davis AI is deliberately not on this list: it runs on OTel data too. OneAgent fills in the infrastructure topology it correlates against automatically.
@@ -787,6 +790,7 @@ Davis AI is deliberately not on this list: it runs on OTel data too. OneAgent fi
 
 > <sub>**Sources:**</sub>
 > - <sub>[Technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support) — framework lists: Akka, Play, *"Kotlin Coroutines 1.10.2 - 2.1"*, the Go library tables</sub>
+> - <sub>[Frontend-backend linking (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum/concepts/frontend-backend-linking) — *"It works for distributed traces captured by OneAgent as well as those captured by OpenTelemetry."*, *"For web frontends with an OTel-instrumented backend, only XHR and Fetch requests can be linked to backend traces."* and *"Requests for the HTML document and its included resources can't be linked, because setting the Server-Timing header is not part of the OpenTelemetry specification."*</sub>
 > - <sub>[Java technology support (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/application-software/java) — JVM runtime versions; virtual threads mentioned for CPU profiling only</sub>
 > - <sub>[OneAgent 1.345 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345) — .NET runtime-async: *"This requires the Advanced .NET Instrumentation Mode OneAgent feature to be enabled."*</sub>
 > - <sub>[Go OpenTelemetry walkthrough (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/walkthroughs/go) — the OpenTelemetry path for Go custom spans</sub>
@@ -797,7 +801,7 @@ Davis AI is deliberately not on this list: it runs on OTel data too. OneAgent fi
 > - <sub>[otel4s (Typelevel GitHub)](https://github.com/typelevel/otel4s), [zio-telemetry (ZIO GitHub)](https://github.com/zio/zio-telemetry) — basis for *"Modified"* applicability rating on Scala effect systems</sub>
 > - <sub>[Runtime Vulnerability Analytics (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics) — *"Dynatrace OneAgent monitors loaded libraries, runtime components, and data flows in real time."*</sub>
 > - <sub>[Runtime Application Protection (DT docs)](https://docs.dynatrace.com/docs/secure/application-security/application-protection) — *"Code-level visibility provided by OneAgent"*</sub>
-> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
+> - <sub>[Live Debugger (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/live-debugger) — *"OneAgent version 1.309+ with Java Live-Debugger and Node.js Live-Debugger"*</sub>
 > - <sub>[RUM JavaScript injection (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/rum-classic/web-applications/initial-setup/rum-injection) — *"Once OneAgent is deployed in full-stack monitoring mode on a host, it by default automatically injects the RUM JavaScript"*</sub>
 >
 > <sub>The Clojure `core.async` note is **community guidance**, not vendor-documented.</sub>

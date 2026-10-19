@@ -1,6 +1,6 @@
 # MZ2POL-12: IAM Reference Architecture for a Former Management-Zone Estate
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 13 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -39,7 +39,7 @@ Three facts drive the design:
 | **Dynatrace Environment** | SaaS on Latest Dynatrace; classic management zones still in place for the parallel run |
 | **Account permissions** | Account Management access to policies, boundaries and group bindings; REST API access for templated bindings |
 | **Foundation** | MZ2POL-10 readiness gate passed — `dt.security_context` set at the source for the data each team must see |
-| **Permissions for §10** | `storage:logs:read`, `storage:spans:read`, `storage:events:read`, `storage:smartscape:read`, `storage:entities:read` |
+| **Permissions for §10** | `storage:buckets:read` (needed alongside every table permission), `storage:logs:read`, `storage:spans:read`, `storage:events:read`, `storage:user.events:read`, `storage:smartscape:read`, `storage:entities:read` |
 | **Background reading** | MZ2POL-04 (syntax), MZ2POL-08 (templates), IAM-04 (policy authoring), IAM-05 (boundary design), ORGNZ-06 (security context) |
 
 <a id="access-model"></a>
@@ -111,7 +111,7 @@ Two consequences shape the whole architecture:
 
 That last row is easy to miss on a real tenant. Dynatrace documents that *"managementZones is the default value for the majority of entity types"* in the Grail Security Context mapping. On the validation tenant (10/13/2026), **every one of 23 classic host entities** had a security context matching one of its management-zone names. Of the 15 that sent logs in the same hour, **none** had a log record whose security context matched any zone name — the entity and its data were scoped by unrelated values.
 
-> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."*, [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Make use of default policies whenever possible and define your business-specific access conditions in policy boundaries."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules).</sub>
+> <sub>**Sources:** [Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Logs, spans, metrics, and events powered by Grail that are sent from an entity do not inherit the management zones of that entity."*, [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Make use of default policies whenever possible and define your business-specific access conditions in policy boundaries."*, [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules).</sub>
 
 <a id="evaluation"></a>
 ## 3. How a Request Is Evaluated
@@ -136,7 +136,7 @@ The rules, with Dynatrace's wording:
 
 | Rule | Dynatrace's wording |
 |---|---|
-| Conditions stay in their own service | *"Only conditions added to service configuration will be applied to relative permissions."* |
+| Conditions stay in their own service | *"Only conditions added to service configuration will be applied to relative permissions."* Global conditions are the exception: *"This rule doesn't apply to global conditions."* |
 | Repeated names multiply | *"When a boundary contains repeated condition names, then each policy statement is multiplied by such conditions."* |
 | Each boundary separately | *"When more than one boundary applies to a policy, then effective statements are calculated for each boundary separately"* |
 | No boundaries on DENY | *"Boundaries don't apply to DENY statements"* |
@@ -205,10 +205,14 @@ The reverse mistake exists too. A boundary that holds only `storage:` and `setti
 
 **The rule:** a boundary must hold a condition for **every domain the policy grants**. During the parallel run that means the `environment:management-zone` line *and* the Grail lines, in the same boundary. Dynatrace's own boundary page shows exactly this shape — a `Kubernetes` boundary with an `environment:management-zone startsWith "[Kubernetes]"` line and a `storage:k8s.namespace.name IN (...)` line together.
 
+> **Unverified — test with a dry run before relying on it.** `settings:objects:read` and `settings:objects:write` accept both `environment:management-zone` and `settings:dt.security_context`, so in the transitional boundary both lines land on the same settings statements. The boundary page says what *repeated* condition names do — *"each policy statement is multiplied by such conditions"* — but not what two *different* names on one permission do. If they combine with AND, a settings object has to match the zone **and** the security context. Once the scoped-settings change makes zone conditions *"never match"* (§5), every settings grant under the boundary stops — including the settings read that *Standard User* and *Pro User* carry. Before rolling the boundary out, resolve a pilot user's settings permissions with `POST /iam/resolution/{level-type}/{level-id}/effectivepermissions:dry-run`. It takes the bindings with their boundaries before you apply them (§10). The alternative that avoids the question is to keep the zone line out of this boundary: bind `environment:roles:viewer` in its own classic-only policy, under a boundary that holds only the `environment:management-zone` line.
+
 > <sub>**Sources:**</sub>
 > - <sub>[Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"In certain configurations this may cause unintended unconditional access."* and *"Be aware that the management zones referenced in your boundaries only apply to policy statements that support management zones."*</sub>
 > - <sub>[Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *Read Logs*, *Standard User*, *Pro User* and *Admin User* policy statements</sub>
 > - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:entities:read` conditions: `storage:entity.type`, `storage:dt.security_context`</sub>
+> - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `settings:objects:read` / `settings:objects:write` conditions include `environment:management-zone` and `settings:dt.security_context`</sub>
+> - <sub>[Upgrade your security policies for scoped settings access (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects) — *"Because management zones no longer exist, these conditions never match."*</sub>
 > - <sub>**Derived:** the effective statements follow from applying the boundary page's service-scoping rule to the default policies' published statements.</sub>
 
 <a id="scoped-settings"></a>
@@ -253,15 +257,16 @@ For environments where SVG doesn't render
 
 1. **Groups by team × role, not by zone.** A zone estate typically has many more zones than teams. Consolidate first (MZ2POL-05 §2's "one per dimension" applies to boundaries too).
 2. **Default policies for the "what", boundaries for the "where".** Custom policies only for `DENY` carve-outs or permissions no default covers — settings write is one: *Settings Writer*, *Settings Reader*, *Storage Default Monitoring Read*, *Storage All System Data Read* and the *Environment role - …* policies are legacy defaults that *"are not accessible for new policy assignments"*. A team lead's settings-write policy is a few lines (MZ2POL-04 §10).
-3. **One boundary per team, covering every domain the bound policies grant.** `storage:` for Grail, `settings:` for settings, `environment:management-zone` only while classic pages are in use.
-4. **Shared data is a security-context value, not a second boundary.** Give shared infrastructure its own value (`shared`) and add it to the team's `MATCH` list. A list on one condition multiplies the statement (OR) inside one boundary; a second boundary is evaluated separately and can leak (§4.1).
-5. **`MATCH` for `storage:dt.security_context` wherever the permission accepts it.** Events carry the field as an array (§10); `MATCH` is the only operator with *"for any value"* semantics on records. Two exceptions have no `MATCH`: `settings:dt.security_context` (`IN`, `=`, `startsWith`) and `storage:entities:read` (`=`, `IN`, `startsWith`). For entities, Dynatrace says the context *"Can be a multi-value field and startsWith will evaluate for any matching value"* — it does not say the same for `=` or `IN`, nor what a boundary's `MATCH` line does when it lands on `storage:entities:read` (as it does under *Read Entities* or *All Grail data read access*). That combination is unverified: test entity access with a pilot user before relying on it.
+3. **One boundary per team, covering every domain the bound policies grant.** `storage:` for Grail, `settings:` for settings, `environment:management-zone` only while classic pages are in use. Test the settings lines with a dry run first (§4.2 caveat).
+4. **Shared data is a security-context value, not a second boundary.** Give shared infrastructure its own value (`shared`) and add it to the team's `MATCH` list. A list on one condition multiplies the statement (OR) inside one boundary; a second boundary is evaluated separately and can leak (§4.1). Dynatrace's boundary page does suggest more boundaries for a team that needs more than ten lines — *"Only 10 restrictions per boundary, to keep them manageable."* If you split, every boundary on the binding needs a condition for every permission the policy grants, or the permission comes out unconditional under the boundary that omits it.
+5. **`MATCH` for `storage:dt.security_context` wherever the permission accepts it.** Dynatrace warns that record fields *"might contain an array"*, and on the validation tenant every event record did (§10); `MATCH` is the only operator with *"for any value"* semantics on records. Two exceptions have no `MATCH`: `settings:dt.security_context` (`IN`, `=`, `startsWith`) and `storage:entities:read` (`=`, `IN`, `startsWith`). For entities, Dynatrace says the context *"Can be a multi-value field and startsWith will evaluate for any matching value"* — it does not say the same for `=` or `IN`, nor what a boundary's `MATCH` line does when it lands on `storage:entities:read` (as it does under *Read Entities* or *All Grail data read access*). That combination is unverified: test entity access with a pilot user before relying on it.
 6. **No broad unscoped data policy for team groups.** One unscoped *Read Logs* in any of the user's groups defeats every boundary (§3).
 7. **Templates when teams exceed a handful.** The same boundary shape becomes one parameterized policy bound per team (MZ2POL-08) — managed via REST API.
 
 > <sub>**Sources:**</sub>
 > - <sub>[Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — *"Build your own custom policies only when provided default policies don't fit your requirements or when you want to further limit default policies."*</sub>
-> - <sub>[Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"you must use the MATCH operator to get "for any value" set semantic."*</sub>
+> - <sub>[Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"you must use the MATCH operator to get "for any value" set semantic."* and *"If you expect your record filters might contain an array, use the MATCH operator in your IAM statements."*</sub>
+> - <sub>[Policy boundaries (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries) — *"Only 10 restrictions per boundary, to keep them manageable."*</sub>
 > - <sub>[Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — legacy default policies: *"They are not accessible for new policy assignments, but existing assignments of these policies remain until removed."*</sub>
 > - <sub>[Grant access to entities with security context (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context) — *"Can be a multi-value field and startsWith will evaluate for any matching value."*; [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — operators per permission</sub>
 > - <sub>**Derived:** principles 3, 4 and 6 apply the evaluation rules in §3 and §4 to the default policies.</sub>
@@ -291,9 +296,9 @@ Three things the table makes visible:
 <a id="mapping-classic-permissions"></a>
 ## 8. Mapping Classic Zone Permissions
 
-Dynatrace's role-migration guide maps each classic RBAC role to an `environment:roles:*` permission that can be scoped to a zone. That keeps classic pages working. The third column is what the same intent needs on Grail.
+Each classic RBAC role has an `environment:roles:*` permission. Dynatrace's role-migration guide tabulates most of them and shows the `environment:roles:viewer` form in an example; the IAM policy reference lists the rest. All but two can be scoped to a zone, which keeps classic pages working. The third column is what the same intent needs on Grail.
 
-| Classic role | IAM permission (classic, zone-scopable) | Grail / platform equivalent |
+| Classic role | IAM permission (classic) | Grail / platform equivalent |
 |---|---|---|
 | Access environment | `environment:roles:viewer` | Standard User + per-table read policies, under a record-scoped boundary |
 | View logs | `environment:roles:logviewer` | Read Logs, under `storage:dt.security_context` (or `storage:log.source` / `storage:dt.host_group.id`) |
@@ -301,15 +306,15 @@ Dynatrace's role-migration guide maps each classic RBAC role to an `environment:
 | View sensitive request data | `environment:roles:view-sensitive-request-data` | Read Sensitive Data (`storage:fieldsets:read`) — see the §7 gap |
 | Replay sessions (with / without masking) | `environment:roles:replay-sessions-with-masking` / `-without-masking` | Read User Replays (`storage:user.replays:read`); RUM data access via `storage:frontend.name` |
 | View / manage security problems | `environment:roles:view-security-problems` / `manage-security-problems` | Read Security Events; vulnerability service permissions (APPSEC series) |
-| Download / install OneAgent | `environment:roles:agent-install` | Fleet-management permissions; note the classic role *"also able to view monitoring data for all management zones"* |
-| Configure capture of sensitive data | `environment:roles:configure-request-capture-data` | Settings permissions on the capture schemas; the classic role likewise sees all zones |
+| Download / install OneAgent | `environment:roles:agent-install` — **not zone-scopable** (no `environment:management-zone` condition) | Fleet-management permissions; note the classic role *"also able to view monitoring data for all management zones"* |
+| Configure capture of sensitive data | `environment:roles:configure-request-capture-data` — **not zone-scopable** (no `environment:management-zone` condition) | Settings permissions on the capture schemas; the classic role likewise sees all zones |
 
-The two "all management zones" rows matter for the inventory: a group holding either role already sees every zone on classic pages, whatever its zone assignments say. Its zone scoping was never as narrow as it looked.
+The two "all management zones" rows matter for the inventory: a group holding either role already sees every zone on classic pages, whatever its zone assignments say. Its zone scoping was never as narrow as it looked — and a `WHERE environment:management-zone` on either permission scopes nothing, because neither accepts the condition.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — RBAC role to `environment:roles:*` table; *"This guide does not cover how to migrate your use of management zones into Grail permissions."*</sub>
-> - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:agent-install`: *"Users who have this permission assigned are also able to view monitoring data for all management zones."*</sub>
-> - <sub>[Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *Read User Replays*, *Read Security Events*, *Read Sensitive Data* statements</sub>
+> - <sub>[Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — RBAC role table (logviewer, manage-settings, view-sensitive-request-data, replay and security-problem roles) and the `environment:roles:viewer` example; *"This guide does not cover how to migrate your use of management zones into Grail permissions."*</sub>
+> - <sub>[IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `environment:roles:agent-install`: *"Users who have this permission assigned are also able to view monitoring data for all management zones."* (the same sentence is on `configure-request-capture-data`); neither permission lists a condition</sub>
+> - <sub>[Dynatrace default policies reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies) — *Read User Replays*, *Read Security Events*, *Read Sensitive Data* statements; the *Environment role - Download/install OneAgent* and *- Configure capture of sensitive data* policies: *"Management zones not supported."*</sub>
 > - <sub>**Derived:** the Grail-equivalent column pairs each classic intent with the default policy that grants the same data, scoped by the record fields in §1.</sub>
 
 <a id="transition"></a>
@@ -320,7 +325,7 @@ Dynatrace recommends a phased approach: *"Consider deploying your changes in bat
 | State | Boundary content | Classic pages | Grail |
 |---|---|---|---|
 | **0 · Today** | Zone-scoped RBAC roles or `environment:management-zone` only | Scoped | **Unscoped if default policies are bound** (§4.2) |
-| **1 · Dual** | `environment:management-zone` + `storage:dt.security_context` + `settings:dt.security_context` in one boundary | Scoped by zone | Scoped by security context |
+| **1 · Dual** | `environment:management-zone` + `storage:dt.security_context` + `settings:dt.security_context` in one boundary — dry-run the settings lines first (§4.2) | Scoped by zone | Scoped by security context |
 | **2 · Verified** | Same | Same | Effective permissions checked, §10 queries clean |
 | **3 · Retired** | Remove the `environment:management-zone` line once the team no longer uses classic pages | — | Unchanged |
 
@@ -344,7 +349,17 @@ Dynatrace's role-migration guide points to the account API for resolving what a 
 GET https://api.dynatrace.com/iam/v1/resolution/account/{accountId}/effectivepermissions?entityType=user&entityId={userId}
 ```
 
-Run it for one pilot user per persona (§7) before and after each state change in §9. Look for any `storage:*:read` permission without a condition — that is §3's "one unscoped grant wins".
+Run it for one pilot user per persona (§7) before and after each state change in §9. Look for any `storage:*:read` permission without a condition — that is §3's "one unscoped grant wins". The guide gives this endpoint as an example request and does not document the response shape, so read what comes back rather than relying on a fixed field.
+
+Call it with an OAuth client that holds `iam:effective-permissions:read`. Don't confuse that with `platform-management:effective-permissions:resolve` in the *Standard User* policy, which answers only for the calling user — apps use it to decide which actions to show (**IAM-97** § 2.5).
+
+To check a binding **before** it is applied, the same IAM API has a dry-run form. The 1.332 API changelog lists it, with `boundaries` and `parameters` in the request's bindings:
+
+```text
+POST /iam/resolution/{level-type}/{level-id}/effectivepermissions:dry-run
+```
+
+Use it to settle the §4.2 caveat for your boundary shape before state 1 reaches any real group.
 
 ### DQL checks
 
@@ -409,11 +424,11 @@ smartscapeNodes "*"
 | limit 30
 ```
 
-On the validation tenant: containers 53%, Kubernetes pods 42%, processes 14%, and **0% for every cloud resource type** listed (AWS IAM roles, EC2 instances and volumes, Azure locations) and synthetic locations. Cloud resources reach Grail through cloud connections, not OneAgent, so host enrichment never touches them (FAQ-26 §5.4).
+On the validation tenant: containers 53%, Kubernetes pods 42%, processes 14%, and **0% for every cloud resource type** listed (AWS IAM roles, EC2 instances and volumes, Azure locations) and synthetic locations. Cloud resources reach Grail through cloud connections, not OneAgent, so host enrichment never touches them (FAQ-26 §5.4). The zero is real, not a type artefact: re-checked 10/19/2026, every Smartscape node returned `dt.security_context` as an array, and all 174 AWS IAM roles and 93 synthetic locations held an empty one.
 
 > **Never trust a zero here on its own.** A 0% may mean the producer is not enriched, or that the window had no data of that type. Widen the window once, and confirm with a control (a node type or table you know is enriched) before acting on it.
 
-> <sub>**Sources:** [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — effective-permissions endpoint, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail). All four queries executed on the validation tenant, 10/13/2026.</sub>
+> <sub>**Sources:** [Upgrade role-based permissions to Dynatrace IAM policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles) — effective-permissions endpoint, [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `iam:effective-permissions:read`, [Platform management SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-platform-management-service/) — *"Get the effective permissions of the calling user"*, [Dynatrace API changelog 1.332 (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-332) — *"POST /iam/resolution/{level-type}/{level-id}/effectivepermissions:dry-run"*, [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail). All four queries executed on the validation tenant, 10/13/2026.</sub>
 
 <a id="checklist"></a>
 ## 11. Design Review Checklist
@@ -425,7 +440,8 @@ On the validation tenant: containers 53%, Kubernetes pods 42%, processes 14%, an
 
 **Boundaries**
 - [ ] Each boundary holds a condition for **every domain** its policies grant — `storage:`, `settings:`, and `environment:management-zone` while classic pages are used
-- [ ] `storage:dt.security_context` conditions use `MATCH` where the permission accepts it (events are arrays); `storage:entities:read` and `settings:dt.security_context` have no `MATCH` — entity access tested with a pilot user
+- [ ] `storage:dt.security_context` conditions use `MATCH` where the permission accepts it (the field may be an array; events were on the validation tenant); `storage:entities:read` and `settings:dt.security_context` have no `MATCH` — entity access tested with a pilot user
+- [ ] A boundary that mixes `environment:management-zone` and `settings:dt.security_context` checked with an effective-permissions dry run for a pilot user (§4.2)
 - [ ] No legacy default policy (*Settings Reader/Writer*, *Storage … Read*, *Environment role - …*) in the design
 - [ ] Shared data reached by an extra value on the same condition, not a second boundary
 - [ ] No boundary relies on a host-group or namespace line to scope entities
@@ -433,7 +449,7 @@ On the validation tenant: containers 53%, Kubernetes pods 42%, processes 14%, an
 **Union and DENY**
 - [ ] No team member holds an unscoped data policy through any other group
 - [ ] No record-level conditional `DENY` (it removes the whole table)
-- [ ] Classic roles that see all zones (`agent-install`, `configure-request-capture-data`) inventoried
+- [ ] Classic roles that see all zones (`agent-install`, `configure-request-capture-data`) inventoried — neither can be zone-scoped
 
 **Settings**
 - [ ] No settings statement depends on `environment:management-zone` or an MZ-derived security context

@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -210,7 +210,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 63 | Alert on error rate > 5% for 5 minutes | Severity: **Critical** — immediate page | **Critical** | Alert |
 | 64 | Alert on error rate > 1% for 15 minutes | Severity: **Warning** — notification | **Critical** | Alert |
 | 65 | Alert on any connection refused error | Severity: **Critical** — immediate page; zero tolerance for connection failures | **Critical** | Alert |
-| 66 | Alert on any deadlock detection | Severity: **Warning** — notification | **Recommended** | Alert |
+| 66 | Alert on deadlocks from the engine side | Severity: **Warning** — notification; use the Databases app's lock and wait metrics, since spans see a deadlock only as the victim session's error (DBMON-06) | **Recommended** | Alert |
 
 ### Slow Query Alerts (P95 Thresholds)
 
@@ -267,7 +267,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 |---|--------------|----------------|----------|----------|
 | 91 | Use `event.status` / `event.start` / `event.end` on `dt.davis.problems` | NOT `status` / `end_time` (recurring authoring bug). Status values are `"ACTIVE"` and `"CLOSED"` (not `"OPEN"`). For duration: `(event.end - event.start) / 1m` (NOT `event.end - timestamp` — `timestamp` is record-write time, not problem-open time). | **Critical** | DQL |
 | 92 | Prefer `smartscapeNodes "<TYPE>"` for new entity queries | Modern Smartscape topology query: `smartscapeNodes "SERVICE"`, `smartscapeNodes "HOST"`, etc. Legacy `fetch dt.entity.<type>` still works on hybrid tenants but is deprecated. | **Recommended** | DQL |
-| 93 | Wrap multiple `summarize` aggregations in `{}` | When summarizing 2+ aggregations, wrap them: `summarize { a = count(), b = avg(x) }, by: {field}`. Tenant emits `PARAMETERS_SHOULD_BE_GROUPED` INFO if not wrapped (query still runs but is non-canonical). | **Recommended** | DQL |
+| 93 | Wrap multiple `summarize` aggregations in `{}` | When summarizing 2+ aggregations, wrap them: `summarize { a = count(), b = avg(x) }, by: {field}`. Unwrapped aggregations combined with `by:` raise a `PARAMETERS_SHOULD_BE_GROUPED` INFO notification; without `by:` they raise none (tenant-verified 10/14/2026). The query runs either way — wrap them for consistency. | **Recommended** | DQL |
 
 <a id="see-also"></a>
 

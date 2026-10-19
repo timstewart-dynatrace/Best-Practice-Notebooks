@@ -1,6 +1,6 @@
 # BIZEV-04: Revenue Impact Analysis
 
-> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/01/2026
+> **Series:** BIZEV — Business Events & Funnel Analysis | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -213,6 +213,9 @@ Service Level Agreements (SLAs) often include business availability targets. By 
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 | summarize {total_problem_hours = sum(duration_hours),
            problem_count = count(),
@@ -226,6 +229,9 @@ fetch dt.davis.problems, from:-7d
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
+// Exclude problems raised during maintenance windows (planned work); drop this line
+// if your SLA counts maintenance time
+| filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 // affected_entity_ids is an array: countDistinctExact on it counts distinct ARRAYS, not
 // entities — flatten the collected arrays first, then count distinct entity IDs.

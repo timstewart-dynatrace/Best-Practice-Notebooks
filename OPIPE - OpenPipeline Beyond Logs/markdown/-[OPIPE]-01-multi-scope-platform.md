@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/06/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -8,7 +8,7 @@ OpenPipeline is often introduced as a log processing framework — and logs are 
 
 > **Companion Series**
 > - **OPLOGS** — Deep-dive into log processing: **OPLOGS-01: OpenPipeline Fundamentals**
-> - **OPMIG** — Migrating from classic logs? Start with **OPMIG-01: Why Migrate**
+> - **OPMIG** — Migrating from classic logs? Start with **OPMIG-01: OpenPipeline Migration Guide: Part 1**
 > - **SPANS** — Querying and analyzing distributed traces: **SPANS-01: Fundamentals**
 
 ---
@@ -121,19 +121,21 @@ fetch bizevents, from:-1h
 <a id="shared-architecture-across-scopes"></a>
 ## 2. Shared Architecture Across Scopes
 
-### Sprint 1.345 (August 2026): Temporary Fields (`dt.temp*`)
+### Sprint 1.345 (August 2026): Temporary Fields (`dt.temp.*`)
 
-A field whose name is prefixed **`dt.temp`** lives for the duration of pipeline processing and is **discarded before the record is written to Grail**. That closes a long-standing gap in the extraction pattern this series teaches: previously, an intermediate value needed for metric, event, or bizevent extraction had to be written onto the record — where it persisted, consumed storage, and changed the shape of the stored data for every downstream consumer.
+A field whose name is prefixed **`dt.temp.`** (with the dot) lives for the duration of pipeline processing and is **discarded before the record is written to Grail**. That closes a long-standing gap in the extraction pattern this series teaches: previously, an intermediate value needed for metric, event, or bizevent extraction had to be written onto the record — where it persisted, consumed storage, and changed the shape of the stored data for every downstream consumer.
 
 | Property | Behaviour |
 |---|---|
-| Lifetime | Available across all processing stages; dropped at storage |
+| Lifetime | Available to subsequent processors in the same pipeline, from the processor that defines it; dropped at storage |
 | Persistence | Never written to Grail — invisible to `fetch` |
 | Cost | Not persisted, so it adds nothing to stored volume or retention |
-| Enablement | None — the `dt.temp` prefix alone marks the field temporary |
-| Scope support | Every scope with a Processing stage |
+| Enablement | None — the `dt.temp.` prefix alone marks the field temporary; a field named `dt.temp` on its own is stored normally |
+| Scope support | Every scope with a Processing stage; not applicable to Smartscape upsert events |
 
-Use it for intermediate calculations feeding extraction. Do **not** use it for enrichment you intend to query later — the field will not be there. SaaS 1.345 released 08/11/2026 with a **staged tenant rollout**; verify availability in your tenant before relying on the prefix, and note that a `dt.temp` field written on a tenant that does not yet support the semantics would simply persist as an ordinary attribute.
+Use it for intermediate calculations feeding extraction. Do **not** use it for enrichment you intend to query later — the field will not be there. SaaS 1.345 released 08/11/2026 with a **staged tenant rollout**; verify availability in your tenant before relying on the prefix, and note that a `dt.temp.` field written on a tenant that does not yet support the semantics would simply persist as an ordinary attribute.
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — *"Prefix a field name with dt.temp. to create a temporary field."*; `dt.temp` used as a field name itself *"is not a temporary field and is stored normally"*; *"Temporary fields are available to the subsequent processors within the same pipeline, starting from the processor that defines them."*; *"Temporary fields aren't applicable to Smartscape upsert events."*</sub>
 
 ![Multi-Scope Architecture](images/01-multi-scope-architecture.png)
 

@@ -1,6 +1,6 @@
 # IAM-12: API Provisioning & Validation Scripts
 
-> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 12 of 12 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -197,8 +197,9 @@ UI_POLICIES=(
 # Controls which settings schemas each persona can read/write.
 # Add schema ID prefixes (builtin:…) or schema groups (group:…) to grant write access; read is granted to all.
 POWER_SCHEMAS=(
-  "builtin:alerting.profile"
-  "builtin:problem.notifications"
+  "builtin:davis.anomaly-detectors"   # Latest Dynatrace: custom alerts
+  "builtin:alerting.profile"          # Dynatrace Classic only (not visible in Latest)
+  "builtin:problem.notifications"     # Dynatrace Classic only (Latest: workflows)
   "group:preferences"
 )
 SRE_SCHEMAS=(
@@ -558,7 +559,9 @@ All customizable values live in the **CONFIGURATION** block at the top of the sc
 **Adapting for your organization:**
 - **Add a persona** — append to all parallel arrays (`PERSONA_LABELS`, `GROUP_NAMES`, `GROUP_DESCRIPTIONS`, `UI_POLICIES`, `CONFIG_POLICIES`) and the execution loop handles it automatically
 - **Change visible apps** — edit `STANDARD_APPS` or `POWER_APPS`, or modify `UI_POLICIES` entries directly
-- **Change writable schemas** — edit `POWER_SCHEMAS` or `SRE_SCHEMAS` arrays; the `_build_config_policy` function generates the policy statement
+- **Change writable schemas** — edit `POWER_SCHEMAS` or `SRE_SCHEMAS` arrays; the `_build_config_policy` function generates the policy statement. `builtin:alerting.profile` and `builtin:problem.notifications` exist only on **Dynatrace Classic** — they are not visible in Latest Dynatrace, where problem notifications are workflows (`automation:workflows:*`, IAM-04 Pattern 6), not a settings schema. Remove them once every target environment runs Latest Dynatrace.
+
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
 - **Add teams** — append to the `TEAMS` array
 - **Per-team SRE groups** — create separate groups (`DT-SRE-Checkout`, `DT-SRE-Payments`) and adjust the Phase 4 loop to bind each team to its own group
 - **Bucket isolation** — add `AND storage:bucket-name = "${bindParam:bucket}"` to `TPL_DATA_STATEMENT` and change its `ALLOW storage:buckets:read;` to `ALLOW storage:buckets:read WHERE storage:bucket-name = "${bindParam:bucket}";` (see **IAM-10** Pattern 4)
@@ -901,7 +904,7 @@ echo -e "${GREEN}Cleanup complete.${NC}"
 
 These DQL queries let you audit your IAM configuration directly from a Dynatrace Notebook — no shell scripts needed.
 
-> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). *"To view the **Audit logs** page, you need the `account-company-info` role"*; API access needs an OAuth client with the `account-audit-logs-read` scope as well. The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded."* *"To view the **Audit logs** page, you need the `account-company-info` role"*; API access needs an OAuth client with the `account-audit-logs-read` scope as well. The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
 >
 > <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 

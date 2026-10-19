@@ -1,6 +1,6 @@
 # FAQ-04: How to manage OneAgent updates on Dynatrace SaaS
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/12/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 04 — Managing OneAgent Updates (SaaS) | **Created:** May 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -56,7 +56,7 @@ The intent is not to talk anyone out of auto-update. For most fleets, **automati
 > | fields entity.name, installerVersion, minor
 > ```
 >
-> On Smartscape, the `ONEAGENT` node carries the version: `smartscapeNodes "ONEAGENT", from:-30d | fields name, dt.agent.module.version`. Do not use `smartscapeNodes "HOST"` for this: HOST nodes carry no OneAgent version, so a `oneagent.version` column comes back empty and the check finds nothing. The Deployment Status screen shows the same thing interactively. There is no grace path once the rejection lands — the fix is an upgrade.
+> On Smartscape, the `ONEAGENT` node carries the version: `smartscapeNodes "ONEAGENT", from:-30d | fields name, dt.agent.module.version`. Do not use `smartscapeNodes "HOST"` for this: HOST nodes carry no OneAgent version, so a `oneagent.version` column comes back empty and the check finds nothing. The `ONEAGENT` node does not cover application-only agents, though: on the validation tenant (10/15/2026) there were 25 `ONEAGENT` nodes against 156 `dt.entity.host` records over 30 days, and the 25 Smartscape hosts matched exactly the 25 hosts with no `paasVendorType`. The other 131 were application-only agents on Kubernetes (127) and AWS Fargate (4), which appear only in `dt.entity.host`. Use the `fetch dt.entity.host` query above for the ≤ 1.241 check, and the Smartscape node only for host-level agents. The Deployment Status screen shows the same thing interactively. There is no grace path once the rejection lands — the fix is an upgrade.
 
 > **Breaking (OneAgent 1.347 — published 10/01/2026, staged rollout from 09/30/2026): updating ends monitoring of Java 23.** Verbatim: *"Starting from OneAgent version 1.347, Java 23 is no longer monitored."* Support now covers *"LTS versions plus the last four Java versions (24, 25, 26 and 27)."*
 >
@@ -78,7 +78,7 @@ OneAgent is the data-collection layer of the platform. Update cadence directly a
 
 In community practice, the most consistent benefit teams report from leaving auto-update on is "we stopped having a OneAgent-version inventory problem." Verify against your own change-control framework.
 
-> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [What's new in Dynatrace OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Published Oct 01, 2026 Rollout start on Sep 30, 2026"*; oldest supported versions *"Standard Support 1.329 Enterprise Success and Support 1.323"*; the Java 23 and `composefs` changes quoted above, [What's new hub (DT docs)](https://docs.dynatrace.com/docs/whats-new) — the 9-month / 12-month OneAgent support windows (*"How long are versions supported following rollout?"*), [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."* Both inventory queries executed against a live tenant 10/02/2026 (the 30-day window returned 126 hosts where the default window returned 15).</sub>
+> <sub>**Sources:** [What's new in Dynatrace SaaS 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-347) — the OneAgent 1.241 connection-rejection quoted above, [What's new in Dynatrace OneAgent 1.347 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347) — *"Rollout start on Sep 30, 2026"*; oldest supported versions *"Standard Support 1.329 Enterprise Success and Support 1.323"*; the Java 23 and `composefs` changes quoted above, [What's new hub (DT docs)](https://docs.dynatrace.com/docs/whats-new) — the 9-month / 12-month OneAgent support windows (*"How long are versions supported following rollout?"*), [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment."* Both inventory queries executed against a live tenant 10/02/2026 (the 30-day window returned 126 hosts where the default window returned 15).</sub>
 
 <a id="mechanism"></a>
 ## 2. How OneAgent Updates Work on SaaS
@@ -182,7 +182,7 @@ A useful pairing: schedule update windows during your normal maintenance cadence
 
 **Recurrence patterns** for update windows: one-time, daily (every N days), weekly (specific weekdays), monthly (specific day-of-month). Pick the pattern that matches your existing change calendar — there is no built-in advantage to weekly over monthly, just operational fit.
 
-> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"OneAgent update windows are used to schedule automatic OneAgent updates when the Automatic updates during update windows option is selected."*, *"Update windows are used to schedule automatic OneAgent updates when the Update mode is set to Auto-update during update windows"*, [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows) — *"Defining maintenance windows during times of abnormal operation helps you reduce alert spam and keep your baselines clean for accurate monitoring and alerting."* **Derived:** maintenance windows do not govern updates — the update page ties update timing to update windows only, and the maintenance-window page covers alerting and baselines only.</sub>
+> <sub>**Sources:** [OneAgent update (DT docs)](https://docs.dynatrace.com/docs/shortlink/oneagent-update) — *"OneAgent update windows are used to schedule automatic OneAgent updates when the Automatic updates during update windows option is selected."*, *"Update windows are used to schedule automatic OneAgent updates when the Update mode is set to Auto-update during update windows"*, [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows) — *"Defining maintenance windows during times of abnormal operation helps you reduce alert spam and keep your baselines clean for accurate monitoring and alerting."* **Derived:** maintenance windows do not govern updates — the update page ties update timing to update windows only, and the maintenance-window page covers alerting and baselines only.</sub>
 
 <a id="k8s"></a>
 ## 6. Containerized OneAgent — The DynaKube Special Case

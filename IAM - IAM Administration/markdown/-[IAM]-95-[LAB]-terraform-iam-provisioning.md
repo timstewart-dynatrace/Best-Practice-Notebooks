@@ -1,6 +1,6 @@
 # IAM-95 LAB: Terraform IAM Provisioning — Groups, Policies, Boundaries, Bindings
 
-> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Reference:** 95 — Terraform IAM Provisioning LAB | **Created:** July 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -141,7 +141,12 @@ locals {
   EOT
 
   # Power User — read everything, write dashboards/notebooks, manage alerting
-  # config only (schema-scoped write, BPN IAM-11 GLOBAL-PowerUser-Config)
+  # config only (schema-scoped write, BPN IAM-11 GLOBAL-PowerUser-Config).
+  # builtin:davis.anomaly-detectors + workflows = alerting in Latest Dynatrace.
+  # builtin:alerting.profile / builtin:problem.notifications are Dynatrace
+  # Classic only: "None of the schemas on this page are visible in Latest
+  # Dynatrace" (Settings 2.0 schemas removed in Latest Dynatrace, DT docs).
+  # Drop those two lines once no target environment runs Classic.
   power_user_statement = <<-EOT
     ALLOW environment:roles:viewer;
     ALLOW app-engine:apps:run;
@@ -154,8 +159,9 @@ locals {
     ALLOW storage:entities:read;
     ALLOW storage:system:read;
     ALLOW storage:buckets:read;
-    ALLOW automation:workflows:read, automation:workflows:run;
+    ALLOW automation:workflows:read, automation:workflows:write, automation:workflows:run;
     ALLOW settings:objects:read, settings:schemas:read;
+    ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:davis.anomaly-detectors";
     ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:alerting.profile";
     ALLOW settings:objects:write WHERE settings:schemaId startsWith "builtin:problem.notifications";
   EOT
@@ -187,9 +193,11 @@ locals {
   # storage:buckets:read is "Required additionally to a table permission"
   # (IAM policy reference) — the table reads below are not enough on their own.
   # The security-context conditions still decide which records match.
+  # No environment:roles:viewer here: it is a classic role that only an
+  # environment:management-zone condition can scope, and a team without a
+  # zone would get it environment-wide. It lives in its own policy below.
   # ----------------------------------------------------------------------------
   team_data_access_template = <<-EOT
-    ALLOW environment:roles:viewer;
     ALLOW app-engine:apps:run;
     ALLOW document:documents:read;
     ALLOW storage:logs:read WHERE storage:dt.security_context IN ("$${bindParam:team}");
@@ -200,6 +208,14 @@ locals {
     ALLOW storage:buckets:read;
     ALLOW settings:objects:read WHERE settings:dt.security_context IN ("$${bindParam:team}");
     ALLOW settings:schemas:read;
+  EOT
+
+  # Classic viewer role for teams that still have a management zone. Bound
+  # ONLY for teams with `management_zone` set, under the team boundary, whose
+  # environment:management-zone line scopes it (IAM-05 §3: a classic grant that
+  # shares a binding needs a zone line of its own). Retire with your MZs.
+  team_classic_viewer_statement = <<-EOT
+    ALLOW environment:roles:viewer;
   EOT
 
   # Gen2 / Classic transitional statement — management-zone scoped write on
@@ -240,6 +256,11 @@ output "admin_statement" {
 output "team_data_access_template" {
   description = "Parameterized Gen3 team statement — bind with parameters = { team = \"<security-context>\" }"
   value       = local.team_data_access_template
+}
+
+output "team_classic_viewer_statement" {
+  description = "Classic viewer role for zone-scoped teams — bind only under a boundary with an environment:management-zone line"
+  value       = local.team_classic_viewer_statement
 }
 
 output "mz_scoped_config_template" {
@@ -718,6 +739,14 @@ module "iam_policies" {
       statement   = module.policy_templates.team_data_access_template
       tags        = ["template", "managed-by-terraform"]
     }
+
+    # Classic viewer role, bound only for teams that still have a management zone
+    team_classic_viewer = {
+      name        = "${var.name_prefix}tpl-team-classic-viewer"
+      description = "Classic viewer role — bound only under a boundary with a management-zone condition"
+      statement   = module.policy_templates.team_classic_viewer_statement
+      tags        = ["template", "transitional", "managed-by-terraform"]
+    }
   }
 }
 
@@ -784,12 +813,21 @@ module "policy_bindings" {
         group_id       = module.iam_groups.group_ids["team_${team_key}"]
         account_id     = local.bind_account_id
         environment_id = var.binding_environment_id
-        policies = [{
-          id         = module.iam_policies.policy_ids["team_data_access"]
-          parameters = { team = team.security_context }
-          boundaries = [module.policy_boundaries.boundary_ids["team_${team_key}"]]
-          metadata   = { managed-by = "terraform" }
-        }]
+        policies = concat(
+          [{
+            id         = module.iam_policies.policy_ids["team_data_access"]
+            parameters = { team = team.security_context }
+            boundaries = [module.policy_boundaries.boundary_ids["team_${team_key}"]]
+            metadata   = { managed-by = "terraform" }
+          }],
+          # Classic viewer only where a zone scopes it; a team without a
+          # management zone gets no classic role at all.
+          team.management_zone != null ? [{
+            id         = module.iam_policies.policy_ids["team_classic_viewer"]
+            boundaries = [module.policy_boundaries.boundary_ids["team_${team_key}"]]
+            metadata   = { managed-by = "terraform" }
+          }] : []
+        )
       }
     }
   )
@@ -907,19 +945,20 @@ terraform plan
 **Expected output (tail of plan):**
 
 ```
-Plan: 16 to add, 0 to change, 0 to destroy.
+Plan: 17 to add, 0 to change, 0 to destroy.
 ```
 
-16 resources = 5 groups (3 personas + 2 teams) + 4 policies (3 personas + 1 shared template) + 2 boundaries + 5 bindings. Inspect the parameterized policy in the plan — the `${bindParam:team}` placeholders must appear **literally** (they are resolved per binding, not by Terraform):
+17 resources = 5 groups (3 personas + 2 teams) + 5 policies (3 personas + 1 shared team template + 1 classic-viewer template) + 2 boundaries + 5 bindings. Inspect the parameterized policy in the plan — the `${bindParam:team}` placeholders must appear **literally** (they are resolved per binding, not by Terraform):
 
 ```
 + statement_query = <<-EOT
-      ALLOW environment:roles:viewer;
       ALLOW app-engine:apps:run;
       ALLOW document:documents:read;
       ALLOW storage:logs:read WHERE storage:dt.security_context IN ("${bindParam:team}");
       ...
 ```
+
+> **Counts changed 10/14/2026.** `environment:roles:viewer` moved out of the shared team template into `tpl-team-classic-viewer`, bound only for teams with a `management_zone` — so a team without a zone no longer gets the classic viewer role environment-wide. On 10/14/2026 this revision passed `terraform validate`, and `terraform plan -refresh=false` reported 17 to add for a two-team configuration (one team with a zone, one without); it has not been re-applied against a live account.
 
 <a id="step-4-apply"></a>
 ## Step 4 — Apply
@@ -936,7 +975,7 @@ module.policy_boundaries.dynatrace_iam_policy_boundary.this["team_alpha"]: Creat
 module.iam_policies.dynatrace_iam_policy.this["team_data_access"]: Creation complete after 1s [id=dea9e886-...#-#account#-#<account-uuid>]
 module.policy_bindings.dynatrace_iam_policy_bindings_v2.this["team_alpha"]: Creation complete after 1s [id=00d43484-...#-#environment#-#abc12345]
 
-Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 17 added, 0 changed, 0 destroyed.
 ```
 
 Note the binding IDs end in `#-#environment#-#abc12345` — proof the grants are environment-scoped.
@@ -969,7 +1008,9 @@ settings:dt.security_context IN ("tftest-alpha");
 environment:management-zone IN ("TFTEST-Alpha");
 ```
 
-✅ **Checkpoint:** `parameters.team` matches the team's `security_context`, and exactly one boundary UUID is attached.
+Alpha (which has a `management_zone`) also has `TFTEST-tpl-team-classic-viewer` bound with the same boundary, so its classic viewer role is limited to `TFTEST-Alpha`. Beta has no classic-viewer binding.
+
+✅ **Checkpoint:** `parameters.team` matches the team's `security_context`, and exactly one boundary UUID is attached to each team policy binding.
 
 <a id="step-6-payoff"></a>
 ## Step 6 — The Payoff: Onboard a Team with Three Lines

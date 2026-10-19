@@ -1,6 +1,6 @@
 # OPMIG-05: Dynamic Routing & Bucket Management
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 5 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ---
 
@@ -120,9 +120,13 @@ Route based on log level for tiered retention:
 
 | Condition | Target Pipeline | Bucket |
 |-----------|-----------------|--------|
-| `loglevel == "ERROR"` | error-logs | error_logs (90d) |
-| `loglevel == "WARN"` | warning-logs | default_logs (35d) |
+| `status == "ERROR"` | error-logs | error_logs (90d) |
+| `status == "WARN"` | warning-logs | default_logs (35d) |
 | `loglevel == "DEBUG"` | debug-logs | short_retention (3d) |
+
+> Use `status` for error- and warning-class tiers. `status` groups the levels — `SEVERE`, `ERROR`, `CRITICAL`, `ALERT`, `FATAL` and `EMERGENCY` all become `ERROR` — so `loglevel == "ERROR"` alone misses Java `SEVERE` and the rest (on a validation tenant, 63,216 `loglevel == "ERROR"` records against 118,023 `status == "ERROR"` in one hour, 10/14/2026). `status` folds `DEBUG` and `TRACE` into `INFO`, so keep `loglevel` for the debug tier.
+>
+> <sub>**Sources:** [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation) — *"Additionally, for each log event, a status attribute is created with a value that is a sum of loglevel values based on the following grouping"*.</sub>
 
 ### Strategy 5: Hybrid Routing
 
@@ -476,10 +480,11 @@ fetch spans, from: now() - 7d
 ```dql
 // Estimate storage reduction from tiered retention
 // Shows potential savings from routing to different buckets
+// Error/warn tier uses status, which also counts SEVERE, CRITICAL, FATAL and the rest
 fetch logs, from: now() - 7d
 | summarize {
     total = count(),
-    error_warn = countIf(loglevel == "ERROR" OR loglevel == "WARN"),
+    error_warn = countIf(status == "ERROR" OR status == "WARN"),
     info = countIf(loglevel == "INFO"),
     debug_trace = countIf(loglevel == "DEBUG" OR loglevel == "TRACE")
   }
@@ -510,7 +515,7 @@ Different organizations need different bucket architectures based on their scale
 **Routing Configuration:**
 ```
 Route 1 (Critical):
-  Condition: loglevel == "ERROR" OR 
+  Condition: status == "ERROR" OR 
              matchesValue(log.source, "*security*") OR 
              matchesValue(log.source, "*audit*") OR
              matchesPhrase(content, "payment")
@@ -839,7 +844,7 @@ Bucket: dev_logs (7 days)
 
 **Route 1: Error Logs (high value)**
 ```
-Condition: loglevel == "ERROR"
+Condition: status == "ERROR"
 Pipeline: error-logs
 Bucket: error_logs (90 days)
 Processing: Parse stack traces, enrich with service info

@@ -1,6 +1,6 @@
 # OPMIG-07: Metric & Event Extraction
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 7 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ---
 
@@ -39,9 +39,11 @@ By completing this notebook, you will:
 | Requirement | Details |
 |-------------|---------|
 | **Dynatrace Environment** | Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series |
-| **Permissions** | `settings:read`, `settings:write` (OpenPipeline configuration), `metrics.ingest` |
-| **API Access** | `logs.read`, `logs.ingest`, `metrics.ingest` token scopes |
+| **Permissions** | `settings:read`, `settings:write` (OpenPipeline configuration) |
+| **API Access** | `logs.read` for the verification queries; `logs.ingest` for the log shipper. Extraction itself needs no `metrics.ingest` or `events.ingest` scope — it runs inside the pipeline on records already ingested |
 | **Knowledge** | OPMIG-01 through OPMIG-06; understanding of processing/parsing concepts |
+
+> <sub>**Sources:** [Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing) — Metric extraction: *"Extract metrics from the records that match the query."*; custom pipelines: *"OpenPipeline Permissions"* `settings:read`, `settings:write`. **Derived:** extraction acts on records already ingested, so it adds no client-side ingest scope.</sub>
 
 ---
 
@@ -111,7 +113,7 @@ Count occurrences of matching records.
 Metric Type: Counter
 Key: log.errors.count
 Dimensions: service.name, error_code
-Matching: loglevel == "ERROR"
+Matching: status == "ERROR"
 ```
 
 ### Metric Naming Conventions
@@ -170,8 +172,10 @@ Dimensions: service.name, endpoint
 ```
 Counter: log.api.request_errors
 Dimensions: service.name, endpoint, error_type
-Matching: status >= 500 OR loglevel == "ERROR"
+Matching: http.response.status_code >= 500 OR status == "ERROR"
 ```
+
+> On a log record, `status` is the severity group (`ERROR`, `WARN`, `INFO`, `NONE`), not an HTTP code — parse the HTTP status into its own field, such as `http.response.status_code`, before matching on it.
 
 ### Duration: Latency Percentiles
 
@@ -380,7 +384,7 @@ Matching conditions determine which records trigger extraction.
 
 | Pattern | Condition |
 |---------|-----------|
-| Error logs | `loglevel == "ERROR"` |
+| Error logs | `status == "ERROR"` (also matches `SEVERE`, `CRITICAL`, `FATAL` and the rest; `loglevel == "ERROR"` does not) |
 | Specific service | `service.name == "payment-service"` |
 | Contains text | `matchesPhrase(content, "failed")` (whole token) or `matchesValue(content, "*failed*")` (any substring) — `contains()` is not enabled in matchers |
 | Has field | `isNotNull(order_id)` |
@@ -390,16 +394,18 @@ Matching conditions determine which records trigger extraction.
 
 ```
 // AND - both must match
-loglevel == "ERROR" AND service.name == "payment"
+status == "ERROR" AND service.name == "payment"
 
 // OR - either matches
-status == "failed" OR status == "error"
+outcome == "failed" OR outcome == "error"
 
 // Complex conditions
-(loglevel == "ERROR" OR loglevel == "WARN") 
+(status == "ERROR" OR status == "WARN") 
   AND matchesPhrase(content, "payment") 
   AND isNotNull(amount)
 ```
+
+> <sub>**Sources:** [Automatic log enrichment (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation) — *"Additionally, for each log event, a status attribute is created with a value that is a sum of loglevel values based on the following grouping"*.</sub>
 
 ### Field Reference in Conditions
 
@@ -455,7 +461,7 @@ Matching: isNotNull(path)
 Event name: Transaction failed for order {order_id}
 Event description: Transaction failed for order {order_id}: {error_reason}
 Event properties: event.type = ERROR_EVENT
-Matching: loglevel == "ERROR" AND matchesPhrase(content, "Transaction failed")
+Matching: status == "ERROR" AND matchesPhrase(content, "Transaction failed")
 ```
 
 ### Example 3: Login Business Events

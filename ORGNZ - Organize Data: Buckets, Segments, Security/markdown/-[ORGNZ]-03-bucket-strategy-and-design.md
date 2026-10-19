@@ -1,6 +1,6 @@
 # ORGNZ-03: Bucket Strategy and Design
 
-> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 09/24/2026
+> **Series:** ORGNZ — Organize Data: Buckets, Segments, Security | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -46,7 +46,7 @@ By the end of this notebook, you will:
 | Pattern | Format | Example | Use Case |
 |---------|--------|---------|----------|
 | Provider-based | `<provider>_<type>_<retention>` | `aws_logs_35d` | Multi-cloud environments |
-| LOB-based | `<provider>_<type>_<lob>` | `aws_logs_finance` | Line of business cost attribution |
+| LOB-based | `<provider>_<type>_<lob>` | `aws_logs_finance` | Line-of-business retention or access |
 | Team-based | `team_<name>_<type>` | `team_platform_logs` | Team ownership and billing |
 | Compliance | `<regulation>_<type>_<retention>` | `hipaa_logs_7y` | Regulatory requirements |
 
@@ -120,7 +120,7 @@ Route via: OpenPipeline filter on loglevel=DEBUG
 
 ### Pattern 3: Team Isolation
 
-Separate buckets for team-based access and cost attribution:
+Separate buckets for team-based access:
 
 ```yaml
 Bucket: team_platform_logs
@@ -139,7 +139,7 @@ Bucket: finance_app_logs
 Table: logs
 Retention: 180 days
 Use case: Financial application compliance
-Cost: Chargeback to Finance cost center
+Cost allocation: dt.cost.costcenter set at the source (the bucket sets retention, not chargeback)
 ```
 
 <a id="cost-control-and-attribution"></a>
@@ -154,12 +154,17 @@ Cost: Chargeback to Finance cost center
 
 ### Cost Attribution Strategy
 
-| Organization Level | Bucket Strategy |
-|-------------------|------------------|
-| Business Unit | One bucket per BU |
-| Cost Center | Map buckets to cost centers |
-| Cloud Account | Separate by AWS/Azure/GCP account |
-| Application | Critical apps get dedicated buckets |
+Dynatrace cost allocation is field-based, not bucket-based: *"Tags applied at the OneAgent, Kubernetes, or telemetry-ingest layer flow through Grail as dt.cost.costcenter and dt.cost.product attributes"*, and enrichment *"is possible for all supported ingest methods, whether logs, traces, metrics, or events."* Metrics cannot go into custom buckets at all, so a bucket-per-cost-center scheme cannot cover them. Use buckets for retention and access; use the cost fields for attribution.
+
+| Organization Level | Cost allocation | Bucket strategy |
+|-------------------|-----------------|-----------------|
+| Business unit / cost center | `dt.cost.costcenter` at the source — host tag, `DT_TAGS`, Kubernetes namespace metadata, or OpenPipeline | A dedicated bucket only where the unit also needs its own retention or access |
+| Product / application | `dt.cost.product` | A dedicated bucket above ~250 GB/day per application (*Query Performance at Scale*) or for distinct retention |
+| Cloud account | Derive `dt.cost.costcenter` from the account field in OpenPipeline | Separate buckets only where retention or access differ |
+
+Reporting on allocated cost is covered in the FINOPS series.
+
+> <sub>**Sources:** [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — as quoted, [Configure cost allocation (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation) — *"map deployment-level primary Grail fields such as dt.host_group.id or host.name to dt.cost.costcenter and dt.cost.product via the Cost Allocation stage in OpenPipeline"*.</sub>
 
 <a id="analyzing-bucket-usage"></a>
 ## Analyzing Bucket Usage
@@ -211,9 +216,14 @@ Bucket sizing shapes queryability because `fetch` stops after 500 GB of uncompre
 
 | Bucket Ingest | Impact |
 |---------------|--------|
-| ~1 TB/day | Optimal - can query ~12 hours of data |
-| 1-2 TB/day | Acceptable — reduced query window |
-| >2 TB/day | Split — Dynatrace recommends splitting above this threshold |
+| One application below 250 GB/day | Can share a bucket — *"Applications below 250 GB/day can share a bucket without degrading query experience."* |
+| One application above 250 GB/day | *"Create a dedicated bucket for any application ingesting more than 250 GB/day."* At 250 GB/day a query can reach back ~48 hours |
+| 1–3 TB/day per log bucket | Target range — ~4–12 hours of logs per query at the default scan limit |
+| Above 3 TB/day (logs), above 2 TB/day (other tables) | Split — by line of business first, then by application where volume or compliance justify it |
+
+> **Docs differ (read 10/14/2026).** *Use Grail buckets to partition data* (updated 06/17/2026) says *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."* *Best practices for a logs bucket strategy* (published 08/24/2026) is newer and specific to logs: *"Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day."* This table follows the newer page for logs.
+
+> <sub>**Sources:** [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — 250 GB rows as quoted, [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — *"Split log buckets by line of business rather than by individual application."*, [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data).</sub>
 
 ### Data Immutability
 
@@ -265,8 +275,8 @@ Use this checklist when planning buckets:
 
 - [ ] Defined naming convention aligned with organization
 - [ ] Identified retention requirements by data type
-- [ ] Mapped organizational units to buckets for cost attribution
-- [ ] Calculated expected ingest volumes (keep <1 TB/day)
+- [ ] Set `dt.cost.costcenter` / `dt.cost.product` for cost attribution (buckets only where retention or access differ)
+- [ ] Calculated expected ingest volumes (target 1–3 TB/day per log bucket; dedicated bucket per application above 250 GB/day)
 - [ ] Planned for compliance requirements
 - [ ] Documented bucket purposes
 - [ ] Planned OpenPipeline routing rules
@@ -305,6 +315,9 @@ Continue with the ORGNZ series:
 - [Data Retention](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods)
 - [OpenPipeline Routing](https://docs.dynatrace.com/docs/platform/openpipeline)
 - [Log Analytics (DPS) (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics)
+- [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning)
+- [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)
+- [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up)
 
 ---
 

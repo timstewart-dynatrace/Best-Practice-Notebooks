@@ -1,6 +1,6 @@
 # S2D-05: Alert Migration - Workflow-Based Alerts
 
-> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/12/2026
+> **Series:** S2D — Splunk to Dynatrace Migration | **Notebook:** 5 of 9 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -140,6 +140,7 @@ Add dimensions to provide context in the event:
 
 ```dql
 // Query with dimensions for event context
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:now()-24h
 | filter status == "ERROR"
 | summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}
@@ -207,13 +208,14 @@ On the ingest API you do not set that field directly. You attribute the event wi
 
 Use an ID the query already returns; do not derive one from a display name.
 
-The dimensioned query in the previous section groups by `dt.entity.cloud_application`, which is a real entity ID (`CLOUD_APPLICATION-0DC6683CE35D5C10`) and drops straight into `entityId(...)`. **`k8s.deployment.name` is not a substitute** — on the tenant this notebook was validated against, those values come back normalized with a trailing wildcard (`"recommendationservice-*"`, `"cartservice-*"`), so matching on the name is not dependable.
+The dimensioned query in the previous section groups by `dt.entity.cloud_application`, which is a real entity ID (`CLOUD_APPLICATION-0DC6683CE35D5C10`) and drops straight into `entityId(...)`. The semantic dictionary marks the field `deprecated` (read 10/14/2026), but its Smartscape successors (`dt.smartscape.k8s_deployment` and its siblings) are not on log records yet, so it is still the workload ID to use here. **`k8s.deployment.name` is not a substitute** — on the tenant this notebook was validated against, those values come back normalized with a trailing wildcard (`"recommendationservice-*"`, `"cartservice-*"`), so matching on the name is not dependable.
 
 **Confirm your IDs actually resolve before trusting them.** The Smartscape node ID and the classic entity ID are different strings for the same workload — `K8S_DEPLOYMENT-184217F70116D1CD` and `CLOUD_APPLICATION-0DC6683CE35D5C10` — and `id_classic` is the bridge between them. Run this against your own estate:
 
 ```dql
 // Do the entity IDs in your alert query resolve to real workloads?
 // A null smartscape_id means that row cannot be attributed - skip it, don't send it.
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
 fetch logs, from:now()-24h
 | filter status == "ERROR"
 | summarize error_count = count(), by:{k8s.deployment.name, k8s.namespace.name, dt.entity.cloud_application}

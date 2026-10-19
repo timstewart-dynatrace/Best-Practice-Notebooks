@@ -1,10 +1,10 @@
 # DBMON-06: Dashboards and Alerting
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 6 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
-This notebook covers building database monitoring dashboards and configuring alerting for database health. You will learn dashboard design patterns for database KPIs, how to create alert-ready queries for slow query detection, connection pool thresholds, error rate monitoring, and database-specific SLO definitions. These queries are designed to be directly usable in **Dashboards (new)** tiles, **Davis anomaly detectors** routed through Workflows (the modern alerting path), and legacy metric events.
+This notebook covers building database monitoring dashboards and configuring alerting for database health. You will learn dashboard design patterns for database KPIs, how to create alert-ready queries for slow query detection, connection pool thresholds, error rate monitoring, and database-specific SLO definitions. These queries are designed to be directly usable in **Dashboards (new)** tiles and in DQL-based **custom alerts (Davis anomaly detectors)** routed through Workflows.
 
 ---
 
@@ -192,7 +192,11 @@ These are starting points from community practice, not Dynatrace guidance.
 | Error rate > 5% for 5 minutes | Critical | Immediate page |
 | Error rate > 1% for 15 minutes | Warning | Notification |
 | Any connection refused error | Critical | Immediate page |
-| Deadlock detected | Warning | Notification |
+| Deadlock (engine-side) | Warning | Notification — alert on the **Databases** app's lock and wait metrics; spans see a deadlock only as the victim session's error |
+
+A deadlock happens inside the engine, so none of the span queries in this notebook detects one. For monitored database instances, the lock and wait metrics shown in the **Databases** app cover it, and health alerts can be created on them. In a client span the deadlock appears only as the error returned to the session the engine terminated.
+
+> <sub>**Sources:** [Database blocking queries and deadlocks (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/blocking-queries-and-deadlocks) — *"The engine detects the cycle and terminates one session (the deadlock victim), which must retry."* and *"Create health alerts on lock and wait metrics to be notified when contention reaches a threshold."*</sub>
 
 ### Alerting on Engine Internals — SQL Server Extension Metrics
 
@@ -294,11 +298,11 @@ fetch spans, from:-24h
 
 Slow query alerts detect when query performance degrades beyond acceptable thresholds.
 
-**Modern path (recommended for new alerting):** wire these queries into a **custom alert (Davis anomaly detector)** — created in **Settings** from SaaS 1.344, or in the Anomaly Detection app on earlier versions (SaaS 1.344 rolls out to tenants in stages; check your tenant's version, and note the app is deprecated) — and route the resulting events with **Workflows**, so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
+**Recommended path:** wire these queries into a **custom alert (Davis anomaly detector)** — created in **Settings** from SaaS 1.344, or in the Anomaly Detection app on earlier versions (SaaS 1.344 rolls out to tenants in stages; check your tenant's version, and note the app is deprecated) — and route the resulting events with **Workflows**, so Davis can apply adaptive baselines, multi-dimensional analysis, and seasonal pattern detection — far more accurate than fixed thresholds for slow-query detection. See the **AIOPS** series for anomaly-detection mechanisms and the **WFLOW** series for Workflow-driven alert routing.
 
-**Legacy path (still supported for fixed-threshold cases):** the queries below are also directly usable as **metric events** in Settings → Anomaly detection → Metric events when you want a fixed threshold instead of an adaptive baseline.
+**Fixed thresholds:** a custom alert does not have to be adaptive. Its alert condition also takes a threshold value you set manually, so the same DQL queries cover fixed-threshold cases. Classic **metric events** are not a route for these span queries: they are metric-based, and custom alerts are the DQL path that extends them. An existing metric event can be transformed into a custom alert.
 
-> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*; [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"To manually create or edit a simple custom alert configuration, you can use Anomaly Detection or Settings."* and *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*</sub>
+> <sub>**Sources:** [Anomaly Detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to Settings."*; [Configure a simple custom alert (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad) — *"To manually create or edit a simple custom alert configuration, you can use Anomaly Detection or Settings."* and *"Because Anomaly Detection is deprecated, we recommend using Settings instead."*, *"You can also choose the desired threshold value and the Unit of your value manually."* and *"Metric events enhance anomaly detection, expanding them beyond out-of-the-box use cases into metric-based events. With the power of DQL, you can extend this reach further."* **Derived:** that metric events do not take `fetch spans` DQL follows from their being metric-based.</sub>
 
 ```dql
 // Alert query: Slow query count per 5-minute window (> 500ms threshold)
@@ -407,7 +411,7 @@ In this notebook you learned:
 - Response time monitoring with P50/P95/P99 trend analysis
 - Error rate alerting queries and recommended thresholds
 - Throughput monitoring including read/write ratio trends and day-over-day comparison
-- Slow query alerting with vendor-specific thresholds (with Davis Anomaly Detectors as the modern path + metric events as the legacy fallback)
+- Slow query alerting with vendor-specific thresholds (DQL custom alerts — Davis anomaly detectors — with an adaptive baseline or a fixed threshold)
 - Database SLO definitions and compliance measurement queries
 
 ### Series Complete

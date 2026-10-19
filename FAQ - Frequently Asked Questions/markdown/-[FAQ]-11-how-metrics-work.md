@@ -1,6 +1,6 @@
 # FAQ-11: How Do Metrics Work in Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 11 — How Metrics Work in Dynatrace | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -196,7 +196,7 @@ Every path below converges on the same data-point model from §2 — the differe
 | OneAgent built-ins | On the host | none (agent) | 10-second sampling → 1-minute aggregates; automatic topology dimensions |
 | Metrics API v2 ingest | Anywhere → cluster/ActiveGate | platform token / OAuth (`openpipeline:metrics:ingest`) or classic token (`metrics.ingest`) | Line protocol, 1 MB payload |
 | OneAgent local API / `dynatrace_ingest` / Telegraf / StatsD | On the host, `localhost` only | none (local trust) — the local API must be enabled first | Automatic host dimensions; 1,000-line payload |
-| OTLP (`/api/v2/otlp/v1/metrics`) | Anywhere → cluster/ActiveGate | platform token (`openpipeline:metrics:ingest`) or classic token (`metrics.ingest`) | **Delta temporality required**; HTTP + binary protobuf only |
+| OTLP (`/api/v2/otlp/v1/metrics`) | Anywhere → cluster/ActiveGate | platform token (`openpipeline:metrics:ingest`) or classic token (`metrics.ingest`) | **Delta temporality required for counters and histograms**; HTTP + binary protobuf only |
 | Extensions 2.0 | OneAgent or ActiveGate (EEC) | framework | Declarative YAML; polls SNMP/WMI/JMX/Prometheus/SQL/Python |
 | OpenPipeline extraction | At record ingest | pipeline config | Metrics derived from logs/spans/events — §5 |
 
@@ -230,7 +230,7 @@ When code already runs on a OneAgent-monitored host, you can skip tokens entirel
 `POST /api/v2/otlp/v1/metrics` (or via ActiveGate) with `Authorization: Bearer <platform token>` (scope `openpipeline:metrics:ingest`) or, where classic access tokens are still available, `Authorization: Api-Token …` with `metrics.ingest`. Three protocol constraints surprise OTel veterans:
 
 1. **HTTP only** — *"gRPC is not supported"* — and **binary protobuf only** (*"JSON is not supported"*): set `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
-2. **Delta temporality is mandatory**: *"the Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."* Cumulative sums are not ingested. Fix it at the SDK (`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA`) or in a Collector with the `cumulativetodelta` processor (set `max_staleness` above the receive interval so counter state is not evicted between reports).
+2. **Counters and histograms must be delta**: *"the Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality."* Cumulative counters and cumulative histograms are not ingested — *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* A cumulative UpDownCounter (a non-monotonic sum) is accepted and stored as a gauge, per the page's instrument mapping table. Fix it at the SDK (`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA`) or in a Collector with the `cumulativetodelta` processor (set `max_staleness` above the receive interval so counter state is not evicted between reports).
 3. **Histogram support is partial**: explicit-bucket histograms (Dynatrace 1.300+) are stored as histograms **only when Advanced OTLP metric dimensions is enabled** — otherwise they are ingested as counters, with no buckets to take percentiles from; for exponential histograms *"Dynatrace ingests the histogram's min/max/sum/count but doesn't ingest the buckets"*; histogram points without a sum (negative recordings) are dropped; OTLP *summary* metrics are not supported at all.
 
 Attribute mapping: data-point attributes become dimensions by default; resource and scope attributes pass through an allow-list — unless the tenant enables **Advanced OTLP metric dimensions**, in which case *all* resource/scope/data-point attributes become dimensions except a deny list, and `otel.scope.name`/`otel.scope.version` are always added. On conflicts, data-point attributes win over scope, which wins over resource. Limits shift with that mode too: 50 → 100 dimensions, 100 → 350-character dimension keys, 255 → 2,048-character values; requests cap at 4 MB uncompressed and 15,000 data points; instrument units longer than 63 characters are silently dropped.
@@ -248,7 +248,7 @@ For technology you cannot instrument directly, an extension is a **declarative Y
 > - <sub>[Telegraf (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf)</sub>
 > - <sub>[StatsD (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd) — ports 18125/18126; *"OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported."*</sub>
 > - <sub>[OTLP API (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api) — endpoints, HTTP/protobuf-only; *"Platform token : Use Bearer in the Authorization header."*</sub>
-> - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026)</sub>
+> - <sub>[OTLP metrics ingest concepts (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026); instrument mapping table rows Counter Cumulative → N/A and UpDownCounter Cumulative → Gauge, and *"Cumulative histograms aren't ingested (similarly to cumulative counters)."* (re-read 10/15/2026)</sub>
 > - <sub>[OTLP metrics configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/configure-otlp-metrics)</sub>
 > - <sub>[OTLP metrics limitations (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-otlp-metrics/about-metrics-ingest) — size/length limits, 63-character unit cap</sub>
 > - <sub>[Collector configuration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/configuration) — `cumulativetodelta` + `max_staleness` guidance</sub>
@@ -480,7 +480,7 @@ For querying your *own* tenant's metric consumption, FINOPS-01 documents the `dt
 |---------|-------|-----|
 | `timeseries avg(builtin:…)` fails to parse or returns nothing | Classic `builtin:` keys are not in Grail; the colon also reads as DQL parameter syntax | Query the Grail twin (`dt.host.cpu.usage`); backtick-quote any key containing special characters |
 | `percentile` / `median` in `timeseries` returns no rows (with a WARNING notification) | Missing `rollup:` — required for these functions on gauge/count metrics, except `dt.service.request.response_time` and `…service_mesh.response_time` | Add `rollup: avg` (or `min`/`max`/`sum`) |
-| OTel counter never arrives | Cumulative temporality — Dynatrace ingests delta only | Set `…TEMPORALITY_PREFERENCE=DELTA` or add the Collector's `cumulativetodelta` processor |
+| OTel counter never arrives | Cumulative temporality — Dynatrace ingests delta counters only | Set `…TEMPORALITY_PREFERENCE=DELTA` or add the Collector's `cumulativetodelta` processor |
 | OTLP export fails outright | gRPC endpoint or JSON encoding — neither is supported | HTTP + binary protobuf (`http/protobuf`) |
 | Histogram percentiles poorer than expected | Exponential OTLP histograms store only min/max/sum/count — buckets are dropped; OTLP summaries are unsupported | Use explicit-bucket histograms (Dynatrace 1.300+) **and** enable Advanced OTLP metric dimensions — without it, explicit-bucket histograms are ingested as counters |
 | `metrics` command shows nothing older than ~10 days | Discovery command timeframe is limited to the last ten days | Use `timeseries` for historical values; `metrics` is for discovery only |

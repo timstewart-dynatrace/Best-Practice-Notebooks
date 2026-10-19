@@ -1,6 +1,6 @@
 # K8S-07: Kubernetes Events and Log Ingestion
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/05/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 7 of 14 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Capturing and Analyzing Kubernetes Events and Logs
 Kubernetes events and container logs provide crucial insights for debugging and operational awareness. This notebook covers event monitoring, log ingestion configuration, and analysis patterns in Dynatrace.
@@ -108,7 +108,7 @@ Which events are ingested is a **Kubernetes monitoring setting** on the cluster'
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -119,9 +119,11 @@ Which events are ingested is a **Kubernetes monitoring setting** on the cluster'
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
 | fields timestamp, k8s.cluster.name, k8s.namespace.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
@@ -134,7 +136,7 @@ fetch events, from:-1h
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -145,13 +147,15 @@ fetch events, from:-1h
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-1h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter status == "WARN"
-| summarize events = count(), by:{dt.kubernetes.event.reason, k8s.namespace.name}
+| summarize events = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, k8s.namespace.name}
 | sort events desc
 | limit 25
 ```
@@ -264,7 +268,7 @@ Building, testing and ordering pipelines is covered in the OPLOGS series.
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -275,9 +279,11 @@ Building, testing and ordering pipelines is covered in the OPLOGS series.
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-7d
 | filter event.provider == "KUBERNETES_EVENT"
 | filter dt.kubernetes.event.reason == "FailedScheduling"
@@ -293,7 +299,7 @@ fetch events, from:-7d
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -304,13 +310,15 @@ fetch events, from:-7d
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
 | filter in(dt.kubernetes.event.reason, {"BackOff", "BackoffLimitExceeded"})
-| summarize events = count(), by:{k8s.namespace.name, dt.kubernetes.event.involved_object.name}
+| summarize events = countDistinctExact(event.id), by:{k8s.namespace.name, dt.kubernetes.event.involved_object.name}
 | sort events desc
 | limit 25
 ```
@@ -320,7 +328,7 @@ fetch events, from:-24h
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -331,9 +339,11 @@ fetch events, from:-24h
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-7d
 | filter event.provider == "KUBERNETES_EVENT"
 | filter in(dt.kubernetes.event.reason, {"FailedMount", "FailedAttachVolume", "FreeDiskSpaceFailed", "EvictionThresholdMet"})
@@ -347,7 +357,7 @@ fetch events, from:-7d
 // Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
 // `fetch logs` for `log.source` containing "kubernetes" or for content substrings like "BackOff" —
 // no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
-// while the cluster emitted 231,296 Kubernetes events in the same window.
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
 // They arrive as `fetch events | filter event.provider == "KUBERNETES_EVENT"`, STRUCTURED:
 //   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
 //                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
@@ -358,12 +368,14 @@ fetch events, from:-7d
 //   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
 // NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT "Warning". The Warning/Normal
 // split is in status ("WARN" / "INFO"). dt.kubernetes.event.important was "true" on all 204,078
-// events over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
 //   fetch events, from:-24h | filter event.provider == "KUBERNETES_EVENT"
-//   | summarize n = count(), by:{dt.kubernetes.event.reason} | sort n desc
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
 fetch events, from:-24h
 | filter event.provider == "KUBERNETES_EVENT"
-| summarize events = count(), by:{dt.kubernetes.event.reason, status}
+| summarize events = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, status}
 | sort events desc
 | limit 25
 ```

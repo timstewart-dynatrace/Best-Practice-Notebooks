@@ -32,7 +32,7 @@
 | **DBMON** | [Database Monitoring](../DBMON%20-%20Database%20Monitoring/) | 7 | SQL, NoSQL, cache, messaging, query analysis |
 | **FAQ** | [Frequently Asked Questions](../FAQ%20-%20Frequently%20Asked%20Questions/) | 25+ | Standalone single-page reference docs (host groups, tagging, OneAgent and OTel, updates, sizing, metrics, DPL, entity selectors → Smartscape, cutover planning, third-party SaaS telemetry, alert routing, PurePath timings in Grail, metadata strategy) — growing |
 | **FINOPS** | [Cost Management & FinOps](../FINOPS%20-%20Cost%20Management%20&%20FinOps/) | 3+ | DPS consumption, forecasting, anomaly detection, optimization framework — growing |
-| **IAM** | [IAM Administration](../IAM%20-%20IAM%20Administration/) | 15 | Policies, boundaries, groups, SSO, audit, parameterized assignments |
+| **IAM** | [IAM Administration](../IAM%20-%20IAM%20Administration/) | 16 | Policies, boundaries, groups, SSO, audit, parameterized assignments, permission reference |
 | **K8S** | [Kubernetes Monitoring](../K8S%20-%20Kubernetes%20Monitoring/) | 15 | DynaKube, GitOps deployment, cluster + workload monitoring, troubleshooting |
 | **M2S** | [Managed to SaaS Migration](../M2S%20-%20Managed%20to%20SaaS%20Migration/) | 11 | 9-step procedural runbook for Managed → SaaS deployment migration |
 | **MCH** | [Managed Cluster Health](../MCH%20-%20Managed%20Cluster%20Health/) | 8 | Keeping a self-hosted Managed cluster healthy: node architecture, five-layer health model, storage, capacity, Mission Control connectivity, backup and upgrades (markdown/PDF only — no DQL) |

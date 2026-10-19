@@ -1,6 +1,6 @@
 # WEBRUM-09: Migrating USQL to DQL
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 9 of 10 | **Created:** July 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -262,7 +262,8 @@ fetch user.sessions, from:-24h
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive

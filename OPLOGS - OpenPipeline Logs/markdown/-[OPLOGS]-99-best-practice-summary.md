@@ -1,6 +1,6 @@
 # OPLOGS-99: Best Practice Summary
 
-> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** OPLOGS — OpenPipeline Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.
 
@@ -82,7 +82,7 @@ Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as `\b`, 
 | Always alias aggregations | `summarize count = count()` then `sort count desc` — anonymous aggregations cannot be referenced | Critical |
 | Use `isNull()`/`isNotNull()` | Never `== null` — DQL uses three-valued logic | Critical |
 | Use `in()` with curly-brace arrays | `in(status, {"ERROR", "WARN"})` — values are uppercase; never SQL-style `IN ('a', 'b')` | Critical |
-| Use `coalesce()` for fallbacks | `coalesce(loglevel, status, "UNKNOWN")` for null handling | Recommended |
+| Use `coalesce()` for fallbacks | `coalesce(k8s.workload.name, k8s.namespace.name, "UNKNOWN")` — falls back where a field is null; `loglevel` is never null (missing levels are `"NONE"`), so it is a poor first argument | Recommended |
 | Use `entityName()` for display names | `entityName(dt.entity.host, type:"dt.entity.host")` — a readable name instead of an ID; note `dt.entity.*` fields are `deprecated` in favour of `dt.smartscape.*` (OPLOGS-06) | Recommended |
 | Filter `isNotNull` before aggregating optional fields | Prevents null group-by values in aggregations | Recommended |
 | Use `samplingRatio` for exploration | `fetch logs, from:-1d, samplingRatio:10` then multiply back | Recommended |

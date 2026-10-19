@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/12/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -59,6 +59,7 @@ A complete discovery must cover ALL of these categories — missing any one will
 | **Dynatrace Managed** | Active Managed environment with administrator access |
 | **Dynatrace SaaS Tenant** | Provisioned SaaS environment (or planning to provision) |
 | **API Tokens** | Tokens with `entities.read`, `settings.read` scopes on Managed |
+| **Healthy source cluster** | Check the Managed cluster's health first with the MCH series (MCH-99 checklist) — a cluster with failing nodes, a full store or a broken backup carries its problems into the migration |
 | **Stakeholder Access** | Ability to document and share findings with decision-makers |
 
 ![SaaS Benefits Overview](images/01-saas-benefits.png)
@@ -67,7 +68,7 @@ A complete discovery must cover ALL of these categories — missing any one will
 | Benefit Category | Managed | SaaS |
 |-----------------|---------|------|
 | Infrastructure | Customer-managed clusters | Fully managed by Dynatrace |
-| Updates | Manual cluster patching | Automatic bi-weekly updates |
+| Updates | Automatic every 4 weeks; you schedule and run them | Automatic every 2 weeks, run by Dynatrace |
 | Availability | Customer-managed HA | 99.5% SLA (99.95% with Enterprise Success and Support) |
 | Data Platform | Time-series DB + Elasticsearch | Grail data lakehouse |
 | Capabilities | Core monitoring | AppEngine, AutomationEngine, Dynatrace Assist |
@@ -86,9 +87,9 @@ Moving from Dynatrace Managed to SaaS is not just a hosting change — it unlock
 |------|---------|------|
 | **Cluster management** | Customer-managed servers, storage, networking | Fully managed by Dynatrace |
 | **Scaling** | Manual capacity planning and provisioning | Automatic scaling with licensing |
-| **Updates** | Manual cluster patching (scheduled downtime) | Automatic bi-weekly updates (zero downtime) |
+| **Updates** | Automatic cluster updates every 4 weeks, run in a maintenance window you define; a cluster with fewer than 3 nodes is unavailable while it updates | Automatic updates every 2 weeks, operated by Dynatrace |
 | **Availability** | Customer-managed HA/DR | Contractual SLA — 99.5% monthly uptime with Standard Support, 99.95% with Enterprise Success and Support — on a multi-availability-zone architecture |
-| **Security patches** | Customer responsibility to apply | Automatic, managed by Dynatrace |
+| **Security patches** | Operating-system patches on the cluster nodes are yours to apply | Operating-system security patches applied by Dynatrace |
 
 ### Platform Capabilities
 
@@ -110,7 +111,7 @@ SaaS provides capabilities that are not available on Managed:
 Migrating to SaaS eliminates operational overhead associated with running Managed clusters:
 
 - No hardware procurement, racking, or lifecycle management
-- No cluster OS patching or Dynatrace server upgrades
+- No cluster OS patching, and no cluster updates to schedule and run
 - No capacity planning for Cassandra, Elasticsearch, or transaction storage
 - No backup/restore procedures for cluster data
 - No need for dedicated Managed cluster administrators
@@ -124,6 +125,11 @@ Migrating to SaaS eliminates operational overhead associated with running Manage
 | **HIPAA** | Health data handling compliance |
 | **FedRAMP** | US government security authorization (select regions) |
 | **Automatic patching** | Security vulnerabilities addressed without customer action |
+
+> <sub>**Sources:**</sub>
+> - <sub>[Pre-upgrade information (DT docs)](https://docs.dynatrace.com/managed/upgrade/up-information) — Managed: *"Automatic upgrades every 4 weeks; OS Patches by Customer"*; SaaS: *"Automatic upgrades every 2 weeks; OS Security patches by Dynatrace ACE team."*</sub>
+> - <sub>[Update a cluster (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster) — *"If your cluster consists of less than 3 nodes, Dynatrace Managed won't be accessible during the update process."*</sub>
+> - <sub>[Dynatrace SaaS SLA (Dynatrace)](https://www.dynatrace.com/company/trust-center/sla/saas/)</sub>
 
 <a id="review-your-current-environment"></a>
 

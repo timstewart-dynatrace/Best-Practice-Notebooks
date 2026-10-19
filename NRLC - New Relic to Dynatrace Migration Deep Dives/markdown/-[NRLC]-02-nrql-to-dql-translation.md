@@ -1,6 +1,6 @@
 # NRLC-02: NRQL → DQL Translation
 
-> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** NRLC — New Relic to Dynatrace Migration Deep Dives | **Notebook:** 2 of 9 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -318,8 +318,15 @@ The compiler picks the `fetch` source from a built-in lookup. There is no CLI fl
 | `SINCE '2026-04-14 00:00:00'` | `from:"2026-04-14T00:00:00Z"` |
 | `TIMESERIES 5 minutes` | `interval:5m` |
 | `TIMESERIES MAX` | omit `interval:` — `makeTimeseries` / `timeseries` choose the interval automatically (`interval: auto` does not parse) |
-| `SLIDE BY 1 minute` | not directly supported — use `bin(timestamp, 1m)` for similar shape |
-| `COMPARE WITH 1 week ago` | second `fetch` with `from:-2w, to:-1w` plus shift |
+| `TIMESERIES 5 minutes SLIDE BY 1 minute` | no direct equivalent. For counts and sums, query at the slide step and sum a moving window: `interval:1m` then `fieldsAdd c_5m = arrayMovingSum(c, 5)` (the first four points cover partial windows). A sliding average or percentile has no exact equivalent — review by hand. `bin()` produces fixed, non-overlapping buckets, not a sliding window |
+| `COMPARE WITH 1 week ago` | the **same window, shifted back 168 h**: `timeseries …, shift:-168h` in an `append` for metrics, or a second `fetch` whose `from:` / `to:` are both moved back 168 h (`SINCE 1 day ago` → `from:-192h, to:-168h`, as in §5). Not `from:-2w, to:-1w`, which compares a whole week against a one-day window |
+
+The metric form of `COMPARE WITH`, executed against a live tenant on 10/14/2026 (2 rows, no notifications; `shift:-7d` is also accepted but Grail rewrites it to `-168h`):
+
+```dql
+timeseries current = sum(dt.service.request.count, rollup: sum), from:-1d, interval:1h
+| append [timeseries previous = sum(dt.service.request.count, rollup: sum), from:-1d, interval:1h, shift:-168h]
+```
 
 The compiler normalizes all time expressions to absolute or relative DQL forms. A common gotcha: NRQL's default time window (1 hour) differs from DQL's defaults; the compiler always emits an explicit `from:` to avoid this.
 
@@ -404,8 +411,6 @@ NRQL → [compile] → DQL → [syntax validate] → [tenant validate] → [beha
 
 When syntax validation fails, the engine attempts safe corrections before reporting failure:
 
-- Operator normalization (`>` becomes `>=` if NRQL was inclusive)
-- Duration literal correction (`1m` → `1m` ensures `m` suffix lowercase)
 - Field name normalization (camelCase ↔ snake_case for known mappings)
 
 Applied fixes are returned in `result.fixes[]` so reviewers can see what changed.

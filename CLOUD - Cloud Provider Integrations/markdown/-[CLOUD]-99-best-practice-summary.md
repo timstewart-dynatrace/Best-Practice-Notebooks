@@ -1,6 +1,6 @@
 # CLOUD-99: Best Practice Summary
 
-> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** CLOUD — Cloud Provider Integrations | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -54,6 +54,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 16 | Enable CloudWatch detailed monitoring for critical EC2 | Detailed monitoring: 1-min granularity (additional cost); standard: 5-min | Recommended | CLOUD-02 |
 | 17 | Combine cloud integration with OneAgent on compute | Cloud integration = cloud context (tags, AZ, instance type); OneAgent = deep observability (traces, code-level). Use both | Critical | CLOUD-01 |
 | 18 | Review CloudWatch billing dashboard monthly | Correlate API cost spikes with Dynatrace service additions | Recommended | CLOUD-02 |
+| 18a | Promote AWS tags to primary tags in two steps, plus OneAgent | AWS tag rule (target Cloud tag) at account scope → OpenPipeline primary Grail tag rule with sources `aws.tags.<key>` and `` `tags:aws`[<key>] ``, condition `isNull(primary_tags.<key>)`; Host/Process property rule at host-group scope for OneAgent on EC2 (SaaS 1.348+, new cloud connections) | Critical | CLOUD-02 |
 
 > <sub>**Sources:** [AWS integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
@@ -67,6 +68,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 20 | Propagate Azure tags to Dynatrace | Tags must flow through automatically; verify `environment`, `team`, `cost-center` appear in Dynatrace | Recommended | CLOUD-05 |
 | 21 | Use naming convention for resource groups | Pattern: `rg-<application>-<environment>-<region>` (e.g., `rg-myapp-prod-eastus`) | Recommended | CLOUD-05 |
 | 22 | Forward Azure logs through Diagnostic Settings → Event Hubs | Diagnostic settings stream activity, Entra ID and resource logs to regional Event Hubs that Dynatrace pulls from (no function code to host); the Azure Native service can create the settings for you | Recommended | CLOUD-05 |
+| 22a | Promote Azure tags the same way | Azure tag rule → primary Grail tag rule with `azure.tags.<key>` and `` `tags:azure`[<key>] ``; confirm the Azure tag rule type exists in your tenant first | Recommended | CLOUD-05 |
 
 > <sub>**Sources:** [Azure Native Dynatrace Service (DT docs)](https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/azure-native-integration). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
@@ -82,6 +84,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 26 | Create Dynatrace Segments per GCP project | One Segment per project for cost attribution and scoped dashboards (segments filter; access is an IAM-policy job) | Recommended | CLOUD-06 |
 | 27 | Monitor Pub/Sub message volume for cost control | Filter logs at Cloud Logging export to reduce Pub/Sub throughput and costs | Recommended | CLOUD-06 |
 | 28 | Use Cloud Monitoring metrics scope for multi-project | Aggregate metrics from multiple projects into a single metrics scope rather than separate integrations | Optional | CLOUD-06 |
+| 28a | Promote GCP labels and tags the same way | GCP label / GCP tag rule → primary Grail tag rule with `gcp.labels.<key>` and `` `tags:gcp_labels`[<key>] `` | Recommended | CLOUD-06 |
 
 > <sub>**Sources:** [Google Cloud integration (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform). **Derived:** the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub>
 
@@ -115,6 +118,7 @@ This notebook distills every actionable best practice from the CLOUD series (CLO
 | 43 | Correlate API Gateway latency with Lambda duration | End-to-end latency = API GW overhead + Lambda duration; monitor both | Recommended | CLOUD-04 |
 | 44 | Monitor DynamoDB call duration from Lambda spans | Filter: `span.kind == "client"`, `db.system == "dynamodb"`; alert on p95 > baseline | Recommended | CLOUD-04 |
 | 45 | Set alert evaluation window longer than metric delay | Cloud metric delay: 5–10 min. Minimum evaluation window for Lambda alerts: 15 min | Critical | CLOUD-02 |
+| 45a | Tag Lambda functions with DT_TAGS | `DT_TAGS="primary_tags.team=… aws.account.id=… aws.region=…"` — the function does not load ingest enrichment rules | Critical | CLOUD-04 |
 
 <a id="log-ingestion"></a>
 

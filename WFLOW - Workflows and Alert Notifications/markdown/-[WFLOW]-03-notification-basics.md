@@ -1,6 +1,6 @@
 # WFLOW-03: Alert Notification Basics
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 3 of 10 | **Created:** January 2026 | **Last Updated:** 10/14/2026
 
 ## Sending Notifications with Workflows
 The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.
@@ -268,7 +268,7 @@ input:
     Problem ID: {{ event()["display_id"] }}
     
     Affected Entities:
-    {{ event()["affected_entity_ids"] | join(", ") }}
+    {{ (event().get("smartscape.affected_entities") or []) | map(attribute="name") | join(", ") or event()["affected_entity_ids"] | join(", ") }}
     
     Root Cause:
     {{ (event().get("root_cause.smartscape_entity") or {}).get("name", "not yet determined") }}
@@ -279,7 +279,7 @@ input:
 
 ### Formatted Email
 
-The root cause is read with `.get()` because most problems do not carry one: on a validation tenant, 127 of 540 problems over 24 h had `root_cause.smartscape_entity` (10/06/2026), and a bracket read of a missing field fails the task with *Undefined variables*. The older `root_cause_entity_id` is deprecated and just as often absent. Enabling **Wait for root cause analysis** on the trigger (WFLOW-02 §2) addresses the early-lifecycle gap but does not guarantee a root cause: *"Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events."*
+The root cause is read with `.get()` because most problems do not carry one: on a validation tenant, 127 of 540 problems over 24 h had `root_cause.smartscape_entity` (10/06/2026), and a bracket read of a missing field fails the task with *Undefined variables*. The older `root_cause_entity_id` is deprecated and just as often absent. The affected-entities line follows the same rule: it prints the names from `smartscape.affected_entities` and falls back to the deprecated `affected_entity_ids` when that field is empty — see the callout in §6. Enabling **Wait for root cause analysis** on the trigger (WFLOW-02 §2) addresses the early-lifecycle gap but does not guarantee a root cause: *"Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events."*
 
 The `content` field takes markdown: bold, headings, lists, tables and links. It does not take HTML, so an HTML template arrives as literal tags, and there is no content-type input. For an HTML template, send through SendGrid or SES from an HTTP Request task (table above).
 
@@ -312,9 +312,14 @@ input:
 | `{{ event()["event.name"] }}` | Problem title | Main content |
 | `{{ event()["event.category"] }}` | AVAILABILITY/ERROR/SLOWDOWN/… | What kind of problem |
 | `{{ event().get("event.severity") \| int(5) }}` | 1 (most severe) … 5 | Color coding |
-| `{{ event()["affected_entity_ids"] \| join(", ") }}` | Comma-separated list | Show all affected |
+| `{{ (event().get("smartscape.affected_entities") or []) \| map(attribute="name") \| join(", ") }}` | Comma-separated entity names | Show all affected |
+| `{{ event()["affected_entity_ids"] \| join(", ") }}` | Comma-separated classic IDs | Fallback only — deprecated |
 | `{{ event()["event.start"] }}` | ISO timestamp | When started |
 | `{{ problem_link() }}` | Full URL | Link to problem (Problem trigger only) |
+
+> **Deprecated problem fields.** The upgrade guide marks the classic entity fields deprecated: *"root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities . Build new payloads against the Smartscape fields."* `affected_entity_ids` still works and is the better-populated field: over 7 days on a validation tenant (10/14/2026) it was set on 5,014 of 5,014 problem records and `smartscape.affected_entities` on 4,056, so the templates in this notebook read `smartscape.affected_entities` first and fall back to it, as in the email template in §5. **WFLOW-02 §8** maps every payload field and **WFLOW-05 §3** has the population counts.
+>
+> <sub>**Sources:** [Upgrade guide — alerting and notifications (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification) — *"smartscape.affected_entities Record array; each element has id , type , name"*.</sub>
 
 `event.severity` is `experimental` in the semantic dictionary and is a 1–5 scale; the problem record carries no `CRITICAL`/`HIGH` strings. `int(5)` treats a missing severity as least severe — see WFLOW-04 §3 for why that default matters from SaaS 1.348.
 

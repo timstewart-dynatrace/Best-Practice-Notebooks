@@ -1,6 +1,6 @@
 # DBMON-05: Query Analysis
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 5 of 7 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -197,7 +197,11 @@ fetch spans, from:-1h
 
 ## 4. Missing Index Detection
 
-Queries that consistently have high latency and high call count may indicate missing database indexes. While Dynatrace cannot directly inspect index usage, we can identify candidates by correlating query patterns with performance characteristics.
+Queries that consistently have high latency and high call count may indicate missing database indexes. Spans do not show index usage, so the queries below identify candidates by correlating query patterns with performance characteristics.
+
+For plan-level evidence, use the **Databases** app on instances monitored by a database extension: open the statement and request its execution plan, which shows the indexes, joins and scans the engine actually used. Treat the heuristics below as a way to choose which statements to look at.
+
+> <sub>**Sources:** [Database statements and execution plans (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/concepts/statements-and-execution-plans) — *"Database extensions collect the statements per database instance, ranked by resource consumption and execution time."* and *"It shows which indexes, joins, scans, and other operations the engine uses, and the order in which it performs them."*</sub>
 
 ### Heuristics for Missing Indexes
 

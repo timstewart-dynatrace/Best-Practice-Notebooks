@@ -1,6 +1,6 @@
 # ONBRD-03: Deploying ActiveGate
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 3 of 10 | **Created:** December 2025 | **Last Updated:** 10/19/2026
 
 ## Your Network Gateway to Dynatrace
 ActiveGate is a lightweight component that routes traffic between your infrastructure and Dynatrace. This notebook covers when you need ActiveGate, how many to deploy, where to place them, and installation steps - including comprehensive Kubernetes deployment options.
@@ -115,14 +115,47 @@ Dynatrace defines two support levels for third-party technologies:
 >
 > <sub>**Sources:** [Set up the Dynatrace GCP integration on GKE (DT docs)](https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-integrations/gcp-guide/deploy-k8) — *"For Managed deployments: You can use an existing ActiveGate for log ingestion."*, [SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348), [AWS CloudWatch metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/integrate-with-aws/cloudwatch-metrics) — *"An ActiveGate capable of monitoring your AWS account for classic (built-in) supported services is already provided and available within the Dynatrace AWS account (only for SaaS environments hosted on AWS)."*, [Extensions (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extensions) — *"Run extensions locally on the monitored host to collect data from local data sources with the Extension Execution Controller."*</sub>
 
-### Optional but Recommended
+### Routing OneAgent Traffic: Through an ActiveGate or Direct?
 
-| Scenario | Benefit |
-|----------|--------|
-| **Large deployments (500+ hosts)** | Reduces outbound connections |
-| **Multiple network zones** | Centralized routing per zone |
-| **Bandwidth optimization** | Compresses and batches data |
-| **Security compliance** | Single egress point for audit |
+When every host can already reach your SaaS environment, routing OneAgent traffic through an ActiveGate is a design choice, not a requirement. *"In the absence of an ActiveGate, data collected by OneAgent is sent directly to the Dynatrace Cluster"*, and the OneAgent install guide puts it the same way: you *"may choose to either provide direct access to the Dynatrace cluster or set up an ActiveGate."* Each side has costs:
+
+| Factor | Route through an ActiveGate | Go direct to your SaaS environment |
+|--------|-----------------------------|------------------------------------|
+| **Egress and allowlisting** | Only the ActiveGates need outbound 443. For hosts without internet access, Dynatrace says to *"install an ActiveGate to serve as a single access point, rather than opening the firewall for multiple hosts running OneAgents"*, so the firewall and proxy rules name a few ActiveGates. | Every monitored host needs outbound HTTPS 443 to your environment, through your firewall or proxy. |
+| **Proxy configuration** | Configured on the ActiveGates: *"You can use a single proxy for all outgoing traffic"*, set in the ActiveGate configuration. Dynatrace says the single-access-point approach *"greatly reduces the effort of managing and maintaining firewall and/or proxy configuration settings."* | Each OneAgent host that reaches the environment through a proxy needs that proxy set on the host, with `oneagentctl --set-proxy` or at install time. |
+| **Network overhead** | The routing module *"collects messages from OneAgent instances and builds bulks, which are then sent in compressed form"*. Dynatrace says this *"can reduce network overhead considerably, depending on the number of OneAgent instances"* behind the ActiveGate. | No ActiveGate-side bulking: each OneAgent connects to the environment on its own. |
+| **Infrastructure to run** | ActiveGate hosts to size (§ 3 and FAQ-10), keep updated (FAQ-05) and run at two or more per network zone for high availability. Auto-update covers host-based ActiveGates only: *"Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only."* | Nothing to deploy, size, patch or update. |
+| **Capacity** | The ActiveGates in a zone carry every host behind them, so their capacity, and the survivor's capacity when one is down (§ 3), caps the zone. | No intermediate tier to saturate. |
+| **Operating-system lifecycle** | Every ActiveGate host must stay on a supported OS. The § 3 table lists nine OS versions that lose ActiveGate support between 11/01/2026 and 01/01/2027. | No additional OS to track. |
+| **Locality and failover** | Network zones keep OneAgents on nearby ActiveGates, and *"You can still use ActiveGates in other zones as a backup option in case primary ActiveGates becomes unavailable"*. See the fallback table below. | No zone design. Resilience is the host's own path to your environment. |
+| **Installer cache** | The requirements page budgets 4 GB for *"ActiveGate and OneAgent cached installers and container images—if such will need to be stored."* | Hosts download installers from the environment. |
+| **Reuse** | A routing/monitoring ActiveGate you already run for remote extensions, Kubernetes monitoring or classic cloud polling can also route OneAgent traffic. A Synthetic-enabled ActiveGate cannot: a clean Synthetic installation *"disables all other ActiveGate features, including communication with OneAgents"* (§ 1). | No reuse needed. |
+
+**Recommended approach:** route through ActiveGates when hosts cannot or should not have direct egress, or when your security team wants monitoring traffic to leave through a few known hosts. Go direct when hosts already have outbound access and nothing else requires an ActiveGate. Choose per network zone: a sealed data center can route through ActiveGates while cloud workloads with egress go direct.
+
+> **Going direct does not stay direct by itself.** The connectivity scheme says *"OneAgent will connect to an Environment ActiveGate, if one is present"*, and OneAgents with no network zone *"try to connect to any ActiveGate in a random order"*. If you later deploy an Environment ActiveGate for extensions or Kubernetes, hosts that can reach it may start routing through it. Use network zones to decide which hosts use which ActiveGates.
+
+#### When every ActiveGate in a zone is down
+
+Each network zone has a **fallback mode** (**Deployment Status → Network zones → Edit → Fallback mode**). It decides what OneAgents do when *"no ActiveGates are available in this network zone and there are no alternative network zones"*:
+
+| Fallback mode | Behavior when no ActiveGate in the zone or its alternative zones is available |
+|---------------|-------------------------------------------------------------------------------|
+| **Any ActiveGate** (default) | *"traffic is routed to any available ActiveGate, including an ActiveGate in the default zone."* |
+| **Only default zone** | *"traffic is routed only to an available ActiveGate in the default zone. ActiveGates in other zones aren't considered."* |
+| **None** | *"Traffic stays within the primary zone and its alternative zones. If no ActiveGate in those zones is available, OneAgents don't send data to another zone."* |
+
+On SaaS, the connectivity scheme says OneAgent connects to the SaaS cluster *"directly, if no connection to an Environment ActiveGate is possible."* Fallback only helps if the host can reach the fallback target. A host in a sealed network that loses every ActiveGate it can reach has nowhere to send data, so plan two or more ActiveGates per zone (§ 3) and configure alternative zones the hosts can reach.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Data security controls (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls), [Install OneAgent on Linux (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/install-oneagent-on-linux)</sub>
+> - <sub>[Route OneAgent traffic to Dynatrace (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose) — *"This can reduce network overhead considerably, depending on the number of OneAgent instances communicating with the ActiveGate and on the amount of data transferred by them."*</sub>
+> - <sub>[Supported connectivity schemes for ActiveGates (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/supported-connectivity-schemes-for-activegates) — *"Dynatrace SaaS Cluster receives connections on port 443."*</sub>
+> - <sub>[Get started with network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/network-zones-basic-info), [OneAgent connectivity in network zones (DT docs)](https://docs.dynatrace.com/docs/manage/network-zones/oneagent-connectivity) — *"None (drop traffic) corresponds to priority groups 1 and 2."*</sub>
+> - <sub>[Proxy for ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/set-up-proxy-authentication-for-activegate), [OneAgent configuration via command-line interface (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface)</sub>
+> - <sub>[Install a Synthetic-enabled ActiveGate (DT docs)](https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/active-gate-for-private-locations-install)</sub>
+> - <sub>[Update ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/operation/update-activegate), [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements), [End-of-support announcements (DT docs)](https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news)</sub>
+> - <sub>**Derived:** the recommended approach and the "does not stay direct" note combine the connectivity-scheme preference for an Environment ActiveGate with the unconfigured-OneAgent behavior on the network-zones page.</sub>
 
 ### Decision Tree
 
@@ -136,7 +169,7 @@ Dynatrace defines two support levels for third-party technologies:
 | Monitoring AWS (Clouds app GA)? | AG optional | AG required |
 | Monitoring Azure (Clouds app, SaaS 1.337+)? | AG optional | AG required |
 | Monitoring GCP? | No AG on SaaS — the classic collector runs on GKE or Cloud Functions; the Clouds connection (Preview) needs none | Continue |
-| More than 500 hosts? | AG recommended | AG optional |
+| Want OneAgent egress through a few ActiveGates instead of every host? | Route via AG (see the trade-offs above) | Direct is fine |
 -->
 
 <a id="how-many-activegates"></a>
@@ -421,9 +454,9 @@ Platform monitoring needs far more memory than routing — budget for it before 
 
 The Dynatrace Operator manages ActiveGate lifecycle automatically.
 
-> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` is still served by Operator 1.11.0 but marked deprecated in its CRD; Operator 1.10.0 deprecated `v1beta4`). Operator **1.9.0** removed `v1beta3` from the CRD (*"Applying DynaKube resources using this version will fail"*) and deprecated `v1beta4`; Operator **1.10.0** (July 15, 2026) stopped serving `v1beta4`; and Operator **1.11.0** (released 10/01/2026) removes it from the CRD — *"Applying DynaKube resources that still use v1beta4 will fail."* Check `kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'` before upgrading the Operator, and move any `v1beta4` DynaKube to `v1beta6` first. The example below uses `v1beta6` (validated against the Operator 1.11.0 CRD). v1beta6 adds OTLP exporter configuration.
+> **Important:** Use `apiVersion: dynatrace.com/v1beta6` for new DynaKubes (`v1beta5` is still served by Operator 1.11.0 but marked deprecated in its CRD from Operator 1.10.0). Operator **1.9.0** removed `v1beta3` from the CRD (*"Applying DynaKube resources using this version will fail"*) and deprecated `v1beta4`; Operator **1.10.0** (July 15, 2026) stopped serving `v1beta4` (its CRD sets `served: false`, while its notes repeat *"The `v1beta4` version is now deprecated"*); and Operator **1.11.0** (released 10/01/2026) removes it from the CRD — *"Applying DynaKube resources that still use v1beta4 will fail."* Check `kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'` before upgrading the Operator, and move any `v1beta4` DynaKube to `v1beta6` first. The example below uses `v1beta6` (validated against the Operator 1.11.0 CRD). v1beta6 adds OTLP exporter configuration.
 >
-> <sub>**Sources:** [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."* `served` / `deprecated` per version read from the DynaKube CRD in each release's `kubernetes.yaml` ([Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)), 10/02/2026.</sub>
+> <sub>**Sources:** [Operator 1.9.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0) — *"Additionally, `v1beta4` is now deprecated."*, [Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0), [Operator 1.11.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0) — *"The v1beta4 version has been removed from the DynaKube CRD."* `served` / `deprecated` per version read from the DynaKube CRD in each release's `kubernetes.yaml` ([Operator releases (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-operator/releases)), 10/02/2026.</sub>
 
 The example follows the sizing guide's two-set layout for Operator versions earlier than 1.11.0 (the version pinned below): one DynaKube for platform monitoring, one for routing, both sized for a small cluster.
 

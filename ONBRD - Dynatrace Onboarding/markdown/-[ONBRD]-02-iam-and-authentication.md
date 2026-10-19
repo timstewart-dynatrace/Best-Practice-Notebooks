@@ -384,7 +384,7 @@ In this notebook, you learned:
 - [Enterprise identity management — SAML and SCIM (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam)
 - [Default policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies)
 - [Identity management — SSO and federation (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management)
-- [Access tokens classic (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [Access tokens classic (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
 - [OAuth clients (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients)
 
 ---

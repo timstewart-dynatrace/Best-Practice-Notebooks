@@ -1,6 +1,6 @@
 # OPMIG-02: OpenPipeline Migration Guide: Part 2
 
-> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** OPMIG — OpenPipeline Migration | **Notebook:** 2 of 10 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Architecture & Key Concepts
 ---
@@ -414,6 +414,8 @@ dt.process.name  (classic pipelines only — use dt.process_group.detected_name 
 
 `k8s.cluster.name` is available before Processing when the OneAgent Log module runs in standalone mode (OneAgent 1.309, Dynatrace Operator 1.4.2+). `dt.entity.host`, `dt.entity.process_group` and `dt.entity.process_group_instance` are **not** on this list — the limits page does not restrict them, so do not design around them being missing; preview a processor on a real record to confirm what is present at that point.
 
+**Metric scope is stricter.** In the metric configuration scope the limits page lists `dt.entity.*` — every entity field, host included — under *"Fields excluded from dynamic route matching conditions and in the Processing stage"*. The list above applies in every configuration scope; in the metric scope, additionally keep all `dt.entity.*` out of routing conditions and Processing-stage processors.
+
 > 💡 **Design Pattern:** For the fields on the list above, you cannot:
 > - Use them in routing conditions
 > - Use them in matching conditions during processing
@@ -423,7 +425,7 @@ dt.process.name  (classic pipelines only — use dt.process_group.detected_name 
 
 The limits page does not publish a general ban on creating `dt.*` fields, but that namespace belongs to the Dynatrace semantic dictionary. In community practice, custom fields use your own prefix (or none) so they never collide with a field Dynatrace adds later.
 
-> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *Restricted fields*: *"The following fields can be viewed-only; editing via OpenPipeline is not supported."*; *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."* (list read 10/02/2026).</sub>
+> <sub>**Sources:** [OpenPipeline limits (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits) — *Restricted fields*: *"The following fields can be viewed-only; editing via OpenPipeline is not supported."*; *"The following fields are added after the Processing stage when Dynatrace runs its entity detection."* (list read 10/02/2026); *Metric configuration scope*: *"Fields excluded from dynamic route matching conditions and in the Processing stage"* — `dt.entity.*` (read 10/14/2026).</sub>
 
 ### Workarounds for Common Limit Issues
 

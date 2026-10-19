@@ -1,6 +1,6 @@
 # SL2DT-07: User Governance & Access
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 7 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -200,19 +200,22 @@ fetch dt.system.events, from:-7d
 
 ### SCIM / SAML Integration
 
-Most migrations preserve the same IdP (Okta / Entra / Ping). Map IdP groups to Dynatrace groups via SAML assertion attribute or SCIM group push.
+Most migrations preserve the same IdP (Okta / Entra / Ping). Map IdP groups to Dynatrace groups via the SAML federation's group claim or SCIM group push.
 
-**Okta example — SAML assertion:**
+**SAML — group claim mapping.** There is no fixed attribute name. In the federation's **Attribute mapping**, set **Federated** to the attribute your IdP sends group claims in (the docs' Entra ID example is the Microsoft `…/identity/claims/groups` claim URI; other IdPs send their own attribute name, for example `groups`). Then, on each Dynatrace group, add the **SAML Group Attribute Values** — the IdP group names or IDs — that map to it:
+
 ```
-dynatrace.group = "g_prod_readers,g_payments_team"
+groups = "g_prod_readers,g_payments_team"     # example: whatever attribute your IdP sends
 ```
 
-Dynatrace parses the `dynatrace.group` attribute on login and assigns memberships.
+On a federated user's sign-in, Dynatrace matches the incoming group claims against the SAML Group Attribute Values and adds the user to each matching group. A comma-separated value is split into separate groups, so send group names or IDs, not a full LDAP DN.
 
 **SCIM push (preferred for lifecycle management):**
-- Okta SCIM connector writes group membership on user provisioning
-- Membership changes propagate automatically
-- Deprovisioning is immediate
+- The IdP's SCIM application provisions users and groups into Dynatrace (one-way, IdP → Dynatrace)
+- Membership changes propagate with the IdP's SCIM synchronization
+- A user disabled or removed in the IdP is disabled in Dynatrace; how quickly depends on the IdP's provisioning cycle — measure it during the pilot rather than assuming it is immediate
+
+> <sub>**Sources:** [SAML (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml) — *"you need to specify the SAML Group Attribute Value in the attribute mapping configuration that contains the groups/roles of a user from your IdP"*; [SCIM (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim) — *"if a user is disabled or removed from the IdP, it will also disable the user in Dynatrace"*, *"SCIM synchronization is one-way from the IdP to Dynatrace."*</sub>
 
 ### User Lifecycle
 
@@ -367,7 +370,7 @@ Bucket read/write permissions are evaluated per-query, so "who queried what" is 
 ### Dynatrace IAM
 - [Identity and access management (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management)
 - [Manage user permissions and policies (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies)
-- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/access-tokens)
+- [Access tokens (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens)
 - [Platform tokens (DT docs)](https://docs.dynatrace.com/docs/shortlink/platform-tokens)
 
 ### Sumo Logic users and roles (source)

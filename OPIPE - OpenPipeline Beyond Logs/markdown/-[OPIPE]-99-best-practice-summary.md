@@ -1,6 +1,6 @@
 # OPIPE-99: Best Practice Summary
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/02/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 Definitive best practice settings for OpenPipeline beyond logs — spans, metrics, events, and cross-scope patterns. Each entry specifies the exact configuration.
 
@@ -53,8 +53,8 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Drop health check spans | Drop: `span.name` matches `"GET /health*"` OR `"GET /ready*"` OR `"GET /livez*"` | Critical |
-| Drop metrics scraping spans | Drop: `span.name` matches `"*/metrics*"` OR `"*/actuator/*"` | Critical |
+| Drop health check spans | Drop: `url.path` matches `"*health*"` OR `"/ready*"` OR `"/livez*"`, or `span.name` matches `"grpc.health.v1.Health/*"` — HTTP span names often carry only the method, so match on the path | Critical |
+| Drop metrics scraping spans | Drop: `url.path` matches `"/metrics*"` OR `"/actuator/*"` | Critical |
 | Drop OPTIONS preflight spans | Drop: `http.request.method == "OPTIONS"` | Recommended |
 | Drop synthetic/heartbeat spans | Drop: `span.name` matches `"*synthetic*"` or `"*heartbeat*"` | Recommended |
 | Quantify noise before configuring drops | Count health checks, scrapes, OPTIONS as % of total — measure your own share | Recommended |
@@ -69,14 +69,14 @@ Definitive best practice settings for OpenPipeline beyond logs — spans, metric
 
 | Practice | Recommended Setting/Value | Priority |
 |----------|---------|----------|
-| Enable sampling-aware for count metrics | `span.request_count`, `span.error_count` must weight each span by 1 / its sampling probability (ATM stores the ratio as a denominator: 16 = 1 in 16) | Critical |
+| Enable sampling-aware for count metrics | `span.request_count`, `span.error_count` must weight each span by 1 / its sampling probability (ATM stores the ratio as a denominator: 16 = 1 in 16) — enable both **Account for aggregated spans** and **Extrapolate metrics to account for trace sampling** on the counter processor | Critical |
 | Use the sampling-aware histogram for duration | Set **Measurement: Duration**, which enables the sampling options automatically. Percentiles are representative either way; extrapolated counts and sums are not without it | Recommended |
 | Check spans for sampling metadata | `dt.system.sampling_ratio` is the query's read sampling, not the trace sampler — check `supportability.atm_sampling_ratio` and `sampling.threshold` | Critical |
 | Check OTel spans for sampling metadata | OpenTelemetry spans usually carry no sampling-rate metadata, so extrapolation is less effective on them | Recommended |
 | Error rate ratios tolerate uniform sampling only | Accurate when every request had the same chance of being kept; biased under tail sampling or when ATM samples request types at different rates | Recommended |
-| Rate (RED) | Metric: `span.request_count`, Sampling aware counter, `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: Yes | Critical |
-| Errors (RED) | Metric: `span.error_count`, Sampling aware counter, `span.kind == "server"` AND `status_code >= 500`, dims: `service.name`, `http.route`, `status_code`, sampling-aware: Yes | Critical |
-| Duration (RED) | Metric: `span.duration`, Sampling aware histogram (Measurement: Duration), `span.kind == "server"`, dims: `service.name`, `http.route`, sampling-aware: Yes | Critical |
+| Rate (RED) | Metric: `span.request_count`, Sampling aware counter, `span.kind == "server"` AND `isNotNull(endpoint.name)` (request roots — one request can produce several server spans), dims: `dt.service.name`, `http.route`, both sampling options enabled | Critical |
+| Errors (RED) | Metric: `span.error_count`, Sampling aware counter, `span.kind == "server"` AND `isNotNull(endpoint.name)` AND `status_code >= 500`, dims: `dt.service.name`, `http.route`, `status_code`, both sampling options enabled | Critical |
+| Duration (RED) | Metric: `span.duration`, Sampling aware histogram (Measurement: Duration), `span.kind == "server"` AND `isNotNull(endpoint.name)`, dims: `dt.service.name`, `http.route`, sampling-aware: Yes | Critical |
 | Validate against built-in metrics | Compare `span.request_count` vs `dt.service.request.count` — significant divergence = misconfiguration. Service metrics are themselves *"based on captured traces"*, so low-frequency requests can differ in both | Critical |
 
 <a id="cardinality-management"></a>

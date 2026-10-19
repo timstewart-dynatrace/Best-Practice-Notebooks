@@ -1,6 +1,6 @@
 # SLO-02: Defining SLIs
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 6 | **Created:** June 2026 | **Last Updated:** 10/12/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 2 of 6 | **Created:** June 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -55,19 +55,20 @@ Availability = the proportion of requests that did **not** fail. Using the pre-a
 
 ```dql
 // Availability SLI — metric-based, request success ratio
-// Re-validated on a live tenant 08/28/2026: returned 95.67%
+// Re-validated on a live tenant 10/14/2026: returned 96.21% over 30 d.
+// sli divides the window's successes by its requests. Averaging the daily
+// ratios (arrayAvg) instead weights a quiet day like a busy one: 96.18% here
 // interval:24h, not 1d — a calendar duration here raises
 // DEPRECATED_DURATION_UNIT_DAYS and is silently rewritten to 24h anyway
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
 }, from:-30d, interval:24h
-| fieldsAdd sli_availability = ((total[] - failures[]) / total[]) * 100
-| fieldsAdd sli = arrayAvg(sli_availability)
+| fieldsAdd sli = ((arraySum(total) - arraySum(failures)) / arraySum(total)) * 100
 | fields sli, total, failures
 ```
 
-The query above is the notebook read-out: `arrayAvg` collapses the daily values into one `sli` number. The SLO app cannot use a scalar `sli` — it needs the array, and it applies its own window. For an SLO, use the SLO-ready form below and remove `from:` (and any `interval:`) when you paste it (SLO-05).
+The query above is the notebook read-out: it divides the window's total successes by its total requests, so one `sli` number covers the whole window. Averaging the daily ratios with `arrayAvg` would weight a quiet day as heavily as a busy one. The SLO app cannot use a scalar `sli` — it needs the array, and it applies its own window. For an SLO, use the SLO-ready form below and remove `from:` (and any `interval:`) when you paste it (SLO-05).
 
 To scope the SLI to one service, filter on `dt.smartscape.service` and convert the ID with `toSmartscapeId()`: `filter: {dt.smartscape.service == toSmartscapeId("SERVICE-...")}`. Or split `by: {dt.smartscape.service}`, as below. `dt.entity.service` still works, but it is `deprecated`. Comparing `dt.smartscape.service` to a plain string returns no rows, and Grail raises only a `SMARTSCAPEID_TO_STRING_COMPARISON` warning.
 
@@ -117,15 +118,17 @@ timeseries p95 = percentile(dt.service.request.response_time, 95),
 
 ### 3b. Good/total ratio (span-based)
 
-A true latency SLI: the fraction of server requests that completed under the threshold. `countIf()` defines "good" with a duration predicate:
+A true latency SLI: the fraction of requests that completed under the threshold. `countIf()` defines "good" with a duration predicate.
+
+Count each request once, at its request root span. A `span.kind == "server"` filter also counts server spans nested inside a request, so it inflates the denominator: on the validation tenant (last hour, 10/14/2026) 13.8% of server spans were nested, and the server-span form read 98.83% where the request-root form read 98.16%. The trace semantic model marks `request.is_root_span` as deprecated, *"Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request"*. Both replacement fields are `experimental`. On the validation tenant the pair matched `request.is_root_span` span for span, and it counted 136,713 requests where `dt.service.request.count` counted 136,671 in a back-to-back run over the same hour. Request roots also include non-server spans such as message consumers, as the metric does.
 
 ```dql
-// Latency SLI — span-based good/total ratio under 500ms
-// Re-validated on a live tenant 08/28/2026: returned 99.54% (75,583/75,935)
+// Latency SLI — span-based good/total ratio under 500ms, one span per request
+// Validated on a live tenant 10/14/2026: returned 98.16% (134,318/136,836)
 // A 1h window on live traffic moves — treat the figure as a shape check,
-// not a number to reproduce (06/2026 reading on the same tenant was ~96.4%)
+// not a number to reproduce
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter transaction.is_root_span == true and transaction.is_endpoint_request == true
 | summarize {
     good = countIf(duration < 500ms),
     total = count()
@@ -134,16 +137,18 @@ fetch spans, from:-1h
 | fields sli_latency, good, total
 ```
 
-> **Note the field values:** `span.kind` is lowercase (`"server"`, `"client"`), and `duration` compares directly against a duration literal (`500ms`) — no nanosecond constants. Both are common mistakes that silently return zero rows.
+> **Note the field values:** `duration` compares directly against a duration literal (`500ms`) — no nanosecond constants. If you filter on `span.kind`, its values are lowercase (`"server"`, `"client"`). Both are common mistakes that silently return zero rows.
+
+> <sub>**Sources:** [Traces — semantic dictionary (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/model/trace) — `request.is_root_span`: *"Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request"*; page updated Sep 21, 2026, read 10/14/2026. **Dictionary:** no `transaction.*` row in the validation tenant's `dt.semantic_dictionary.fields` yet, read 10/14/2026 (control: `startsWith(name, "request.")` → `request.is_root_span` (`deprecated`), `request.is_failed` (`deprecated`)); the docs page is newer, and both fields are populated on spans there.</sub>
 
 The query above is the notebook read-out. The SLO-ready form uses `makeTimeseries` instead of `summarize`, so `sli` stays an array:
 
 ```dql
 // SLO-ready latency SLI — makeTimeseries, as the SLO docs require for event data
-// Validated 10/12/2026: 13 five-minute buckets, mean 99.04%, notifications []
+// Validated 10/14/2026: 13 five-minute buckets, 96.6–99.7%, notifications []
 // Remove from: and interval: when pasting into an SLO
 fetch spans, from:-1h
-| filter span.kind == "server"
+| filter transaction.is_root_span == true and transaction.is_endpoint_request == true
 | makeTimeseries { good = countIf(duration < 500ms), total = count() }, interval:5m
 | fieldsAdd sli = (good[] * 100.0) / total[]
 ```
@@ -155,13 +160,13 @@ Error rate is availability's complement — sometimes you want to track it direc
 
 ```dql
 // Error-rate SLI — failure ratio, metric-based
+// Validated 10/14/2026: 3.13% over 7 d (arrayAvg of the hourly ratios read 3.16%)
 timeseries {
   total = sum(dt.service.request.count),
   failures = sum(dt.service.request.failure_count)
 }, from:-7d, interval:1h
-| fieldsAdd error_rate = (failures[] / total[]) * 100
-| fieldsAdd error_rate_avg = arrayAvg(error_rate)
-| fields error_rate_avg
+| fieldsAdd error_rate = arraySum(failures) / arraySum(total) * 100
+| fields error_rate
 ```
 
 Express the SLO target as `success ≥ 99.5%` rather than `errors ≤ 0.5%` where you can — the SLO app and the error-budget math (SLO-03) are oriented around the "good" percentage, and keeping every SLI in the same direction avoids inverted-threshold confusion. For the SLO itself, that means the SLO-ready availability form in §2. The `error_rate_avg` scalar above is a notebook read-out.
@@ -210,7 +215,7 @@ An SLI query that returns nothing — wrong field name, wrong `span.kind` case, 
 
 This notebook-as-scratchpad discipline is the single best defence against a dashboard full of SLOs that read "no data."
 
-> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's `interval` was changed from `1d` to `24h` in the same pass: a calendar duration raises `DEPRECATED_DURATION_UNIT_DAYS` and is silently rewritten to `24h`, so the query was never running on the interval it appeared to specify. On 10/12/2026 the p95 query (§3a) lost its `rollup: avg`, and the three SLO-ready forms were added. All were executed against the live tenant that day. The bizevent form returns 0 rows there, like its read-out twin; the same `makeTimeseries` shape returned 25 hourly buckets over all bizevents.</sub>
+> <sub>**Sources:** [Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/deliver/service-level-objectives), [DQL — timeseries and countIf (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language). All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's `interval` was changed from `1d` to `24h` in the same pass: a calendar duration raises `DEPRECATED_DURATION_UNIT_DAYS` and is silently rewritten to `24h`, so the query was never running on the interval it appeared to specify. On 10/12/2026 the p95 query (§3a) lost its `rollup: avg`, and the three SLO-ready forms were added. All were executed against the live tenant that day. The bizevent form returns 0 rows there, like its read-out twin; the same `makeTimeseries` shape returned 25 hourly buckets over all bizevents. On 10/14/2026 the availability and error-rate read-outs switched from `arrayAvg` of per-bucket ratios to window totals, and both span-based latency SLIs from `span.kind == "server"` to request root spans; all four were re-executed that day.</sub>
 
 ---
 

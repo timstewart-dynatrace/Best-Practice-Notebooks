@@ -1,6 +1,6 @@
 # MZ2POL-04: Policies and Boundaries
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 5 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -269,13 +269,14 @@ ALLOW storage:logs:read
 
 **OR logic** (multiple statements or lines):
 ```
-// In policies: Multiple statements
+// In policies: Multiple statements (= is safe here: log records hold a single string)
 ALLOW storage:logs:read WHERE storage:dt.security_context = "team-a";
 ALLOW storage:logs:read WHERE storage:dt.security_context = "team-b";
 
-// In boundaries: repeated lines on the SAME condition multiply the statement (OR)
-storage:dt.security_context = "team-a";
-storage:dt.security_context = "team-b";
+// In boundaries: repeated lines on the SAME condition multiply the statement (OR).
+// MATCH, because a boundary also scopes events, whose dt.security_context is an array (§6)
+storage:dt.security_context MATCH ("team-a");
+storage:dt.security_context MATCH ("team-b");
 ```
 
 ---
@@ -297,7 +298,7 @@ storage:dt.security_context = "team-b";
 **Team-Based Boundary:**
 ```
 Name: Frontend Team Scope
-Query: storage:dt.security_context = "team-frontend";
+Query: storage:dt.security_context MATCH ("team-frontend");
 ```
 
 **Environment Boundary:**
@@ -312,10 +313,16 @@ Query: storage:dt.security_context MATCH ("prod-*");
 ```
 Name: Platform Teams
 Query:
-storage:dt.security_context = "team-infra";
-storage:dt.security_context = "team-sre";
-storage:dt.security_context = "team-platform";
+storage:dt.security_context MATCH ("team-infra");
+storage:dt.security_context MATCH ("team-sre");
+storage:dt.security_context MATCH ("team-platform");
 ```
+
+One line, `storage:dt.security_context MATCH ("team-infra", "team-sre", "team-platform");`, does the same — `MATCH` *"tests for pattern matching for any pattern of a list."*
+
+> **Entity reads are the exception.** The IAM policy reference lists `=`, `IN` and `startsWith` — no `MATCH` — for `storage:dt.security_context` on `storage:entities:read`. How a `MATCH` boundary line applies to an entity-read permission bound under it is not documented, so if the boundary is also bound with *Read Entities*, sign in as a pilot user and confirm entity access before rollout.
+>
+> <sub>**Sources:** [Permissions in Grail (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail) — *"`MATCH`, tests for pattern matching for any pattern of a list."* and *"Using `=`, `STARTSWITH` or `IN` when the field holds an array will always return `false`."*; [IAM policy reference (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements) — `storage:entities:read`: *"operators: `=`, `IN`, `startsWith`"*.</sub>
 
 ### Boundary Limitations
 
@@ -679,7 +686,11 @@ fetch dt.entity.service
 ```dql
 // Count entities by security context
 // Helps verify security context distribution
+// dt.security_context is an array on classic entities too, so expand it first:
+// grouping on the whole array would give a service with two contexts its own
+// combined row. After expand, a service with N contexts counts N times.
 fetch dt.entity.service
+| expand dt.security_context
 | summarize count = count(), by:{dt.security_context}
 | sort count desc
 
@@ -707,6 +718,8 @@ fetch dt.entity.service
 ```
 // Policy Name: Frontend Team Log Access
 // Description: Read-only access to frontend service logs
+// = is safe on logs and spans, which hold a single string. Adding storage:events:read?
+// Give it its own statement with MATCH ("team-frontend") — event records hold an array (§6).
 
 ALLOW storage:buckets:read
   WHERE storage:table-name IN ("logs", "spans");

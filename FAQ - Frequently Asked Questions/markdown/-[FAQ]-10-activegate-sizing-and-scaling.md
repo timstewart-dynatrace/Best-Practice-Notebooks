@@ -1,6 +1,6 @@
 # FAQ-10: How Do I Size and Scale ActiveGates?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/12/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 10 — ActiveGate Sizing and Scaling | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -59,9 +59,9 @@ The capability-to-dimension map:
 
 One rule sits above all the tables: **sizing numbers are starting points, not guarantees.** Actual capacity depends on your data volume per host, extension mix, and network — which is why §7 (measuring the real utilization) is part of sizing, not an afterthought.
 
-> **Scope — Dynatrace SaaS.** This entry covers **Environment ActiveGates on SaaS**. On Dynatrace Managed the Environment-ActiveGate baselines broadly transfer (same machines, same jobs), but Managed adds two sizing domains this entry deliberately doesn't cover — **Cluster ActiveGates** (the on-premise clustering component) and the sizing of the Managed cluster nodes themselves — and §7's Grail-native `dt.sfm.*` metrics aren't available there, leaving the classic `dsfm:` family as the self-monitoring surface. If you're consolidating from Managed to SaaS, the M2S series owns that journey.
+> **Scope — Dynatrace SaaS.** This entry covers **Environment ActiveGates on SaaS**. On Dynatrace Managed the Environment-ActiveGate baselines broadly transfer (same machines, same jobs), but Managed adds two sizing domains this entry deliberately doesn't cover — **Cluster ActiveGates** (the proxies, usually in a DMZ, that let OneAgents, RUM beacons and synthetic traffic from outside your network reach a Managed cluster) and the sizing of the Managed cluster nodes themselves — and §7's Grail-native `dt.sfm.*` metrics aren't available there, leaving the classic `dsfm:` family as the self-monitoring surface. For Cluster ActiveGate placement and health on Managed, see MCH-05 — §9.4 covers sizing, which the docs do not document as a table. If you're consolidating from Managed to SaaS, the M2S series owns that journey.
 
-> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements), [Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate) — incl. the Environment vs Cluster ActiveGate split. **Derived:** the three-step framing and the capability-to-dimension map synthesize the per-capability sizing pages cited throughout this entry; the Managed scope note combines the hub's ActiveGate-type split with §7's Grail-bucket residency (Managed environments don't include Grail).</sub>
+> <sub>**Sources:** [Linux ActiveGate hardware and system requirements (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements), [Dynatrace ActiveGate (DT docs)](https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate) — incl. the Environment vs Cluster ActiveGate split, [Managed deployments (DT docs)](https://docs.dynatrace.com/managed/managed-cluster/basics/managed-deployments) — *"use one or more Cluster ActiveGates as mediating proxies for pre-processing of OneAgent and DEM traffic."* **Derived:** the three-step framing and the capability-to-dimension map synthesize the per-capability sizing pages cited throughout this entry; the Managed scope note combines the hub's ActiveGate-type split with §7's Grail-bucket residency (Managed environments don't include Grail).</sub>
 
 <a id="load-drivers"></a>
 ## 2. What Drives ActiveGate Load
@@ -328,12 +328,16 @@ timeseries gc_time = avg(dt.sfm.active_gate.jvm.gc.duration, rollup:sum), from:-
 | sort peak_gc_pct desc
 ```
 
+Some pools sit at a constant non-zero queue size on a healthy ActiveGate — on the validation tenant (10/15/2026) Communication Layer held 39 and Register 12 or 25 for the whole day on every ActiveGate — so look for movement above a pool's own floor, not for a value above zero:
+
 ```dql
-// Thread-pool backpressure — a growing queue means a pool can't keep up
+// Thread-pool backpressure — a queue that rises above its own floor is a pool that can't keep up.
+// Some pools sit at a constant non-zero value on a healthy ActiveGate, so test movement, not > 0.
 timeseries queue_size = max(dt.sfm.active_gate.thread_pool.queue_size), from:-24h, by:{dt.active_gate.id, host.name, thread_pool_name}
-| fieldsAdd peak_queue = arrayMax(queue_size)
-| filter peak_queue > 0
-| sort peak_queue desc
+| fieldsAdd floor = arrayMin(queue_size), peak_queue = arrayMax(queue_size), queue_trend = arrayLast(queue_size) - arrayFirst(queue_size)
+| filter peak_queue > floor
+| fields dt.active_gate.id, host.name, thread_pool_name, floor, peak_queue, queue_trend
+| sort queue_trend desc, peak_queue desc
 ```
 
 And for the §6 HA math, a one-query fleet inventory — how many ActiveGates each zone actually has:

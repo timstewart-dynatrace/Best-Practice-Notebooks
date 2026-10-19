@@ -1,6 +1,6 @@
 # WEBRUM-05: Error Analysis
 
-> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** WEBRUM — Web Real User Monitoring | **Notebook:** 5 of 10 | **Created:** March 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -83,7 +83,8 @@ The classic names `error.message`, `action.name` and `sessionId` read null on Ne
 //   totalErrorCount -> error.count    sessionId -> dt.rum.session.id
 //   hasSessionReplay -> characteristics.has_replay
 //   browserFamily -> browser.name     osFamily -> os.name
-//   application -> primary_tags.application
+//   application -> frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
 //   country/city/continent -> geo.country.name / geo.city.name / geo.continent.name
 //   screen.width|height -> browser.window.width|height
 //   dom.interactive.time -> performance.dom_interactive
@@ -101,18 +102,22 @@ The classic names `error.message`, `action.name` and `sessionId` read null on Ne
 //                                        (was characteristics.classifier — "not intended for query usage", SD 1.349)
 //   action.type                        -> user_action.type      (hard_navigation | soft_navigation | same_view | api)
 //   action.name                        -> page.detected_name
-//   web_vitals.largest_contentful_paint-> lcp.start_time        (327,099 populated)
-//   web_vitals.cumulative_layout_shift -> cls.value             (387,254 populated)
-//   app.name                           -> dt.rum.application.id
-// UNITS CHANGE WITH THE FIELD. web_vitals.* was a nanosecond DURATION, so `/ 1ms` was correct for
-// it; lcp.start_time is a PLAIN NUMBER already in milliseconds, and dividing it by 1ms yields
-// null. Compare it against the 2500/4000 ms thresholds directly.
-// `web_vitals.*` does still exist in the same schema, but carried 16 records in 30 days against
-// lcp.*'s 327,099 — it is not a different RUM generation, just a rarely-populated sibling.
+//   LCP / CLS                          -> web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -> frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
 // Recent RUM errors — explore the data structure
 fetch user.events, from:-1h
 | filter characteristics.has_error == true
-| fieldsKeep start_time, error.reason, error.type, error.source, page.detected_name, primary_tags.application, dt.rum.session.id
+| fieldsKeep start_time, error.reason, error.type, error.source, page.detected_name, frontend.name, dt.rum.session.id
 | sort start_time desc   // user.events has no populated timestamp; sorting on it does not order rows
 | limit 20
 ```
@@ -145,7 +150,7 @@ fetch user.events, from:-24h
 | summarize {error_count = count(),
     unique_errors = countDistinct(error.reason),
     affected_sessions = countDistinct(dt.rum.session.id)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | sort error_count desc
 ```
 
@@ -199,9 +204,10 @@ fetch user.events, from:-24h
 // Error rate per application — percentage of sessions with errors
 fetch user.sessions, from:-24h
 | filter dt.rum.user_type == "real_user"
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
 | summarize {total_sessions = count(),
     error_sessions = countIf(error.count > 0)},
-    by:{primary_tags.application}
+    by:{frontend.name}
 | fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 2)
 | sort error_rate_pct desc
 ```

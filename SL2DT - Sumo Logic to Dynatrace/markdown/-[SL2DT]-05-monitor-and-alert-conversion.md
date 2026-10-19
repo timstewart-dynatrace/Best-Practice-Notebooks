@@ -1,12 +1,12 @@
 # SL2DT-05: Monitor & Alert Conversion
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/06/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 5 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
-**Goal of this step:** rebuild Sumo Monitors in Dynatrace, choosing the right target for each (Anomaly Detection, Workflow with DQL threshold, or Metric Event). This is the notebook where the biggest fidelity-vs-better-approach decisions happen.
+**Goal of this step:** rebuild Sumo Monitors in Dynatrace, choosing the right target for each (a custom alert, a Workflow with a DQL threshold, or — on the classic surface — a metric event). This is the notebook where the biggest fidelity-vs-better-approach decisions happen.
 
-The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces noisy alerts, misses real anomalies, and under-uses Dynatrace's capabilities. The pattern to prefer: Anomaly Detection for metric-backed alerts, Workflows for complex multi-condition logic, and Metric Events for simple static thresholds that genuinely are static.
+The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces noisy alerts, misses real anomalies, and under-uses Dynatrace's capabilities. The pattern to prefer: custom alerts with an adaptive or seasonal model for metric-backed alerts, Workflows for complex multi-condition logic, and a static-threshold custom alert for thresholds that genuinely are static.
 
 ---
 
@@ -31,7 +31,7 @@ The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces nois
 |-------------|---------|
 | **Audience** | Core migration engineers + app-team reviewers |
 | **Inputs** | `inventory/monitors.json`, translations from SL2DT-04 |
-| **Dynatrace access** | Platform Token with `settings:objects:write`, `automation:workflows:write`, `davis:anomaly-detectors:write` |
+| **Dynatrace access** | Platform token or OAuth client with `settings:objects:write` (custom alerts are Settings objects), `automation:workflows:write`, and `iam:service-users:use` (custom alerts that run as a service user) or `davis:analyzers:execute`; plus Grail read access to the data each alert queries (for example `storage:buckets:read`, `storage:metrics:read`, `storage:logs:read`) |
 | **Prior reading** | SL2DT-04 for query translations; OPLOGS-09 for log-based alert patterns |
 
 <a id="outputs"></a>
@@ -39,8 +39,8 @@ The anti-pattern to avoid: 1:1 static-threshold lift-and-shift. It produces nois
 
 | Artifact | Purpose |
 |----------|---------|
-| `monitors/decision-matrix.csv` | Per-monitor: Dynatrace Intelligence vs Workflow vs Metric Event decision |
-| `monitors/configs/` | Terraform + JSON for Dynatrace Intelligence detectors, Workflows, Metric Events |
+| `monitors/decision-matrix.csv` | Per-monitor: custom alert vs Workflow vs Metric Event decision |
+| `monitors/configs/` | Terraform + JSON for custom alerts (anomaly detectors), Workflows, Metric Events |
 | `notifications/action-map.md` | Sumo webhook/email → DT notification target map |
 | `monitor-rebuild-report.md` | Progress per team |
 
@@ -53,8 +53,8 @@ For each Sumo monitor, pick one of three targets:
 
 | Sumo Monitor Type | Target | Why |
 |-------------------|--------|-----|
-| Outlier / anomaly / seasonality-based | **anomaly detection** | Native baseline learning, no tuning |
-| Static threshold on metric (CPU > 90%) | **Metric Event** | Lightweight, tenant-wide config |
+| Outlier / anomaly / seasonality-based | **Custom alert** — auto-adaptive or seasonal-baseline model | Learns the baseline instead of a hand-picked number |
+| Static threshold on metric (CPU > 90%) | **Custom alert** — static-threshold model (classic: **Metric Event**) | A DQL `timeseries` query and a threshold, as a Settings object |
 | Static threshold on log count | **Workflow with DQL** | Query runs on schedule, threshold in task condition |
 | Missing data alert | **Workflow** | Use `isNull` / `count == 0` checks |
 | Multi-condition (X AND Y but not Z) | **Workflow** | Multiple DQL tasks + branching |
@@ -65,8 +65,8 @@ For each Sumo monitor, pick one of three targets:
 <!-- MARKDOWN_TABLE_ALTERNATIVE
 | Input | Output | Rationale |
 |-------|--------|-----------|
-| Outlier/anomaly monitor | anomaly detection | Native baseline |
-| Metric static threshold | Metric Event | Tenant-wide |
+| Outlier/anomaly monitor | Custom alert (auto-adaptive or seasonal model) | Learned baseline |
+| Metric static threshold | Custom alert (static model); classic: Metric Event | DQL query + threshold |
 | Log count static threshold | Workflow + DQL | Scheduled query |
 | Missing data | Workflow | isNull/count check |
 | Multi-condition | Workflow | Branching logic |
@@ -77,15 +77,87 @@ For environments where SVG doesn't render
 <a id="davis"></a>
 ## 3. Anomaly Detection — When & How
 
-Dynatrace Intelligence learns the baseline of a metric and alerts when values deviate. Best for:
+A **custom alert** evaluates a DQL `timeseries` query with one of three models — static threshold, auto-adaptive, or seasonal baseline — and raises an event when the signal violates it. The auto-adaptive and seasonal models learn the baseline. Best for:
 
 - Any Sumo outlier monitor (`outlier _count window=N threshold=K`)
 - Static thresholds where the "normal" value drifts seasonally (weekly cycle, business hours)
 - Static thresholds that fire too often in Sumo (false positives from workload swings)
 
+### Where custom alerts live (SaaS 1.344)
+
+From SaaS 1.344 custom alerts are created and managed in **Settings**, and the Anomaly Detection app that used to hold them is deprecated. SaaS versions reach tenants in a staged rollout: on a tenant that is not yet on 1.344, the same custom alerts are still configured in the Anomaly Detection app. Programmatically, a custom alert is a Settings object of schema `builtin:davis.anomaly-detectors`.
+
 ### Configuration
 
-anomaly detection is configured via the Settings API (`builtin:anomaly-detection.metric-events`) or via the UI. This is the **metric-event** schema, which evaluates Metrics Classic keys. An adaptive or seasonal model needs a `METRIC_SELECTOR` query definition — *"Metric key based query definitions only support static thresholds"* — and every model needs its full set of sample counts plus an event template. For programmatic setup:
+```json
+{
+  "schemaId": "builtin:davis.anomaly-detectors",
+  "scope": "environment",
+  "value": {
+    "enabled": true,
+    "title": "API error count anomaly",
+    "description": "Migrated from the Sumo outlier monitor on prod/api",
+    "source": "sumo-migration",
+    "executionSettings": {"actor": null, "queryOffset": null},
+    "analyzer": {
+      "name": "dt.statistics.ui.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer",
+      "input": [
+        {"key": "query", "value": "timeseries sum(log.sumo.api_error_count), interval:1m, by:{dt.entity.host}"},
+        {"key": "numberOfSignalFluctuations", "value": "1"},
+        {"key": "alertCondition", "value": "ABOVE"},
+        {"key": "alertOnMissingData", "value": "false"},
+        {"key": "violatingSamples", "value": "3"},
+        {"key": "slidingWindow", "value": "5"},
+        {"key": "dealertingSamples", "value": "5"}
+      ]
+    },
+    "eventTemplate": {
+      "properties": [
+        {"key": "event.type", "value": "CUSTOM_ALERT"},
+        {"key": "event.name", "value": "API error count above baseline on {dims:dt.entity.host.name}"},
+        {"key": "event.description", "value": "Error-log count for prod/api is above its learned baseline."},
+        {"key": "dt.source_entity", "value": "{dims:dt.entity.host}"}
+      ]
+    }
+  }
+}
+```
+
+The query must return a timeseries (`timeseries` or `makeTimeseries`), set `interval:1m`, and carry no `from:` / `to:`. For a fixed threshold, use `dt.statistics.ui.anomaly_detection.StaticThresholdAnomalyDetectionAnalyzer` with a `threshold` input; for a weekly or daily pattern, `dt.statistics.ui.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer` with `tolerance`. `source` is free text — a shared value such as `sumo-migration` lets you filter every migrated alert in the UI.
+
+> <sub>**Sources:**</sub>
+> - <sub>[Anomaly Detection app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app) — *"Starting with Dynatrace version 1.344, custom alerts have moved to"* Settings; *"Because Anomaly Detection is deprecated, we highly recommend that you use"* Settings.</sub>
+> - <sub>[Set up anomaly detectors via API (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/set-up-anomaly-detectors-via-api) — schema `builtin:davis.anomaly-detectors`; *"The query must have a time interval explicitly set to interval:1m. You can't set timeframes using from: and to: DQL operators with this configuration."*</sub>
+
+### Sumo outlier → custom alert example
+
+**Sumo:**
+```
+_sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 threshold=3
+```
+
+**Dynatrace:**
+1. Create a counter metric from the matching logs in OpenPipeline (next subsection).
+2. Create a custom alert on that metric with the auto-adaptive model (the JSON above).
+3. Route the resulting problem to the Sumo monitor's notification target with a problem-triggered Workflow (§6).
+
+### Metric Extraction from Logs
+
+If the Sumo monitor was log-count-based, extract a metric first. In **OpenPipeline → Logs**, open the pipeline that processes these records, select the **Metric extraction** tab, and add a **Counter metric** processor:
+
+| Field | Value |
+|-------|-------|
+| Matching condition | `sumo.source_category == "prod/api" and status == "ERROR"` |
+| Metric key | `log.sumo.api_error_count` |
+| Dimensions | `dt.entity.host` |
+
+Log metric keys carry the `log.` prefix. A new log metric has data only for logs ingested after it is created, so give it time to fill before the custom alert's baseline means anything.
+
+> <sub>**Sources:** [Log metrics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics) — *"All metrics based on a log monitoring query have a metric key with the `log.` prefix."*, *"A created log metric is available only when new log data is ingested."*; [Metric extraction (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction).</sub>
+
+### Classic path — metric events
+
+Tenants that already manage alerting as classic metric events (`builtin:anomaly-detection.metric-events`) can keep that surface; it evaluates Metrics Classic keys, not DQL. An adaptive or seasonal model there needs a `METRIC_SELECTOR` query definition — *"Metric key based query definitions only support static thresholds"* — and every model needs its full set of sample counts plus an event template. New monitors in this migration should use custom alerts (above).
 
 ```json
 {
@@ -119,48 +191,15 @@ anomaly detection is configured via the Settings API (`builtin:anomaly-detection
 }
 ```
 
-> <sub>**Sources:** [builtin:anomaly-detection.metric-events schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events).</sub>
-
-### Sumo outlier → anomaly detection example
-
-**Sumo:**
-```
-_sourceCategory=prod/api | timeslice 1m | count | outlier _count window=10 threshold=3
-```
-
-**Dynatrace Intelligence:**
-1. Create a custom metric from the DQL equivalent (via metric extraction in OpenPipeline, or via `makeTimeseries` into an extracted metric).
-2. Configure anomaly detection on that metric with `AUTO_ADAPTIVE_THRESHOLD` mode.
-3. Attach the Sumo monitor's notification channel to the detected problem.
-
-### Metric Extraction from Logs
-
-If the Sumo monitor was log-count-based, extract a metric first:
-
-```json
-{
-  "schemaId": "builtin:logmonitoring.log-custom-metric",
-  "scope": "environment",
-  "value": {
-    "key": "custom.metric.api_error_count",
-    "enabled": true,
-    "query": "sumo.source_category = \"prod/api\" AND status = \"ERROR\"",
-    "measure": {"type": "OCCURRENCE"},
-    "dimensions": ["dt.entity.host"]
-  }
-}
-```
-
-Then apply anomaly detection to the extracted metric.
+> <sub>**Sources:** [builtin:anomaly-detection.metric-events schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events); [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events) — *"We encourage you to try Anomaly Detection"*.</sub>
 
 ### Validation
 
 ```dql
-// Confirm metric extraction is producing data
-timeseries c = avg(custom.metric.api_error_count), from:-1h, by:{dt.entity.host}
+// Confirm the log metric is producing data (it fills only from logs ingested after it was created)
+timeseries c = sum(log.sumo.api_error_count), from:-1h, by:{dt.entity.host}
 | fieldsAdd c_max = arrayMax(c)
 | filter c_max > 0
-
 ```
 
 <a id="metric-events"></a>
@@ -173,7 +212,7 @@ When the threshold truly is static and the underlying metric is well-defined:
 - Disk full
 - Certificate expiry < 30 days
 
-Use Metric Events via `builtin:anomaly-detection.metric-events`:
+A custom alert with the static-threshold model (§3) covers this case on a DQL query and is the current path. Where you keep classic metric events, use `builtin:anomaly-detection.metric-events`:
 
 ```json
 {
@@ -217,7 +256,7 @@ The schema's only scope is `environment`; narrow the alert to particular hosts w
 
 ### When NOT to use Metric Events
 
-- Threshold depends on workload (use Dynatrace Intelligence)
+- Threshold depends on workload (use a custom alert with an auto-adaptive or seasonal model)
 - Condition involves multiple metrics (use Workflow)
 - Alert requires custom notification payload (use Workflow)
 
@@ -251,7 +290,7 @@ tasks:
     conditions:
       states:
         check_error_rate: SUCCESS
-      custom: '{{ result("check_error_rate").records[0].error_pct > 5 }}'
+      custom: '{{ result("check_error_rate")["records"] | length > 0 and result("check_error_rate")["records"][0]["error_pct"] > 5 }}'
     input:
       method: POST
       url: https://<instance>.service-now.com/api/now/table/incident
@@ -265,6 +304,10 @@ tasks:
         }
 ```
 
+A DQL task in state *Success* can still return no records, and reading `records[0]` from an empty result makes the condition error. Guard with `| length > 0`, as above.
+
+> <sub>**Sources:** [DQL query action (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/dql-query-workflow-action) — *"Accessing a specific record without first checking the array length will cause a condition error."*</sub>
+
 ### Scheduled Search → Workflow
 
 A Sumo scheduled search (query + schedule + action) maps directly:
@@ -273,7 +316,7 @@ A Sumo scheduled search (query + schedule + action) maps directly:
 |------------------------------|---------------------|
 | Query | **Execute DQL Query** task (`dynatrace.automations:execute-dql-query`) |
 | Schedule (run every N) | Schedule trigger with a cron rule, set in the editor |
-| Alert condition | `conditions.custom` on the notification task (a Jinja expression) |
+| Alert condition | `conditions.custom` on the notification task (a Jinja expression; check `records \| length > 0` before reading `records[0]`) |
 | Webhook action | HTTP Request task (`dynatrace.automations:http-function`) or a connector action |
 | Email action | **Send email** task (`dynatrace.email:send-email`) |
 
@@ -377,7 +420,7 @@ tasks:
     action: dynatrace.email:send-email
     predecessors: [check_heartbeat]
     conditions:
-      custom: '{{ result("check_heartbeat").records[0].c == 0 }}'
+      custom: '{{ result("check_heartbeat")["records"] | length == 0 or result("check_heartbeat")["records"][0]["c"] == 0 }}'
     input:
       to: ["oncall@example.com"]
       cc: []
@@ -385,6 +428,8 @@ tasks:
       subject: "No heartbeat from prod/heartbeat"
       content: "No heartbeat logs from prod/heartbeat in the last 10 minutes."
 ```
+
+An ungrouped `summarize c = count()` returns one record with `c = 0` when nothing matches, so the second clause is the one that fires; the `length == 0` clause treats an empty result as missing data too, instead of erroring.
 
 ### Change Detection Alerts
 
@@ -427,15 +472,23 @@ fetch dt.davis.problems, from:-7d
 
 ### Silence during load tests
 
-Workflow-based monitors should respect maintenance windows. Settings 2.0 schema `builtin:maintenance.general` applies tenant-wide; configure before load tests, CI/CD deployments, or controlled outages.
+Configure a maintenance window before load tests, CI/CD deployments, or controlled outages. In Latest Dynatrace the Settings schema is `builtin:maintenance-windows`, and a window is scoped with DQL matcher expressions on Grail primary fields and tags. Latest Dynatrace always detects problems during a window — there is no option to disable detection — so muting is done in the notification path: problems raised during a window carry `maintenance.is_under_maintenance = true`, and a problem-triggered Workflow skips them when its trigger's additional custom filter query is `maintenance.is_under_maintenance != true`.
+
+On a classic tenant, maintenance windows use the classic schema `builtin:alerting.maintenance-window`, whose `suppression` option chooses between *Detect problems and alert*, *Detect problems but don't alert*, and *Disable problem detection during maintenance*. Classic windows are not migrated automatically when you upgrade; recreate them as Latest Dynatrace windows.
+
+A scheduled DQL workflow (§5, §7) is not a problem trigger, and the maintenance-window pages do not say it consults the window. In community practice, disable those workflows for the window, or move the alert to a custom alert plus a problem-triggered workflow so the filter above applies.
+
+> <sub>**Sources:** [Upgrade from classic maintenance windows (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows) — *"Latest Dynatrace always detects problems."*, *"There is no equivalent to disabling problem detection entirely."*, *"Window scope uses DQL matcher filter criteria on Grail primary fields and tags."*, *"Classic maintenance windows are not migrated automatically"*; [builtin:maintenance-windows schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows); [builtin:alerting.maintenance-window schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window); [Use maintenance window data in Grail (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail) — *"maintenance.is_under_maintenance != true"*.</sub>
 
 ### Severity mapping
 
-| Sumo Priority | DT Severity | Notification |
-|---------------|-------------|--------------|
-| Critical | ERROR / Dynatrace Intelligence P1 | PagerDuty + ServiceNow |
-| High | Dynatrace Intelligence P2 | ServiceNow |
-| Warning | Dynatrace Intelligence P3 | Email |
+Dynatrace has no P1/P2/P3 severity. A problem carries an `event.category` (for example `AVAILABILITY`, `ERROR`, `SLOWDOWN`, `RESOURCE_CONTENTION`, `CUSTOM_ALERT`), and routing happens in the problem-triggered Workflow. Carry the Sumo priority across as an extra key-value property on the custom alert's event template (for example `sumo.priority`), confirm it appears on the resulting problem in your tenant, and route on it; FAQ-21 covers the routing pattern.
+
+| Sumo Priority | Route on | Notification |
+|---------------|----------|--------------|
+| Critical | `sumo.priority == "critical"`, or `event.category` `AVAILABILITY` / `ERROR` | PagerDuty + ServiceNow |
+| High | `sumo.priority == "high"` | ServiceNow |
+| Warning | `sumo.priority == "warning"` | Email |
 | Info | (no alert) | Logged only |
 
 <a id="gate"></a>
@@ -443,7 +496,7 @@ Workflow-based monitors should respect maintenance windows. Settings 2.0 schema 
 
 **G5 — Monitors Rebuilt**
 
-- [ ] Every Sumo monitor has a decision logged (Dynatrace Intelligence / Workflow / Metric Event / retire)
+- [ ] Every Sumo monitor has a decision logged (custom alert / Workflow / Metric Event / retire)
 - [ ] ≥40% of new monitors use anomaly detection (not static thresholds) — track this metric
 - [ ] Top-10 business-critical monitors validated end-to-end (fires on known-bad condition, doesn't fire on normal)
 - [ ] Notification integrations (ServiceNow, Slack, PagerDuty) tested with live test incidents
@@ -460,9 +513,9 @@ Workflow-based monitors should respect maintenance windows. Settings 2.0 schema 
 ### Dynatrace alerting and intelligence
 - [Anomaly detection (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection)
 - [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows)
-- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting)
+- [Notifications and alerting (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic)
 - [Problems app (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app)
-- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/notifications-and-alerting/maintenance-windows)
+- [Maintenance windows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows)
 
 ### Sumo Logic monitor and alert reference (source)
 - [Sumo Logic monitors (Sumo Logic docs)](https://www.sumologic.com:443/help/docs/alerts/monitors/)

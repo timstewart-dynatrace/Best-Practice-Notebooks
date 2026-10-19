@@ -1,6 +1,6 @@
 # OPIPE-06: Cross-Scope Design Patterns
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/05/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 6 of 6 | **Created:** March 2026 | **Last Updated:** 10/15/2026
 
 ## Correlating Logs, Spans, Metrics, and Events Across Scopes
 
@@ -272,7 +272,7 @@ You have completed the OPIPE series. From here:
 
 - **OPLOGS** — Deep-dive into log processing: **OPLOGS-01: OpenPipeline Fundamentals**
 - **SPANS** — Master trace analysis: **SPANS-01: Fundamentals**
-- **OPMIG** — Migrating from classic logs: **OPMIG-01: Why Migrate**
+- **OPMIG** — Migrating from classic logs: **OPMIG-01: OpenPipeline Migration Guide: Part 1**
 - **ORGNZ** — Data organization and governance: **ORGNZ-01: Introduction**
 
 ---

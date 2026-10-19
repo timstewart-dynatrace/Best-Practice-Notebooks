@@ -1,6 +1,6 @@
 # WFLOW-08: JavaScript & HTTP Actions
 
-> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/06/2026
+> **Series:** WFLOW — Workflows and Alert Notifications | **Notebook:** 8 of 10 | **Created:** January 2026 | **Last Updated:** 10/15/2026
 
 ## Custom Code and API Integration
 When built-in actions aren't enough, use JavaScript and HTTP requests for custom integrations. This notebook covers the JavaScript SDK, HTTP request patterns, and common integration scenarios.
@@ -28,7 +28,7 @@ When built-in actions aren't enough, use JavaScript and HTTP requests for custom
 | Requirement | Details |
 |-------------|----------|
 | **Dynatrace Environment** | SaaS with Platform subscription |
-| **Permissions** | `automation:workflows:write` to author. Each task also needs the scopes its SDK calls use, granted to the workflow under **Settings > Authorization settings** in the Workflows app — for example `automation:workflows:read` for `execution()` and `result()`, `environment-api:credentials:read` for the Credential Vault, `environment-api:entities:read` for entity lookups, `environment-api:problems:write` for problem comments, and the `storage:*:read` scope of each data object a query reads. A missing one fails the task with a 403. §11 also needs an API token with `oneAgents.write` stored in the Credential Vault |
+| **Permissions** | `automation:workflows:write` to author. Each task also needs the scopes its SDK calls use, granted to the workflow under **Settings > Authorization settings** in the Workflows app — for example `automation:workflows:read` for `execution()` and `result()`, `environment-api:credentials:read` for the Credential Vault, `environment-api:entities:read` for entity lookups, `environment-api:problems:write` for problem comments, and the `storage:*:read` scope of each data object a query reads. A missing one fails the task with a 403. §11's workflow actor also needs `fleet-management:oneagents:write` (a classic `oneAgents.write` token is the classic/hybrid alternative) |
 | **Outbound access** | Every external host added under **Settings > General > External requests**; hosts on a private network also need an EdgeConnect host pattern (§3) |
 | **Prior Knowledge** | **WFLOW-01** through **WFLOW-07**, JavaScript basics |
 
@@ -1117,7 +1117,7 @@ A frequent ask: read host→application mappings from a CMDB and apply them as h
 The shape is two `run-javascript` tasks:
 
 1. **`query_hosts_and_enrich`** — enriches `dt.entity.host` through a CMDB lookup chain (`lookup [load "/lookups/…"]`), dedups by host id, and diffs against existing tags → returns `hosts[]`.
-2. **`apply_tags_to_hosts`** — loops (`withItems`) over `hosts[]` and POSTs a `set hostTag` operation to the **OneAgent Remote Configuration Management API** (`${ENVIRONMENT_URL}/api/v2/oneagents/remoteConfigurationManagement`) using a Gen2 (classic) `oneAgents.write` API token read from the Credential Vault. Guardrails: `DRY_RUN`, `MAX_HOSTS`, skip-existing, 409-retry. (Config is supplied via workflow inputs. The API reference now also lists a platform-token / OAuth scope, `fleet-management:oneagents:write`; the LAB keeps the live-validated classic token until that path is re-tested.)
+2. **`apply_tags_to_hosts`** — loops (`withItems`) over `hosts[]` and POSTs a `set hostTag` operation to the **OneAgent Remote Configuration Management API** (`/api/v2/oneagents/remoteConfigurationManagement`) as the workflow actor (relative URL, `fleet-management:oneagents:write`; a classic `oneAgents.write` token from the Credential Vault for classic or hybrid environments). Guardrails: `DRY_RUN`, `MAX_HOSTS`, skip-existing, 409-retry. (Config is supplied via workflow inputs.)
 
 One `set hostTag` operation writes both `primary_tags.*` (the prefix is mandatory) and `dt.*` primary fields (`dt.security_context`, `dt.cost.costcenter`) — see **FAQ-02 (Tagging: Sources, Standards & Strategy)** for the tagging-source model.
 

@@ -1,6 +1,6 @@
 # MZ2POL-10: Tagging at Source — The Foundation Under Every MZ Replacement
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 17 | **Created:** October 2026 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 11 of 17 | **Created:** October 2026 | **Last Updated:** 10/19/2026
 
 ## Overview
 
@@ -73,7 +73,7 @@ That is why Dynatrace's metadata best practice says to *"Resolve enrichment gaps
 
 > <sub>**Sources:**</sub>
 > - <sub>[Management zones settings schema (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones) — *"Management zone rules are executed periodically in the background, for a limited timeframe."*</sub>
-> - <sub>[Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules) — *"Note that users automatically get access to logs and metrics associated with entities that are included within their assigned management zones."*</sub>
+> - <sub>[Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules) — *"Note that users automatically get access to logs and metrics associated with entities that are included within their assigned management zones."*</sub>
 > - <sub>[Best practices for metadata enrichment (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment) — *"In Dynatrace Classic, observability signals were tightly coupled to entities through management zones."* and *"each data point is treated independently and must carry its own metadata."*</sub>
 > - <sub>[Differences between classic auto-tagging and primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic) — *"You query, route, and filter the data directly, without detours through the topology."*</sub>
 
@@ -204,7 +204,7 @@ Dynatrace orders the ways to attach a value from cheapest to most effort, and sa
 | 1 | Built-in primary Grail fields | Before routing | dt.host_group.id, k8s.cluster.name, k8s.namespace.name, aws.account.id, azure.subscription — no configuration |
 | 2 | Enrich at the source | Before routing | --set-host-tag / oneagentctl (host), DT_TAGS (process), K8s annotations, OTEL_RESOURCE_ATTRIBUTES, extension configuration |
 | 3 | Central Ingest enrichment configuration | Before routing | OneAgent 1.343+, no restart; promote host tags, host groups or naming conventions (DPL); environment or host-group scope |
-| 4 | OpenPipeline primary Grail tag rule | Docs disagree (see below) | Fallback; any record type; overwrites existing values unless the condition is isNull(...) |
+| 4 | OpenPipeline primary Grail tag rule | Before routing | Fallback; any record type; overwrites existing values unless the condition is isNull(...) |
 | 5 | OpenPipeline processors (Set security context, DQL) | After routing | Cannot choose a pipeline or bucket |
 For environments where SVG doesn't render
 -->
@@ -248,18 +248,18 @@ Two limits matter for MZ translation, and MZ2POL-11 §4 works through them: regu
 
 Host-level tags still fill any key the process did not set. Dynatrace's worked example shows a host with `business_unit=ecommerce` and `environment=dev`, and a .NET process with `DT_TAGS` setting `business_unit=finance`: the process ends up with `finance`, its own team, and the host's `environment=dev`.
 
-### Step 4: two pages disagree on timing
+### Step 4 runs before routing; step 5 does not
 
-Whether a step-4 tag can steer routing is not settled by the docs. The OpenPipeline page says primary Grail tag rules *"are evaluated before ingest-preprocessing time, before routing"*. The enrichment best-practice page, describing the same rules, says *"OpenPipeline runs after pipeline routing, so tags derived here can't influence which pipeline a record enters."*
+The two Dynatrace pages now agree. The OpenPipeline page says primary Grail tag rules *"are evaluated before ingest-preprocessing time, before routing"*. The enrichment best-practice page (updated Oct 14, 2026) says the same — *"OpenPipeline primary Grail tag rules derive or assign primary Grail tags from existing signal fields before pipeline routing."* — and adds *"Because the tags exist at routing time, you can use them for dynamic pipeline selection and bucket assignment."*
 
-Until the two agree, treat a step-4 tag as safe for filtering, segments and alert routing, and **test it** before you depend on it to pick a pipeline or a bucket. If routing depends on the value, set it at step 2 or 3, where both pages agree it is present before routing.
+The line that matters is between steps 4 and 5. A step-4 tag rule can pick a pipeline or a bucket. A step-5 processor cannot: *"Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route."* Earlier revisions of this notebook treated step 4 as unsettled, because the best-practice page used to say OpenPipeline ran after routing; that sentence is gone from the page.
 
 ### Step 4 overwrites by default
 
 An OpenPipeline primary Grail tag rule is the right tool for normalizing a key that arrives under different names — `aws.tags.team`, `azure.tags.team`, a Kubernetes label — into one `primary_tags.team`. But *"Existing primary_tags.* values are overwritten by default."* A broad rule added as a "backstop" will silently replace values that were set correctly at the source. Use the documented guard — a matching condition of `isNull(primary_tags.<key>)` — unless overwriting is what you intend.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline runs after pipeline routing, so tags derived here can't influence which pipeline a record enters."*</sub>
+> - <sub>[Best practices for enriching primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-best-practices) — *"OpenPipeline primary Grail tag rules derive or assign primary Grail tags from existing signal fields before pipeline routing."* and *"Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route."*</sub>
 > - <sub>[Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent) — *"When the same key is set at both scopes, the process-level value wins for that process."* and *"Enriching all data from a host based on a process or service property is not supported."*</sub>
 > - <sub>[Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags) — *"All rules are evaluated before ingest-preprocessing time, before routing, and apply globally, to any incoming record of any type."*</sub>
 > - <sub>[Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic)</sub>
@@ -582,7 +582,7 @@ Then continue: segments (MZ2POL-05), policies and boundaries (MZ2POL-04, MZ2POL-
 - [Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)](https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent)
 - [Configure security context (DT docs)](https://docs.dynatrace.com/docs/manage/tags/tags-security-context)
 - [Set primary Grail tag rules in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags)
-- [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones/management-zone-rules)
+- [Management-zone rules (DT docs)](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules)
 
 ---
 

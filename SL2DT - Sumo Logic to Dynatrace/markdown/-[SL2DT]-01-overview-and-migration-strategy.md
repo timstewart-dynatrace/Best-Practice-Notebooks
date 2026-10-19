@@ -1,6 +1,6 @@
 # SL2DT-01: Overview & Migration Strategy
 
-> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 10/05/2026
+> **Series:** SL2DT — Sumo Logic to Dynatrace | **Notebook:** 1 of 11 | **Created:** April 2026 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -14,7 +14,9 @@ This is not a how-to. It is the *why* — why Gen3, why Anomaly Detection over l
 
 Three sprint-1.337 changes simplify the Sumo Logic → Dynatrace migration:
 
-1. **OneAgent primary fields/tags at the source.** Hosts now emit standardized fields (`dt.security_context`, `dt.cost.costcenter`, `dt.cost.product`) and customer-defined primary tags as top-level attributes on every signal — eliminating a class of OpenPipeline parse processors needed during the Sumo→DT cut. See SL2DT-03 (Log Ingest Architecture) for the ingest-time configuration.
+1. **Primary fields on AWS Lambda (OneAgent 1.337).** Primary fields set via `DT_TAGS` are now added to logs and spans in AWS Lambda deployments of OneAgent, along with `aws.arn`, `aws.region` and `aws.account.id`. If Sumo collected Lambda logs, that enrichment can come from the agent instead of an OpenPipeline processor. The change is specific to Lambda; it does not change how primary fields reach host-level logs.
+
+   > <sub>**Sources:** [What's new in OneAgent 1.337 (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337) — *"are now added to logs and spans in AWS Lambda deployments of OneAgent."*</sub>
 2. **OpenPipeline extraction processor recommended-field suggestions.** When converting Sumo Field Extraction Rules (FERs) to OpenPipeline DPL processors (SL2DT-03), the UI now flags permission-relevant fields and Smartscape identifiers — preventing the most common misconfiguration: promoting sensitive content into a permission-relevant position.
 3. **Configuration API → Settings v2 acceleration + Platform tokens.** New automation (SL2DT-08) should target Settings v2 paths and use Platform tokens (`dt0s16`, `Authorization: Bearer`). Classic `dt0c01` still works for legacy paths but is not the default for new pipelines.
 

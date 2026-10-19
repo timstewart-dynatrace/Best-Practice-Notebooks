@@ -1,6 +1,6 @@
 # K8S-13: Kafka Monitoring with Kpow
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 14 | **Created:** February 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 13 of 14 | **Created:** February 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -527,7 +527,9 @@ fetch dt.entity.process_group_instance
 //   | limit 20
 // Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
 // the classic entity store; for a pre-migration inventory keep the classic query above.
-// Note: entity tags are not a flat "tags" field on Smartscape (resolve via getNodeField).
+// Note: on Smartscape, `tags` is a record of tag key -> value (dictionary: "Note that rule-based
+// tags do not exist in the new model."). Classic rule-based tags such as dt.owner:... do not appear
+// there, so the legacy query and the Smartscape query above do not return the same tags.
 ```
 
 ## Summary

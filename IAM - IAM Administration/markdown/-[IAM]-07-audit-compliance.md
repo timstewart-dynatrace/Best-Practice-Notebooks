@@ -1,6 +1,6 @@
 # IAM-07: Audit Logging and Compliance
 
-> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 7 of 12 | **Created:** January 2026 | **Last Updated:** 10/19/2026
 
 ## Meeting Regulatory and Security Requirements
 Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.
@@ -23,7 +23,7 @@ Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and securi
 
 | Requirement | Details |
 |-------------|----------|
-| **Dynatrace Environment** | SaaS with Grail — Grail-based audit logging is on by default and cannot be turned off |
+| **Dynatrace Environment** | SaaS with Grail — Grail-based audit logging is active by default in every environment |
 | **Permissions** | `ALLOW storage:system:read WHERE storage:event.kind = "AUDIT_EVENT";` and `ALLOW storage:buckets:read WHERE storage:bucket-name = "dt_system_events";` — plus `ALLOW iam:users:read;` to resolve the `user.id` UUIDs in audit records to user details through the IAM API |
 | **Account audit log** | The `account-company-info` account permission, to review account-level IAM changes in Account Management |
 | **Data Retention** | Environment audit events are kept for one year; plan exports if a framework needs longer |
@@ -62,7 +62,9 @@ Dynatrace audit logs capture all security-relevant events in your environment.
 
 > **Two audit records, two places.** Activity *inside this environment* — sign-ins, API calls, settings and token changes — is recorded as `AUDIT_EVENT` records in `dt.system.events`, which every query in this notebook reads. **Account-level IAM changes** — groups, memberships, policies, boundaries — are recorded in the account audit log (Account Management > Settings > Audit log), not here.
 >
-> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is enabled by default and can't be turned off."*; *"These events are stored for one year."*; the page lists `ALLOW iam:users:read;` for looking up user details from the user ID. [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"*.</sub>
+> **Not every action is recorded yet.** Dynatrace states that audit events from inside platform services are not recorded yet — its examples are an app installed by AppEngine and a document being shared. An evidence report that needs those actions cannot be built from `dt.system.events` today; say so in the report rather than presenting an empty result as "no activity".
+>
+> <sub>**Sources:** [Audit logs on Grail (DT docs)](https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail) — *"Grail-based audit logging is active by default in all Dynatrace environments."*; *"Audit events from within platform services, such as an app being installed by AppEngine or a document being shared, aren't recorded yet."*; *"Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year"*; the page lists `ALLOW iam:users:read;` for looking up user details from the user ID. [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"*.</sub>
 
 ### Retention Requirements
 
@@ -184,7 +186,7 @@ fetch dt.system.events, from:-7d
 ## 3. Authorization and Access Events
 Track permission checks and access attempts to sensitive resources.
 
-> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded."* The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
 >
 > <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 
@@ -244,8 +246,16 @@ fetch dt.system.events, from:-30d
 ## 4. Configuration Change Tracking
 Track changes recorded in this environment. Account-level IAM changes (groups, policies, boundaries, bindings) are in the account audit log — see the note in Section 3.
 
+**User accounts are not in these records.** Users are created, invited and removed at account level, so an environment `AUDIT_EVENT` never describes a user lifecycle change; the `CREATE` / `DELETE` events below are settings objects, tokens and lookup files. For joiner-and-leaver evidence, use the account audit log, which covers *"Group memberships"*, together with your IdP's provisioning log when users arrive by SCIM (IAM-06).
+
+> <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs) — *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings."*</sub>
+
 ```dql
-// User creation and deletion events
+// Create / delete activity in this environment — settings objects, API and ActiveGate tokens,
+// lookup files. NOT user accounts: users are account-level, so no AUDIT_EVENT here records a user
+// being created or deleted (retitled 10/14/2026; on the validation tenant 30 d of CREATE/DELETE was
+// 11,080 SETTINGS, 390 lookup-file, 102 token, 25 API_GATEWAY, 3 CLASSIC_API and 1 SLO events).
+// event.provider says which kind of object each row is.
 // Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
 // `fetch logs | filter matchesPhrase(log.source, "audit")`, and no log.source on a Grail tenant
 // contains "audit" — the filter matched nothing, silently, forever. Platform audit records live in
@@ -260,7 +270,7 @@ Track changes recorded in this environment. Account-level IAM changes (groups, p
 fetch dt.system.events, from:-30d
 | filter event.kind == "AUDIT_EVENT"
 | filter in(event.type, {"CREATE", "DELETE"})
-| fields timestamp, user.id, event.type, resource, event.outcome
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
 | sort timestamp desc
 | limit 50
 ```

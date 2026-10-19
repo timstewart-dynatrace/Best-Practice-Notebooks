@@ -1,6 +1,6 @@
 # K8S-14: Kubernetes Deployment Guide
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 10/02/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 14 of 14 | **Type:** LAB | **Created:** April 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -483,7 +483,7 @@ Expected: Logs grouped by the `team` label you assigned to namespaces. If empty,
 // and `releasesStage`. Time range added — dt.entity.* returns only entities seen in the window.
 fetch dt.entity.process_group_instance, from:-7d
 | filter isNotNull(releasesVersion)
-| fieldsKeep entity.name, releasesVersion, releasesProduct, releasesStage
+| fields entity.name, releasesVersion, releasesProduct, releasesStage
 | limit 10
 
 // Note: releasesVersion renders as a structured value, e.g.
@@ -527,6 +527,7 @@ There is no published healthy range. Record the baseline for your nodes after th
 
 ```dql
 // Kubernetes events for Dynatrace components — restarts, back-offs, mount and scheduling failures
+// One open event is re-written about every 5 min under the same event.id, so it can repeat here.
 // event.provider is the discriminator. event.kind never takes a "K8S_EVENT" value: these
 // records carry "DAVIS_EVENT", so filtering on kind returns zero rows and looks like health.
 fetch events, from:-24h
@@ -592,7 +593,7 @@ With the base deployment complete, these additional configurations maximize the 
 
 | Step | Status | Notes |
 |------|--------|-------|
-| 1. Prerequisites verified | [ ] | K8s 1.24+, Helm 3.x, network access |
+| 1. Prerequisites verified | [ ] | Kubernetes version listed on [Dynatrace Operator support and known issues (DT docs)](https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues), Helm 3.x, network access |
 | 2. Access tokens created | [ ] | Operator token + Data Ingest token |
 | 3. Operator installed | [ ] | Helm chart + token secret |
 | 4. DynaKube applied | [ ] | v1beta6 with all production settings |

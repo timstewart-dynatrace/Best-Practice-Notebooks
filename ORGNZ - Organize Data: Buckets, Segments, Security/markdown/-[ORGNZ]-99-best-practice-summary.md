@@ -29,16 +29,19 @@ This notebook consolidates every actionable best practice from the ORGNZ series 
 
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|-----------------|----------|----------|
-| 1 | Keep per-bucket ingest under 1 TB/day | Target: <1 TB/day per bucket; split at >2 TB/day (Dynatrace guidance) | Critical | Performance |
+| 1 | Size log buckets for 1–3 TB/day | Logs bucket best practice (08/24/2026): *"between 1 TB and 3 TB of log data per day"*. The older partition-data page (06/17/2026) says to split above 2 TB/day, the only figure stated for other tables | Critical | Performance |
 | 2 | One data type per bucket | Each bucket stores exactly one table type (logs, metrics, spans, events, bizevents, security.events) | Critical | Architecture |
 | 3 | Use consistent naming convention | Format: `<provider>_<type>_<retention>` or `<team>_<type>_<retention>` (e.g., `aws_logs_35d`, `team_platform_logs`) | Critical | Naming |
 | 4 | Bucket names: lowercase, letter-first, underscores/hyphens only | Regex: `^[a-z][a-z0-9_-]*$`; never use `default_*` prefix | Critical | Naming |
 | 5 | Plan bucket names before creation | Bucket names are immutable after creation; display names can be changed | Critical | Planning |
 | 6 | Stay within the custom-bucket environment default — 250 from SaaS 1.346 (80 on earlier versions) | Budget buckets across teams; request increase only if justified | Recommended | Planning |
-| 7 | Create dedicated buckets per cost center | One bucket per business unit/LOB for direct GiB/day cost attribution | Recommended | Cost |
+| 7 | Attribute cost with cost-allocation fields, not buckets | Set `dt.cost.costcenter` / `dt.cost.product` at the source (works for logs, traces, metrics and events); create a dedicated bucket only where a cost center also needs its own retention or access | Recommended | Cost |
 | 8 | Create separate buckets for compliance data | Dedicated bucket (e.g., `compliance_audit_logs`) with extended retention for regulatory requirements | Recommended | Compliance |
 | 9 | Create short-retention buckets for debug logs | Bucket: `debug_logs_7d` with 7-day retention for high-volume verbose logs | Recommended | Cost |
-| 10 | Split high-volume buckets to maintain queryability | If bucket exceeds 1 TB/day, split by team, environment, or application | Recommended | Performance |
+| 10 | Split high-volume buckets to maintain queryability | If a bucket exceeds the range in row 1, split by line of business first, then by application where volume or compliance justify it | Recommended | Performance |
+| 10a | Give an application its own bucket above 250 GB/day | *"Create a dedicated bucket for any application ingesting more than 250 GB/day."* Below that, applications can share a bucket | Recommended | Performance |
+
+> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — row 1 as quoted; *"Split log buckets by line of business rather than by individual application."*, [Use Grail buckets to partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"We recommend splitting up buckets that receive more than 2 TB of daily ingest."*, [Best practices for data partitioning (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — row 10a as quoted, [Set up Cost Allocation (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up) — row 7. Where the pages differ, the newer and more specific page is followed (read 10/14/2026).</sub>
 
 ### Validation Queries — Bucket Design
 
@@ -193,16 +196,39 @@ fetch logs, from:-1h
 ```
 
 ```dql
-// Filter logs by specific security context — test access control boundary for a team
+// Shape check — is dt.security_context a single string on every record, or an array on some?
+// Any "array" row means IAM conditions need MATCH and DQL checks need expand (ORGNZ-06).
 fetch logs, from:-1h
-| filter dt.security_context == "team:platform"
-| limit 50
+| filter isNotNull(dt.security_context)
+| fieldsAdd shape = type(dt.security_context)
+| summarize records = count(), by:{shape}
 ```
 
 ```dql
-// Check hierarchical security context — verify parent-level wildcard access works
+// Why the checks below expand first — no data scanned. On the array record, == is false and
+// startsWith returns null; after expand, both shapes match.
+data record(dt.security_context = array("finance/payments", "team:platform")), record(dt.security_context = "team:platform"), record(dt.security_context = "finance/ledger")
+| fieldsAdd shape = type(dt.security_context), eq_direct = dt.security_context == "team:platform", sw_direct = startsWith(dt.security_context, "finance/")
+| expand dt.security_context
+| fieldsAdd eq_expanded = dt.security_context == "team:platform", sw_expanded = startsWith(dt.security_context, "finance/")
+```
+
+```dql
+// Count logs carrying one security-context value. expand first: dt.security_context can be an array,
+// and == against an array is always false, so a bare filter would miss exactly those records.
 fetch logs, from:-1h
 | filter isNotNull(dt.security_context)
+| expand dt.security_context
+| filter dt.security_context == "team:platform"
+| summarize records = count()
+```
+
+```dql
+// Which records a MATCH ("finance/*") policy would cover — this does not test the policy itself.
+// expand handles string and array values alike; startsWith on an array returns null.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| expand dt.security_context
 | filter startsWith(dt.security_context, "finance/")
 | summarize count = count(), by:{dt.security_context}
 | sort count desc
@@ -226,7 +252,7 @@ fetch logs, from:-1h
 | 41 | Use segments for dynamic data views, not access control | Segments filter at query time; they do not enforce security boundaries — IAM policies do | Critical | Architecture |
 | 42 | Stay within the 20-include limit per segment | Maximum 20 include blocks per segment; plan rule complexity accordingly | Critical | Architecture |
 | 43 | One include block per data type | Cannot have two `logs` includes; combine conditions with `OR` within a single include | Critical | Architecture |
-| 44 | Use Primary Grail Fields in segment filters | Filter on `dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name`, `aws.account.id`, `azure.subscription`, `gcp.project.id` — these are indexed and propagate across all signal types | Critical | Performance |
+| 44 | Use Primary Grail Fields in segment filters | Filter on `dt.host_group.id`, `k8s.namespace.name`, `k8s.cluster.name`, `aws.account.id`, `azure.subscription`, `gcp.project.id` — Dynatrace enriches them on every signal from a source that has them; check coverage per data type, because problems can carry far fewer than logs (ORGNZ-10 §3) | Critical | Performance |
 | 45 | Use prefix-based naming for cross-signal filtering | Name host groups, namespaces, etc. with prefixes (e.g., `prod-web-tier` not `web-tier-prod`) so a prefix (`= "prod-*"`) works on signal includes and on classic `entity.name` (the only classic-entity property that accepts starts-with) | Recommended | Naming |
 | 46 | Create one segment per dimension | Separate segments for platform, application, environment, and region — users combine them as needed | Recommended | Architecture |
 | 47 | Add event includes for detected problem filtering | Define events include with `event.kind = "DAVIS_PROBLEM"` — entity includes alone do not filter problems | Critical | Troubleshooting |
@@ -350,8 +376,10 @@ smartscapeNodes "K8S_NAMESPACE"
 | 63 | Use exact match (`=`) over pattern match in segment filters | `=` is faster than `starts-with`; use exact values when known | Recommended | Performance |
 | 64 | Minimize segment filter expressions | Fewer conditions = better query performance; maximum 10 expressions per filter | Recommended | Performance |
 | 65 | Use OpenPipeline pre-processing for complex segment logic | If segment conditions would be complex, pre-enrich a simple field (e.g., `dt.security_context`) and filter on that | Recommended | Performance |
-| 66 | Maximum 1,000 records returned per query | Use aggregations (`summarize`, `makeTimeseries`) for larger datasets | Recommended | Performance |
+| 66 | Know the default result limits: 1,000 records and 1 MB | Dynatrace lists *"1,000 records returned per result"* and *"1 MB result payload"* among its default query limits; aggregate (`summarize`, `makeTimeseries`) or raise `maxResultRecords` / `maxResultBytes` on a Query API request | Recommended | Performance |
 | 67 | Maximum 10 segments per query | Do not stack more than 10 segments; design broader segments instead of many narrow ones | Recommended | Architecture |
+
+> <sub>**Sources:** [Best practices for a logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy) — row 66 as quoted, [Grail storage query SDK (Dynatrace Developer)](https://developer.dynatrace.com/develop/sdks/client-query/) — `maxResultRecords` and `maxResultBytes` request parameters.</sub>
 
 ### Validation Queries — Query Performance
 

@@ -1,6 +1,6 @@
 # MZ2POL-03: Assessment and Migration Planning
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/13/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 4 of 17 | **Created:** December 2025 | **Last Updated:** 10/14/2026
 
 ## Overview
 
@@ -136,12 +136,14 @@ A zone that restricted access does **not** become a bucket by default. Buckets a
 | Limitation | Impact on Planning |
 |------------|-------------------|
 | One data type per bucket | Need separate buckets for logs, spans, metrics |
-| Maximum 80 buckets per environment | Plan for scale within this limit |
+| Maximum custom buckets per environment: 250 by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it | Plan for scale within your tenant's limit. *Organize data* (updated 09/22/2026) and the 1.346 release note state 250; *Partition data* (updated 06/17/2026) and the upgrade guide's *Data partitioning* page (published 08/24/2026) still state 80 — check which default your tenant has before planning to either number |
 | ~1 TB/day optimal per bucket | Best query performance |
 | 1-3 TB/day acceptable | Shorter query window per default 500 GB scan |
 | No documented hard cap per bucket | Dynatrace sizing guidance on where to split differs between pages ([Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data), [Logs bucket strategy (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy)) |
 | Names immutable | Choose naming convention carefully upfront |
 | No data migration | Cannot consolidate or split buckets later |
+
+> <sub>**Sources:** [Organize data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data) — *"The default limit per environment is 250 custom buckets."*; [SaaS 1.346 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-346) — *"Dynatrace now supports up to 250 custom Grail buckets by default"*; [Partition data (DT docs)](https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data) — *"For each Dynatrace environment, you can configure up to 80 custom buckets by default."*; [Data partitioning — upgrade best practices (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning) — *"The default bucket limit per environment is 80 buckets"*.</sub>
 
 **Default query setting (affects bucket sizing):** `fetch` reads at most 500 GB of uncompressed data unless the query sets `scanLimitGBytes` — *"The default value is 500GB unless specified otherwise."* ([Data source commands (DT docs)](https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands))
 
@@ -349,7 +351,7 @@ Then continue to **MZ2POL-04: Policies and Boundaries** to:
 
 <a id="additional-resources"></a>
 ## Additional Resources
-- [Management Zones Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/management-zones)
+- [Management Zones Documentation](https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones)
 - [Upgrade from RBAC to IAM Policies](https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles)
 - [Grant Access to Entities with Security Context](https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context)
 

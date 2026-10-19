@@ -1,6 +1,6 @@
 # IAM-10: Templated Policy-Group Assignments
 
-> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/13/2026
+> **Series:** IAM — IAM Administration | **Notebook:** 10 of 12 | **Created:** February 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -363,7 +363,11 @@ ALLOW settings:objects:read, settings:objects:write
   WHERE settings:schemaId startsWith "${bindParam:schema-prefix}";
 ```
 
-**Binding:** `{"parameters": {"schema-prefix": "builtin:alerting"}}` for the alerting team
+**Binding:** `{"parameters": {"schema-prefix": "builtin:openpipeline.logs."}}` for a log-processing team
+
+`{"parameters": {"schema-prefix": "builtin:alerting"}}` works only on **Dynatrace Classic**: alerting profiles, maintenance windows and problem notifications are not visible in Latest Dynatrace. There, an alerting team needs `automation:workflows:*` for notifications and `builtin:davis.anomaly-detectors` for custom alerts (IAM-04 Pattern 6).
+
+> <sub>**Sources:** [Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas) — *"None of the schemas on this page are visible in Latest Dynatrace."*</sub>
 
 ### Pattern 6: Full Three-Domain (MZ Replacement)
 
@@ -409,7 +413,7 @@ For classic entity-level restriction through management zones, combine it with a
 
 Use these queries to verify that templated policy bindings are working correctly and to audit policy-related API activity.
 
-> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of all changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
+> **Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.** *"Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings"* — *"Administrators can view these logs in Account Management > Settings > Audit log"*, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says *"The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded."* The query below shows IAM API calls made **through this environment** — useful for spotting automation, not a change log. On the validation tenant, 30 days of these events held no group or policy change at all: only user lookups and scheduled `/lookups/iam_*` file uploads, which the query now excludes.
 >
 > <sub>**Sources:** [Account Management audit logs (DT docs)](https://docs.dynatrace.com/docs/manage/account-management/audit-logs).</sub>
 

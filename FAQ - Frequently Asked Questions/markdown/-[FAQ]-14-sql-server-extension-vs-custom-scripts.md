@@ -1,6 +1,6 @@
 # FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 10/02/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 14 — Custom SQL Server Scripts vs. the Dynatrace Extension | **Created:** July 2026 | **Last Updated:** 10/15/2026
 
 ## Overview
 
@@ -53,7 +53,7 @@ The reason to switch is not just parity. Scripts deliver numbers; the extension 
 | Keep Telegraf → Dynatrace metrics API | Queries unchanged | No topology, no Smartscape entities, no entity-aware Davis correlation (baselines still possible); second agent to operate |
 -->
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [SQL Server Monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/), [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — baselines for custom metrics, detailed in § 5.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [SQL Server Monitoring (Dynatrace Hub)](https://www.dynatrace.com/hub/detail/microsoft-sql-server-2/), [Metric events — Dynatrace Classic (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events) — baselines for custom metrics, detailed in § 5.</sub>
 
 <a id="two-views"></a>
 ## 2. Two Views of a Database: Caller-Side vs Server-Side
@@ -126,7 +126,7 @@ If the extension only matched your scripts metric-for-metric, the migration woul
 
 In community practice, the maintenance point is the one that lands hardest with DBA teams: the scripts are rarely the problem — the person who wrote them leaving is.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database; [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — *"Auto-adaptive thresholds and seasonal baselining are available only for metric selector events."*; [Extend metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics) — custom metrics are *"assigned to a host either automatically or by adding the dt.entity.host dimension"*, and *"You can also create custom alerts based on the ingested metrics."* **Derived:** the four-point value framing combines the cited sources with the DPS alerting model.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2), [Semantic Dictionary 1.340 changelog (DT docs)](https://docs.dynatrace.com/docs/semantic-dictionary/changelog) — 19 first-class Smartscape database models incl. SQL Server availability database/group/replica, instance, database; [Metric events — Dynatrace Classic (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events) — *"Auto-adaptive thresholds and seasonal baselining are available only for metric selector events."* The page is labeled Dynatrace Classic and says *"We encourage you to try Anomaly Detection for more advanced configuration options"* (re-read 10/15/2026); [Extend metrics (DT docs)](https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics) — custom metrics are *"assigned to a host either automatically or by adding the dt.entity.host dimension"*, and *"You can also create custom alerts based on the ingested metrics."* **Derived:** the four-point value framing combines the cited sources with the DPS alerting model.</sub>
 
 <a id="gaps-and-constraints"></a>
 ## 6. Honest Gaps and Constraints
@@ -176,7 +176,7 @@ Be clear-eyed about what that choice costs:
 
 If you skip the extension entirely and bring everything in through Telegraf, you are running Dynatrace as a metrics bucket — forfeiting the topology, entity model, and entity-aware Davis correlation that differentiate it, and handicapping the platform's ability to deliver the visibility and predictability you adopted it for. The fallback earns its keep as a **transition state** (parallel-run during migration) or for the rare check that resists a single-SELECT rewrite — not as the destination.
 
-> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2). [Metric events (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/metric-events) — auto-adaptive and seasonal baselines for metric selector events. **Derived:** the trade-off table combines the extension's documented entity model with the plain-custom-metric behavior of API-ingested series.</sub>
+> <sub>**Sources:** [Microsoft SQL Server extension (DT docs)](https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2). [Metric events — Dynatrace Classic (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence-classic/anomaly-detection/metric-events) — auto-adaptive and seasonal baselines for metric selector events. **Derived:** the trade-off table combines the extension's documented entity model with the plain-custom-metric behavior of API-ingested series.</sub>
 
 <a id="setup-and-cost"></a>
 ## 9. Setup Essentials and Cost
